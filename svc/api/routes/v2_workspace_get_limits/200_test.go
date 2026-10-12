@@ -13,13 +13,16 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_limits"
+	"google.golang.org/protobuf/proto"
 )
 
 func newRoute(h *testutil.Harness) *handler.Handler {
@@ -73,8 +76,10 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 		AutoscalingReplicasMax:                10,
 	})
 	require.NoError(t, err)
-	_, err = h.DB.RW().ExecContext(ctx, "UPDATE limits SET logdrains_max = 3 WHERE workspace_id = ?", workspaceID)
-	require.NoError(t, err)
+	require.NoError(t, db.Query.UpdateLogdrainsMax(ctx, h.DB.RW(), db.UpdateLogdrainsMaxParams{
+		LogdrainsMax: 3,
+		WorkspaceID:  workspaceID,
+	}))
 
 	running := createDeployment(t, h, setup, 500, 512, 1024)
 	insertTopology(t, h, workspaceID, running.ID, 2, db.DeploymentTopologyDesiredStatusRunning)
@@ -94,9 +99,9 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 
 	now := h.Clock.Now().UTC()
 	lastMonth := now.AddDate(0, -1, 0)
-	insertBillable(t, h, "billable_verifications_per_month_v2", workspaceID, now, 40_000)
-	insertBillable(t, h, "billable_ratelimits_per_month_v2", workspaceID, now, 2_000)
-	insertBillable(t, h, "billable_verifications_per_month_v2", workspaceID, lastMonth, 999)
+	insertRow(t, h, schema.BillableVerificationsPerMonthV2{Year: int16(now.Year()), Month: int8(now.Month()), WorkspaceID: workspaceID, Count: 40_000})
+	insertRow(t, h, schema.BillableRatelimitsPerMonthV2{Year: int16(now.Year()), Month: int8(now.Month()), WorkspaceID: workspaceID, Count: 2_000})
+	insertRow(t, h, schema.BillableVerificationsPerMonthV2{Year: int16(lastMonth.Year()), Month: int8(lastMonth.Month()), WorkspaceID: workspaceID, Count: 999})
 
 	// Usage of another workspace must not count toward this one
 	other := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
@@ -111,8 +116,8 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 		Domain:        uid.DNS1035() + ".example.com",
 	})
 	insertLogdrain(t, h, other.Workspace.ID)
-	insertBillable(t, h, "billable_verifications_per_month_v2", other.Workspace.ID, now, 7_000)
-	insertBillable(t, h, "billable_ratelimits_per_month_v2", other.Workspace.ID, now, 7_000)
+	insertRow(t, h, schema.BillableVerificationsPerMonthV2{Year: int16(now.Year()), Month: int8(now.Month()), WorkspaceID: other.Workspace.ID, Count: 7_000})
+	insertRow(t, h, schema.BillableRatelimitsPerMonthV2{Year: int16(now.Year()), Month: int8(now.Month()), WorkspaceID: other.Workspace.ID, Count: 7_000})
 
 	res := callGetLimits(h, route, bearer(rootKey))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -157,25 +162,24 @@ func TestGetLimitsWithoutComputePlanOrRequestsPerMinute(t *testing.T) {
 		"logsAuditRetentionDaysMax",
 		"logdrainsMax",
 	}, slices.Collect(maps.Keys(body.Data)))
-	require.JSONEq(t, `{"limit":null}`, string(body.Data["apiRequestsCountMaxPerMinute"]))
+	var requestsPerMinute map[string]any
+	require.NoError(t, json.Unmarshal(body.Data["apiRequestsCountMaxPerMinute"], &requestsPerMinute))
+	require.Equal(t, map[string]any{"limit": nil}, requestsPerMinute)
 	require.Equal(t, meteredLimit(1_000_000, 0), res.Body.Data.ApiBillableOperationsCountMaxPerMonth)
 }
 
-func createDeployment(t *testing.T, h *testutil.Harness, setup testutil.DeploymentTestSetup, cpuMillicores, memoryMib, storageMib int) db.Deployment {
+func createDeployment(t *testing.T, h *testutil.Harness, setup testutil.DeploymentTestSetup, cpuMillicores, memoryMib int32, storageMib uint32) db.Deployment {
 	t.Helper()
-	deployment := h.CreateDeployment(seed.CreateDeploymentRequest{
+	return h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
 		WorkspaceID:   setup.Workspace.ID,
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
+		CpuMillicores: cpuMillicores,
+		MemoryMib:     memoryMib,
+		StorageMib:    storageMib,
 	})
-	_, err := h.DB.RW().ExecContext(t.Context(),
-		"UPDATE deployments SET cpu_millicores = ?, memory_mib = ?, storage_mib = ? WHERE id = ?",
-		cpuMillicores, memoryMib, storageMib, deployment.ID,
-	)
-	require.NoError(t, err)
-	return deployment
 }
 
 func insertTopology(t *testing.T, h *testutil.Harness, workspaceID, deploymentID string, replicasMax uint32, status db.DeploymentTopologyDesiredStatus) {
@@ -194,20 +198,27 @@ func insertTopology(t *testing.T, h *testutil.Harness, workspaceID, deploymentID
 
 func insertLogdrain(t *testing.T, h *testutil.Harness, workspaceID string) {
 	t.Helper()
-	_, err := h.DB.RW().ExecContext(t.Context(),
-		"INSERT INTO logdrains (id, workspace_id, name, stream, config, lease_id, fencing_token, created_at) VALUES (?, ?, ?, 'audit_logs', ?, '', '', ?)",
-		uid.New(uid.LogdrainPrefix), workspaceID, "KEBAP", []byte("{}"), time.Now().UnixMilli(),
-	)
+	config, err := proto.Marshal(&logdrainv1.Config{
+		Stream: &logdrainv1.Config_AuditLogs{AuditLogs: &logdrainv1.AuditLogStreamConfig{}},
+	})
 	require.NoError(t, err)
+	require.NoError(t, db.Query.InsertLogdrain(t.Context(), h.DB.RW(), db.InsertLogdrainParams{
+		ID:          uid.New(uid.LogdrainPrefix),
+		WorkspaceID: workspaceID,
+		Name:        "KEBAP",
+		Stream:      db.LogdrainsStreamAuditLogs,
+		Config:      config,
+		CreatedAt:   time.Now().UnixMilli(),
+		UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
+	}))
 }
 
-func insertBillable(t *testing.T, h *testutil.Harness, table, workspaceID string, month time.Time, count int64) {
+func insertRow[T schema.Row](t *testing.T, h *testutil.Harness, row T) {
 	t.Helper()
-	err := h.ClickHouse.Exec(t.Context(),
-		"INSERT INTO default."+table+" (year, month, workspace_id, count) VALUES (?, ?, ?, ?)",
-		month.Year(), int(month.Month()), workspaceID, count,
-	)
+	batch, err := h.ClickHouse.Conn().PrepareBatch(t.Context(), clickhouse.InsertQuery[T]())
 	require.NoError(t, err)
+	require.NoError(t, batch.AppendStruct(&row))
+	require.NoError(t, batch.Send())
 }
 
 func TestGetLimitsReturnsNullForUnlimitedCustomDomains(t *testing.T) {
@@ -226,7 +237,9 @@ func TestGetLimitsReturnsNullForUnlimitedCustomDomains(t *testing.T) {
 		Data map[string]json.RawMessage `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(res.RawBody), &body))
-	require.JSONEq(t, `{"limit":null,"current":0}`, string(body.Data["customDomainsMax"]))
+	var customDomains map[string]any
+	require.NoError(t, json.Unmarshal(body.Data["customDomainsMax"], &customDomains))
+	require.Equal(t, map[string]any{"limit": nil, "current": float64(0)}, customDomains)
 }
 
 func limit(maximum int64) openapi.V2WorkspaceGetLimitsLimit {

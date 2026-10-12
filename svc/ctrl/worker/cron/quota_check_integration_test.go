@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -32,9 +32,9 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws2.ID, 300_000, now, "VALID")
 		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws3.ID, 250_000, now, "VALID")
 
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws1.ID, 200_000, year, month)
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws2.ID, 300_000, year, month)
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws3.ID, 250_000, year, month)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouse, ws1.ID, 200_000, year, month)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouse, ws2.ID, 300_000, year, month)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouse, ws3.ID, 250_000, year, month)
 
 		resp, err := callRunQuotaCheck(h, billingPeriod)
 		require.NoError(t, err)
@@ -47,7 +47,7 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 		ws := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 50_000})
 
 		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 100_000, now, "VALID")
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 100_000, year, month)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouse, ws.ID, 100_000, year, month)
 
 		resp, err := callRunQuotaCheck(h, billingPeriod)
 		require.NoError(t, err)
@@ -61,8 +61,8 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 200_000, now, "VALID")
 		h.ClickHouseSeed.InsertRatelimits(h.Ctx, ws.ID, 150_000, now, true)
 
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 200_000, year, month)
-		waitForRatelimitCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 150_000, year, month)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouse, ws.ID, 200_000, year, month)
+		waitForRatelimitCount(t, h.Ctx, h.ClickHouse, ws.ID, 150_000, year, month)
 
 		resp, err := callRunQuotaCheck(h, billingPeriod)
 		require.NoError(t, err)
@@ -80,7 +80,7 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 200_000, now, "VALID")
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 200_000, year, month)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouse, ws.ID, 200_000, year, month)
 
 		resp, err := callRunQuotaCheck(h, billingPeriod)
 		require.NoError(t, err)
@@ -92,7 +92,7 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 
 		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 500_000, now, "VALID")
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 500_000, year, month)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouse, ws.ID, 500_000, year, month)
 
 		resp, err := callRunQuotaCheck(h, billingPeriod)
 		require.NoError(t, err)
@@ -101,23 +101,17 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 	})
 }
 
-func waitForVerificationCount(t *testing.T, ctx context.Context, conn ch.Conn, workspaceID string, expectedCount, year, month int) {
+func waitForVerificationCount(t *testing.T, ctx context.Context, reader clickhouse.ClickHouse, workspaceID string, expectedCount, year, month int) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		var count int64
-		err := conn.QueryRow(ctx,
-			"SELECT sum(count) FROM default.billable_verifications_per_month_v2 WHERE workspace_id = ? AND year = ? AND month = ?",
-			workspaceID, year, month).Scan(&count)
+		count, err := reader.GetBillableVerifications(ctx, workspaceID, year, month)
 		require.NoError(c, err)
 		require.Equal(c, int64(expectedCount), count)
 	}, 2*time.Minute, time.Second)
 }
 
-func waitForRatelimitCount(t *testing.T, ctx context.Context, conn ch.Conn, workspaceID string, expectedCount, year, month int) {
+func waitForRatelimitCount(t *testing.T, ctx context.Context, reader clickhouse.ClickHouse, workspaceID string, expectedCount, year, month int) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		var count int64
-		err := conn.QueryRow(ctx,
-			"SELECT sum(count) FROM default.billable_ratelimits_per_month_v2 WHERE workspace_id = ? AND year = ? AND month = ?",
-			workspaceID, year, month).Scan(&count)
+		count, err := reader.GetBillableRatelimits(ctx, workspaceID, year, month)
 		require.NoError(c, err)
 		require.Equal(c, int64(expectedCount), count)
 	}, 2*time.Minute, time.Second)

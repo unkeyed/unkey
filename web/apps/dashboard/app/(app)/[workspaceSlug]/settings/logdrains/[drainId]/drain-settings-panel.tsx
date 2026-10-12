@@ -45,7 +45,7 @@ export function DrainSettingsPanel({
                 Cancel
               </Button>
               <Button type="submit" variant="primary" size="md" loading={update.isLoading}>
-                Save changes
+                Save
               </Button>
             </SlidePanelFooter>
           </form>

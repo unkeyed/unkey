@@ -14,7 +14,9 @@ sources:
 import { versions } from "/snippets/versions.mdx";
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-`@unkey/ratelimit` (version {versions.tsRatelimit}) is a small wrapper around the `ratelimit.limit` endpoint for code that <Tooltip tip="Here: the standalone rate limiting API in API Management, keyed by any identifier. Not key rate limits or gateway policies.">rate limits</Tooltip> user IDs, IP addresses, or anything else without issuing API keys. You set the namespace and limit once, so each check is one line. It also answers from memory for identifiers that are already blocked, and returns a fallback answer if the API takes too long.
+Use `@unkey/ratelimit` (version {versions.tsRatelimit}) to rate limit a Next.js route, an Express handler, or any other TypeScript server. You pass a user id, a customer id, or an IP address, and Unkey keeps the counters, so there's no Redis to run. The old Next.js and Express rate limit quickstarts point here.
+
+The package wraps `ratelimit.limit`. You set the namespace and limit once, so each check is one line. It answers from memory for identifiers that are already blocked, and it returns a fallback answer if the API takes too long. It doesn't issue API keys. For a limit stored on a key, including a monthly credit quota, see [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits).
 
 <RootKeyPrereq />
 
@@ -75,23 +77,50 @@ const limiter = new Ratelimit({
 
 ## Use it
 
-```typescript
-export async function handler(request: Request) {
-  const identifier = getUserId(request); // or an IP address, an API key ID, anything stable
+The same `limiter` works in a Next.js route handler and in Express. `limit` returns `{ success, limit, remaining, reset }`. Unkey's HTTP response to your server is 200 even when `success` is `false`, so your handler is the one that returns `429 Too Many Requests`. <a href="https://www.rfc-editor.org/rfc/rfc6585#section-4" target="_blank">RFC 6585</a> defines that status and allows `Retry-After` in seconds. `reset` is Unix milliseconds. This package doesn't set rate limit headers for you.
 
-  const result = await limiter.limit(identifier);
+```typescript app/api/search/route.ts
+export async function POST(request: Request) {
+  const userId = request.headers.get("x-user-id") ?? "anonymous";
+  const result = await limiter.limit(userId);
+
   if (!result.success) {
-    return new Response("try again later", {
+    const retryAfter = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
+    return new Response("Too many requests", {
       status: 429,
-      headers: { "Retry-After": String(Math.ceil((result.reset - Date.now()) / 1000)) },
+      headers: {
+        "Retry-After": String(retryAfter),
+        "X-RateLimit-Limit": String(result.limit),
+        "X-RateLimit-Remaining": String(result.remaining),
+        "X-RateLimit-Reset": String(Math.floor(result.reset / 1000)),
+      },
     });
   }
 
-  // handle the request
+  return new Response("ok");
 }
 ```
 
-`limit(identifier, opts?)` returns `{ success, limit, remaining, reset, overrideId? }`. `reset` is Unix milliseconds, and `overrideId` is set when an override applied. The optional second argument takes `cost` (default 1) and `limit: { limit, duration }` to use a different limit for this call:
+```typescript middleware.ts
+import { Ratelimit } from "@unkey/ratelimit";
+import type { NextFunction, Request, Response } from "express";
+
+function rateLimit(limiter: Ratelimit) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.header("x-user-id") ?? req.ip ?? "anonymous";
+    const result = await limiter.limit(userId);
+    if (result.success) {
+      next();
+      return;
+    }
+    const retryAfter = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
+    res.set("Retry-After", String(retryAfter));
+    res.status(429).send("Too many requests");
+  };
+}
+```
+
+`X-RateLimit-Reset` in the route handler is Unix seconds, matching the Compute gateway. The JSON field `reset` stays in milliseconds. Which headers Unkey itself sends is on [Rate limiting](/api-management/ratelimiting/overview#what-a-limited-request-looks-like). `overrideId` is set when an override applied. The optional second argument takes `cost` (default 1) and `limit: { limit, duration }` to use a different limit for this call:
 
 ```typescript
 await limiter.limit(identifier, { cost: 5 });

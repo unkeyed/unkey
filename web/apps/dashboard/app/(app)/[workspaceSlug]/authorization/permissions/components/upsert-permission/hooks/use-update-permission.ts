@@ -1,52 +1,30 @@
 import { useInvalidateRbacQueries } from "@/hooks/use-invalidate-rbac-queries";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
+import type { PermissionFormValues } from "../upsert-permission.schema";
+
+type UpdatePermissionInput = PermissionFormValues & { permissionId: string };
 
 export const useUpdatePermission = (onSuccess: () => void) => {
   const invalidateRbacQueries = useInvalidateRbacQueries();
-  const permission = trpc.authorization.permissions.update.useMutation({
-    onSuccess(data) {
-      invalidateRbacQueries();
-      // Show success toast
-      toast.success("Permission Updated", {
-        description: data.message,
+  return useMutation({
+    mutationFn: async ({ permissionId, name, slug, description }: UpdatePermissionInput) => {
+      await getUnkeyClient().permissions.updatePermission({
+        permission: permissionId,
+        name,
+        slug,
+        description,
       });
+    },
+    onSuccess() {
+      invalidateRbacQueries();
+      toast.success("Permission Updated", { description: "Permission updated successfully" });
       onSuccess();
     },
     onError(err) {
-      if (err.data?.code === "CONFLICT") {
-        toast.error("Permission Already Exists", {
-          description:
-            err.message || "A permission with this name or slug already exists in your workspace.",
-        });
-      } else if (err.data?.code === "NOT_FOUND") {
-        toast.error("Permission Not Found", {
-          description:
-            "The permission you're trying to update no longer exists or you don't have access to it.",
-        });
-      } else if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid Permission Configuration", {
-          description: `Please check your permission settings. ${err.message || ""}`,
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We encountered an issue while saving your permission. Please try again later or contact support.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      } else {
-        toast.error("Failed to Save Permission", {
-          description: err.message || "An unexpected error occurred. Please try again later.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
+      const { message, description } = getErrorToast(err, "Failed to Save Permission");
+      toast.error(message, { description });
     },
   });
-  return permission;
 };

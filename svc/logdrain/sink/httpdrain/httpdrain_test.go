@@ -37,12 +37,14 @@ func TestDeliverHECBatch(t *testing.T) {
 		Format:   logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_HEC,
 		Headers:  http.Header{"Authorization": {"Bearer test-token"}},
 	})
+	attributes, err := json.Marshal(map[string]any{"nested": map[string]any{"count": 3}})
+	require.NoError(t, err)
 	batch := testBatch()
 	batch.Events[0].Time = 1790251200123
 	batch.Events[0].Payload = sink.RuntimeLogPayload{
 		LogID:      "log_1",
 		Message:    "first\nsecond",
-		Attributes: json.RawMessage(`{"nested":{"count":3}}`),
+		Attributes: attributes,
 	}
 	batch.Events[0].Stream = "runtime_logs"
 	result, err := drain.Deliver(t.Context(), batch)
@@ -59,9 +61,11 @@ func TestDeliverHECBatch(t *testing.T) {
 }
 
 func TestHECRejectsApplicationErrors(t *testing.T) {
+	responseBody, err := json.Marshal(map[string]any{"text": "Server is busy", "code": 9})
+	require.NoError(t, err)
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Retry-After", "17")
-		_, err := io.WriteString(w, `{"text":"Server is busy","code":9}`)
+		_, err := w.Write(responseBody)
 		if err != nil {
 			t.Error(err)
 		}
@@ -76,7 +80,7 @@ func TestHECRejectsApplicationErrors(t *testing.T) {
 	require.False(t, result.Acknowledged)
 	require.Equal(t, http.StatusOK, result.HTTPStatus)
 	require.Equal(t, 17*time.Second, result.RetryAfter)
-	require.JSONEq(t, `{"text":"Server is busy","code":9}`, result.ResponseBody)
+	require.JSONEq(t, string(responseBody), result.ResponseBody)
 }
 
 func TestHECRequiresRecognizedAcceptance(t *testing.T) {
@@ -194,8 +198,10 @@ func TestDeliverRuntimeLog(t *testing.T) {
 				w.WriteHeader(http.StatusNoContent)
 			}))
 			t.Cleanup(server.Close)
+			attributes, err := json.Marshal(map[string]any{"order": map[string]any{"id": 42}})
+			require.NoError(t, err)
 			batch := testBatch()
-			batch.Events = []sink.Event{{EventID: "rlog_1", Stream: "runtime_logs", Time: 123, Payload: sink.RuntimeLogPayload{LogID: "rlog_1", Severity: "error", Message: "first\nsecond", Attributes: json.RawMessage(`{"order":{"id":42}}`), ProjectID: "project", AppID: "app", EnvironmentID: "env", DeploymentID: "deployment", Region: "local"}}}
+			batch.Events = []sink.Event{{EventID: "rlog_1", Stream: "runtime_logs", Time: 123, Payload: sink.RuntimeLogPayload{LogID: "rlog_1", Severity: "error", Message: "first\nsecond", Attributes: attributes, ProjectID: "project", AppID: "app", EnvironmentID: "env", DeploymentID: "deployment", Region: "local"}}}
 			result, err := newTestSink(t, Config{Endpoint: server.URL, Format: format}).Deliver(t.Context(), batch)
 			require.NoError(t, err)
 			require.True(t, result.Acknowledged)

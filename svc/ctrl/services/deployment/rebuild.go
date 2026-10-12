@@ -7,16 +7,10 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/deployactor"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-)
-
-const (
-	// The ops bearer token is the only identity at this boundary, so every
-	// rebuild shares one actor.
-	rebuildActorID   = "unkey-ops"
-	rebuildActorName = "Unkey Ops"
 )
 
 // Rebuild creates a deployment that re-runs the source deployment's commit, or
@@ -66,8 +60,8 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			Trigger: &hydrav1.Trigger{
 				Source: ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY,
 				Actor: &ctrlv1.ActorInfo{
-					Id:        rebuildActorID,
-					Name:      rebuildActorName,
+					Id:        deployactor.OpsID,
+					Name:      deployactor.OpsName,
 					Type:      ctrlv1.ActorType_ACTOR_TYPE_SYSTEM,
 					RemoteIp:  "",
 					UserAgent: "",
