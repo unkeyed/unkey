@@ -36,6 +36,16 @@ actions:
   - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["V2PermissionsUpdatePermissionRequestBody"]["properties"]["description"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2PermissionsUpdatePermissionRequestBody"]["properties"]["description"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2PermissionsUpdateRoleRequestBody"]["properties"]["description"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2PermissionsUpdateRoleRequestBody"]["properties"]["description"]
+    update:
+      nullable: true
   - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["name"]["type"]
     update: string
   - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["name"]
@@ -128,5 +138,10 @@ actions:
   - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["primaryColor"]["type"]
     update: string
   - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["primaryColor"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2WorkspaceGetLimitsLimit"]["properties"]["limit"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2WorkspaceGetLimitsLimit"]["properties"]["limit"]
     update:
       nullable: true

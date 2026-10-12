@@ -1,28 +1,18 @@
 "use client";
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { SettingCard, Skeleton } from "@unkey/ui";
 
 export const Usage: React.FC<{
   quota: number;
 }> = ({ quota }) => {
   const {
-    data: usage,
+    data: limits,
     isLoading,
     error,
     refetch,
-  } = trpc.billing.queryUsage.useQuery(undefined, {
-    // Cache for 30 seconds to reduce unnecessary refetches
-    // TRPC automatically scopes by workspace via requireWorkspace middleware
-    staleTime: 30_000, // 30 seconds
-    // Skip batching to prevent analytics slowdown from blocking core UI
-    trpc: {
-      context: {
-        skipBatch: true,
-      },
-    },
-    retry: 1,
-  });
+  } = useWorkspaceLimits({ staleTime: 5 * 60 * 1000 });
 
   if (isLoading) {
     return (
@@ -49,7 +39,7 @@ export const Usage: React.FC<{
         contentWidth="w-full @2xl:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
-          <p className="text-sm text-error-11">Failed to load usage: {error.message}</p>
+          <p className="text-sm text-error-11">Failed to load usage: {getErrorMessage(error)}</p>
           <button
             type="button"
             onClick={() => refetch()}
@@ -62,7 +52,7 @@ export const Usage: React.FC<{
     );
   }
 
-  if (!usage) {
+  if (!limits) {
     return (
       <SettingCard
         title="Usage this month"
@@ -77,16 +67,7 @@ export const Usage: React.FC<{
     );
   }
 
-  // Safely extract and validate numeric values with fallbacks
-  const verifications =
-    typeof usage.billableVerifications === "number" && !Number.isNaN(usage.billableVerifications)
-      ? usage.billableVerifications
-      : 0;
-  const ratelimits =
-    typeof usage.billableRatelimits === "number" && !Number.isNaN(usage.billableRatelimits)
-      ? usage.billableRatelimits
-      : 0;
-  const current = verifications + ratelimits;
+  const current = limits.apiBillableOperationsCountMaxPerMonth.current ?? 0;
   const max = quota;
   const percent = max > 0 ? Math.round((current / max) * 100) : 0;
 

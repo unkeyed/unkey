@@ -22,6 +22,7 @@ type BulkQuerier interface {
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
+	InsertGithubAppInstallations(ctx context.Context, db DBTX, args []InsertGithubAppInstallationParams) error
 	InsertGithubRepoConnections(ctx context.Context, db DBTX, args []InsertGithubRepoConnectionParams) error
 	UpsertGithubRepoConnection(ctx context.Context, db DBTX, args []UpsertGithubRepoConnectionParams) error
 	InsertHorizontalAutoscalingPolicies(ctx context.Context, db DBTX, args []InsertHorizontalAutoscalingPolicyParams) error
@@ -38,6 +39,7 @@ type BulkQuerier interface {
 	InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error
 	UpsertKeySpace(ctx context.Context, db DBTX, args []UpsertKeySpaceParams) error
 	UpsertLimit(ctx context.Context, db DBTX, args []UpsertLimitParams) error
+	InsertLogdrains(ctx context.Context, db DBTX, args []InsertLogdrainParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	UpsertPermission(ctx context.Context, db DBTX, args []UpsertPermissionParams) error
 	InsertPortals(ctx context.Context, db DBTX, args []InsertPortalParams) error
@@ -45,6 +47,7 @@ type BulkQuerier interface {
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
 	InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
+	UpsertRegionWithCanSchedule(ctx context.Context, db DBTX, args []UpsertRegionWithCanScheduleParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
 	InsertUnkeyPermissions(ctx context.Context, db DBTX, args []InsertUnkeyPermissionParams) error

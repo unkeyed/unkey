@@ -6,15 +6,85 @@ sources:
   - svc/api/routes/v2_ratelimit_limit/handler.go
   - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitRequestBody.yaml
   - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - svc/api/openapi/spec/common/KeyCreditsRefill.yaml
+  - svc/frontline/internal/policies/ratelimit/headers.go
+  - svc/api/internal/middleware/authentication.go
   - internal/services/ratelimit/doc.go
   - internal/services/keys/validation.go
   - pkg/rbac/permissions.go
   - web/internal/api/src/sdk/ratelimit.ts
+  - web/internal/api/src/sdk/keys.ts
 ---
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-<Tooltip tip="Three Unkey features share this name: the standalone ratelimit API and key or identity limits (this section), and the Compute gateway rate limit policy. See the glossary.">Rate limiting</Tooltip> caps how often something can happen in a time window. API Management gives you two ways to do it: a standalone API you call with any identifier you choose, or limits on a key or identity that are checked when the key is verified. (The Compute gateway's rate limit policy is a separate feature. See the [glossary](/platform/glossary).)
+Unkey enforces per-user and per-customer rate limits, and a monthly request quota, on an API you host yourself. You don't run Redis or any other counter store. Attach both to an API key, or call `ratelimit.limit` with a user id, a customer id, or any other stable string.
+
+A rate limit is a sliding window, such as 100 requests per minute. A monthly quota is credits on the key: set `credits.refill.interval` to `monthly`, and each successful `keys.verifyKey` spends from that balance. Credits are an exact total. Rate limit counts are close, and they can run a little high when traffic is split across regions. See [Credits and refill](/api-management/keys/credits-and-refill).
+
+## Add per-user rate limits
+
+Create the key with a per-minute limit and a monthly credit refill, then verify it on each request. `externalId` ties the key to one customer.
+
+```typescript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+await unkey.keys.createKey({
+  apiId: "api_...",
+  externalId: "cus_acme",
+  credits: {
+    remaining: 10000,
+    refill: { interval: "monthly", amount: 10000, refillDay: 1 },
+  },
+  ratelimits: [
+    { name: "requests", limit: 100, duration: 60000, autoApply: true },
+  ],
+});
+
+export async function handler(request: Request) {
+  const header = request.headers.get("authorization") ?? "";
+  const key = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : header;
+  const { data } = await unkey.keys.verifyKey({ key });
+
+  if (data.valid) {
+    return new Response("ok");
+  }
+
+  if (data.code === "RATE_LIMITED") {
+    const resetMs = data.ratelimits?.find((limit) => limit.exceeded)?.reset ?? Date.now();
+    const retryAfter = Math.max(1, Math.ceil((resetMs - Date.now()) / 1000));
+    return new Response("Too many requests", {
+      status: 429,
+      headers: { "Retry-After": String(retryAfter) },
+    });
+  }
+
+  if (data.code === "USAGE_EXCEEDED") {
+    return new Response("Monthly quota exceeded", { status: 429 });
+  }
+
+  return new Response("Unauthorized", { status: 401 });
+}
+```
+
+`duration` is the window in milliseconds. `autoApply: true` checks that limit on every verification. The monthly refill replaces the balance on `refillDay` at 00:00 UTC. It doesn't add to what's left.
+
+For an endpoint with no API key, call `ratelimit.limit` with your own identifier instead. The same pattern is on [ratelimit.limit and multiLimit](/api-management/ratelimiting/limit-and-multi-limit).
+
+## What a limited request looks like
+
+`keys.verifyKey` and `ratelimit.limit` return HTTP 200 when your user is over their limit. Read the body. `keys.verifyKey` sets `data.valid` to `false` and `data.code` to `RATE_LIMITED` (or `USAGE_EXCEEDED` when credits run out). Each checked limit is in `data.ratelimits`, with `limit`, `remaining`, `reset`, and `exceeded`. `ratelimit.limit` sets `data.success` to `false` and puts `limit`, `remaining`, and `reset` on `data`. `reset` is Unix milliseconds, when the current window ends.
+
+Your server is the one that returns `429 Too Many Requests` to the caller. <a href="https://www.rfc-editor.org/rfc/rfc6585#section-4" target="_blank">RFC 6585</a> defines that status and says the response may include `Retry-After`, a number of seconds to wait. Set it from `reset`, and use at least 1 second. Unkey doesn't send `Retry-After` or `X-RateLimit-*` on these two endpoints for your user's limit, so copy `limit`, `remaining`, and `reset` onto your own response if you want those headers. `X-RateLimit-Reset` on the Compute gateway is Unix seconds, so divide `reset` by 1000 if you want to match it.
+
+If the API runs on Compute, the gateway returns 429 itself. The response has `Retry-After` (seconds, never under 1), `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` (Unix seconds). See [rate_limited](/errors/frontline/client/rate_limited).
+
+Your server's own calls to `api.unkey.com` have a separate workspace limit. If you exceed it, Unkey returns HTTP 429 with `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` (seconds until the window ends), and `Retry-After`. Those headers describe your workspace's budget for the Unkey API, not your users' limits.
+
+<Tooltip tip="Three Unkey features share this name: the standalone ratelimit API and key or identity limits (this section), and the Compute gateway rate limit policy. See the glossary.">Rate limiting</Tooltip> in API Management has two forms. A standalone API takes any identifier you choose. Limits on a key or identity are checked when the key is verified. The Compute gateway's rate limit policy is separate. See the [glossary](/platform/glossary).
 
 ## Choose a rate limit
 

@@ -23,7 +23,7 @@ func TestListSessionsFailsOnMalformedScopes(t *testing.T) {
 	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID).Session("*"), permissions.Read).Value)
 
 	malformed := active(h, "user_1")
-	malformed.scopes = `["keys:read"]`
+	malformed.rawScopes = []byte(`["keys:read"]`)
 	insertSession(t, h, stored.ID, workspace.ID, malformed)
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, headers, request(stored.ID))

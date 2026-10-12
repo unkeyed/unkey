@@ -1,0 +1,20 @@
+type: object
+description: The time window the usage covers.
+required:
+  - start
+  - end
+properties:
+  start:
+    type: integer
+    format: int64
+    description: Unix timestamp in milliseconds of the first day of the month, 00:00 UTC.
+    example: 1790812800000
+  end:
+    type: integer
+    format: int64
+    description: |
+      Unix timestamp in milliseconds of the end of the period, exclusive. For
+      the current month it is the time of the request. For a past month it is
+      the start of the next month.
+    example: 1790946000000
+additionalProperties: false

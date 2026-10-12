@@ -1,7 +1,7 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { type Deployment, collection } from "@/lib/collections";
+import { type DeploymentSummary, collection } from "@/lib/collections";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
@@ -12,8 +12,8 @@ import { DomainsSection } from "./components/domains-section";
 type PromotionDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  targetDeployment: Deployment;
-  currentDeployment: Deployment;
+  targetDeployment: DeploymentSummary;
+  currentDeployment: DeploymentSummary;
 };
 
 export const PromotionDialog = ({

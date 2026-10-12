@@ -13,6 +13,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/email"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
@@ -95,7 +96,7 @@ func TestDeploySpendCheck_ReAlertAfterBudgetChange(t *testing.T) {
 	ctx := h.Context()
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 
@@ -180,7 +181,7 @@ func TestDeploySpendCheck_BudgetChurnDoesNotSpam(t *testing.T) {
 	ctx := h.Context()
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 
@@ -230,7 +231,7 @@ func TestDeploySpendCheck_SuspendedDoesNotWarn(t *testing.T) {
 	ctx := h.Context()
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
 	})
 

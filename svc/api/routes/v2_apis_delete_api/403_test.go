@@ -64,9 +64,10 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for permission for different API
 	t.Run("permission for different API", func(t *testing.T) {
 		// Create a root key with permissions for a specific different API
+		differentKeyspaceID := uid.New(uid.KeySpacePrefix)
 		rootKey := h.CreateRootKey(
 			workspace.ID,
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/ks_different#delete", workspace.ID, api.ProjectID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", workspace.ID, api.ProjectID, differentKeyspaceID),
 		)
 
 		headers := http.Header{

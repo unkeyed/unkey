@@ -55,7 +55,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []string{"role_123"},
+			Roles: []string{uid.New(uid.RolePrefix)},
 		}
 
 		headers := http.Header{
@@ -119,7 +119,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []string{"role_123"},
+			Roles: []string{uid.New(uid.RolePrefix)},
 		}
 
 		headers := http.Header{
@@ -165,7 +165,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []string{"role_123"},
+			Roles: []string{uid.New(uid.RolePrefix)},
 		}
 
 		headers := http.Header{
@@ -211,7 +211,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []string{"role_123"},
+			Roles: []string{uid.New(uid.RolePrefix)},
 		}
 
 		headers := http.Header{
