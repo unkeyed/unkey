@@ -3882,6 +3882,16 @@ type Querier interface {
 	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsPolicyConfigParams) error
+	// UpsertFlag creates or replaces a definition. Only tests use it, to change the
+	// default of a fixed slug between cases.
+	//
+	//  INSERT INTO flags (slug, description, default_value, visible, allow_enable, allow_disable)
+	//  VALUES (?, ?, ?,
+	//      ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE description = VALUES(description),
+	//      default_value = VALUES(default_value), visible = VALUES(visible),
+	//      allow_enable = VALUES(allow_enable), allow_disable = VALUES(allow_disable)
+	UpsertFlag(ctx context.Context, db DBTX, arg UpsertFlagParams) error
 	//UpsertGithubRepoConnection
 	//
 	//  INSERT INTO github_repo_connections (
