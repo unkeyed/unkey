@@ -108,8 +108,8 @@ Changes to `dev/cluster.yaml` apply only when creating a cluster, because
 `ctlptl apply` can delete a cluster when its configuration changes. To adopt
 cluster configuration changes, explicitly reset it using the command below.
 
-The toolchain pins Minikube 1.39.0, Kubernetes/kubectl 1.36.4, and Cilium 1.20.2.
-Kubernetes 1.36.4 is built into Minikube's version list, avoiding a remote
+The toolchain pins Minikube 1.39.0, Kubernetes/kubectl 1.37.0, and Cilium 1.20.2.
+Kubernetes 1.37.0 is built into Minikube's version list, avoiding a remote
 version lookup during startup. Cilium and Hubble use manifests generated from
 the same chart with `mise exec -- bash dev/generate-cilium.sh`. Orbs use bridge
 networking and the matching CiliumNetworkPolicy CRD without policy enforcement.

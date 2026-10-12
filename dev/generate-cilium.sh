@@ -7,7 +7,7 @@ trap 'rm -rf "$temporary"' EXIT
 
 mise exec -- helm template cilium cilium \
   --repo https://helm.cilium.io --version 1.20.2 \
-  --namespace kube-system --kube-version 1.36.4 \
+  --namespace kube-system --kube-version 1.37.0 \
   --set operator.replicas=1 \
   --set ipam.operator.clusterPoolIPv4PodCIDRList=10.244.0.0/16 \
   --set hubble.tls.auto.method=cronJob \

@@ -24,7 +24,7 @@ class LocalDevTest(unittest.TestCase):
         for name in ("Tiltfile", "Dockerfile.binary", "04-seed-workspace.sql", "clickhouse-local-admin.sql", "init-clickhouse.sh", "start-cluster.sh", "stripe-webhook-secret.sh", "cluster.yaml", "cluster.orb.yaml"):
             shutil.copyfile(ROOT / "dev" / name, cls.dev / name)
         cls.profile = {"Name": "minikube", "Config": {"KubernetesConfig": {
-            "KubernetesVersion": "v1.36.4", "CNI": "./dev/k8s/manifests/cilium.yaml",
+            "KubernetesVersion": "v1.37.0", "CNI": "./dev/k8s/manifests/cilium.yaml",
         }}}
         (cls.dev / "k8s").symlink_to(ROOT / "dev/k8s", target_is_directory=True)
         (cls.root / "pkg").symlink_to(ROOT / "pkg", target_is_directory=True)
@@ -511,9 +511,9 @@ class LocalDevTest(unittest.TestCase):
     def test_mismatched_cluster_versions_and_networks_stop_without_changing_data(self):
         for version, cni in (
             ("v1.35.8", "./dev/k8s/manifests/cilium.yaml"),
-            ("v1.37.0", "./dev/k8s/manifests/cilium.yaml"),
-            ("v1.36.4", "cilium"),
-            ("v1.36.4", "bridge"),
+            ("v1.36.4", "./dev/k8s/manifests/cilium.yaml"),
+            ("v1.37.0", "cilium"),
+            ("v1.37.0", "bridge"),
         ):
             with self.subTest(version=version, cni=cni):
                 self.log.write_text("")
