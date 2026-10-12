@@ -99,7 +99,6 @@ import { queryRatelimitLogEnrichment } from "./ratelimit/query-logs/enrichment";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
-import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { cancelDeploy } from "./stripe/cancelDeploy";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { changeDeployPlan } from "./stripe/changeDeployPlan";
@@ -227,9 +226,6 @@ export const router = t.router({
     }),
     namespace: t.router({
       queryRatelimitLastUsed,
-      update: t.router({
-        name: updateNamespaceName,
-      }),
       delete: deleteNamespace,
     }),
   }),

@@ -1,8 +1,7 @@
 "use client";
 
-import { trpcClient } from "@/lib/collections/client";
 import { useInvalidateNamespaces, useNamespace } from "@/lib/queries/ratelimit-namespaces";
-import { getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import {
   CopyInput,
   EmptyState,
@@ -73,23 +72,17 @@ export const SettingsClient = ({ namespaceId }: Props) => {
     }
     setIsSaving(true);
     try {
-      const sameName = await getUnkeyClient()
-        .ratelimit.listNamespaces({ search: namespaceName, limit: 100 })
-        .catch((error: unknown) => {
-          toast.error("Failed to update namespace");
-          throw error;
-        });
-      if (sameName.result.data.some((ns) => ns.id !== namespaceId && ns.name === namespaceName)) {
-        return toast.error("Another namespace already has this name");
-      }
-      const mutation = trpcClient.ratelimit.namespace.update.name.mutate({
-        namespaceId,
+      const mutation = getUnkeyClient().ratelimit.updateNamespace({
+        namespace: namespaceId,
         name: namespaceName,
       });
       toast.promise(mutation, {
         loading: "Updating namespace...",
         success: "Namespace updated",
-        error: "Failed to update namespace",
+        error: (err) => ({
+          message: "Failed to update namespace",
+          description: getErrorMessage(err),
+        }),
       });
       await mutation;
       await invalidateNamespaces();
