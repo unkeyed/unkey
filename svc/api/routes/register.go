@@ -49,6 +49,8 @@ import (
 	v2PermissionsListPermissions "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_permissions"
 	v2PermissionsListRoles "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_roles"
 	v2PermissionsSetRolePermissions "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_set_role_permissions"
+	v2PermissionsUpdatePermission "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_update_permission"
+	v2PermissionsUpdateRole "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_update_role"
 
 	v2KeysAddPermissions "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_permissions"
 	v2KeysAddRoles "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_roles"
@@ -114,6 +116,8 @@ import (
 	v2ProjectsUpdateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 
 	v2GithubInstallApp "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
+	v2WorkspaceGetLimits "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_limits"
+	v2WorkspaceGetUsage "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_usage"
 
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
@@ -522,6 +526,24 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2PermissionsDeletePermission.Handler{
 
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/permissions.updatePermission
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PermissionsUpdatePermission.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/permissions.updateRole
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PermissionsUpdateRole.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 		},
@@ -979,6 +1001,26 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:                  svc.Database,
 			GitHubAppName:       svc.GitHubAppName,
 			GitHubPrivateKeyPEM: svc.GitHubPrivateKeyPEM,
+		},
+	)
+
+	// v2/workspace.getLimits
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2WorkspaceGetLimits.Handler{
+			DB:         svc.Database,
+			ClickHouse: svc.ClickHouse,
+			Clock:      svc.Clock,
+		},
+	)
+
+	// v2/workspace.getUsage
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2WorkspaceGetUsage.Handler{
+			DB:         svc.Database,
+			ClickHouse: svc.ClickHouse,
+			Clock:      svc.Clock,
 		},
 	)
 

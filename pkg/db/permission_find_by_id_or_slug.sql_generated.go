@@ -7,13 +7,25 @@ package db
 
 import (
 	"context"
+	"database/sql"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const findPermissionByIdOrSlug = `-- name: FindPermissionByIdOrSlug :one
-SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
-FROM permissions
-WHERE workspace_id = ?
-  AND (id = ? OR slug = ?)
+(
+    SELECT p1.pk, p1.id, p1.workspace_id, p1.project_id, p1.name, p1.slug, p1.description, p1.created_at_m, p1.updated_at_m, 0 AS lookup_priority
+    FROM permissions p1
+    WHERE p1.workspace_id = ? AND p1.id = ?
+)
+UNION ALL
+(
+    SELECT p2.pk, p2.id, p2.workspace_id, p2.project_id, p2.name, p2.slug, p2.description, p2.created_at_m, p2.updated_at_m, 1 AS lookup_priority
+    FROM permissions p2
+    WHERE p2.workspace_id = ? AND p2.slug = ?
+)
+ORDER BY lookup_priority
+LIMIT 1
 `
 
 type FindPermissionByIdOrSlugParams struct {
@@ -21,16 +33,43 @@ type FindPermissionByIdOrSlugParams struct {
 	Search      string `db:"search"`
 }
 
+type FindPermissionByIdOrSlugRow struct {
+	Pk             uint64            `db:"pk"`
+	ID             string            `db:"id"`
+	WorkspaceID    string            `db:"workspace_id"`
+	ProjectID      string            `db:"project_id"`
+	Name           string            `db:"name"`
+	Slug           string            `db:"slug"`
+	Description    dbtype.NullString `db:"description"`
+	CreatedAtM     int64             `db:"created_at_m"`
+	UpdatedAtM     sql.NullInt64     `db:"updated_at_m"`
+	LookupPriority int32             `db:"lookup_priority"`
+}
+
 // FindPermissionByIdOrSlug resolves a permission within a workspace so the
 // caller can authorize access against the permission's actual project.
 //
-//	SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
-//	FROM permissions
-//	WHERE workspace_id = ?
-//	  AND (id = ? OR slug = ?)
-func (q *Queries) FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error) {
-	row := db.QueryRowContext(ctx, findPermissionByIdOrSlug, arg.WorkspaceID, arg.Search, arg.Search)
-	var i Permission
+//	(
+//	    SELECT p1.pk, p1.id, p1.workspace_id, p1.project_id, p1.name, p1.slug, p1.description, p1.created_at_m, p1.updated_at_m, 0 AS lookup_priority
+//	    FROM permissions p1
+//	    WHERE p1.workspace_id = ? AND p1.id = ?
+//	)
+//	UNION ALL
+//	(
+//	    SELECT p2.pk, p2.id, p2.workspace_id, p2.project_id, p2.name, p2.slug, p2.description, p2.created_at_m, p2.updated_at_m, 1 AS lookup_priority
+//	    FROM permissions p2
+//	    WHERE p2.workspace_id = ? AND p2.slug = ?
+//	)
+//	ORDER BY lookup_priority
+//	LIMIT 1
+func (q *Queries) FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (FindPermissionByIdOrSlugRow, error) {
+	row := db.QueryRowContext(ctx, findPermissionByIdOrSlug,
+		arg.WorkspaceID,
+		arg.Search,
+		arg.WorkspaceID,
+		arg.Search,
+	)
+	var i FindPermissionByIdOrSlugRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
@@ -41,6 +80,7 @@ func (q *Queries) FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg Fin
 		&i.Description,
 		&i.CreatedAtM,
 		&i.UpdatedAtM,
+		&i.LookupPriority,
 	)
 	return i, err
 }

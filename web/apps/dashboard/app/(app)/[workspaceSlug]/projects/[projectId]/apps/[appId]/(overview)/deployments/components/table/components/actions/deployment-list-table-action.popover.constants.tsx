@@ -2,7 +2,7 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Deployment, Environment } from "@/lib/collections";
+import type { Deployment, DeploymentSummary, Environment } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
@@ -25,11 +25,11 @@ import { StopDialog } from "./stop-dialog";
 import { WakeDialog } from "./wake-dialog";
 
 type DeploymentListTableActionsProps = {
-  selectedDeployment: Deployment;
+  selectedDeployment: DeploymentSummary & Pick<Deployment, "desiredState">;
   environment?: Environment;
   // The app's live deployment. Rollback and Promote need the full row for
   // their dialogs, so both stay disabled until the caller has resolved it.
-  currentDeployment: Deployment | undefined;
+  currentDeployment: DeploymentSummary | undefined;
   isRolledBack: boolean;
 };
 

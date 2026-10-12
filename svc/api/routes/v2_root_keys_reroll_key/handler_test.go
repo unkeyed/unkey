@@ -8,6 +8,7 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -48,10 +49,10 @@ func TestRerollRootKeyExpirationRequiresDeletePermission(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	source := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
 	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/"+source.KeyID+"#write")
-	before := countNewRootKeys(t, h, workspace.ID)
+	before := liveRootKeyIDs(t, h, workspace.ID)
 	res := call(h, route, caller, handler.Request{KeyId: source.KeyID, Expiration: nullable.NewNullableWithValue[int64](0)})
 	require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
-	require.Equal(t, before, countNewRootKeys(t, h, workspace.ID))
+	require.Equal(t, before, liveRootKeyIDs(t, h, workspace.ID))
 	_, err := h.Keys.GetRootKey(t.Context(), rootKeySession(t, source.Key))
 	require.NoError(t, err)
 }
@@ -80,10 +81,10 @@ func TestRerollRootKeyRejectsPermissionEscalationWithoutWrites(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	source := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID, Permissions: []string{"unkey:v1:" + workspace.ID + ":**#*"}})
 	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write")
-	before := countNewRootKeys(t, h, workspace.ID)
+	before := liveRootKeyIDs(t, h, workspace.ID)
 	res := call(h, route, caller, handler.Request{KeyId: source.KeyID, Expiration: nullable.NewNullNullable[int64]()})
 	require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
-	require.Equal(t, before, countNewRootKeys(t, h, workspace.ID))
+	require.Equal(t, before, liveRootKeyIDs(t, h, workspace.ID))
 }
 
 // TestRerollRootKeyOverlapCannotExtendOriginal guarantees a grace period never
@@ -163,11 +164,11 @@ func call(h *testutil.Harness, route *handler.Handler, bearer string, req handle
 	return testutil.CallRoute[handler.Request, handler.Response](h, route, headers(bearer), req)
 }
 
-func countNewRootKeys(t *testing.T, h *testutil.Harness, workspaceID string) int {
+func liveRootKeyIDs(t *testing.T, h *testutil.Harness, workspaceID string) []string {
 	t.Helper()
-	var count int
-	require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), "SELECT COUNT(*) FROM unkey_root_keys WHERE workspace_id = ?", workspaceID).Scan(&count))
-	return count
+	rows, err := db.Query.ListRootKeys(t.Context(), h.DB.RO(), db.ListRootKeysParams{WorkspaceID: workspaceID, IDCursor: "", Limit: 1000})
+	require.NoError(t, err)
+	return array.Map(rows, func(row db.ListRootKeysRow) string { return row.ID })
 }
 
 // TestRerollRootKeyWaitsForOriginalRowLock guarantees rerolls serialize with
@@ -183,8 +184,8 @@ func TestRerollRootKeyWaitsForOriginalRowLock(t *testing.T) {
 	tx, err := h.DB.RW().Begin(t.Context())
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = tx.Rollback() })
-	var id string
-	require.NoError(t, tx.QueryRowContext(t.Context(), "SELECT id FROM unkey_root_keys WHERE id = ? FOR UPDATE", source.KeyID).Scan(&id))
+	_, err = db.Query.FindUnkeyRootKeyByIDForUpdate(t.Context(), tx, source.KeyID)
+	require.NoError(t, err)
 
 	done := make(chan testutil.TestResponse[handler.Response], 1)
 	go func() {
@@ -195,8 +196,11 @@ func TestRerollRootKeyWaitsForOriginalRowLock(t *testing.T) {
 		t.Fatalf("reroll completed while original row was locked: %d %s", res.Status, res.RawBody)
 	case <-time.After(200 * time.Millisecond):
 	}
-	_, err = tx.ExecContext(t.Context(), "DELETE FROM unkey_principal_permissions WHERE workspace_id = ? AND principal_type = 'root_key' AND principal_id = ?", workspace.ID, source.KeyID)
-	require.NoError(t, err)
+	require.NoError(t, db.Query.DeleteUnkeyPermissionsByPrincipal(t.Context(), tx, db.DeleteUnkeyPermissionsByPrincipalParams{
+		WorkspaceID:   workspace.ID,
+		PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+		PrincipalID:   source.KeyID,
+	}))
 	require.NoError(t, tx.Commit())
 	select {
 	case res := <-done:

@@ -1,0 +1,317 @@
+post:
+  tags:
+    - workspace
+  summary: Get workspace usage
+  description: |
+    Get the usage of your workspace for one calendar month (UTC): billable API
+    operations, compute usage per environment, and active keys per app.
+
+    Use this to track usage during the month or to look back at a past
+    month. The response has no prices. Your invoice is the source of truth.
+    Compute usage can be up to 15 minutes late, and it can change for up to 7
+    days.
+
+    Send `{}` for the current month to date, or
+    `{"period": {"year": 2026, "month": 9}}` for a full past month. The month
+    must start within the last 90 days.
+
+    **Required Permissions**
+
+    Your root key must have this permission:
+    - `unkey:v1:<workspace_id>:usage#read`
+  operationId: workspace.getUsage
+  x-speakeasy-name-override: getUsage
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2WorkspaceGetUsageRequestBody.yaml"
+        examples:
+          currentMonth:
+            summary: Current month to date
+            value: {}
+          pastMonth:
+            summary: A past month
+            value:
+              period:
+                year: 2026
+                month: 9
+    required: true
+  responses:
+    "200":
+      description: |
+        The workspace usage for the requested month.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2WorkspaceGetUsageResponseBody.yaml"
+          examples:
+            currentMonth:
+              summary: Current month to date
+              description: Usage so far this month, ending at the time of the request
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  period:
+                    start: 1790812800000
+                    end: 1790946000000
+                  totals:
+                    api:
+                      verifications: 40000
+                      ratelimits: 2000
+                    compute:
+                      cpuSeconds: 5400.5
+                      memoryGiBHours: 96.2
+                      storageGiBHours: 0
+                      egressGiB: 1.4
+                    gateway:
+                      activeKeys: 12
+                  breakdowns:
+                    byEnvironment:
+                      - project:
+                          id: proj_1234abcd
+                          name: Payments
+                        app:
+                          id: app_1234abcd
+                          name: API
+                        environment:
+                          id: env_1234abcd
+                          slug: production
+                        compute:
+                          cpuSeconds: 5400.5
+                          memoryGiBHours: 96.2
+                          storageGiBHours: 0
+                          egressGiB: 1.4
+                    byApp:
+                      - project:
+                          id: proj_1234abcd
+                          name: Payments
+                        app:
+                          id: app_1234abcd
+                          name: API
+                        gateway:
+                          activeKeys: 12
+            pastMonth:
+              summary: A past month
+              description: The full month of September 2026
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  period:
+                    start: 1788220800000
+                    end: 1790812800000
+                  totals:
+                    api:
+                      verifications: 120000
+                      ratelimits: 8000
+                    compute:
+                      cpuSeconds: 16200
+                      memoryGiBHours: 288.6
+                      storageGiBHours: 0
+                      egressGiB: 4.2
+                    gateway:
+                      activeKeys: 30
+                  breakdowns:
+                    byEnvironment:
+                      - project:
+                          id: proj_1234abcd
+                          name: Payments
+                        app:
+                          id: app_1234abcd
+                          name: API
+                        environment:
+                          id: env_1234abcd
+                          slug: production
+                        compute:
+                          cpuSeconds: 16200
+                          memoryGiBHours: 288.6
+                          storageGiBHours: 0
+                          egressGiB: 4.2
+                    byApp:
+                      - project:
+                          id: proj_1234abcd
+                          name: Payments
+                        app:
+                          id: app_1234abcd
+                          name: API
+                        gateway:
+                          activeKeys: 30
+            emptyMonth:
+              summary: No usage
+              description: Nothing ran and no keys were verified, so totals are zero and the lists are empty
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  period:
+                    start: 1790812800000
+                    end: 1790946000000
+                  totals:
+                    api:
+                      verifications: 0
+                      ratelimits: 0
+                    compute:
+                      cpuSeconds: 0
+                      memoryGiBHours: 0
+                      storageGiBHours: 0
+                      egressGiB: 0
+                    gateway:
+                      activeKeys: 0
+                  breakdowns:
+                    byEnvironment: []
+                    byApp: []
+            deletedApp:
+              summary: Usage of a deleted app
+              description: The app and its environment were deleted after they ran, so their names are omitted. The last row has keys without an app id
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  period:
+                    start: 1788220800000
+                    end: 1790812800000
+                  totals:
+                    api:
+                      verifications: 0
+                      ratelimits: 0
+                    compute:
+                      cpuSeconds: 900
+                      memoryGiBHours: 12.5
+                      storageGiBHours: 0
+                      egressGiB: 0.2
+                    gateway:
+                      activeKeys: 4
+                  breakdowns:
+                    byEnvironment:
+                      - project:
+                          id: proj_1234abcd
+                          name: Payments
+                        app:
+                          id: app_5678efgh
+                        environment:
+                          id: env_5678efgh
+                        compute:
+                          cpuSeconds: 900
+                          memoryGiBHours: 12.5
+                          storageGiBHours: 0
+                          egressGiB: 0.2
+                    byApp:
+                      - app:
+                          id: app_5678efgh
+                        gateway:
+                          activeKeys: 3
+                      - gateway:
+                          activeKeys: 1
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidMonth:
+              summary: Month out of range
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: POST request body for '/v2/workspace.getUsage' failed to validate schema
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                  errors:
+                    - location: /properties/period/$ref/properties/month/maximum
+                      message: "maximum: got 13, want 12"
+            futureMonth:
+              summary: Month in the future
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: "'period' 2026-11 is in the future. The latest month is 2026-10."
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+            monthTooOld:
+              summary: Month older than the compute usage retention
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: "'period' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08."
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            invalidRootKey:
+              summary: Invalid root key
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: The provided root key is invalid. We could not find the requested key.
+                  status: 401
+                  type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+    "403":
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:usage#read`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Insufficient Permissions
+                  detail: "Missing permission: 'unkey:v1:ws_1234abcd:usage#read'"
+                  status: 403
+                  type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+          examples:
+            workspaceRateLimited:
+              summary: Workspace rate limit exceeded
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Too Many Requests
+                  detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                  status: 429
+                  type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            usageUnavailable:
+              summary: Usage could not be read
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Internal Server Error
+                  detail: Failed to read the workspace's usage.
+                  status: 500
+                  type: https://unkey.com/docs/errors/unkey/application/service_unavailable

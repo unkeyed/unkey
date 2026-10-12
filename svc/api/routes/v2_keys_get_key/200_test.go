@@ -13,6 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -47,7 +48,7 @@ func TestGetKeyByKeyID(t *testing.T) {
 	require.NoError(t, err)
 	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		ExternalID:  "test_user",
+		ExternalID:  uid.New(uid.TestPrefix),
 		Meta:        identityMeta,
 		Ratelimits: []seed.CreateRatelimitRequest{
 			{

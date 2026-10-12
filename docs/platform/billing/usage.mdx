@@ -8,8 +8,9 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/usage/api-card.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/usage/compute-card.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/usage/compute-tree.ts
-  - web/apps/dashboard/lib/trpc/routers/billing/query-usage/index.ts
-  - web/internal/clickhouse/src/billing.ts
+  - web/apps/dashboard/hooks/use-workspace-usage.ts
+  - svc/api/routes/v2_workspace_get_usage/handler.go
+  - pkg/clickhouse/billable_verifications.go
 ---
 Usage covers one calendar month (UTC), with one total per product: API for every workspace, Compute once you have a Compute plan.
 

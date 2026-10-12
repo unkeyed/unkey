@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -36,7 +37,7 @@ func TestPreconditionFailed(t *testing.T) {
 	t.Run("with identity - missing ratelimit", func(t *testing.T) {
 		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: workspace.ID,
-			ExternalID:  "test-missing-ratelimit",
+			ExternalID:  uid.New(uid.TestPrefix),
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "existing-ratelimit",
@@ -69,7 +70,7 @@ func TestPreconditionFailed(t *testing.T) {
 		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' nor identity", key.KeyID)
 		require.Contains(t, res.Body.Error.Detail, expectedMsg)
 		require.Contains(t, res.Body.Error.Detail, identity.ID)
-		require.Contains(t, res.Body.Error.Detail, "test-missing-ratelimit")
+		require.Contains(t, res.Body.Error.Detail, identity.ExternalID)
 	})
 
 	t.Run("without identity - missing ratelimit", func(t *testing.T) {

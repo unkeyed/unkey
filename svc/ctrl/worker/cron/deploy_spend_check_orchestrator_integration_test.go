@@ -1,6 +1,7 @@
 package cron_test
 
 import (
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func seedBudgetedWorkspace(
@@ -20,17 +22,19 @@ func seedBudgetedWorkspace(
 ) string {
 	t.Helper()
 	ws := h.Seed.CreateWorkspace(h.Ctx)
-	_, err := h.DB.RW().ExecContext(
-		h.Ctx,
-		`UPDATE workspace_billing SET
-			plan = ?,
-			stripe_customer_id = ?,
-			spend_budget_cents = ?,
-			spend_budget_stop = ?
-		WHERE workspace_id = ?`,
-		"pro", customerID, budgetCents, true, ws.ID,
-	)
-	require.NoError(t, err)
+	require.NoError(t, h.DB.SetWorkspaceDeployPlan(h.Ctx, db.SetWorkspaceDeployPlanParams{
+		Plan:        sql.NullString{Valid: true, String: "pro"},
+		WorkspaceID: ws.ID,
+	}))
+	require.NoError(t, h.DB.SetWorkspaceStripeCustomerId(h.Ctx, db.SetWorkspaceStripeCustomerIdParams{
+		StripeCustomerID: sql.NullString{Valid: true, String: customerID},
+		WorkspaceID:      ws.ID,
+	}))
+	require.NoError(t, h.DB.SetWorkspaceDeploySpendBudget(h.Ctx, db.SetWorkspaceDeploySpendBudgetParams{
+		SpendBudgetCents: sql.NullInt64{Valid: true, Int64: budgetCents},
+		SpendBudgetStop:  true,
+		WorkspaceID:      ws.ID,
+	}))
 	clearBudgetOnCleanup(t, h, ws.ID)
 	return ws.ID
 }
@@ -41,26 +45,28 @@ func seedBudgetedWorkspace(
 func clearBudgetOnCleanup(t *testing.T, h *harness.Harness, workspaceID string) {
 	t.Helper()
 	t.Cleanup(func() {
-		_, err := h.DB.RW().ExecContext(h.Ctx,
-			`UPDATE workspace_billing SET spend_budget_cents = NULL WHERE workspace_id = ?`, workspaceID)
-		require.NoError(t, err)
+		require.NoError(t, h.DB.SetWorkspaceDeploySpendBudget(h.Ctx, db.SetWorkspaceDeploySpendBudgetParams{
+			SpendBudgetCents: sql.NullInt64{Valid: false},
+			SpendBudgetStop:  false,
+			WorkspaceID:      workspaceID,
+		}))
 	})
+}
+
+func setSpendSuspended(t *testing.T, h *harness.Harness, workspaceID string, suspended bool) {
+	t.Helper()
+	require.NoError(t, h.DB.SetWorkspaceDeploySpendSuspended(h.Ctx, db.SetWorkspaceDeploySpendSuspendedParams{
+		Suspended: suspended,
+		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:        workspaceID,
+	}))
 }
 
 // TestRunDeploySpendCheck_OrchestratorIntegration exercises the fleet scan and
 // fan-out decision without driving the per-workspace check to completion.
 func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 	reader := &fakeUsageReader{} //nolint:exhaustruct // set per subtest
-	h := harness.New(t, harness.WithDeployBilling(reader, newFakePusher(), newFakeCloser()))
-
-	// The harness database is shared across test processes, and other tests
-	// leave budgeted or spend-suspended workspaces behind. Both are scanned by
-	// the orchestrator, and the counts below are asserted exactly, so start
-	// from an empty set.
-	_, err := h.DB.RW().ExecContext(h.Ctx,
-		`UPDATE workspace_billing SET spend_budget_cents = NULL, spend_suspended = false
-		WHERE spend_budget_cents IS NOT NULL OR spend_suspended = true`)
-	require.NoError(t, err)
+	h := harness.New(t, harness.WithDeployBilling(reader, newFakePusher(), newFakeCloser()), harness.WithIsolatedMySQL())
 
 	period := time.Now().UTC().Format("2006-01")
 	run := func() (*hydrav1.RunDeploySpendCheckResponse, error) {
@@ -101,14 +107,8 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 	t.Run("resolves suspended workspace without budget", func(t *testing.T) {
 		reader.set(nil)
 		ws := h.Seed.CreateWorkspace(h.Ctx)
-		_, err := h.DB.RW().ExecContext(h.Ctx,
-			`UPDATE workspace_billing SET spend_suspended = true WHERE workspace_id = ?`, ws.ID)
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			_, err := h.DB.RW().ExecContext(h.Ctx,
-				`UPDATE workspace_billing SET spend_suspended = false WHERE workspace_id = ?`, ws.ID)
-			require.NoError(t, err)
-		})
+		setSpendSuspended(t, h, ws.ID, true)
+		t.Cleanup(func() { setSpendSuspended(t, h, ws.ID, false) })
 
 		resp, err := run()
 		require.NoError(t, err)
@@ -116,11 +116,9 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 
 		// The check resumed the workspace: budget removed while suspended clears
 		// the flag, so the row cannot skew later subtests either.
-		var suspended bool
-		require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
-			`SELECT spend_suspended FROM workspace_billing WHERE workspace_id = ?`, ws.ID).
-			Scan(&suspended))
-		require.False(t, suspended, "check must clear spend_suspended after the budget was removed")
+		billing, err := h.DB.FindWorkspaceBillingByWorkspaceID(h.Ctx, ws.ID)
+		require.NoError(t, err)
+		require.False(t, billing.SpendSuspended, "check must clear spend_suspended after the budget was removed")
 	})
 
 	t.Run("limits concurrent instance usage shards", func(t *testing.T) {
