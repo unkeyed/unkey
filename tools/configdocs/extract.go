@@ -270,7 +270,7 @@ func (e *extractor) nestedStruct(owner declaration, expr ast.Expr) (*declaration
 
 func tagMetadata(tag string) []string {
 	var metadata []string
-	for _, part := range strings.Split(tag, ",") {
+	for part := range strings.SplitSeq(tag, ",") {
 		name, value, _ := strings.Cut(strings.TrimSpace(part), "=")
 		switch name {
 		case "":

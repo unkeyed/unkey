@@ -3,6 +3,7 @@ package zen
 import (
 	"bytes"
 	"context"
+	"maps"
 	"net/http"
 )
 
@@ -50,9 +51,7 @@ func (s *Server) routingError(_ context.Context, sess *Session) error {
 		status: http.StatusOK,
 	}
 	handler.ServeHTTP(&response, sess.Request())
-	for name, values := range response.header {
-		header[name] = values
-	}
+	maps.Copy(header, response.header)
 
 	if response.status == http.StatusNotFound || response.status == http.StatusMethodNotAllowed {
 		header.Del("Content-Type")

@@ -371,7 +371,6 @@ func TestParseV1RejectsUnsafeIDs(t *testing.T) {
 		`unkey:v1:ws_123:projects/proj\admin`,
 		"unkey:v1:ws_123:projects/équipe",
 	} {
-		value := value
 		t.Run(value, func(t *testing.T) {
 			t.Parallel()
 
