@@ -10,7 +10,7 @@ export async function loadWorkspace(orgId: string) {
       billing: schema.workspaceBilling,
       subscription: schema.billingSubscriptions,
       flag: { slug: schema.flags.slug, defaultValue: schema.flags.defaultValue },
-      override: { value: schema.workspaceFlagOverrides.value },
+      override: { value: schema.flagOverrides.value },
     })
     .from(schema.workspaces)
     .leftJoin(schema.limits, eq(schema.limits.workspaceId, schema.workspaces.id))
@@ -24,10 +24,10 @@ export async function loadWorkspace(orgId: string) {
     )
     .leftJoin(schema.flags, sql`true`)
     .leftJoin(
-      schema.workspaceFlagOverrides,
+      schema.flagOverrides,
       and(
-        eq(schema.workspaceFlagOverrides.workspaceId, schema.workspaces.id),
-        eq(schema.workspaceFlagOverrides.flagId, schema.flags.id),
+        eq(schema.flagOverrides.workspaceId, schema.workspaces.id),
+        eq(schema.flagOverrides.flagSlug, schema.flags.slug),
       ),
     )
     .where(and(eq(schema.workspaces.orgId, orgId), isNull(schema.workspaces.deletedAtM)));
