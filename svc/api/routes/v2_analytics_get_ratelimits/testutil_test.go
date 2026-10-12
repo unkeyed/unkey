@@ -8,7 +8,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
@@ -29,6 +31,17 @@ func newRoute(t *testing.T, analytics bool) (*testutil.Harness, *Handler, string
 func createNamespace(t *testing.T, h *testutil.Harness, workspaceID string) string {
 	t.Helper()
 	return createNamespaceInProject(t, h, workspaceID, "", uid.New("test"))
+}
+
+func createNamespaceWithProject(t *testing.T, h *testutil.Harness, workspaceID string) (string, string) {
+	t.Helper()
+	projectID := createProject(t, h, workspaceID)
+	return createNamespaceInProject(t, h, workspaceID, projectID, uid.New("test")), projectID
+}
+
+func ratelimitLogsPermission(workspaceID, projectID, namespaceID string) string {
+	resource := urn.New().Workspace(workspaceID).Project(projectID).RatelimitNamespace(namespaceID).Logs()
+	return fmt.Sprintf("%s#%s", resource.String(), permissions.Read)
 }
 
 func createProject(t *testing.T, h *testutil.Harness, workspaceID string) string {

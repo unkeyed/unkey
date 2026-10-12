@@ -55,18 +55,11 @@ func TestListAppsForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard app permission", permissions: []string{"app.*.read_app"}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "app.*.read_app"}, shouldPass: true},
 		{name: "URN project app collection read", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/*#read"}, shouldPass: true},
-		{name: "specific app does not satisfy list", permissions: []string{fmt.Sprintf("app.%s.read_app", app.ID)}, shouldPass: false},
 		{name: "specific app permission filters list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/" + app.ID + "#read"}, shouldPass: true},
-		{name: "project scoped read does not match", permissions: []string{fmt.Sprintf("project.%s.read_app", project.ID)}, shouldPass: false},
 		{name: "URN other project does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + uid.New(uid.ProjectPrefix) + "/apps/*#read"}, shouldPass: false},
 		{name: "URN other workspace does not satisfy list", permissions: []string{"unkey:v1:" + otherWorkspace.ID + ":projects/" + project.ID + "/apps/*#read"}, shouldPass: false},
-		{name: "wrong action", permissions: []string{"app.*.create_app"}, shouldPass: false},
 		{name: "URN write does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/*#write"}, shouldPass: false},
-		{name: "read does not match create", permissions: []string{"project.*.create_app"}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "non-catalog app path does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 		{name: "urn on every app in the project", permissions: []string{grant(project.ID, "*", permissions.Read)}, shouldPass: true},
@@ -130,7 +123,7 @@ func TestListAppsExistenceNotLeaked(t *testing.T) {
 	missingSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 
 	// Key in the same workspace with an unrelated permission but no read_app action.
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#read", workspace.ID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

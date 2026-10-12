@@ -29,7 +29,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 	// Test with existing API
 	t.Run("get existing api", func(t *testing.T) {
 		// Create a root key with right permissions
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_api")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -76,18 +76,18 @@ func TestGetApiSuccessfully(t *testing.T) {
 				expectedStatus: 404, // "*" isn't a supported grant, and the denied read is masked as not found
 			},
 			{
-				name:           "api wildcard permission",
-				permissions:    []string{"api.*.read_api"},
+				name:           "keyspace wildcard permission",
+				permissions:    []string{fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#read", h.Resources().UserWorkspace.ID)},
 				expectedStatus: 200,
 			},
 			{
-				name:           "specific api permission",
-				permissions:    []string{fmt.Sprintf("api.%s.read_api", api.ID)},
+				name:           "specific keyspace permission",
+				permissions:    []string{fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String)},
 				expectedStatus: 200,
 			},
 			{
 				name:           "multiple permissions including relevant one",
-				permissions:    []string{"other.permission", "api.*.read_api"},
+				permissions:    []string{"other.permission", fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#read", h.Resources().UserWorkspace.ID)},
 				expectedStatus: 200,
 			},
 		}
@@ -121,7 +121,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 
 	// Test API with very long name
 	t.Run("get api with very long name", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_api")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -150,7 +150,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 
 	// Test API with special characters in name
 	t.Run("get api with special characters in name", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_api")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -180,7 +180,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 
 	// Test API with Unicode characters in name
 	t.Run("get api with unicode characters in name", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_api")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -210,7 +210,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 
 	// Test retrieving a recently created API with timestamp verification
 	t.Run("get recently created api with timestamp verification", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_api")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -250,7 +250,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 
 	// Test API with delete protection and verify all fields
 	t.Run("get api with complete data verification", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_api")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
