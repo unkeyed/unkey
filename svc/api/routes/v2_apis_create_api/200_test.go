@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
@@ -95,6 +96,11 @@ func TestCreateApiSuccessfully(t *testing.T) {
 			if ev.Event == "api.create" {
 				foundCreateEvent = true
 				require.Equal(t, h.Resources().UserWorkspace.ID, ev.WorkspaceID)
+				require.ElementsMatch(t, []auditlog.EventTarget{
+					{Type: "api", ID: api.ID, Name: apiName},
+					{Type: "keySpace", ID: keySpace.ID},
+				}, ev.Targets)
+				require.Contains(t, h.FindAuditLogsByTargetID(ctx, t, keySpace.ID), ev)
 				break
 			}
 		}
