@@ -4,13 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"slices"
 	"strings"
 
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/pkg/array"
-	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -74,28 +71,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	wildcard := rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAnalytics})
-	hasLegacyWildcard := slices.Contains(principal.Permissions, "api.*.read_analytics")
-	allowedAPIIDs := extractAllowedAPIIDs(principal.Permissions)
 	analyticsPermissionScope := extractAnalyticsPermissionScope(
 		principal.AuthorizedWorkspaceID,
 		principal.Permissions,
 	)
-	if !hasLegacyWildcard && len(allowedAPIIDs) == 0 && !analyticsPermissionScope.hasPermission {
-		return principal.Authorize(wildcard)
+	if !analyticsPermissionScope.hasPermission {
+		return principal.Authorize(rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Project("*").Keyspace("*").Logs(), permissions.Read))
 	}
 
 	securityFilters := make([]chquery.SecurityFilter, 0, 1)
-	if !hasLegacyWildcard && !analyticsPermissionScope.unrestricted {
-		keySpaces, fetchErr := h.fetchKeyAuthsByAPIIDs(ctx, principal.AuthorizedWorkspaceID, allowedAPIIDs)
-		if fetchErr != nil {
-			return fetchErr
-		}
-		allowedKeySpaces := make(map[string]struct{}, len(keySpaces)+len(analyticsPermissionScope.keySpaceIDs))
-		for _, keySpace := range keySpaces {
-			allowedKeySpaces[keySpace.KeyAuthID] = struct{}{}
-		}
-
+	if !analyticsPermissionScope.unrestricted {
+		allowedKeySpaces := make(map[string]struct{}, len(analyticsPermissionScope.keySpaceIDs))
 		if analyticsPermissionScope.hasPermission {
 			ownership, err := db.Query.FindKeySpaceAnalyticsOwnership(ctx, h.DB.RO(), db.FindKeySpaceAnalyticsOwnershipParams{
 				WorkspaceID: principal.AuthorizedWorkspaceID,
@@ -150,61 +136,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	s.AddHeader("Content-Type", "application/json")
 	return s.Send(http.StatusOK, responseBytes)
-}
-
-// fetchKeyAuthsByAPIIDs fetches key auth rows for the given API IDs using the cache.
-func (h *Handler) fetchKeyAuthsByAPIIDs(ctx context.Context, workspaceID string, apiIDs []string) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
-	cacheKeys := array.Map(apiIDs, func(apiID string) cache.ScopedKey {
-		return cache.ScopedKey{
-			WorkspaceID: workspaceID,
-			Key:         apiID,
-		}
-	})
-
-	apis, _, err := h.Caches.ApiToKeyAuthRow.SWRMany(
-		ctx,
-		cacheKeys,
-		func(ctx context.Context, keys []cache.ScopedKey) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
-			apis, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), db.FindKeyAuthsByIdsParams{
-				WorkspaceID: workspaceID,
-				ApiIds:      apiIDs,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			return array.Reduce(
-				apis,
-				func(acc map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, api db.FindKeyAuthsByIdsRow) map[cache.ScopedKey]db.FindKeyAuthsByIdsRow {
-					acc[cache.ScopedKey{WorkspaceID: workspaceID, Key: api.ApiID}] = api
-					return acc
-				},
-				map[cache.ScopedKey]db.FindKeyAuthsByIdsRow{},
-			), nil
-		},
-		caches.DefaultFindFirstOp,
-	)
-
-	return apis, err
-}
-
-// extractAllowedAPIIDs extracts API IDs from analytics permissions.
-func extractAllowedAPIIDs(permissions []string) []string {
-	apiIDs := make([]string, 0)
-	for _, perm := range permissions {
-		pattern := strings.Split(perm, ".")
-		if len(pattern) != 3 {
-			continue
-		}
-
-		if pattern[0] != "api" || pattern[2] != "read_analytics" {
-			continue
-		}
-
-		apiIDs = append(apiIDs, pattern[1])
-	}
-
-	return apiIDs
 }
 
 // analyticsPermissionScope identifies the ownership rows needed to evaluate

@@ -1,25 +1,25 @@
 package auditlog
 
-// AuditLogResourceType represents the possible type in the audit log targets
-type AuditLogResourceType string
+// AuditLogTargetType represents the possible type in the audit log targets
+type AuditLogTargetType string
 
 const (
-	APIResourceType                AuditLogResourceType = "api"
-	AuditLogBucketResourceType     AuditLogResourceType = "auditLogBucket"
-	IdentityResourceType           AuditLogResourceType = "identity"
-	KeySpaceResourceType           AuditLogResourceType = "keySpace"
-	KeyResourceType                AuditLogResourceType = "key"
-	PermissionResourceType         AuditLogResourceType = "permission"
-	RatelimitResourceType          AuditLogResourceType = "ratelimit"
-	RatelimitNamespaceResourceType AuditLogResourceType = "ratelimitNamespace"
-	RatelimitOverrideResourceType  AuditLogResourceType = "ratelimitOverride"
-	RoleResourceType               AuditLogResourceType = "role"
-	WorkspaceResourceType          AuditLogResourceType = "workspace"
-	PortalResourceType             AuditLogResourceType = "portal"
-	PortalSessionResourceType      AuditLogResourceType = "portalSession"
-	DeploymentResourceType         AuditLogResourceType = "deployment"
-	ProjectResourceType            AuditLogResourceType = "project"
-	AppResourceType                AuditLogResourceType = "app"
-	EnvironmentResourceType        AuditLogResourceType = "environment"
-	DomainResourceType             AuditLogResourceType = "domain"
+	APITargetType                AuditLogTargetType = "api"
+	AuditLogBucketTargetType     AuditLogTargetType = "auditLogBucket"
+	IdentityTargetType           AuditLogTargetType = "identity"
+	KeySpaceTargetType           AuditLogTargetType = "keySpace"
+	KeyTargetType                AuditLogTargetType = "key"
+	PermissionTargetType         AuditLogTargetType = "permission"
+	RatelimitTargetType          AuditLogTargetType = "ratelimit"
+	RatelimitNamespaceTargetType AuditLogTargetType = "ratelimitNamespace"
+	RatelimitOverrideTargetType  AuditLogTargetType = "ratelimitOverride"
+	RoleTargetType               AuditLogTargetType = "role"
+	WorkspaceTargetType          AuditLogTargetType = "workspace"
+	PortalTargetType             AuditLogTargetType = "portal"
+	PortalSessionTargetType      AuditLogTargetType = "portalSession"
+	DeploymentTargetType         AuditLogTargetType = "deployment"
+	ProjectTargetType            AuditLogTargetType = "project"
+	AppTargetType                AuditLogTargetType = "app"
+	EnvironmentTargetType        AuditLogTargetType = "environment"
+	DomainTargetType             AuditLogTargetType = "domain"
 )

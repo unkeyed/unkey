@@ -215,17 +215,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          keyData.Key.KeyAuthID,
-						Type:        auditlog.KeySpaceResourceType,
+						Type:        auditlog.KeySpaceTargetType,
 						Name:        "",
 						DisplayName: "",
 						Meta:        nil,
 					},
 					{
 						ID:          keyData.Key.ID,
-						Type:        auditlog.KeyResourceType,
+						Type:        auditlog.KeyTargetType,
 						Name:        keyData.Key.Name.String,
 						DisplayName: keyData.Key.Name.String,
 						Meta:        nil,

@@ -39,7 +39,7 @@ func TestDeleteCustomDomainWritesAuditLog(t *testing.T) {
 	require.Equal(t, string(auditlog.UserActor), logged.Actor.Type)
 	require.Equal(t, deleteReq.Msg.GetActor().GetId(), logged.Actor.ID)
 	require.Len(t, logged.Targets, 1)
-	require.Equal(t, string(auditlog.DomainResourceType), logged.Targets[0].Type)
+	require.Equal(t, string(auditlog.DomainTargetType), logged.Targets[0].Type)
 	require.Equal(t, created.Msg.GetDomainId(), logged.Targets[0].ID)
 	require.Equal(t, f.domain, logged.Targets[0].Meta["domain"])
 	require.Equal(t, f.projectID, logged.Targets[0].Meta["projectId"])

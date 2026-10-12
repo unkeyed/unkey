@@ -54,7 +54,7 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
           actor: { type: "user", id: ctx.user.id },
           event: "workspace.update",
           description: "Updated Stripe customer ID",
-          resources: [
+          targets: [
             {
               type: "workspace",
               id: ctx.workspace.id,
