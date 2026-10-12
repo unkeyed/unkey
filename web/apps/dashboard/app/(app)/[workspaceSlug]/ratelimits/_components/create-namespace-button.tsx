@@ -1,8 +1,9 @@
 "use client";
 
-import { trpcClient } from "@/lib/collections/client";
 import { useInvalidateNamespaces } from "@/lib/queries/ratelimit-namespaces";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ConflictErrorResponse } from "@unkey/api/models/errors";
 import { IconPlusOutline18 } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
 import { useState, useTransition } from "react";
@@ -42,16 +43,14 @@ export const CreateNamespaceButton = () => {
   const onSubmit = (values: FormValues) => {
     startTransition(async () => {
       try {
-        const mutation = trpcClient.ratelimit.namespace.create.mutate({
-          name: values.name,
-        });
+        const mutation = getUnkeyClient().ratelimit.createNamespace({ name: values.name });
 
         toast.promise(mutation, {
           loading: "Creating namespace...",
           success: "Namespace created",
           error: (err) => ({
             message: "Failed to create namespace",
-            description: err.message,
+            description: getErrorMessage(err),
           }),
         });
 
@@ -62,7 +61,7 @@ export const CreateNamespaceButton = () => {
         reset();
         setIsOpen(false);
       } catch (error) {
-        if (error instanceof Error && error.message.includes("already exists")) {
+        if (error instanceof ConflictErrorResponse) {
           setError("name", {
             type: "custom",
             message: "Namespace already exists",

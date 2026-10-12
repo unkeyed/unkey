@@ -90,7 +90,6 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
-import { createNamespace } from "./ratelimit/createNamespace";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
@@ -228,7 +227,6 @@ export const router = t.router({
     }),
     namespace: t.router({
       queryRatelimitLastUsed,
-      create: createNamespace,
       update: t.router({
         name: updateNamespaceName,
       }),
