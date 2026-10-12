@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+import { deployBilling, projectsNav } from "../flags";
 import { loadWorkspace } from "./load-workspace";
 
 const mocks = vi.hoisted(() => ({ findFirst: vi.fn() }));
@@ -14,19 +15,19 @@ it("uses database values before code fallbacks and returns only requested flags"
     id: "ws_owned",
     billing: null,
     billingSubscriptions: [],
-    flags: { disabled: 0, enabled: 1, unrequested: 1 },
+    flags: { deploy_billing: 0, projects_nav: 1, unrequested: 1 },
   });
 
   const workspace = await loadWorkspace("org_owned", [
-    { slug: "disabled", defaultValue: true },
-    { slug: "enabled", defaultValue: false },
+    deployBilling,
+    projectsNav,
     { slug: "missing", defaultValue: true },
     { slug: "constructor", defaultValue: false },
   ]);
 
   expect(workspace?.flags).toEqual({
-    disabled: false,
-    enabled: true,
+    deploy_billing: false,
+    projects_nav: true,
     missing: true,
     constructor: false,
   });

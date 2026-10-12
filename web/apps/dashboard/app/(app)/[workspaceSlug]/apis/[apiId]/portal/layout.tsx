@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { PortalNav } from "./components/portal-nav";
 
 // Server-side gate mirroring the workspace-level portal layout: the flag
-// defaults to off, so this route is unreachable until portal-management is
+// defaults to off, so this route is unreachable until portal_management is
 // enabled for the workspace or globally.
 export default async function ApiPortalLayout({
   children,
