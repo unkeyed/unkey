@@ -162,37 +162,102 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 // applyDeploymentObject creates the Deployment if it does not exist, then
 // server-side applies the desired spec.
 //
-// The apply forces ownership because the creating request, made by the
-// rollout gate's field manager, also set every field krane renders. Krane
-// stays the only writer of those fields; the gate keeps spec.paused and the
-// seeded spec.replicas, which krane never sends.
+// Krane is the only manager of the fields it sends, so a field it stops
+// sending is removed. Krane never sends spec.paused or spec.replicas: the
+// rollout gate and the HPA own them. The apply forces ownership so that manual
+// edits to krane's fields are overwritten.
 func (c *Controller) applyDeploymentObject(ctx context.Context, desired *appsv1.Deployment) (*appsv1.Deployment, error) {
 	client := c.clientSet.AppsV1().Deployments(desired.Namespace)
 
-	_, err := client.Get(ctx, desired.Name, metav1.GetOptions{})
+	live, err := client.Get(ctx, desired.Name, metav1.GetOptions{})
 	switch {
 	case k8serrors.IsNotFound(err):
-		if err := c.createDeployment(ctx, desired); err != nil {
+		live, err = c.createDeployment(ctx, desired)
+		if err != nil {
 			return nil, err
 		}
 	case err != nil:
 		return nil, fmt.Errorf("failed to get deployment: %w", err)
 	}
 
-	patch, err := json.Marshal(desired)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal deployment: %w", err)
+	if err := c.handOverScaleFields(ctx, live); err != nil {
+		return nil, err
 	}
 
-	applied, err := client.Patch(ctx, desired.Name, types.ApplyPatchType, patch, metav1.PatchOptions{
-		FieldManager: fieldManagerKrane,
-		Force:        new(true),
-	})
+	applied, err := c.serverSideApply(ctx, desired)
 	if err != nil {
 		return nil, fmt.Errorf("failed to apply deployment: %w", err)
 	}
 
 	return applied, nil
+}
+
+func (c *Controller) serverSideApply(ctx context.Context, d *appsv1.Deployment) (*appsv1.Deployment, error) {
+	patch, err := json.Marshal(d)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal deployment: %w", err)
+	}
+
+	return c.clientSet.AppsV1().Deployments(d.Namespace).Patch(ctx, d.Name, types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: fieldManagerKrane,
+		Force:        new(true),
+	})
+}
+
+// handOverScaleFields makes the rollout gate co-own spec.paused and
+// spec.replicas while krane owns them, which is the case right after krane
+// adopted a legacy ReplicaSet. Krane's next apply leaves both fields out; with
+// a co-owner, server-side apply keeps their values instead of resetting the
+// Deployment to unpaused with one replica.
+func (c *Controller) handOverScaleFields(ctx context.Context, live *appsv1.Deployment) error {
+	if !ownsField(live, fieldManagerKrane, "f:paused") && !ownsField(live, fieldManagerKrane, "f:replicas") {
+		return nil
+	}
+
+	spec := map[string]any{"paused": live.Spec.Paused}
+	if live.Spec.Replicas != nil {
+		spec["replicas"] = *live.Spec.Replicas
+	}
+	patch, err := json.Marshal(map[string]any{
+		"apiVersion": "apps/v1",
+		"kind":       "Deployment",
+		"metadata": map[string]any{
+			"name":            live.Name,
+			"namespace":       live.Namespace,
+			"resourceVersion": live.ResourceVersion,
+		},
+		"spec": spec,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal scale fields: %w", err)
+	}
+
+	_, err = c.clientSet.AppsV1().Deployments(live.Namespace).Patch(ctx, live.Name, types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: fieldManagerRolloutGate,
+		Force:        new(true),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to hand over scale fields: %w", err)
+	}
+	return nil
+}
+
+// ownsField reports whether manager owns the spec field with the given
+// managed-fields key, such as "f:paused".
+func ownsField(d *appsv1.Deployment, manager, field string) bool {
+	for _, entry := range d.ManagedFields {
+		if entry.Manager != manager || entry.FieldsV1 == nil {
+			continue
+		}
+		var fields map[string]map[string]any
+		if err := json.Unmarshal(entry.FieldsV1.Raw, &fields); err != nil {
+			continue
+		}
+		if _, ok := fields["f:spec"][field]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 // createDeployment creates the Deployment for a workload that has none.
@@ -203,28 +268,25 @@ func (c *Controller) applyDeploymentObject(ctx context.Context, desired *appsv1.
 // the ReplicaSet's replica count, so adoption restarts no pods and does not
 // scale the ReplicaSet to the default of one replica. If the rendered template
 // differs from the legacy one, the rollout gate rolls the workload later.
-func (c *Controller) createDeployment(ctx context.Context, desired *appsv1.Deployment) error {
+func (c *Controller) createDeployment(ctx context.Context, desired *appsv1.Deployment) (*appsv1.Deployment, error) {
 	initial := desired.DeepCopy()
 
 	legacy, err := c.clientSet.AppsV1().ReplicaSets(desired.Namespace).Get(ctx, desired.Name, metav1.GetOptions{})
 	switch {
 	case k8serrors.IsNotFound(err):
 	case err != nil:
-		return fmt.Errorf("failed to get legacy replicaset: %w", err)
+		return nil, fmt.Errorf("failed to get legacy replicaset: %w", err)
 	case isLegacyReplicaSet(legacy):
 		initial.Spec.Replicas = legacy.Spec.Replicas
 		initial.Spec.Paused = true
 		logger.Info("adopting legacy replicaset", "namespace", desired.Namespace, "name", desired.Name)
 	}
 
-	_, err = c.clientSet.AppsV1().Deployments(desired.Namespace).Create(ctx, initial, metav1.CreateOptions{
-		FieldManager: fieldManagerRolloutGate,
-	})
-	if err != nil && !k8serrors.IsAlreadyExists(err) {
-		return fmt.Errorf("failed to create deployment: %w", err)
+	created, err := c.serverSideApply(ctx, initial)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create deployment: %w", err)
 	}
-
-	return nil
+	return created, nil
 }
 
 // buildDeployment renders the desired Deployment for a deployment request.

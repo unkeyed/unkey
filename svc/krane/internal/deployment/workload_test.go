@@ -189,3 +189,28 @@ func TestHasUndrainedPods(t *testing.T) {
 	require.Equal(t, 0, desired.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue())
 	require.Equal(t, int32(preStopDrainSeconds), desired.Spec.MinReadySeconds)
 }
+
+// TestApplyDeploymentObject_DropsFieldsKraneStopsSending checks that krane
+// alone owns the fields it renders: a field set while legacy pods were being
+// replaced disappears once krane stops sending it, while spec.paused and the
+// seeded replica count, which krane never sends, stay.
+func TestApplyDeploymentObject_DropsFieldsKraneStopsSending(t *testing.T) {
+	ctrl := testController()
+	ctrl.clientSet = fake.NewClientset(legacyReplicaSet(t, 4))
+
+	migrating := ctrl.buildDeployment(fullApplyRequest(t), false)
+	useReplacementStrategy(migrating)
+	_, err := ctrl.applyDeploymentObject(t.Context(), migrating)
+	require.NoError(t, err)
+	require.Equal(t, int32(preStopDrainSeconds), getDeployment(t, ctrl).Spec.MinReadySeconds)
+
+	_, err = ctrl.applyDeploymentObject(t.Context(), ctrl.buildDeployment(fullApplyRequest(t), false))
+	require.NoError(t, err)
+
+	d := getDeployment(t, ctrl)
+	require.Zero(t, d.Spec.MinReadySeconds, "a field krane stops sending must be removed")
+	require.Equal(t, "1", d.Spec.Strategy.RollingUpdate.MaxSurge.String())
+	require.True(t, d.Spec.Paused)
+	require.Equal(t, new(int32(4)), d.Spec.Replicas)
+	require.False(t, ownsField(d, fieldManagerKrane, "f:paused"), "krane must not own spec.paused")
+}
