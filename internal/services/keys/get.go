@@ -257,7 +257,7 @@ func cacheLegacyRootKey(row keysdb.FindLegacyRootKeyForAuthenticationRow) (keysd
 
 // asCachedKey adapts root-key data to the shared lifecycle validator.
 func asCachedKey(rootKey keysdb.CachedRootKeyData) keysdb.CachedKeyData {
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	return keysdb.CachedKeyData{
 		FindKeyForVerificationRow: keysdb.FindKeyForVerificationRow{
 			ID:                  rootKey.ID,
