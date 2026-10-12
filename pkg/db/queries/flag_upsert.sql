@@ -1,6 +1,5 @@
 -- name: UpsertFlag :exec
--- UpsertFlag creates or replaces a definition. Only tests use it, to change the
--- default of a fixed slug between cases.
+-- UpsertFlag creates or replaces a definition. Only tests use it.
 INSERT INTO flags (slug, description, default_value, visible, allow_enable, allow_disable)
 VALUES (sqlc.arg(slug), sqlc.arg(description), sqlc.arg(default_value),
     sqlc.arg(visible), sqlc.arg(allow_enable), sqlc.arg(allow_disable))

@@ -9,6 +9,7 @@
 /v2/portal.updatePortal
 /v2/workspace.getLimits
 /v2/workspace.getUsage
+/v2/workspace.getFlags
 # The five published portal endpoints are excluded too: `mint validate` fails with
 # "Failed to generate OpenAPI endpoint page" for them from the current published spec.
 # Relist the Portal group once the spec renders.

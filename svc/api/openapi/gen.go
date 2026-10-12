@@ -7102,6 +7102,25 @@ type V2RootKeysUpdateKeyResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2WorkspaceGetFlagsResponseBody defines model for V2WorkspaceGetFlagsResponseBody.
+type V2WorkspaceGetFlagsResponseBody struct {
+	Data V2WorkspaceGetFlagsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2WorkspaceGetFlagsResponseData defines model for V2WorkspaceGetFlagsResponseData.
+type V2WorkspaceGetFlagsResponseData struct {
+	// Flags Every defined flag, keyed by slug, with its value for your workspace. A
+	// workspace override wins over the flag's default, including an override
+	// to `false`. A flag missing from this object is not defined yet.
+	//
+	//
+	// Example: {"log-export":false,"new-navigation":true}
+	Flags map[string]bool `json:"flags"`
+}
+
 // V2WorkspaceGetLimitsLimit A workspace limit and, when the limit has one, the current value against it.
 type V2WorkspaceGetLimitsLimit struct {
 	// Current The current value against `limit`. Omitted when the limit has no current

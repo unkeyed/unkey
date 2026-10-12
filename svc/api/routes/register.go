@@ -116,6 +116,7 @@ import (
 	v2ProjectsUpdateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 
 	v2GithubInstallApp "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
+	v2WorkspaceGetFlags "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_flags"
 	v2WorkspaceGetLimits "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_limits"
 	v2WorkspaceGetUsage "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_usage"
 
@@ -1021,6 +1022,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:         svc.Database,
 			ClickHouse: svc.ClickHouse,
 			Clock:      svc.Clock,
+		},
+	)
+
+	// v2/workspace.getFlags
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2WorkspaceGetFlags.Handler{
+			Flags: svc.Flags,
 		},
 	)
 

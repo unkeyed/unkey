@@ -1,0 +1,105 @@
+post:
+  tags:
+    - workspace
+  summary: Get workspace flags
+  description: |
+    Get the value of every feature flag for your workspace.
+
+    Use this to decide which features to show or enable for the workspace.
+    The response includes flags whose value is `false`, so a flag that is
+    turned off for your workspace is different from a flag that is not
+    defined yet. Changes to flags can take up to one minute to appear.
+
+    The request takes no parameters.
+
+    **Required Permissions**
+
+    Your root key must have this permission:
+    - `unkey:v1:<workspace_id>:flags#read`
+  operationId: workspace.getFlags
+  x-speakeasy-name-override: getFlags
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  responses:
+    "200":
+      description: |
+        Every defined flag with its value for the workspace.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2WorkspaceGetFlagsResponseBody.yaml"
+          examples:
+            flags:
+              summary: Workspace flags
+              description: One flag is on for this workspace and one is off.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  flags:
+                    new-navigation: true
+                    log-export: false
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            invalidRootKey:
+              summary: Invalid root key
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: The provided root key is invalid. We could not find the requested key.
+                  status: 401
+                  type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+    "403":
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:flags#read`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Insufficient Permissions
+                  detail: "Missing permission: 'unkey:v1:ws_1234abcd:flags#read'"
+                  status: 403
+                  type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+          examples:
+            workspaceRateLimited:
+              summary: Workspace rate limit exceeded
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Too Many Requests
+                  detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                  status: 429
+                  type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+    "500":
+      description: Internal server error, including when the flags could not be read
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

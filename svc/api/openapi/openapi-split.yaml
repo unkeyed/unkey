@@ -129,7 +129,7 @@ tags:
   - name: github
     description: GitHub App installation operations
   - name: workspace
-    description: Workspace limits and usage operations
+    description: Workspace limits, usage, and flag operations
 
 paths:
   # Health Endpoints
@@ -294,6 +294,8 @@ paths:
     $ref: "./spec/paths/v2/workspace/getLimits/index.yaml"
   /v2/workspace.getUsage:
     $ref: "./spec/paths/v2/workspace/getUsage/index.yaml"
+  /v2/workspace.getFlags:
+    $ref: "./spec/paths/v2/workspace/getFlags/index.yaml"
 
   # App Endpoints
   /v2/apps.createApp:

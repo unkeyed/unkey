@@ -27,8 +27,7 @@ type UpsertFlagParams struct {
 	AllowDisable bool   `db:"allow_disable"`
 }
 
-// UpsertFlag creates or replaces a definition. Only tests use it, to change the
-// default of a fixed slug between cases.
+// UpsertFlag creates or replaces a definition. Only tests use it.
 //
 //	INSERT INTO flags (slug, description, default_value, visible, allow_enable, allow_disable)
 //	VALUES (?, ?, ?,

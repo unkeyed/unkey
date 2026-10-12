@@ -1,0 +1,16 @@
+type: object
+required:
+  - flags
+properties:
+  flags:
+    type: object
+    description: |
+      Every defined flag, keyed by slug, with its value for your workspace. A
+      workspace override wins over the flag's default, including an override
+      to `false`. A flag missing from this object is not defined yet.
+    additionalProperties:
+      type: boolean
+    example:
+      new-navigation: true
+      log-export: false
+additionalProperties: false

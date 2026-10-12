@@ -11,6 +11,7 @@ import "fmt"
 //	├── rootKeys/{key_id}
 //	├── limits
 //	├── usage
+//	├── flags
 //	└── projects/{project_id}
 type workspace struct {
 	workspaceID string
@@ -42,6 +43,11 @@ func (w workspace) Limits() V1 {
 // Usage returns the workspace usage resource name
 func (w workspace) Usage() V1 {
 	return V1{WorkspaceID: w.workspaceID, Resource: "usage"}
+}
+
+// Flags returns the workspace flags resource name
+func (w workspace) Flags() V1 {
+	return V1{WorkspaceID: w.workspaceID, Resource: "flags"}
 }
 
 // Project returns builders for project resource paths.

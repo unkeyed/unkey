@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	cachesvc "github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
@@ -338,6 +339,15 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(caches.Close)
 
+	flagSvc, err := flags.New(flags.Config{
+		DB:    db.ToMySQL(database),
+		Clock: clk,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create flags service: %w", err)
+	}
+	r.Defer(func() error { flagSvc.Close(); return nil })
+
 	keySvc, err := keys.New(keys.Config{
 		DB:           db.ToMySQL(database),
 		KeyCache:     caches.VerificationKeyByHash,
@@ -517,6 +527,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Ratelimit:         rlSvc,
 		Auditlogs:         auditlogSvc,
 		Caches:            caches,
+		Flags:             flagSvc,
 		Vault:             vaultClient,
 		CtrlProjectClient: ctrlProjectClient,
 		CtrlAppClient:     ctrlAppClient,

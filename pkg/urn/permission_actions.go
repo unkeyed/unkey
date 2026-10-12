@@ -56,6 +56,9 @@ type limits struct{}
 // usage represents the workspace usage path shape used by parsed resource names
 type usage struct{}
 
+// flags represents the workspace flags path shape used by parsed resource names
+type flags struct{}
+
 // global represents the workspace-wide ** resource pattern.
 type global struct{}
 
@@ -114,6 +117,11 @@ func (limits) permissionActions(bool) permissionActionSet {
 
 // permissionActions returns read for workspace usage
 func (usage) permissionActions(bool) permissionActionSet {
+	return newPermissionActionSet(PermissionRead)
+}
+
+// permissionActions returns read for workspace flags
+func (flags) permissionActions(bool) permissionActionSet {
 	return newPermissionActionSet(PermissionRead)
 }
 

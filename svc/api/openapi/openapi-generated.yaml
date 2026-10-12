@@ -4325,6 +4325,17 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
+        V2WorkspaceGetFlagsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2WorkspaceGetFlagsResponseData"
+            additionalProperties: false
         V2WorkspaceGetLimitsResponseBody:
             type: object
             required:
@@ -8245,6 +8256,23 @@ components:
                     type: string
                     x-unkey-redact: true
                     description: New root key secret, returned only once. Store it securely.
+        V2WorkspaceGetFlagsResponseData:
+            type: object
+            required:
+                - flags
+            properties:
+                flags:
+                    type: object
+                    description: |
+                        Every defined flag, keyed by slug, with its value for your workspace. A
+                        workspace override wins over the flag's default, including an override
+                        to `false`. A flag missing from this object is not defined yet.
+                    additionalProperties:
+                        type: boolean
+                    example:
+                        new-navigation: true
+                        log-export: false
+            additionalProperties: false
         V2WorkspaceGetLimitsResponseData:
             type: object
             description: |
@@ -18575,6 +18603,112 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: updateKey
+    /v2/workspace.getFlags:
+        post:
+            description: |
+                Get the value of every feature flag for your workspace.
+
+                Use this to decide which features to show or enable for the workspace.
+                The response includes flags whose value is `false`, so a flag that is
+                turned off for your workspace is different from a flag that is not
+                defined yet. Changes to flags can take up to one minute to appear.
+
+                The request takes no parameters.
+
+                **Required Permissions**
+
+                Your root key must have this permission:
+                - `unkey:v1:<workspace_id>:flags#read`
+            operationId: workspace.getFlags
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                flags:
+                                    description: One flag is on for this workspace and one is off.
+                                    summary: Workspace flags
+                                    value:
+                                        data:
+                                            flags:
+                                                log-export: false
+                                                new-navigation: true
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2WorkspaceGetFlagsResponseBody'
+                    description: |
+                        Every defined flag with its value for the workspace.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Invalid root key
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid. We could not find the requested key.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:flags#read'''
+                                            status: 403
+                                            title: Insufficient Permissions
+                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:flags#read`)
+                "429":
+                    content:
+                        application/problem+json:
+                            examples:
+                                workspaceRateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including when the flags could not be read
+            security:
+                - bearer: []
+            summary: Get workspace flags
+            tags:
+                - workspace
+            x-speakeasy-name-override: getFlags
+            x-unkey-idempotency: idempotent
     /v2/workspace.getLimits:
         post:
             description: |
@@ -19176,7 +19310,7 @@ tags:
       name: ratelimit
     - description: GitHub App installation operations
       name: github
-    - description: Workspace limits and usage operations
+    - description: Workspace limits, usage, and flag operations
       name: workspace
 x-speakeasy-retries:
     backoff:

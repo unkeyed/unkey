@@ -7,6 +7,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
@@ -80,6 +81,9 @@ type Services struct {
 	// Caches holds various cache instances for performance optimization,
 	// including API metadata, key data, and rate limit namespace caches.
 	Caches caches.Caches
+
+	// Flags reports workspace feature flags from a per-workspace cache.
+	Flags flags.Service
 
 	// Vault provides encrypted storage for sensitive key material.
 	Vault vault.VaultServiceClient
