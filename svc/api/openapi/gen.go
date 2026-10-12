@@ -6647,6 +6647,24 @@ type V2ProjectsUpdateProjectResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2RatelimitCreateNamespaceRequestBody defines model for V2RatelimitCreateNamespaceRequestBody.
+type V2RatelimitCreateNamespaceRequestBody struct {
+	// Name The name of the namespace, unique within your workspace. Names are case-sensitive.
+	// Pass it as `namespace` to `ratelimit.limit` and the override endpoints.
+	//
+	//
+	// Example: email.outbound
+	Name string `json:"name"`
+}
+
+// V2RatelimitCreateNamespaceResponseBody defines model for V2RatelimitCreateNamespaceResponseBody.
+type V2RatelimitCreateNamespaceResponseBody struct {
+	Data RatelimitNamespace `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2RatelimitDeleteOverrideRequestBody Deletes an existing rate limit override. This permanently removes a custom rate limit rule, reverting affected identifiers back to the default rate limits for the namespace.
 //
 // Use this endpoint when you need to:
@@ -7853,6 +7871,9 @@ type ProjectsListProjectsJSONRequestBody = V2ProjectsListProjectsRequestBody
 
 // ProjectsUpdateProjectJSONRequestBody defines body for ProjectsUpdateProject for application/json ContentType.
 type ProjectsUpdateProjectJSONRequestBody = V2ProjectsUpdateProjectRequestBody
+
+// RatelimitCreateNamespaceJSONRequestBody defines body for RatelimitCreateNamespace for application/json ContentType.
+type RatelimitCreateNamespaceJSONRequestBody = V2RatelimitCreateNamespaceRequestBody
 
 // RatelimitDeleteOverrideJSONRequestBody defines body for RatelimitDeleteOverride for application/json ContentType.
 type RatelimitDeleteOverrideJSONRequestBody = V2RatelimitDeleteOverrideRequestBody
