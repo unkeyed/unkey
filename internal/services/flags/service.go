@@ -22,7 +22,7 @@ type Config struct {
 
 type service struct {
 	db    mysql.MySQL
-	cache cache.Cache[string, map[string]bool]
+	cache cache.Cache[string, map[string]Flag]
 }
 
 var _ Service = (*service)(nil)
@@ -38,7 +38,7 @@ func New(config Config) (*service, error) {
 		return nil, fault.Wrap(err, fault.Internal("invalid flags configuration"))
 	}
 
-	workspaceCache, err := cache.New(cache.Config[string, map[string]bool]{
+	workspaceCache, err := cache.New(cache.Config[string, map[string]Flag]{
 		Fresh:    10 * time.Second,
 		Stale:    time.Minute,
 		MaxSize:  10_000,
@@ -56,12 +56,12 @@ func (s *service) Close() {
 	s.cache.Close()
 }
 
-func (s *service) Values(ctx context.Context, workspaceID string) (map[string]bool, error) {
+func (s *service) Values(ctx context.Context, workspaceID string) (map[string]Flag, error) {
 	values, err := s.load(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]bool, len(values))
+	result := make(map[string]Flag, len(values))
 	maps.Copy(result, values)
 	return result, nil
 }
@@ -73,26 +73,29 @@ func (s *service) enabled(ctx context.Context, workspaceID, slug string, fallbac
 		return fallback
 	}
 	if value, ok := values[slug]; ok {
-		return value
+		return value.Value
 	}
 	return fallback
 }
 
-func (s *service) load(ctx context.Context, workspaceID string) (map[string]bool, error) {
-	values, _, err := s.cache.SWR(ctx, workspaceID, func(ctx context.Context) (map[string]bool, error) {
+func (s *service) load(ctx context.Context, workspaceID string) (map[string]Flag, error) {
+	values, _, err := s.cache.SWR(ctx, workspaceID, func(ctx context.Context) (map[string]Flag, error) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		rows, err := db.Query.ListFlagsByWorkspaceID(ctx, s.db.RO(), workspaceID)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Internal("load workspace flags"))
 		}
-		values := make(map[string]bool, len(rows))
+		values := make(map[string]Flag, len(rows))
 		for _, row := range rows {
 			value := row.DefaultValue
 			if row.OverrideValue.Valid {
 				value = row.OverrideValue.Bool
 			}
-			values[row.Slug] = value
+			values[row.Slug] = Flag{
+				Value: value, Description: row.Description,
+				AllowEnable: row.AllowEnable, AllowDisable: row.AllowDisable,
+			}
 		}
 		return values, nil
 	}, func(err error) cache.Op {

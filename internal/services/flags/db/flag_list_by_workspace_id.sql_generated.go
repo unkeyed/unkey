@@ -11,7 +11,7 @@ import (
 )
 
 const listFlagsByWorkspaceID = `-- name: ListFlagsByWorkspaceID :many
-SELECT f.slug, f.default_value, o.value AS override_value
+SELECT f.slug, f.default_value, f.description, f.allow_enable, f.allow_disable, o.value AS override_value
 FROM flags f
 LEFT JOIN flag_overrides o
     ON o.flag_slug = f.slug AND o.workspace_id = ?
@@ -20,6 +20,9 @@ LEFT JOIN flag_overrides o
 type ListFlagsByWorkspaceIDRow struct {
 	Slug          string       `db:"slug"`
 	DefaultValue  bool         `db:"default_value"`
+	Description   string       `db:"description"`
+	AllowEnable   bool         `db:"allow_enable"`
+	AllowDisable  bool         `db:"allow_disable"`
 	OverrideValue sql.NullBool `db:"override_value"`
 }
 
@@ -28,7 +31,7 @@ type ListFlagsByWorkspaceIDRow struct {
 // override_value, so callers can tell inheritance apart from an explicit false.
 // Overrides whose definition was deleted are not returned.
 //
-//	SELECT f.slug, f.default_value, o.value AS override_value
+//	SELECT f.slug, f.default_value, f.description, f.allow_enable, f.allow_disable, o.value AS override_value
 //	FROM flags f
 //	LEFT JOIN flag_overrides o
 //	    ON o.flag_slug = f.slug AND o.workspace_id = ?
@@ -41,7 +44,14 @@ func (q *Queries) ListFlagsByWorkspaceID(ctx context.Context, db DBTX, workspace
 	var items []ListFlagsByWorkspaceIDRow
 	for rows.Next() {
 		var i ListFlagsByWorkspaceIDRow
-		if err := rows.Scan(&i.Slug, &i.DefaultValue, &i.OverrideValue); err != nil {
+		if err := rows.Scan(
+			&i.Slug,
+			&i.DefaultValue,
+			&i.Description,
+			&i.AllowEnable,
+			&i.AllowDisable,
+			&i.OverrideValue,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

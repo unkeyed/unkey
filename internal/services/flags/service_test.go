@@ -14,6 +14,36 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
+func TestService_CachesMetadataAndReturnsIndependentCopies(t *testing.T) {
+	database, service, testClock := newService(t)
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	require.NoError(t, db.Query.UpsertFlag(t.Context(), database.RW(), db.UpsertFlagParams{
+		Slug: flags.HelloWorldSlug, Description: "Original description", DefaultValue: true,
+		AllowEnable: false, AllowDisable: true,
+	}))
+	setOverride(t, database, workspaceID, false)
+	values, err := service.Values(t.Context(), workspaceID)
+	require.NoError(t, err)
+	want := map[string]flags.Flag{flags.HelloWorldSlug: {
+		Value: false, Description: "Original description", AllowEnable: false, AllowDisable: true,
+	}}
+	require.Equal(t, want, values)
+	delete(values, flags.HelloWorldSlug)
+	require.NoError(t, db.Query.UpsertFlag(t.Context(), database.RW(), db.UpsertFlagParams{
+		Slug: flags.HelloWorldSlug, Description: "Changed description", DefaultValue: true,
+		AllowEnable: true, AllowDisable: false,
+	}))
+	cached, err := service.Values(t.Context(), workspaceID)
+	require.NoError(t, err)
+	require.Equal(t, want, cached)
+	testClock.Tick(time.Minute)
+	refreshed, err := service.Values(t.Context(), workspaceID)
+	require.NoError(t, err)
+	require.Equal(t, map[string]flags.Flag{flags.HelloWorldSlug: {
+		Value: false, Description: "Changed description", AllowEnable: true, AllowDisable: false,
+	}}, refreshed)
+}
+
 // TestService_Precedence guarantees that a workspace override, including false,
 // beats the database default, and that overrides never leak across workspaces.
 func TestService_Precedence(t *testing.T) {
@@ -42,8 +72,10 @@ func TestService_Precedence(t *testing.T) {
 
 			values, err := service.Values(ctx, workspaceID)
 			require.NoError(t, err)
-			require.Equal(t, map[string]bool{flags.HelloWorldSlug: tt.want}, values)
-			values[flags.HelloWorldSlug] = !tt.want
+			require.Equal(t, map[string]flags.Flag{flags.HelloWorldSlug: {
+				Value: tt.want, Description: t.Name(), AllowEnable: false, AllowDisable: false,
+			}}, values)
+			values[flags.HelloWorldSlug] = flags.Flag{Value: !tt.want, Description: "Changed", AllowEnable: true, AllowDisable: true}
 			require.Equal(t, tt.want, service.IsHelloWorldEnabled(ctx, workspaceID))
 		})
 	}
@@ -144,7 +176,6 @@ func upsertHelloWorld(t *testing.T, database db.Database, defaultValue bool) {
 		Slug:         flags.HelloWorldSlug,
 		Description:  t.Name(),
 		DefaultValue: defaultValue,
-		Visible:      false,
 		AllowEnable:  false,
 		AllowDisable: false,
 	}))
