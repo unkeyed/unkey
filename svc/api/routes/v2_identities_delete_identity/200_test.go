@@ -4,13 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/array"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -235,6 +238,20 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 			Deleted:     true,
 		})
 		require.Equal(t, sql.ErrNoRows, err, "old identity should be hard deleted")
+		oldEvents := h.FindAuditLogsByTargetID(ctx, t, identity1.ID)
+		require.Len(t, oldEvents, 2, "soft deletion and cleanup each audit the identity even without ratelimits")
+		currentEvents := h.FindAuditLogsByTargetID(ctx, t, identity2.ID)
+		require.Len(t, currentEvents, 1)
+		var cleanupEvents int
+		for _, event := range oldEvents {
+			if event.CorrelationID == currentEvents[0].CorrelationID {
+				cleanupEvents++
+				require.Equal(t, "identity.delete", event.Event)
+				require.Len(t, event.Targets, 1)
+				require.Equal(t, identity1.ID, event.Targets[0].ID)
+			}
+		}
+		require.Equal(t, 1, cleanupEvents)
 	})
 
 	t.Run("delete->create->delete with ratelimits", func(t *testing.T) {
@@ -262,9 +279,13 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		})
 
 		// Step 2: Delete old identity (tier downgrade starts)
+		oldRatelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identity1.ID, Valid: true})
+		require.NoError(t, err)
+		require.Len(t, oldRatelimits, 1)
 		req1 := handler.Request{Identity: externalID}
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req1)
 		require.Equal(t, 200, res1.Status, "first deletion should succeed")
+		oldEventsBefore := h.FindAuditLogsByTargetID(ctx, t, identity1.ID)
 
 		// Step 3: Create new identity with "Starter" tier ratelimit (20k/month)
 		starterMeta, err := json.Marshal(map[string]string{"tier": "starter"})
@@ -313,5 +334,142 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 			Deleted:     true,
 		})
 		require.Equal(t, sql.ErrNoRows, err, "old identity should be hard deleted as cleanup")
+
+		remainingRatelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identity1.ID, Valid: true})
+		require.NoError(t, err)
+		require.Empty(t, remainingRatelimits)
+		oldEventsAfter := h.FindAuditLogsByTargetID(ctx, t, identity1.ID)
+		require.Len(t, oldEventsAfter, len(oldEventsBefore)+2, "cleanup must audit the old identity and its ratelimit")
+		currentEvents := h.FindAuditLogsByTargetID(ctx, t, identity2.ID)
+		require.Len(t, currentEvents, 2)
+		var cleanupIdentityEvents, cleanupRatelimitEvents int
+		for _, event := range oldEventsAfter {
+			if event.CorrelationID != currentEvents[0].CorrelationID {
+				continue
+			}
+			switch event.Event {
+			case "identity.delete":
+				cleanupIdentityEvents++
+				require.Len(t, event.Targets, 1)
+				require.Equal(t, identity1.ID, event.Targets[0].ID)
+				require.Equal(t, "identity", event.Targets[0].Type)
+			case "ratelimit.delete":
+				cleanupRatelimitEvents++
+				require.Len(t, event.Targets, 2)
+				require.Equal(t, identity1.ID, event.Targets[0].ID)
+				require.Equal(t, "identity", event.Targets[0].Type)
+				require.Equal(t, oldRatelimits[0].ID, event.Targets[1].ID)
+				require.Equal(t, "ratelimit", event.Targets[1].Type)
+			}
+		}
+		require.Equal(t, 1, cleanupIdentityEvents)
+		require.Equal(t, 1, cleanupRatelimitEvents)
 	})
+}
+
+// TestDeleteIdentityCleanupRollsBackWithAuditFailure protects atomic cleanup,
+// current identity deletion and outbox persistence when audit insertion fails.
+func TestDeleteIdentityCleanupRollsBackWithAuditFailure(t *testing.T) {
+	ctx := t.Context()
+	h := testutil.NewHarness(t)
+	workspaceID := h.Resources().UserWorkspace.ID
+	externalID := uid.New(uid.TestPrefix)
+	old := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspaceID,
+		ExternalID:  externalID,
+		Ratelimits: []seed.CreateRatelimitRequest{
+			{Name: "old_limit", WorkspaceID: workspaceID, Limit: 37, Duration: 1000},
+		},
+	})
+	require.NoError(t, db.Query.SoftDeleteIdentity(ctx, h.DB.RW(), db.SoftDeleteIdentityParams{
+		WorkspaceID: workspaceID,
+		IdentityID:  old.ID,
+	}))
+	current := h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: externalID})
+	route := &handler.Handler{DB: h.DB, Auditlogs: failingAuditlogs{AuditLogService: h.Auditlogs}}
+	h.Register(route)
+	rootKey := h.CreateRootKey(workspaceID, "identity.*.delete_identity")
+	headers := http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey}}
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Identity: current.ID})
+	require.Equal(t, http.StatusInternalServerError, res.Status, "%s", res.RawBody)
+	_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{WorkspaceID: workspaceID, IdentityID: old.ID, Deleted: true})
+	require.NoError(t, err)
+	_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{WorkspaceID: workspaceID, IdentityID: current.ID, Deleted: false})
+	require.NoError(t, err)
+	ratelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: old.ID, Valid: true})
+	require.NoError(t, err)
+	require.Len(t, ratelimits, 1)
+	require.Empty(t, h.FindAuditLogsByTargetID(ctx, t, old.ID))
+	require.Empty(t, h.FindAuditLogsByTargetID(ctx, t, current.ID))
+}
+
+// failingAuditlogs forces rollback after the real service writes the outbox.
+type failingAuditlogs struct {
+	auditlogs.AuditLogService
+}
+
+func (a failingAuditlogs) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditLog) error {
+	if err := a.AuditLogService.Insert(ctx, tx, logs); err != nil {
+		return err
+	}
+	return errors.New("audit persistence failed")
+}
+
+// TestConcurrentIdentityCleanupAuditsOnce protects the committed resource set
+// from duplicate audit events when deletion requests overlap.
+func TestConcurrentIdentityCleanupAuditsOnce(t *testing.T) {
+	ctx := t.Context()
+	h := testutil.NewHarness(t)
+	workspaceID := h.Resources().UserWorkspace.ID
+	externalID := uid.New(uid.TestPrefix)
+	old := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspaceID,
+		ExternalID:  externalID,
+		Ratelimits: []seed.CreateRatelimitRequest{
+			{Name: "burst", WorkspaceID: workspaceID, Limit: 13, Duration: 1000},
+			{Name: "daily", WorkspaceID: workspaceID, Limit: 197, Duration: 86400000},
+		},
+	})
+	oldRatelimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: old.ID, Valid: true})
+	require.NoError(t, err)
+	require.Len(t, oldRatelimits, 2)
+	require.NoError(t, db.Query.SoftDeleteIdentity(ctx, h.DB.RW(), db.SoftDeleteIdentityParams{WorkspaceID: workspaceID, IdentityID: old.ID}))
+	current := h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: externalID})
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	h.Register(route)
+	rootKey := h.CreateRootKey(workspaceID, "identity.*.delete_identity")
+	headers := http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey}}
+	start := make(chan struct{})
+	statuses := make(chan int, 16)
+	for range cap(statuses) {
+		go func() {
+			<-start
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Identity: current.ID})
+			statuses <- res.Status
+		}()
+	}
+	close(start)
+	var successful int
+	for range cap(statuses) {
+		status := <-statuses
+		require.Contains(t, []int{http.StatusOK, http.StatusNotFound}, status)
+		if status == http.StatusOK {
+			successful++
+		}
+	}
+	require.Positive(t, successful)
+	oldEvents := h.FindAuditLogsByTargetID(ctx, t, old.ID)
+	require.Len(t, oldEvents, 3)
+	currentEvents := h.FindAuditLogsByTargetID(ctx, t, current.ID)
+	require.Len(t, currentEvents, 1)
+	require.NotEmpty(t, currentEvents[0].CorrelationID)
+	for _, event := range oldEvents {
+		require.Equal(t, currentEvents[0].CorrelationID, event.CorrelationID)
+	}
+	for _, ratelimit := range oldRatelimits {
+		events := h.FindAuditLogsByTargetID(ctx, t, ratelimit.ID)
+		require.Len(t, events, 1)
+		require.Equal(t, "ratelimit.delete", events[0].Event)
+		require.Equal(t, currentEvents[0].CorrelationID, events[0].CorrelationID)
+	}
 }

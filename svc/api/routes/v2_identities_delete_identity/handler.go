@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -107,6 +108,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		_, err := db.Query.LockIdentityForUpdate(ctx, tx, identity.ID)
+		if err != nil {
+			return fault.Wrap(err, fault.Internal("unable to lock identity for deletion"))
+		}
+		_, err = db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			IdentityID:  identity.ID,
+			Deleted:     true,
+		})
+		if err == nil {
+			return nil
+		}
+		if !db.IsNotFound(err) {
+			return fault.Wrap(err, fault.Internal("unable to check identity deletion state"))
+		}
+
+		var oldResources []db.FindOldIdentityResourcesForUpdateRow
 		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
 			WorkspaceID: principal.AuthorizedWorkspaceID,
 			IdentityID:  identity.ID,
@@ -115,30 +133,39 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
 		// so we can hard delete the "old" deleted version
 		if db.IsDuplicateKeyError(err) {
-			// Check if this identity is already soft-deleted (could happen with concurrent requests)
-			alreadyDeleted, checkErr := db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
-				WorkspaceID: principal.AuthorizedWorkspaceID,
-				IdentityID:  identity.ID,
-				Deleted:     true,
-			})
-			if checkErr == nil && alreadyDeleted.ID == identity.ID {
-				// Identity is already soft-deleted, this is idempotent, return success
-				// Skip audit logs - they were already created by the request that deleted it
-				return nil
-			}
-
-			// Delete the old soft-deleted identity with the same external_id, excluding the current one
-			err = db.Query.DeleteOldIdentityByExternalID(ctx, tx, db.DeleteOldIdentityByExternalIDParams{
+			oldResources, err = db.Query.FindOldIdentityResourcesForUpdate(ctx, tx, db.FindOldIdentityResourcesForUpdateParams{
 				WorkspaceID:       principal.AuthorizedWorkspaceID,
 				ExternalID:        identity.ExternalID,
 				CurrentIdentityID: identity.ID,
 			})
 			if err != nil {
-				return fault.Wrap(err,
+				return fault.Wrap(err, fault.Internal("unable to lock old identity resources"))
+			}
+			var expectedDeleted int64
+			if len(oldResources) > 0 {
+				expectedDeleted = 1
+			}
+			for _, resource := range oldResources {
+				if resource.RatelimitID.Valid {
+					expectedDeleted++
+				}
+			}
+
+			// Delete the old soft-deleted identity with the same external_id, excluding the current one
+			deleted, deleteErr := db.Query.DeleteOldIdentityByExternalID(ctx, tx, db.DeleteOldIdentityByExternalIDParams{
+				WorkspaceID:       principal.AuthorizedWorkspaceID,
+				ExternalID:        identity.ExternalID,
+				CurrentIdentityID: identity.ID,
+			})
+			if deleteErr != nil {
+				return fault.Wrap(deleteErr,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database failed to delete old soft-deleted identity"),
 					fault.Public("Failed to delete old deleted identity."),
 				)
+			}
+			if err = assert.Equal(deleted, expectedDeleted, "identity cleanup must match locked audit targets"); err != nil {
+				return err
 			}
 
 			// Re-apply the soft delete operation
@@ -146,15 +173,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: principal.AuthorizedWorkspaceID,
 				IdentityID:  identity.ID,
 			})
-			if err != nil {
-				// If we still get a duplicate key error after deleting the old identity,
-				// it means another concurrent request already soft-deleted this identity.
-				// This is safe to treat as success (idempotent operation).
-				// Skip audit logs - they were already created by the concurrent request
-				if db.IsDuplicateKeyError(err) {
-					return nil // Skip audit logs
-				}
-			}
 		}
 
 		if err != nil {
@@ -217,6 +235,38 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 				},
 			})
+		}
+
+		if len(oldResources) > 0 {
+			oldIdentity := auditlog.AuditLogTarget{
+				ID:          oldResources[0].ID,
+				Meta:        nil,
+				Type:        auditlog.IdentityTargetType,
+				DisplayName: oldResources[0].ExternalID,
+				Name:        oldResources[0].ExternalID,
+			}
+			cleanup := auditLogs[0]
+			cleanup.Display = fmt.Sprintf("Deleted identity %s.", oldIdentity.ID)
+			cleanup.Targets = []auditlog.AuditLogTarget{oldIdentity}
+			auditLogs = append(auditLogs, cleanup)
+			for _, resource := range oldResources {
+				if !resource.RatelimitID.Valid {
+					continue
+				}
+				cleanup.Event = auditlog.RatelimitDeleteEvent
+				cleanup.Display = fmt.Sprintf("Deleted ratelimit %s.", resource.RatelimitID.String)
+				cleanup.Targets = []auditlog.AuditLogTarget{
+					oldIdentity,
+					{
+						ID:          resource.RatelimitID.String,
+						Meta:        nil,
+						Type:        auditlog.RatelimitTargetType,
+						DisplayName: resource.RatelimitName.String,
+						Name:        resource.RatelimitName.String,
+					},
+				}
+				auditLogs = append(auditLogs, cleanup)
+			}
 		}
 
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)

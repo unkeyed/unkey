@@ -205,7 +205,8 @@ type Querier interface {
 	//  DELETE FROM roles_permissions
 	//  WHERE role_id = ?
 	DeleteManyRolePermissionsByRoleID(ctx context.Context, db DBTX, roleID string) error
-	//DeleteOldIdentityByExternalID
+	// Removes the deleted duplicate and its ratelimits. Callers must first lock
+	// these resources and compare the affected count with the captured audit targets.
 	//
 	//  DELETE i, rl
 	//  FROM identities i
@@ -214,7 +215,7 @@ type Querier interface {
 	//    AND i.external_id = ?
 	//    AND i.id != ?
 	//    AND i.deleted = true
-	DeleteOldIdentityByExternalID(ctx context.Context, db DBTX, arg DeleteOldIdentityByExternalIDParams) error
+	DeleteOldIdentityByExternalID(ctx context.Context, db DBTX, arg DeleteOldIdentityByExternalIDParams) (int64, error)
 	//DeletePermission
 	//
 	//  DELETE p, rp, kp
@@ -1073,6 +1074,19 @@ type Querier interface {
 	//    AND r.project_id = ?
 	//    AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
+	// Locks the deleted duplicate and its ratelimits before cleanup so audit targets
+	// describe the same resources the transaction deletes. The unique workspace,
+	// external ID and deleted index permits at most one old identity.
+	//
+	//  SELECT i.id, i.external_id, rl.id AS ratelimit_id, rl.name AS ratelimit_name
+	//  FROM identities i
+	//  LEFT JOIN ratelimits rl ON i.id = rl.identity_id
+	//  WHERE i.workspace_id = ?
+	//    AND i.external_id = ?
+	//    AND i.id != ?
+	//    AND i.deleted = true
+	//  FOR UPDATE
+	FindOldIdentityResourcesForUpdate(ctx context.Context, db DBTX, arg FindOldIdentityResourcesForUpdateParams) ([]FindOldIdentityResourcesForUpdateRow, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
