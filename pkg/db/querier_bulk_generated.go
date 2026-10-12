@@ -22,6 +22,7 @@ type BulkQuerier interface {
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
+	UpsertFlag(ctx context.Context, db DBTX, args []UpsertFlagParams) error
 	InsertGithubAppInstallations(ctx context.Context, db DBTX, args []InsertGithubAppInstallationParams) error
 	InsertGithubRepoConnections(ctx context.Context, db DBTX, args []InsertGithubRepoConnectionParams) error
 	UpsertGithubRepoConnection(ctx context.Context, db DBTX, args []UpsertGithubRepoConnectionParams) error
