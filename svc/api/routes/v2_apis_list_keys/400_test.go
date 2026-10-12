@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_list_keys"
@@ -33,6 +34,7 @@ func TestValidationErrors(t *testing.T) {
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
+	missingAPIID := uid.New(uid.APIPrefix)
 
 	// Test case for missing required apiId
 	t.Run("missing apiId", func(t *testing.T) {
@@ -80,7 +82,7 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("negative limit", func(t *testing.T) {
 		negativeLimit := -1
 		req := handler.Request{
-			ApiId: "api_1234567890",
+			ApiId: missingAPIID,
 			Limit: &negativeLimit,
 		}
 
@@ -102,7 +104,7 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("zero limit", func(t *testing.T) {
 		zeroLimit := 0
 		req := handler.Request{
-			ApiId: "api_1234567890",
+			ApiId: missingAPIID,
 			Limit: &zeroLimit,
 		}
 
@@ -142,7 +144,7 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("extremely large limit", func(t *testing.T) {
 		largeLimit := 999999
 		req := handler.Request{
-			ApiId: "api_1234567890",
+			ApiId: missingAPIID,
 			Limit: &largeLimit,
 		}
 
@@ -164,7 +166,7 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("malformed cursor", func(t *testing.T) {
 		malformedCursor := "not_a_valid_cursor_format_!!!"
 		req := handler.Request{
-			ApiId:  "api_1234567890",
+			ApiId:  missingAPIID,
 			Cursor: &malformedCursor,
 		}
 
@@ -184,7 +186,7 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("empty external ID", func(t *testing.T) {
 		emptyExternalId := ""
 		req := handler.Request{
-			ApiId:      "api_1234567890",
+			ApiId:      missingAPIID,
 			ExternalId: &emptyExternalId,
 		}
 
@@ -204,7 +206,7 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("valid boolean decrypt parameter", func(t *testing.T) {
 		decryptTrue := true
 		req := handler.Request{
-			ApiId:   "api_1234567890",
+			ApiId:   missingAPIID,
 			Decrypt: &decryptTrue,
 		}
 
@@ -223,7 +225,7 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("valid limit values", func(t *testing.T) {
 		validLimit := 50
 		req := handler.Request{
-			ApiId: "api_1234567890",
+			ApiId: missingAPIID,
 			Limit: &validLimit,
 		}
 

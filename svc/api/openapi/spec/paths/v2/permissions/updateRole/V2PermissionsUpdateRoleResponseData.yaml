@@ -1,0 +1,20 @@
+type: object
+required:
+  - id
+  - name
+properties:
+  id:
+    type: string
+    description: The ID of the updated role.
+    example: role_1234567890abcdef
+  name:
+    type: string
+    description: The name of the role after the update.
+    example: support.readonly
+  description:
+    type: string
+    description: The description of the role after the update. Omitted when the role has no description.
+    example: Read-only access for customer support
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
+additionalProperties: false

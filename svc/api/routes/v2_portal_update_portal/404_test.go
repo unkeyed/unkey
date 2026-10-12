@@ -115,8 +115,8 @@ func TestUpdatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	testCases := map[string]portal.Mapping{
 		"keyspace owned by another workspace": foreignKeyspace,
 		"app owned by another workspace":      foreignApp,
-		"keyspace that exists nowhere":        {ID: "ks_doesnotexist", Type: portal.MappingTypeKeyspace},
-		"app that exists nowhere":             {ID: "app_doesnotexist", Type: portal.MappingTypeApp},
+		"keyspace that exists nowhere":        {ID: uid.New(uid.KeySpacePrefix), Type: portal.MappingTypeKeyspace},
+		"app that exists nowhere":             {ID: uid.New(uid.AppPrefix), Type: portal.MappingTypeApp},
 	}
 
 	bodies := map[string]string{}
@@ -134,7 +134,7 @@ func TestUpdatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 			row := fetchPortal(t, h, workspace.ID, stored.ID)
 			require.Equal(t, mapping.ID, row.KeyAuthID.String, "the association must not change")
 			require.False(t, row.AppID.Valid)
-			require.Equal(t, 1, liveSessions(t, h, stored.ID),
+			require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""),
 				"a rejected re-point must not revoke sessions")
 
 			bodies[name] = normalizeRequestID(res.RawBody)

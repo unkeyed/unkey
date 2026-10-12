@@ -1,11 +1,16 @@
 "use client";
 
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import type { Route } from "next";
 
-export type Measured<T> = { state: "loading" } | { state: "error" } | { state: "ready"; value: T };
+/** `bar` says whether the loaded row will draw a bar, so the loading row matches it */
+export type Measured<T> =
+  | { state: "loading"; bar: boolean }
+  | { state: "error" }
+  | { state: "ready"; value: T };
 
 export type ComputeUsage = {
   grossCents: number;
@@ -29,7 +34,7 @@ export const AT_RISK = 0.9;
 const STALE_MS = 5 * 60 * 1000;
 
 export function useUsageSummary(): UsageSummary | null {
-  const { workspace, limits } = useWorkspace();
+  const { workspace } = useWorkspace();
   const hasComputePlan = Boolean(workspace?.deployPlan) || Boolean(workspace?.deployPlanOverride);
 
   const deployUsage = trpc.billing.queryDeployUsage.useQuery(undefined, {
@@ -38,10 +43,9 @@ export function useUsageSummary(): UsageSummary | null {
     refetchOnWindowFocus: false,
     trpc: { context: { skipBatch: true } },
   });
-  const apiUsage = trpc.billing.queryUsage.useQuery(undefined, {
+  const apiUsage = useWorkspaceLimits({
     staleTime: STALE_MS,
     refetchOnWindowFocus: false,
-    trpc: { context: { skipBatch: true } },
   });
 
   if (!workspace) {
@@ -51,7 +55,7 @@ export function useUsageSummary(): UsageSummary | null {
   const compute = hasComputePlan
     ? measureCompute(deployUsage, workspace.deploySpendBudgetCents ?? null)
     : null;
-  const api = measureApi(apiUsage, limits?.apiBillableOperationsCountMaxPerMonth ?? null);
+  const api = measureApi(apiUsage);
 
   return {
     href: routes.settings.usage({ workspaceSlug: workspace.slug }),
@@ -93,23 +97,25 @@ function measureCompute(
     return { state: "error" };
   }
   if (usage.data === undefined) {
-    return { state: "loading" };
+    return { state: "loading", bar: budgetCents !== null && budgetCents > 0 };
   }
   return { state: "ready", value: { grossCents: usage.data.grossCents, budgetCents } };
 }
 
 function measureApi(
-  usage: Query<{ billableTotal: number }>,
-  max: number | null,
+  usage: Query<{
+    apiBillableOperationsCountMaxPerMonth: { limit: number | null; current?: number };
+  }>,
 ): Measured<ApiUsage> | null {
-  if (max === null || max <= 0) {
-    return null;
-  }
   if (usage.isError) {
     return { state: "error" };
   }
   if (usage.data === undefined) {
-    return { state: "loading" };
+    return { state: "loading", bar: true };
   }
-  return { state: "ready", value: { used: usage.data.billableTotal, max } };
+  const { limit, current } = usage.data.apiBillableOperationsCountMaxPerMonth;
+  if (limit === null || limit <= 0) {
+    return null;
+  }
+  return { state: "ready", value: { used: current ?? 0, max: limit } };
 }

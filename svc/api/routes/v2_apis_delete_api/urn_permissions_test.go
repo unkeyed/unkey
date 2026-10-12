@@ -2,9 +2,11 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -121,18 +123,21 @@ func TestDeleteAPIUsesKeyspaceProjectForURNPermission(t *testing.T) {
 
 	createDivergentAPI := func(t *testing.T) (db.Api, string) {
 		t.Helper()
-		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-		keyspaceProjectID := api.ProjectID
+		keyspaceProject := h.CreateProject(seed.CreateProjectRequest{
+			ID:          uid.New(uid.ProjectPrefix),
+			WorkspaceID: workspace.ID,
+			Name:        "Keyspace project",
+			Slug:        uid.New("project"),
+		})
+		keyspaceProjectID := keyspaceProject.ID
 		apiProject := h.CreateProject(seed.CreateProjectRequest{
 			ID:          uid.New(uid.ProjectPrefix),
 			WorkspaceID: workspace.ID,
 			Name:        "API project",
 			Slug:        uid.New("project"),
 		})
-		_, err := h.DB.RW().ExecContext(ctx, "UPDATE apis SET project_id = ? WHERE id = ?", apiProject.ID, api.ID)
-		require.NoError(t, err)
-		api, err = db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
-		require.NoError(t, err)
+		keySpaceID := insertKeySpace(t, h, workspace.ID, keyspaceProjectID)
+		api := insertAPI(t, h, workspace.ID, apiProject.ID, sql.NullString{String: keySpaceID, Valid: true})
 		require.Equal(t, apiProject.ID, api.ProjectID)
 		require.NotEqual(t, keyspaceProjectID, api.ProjectID)
 		return api, keyspaceProjectID
@@ -185,10 +190,15 @@ func TestDeleteAPIRejectsForeignWorkspaceKeyspace(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	otherWorkspace := h.CreateWorkspace()
-	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	_, err := h.DB.RW().ExecContext(ctx, "UPDATE key_auth SET workspace_id = ? WHERE id = ?", otherWorkspace.ID, api.KeyAuthID.String)
-	require.NoError(t, err)
-	permission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", workspace.ID, api.ProjectID, api.KeyAuthID.String)
+	projectID := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "API project",
+		Slug:        uid.New("project"),
+	}).ID
+	keySpaceID := insertKeySpace(t, h, otherWorkspace.ID, projectID)
+	api := insertAPI(t, h, workspace.ID, projectID, sql.NullString{String: keySpaceID, Valid: true})
+	permission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", workspace.ID, projectID, api.KeyAuthID.String)
 	rootKey := h.CreateRootKey(workspace.ID, permission)
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
@@ -215,9 +225,13 @@ func TestDeleteAPIWithoutKeyspaceRetainsLegacyAuthorization(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	_, err := h.DB.RW().ExecContext(ctx, "UPDATE apis SET key_auth_id = NULL WHERE id = ?", api.ID)
-	require.NoError(t, err)
+	projectID := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "API project",
+		Slug:        uid.New("project"),
+	}).ID
+	api := insertAPI(t, h, workspace.ID, projectID, sql.NullString{})
 	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("api.%s.delete_api", api.ID))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
@@ -229,4 +243,39 @@ func TestDeleteAPIWithoutKeyspaceRetainsLegacyAuthorization(t *testing.T) {
 	deleted, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 	require.NoError(t, err)
 	require.True(t, deleted.DeletedAtM.Valid)
+}
+
+func insertKeySpace(t *testing.T, h *testutil.Harness, workspaceID, projectID string) string {
+	t.Helper()
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	err := db.Query.InsertKeySpace(context.Background(), h.DB.RW(), db.InsertKeySpaceParams{
+		ID:                 keySpaceID,
+		WorkspaceID:        workspaceID,
+		ProjectID:          projectID,
+		CreatedAtM:         time.Now().UnixMilli(),
+		StoreEncryptedKeys: false,
+		DefaultPrefix:      sql.NullString{},
+		DefaultBytes:       sql.NullInt32{},
+	})
+	require.NoError(t, err)
+	return keySpaceID
+}
+
+func insertAPI(t *testing.T, h *testutil.Harness, workspaceID, projectID string, keySpaceID sql.NullString) db.Api {
+	t.Helper()
+	apiID := uid.New(uid.APIPrefix)
+	err := db.Query.InsertApi(context.Background(), h.DB.RW(), db.InsertApiParams{
+		ID:          apiID,
+		Name:        "test-api",
+		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
+		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+		IpWhitelist: sql.NullString{},
+		KeyAuthID:   keySpaceID,
+		CreatedAtM:  time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+	api, err := db.Query.FindApiByID(context.Background(), h.DB.RO(), apiID)
+	require.NoError(t, err)
+	return api
 }

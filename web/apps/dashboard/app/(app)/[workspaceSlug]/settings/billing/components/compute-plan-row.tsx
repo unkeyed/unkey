@@ -2,10 +2,10 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { IconCubeOutline18 } from "@unkey/icons";
-import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle, Skeleton } from "@unkey/ui";
+import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@unkey/ui";
 import { useState } from "react";
 import { periodCredit } from "./deploy-invoice";
-import { PlanName, PlanPrice, PlanRowAction } from "./plan-row";
+import { PlanCellsSkeleton, PlanName, PlanPrice, PlanRowAction } from "./plan-row";
 import { PlansScreen } from "./plans-screen";
 
 function ProductCell() {
@@ -56,9 +56,7 @@ export function ComputePlanRow({ isAdmin, emphasize }: ComputePlanRowProps) {
       <Item>
         <ProductCell />
         <ItemActions className="gap-3">
-          <Skeleton className="h-3 w-28" />
-          <Skeleton className="h-3 w-36" />
-          <span className="w-20" />
+          <PlanCellsSkeleton />
         </ItemActions>
       </Item>
     );

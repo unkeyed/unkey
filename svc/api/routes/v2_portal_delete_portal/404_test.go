@@ -69,14 +69,14 @@ func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "parity", "parity", mapping, nil, nil)
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
-	require.Equal(t, 1, liveSessions(t, h, stored.ID))
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""))
 
 	deniedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), request(stored.ID))
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
 	require.True(t, portalExists(t, h, workspace.ID, stored.ID), "a denied delete must not delete")
-	require.Equal(t, 1, liveSessions(t, h, stored.ID), "a denied delete must not revoke")
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""), "a denied delete must not revoke")
 	require.Equal(t, 0, countAuditEntriesMentioning(t, h, workspace.ID, "portal.delete"),
 		"a denied delete must not write an audit entry")
 

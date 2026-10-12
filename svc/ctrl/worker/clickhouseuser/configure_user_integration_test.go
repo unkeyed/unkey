@@ -81,15 +81,6 @@ func TestConfigureUser_Integration(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, initialPassword, updated.ClickhousePasswordEncrypted)
 
-		// Query this test-only field directly so the production lookup remains
-		// limited to values used by the service.
-		var maxQueriesPerWindow int32
-		err = h.DB.RO().QueryRowContext(
-			h.Ctx,
-			"SELECT max_queries_per_window FROM clickhouse_workspace_settings WHERE workspace_id = ?",
-			ws.ID,
-		).Scan(&maxQueriesPerWindow)
-		require.NoError(t, err)
-		require.Equal(t, int32(2000), maxQueriesPerWindow)
+		require.Equal(t, int32(2000), updated.ClickhouseMaxQueriesPerWindow)
 	})
 }

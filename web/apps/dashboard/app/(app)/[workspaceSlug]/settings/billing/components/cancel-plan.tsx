@@ -1,4 +1,5 @@
 "use client";
+import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { trpc } from "@/lib/trpc/client";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import {
@@ -19,6 +20,7 @@ type CancelPlanProps = {
 
 export const CancelPlan: React.FC<CancelPlanProps> = ({ disabled = false, disabledReason }) => {
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -26,11 +28,9 @@ export const CancelPlan: React.FC<CancelPlanProps> = ({ disabled = false, disabl
     onSuccess: async () => {
       // Revalidate helper: invalidate AND explicitly refetch to ensure UI updates
       await Promise.all([
-        trpcUtils.workspace.getCurrent.invalidate(),
-        trpcUtils.billing.queryUsage.invalidate(),
+        invalidateWorkspace(),
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.workspace.getCurrent.refetch(),
-        trpcUtils.billing.queryUsage.refetch(),
         trpcUtils.stripe.getBillingInfo.refetch(),
       ]);
       router.refresh();

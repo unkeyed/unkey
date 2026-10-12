@@ -1,0 +1,13 @@
+type: object
+required:
+  - handle
+properties:
+  handle:
+    type: string
+    description: The GitHub login, or the handle the client sent.
+    example: octocat
+  avatarUrl:
+    type: string
+    description: The avatar URL for `handle`. Omitted when unknown.
+    example: https://avatars.githubusercontent.com/u/583231
+additionalProperties: false

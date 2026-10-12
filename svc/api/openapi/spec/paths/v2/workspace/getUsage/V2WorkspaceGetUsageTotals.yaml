@@ -1,0 +1,17 @@
+type: object
+description: |
+  Workspace totals in the period. `compute` is the sum of
+  `breakdowns.byEnvironment[].compute`. `gateway.activeKeys` is the sum of
+  `breakdowns.byApp[].gateway.activeKeys`.
+required:
+  - api
+  - compute
+  - gateway
+properties:
+  api:
+    "$ref": "./V2WorkspaceGetUsageApi.yaml"
+  compute:
+    "$ref": "./V2WorkspaceGetUsageCompute.yaml"
+  gateway:
+    "$ref": "./V2WorkspaceGetUsageGateway.yaml"
+additionalProperties: false

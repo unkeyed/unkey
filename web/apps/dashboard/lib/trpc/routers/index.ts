@@ -19,7 +19,6 @@ import { auditLogsSearch } from "./audit/llm-search";
 import { listAuditMembers } from "./audit/members";
 import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
 import { queryPermissions } from "./authorization/permissions/query";
-import { updatePermission } from "./authorization/permissions/update";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
@@ -27,20 +26,15 @@ import { rolesLlmSearch } from "./authorization/roles/llm-search";
 import { queryRoles } from "./authorization/roles/query";
 import { updateRole } from "./authorization/roles/update";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
-import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
-import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
-import { queryUsage } from "./billing/query-usage";
-import { countCustomDomains } from "./deploy/custom-domains/count";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { cancelDeployment } from "./deploy/deployment/cancel";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
-import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
-import { listDeployments } from "./deploy/deployment/list";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
+import { listDeploymentDetails } from "./deploy/deployment/list-details";
 import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
@@ -206,7 +200,6 @@ export const router = t.router({
   authorization: t.router({
     permissions: t.router({
       query: queryPermissions,
-      update: updatePermission,
       llmSearch: permissionsLlmSearch,
     }),
     roles: t.router({
@@ -250,11 +243,8 @@ export const router = t.router({
     llmSearch,
   }),
   billing: t.router({
-    queryUsage,
     queryDeployUsage,
-    queryDeployUsageBreakdown,
     queryDeployUsageTimeseries,
-    queryComputeAllocation,
     getDeployBudget,
     setDeployBudget,
   }),
@@ -313,15 +303,11 @@ export const router = t.router({
       list: listDomains,
       listDisplayDomains,
     }),
-    customDomain: t.router({
-      count: countCustomDomains,
-    }),
     deployment: t.router({
-      list: listDeployments,
       listHeadlines: listDeploymentHeadlines,
       listBranches: listDeploymentBranches,
       listActiveBranches,
-      getById: getDeploymentById,
+      listDetails: listDeploymentDetails,
       runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       getOpenApiDiff: getOpenApiDiff,

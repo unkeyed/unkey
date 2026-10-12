@@ -6,6 +6,10 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import {
+  DeploymentGitAuthor,
+  DeploymentGitAuthor$inboundSchema,
+} from "./deploymentgitauthor.js";
 
 export type DeploymentGit = {
   /**
@@ -16,6 +20,26 @@ export type DeploymentGit = {
    * The git branch this deployment was built from. Omitted when unknown.
    */
   branch?: string | undefined;
+  /**
+   * The commit message. Omitted when unknown.
+   */
+  commitMessage?: string | undefined;
+  /**
+   * Unix timestamp in milliseconds when the commit was authored. Omitted when unknown.
+   */
+  commitTimestamp?: number | undefined;
+  author?: DeploymentGitAuthor | undefined;
+  /**
+   * The pull request number this deployment was built for. Omitted when the commit is not part of a pull request.
+   */
+  prNumber?: number | undefined;
+  /**
+   * The `owner/repo` name of the fork this deployment was built from. Omitted
+   *
+   * @remarks
+   * when it was built from the app's connected repository.
+   */
+  forkRepository?: string | undefined;
 };
 
 /** @internal */
@@ -26,6 +50,11 @@ export const DeploymentGit$inboundSchema: z.ZodType<
 > = z.object({
   commitSha: z.string(),
   branch: z.string().optional(),
+  commitMessage: z.string().optional(),
+  commitTimestamp: z.number().int().optional(),
+  author: DeploymentGitAuthor$inboundSchema.optional(),
+  prNumber: z.number().int().optional(),
+  forkRepository: z.string().optional(),
 });
 
 export function deploymentGitFromJSON(

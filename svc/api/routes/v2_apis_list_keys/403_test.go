@@ -122,7 +122,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for permission for different API
 	t.Run("permission for different API", func(t *testing.T) {
 		// Create a root key with permissions for a specific different API
-		differentKeyspaceID := "keyspace_different_123"
+		differentKeyspaceID := uid.New(uid.KeySpacePrefix)
 		rootKey := h.CreateRootKey(
 			workspace.ID,
 			keyspaceGrant(workspace.ID, projectID, differentKeyspaceID, "read"),
