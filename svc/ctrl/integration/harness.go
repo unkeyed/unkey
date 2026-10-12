@@ -91,6 +91,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		ProjectID:   project.ID,
 		Name:        "default",
 		Slug:        "default",
+		SourceType:  db.AppsSourceTypeUnknown,
 	})
 
 	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{

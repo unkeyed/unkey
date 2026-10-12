@@ -44,7 +44,7 @@ func TestOverrideNotFound(t *testing.T) {
 
 	// Test with non-existent namespace
 	t.Run("namespace id not found", func(t *testing.T) {
-		nonExistentNamespaceId := "ns_nonexistent"
+		nonExistentNamespaceId := uid.New(uid.RatelimitNamespacePrefix)
 		req := handler.Request{
 			Namespace: nonExistentNamespaceId,
 		}

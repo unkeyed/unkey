@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
@@ -19,29 +20,49 @@ func TestRuntimeLogsRead_Payload(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspace := uid.New("workspace")
+	workspace := uid.New(uid.WorkspacePrefix)
+	logID := uid.New(uid.TestPrefix)
+	projectID := uid.New(uid.ProjectPrefix)
+	appID := uid.New(uid.AppPrefix)
+	environmentID := uid.New(uid.EnvironmentPrefix)
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	attributes, err := json.Marshal(map[string]any{
+		"order": map[string]any{"id": 42},
+		"retry": false,
+	})
+	require.NoError(t, err)
 	now := time.Now().UnixMilli()
-	require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO runtime_logs_raw_v1
-		(workspace_id, log_id, time, severity, message, attributes, project_id, app_id,
-		environment_id, deployment_id, region, k8s_pod_name, platform)
-		VALUES (?, 'rlog_1', ?, 'fatal', 'Payment failed', ?,
-		'project_1', 'app_1', 'env_1', 'deployment_1', 'eu-west-1', 'internal-pod', 'aws')`, workspace, now-3600000, `{"order":{"id":42},"retry":false}`))
+	insertRows(t, client.Conn(), schema.RuntimeLogV1{
+		Time:          now - 3600000,
+		LogID:         logID,
+		Severity:      "fatal",
+		Message:       "Payment failed",
+		WorkspaceID:   workspace,
+		ProjectID:     projectID,
+		EnvironmentID: environmentID,
+		AppID:         appID,
+		DeploymentID:  deploymentID,
+		K8sPodName:    "internal-pod",
+		Region:        "eu-west-1",
+		Platform:      "aws",
+		Attributes:    attributes,
+	})
 	events, cursor, err := source.NewRuntimeLogs(client).Read(t.Context(), workspace, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 10, nil)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	require.Equal(t, "runtime_logs", events[0].Stream)
 	require.Equal(t, now-3600000, events[0].Time)
 	require.GreaterOrEqual(t, cursor.Time, now)
-	require.Equal(t, "rlog_1", cursor.EventID)
+	require.Equal(t, logID, cursor.EventID)
 	require.Equal(t, sink.RuntimeLogPayload{
-		LogID:         "rlog_1",
+		LogID:         logID,
 		Severity:      "fatal",
 		Message:       "Payment failed",
-		Attributes:    json.RawMessage(`{"order":{"id":42},"retry":false}`),
-		ProjectID:     "project_1",
-		AppID:         "app_1",
-		EnvironmentID: "env_1",
-		DeploymentID:  "deployment_1",
+		Attributes:    json.RawMessage(attributes),
+		ProjectID:     projectID,
+		AppID:         appID,
+		EnvironmentID: environmentID,
+		DeploymentID:  deploymentID,
 		Region:        "eu-west-1",
 	}, events[0].Payload)
 }
@@ -51,8 +72,9 @@ func TestRuntimeLogsRead_FilteredCursorBounds(t *testing.T) {
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	workspace := uid.New("workspace")
+	workspace := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
+	var rows []runtimeLogRow
 	for _, row := range []struct {
 		workspace, id, project, app, environment, severity string
 		insertedAt                                         int64
@@ -61,15 +83,26 @@ func TestRuntimeLogsRead_FilteredCursorBounds(t *testing.T) {
 		{workspace, "b", "project", "other", "env", "error", now},
 		{workspace, "c", "project", "app", "other", "error", now},
 		{workspace, "d", "project", "app", "env", "info", now},
-		{uid.New("workspace"), "e", "project", "app", "env", "error", now},
+		{uid.New(uid.WorkspacePrefix), "e", "project", "app", "env", "error", now},
 		{workspace, "f", "project", "app", "env", "error", now},
 		{workspace, "g", "project", "app2", "env2", "warn", now},
 		{workspace, "a", "project", "app", "env", "error", now + 1},
 	} {
-		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO runtime_logs_raw_v1
-			(workspace_id, log_id, inserted_at, time, project_id, app_id, environment_id, severity)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, row.workspace, row.id, row.insertedAt, now-60000, row.project, row.app, row.environment, row.severity))
+		rows = append(rows, runtimeLogRow{
+			RuntimeLogV1: schema.RuntimeLogV1{
+				Time:          now - 60000,
+				LogID:         row.id,
+				Severity:      row.severity,
+				WorkspaceID:   row.workspace,
+				ProjectID:     row.project,
+				EnvironmentID: row.environment,
+				AppID:         row.app,
+				Attributes:    json.RawMessage("{}"),
+			},
+			InsertedAt: row.insertedAt,
+		})
 	}
+	insertRows(t, client.Conn(), rows...)
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_RuntimeLogs{RuntimeLogs: &logdrainv1.RuntimeLogStreamConfig{
 		Severities: []string{"error", "warn"}, ProjectIds: []string{"project"}, AppIds: []string{"app", "app2"}, EnvironmentIds: []string{"env", "env2"},
 	}}}

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_get_role"
@@ -35,7 +36,7 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for non-existent role ID
 	t.Run("non-existent role ID", func(t *testing.T) {
 		req := handler.Request{
-			Role: "role_does_not_exist",
+			Role: uid.New(uid.RolePrefix),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

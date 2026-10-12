@@ -28,7 +28,11 @@ sources:
 ---
 
 
-An <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> deploys and serves traffic. By the end you'll have a project, an app connected to a GitHub repository, and a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> on a `unkey.app` domain. Every later push to the repository will deploy on its own.
+You can deploy an app straight from a GitHub repository, and Unkey deploys on every push. Connect the repository and Unkey tracks its default branch, unless you pick another one. A push to that branch creates a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>. A push to any other branch creates a preview deployment. Open the deployment in the dashboard and wait for its status to be `ready`. Then it's live on a `unkey.app` domain.
+
+That's the default, with auto deploy on and no watch paths. If you turn auto deploy off or set watch paths, a push can be recorded as `skipped` instead of built. A pull request from a fork waits in `awaiting_approval` until a project member approves it.
+
+An <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> deploys and serves traffic. By the end of this guide you have a project, an app connected to the repository, and a production deployment.
 
 If you'd rather bring an image you built yourself, see [Deploy a container image](/compute/get-started/deploy-an-image).
 
@@ -97,7 +101,7 @@ If you'd rather bring an image you built yourself, see [Deploy a container image
 </Steps>
 
 <Visibility for="agents">
-  The same flow through the API, with a root key in `Authorization: Bearer`. Each call is an HTTP `POST` to `https://api.unkey.com/v2/...` with a JSON body. Required permissions: `project.*.create_project`, `workspace.*.install_github`, `project.*.create_app`, `app.*.connect_repository` (only when `createApp` carries a `git.repository`), `environment.*.create_deployment`, and `environment.*.read_deployment`.
+  The same flow through the API, with a root key in `Authorization: Bearer`. Each call is an HTTP `POST` to `https://api.unkey.com/v2/...` with a JSON body. Required permissions: `project.*.create_project`, `workspace.*.install_github`, `project.*.create_app`, `app.*.connect_repository` (only when `createApp` carries a `git.repository`), `environment.*.create_deployment`, and `unkey:v1:<workspace_id>:projects/*/apps/*/environments/*/deployments/*#read`.
 
   <CodeGroup>
     ```bash Create the project
