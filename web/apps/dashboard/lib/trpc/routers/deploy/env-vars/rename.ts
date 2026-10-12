@@ -49,7 +49,7 @@ export const renameEnvVars = workspaceProcedure
       if (targets.length === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Environment variable(s) not found",
+          message: "Environment variable not found",
         });
       }
 
@@ -94,6 +94,6 @@ export const renameEnvVars = workspaceProcedure
         return { updated: result[0].affectedRows };
       });
     } catch (error) {
-      throw toEnvVarWriteError(error, "Failed to rename environment variable(s)");
+      throw toEnvVarWriteError(error, "Failed to rename environment variable");
     }
   });

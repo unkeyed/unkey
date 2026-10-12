@@ -1,5 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, or, schema } from "@/lib/db";
+import { plural } from "@/lib/fmt";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
 import { envVarAuditLogs, toEnvVarWriteError } from "./env-var-write";
@@ -80,6 +81,9 @@ export const makeSensitive = workspaceProcedure
         return { updated: result[0].affectedRows };
       });
     } catch (error) {
-      throw toEnvVarWriteError(error, "Failed to mark environment variable(s) as sensitive");
+      throw toEnvVarWriteError(
+        error,
+        `Failed to mark ${plural(input.targets.length, "environment variable")} as sensitive`,
+      );
     }
   });
