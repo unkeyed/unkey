@@ -125,6 +125,30 @@ export const updateRole = workspaceProcedure
 
       // Handle permissions - only modify if explicitly provided
       if (input.permissionIds !== undefined) {
+        const existingBindings = await tx.query.rolesPermissions.findMany({
+          where: (table, { and, eq }) =>
+            and(eq(table.roleId, roleId), eq(table.workspaceId, ctx.workspace.id)),
+          columns: { permissionId: true },
+        });
+        const requestedIds = new Set(input.permissionIds);
+        await insertAuditLogs(
+          tx,
+          existingBindings
+            .filter(({ permissionId }) => !requestedIds.has(permissionId))
+            .map(({ permissionId }) => ({
+              workspaceId: ctx.workspace.id,
+              event: "authorization.disconnect_role_and_permissions",
+              actor: { type: "user", id: ctx.user.id },
+              description: `Disconnected role ${roleId} and permission ${permissionId}`,
+              targets: [
+                { type: "role", id: roleId, name: input.roleName },
+                { type: "permission", id: permissionId },
+              ],
+              context: { userAgent: ctx.audit.userAgent, location: ctx.audit.location },
+              correlationId,
+            })),
+        );
+
         // Remove existing role-permission relationships
         await tx
           .delete(schema.rolesPermissions)
@@ -179,6 +203,30 @@ export const updateRole = workspaceProcedure
 
       // Handle keys - only modify if explicitly provided
       if (input.keyIds !== undefined) {
+        const existingBindings = await tx.query.keysRoles.findMany({
+          where: (table, { and, eq }) =>
+            and(eq(table.roleId, roleId), eq(table.workspaceId, ctx.workspace.id)),
+          columns: { keyId: true },
+        });
+        const requestedIds = new Set(input.keyIds);
+        await insertAuditLogs(
+          tx,
+          existingBindings
+            .filter(({ keyId }) => !requestedIds.has(keyId))
+            .map(({ keyId }) => ({
+              workspaceId: ctx.workspace.id,
+              event: "authorization.disconnect_role_and_key",
+              actor: { type: "user", id: ctx.user.id },
+              description: `Disconnected key ${keyId} and role ${roleId}`,
+              targets: [
+                { type: "key", id: keyId },
+                { type: "role", id: roleId, name: input.roleName },
+              ],
+              context: { userAgent: ctx.audit.userAgent, location: ctx.audit.location },
+              correlationId,
+            })),
+        );
+
         // Remove existing key-role relationships
         await tx
           .delete(schema.keysRoles)

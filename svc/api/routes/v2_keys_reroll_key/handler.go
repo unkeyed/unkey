@@ -343,7 +343,7 @@ func (h *Handler) RerollKey(
 			}
 
 			var auditLogs []auditlog.AuditLog
-			auditLogs = append(auditLogs, auditlog.AuditLog{
+			rerollAuditLog := auditlog.AuditLog{
 				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.KeyRerollEvent,
 				ActorType:     actor.Type,
@@ -377,7 +377,18 @@ func (h *Handler) RerollKey(
 						Meta:        map[string]any{},
 					},
 				},
-			})
+			}
+			for _, role := range keyData.Roles {
+				rerollAuditLog.Targets = append(rerollAuditLog.Targets, auditlog.AuditLogTarget{
+					Type: auditlog.RoleTargetType, ID: role.ID, Name: role.Name, DisplayName: role.Name, Meta: map[string]any{},
+				})
+			}
+			for _, permission := range keyData.Permissions {
+				rerollAuditLog.Targets = append(rerollAuditLog.Targets, auditlog.AuditLogTarget{
+					Type: auditlog.PermissionTargetType, ID: permission.ID, Name: permission.Slug, DisplayName: permission.Slug, Meta: map[string]any{},
+				})
+			}
+			auditLogs = append(auditLogs, rerollAuditLog)
 
 			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 			if err != nil {

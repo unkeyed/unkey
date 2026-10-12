@@ -22,6 +22,144 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+func TestUpdateKeyAuditsRelationshipReplacement(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, KeyCache: h.Caches.VerificationKeyByHash, UsageLimiter: h.UsageLimiter}
+	h.Register(route)
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	oldIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspace.ID, ProjectID: api.ProjectID, ExternalID: uid.New(uid.TestPrefix), Environment: "default",
+	})
+	newIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspace.ID, ProjectID: api.ProjectID, ExternalID: uid.New(uid.TestPrefix), Environment: "default",
+	})
+	permissions := []seed.CreatePermissionRequest{
+		{WorkspaceID: workspace.ID, Name: "removed", Slug: "removed"},
+		{WorkspaceID: workspace.ID, Name: "retained", Slug: "retained"},
+		{WorkspaceID: workspace.ID, Name: "other-removed", Slug: "other-removed"},
+	}
+	roles := []seed.CreateRoleRequest{
+		{WorkspaceID: workspace.ID, Name: "removed"},
+		{WorkspaceID: workspace.ID, Name: "retained"},
+	}
+	key := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: workspace.ID, KeySpaceID: api.KeyAuthID.String, IdentityID: &oldIdentity.ID, Permissions: permissions, Roles: roles})
+	addedRole := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: "added"})
+	addedPermission := h.CreatePermission(seed.CreatePermissionRequest{WorkspaceID: workspace.ID, Name: "added", Slug: "added"})
+	before, err := db.Query.FindLiveKeyByID(t.Context(), h.DB.RO(), key.KeyID)
+	require.NoError(t, err)
+	keyData := db.ToKeyData(before)
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		"Content-Type":  {"application/json"},
+	}, handler.Request{KeyId: key.KeyID, ExternalId: nullable.NewNullableWithValue(newIdentity.ExternalID), Permissions: new([]string{"retained", "added"}), Roles: new([]string{"retained", "added"})})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	expected := map[string][]string{
+		"authorization.disconnect_permission_and_key": {},
+		"authorization.disconnect_role_and_key":       {},
+		"authorization.connect_permission_and_key":    {addedPermission.ID},
+		"authorization.connect_role_and_key":          {addedRole.ID},
+	}
+	for _, permission := range keyData.Permissions {
+		if permission.Slug != "retained" {
+			expected["authorization.disconnect_permission_and_key"] = append(expected["authorization.disconnect_permission_and_key"], permission.ID)
+		}
+	}
+	for _, role := range keyData.Roles {
+		if role.Name == "removed" {
+			expected["authorization.disconnect_role_and_key"] = []string{role.ID}
+		}
+	}
+	actual := map[string][]string{}
+	var correlation string
+	keyUpdateCount := 0
+	for _, event := range h.FindAuditLogsByTargetID(t.Context(), t, key.KeyID) {
+		require.NotEmpty(t, event.CorrelationID)
+		if correlation == "" {
+			correlation = event.CorrelationID
+		}
+		require.Equal(t, correlation, event.CorrelationID)
+		if event.Event == "key.update" {
+			keyUpdateCount++
+			require.Len(t, event.Targets, 3)
+			var identityIDs []string
+			for _, target := range event.Targets {
+				if target.Type == "identity" {
+					identityIDs = append(identityIDs, target.ID)
+				}
+				if target.Type == "key" {
+					require.Equal(t, map[string]any{
+						"identityIdBefore":          oldIdentity.ID,
+						"identityNameBefore":        oldIdentity.ExternalID,
+						"identityDisplayNameBefore": oldIdentity.ExternalID,
+					}, target.Meta)
+				}
+			}
+			require.Equal(t, []string{newIdentity.ID}, identityIDs)
+			continue
+		}
+		require.Len(t, event.Targets, 2)
+		require.Equal(t, "key", event.Targets[0].Type)
+		require.Equal(t, key.KeyID, event.Targets[0].ID)
+		require.Contains(t, []string{"role", "permission"}, event.Targets[1].Type)
+		actual[event.Event] = append(actual[event.Event], event.Targets[1].ID)
+	}
+	require.Equal(t, 1, keyUpdateCount)
+	require.Len(t, actual, len(expected))
+	for event, ids := range expected {
+		require.ElementsMatch(t, ids, actual[event])
+	}
+
+	t.Run("omitted relationships remain unchanged", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Content-Type":  {"application/json"},
+		}, handler.Request{KeyId: key.KeyID})
+		require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+		events := h.FindAuditLogsByTargetID(t.Context(), t, key.KeyID)
+		require.Len(t, events, 7)
+		row, err := db.Query.FindLiveKeyByID(t.Context(), h.DB.RO(), key.KeyID)
+		require.NoError(t, err)
+		data := db.ToKeyData(row)
+		require.Len(t, data.Permissions, 2)
+		require.Len(t, data.Roles, 2)
+	})
+
+	t.Run("empty arrays disconnect all remaining bindings", func(t *testing.T) {
+		before, err := db.Query.FindLiveKeyByID(t.Context(), h.DB.RO(), key.KeyID)
+		require.NoError(t, err)
+		data := db.ToKeyData(before)
+		expectedTargets := map[string]string{}
+		for _, permission := range data.Permissions {
+			expectedTargets[permission.ID] = "authorization.disconnect_permission_and_key"
+		}
+		for _, role := range data.Roles {
+			expectedTargets[role.ID] = "authorization.disconnect_role_and_key"
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Content-Type":  {"application/json"},
+		}, handler.Request{KeyId: key.KeyID, Permissions: new([]string{}), Roles: new([]string{})})
+		require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+		actualTargets := map[string]string{}
+		for _, event := range h.FindAuditLogsByTargetID(t.Context(), t, key.KeyID) {
+			if event.CorrelationID == correlation || event.Event == "key.update" {
+				continue
+			}
+			require.Len(t, event.Targets, 2)
+			require.Equal(t, key.KeyID, event.Targets[0].ID)
+			actualTargets[event.Targets[1].ID] = event.Event
+		}
+		require.Equal(t, expectedTargets, actualTargets)
+		row, err := db.Query.FindLiveKeyByID(t.Context(), h.DB.RO(), key.KeyID)
+		require.NoError(t, err)
+		cleared := db.ToKeyData(row)
+		require.Empty(t, cleared.Permissions)
+		require.Empty(t, cleared.Roles)
+	})
+}
+
 func TestUpdateKeySuccess(t *testing.T) {
 	t.Parallel()
 
