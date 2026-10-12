@@ -57,6 +57,10 @@ export const authorizeDeployment = workspaceProcedure
             id: deployment.projectId,
             name: deployment.project.name,
           },
+          {
+            type: "deployment",
+            id: deployment.id,
+          },
         ],
         context: ctx.audit,
       });
