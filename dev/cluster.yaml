@@ -12,6 +12,7 @@ minikube:
     - "--extra-config=kubelet.serialize-image-pulls=false"
     - "--cni=false"
     - "--network-plugin=cni"
+    - "--force"
     - "--addons=metrics-server"
     - "--wait=apiserver,kubelet"
 registry: ctlptl-registry

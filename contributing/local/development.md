@@ -105,6 +105,11 @@ installation because the node needs Cilium to become ready. Hubble readiness
 does not block application startup. Orbs use bridge networking and wait for
 node readiness during Minikube startup instead.
 
+Minikube 1.39.0 requires `--force` when CNI installation is disabled with the
+containerd runtime. The Helm-managed Cilium path uses this flag so Tilt can
+install Cilium. It also bypasses Minikube's driver and resource safety checks.
+The startup script still rejects incompatible Kubernetes versions and CNI modes.
+
 An existing Minikube profile is reused, not reapplied through `ctlptl`.
 Changes to `dev/cluster.yaml` apply only when creating a cluster, because
 `ctlptl apply` can delete a cluster when its configuration changes. Startup also

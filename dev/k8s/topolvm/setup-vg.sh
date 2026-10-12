@@ -79,10 +79,9 @@ if ! vgs "$VG" >/dev/null 2>&1; then
   echo "topolvm: created PV $LOOP and VG $VG"
 fi
 
-# 4. Activate any LVs in the VG. After `minikube stop`/`start` the device
-#    nodes under /dev/$VG/ disappear; vgchange -ay rebuilds them so kubelet
-#    can mount existing PVCs again.
 vgchange -ay "$VG" >/dev/null
+# Active LVs can survive a restart without their device nodes.
+vgmknodes "$VG"
 
 echo "topolvm: VG $VG ready (backing $LOOP)"
 vgs "$VG"

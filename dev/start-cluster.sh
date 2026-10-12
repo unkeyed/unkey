@@ -44,7 +44,7 @@ docker start ctlptl-registry >/dev/null
 if ! minikube status -p minikube >/dev/null 2>&1; then
   start_flags=("--cni=$expected_cni" "--wait=$expected_wait" --delete-on-failure=false)
   if [ "$expected_cni" = false ]; then
-    start_flags+=(--network-plugin=cni)
+    start_flags+=(--network-plugin=cni --force)
   fi
   minikube start -p minikube "${start_flags[@]}"
 fi
