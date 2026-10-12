@@ -235,7 +235,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
 
         <div className="border-t bg-raised px-6 py-5 flex items-center justify-end">
           <Button type="submit" variant="primary" size="md" className="px-3">
-            {isEdit ? "Save Changes" : "Add Policy"}
+            {isEdit ? "Save" : "Add Policy"}
           </Button>
         </div>
       </PolicyForm.Footer>

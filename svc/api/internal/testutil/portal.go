@@ -3,6 +3,7 @@ package testutil
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	portalservice "github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -108,12 +110,15 @@ func (h *Harness) CreatePortalSessionInState(t *testing.T, portalID, workspaceID
 	now := h.Clock.Now()
 	ctx := context.Background()
 
+	scopes, err := json.Marshal(portalservice.Grant{KeyspaceIDs: []string{}, Scopes: []string{"keys:read"}})
+	require.NoError(t, err)
+
 	require.NoError(t, db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
 		ID:                    uid.New(uid.PortalSessionPrefix),
 		WorkspaceID:           workspaceID,
 		PortalID:              portalID,
 		ExternalID:            externalID,
-		Scopes:                []byte(`{"keyspaceIds":[],"scopes":["keys:read"]}`),
+		Scopes:                scopes,
 		ExchangeCodeHash:      hash.Sha256(exchangeCode),
 		ExchangeCodeExpiresAt: expiresAt.UnixMilli(),
 		ReturnUrl:             sql.NullString{Valid: false, String: ""},
@@ -122,11 +127,18 @@ func (h *Harness) CreatePortalSessionInState(t *testing.T, portalID, workspaceID
 
 	if exchanged {
 		accessToken := string(uid.PortalAccessTokenPrefix) + "_" + uid.Secure()
-		_, err := h.DB.RW().ExecContext(ctx,
-			"UPDATE portal_sessions SET access_token_hash = ?, access_token_created_at = ?, access_token_expires_at = ? WHERE exchange_code_hash = ?",
-			hash.Sha256(accessToken), now.UnixMilli(), expiresAt.UnixMilli(), hash.Sha256(exchangeCode),
-		)
+		res, err := db.Query.ExchangePortalSessionCode(ctx, h.DB.RW(), db.ExchangePortalSessionCodeParams{
+			AccessTokenHash:      sql.NullString{String: hash.Sha256(accessToken), Valid: true},
+			AccessTokenCreatedAt: sql.NullInt64{Int64: now.UnixMilli(), Valid: true},
+			AccessTokenExpiresAt: sql.NullInt64{Int64: expiresAt.UnixMilli(), Valid: true},
+			ExchangeCodeHash:     hash.Sha256(exchangeCode),
+			// Redeem just before expiry so an already expired session can still be exchanged
+			Now: expiresAt.UnixMilli() - 1,
+		})
 		require.NoError(t, err)
+		redeemed, err := res.RowsAffected()
+		require.NoError(t, err)
+		require.Equal(t, int64(1), redeemed)
 	}
 
 	return exchangeCode
@@ -138,14 +150,10 @@ func (h *Harness) CreatePortalSessionInState(t *testing.T, portalID, workspaceID
 func (h *Harness) CountLivePortalSessions(t *testing.T, portalID, externalID string) int {
 	t.Helper()
 
-	query := "SELECT COUNT(*) FROM portal_sessions WHERE portal_id = ? AND revoked_at IS NULL"
-	args := []any{portalID}
-	if externalID != "" {
-		query += " AND external_id = ?"
-		args = append(args, externalID)
-	}
-
-	var count int
-	require.NoError(t, h.DB.RW().QueryRowContext(context.Background(), query, args...).Scan(&count))
-	return count
+	count, err := db.Query.CountLivePortalSessionsByPortal(context.Background(), h.DB.RW(), db.CountLivePortalSessionsByPortalParams{
+		PortalID:   portalID,
+		ExternalID: externalID,
+	})
+	require.NoError(t, err)
+	return int(count)
 }

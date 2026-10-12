@@ -141,6 +141,7 @@ async function main() {
         proration_behavior: "create_prorations",
       },
       customer: customer.id,
+      allow_promotion_codes: true,
       success_url: `${values["base-url"]}/success?session_id={CHECKOUT_SESSION_ID}&intent=deploy&plan=${plan}`,
     });
 

@@ -8,6 +8,7 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
@@ -44,7 +45,8 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 	headers := authHeaders(rootKey)
 
 	// Seed regions used by the region reconciliation subtests.
-	seedRegions(t, h, "us-east-1", "us-west-2")
+	primaryRegion, secondaryRegion := uid.New("region"), uid.New("region")
+	seedRegions(t, h, primaryRegion, secondaryRegion)
 
 	call := func(t *testing.T, req handler.Request) {
 		t.Helper()
@@ -407,11 +409,37 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.Equal(t, int32(8080), rt.Port, "port untouched, keeps seed default")
 	})
 
+	t.Run("non-aws region resolves by name despite unrelated ambiguous names", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		regionID := uid.New(uid.RegionPrefix)
+		regionName := uid.New("local")
+		unrelatedName := uid.New("other")
+		for _, region := range []db.UpsertRegionParams{
+			{ID: regionID, Name: regionName, Platform: "dev"},
+			{ID: uid.New(uid.RegionPrefix), Name: unrelatedName, Platform: "aws"},
+			{ID: uid.New(uid.RegionPrefix), Name: unrelatedName, Platform: "dev"},
+		} {
+			require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), region))
+		}
+
+		call(t, handler.Request{
+			Project: env.projectID, App: env.appID, Environment: env.environmentID,
+			Regions: new([]openapi.EnvironmentRegion{regionSetting(regionName, 1, 2)}),
+		})
+		rows, err := db.Query.ListAppRegionalSettingsByAppEnv(ctx, h.DB.RO(), db.ListAppRegionalSettingsByAppEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		require.Equal(t, regionID, rows[0].RegionID)
+		require.Equal(t, int32(2), rows[0].Replicas)
+	})
+
 	t.Run("regions create and update", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 
 		// Create: one region with bounds 1..3.
-		create := []openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 3)}
+		create := []openapi.EnvironmentRegion{regionSetting(primaryRegion, 1, 3)}
 		call(t, handler.Request{
 			Project: env.projectID, App: env.appID, Environment: env.environmentID,
 			Regions: &create,
@@ -426,7 +454,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		firstPolicyID := rows[0].HorizontalAutoscalingPolicyID.String
 
 		// Update: same region, new bounds 2..2. Policy id must be reused.
-		update := []openapi.EnvironmentRegion{regionSetting("us-east-1", 2, 2)}
+		update := []openapi.EnvironmentRegion{regionSetting(primaryRegion, 2, 2)}
 		call(t, handler.Request{
 			Project: env.projectID, App: env.appID, Environment: env.environmentID,
 			Regions: &update,
@@ -444,8 +472,8 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		env := seedEnvironment(t, h)
 
 		regions := []openapi.EnvironmentRegion{
-			regionSetting("us-east-1", 1, 3),
-			regionSetting("us-west-2", 1, 3),
+			regionSetting(primaryRegion, 1, 3),
+			regionSetting(secondaryRegion, 1, 3),
 		}
 		call(t, handler.Request{
 			Project: env.projectID, App: env.appID, Environment: env.environmentID,

@@ -194,11 +194,11 @@ func TestRunUploadsMarkdownThenLocksExplicitPage(t *testing.T) {
 		if req.URL.String() == "https://api.notion.com/v1/pages/3ef512d643f3815f8442c1bcf3bb1562" {
 			require.NotEmpty(t, uploaded)
 			require.NoError(t, json.NewDecoder(req.Body).Decode(&locked))
-			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"object":"page","is_locked":true}`))}, nil
+			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(notionJSON(t, map[string]any{"object": "page", "is_locked": true})))}, nil
 		}
 		require.Equal(t, "https://api.notion.com/v1/pages/3ef512d643f3815f8442c1bcf3bb1562/markdown", req.URL.String())
 		require.NoError(t, json.NewDecoder(req.Body).Decode(&uploaded))
-		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"object":"page_markdown"}`))}, nil
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(notionJSON(t, map[string]any{"object": "page_markdown"})))}, nil
 	})}
 	err := run(t.Context(), []string{"--file", filepath.Join(root, "config.go"), "--notion-page-id", "3ef512d6-43f3-815f-8442-c1bcf3bb1562"}, io.Discard, client)
 	require.NoError(t, err)
@@ -230,7 +230,7 @@ func TestRunRejectsInvalidUploadInputsBeforeRequests(t *testing.T) {
 			requests := 0
 			client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
 				requests++
-				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"object":"page_markdown"}`))}, nil
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(notionJSON(t, map[string]any{"object": "page_markdown"})))}, nil
 			})}
 			err := run(t.Context(), []string{"--file", filepath.Join(root, "config.go"), "--notion-page-id=" + tc.pageID}, io.Discard, client)
 			require.ErrorContains(t, err, tc.message)
@@ -249,11 +249,11 @@ func TestRunReportsUploadFailuresWithoutCreatingPages(t *testing.T) {
 		status int
 		body   string
 	}{
-		{"missing page", http.StatusNotFound, `{"object":"error"}`},
-		{"child deletion refused", http.StatusBadRequest, `{"object":"error"}`},
-		{"queued is not completed", http.StatusAccepted, `{"object":"async_task"}`},
+		{"missing page", http.StatusNotFound, notionJSON(t, map[string]any{"object": "error"})},
+		{"child deletion refused", http.StatusBadRequest, notionJSON(t, map[string]any{"object": "error"})},
+		{"queued is not completed", http.StatusAccepted, notionJSON(t, map[string]any{"object": "async_task"})},
 		{"malformed response", http.StatusOK, `{`},
-		{"unexpected object", http.StatusOK, `{"object":"error"}`},
+		{"unexpected object", http.StatusOK, notionJSON(t, map[string]any{"object": "error"})},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			requests := 0
@@ -281,15 +281,15 @@ func TestRunReportsLockFailureAfterUploading(t *testing.T) {
 		body    string
 		message string
 	}{
-		{"permission denied", http.StatusForbidden, `{"object":"error"}`, "HTTP 403"},
-		{"still unlocked", http.StatusOK, `{"object":"page","is_locked":false}`, "Notion did not confirm the page lock"},
+		{"permission denied", http.StatusForbidden, notionJSON(t, map[string]any{"object": "error"}), "HTTP 403"},
+		{"still unlocked", http.StatusOK, notionJSON(t, map[string]any{"object": "page", "is_locked": false}), "Notion did not confirm the page lock"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			requests := 0
 			client := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 				requests++
 				if strings.HasSuffix(req.URL.Path, "/markdown") {
-					return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"object":"page_markdown"}`))}, nil
+					return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(notionJSON(t, map[string]any{"object": "page_markdown"})))}, nil
 				}
 				return &http.Response{StatusCode: tc.status, Body: io.NopCloser(strings.NewReader(tc.body))}, nil
 			})}
@@ -300,6 +300,13 @@ func TestRunReportsLockFailureAfterUploading(t *testing.T) {
 			require.Equal(t, 2, requests)
 		})
 	}
+}
+
+func notionJSON(t *testing.T, value map[string]any) string {
+	t.Helper()
+	body, err := json.Marshal(value)
+	require.NoError(t, err)
+	return string(body)
 }
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
