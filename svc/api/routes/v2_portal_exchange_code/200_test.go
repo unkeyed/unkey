@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	portalservice "github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -25,9 +26,9 @@ func seedPendingSession(t *testing.T, h *testutil.Harness, workspaceID, portalID
 	t.Helper()
 
 	code := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
-	scopes, err := json.Marshal(map[string]any{
-		"keyspaceIds": []string{uid.New(uid.KeySpacePrefix)},
-		"scopes":      []string{"keys:read"},
+	scopes, err := json.Marshal(portalservice.Grant{
+		KeyspaceIDs: []string{uid.New(uid.KeySpacePrefix)},
+		Scopes:      []string{"keys:read"},
 	})
 	require.NoError(t, err)
 

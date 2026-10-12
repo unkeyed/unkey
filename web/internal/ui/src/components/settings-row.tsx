@@ -104,7 +104,7 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
       >
         <div className="divide-y divide-grayA-4">{children}</div>
         {values.length > 0 ? (
-          <div className="border-t border-grayA-4 bg-grayA-2 px-5 py-3 flex items-center justify-end gap-3">
+          <div className="border-t border-grayA-4 px-5 py-3 flex items-center justify-end gap-3">
             {save.status === "ready" && save.submit.length < save.dirty ? (
               <span className="text-xs text-gray-11">
                 Saves {save.submit.length} of {save.dirty} changes
@@ -120,11 +120,11 @@ function SettingsGroupContent({ className, children, ...props }: React.Component
                   variant="primary"
                   size="sm"
                   className="px-3"
-                  disabled={save.status !== "ready"}
+                  disabled={save.status === "clean" || save.status === "blocked"}
                   loading={save.status === "saving"}
                   onClick={saveReady}
                 >
-                  Save changes
+                  Save
                 </Button>
               </span>
             </InfoTooltip>

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_usage"
 )
 
 func TestGetUsageBadRequest(t *testing.T) {
@@ -26,6 +27,15 @@ func TestGetUsageBadRequest(t *testing.T) {
 		req := httptest.NewRequest(route.Method(), route.Path(), bytes.NewBufferString(body))
 		req.Header = headers(rootKey)
 		res := testutil.CallRaw[openapi.BadRequestErrorResponse](h, req)
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+		return res
+	}
+
+	callPeriod := func(t *testing.T, year, month int) testutil.TestResponse[openapi.BadRequestErrorResponse] {
+		t.Helper()
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers(rootKey), handler.Request{
+			Period: &openapi.V2WorkspaceGetUsageRequestPeriod{Year: year, Month: month},
+		})
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		return res
 	}
@@ -48,12 +58,12 @@ func TestGetUsageBadRequest(t *testing.T) {
 	h.Clock.Set(time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC))
 
 	t.Run("future month", func(t *testing.T) {
-		res := call(t, `{"period":{"year":2026,"month":11}}`)
+		res := callPeriod(t, 2026, 11)
 		require.Equal(t, "'period' 2026-11 is in the future. The latest month is 2026-10.", res.Body.Error.Detail)
 	})
 
 	t.Run("month before compute usage retention", func(t *testing.T) {
-		res := call(t, `{"period":{"year":2026,"month":7}}`)
+		res := callPeriod(t, 2026, 7)
 		require.Equal(t, "'period' 2026-07 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-08.", res.Body.Error.Detail)
 	})
 
@@ -61,7 +71,7 @@ func TestGetUsageBadRequest(t *testing.T) {
 	// later August is outside the retention
 	t.Run("month one millisecond past the retention", func(t *testing.T) {
 		h.Clock.Set(time.Date(2026, 10, 30, 0, 0, 0, int(time.Millisecond), time.UTC))
-		res := call(t, `{"period":{"year":2026,"month":8}}`)
+		res := callPeriod(t, 2026, 8)
 		require.Equal(t, "'period' 2026-08 starts more than 90 days ago. Compute usage is kept for 90 days, so the earliest month is 2026-09.", res.Body.Error.Detail)
 	})
 }

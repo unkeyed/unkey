@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func captureAcceptedRequest[T any](t *testing.T, cmd *cli.Command, args string) T {
@@ -27,7 +28,13 @@ func captureAcceptedRequest[T any](t *testing.T, cmd *cli.Command, args string) 
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
-		_, _ = w.Write([]byte(`{"meta":{"requestId":"test"},"data":{}}`))
+		response := struct {
+			Meta openapi.Meta          `json:"meta"`
+			Data openapi.EmptyResponse `json:"data"`
+		}{Meta: openapi.Meta{RequestId: "test"}, Data: openapi.EmptyResponse{}}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			t.Error(err)
+		}
 	}))
 	t.Cleanup(server.Close)
 	original := os.Stdout
