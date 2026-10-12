@@ -108,6 +108,7 @@ type rolloutPlan struct {
 func planRollouts(deployments []appsv1.Deployment, maxConcurrent int, now time.Time) rolloutPlan {
 	var plan rolloutPlan
 	var waitingHealthy, waitingUnhealthy []*appsv1.Deployment
+
 	for i := range deployments {
 		d := &deployments[i]
 		switch {
@@ -142,6 +143,7 @@ func planRollouts(deployments []appsv1.Deployment, maxConcurrent int, now time.T
 
 	sortOldestFirst(waitingHealthy)
 	sortOldestFirst(waitingUnhealthy)
+
 	free := max(maxConcurrent-plan.slotsHeld, 0)
 	plan.admit = waitingHealthy[:min(free, len(waitingHealthy))]
 	plan.admitUnhealthy = waitingUnhealthy[:min(max(maxConcurrent, 0), len(waitingUnhealthy))]
@@ -180,6 +182,7 @@ func rolloutStalled(d *appsv1.Deployment) bool {
 			return cond.Status == corev1.ConditionFalse && cond.Reason == progressDeadlineExceededReason
 		}
 	}
+
 	return false
 }
 

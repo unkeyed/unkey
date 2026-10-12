@@ -109,6 +109,7 @@ func podContainerPort(pod *corev1.Pod) int32 {
 func routablePods(pods []corev1.Pod) []corev1.Pod {
 	var draining, undrained []corev1.Pod
 	readyDraining := 0
+
 	for _, pod := range pods {
 		switch {
 		case pod.DeletionTimestamp != nil:
@@ -125,6 +126,7 @@ func routablePods(pods []corev1.Pod) []corev1.Pod {
 	if len(undrained) > 0 && readyDraining >= len(undrained) {
 		return draining
 	}
+
 	return append(draining, undrained...)
 }
 
@@ -132,10 +134,12 @@ func podContainersReady(pod *corev1.Pod) bool {
 	if pod.Status.Phase != corev1.PodRunning {
 		return false
 	}
+
 	for _, cond := range pod.Status.Conditions {
 		if cond.Type == corev1.ContainersReady {
 			return cond.Status == corev1.ConditionTrue
 		}
 	}
+
 	return false
 }

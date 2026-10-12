@@ -218,6 +218,7 @@ func (c *Controller) handOverScaleFields(ctx context.Context, live *appsv1.Deplo
 	if live.Spec.Replicas != nil {
 		spec["replicas"] = *live.Spec.Replicas
 	}
+
 	patch, err := json.Marshal(map[string]any{
 		"apiVersion": "apps/v1",
 		"kind":       "Deployment",
@@ -239,6 +240,7 @@ func (c *Controller) handOverScaleFields(ctx context.Context, live *appsv1.Deplo
 	if err != nil {
 		return fmt.Errorf("failed to hand over scale fields: %w", err)
 	}
+
 	return nil
 }
 
@@ -249,14 +251,17 @@ func ownsField(d *appsv1.Deployment, manager, field string) bool {
 		if entry.Manager != manager || entry.FieldsV1 == nil {
 			continue
 		}
+
 		var fields map[string]map[string]any
 		if err := json.Unmarshal(entry.FieldsV1.Raw, &fields); err != nil {
 			continue
 		}
+
 		if _, ok := fields["f:spec"][field]; ok {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -286,6 +291,7 @@ func (c *Controller) createDeployment(ctx context.Context, desired *appsv1.Deplo
 	if err != nil {
 		return nil, fmt.Errorf("failed to create deployment: %w", err)
 	}
+
 	return created, nil
 }
 
@@ -435,9 +441,6 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 
 	podSpec.ImagePullSecrets = c.imagePullSecrets
 
-	maxSurge := intstr.FromInt32(1)
-	maxUnavailable := intstr.FromInt32(0)
-
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -462,8 +465,8 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 				RollingUpdate: &appsv1.RollingUpdateDeployment{
-					MaxSurge:       &maxSurge,
-					MaxUnavailable: &maxUnavailable,
+					MaxSurge:       new(intstr.FromInt32(rolloutMaxSurge)),
+					MaxUnavailable: new(intstr.FromInt32(rolloutMaxUnavailable)),
 				},
 			},
 			RevisionHistoryLimit: new(revisionHistoryLimit),
@@ -477,8 +480,7 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 // the old pods only after preStopDrainSeconds, when frontline no longer routes
 // to them.
 func useReplacementStrategy(d *appsv1.Deployment) {
-	maxSurge := intstr.FromString("100%")
-	d.Spec.Strategy.RollingUpdate.MaxSurge = &maxSurge
+	d.Spec.Strategy.RollingUpdate.MaxSurge = new(intstr.FromString(replacementMaxSurge))
 	d.Spec.MinReadySeconds = int32(preStopDrainSeconds)
 }
 
@@ -499,6 +501,7 @@ func (c *Controller) hasUndrainedPods(ctx context.Context, namespace, deployment
 			return true, nil
 		}
 	}
+
 	return false, nil
 }
 
@@ -507,20 +510,27 @@ func podDrainSeconds(pod *corev1.Pod) int64 {
 	if len(pod.Spec.Containers) == 0 {
 		return 0
 	}
+
 	lifecycle := pod.Spec.Containers[0].Lifecycle
 	if lifecycle == nil || lifecycle.PreStop == nil {
 		return 0
 	}
+
 	if sleep := lifecycle.PreStop.Sleep; sleep != nil {
 		return sleep.Seconds
 	}
-	if exec := lifecycle.PreStop.Exec; exec != nil && len(exec.Command) == 3 && exec.Command[0] == "sh" && exec.Command[1] == "-c" {
-		var seconds int64
-		if _, err := fmt.Sscanf(exec.Command[2], "sleep %d;", &seconds); err == nil {
-			return seconds
-		}
+
+	exec := lifecycle.PreStop.Exec
+	if exec == nil || len(exec.Command) != 3 || exec.Command[0] != "sh" || exec.Command[1] != "-c" {
+		return 0
 	}
-	return 0
+
+	var seconds int64
+	if _, err := fmt.Sscanf(exec.Command[2], "sleep %d;", &seconds); err != nil {
+		return 0
+	}
+
+	return seconds
 }
 
 var signalNamePattern = regexp.MustCompile(`^[A-Z0-9]+$`)

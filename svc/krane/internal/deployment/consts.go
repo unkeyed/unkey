@@ -15,6 +15,15 @@ const (
 
 	revisionHistoryLimit int32 = 1
 
+	// rolloutMaxSurge and rolloutMaxUnavailable make a rollout start a new pod
+	// before it stops an old one.
+	rolloutMaxSurge       int32 = 1
+	rolloutMaxUnavailable int32 = 0
+
+	// replacementMaxSurge starts every new pod at once while a workload still
+	// runs pods that cannot drain; see useReplacementStrategy.
+	replacementMaxSurge = "100%"
+
 	// preStopDrainSeconds is how long a pod keeps serving after krane stops
 	// reporting it. Frontline can route from a cached instance list for up to
 	// 60 seconds (its stale window in svc/frontline/internal/caches), so the
