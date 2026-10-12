@@ -11,6 +11,7 @@ import {
   computeCreatedAlert,
   computeUpdatedAlert,
 } from "@/lib/stripe/computeAlerts";
+import { handlePaymentMethodAttached } from "@/lib/stripe/computeSignupCredit";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
 import { deployPlanGrantsTeam, detectDeployPlan, parseDeployPlan } from "@/lib/stripe/deployPlan";
@@ -1373,6 +1374,49 @@ export const POST = async (req: Request): Promise<Response> => {
         // Return 200 to prevent Stripe from retrying, but log the error
         // This ensures payment processing errors don't affect other webhook types
         return new Response("Error processing payment success", { status: 200 });
+      }
+    }
+
+    // A saved card, from setup-mode Checkout or from the card collected with a
+    // subscription. setup_intent.succeeded does not fire for a paid subscription
+    // Checkout, so this is the event that covers every way a workspace adds a card.
+    // The credit is idempotent per workspace and per card fingerprint. The user
+    // id comes only from this card's SetupIntent or from the subscription that
+    // charges this card. Portal and Dashboard adds without that metadata get no
+    // credit. An unfinished claim for a different workspace, card, or user is
+    // left in place and logged for manual reconcile.
+    case "payment_method.attached": {
+      try {
+        const result = await handlePaymentMethodAttached(stripe, event.data.object);
+        if (result.granted) {
+          console.info("Granted Compute signup credit", {
+            transactionId: result.transactionId,
+            amountCents: result.amountCents,
+            eventId: event.id,
+          });
+        } else {
+          console.info("Did not grant Compute signup credit", {
+            reason: result.reason,
+            eventId: event.id,
+          });
+        }
+        return stripeWebhookResponse(
+          event,
+          result.granted ? "signup_credit_granted" : "signup_credit_skipped",
+          result.granted
+            ? { transactionId: result.transactionId, amountCents: result.amountCents }
+            : { reason: result.reason },
+        );
+      } catch (error) {
+        console.error("Failed to grant Compute signup credit:", {
+          error:
+            error instanceof Error
+              ? { message: error.message, stack: error.stack, name: error.name }
+              : error,
+          eventId: event.id,
+          eventType: event.type,
+        });
+        return new Response("Error granting Compute signup credit", { status: 500 });
       }
     }
 
