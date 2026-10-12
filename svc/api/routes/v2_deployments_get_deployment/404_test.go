@@ -62,9 +62,8 @@ func TestDeploymentNotFound(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	req := handler.Request{DeploymentId: uid.New(uid.DeploymentPrefix)}
 
@@ -72,7 +71,7 @@ func TestDeploymentNotFound(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 }
 
-// A key without read_deployment must not learn whether the deployment exists:
+// A key that cannot read the deployment must not learn whether it exists:
 // the handler masks the authorization failure as a 404.
 func TestInsufficientPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -104,9 +103,8 @@ func TestDeploymentInAnotherWorkspace(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	caller := h.CreateTestDeploymentSetup()
+	caller.RootKey = h.CreateRootKey(caller.Workspace.ID, readDeployments(caller.Workspace.ID))
 	other := h.CreateTestDeploymentSetup()
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -190,6 +188,34 @@ func TestGetDeploymentRejectsURNPermissionForAnotherResource(t *testing.T) {
 				authHeaders(rootKey),
 				handler.Request{DeploymentId: dep.ID},
 			)
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+		})
+	}
+}
+
+// Legacy environment tuples no longer grant read, so a key holding only them
+// gets the same masked 404 as a key with no permissions.
+func TestGetDeploymentLegacyTuplesGrantNothing(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+
+	for _, permission := range []string{
+		"environment.*.read_deployment",
+		"environment." + setup.Environment.ID + ".read_deployment",
+	} {
+		t.Run(permission, func(t *testing.T) {
+			rootKey := h.CreateRootKey(setup.Workspace.ID, permission)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{DeploymentId: dep.ID})
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 		})
 	}

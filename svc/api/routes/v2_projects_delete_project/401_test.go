@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_delete_project"
 )
@@ -26,7 +27,7 @@ func TestDeleteProjectUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: "proj_1234abcd"})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: uid.New(uid.ProjectPrefix)})
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
 	})
 

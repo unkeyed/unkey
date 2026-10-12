@@ -1,0 +1,6 @@
+# Loaded in Amp orbs through the MISE_ENV=orb project env var. Woken orbs
+# never rerun .agents/setup, so install missing pinned tools on first use.
+[settings]
+auto_install = true
+exec_auto_install = true
+task.run_auto_install = true

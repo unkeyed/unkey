@@ -54,8 +54,8 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	testCases := map[string]portal.Mapping{
 		"keyspace owned by another workspace": {ID: otherApi.KeyAuthID.String, Type: portal.MappingTypeKeyspace},
 		"app owned by another workspace":      {ID: otherApp.ID, Type: portal.MappingTypeApp},
-		"keyspace that exists nowhere":        {ID: "ks_doesnotexist", Type: portal.MappingTypeKeyspace},
-		"app that exists nowhere":             {ID: "app_doesnotexist", Type: portal.MappingTypeApp},
+		"keyspace that exists nowhere":        {ID: uid.New(uid.KeySpacePrefix), Type: portal.MappingTypeKeyspace},
+		"app that exists nowhere":             {ID: uid.New(uid.AppPrefix), Type: portal.MappingTypeApp},
 	}
 
 	bodies := map[string]string{}

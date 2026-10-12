@@ -54,10 +54,7 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 
 ## Required permissions
 
-Your root key needs one of:
-
-- `environment.*.read_deployment` (any environment)
-- `environment.<environment_id>.read_deployment` (a specific environment)
+Your root key needs `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#read`. Use `*` for any level to cover more deployments.
 
 If the deployment doesn't exist or your key doesn't have the permission, you get the same 404: `The requested deployment does not exist.` See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 

@@ -65,8 +65,12 @@ function Row<T>({
   switch (measured.state) {
     case "loading":
       return (
-        <Shell label={label} atRisk={false} value={<Skeleton className="h-3 w-16" />}>
-          <Skeleton className="h-1 w-full rounded-full" />
+        <Shell
+          label={label}
+          atRisk={false}
+          value={<Skeleton className="inline-block h-3 w-16 align-middle" />}
+        >
+          {measured.bar ? <Skeleton className="h-1 w-full rounded-full" /> : null}
         </Shell>
       );
     case "error":

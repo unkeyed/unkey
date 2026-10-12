@@ -27,6 +27,11 @@ type deployFixture struct {
 
 func newDeployFixture(t *testing.T, ctx context.Context) (db.Database, deployFixture) {
 	t.Helper()
+	return newDeployFixtureWithAppSource(t, ctx, db.AppsSourceTypeUnknown)
+}
+
+func newDeployFixtureWithAppSource(t *testing.T, ctx context.Context, appSource db.AppsSourceType) (db.Database, deployFixture) {
+	t.Helper()
 
 	mysqlCfg := containers.MySQL(t)
 	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
@@ -49,6 +54,7 @@ func newDeployFixture(t *testing.T, ctx context.Context) (db.Database, deployFix
 		ProjectID:   project.ID,
 		Name:        "KEBAP",
 		Slug:        deploySlug(uid.AppPrefix),
+		SourceType:  appSource,
 	})
 	environment := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

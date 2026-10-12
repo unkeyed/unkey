@@ -17,6 +17,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/frontline"
 )
 
@@ -45,7 +46,17 @@ func TestServeLocalDev_VerifiesKeyAndForwardsPrincipal(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		verified <- observedRequest{r.Method, r.URL.Path, r.Header.Get("Authorization"), "", string(body), err}
 		w.Header().Set("Content-Type", "application/json")
-		if _, err := io.WriteString(w, `{"data":{"valid":true,"code":"VALID","keyId":"key_orders","keyspaceId":"ks_orders","permissions":["orders.write"],"identity":{"externalId":"customer_42","meta":{"plan":"pro"}}}}`); err != nil {
+		if err := json.NewEncoder(w).Encode(openapi.V2KeysVerifyKeyResponseBody{
+			Meta: openapi.Meta{RequestId: "test"},
+			Data: openapi.V2KeysVerifyKeyResponseData{
+				Valid:       true,
+				Code:        openapi.VALID,
+				KeyId:       "key_orders",
+				KeyspaceId:  "ks_orders",
+				Permissions: []string{"orders.write"},
+				Identity:    &openapi.Identity{ExternalId: "customer_42", Meta: map[string]any{"plan": "pro"}},
+			},
+		}); err != nil {
 			t.Error(err)
 		}
 	}))
@@ -117,12 +128,16 @@ enabled = true
 keyauth = { key_space_ids = ["ks_orders"] }
 `, strings.TrimPrefix(upstream.URL, "http://")))
 	for _, tc := range []struct {
-		name, key, response string
-		apiStatus, status   int
+		name, key         string
+		response          *openapi.V2KeysVerifyKeyResponseBody
+		apiStatus, status int
 	}{
-		{"missing key", "", "", http.StatusOK, http.StatusUnauthorized},
-		{"invalid key", "invalid", `{"data":{"valid":false,"code":"NOT_FOUND"}}`, http.StatusOK, http.StatusUnauthorized},
-		{"API unavailable", "user_test", "", http.StatusServiceUnavailable, http.StatusInternalServerError},
+		{"missing key", "", nil, http.StatusOK, http.StatusUnauthorized},
+		{"invalid key", "invalid", &openapi.V2KeysVerifyKeyResponseBody{
+			Meta: openapi.Meta{RequestId: "test"},
+			Data: openapi.V2KeysVerifyKeyResponseData{Valid: false, Code: openapi.NOTFOUND},
+		}, http.StatusOK, http.StatusUnauthorized},
+		{"API unavailable", "user_test", nil, http.StatusServiceUnavailable, http.StatusInternalServerError},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var verified atomic.Int64
@@ -130,7 +145,10 @@ keyauth = { key_space_ids = ["ks_orders"] }
 				verified.Add(1)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(tc.apiStatus)
-				if _, err := io.WriteString(w, tc.response); err != nil {
+				if tc.response == nil {
+					return
+				}
+				if err := json.NewEncoder(w).Encode(tc.response); err != nil {
 					t.Error(err)
 				}
 			}))
