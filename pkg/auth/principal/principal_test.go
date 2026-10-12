@@ -106,6 +106,7 @@ func TestAuthorizeAllowsEveryAuthenticationMethod(t *testing.T) {
 	}{
 		{"api key", TypeAPIKey, KeySource{}},
 		{"jwt", TypeJWT, JWTSource{}},
+		{"vercel OIDC", TypeJWT, OIDCVercelSource{}},
 		{"portal", TypePortalSession, PortalSessionSource{}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -196,6 +197,7 @@ func TestAuthorizationErrorHidesGrantsAndCredentials(t *testing.T) {
 	}{
 		{"key", KeySource{KeyID: "private_key_id", Permissions: []string{"private_source_grant"}}},
 		{"jwt", JWTSource{Header: map[string]any{"private_header": "secret"}, Payload: map[string]any{"private_claim": "secret"}, Signature: "private_signature"}},
+		{"vercel OIDC", OIDCVercelSource{IntegrationID: "private_integration_id"}},
 		{"portal", PortalSessionSource{SessionID: "private_session_id"}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

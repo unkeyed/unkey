@@ -12,6 +12,9 @@ enum ActorType {
 
   // GITHUB is a push or pull request. The actor id is the GitHub login.
   ACTOR_TYPE_GITHUB = 4;
+
+  // OIDC_VERCEL is a Vercel integration authenticated through OIDC federation.
+  ACTOR_TYPE_OIDC_VERCEL = 5;
 }
 
 // ActorInfo carries audit-relevant caller identity and request origin so ctrl

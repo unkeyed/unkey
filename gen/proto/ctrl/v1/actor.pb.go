@@ -31,6 +31,8 @@ const (
 	ActorType_ACTOR_TYPE_SYSTEM      ActorType = 3
 	// GITHUB is a push or pull request. The actor id is the GitHub login.
 	ActorType_ACTOR_TYPE_GITHUB ActorType = 4
+	// OIDC_VERCEL is a Vercel integration authenticated through OIDC federation.
+	ActorType_ACTOR_TYPE_OIDC_VERCEL ActorType = 5
 )
 
 // Enum value maps for ActorType.
@@ -41,6 +43,7 @@ var (
 		2: "ACTOR_TYPE_ROOT_KEY",
 		3: "ACTOR_TYPE_SYSTEM",
 		4: "ACTOR_TYPE_GITHUB",
+		5: "ACTOR_TYPE_OIDC_VERCEL",
 	}
 	ActorType_value = map[string]int32{
 		"ACTOR_TYPE_UNSPECIFIED": 0,
@@ -48,6 +51,7 @@ var (
 		"ACTOR_TYPE_ROOT_KEY":    2,
 		"ACTOR_TYPE_SYSTEM":      3,
 		"ACTOR_TYPE_GITHUB":      4,
+		"ACTOR_TYPE_OIDC_VERCEL": 5,
 	}
 )
 
@@ -179,13 +183,14 @@ const file_ctrl_v1_actor_proto_rawDesc = "" +
 	"\x04meta\x18\x06 \x03(\v2\x1c.ctrl.v1.ActorInfo.MetaEntryR\x04meta\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\x83\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\x9f\x01\n" +
 	"\tActorType\x12\x1a\n" +
 	"\x16ACTOR_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fACTOR_TYPE_USER\x10\x01\x12\x17\n" +
 	"\x13ACTOR_TYPE_ROOT_KEY\x10\x02\x12\x15\n" +
 	"\x11ACTOR_TYPE_SYSTEM\x10\x03\x12\x15\n" +
-	"\x11ACTOR_TYPE_GITHUB\x10\x04B\x89\x01\n" +
+	"\x11ACTOR_TYPE_GITHUB\x10\x04\x12\x1a\n" +
+	"\x16ACTOR_TYPE_OIDC_VERCEL\x10\x05B\x89\x01\n" +
 	"\vcom.ctrl.v1B\n" +
 	"ActorProtoP\x01Z1github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 

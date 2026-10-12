@@ -922,7 +922,7 @@ func TestEdgeCases_MultipleAudiences(t *testing.T) {
 
 	decoded, err := verifier.Verify(token)
 	require.NoError(t, err)
-	require.Equal(t, []string{"aud1", "aud2", "aud3"}, decoded.Audience)
+	require.Equal(t, Audience{"aud1", "aud2", "aud3"}, decoded.Audience)
 }
 
 // TestEdgeCases_EmptyAudiences tests handling of empty audience array.

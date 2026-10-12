@@ -1,12 +1,43 @@
 package jwt
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 )
+
+// Audience accepts both audience encodings allowed by RFC 7519: one string or
+// an array of strings. It marshals as an array to preserve existing output.
+type Audience []string
+
+// UnmarshalJSON decodes a scalar or array audience claim.
+func (a *Audience) UnmarshalJSON(data []byte) error {
+	data = bytes.TrimSpace(data)
+	if len(data) == 0 {
+		return fmt.Errorf("aud must be a string or array of strings")
+	}
+
+	if data[0] == '"' {
+		var audience string
+		if err := json.Unmarshal(data, &audience); err != nil {
+			return fmt.Errorf("decode scalar aud: %w", err)
+		}
+		*a = Audience{audience}
+		return nil
+	}
+
+	var audiences []string
+	if err := json.Unmarshal(data, &audiences); err != nil {
+		return fmt.Errorf("decode array aud: %w", err)
+	}
+	*a = audiences
+	return nil
+}
 
 // Maximum sizes for registered claim values in bytes.
 // These limits protect against denial of service attacks using oversized tokens.
@@ -64,9 +95,9 @@ type RegisteredClaims struct {
 	// is typically a service name or URL. A token should only be accepted if the
 	// verifying service is in this list.
 	//
-	// This field serializes as a JSON array. Tokens from libraries that serialize
-	// single audiences as a bare string (without array brackets) will fail to parse.
-	Audience []string `json:"aud,omitempty"`
+	// This field serializes as a JSON array and accepts either the array or scalar
+	// string form when decoding.
+	Audience Audience `json:"aud,omitempty"`
 
 	// ExpiresAt is the Unix timestamp (seconds since epoch) after which the JWT
 	// must not be accepted for processing. The current implementation considers
