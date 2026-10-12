@@ -4223,6 +4223,38 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitSetOverrideResponseData"
+        V2RatelimitUpdateNamespaceRequestBody:
+            type: object
+            required:
+                - namespace
+                - name
+            properties:
+                namespace:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    description: |
+                        The namespace to rename. Pass the namespace ID (`rlns_...`) or its current name.
+                    example: rlns_1234abcd
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    description: |
+                        The new name of the namespace, unique within your workspace. Names are case-sensitive.
+                    example: email.outbound
+            additionalProperties: false
+        V2RatelimitUpdateNamespaceResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/RatelimitNamespace"
+            additionalProperties: false
         V2RootKeysCreateKeyRequestBody:
             type: object
             additionalProperties: false
@@ -18698,6 +18730,145 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: setOverride
+    /v2/ratelimit.updateNamespace:
+        post:
+            description: |
+                Rename a rate limit namespace, identified by its ID or current name.
+
+                Renaming to the current name returns the namespace without a write.
+
+                **Important**: Overrides stay with the namespace. Requests that pass the namespace by name, such as `ratelimit.limit`, must use the new name. A `ratelimit.limit` call with the old name can create a new, empty namespace with that name. A name that is in use or was deleted returns 409. Other API nodes can take up to a minute to see the new name.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `unkey:v1:<workspace_id>:projects/*/ratelimits/namespaces/*#write` (to rename every namespace)
+                - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#write` (to rename a specific namespace)
+            operationId: ratelimit.updateNamespace
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            renameById:
+                                description: Locate the namespace by its ID and give it a new name
+                                summary: Rename a namespace by ID
+                                value:
+                                    name: email.outbound
+                                    namespace: rlns_1234abcd
+                            renameByName:
+                                description: Locate the namespace by its current name and give it a new name
+                                summary: Rename a namespace by its current name
+                                value:
+                                    name: email.outbound
+                                    namespace: email.sends
+                        schema:
+                            $ref: '#/components/schemas/V2RatelimitUpdateNamespaceRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                renamed:
+                                    summary: Renamed namespace
+                                    value:
+                                        data:
+                                            createdAt: 1704067200000
+                                            id: rlns_1234abcd
+                                            name: email.outbound
+                                            updatedAt: 1704153600000
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2RatelimitUpdateNamespaceResponseBody'
+                    description: Namespace renamed successfully.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                emptyName:
+                                    summary: Empty name
+                                    value:
+                                        error:
+                                            detail: POST request body for '/v2/ratelimit.updateNamespace' failed to validate schema
+                                            errors:
+                                                - location: /properties/name/minLength
+                                                  message: 'minLength: got 0, want 1'
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                namespaceNotFound:
+                                    summary: Namespace not found
+                                    value:
+                                        error:
+                                            detail: The requested namespace does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The namespace does not exist in your workspace, was deleted, or your root key lacks write access to it.
+                        All cases return the same response, so a root key cannot learn which namespaces exist.
+                "409":
+                    content:
+                        application/json:
+                            examples:
+                                nameTaken:
+                                    summary: Name taken
+                                    value:
+                                        error:
+                                            detail: A namespace named 'email.outbound' already exists or was deleted in this workspace. Choose a different name.
+                                            status: 409
+                                            title: Conflicting Resource
+                                            type: https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_already_exists
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Conflict - The name is in use or was deleted
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Update ratelimit namespace
+            tags:
+                - ratelimit
+            x-speakeasy-name-override: updateNamespace
+            x-unkey-idempotency: idempotent
     /v2/rootKeys.createKey:
         post:
             description: |

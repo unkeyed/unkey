@@ -10,6 +10,7 @@ import { ratelimitListNamespaces } from "../funcs/ratelimitListNamespaces.js";
 import { ratelimitListOverrides } from "../funcs/ratelimitListOverrides.js";
 import { ratelimitMultiLimit } from "../funcs/ratelimitMultiLimit.js";
 import { ratelimitSetOverride } from "../funcs/ratelimitSetOverride.js";
+import { ratelimitUpdateNamespace } from "../funcs/ratelimitUpdateNamespace.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
 import * as operations from "../models/operations/index.js";
@@ -214,6 +215,33 @@ export class Ratelimit extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2RatelimitSetOverrideResponseBody> {
     return unwrapAsync(ratelimitSetOverride(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Update ratelimit namespace
+   *
+   * @remarks
+   * Rename a rate limit namespace, identified by its ID or current name.
+   *
+   * Renaming to the current name returns the namespace without a write.
+   *
+   * **Important**: Overrides stay with the namespace. Requests that pass the namespace by name, such as `ratelimit.limit`, must use the new name. A `ratelimit.limit` call with the old name can create a new, empty namespace with that name. A name that is in use or was deleted returns 409. Other API nodes can take up to a minute to see the new name.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#write` (to rename every namespace)
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#write` (to rename a specific namespace)
+   */
+  async updateNamespace(
+    request: components.V2RatelimitUpdateNamespaceRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2RatelimitUpdateNamespaceResponseBody> {
+    return unwrapAsync(ratelimitUpdateNamespace(
       this,
       request,
       options,

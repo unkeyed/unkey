@@ -7032,6 +7032,29 @@ type V2RatelimitSetOverrideResponseData struct {
 	OverrideId string `json:"overrideId"`
 }
 
+// V2RatelimitUpdateNamespaceRequestBody defines model for V2RatelimitUpdateNamespaceRequestBody.
+type V2RatelimitUpdateNamespaceRequestBody struct {
+	// Name The new name of the namespace, unique within your workspace. Names are case-sensitive.
+	//
+	//
+	// Example: email.outbound
+	Name string `json:"name"`
+
+	// Namespace The namespace to rename. Pass the namespace ID (`rlns_...`) or its current name.
+	//
+	//
+	// Example: rlns_1234abcd
+	Namespace string `json:"namespace"`
+}
+
+// V2RatelimitUpdateNamespaceResponseBody defines model for V2RatelimitUpdateNamespaceResponseBody.
+type V2RatelimitUpdateNamespaceResponseBody struct {
+	Data RatelimitNamespace `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2RootKeysCreateKeyRequestBody defines model for V2RootKeysCreateKeyRequestBody.
 type V2RootKeysCreateKeyRequestBody struct {
 	// Expires Expiration as Unix milliseconds, strictly in the future. Expiring root-key callers must provide a child expiry no later than their own. JWT admins and nonexpiring root-key callers may omit it or set null for no expiration.
@@ -7895,6 +7918,9 @@ type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// RatelimitUpdateNamespaceJSONRequestBody defines body for RatelimitUpdateNamespace for application/json ContentType.
+type RatelimitUpdateNamespaceJSONRequestBody = V2RatelimitUpdateNamespaceRequestBody
 
 // RootKeysCreateKeyJSONRequestBody defines body for RootKeysCreateKey for application/json ContentType.
 type RootKeysCreateKeyJSONRequestBody = V2RootKeysCreateKeyRequestBody

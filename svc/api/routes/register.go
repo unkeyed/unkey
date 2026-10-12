@@ -18,6 +18,7 @@ import (
 	v2RatelimitListOverrides "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_list_overrides"
 	v2RatelimitMultiLimit "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_multi_limit"
 	v2RatelimitSetOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_set_override"
+	v2RatelimitUpdateNamespace "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_update_namespace"
 
 	v2ApisCreateApi "github.com/unkeyed/unkey/svc/api/routes/v2_apis_create_api"
 	v2ApisDeleteApi "github.com/unkeyed/unkey/svc/api/routes/v2_apis_delete_api"
@@ -306,6 +307,16 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2RatelimitCreateNamespace.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/ratelimit.updateNamespace
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2RatelimitUpdateNamespace.Handler{
+			DB:             svc.Database,
+			Auditlogs:      svc.Auditlogs,
+			NamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 

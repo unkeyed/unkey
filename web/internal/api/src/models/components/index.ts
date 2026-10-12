@@ -302,6 +302,8 @@ export * from "./v2ratelimitmultilimitresponsedata.js";
 export * from "./v2ratelimitsetoverriderequestbody.js";
 export * from "./v2ratelimitsetoverrideresponsebody.js";
 export * from "./v2ratelimitsetoverrideresponsedata.js";
+export * from "./v2ratelimitupdatenamespacerequestbody.js";
+export * from "./v2ratelimitupdatenamespaceresponsebody.js";
 export * from "./v2rootkeyscreatekeyrequestbody.js";
 export * from "./v2rootkeyscreatekeyresponsebody.js";
 export * from "./v2rootkeyscreatekeyresponsedata.js";
