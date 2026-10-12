@@ -21,6 +21,17 @@ if [ "$profile_count" -eq 0 ]; then
   exec ctlptl apply -f "$1"
 fi
 
+expected_version=$(awk '$1 == "kubernetesVersion:" {print $2}' "$1")
+expected_cni=$(sed -n 's/.*"--cni=\([^"]*\)".*/\1/p' "$1")
+if ! jq -e --arg version "$expected_version" --arg cni "$expected_cni" '
+  .valid[] | select(.Name == "minikube") | .Config.KubernetesConfig |
+  .KubernetesVersion == $version and .CNI == $cni
+' <<< "$profiles" >/dev/null; then
+  echo "The existing minikube profile does not match $1 (Kubernetes $expected_version, CNI $expected_cni)." >&2
+  echo "Back up any local data you need, then explicitly reset with mise exec -- minikube delete -p minikube and start dev again. Nothing was deleted." >&2
+  exit 1
+fi
+
 docker start ctlptl-registry >/dev/null
 if ! minikube status -p minikube >/dev/null 2>&1; then
   minikube start -p minikube --wait=apiserver,kubelet,node_ready --delete-on-failure=false

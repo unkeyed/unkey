@@ -105,7 +105,7 @@ if ORB:
     # enforcement in this isolated development cluster.
     local_resource(
       'cilium-network-policy-crd',
-      'kubectl apply -f https://raw.githubusercontent.com/cilium/cilium/v1.19.0/pkg/k8s/apis/cilium.io/client/crds/v2/ciliumnetworkpolicies.yaml && ' +
+      'kubectl apply -f https://raw.githubusercontent.com/cilium/cilium/v1.20.2/pkg/k8s/apis/cilium.io/client/crds/v2/ciliumnetworkpolicies.yaml && ' +
       'kubectl wait --for=condition=Established crd/ciliumnetworkpolicies.cilium.io --timeout=60s',
       resource_deps=['namespace'],
       labels=['setup'],
@@ -114,9 +114,11 @@ if ORB:
 else:
     local_resource(
       'cilium-ready',
+      'kubectl apply -f k8s/manifests/cilium.yaml && ' +
       'kubectl -n kube-system rollout status daemonset/cilium --timeout=180s && ' +
       'kubectl wait --for=condition=Established crd/ciliumnetworkpolicies.cilium.io crd/ciliumclusterwidenetworkpolicies.cilium.io --timeout=60s && ' +
       'kubectl -n kube-system rollout status deployment/coredns --timeout=180s',
+      deps=['k8s/manifests/cilium.yaml'],
       labels=['setup'],
       allow_parallel=True,
     )
@@ -208,8 +210,8 @@ local_resource(
 if not ORB:
     local_resource(
       'hubble',
-      'bash setup-hubble.sh',
-      deps=['setup-hubble.sh', 'k8s/manifests/hubble.yaml'],
+      'kubectl apply -f k8s/manifests/hubble.yaml',
+      deps=['k8s/manifests/hubble.yaml'],
       resource_deps=['cilium-policies'],
       labels=['observability'],
       allow_parallel=True,

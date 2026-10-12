@@ -40,17 +40,17 @@ version = "1.39.0"
 rename_exe = "minikube"
 
 [tools."http:kubectl"]
-version = "1.37.1"
+version = "1.36.4"
 bin = "kubectl"
 
 [tools."http:kubectl".platforms]
-linux-arm64 = { url = "https://dl.k8s.io/release/v1.37.1/bin/linux/arm64/kubectl", checksum = "sha256:ff749f4b78d9c4f1ec87307df9b50119ed819e2094aa9810cb9acffc3286c8c7" }
-linux-arm64-musl = { url = "https://dl.k8s.io/release/v1.37.1/bin/linux/arm64/kubectl", checksum = "sha256:ff749f4b78d9c4f1ec87307df9b50119ed819e2094aa9810cb9acffc3286c8c7" }
-linux-x64 = { url = "https://dl.k8s.io/release/v1.37.1/bin/linux/amd64/kubectl", checksum = "sha256:65691ff77eb6fa44c908b77a1082c9f092c3b9733b5cefabec0d1104890e21a8" }
-linux-x64-musl = { url = "https://dl.k8s.io/release/v1.37.1/bin/linux/amd64/kubectl", checksum = "sha256:65691ff77eb6fa44c908b77a1082c9f092c3b9733b5cefabec0d1104890e21a8" }
-macos-arm64 = { url = "https://dl.k8s.io/release/v1.37.1/bin/darwin/arm64/kubectl", checksum = "sha256:fd65982c97ddad3106754b69ffa196d0e543aa591930ae52aed1adfb92f8c77f" }
-macos-x64 = { url = "https://dl.k8s.io/release/v1.37.1/bin/darwin/amd64/kubectl", checksum = "sha256:6851381c486ff6edd691623e3d65c87cb9a5b02887ff8fbbb38d8a031b748387" }
-windows-x64 = { url = "https://dl.k8s.io/release/v1.37.1/bin/windows/amd64/kubectl.exe", checksum = "sha256:14b93c4916a6f37a06fbc1f46b0a1d2404c4f9741be09f00d6caf8af3b05f1d3", bin = "kubectl.exe" }
+linux-arm64 = { url = "https://dl.k8s.io/release/v1.36.4/bin/linux/arm64/kubectl", checksum = "sha256:0ecf44450ee6063bf19dd166a103ee6df4a9034455c2abce626e6eea657d73fb" }
+linux-arm64-musl = { url = "https://dl.k8s.io/release/v1.36.4/bin/linux/arm64/kubectl", checksum = "sha256:0ecf44450ee6063bf19dd166a103ee6df4a9034455c2abce626e6eea657d73fb" }
+linux-x64 = { url = "https://dl.k8s.io/release/v1.36.4/bin/linux/amd64/kubectl", checksum = "sha256:8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a" }
+linux-x64-musl = { url = "https://dl.k8s.io/release/v1.36.4/bin/linux/amd64/kubectl", checksum = "sha256:8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a" }
+macos-arm64 = { url = "https://dl.k8s.io/release/v1.36.4/bin/darwin/arm64/kubectl", checksum = "sha256:c9e4f713d6fee0043a3d835cca13077cda2bc0973840eb9779360df0b5bdfc69" }
+macos-x64 = { url = "https://dl.k8s.io/release/v1.36.4/bin/darwin/amd64/kubectl", checksum = "sha256:71a3aa7c2ee2c974d9fbb462cba0c5c04a4df2e8d85eee94714fd819ea3c4e63" }
+windows-x64 = { url = "https://dl.k8s.io/release/v1.36.4/bin/windows/amd64/kubectl.exe", checksum = "sha256:31947857be7583f3e4e6d889a3fb781ca813a45c20f11ccb3ef309714d01a9f3", bin = "kubectl.exe" }
 
 [tools."http:helm"]
 version = "3.22.0"

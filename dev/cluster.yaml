@@ -10,8 +10,8 @@ minikube:
     - "--container-runtime=containerd"
     - "--docker-opt=containerd=/var/run/containerd/containerd.sock"
     - "--extra-config=kubelet.serialize-image-pulls=false"
-    - "--cni=cilium"
+    - "--cni=./dev/k8s/manifests/cilium.yaml"
     - "--addons=metrics-server"
     - "--wait=apiserver,kubelet,node_ready"
 registry: ctlptl-registry
-kubernetesVersion: v1.37.0
+kubernetesVersion: v1.36.4

@@ -21,8 +21,11 @@ class LocalDevTest(unittest.TestCase):
         cls.root = Path(cls.temporary.name)
         cls.dev = cls.root / "dev"
         cls.dev.mkdir()
-        for name in ("Tiltfile", "Dockerfile.binary", "04-seed-workspace.sql", "clickhouse-local-admin.sql", "init-clickhouse.sh", "start-cluster.sh", "stripe-webhook-secret.sh"):
+        for name in ("Tiltfile", "Dockerfile.binary", "04-seed-workspace.sql", "clickhouse-local-admin.sql", "init-clickhouse.sh", "start-cluster.sh", "stripe-webhook-secret.sh", "cluster.yaml", "cluster.orb.yaml"):
             shutil.copyfile(ROOT / "dev" / name, cls.dev / name)
+        cls.profile = {"Name": "minikube", "Config": {"KubernetesConfig": {
+            "KubernetesVersion": "v1.36.4", "CNI": "./dev/k8s/manifests/cilium.yaml",
+        }}}
         (cls.dev / "k8s").symlink_to(ROOT / "dev/k8s", target_is_directory=True)
         (cls.root / "pkg").symlink_to(ROOT / "pkg", target_is_directory=True)
         (cls.root / ".mise").symlink_to(ROOT / ".mise", target_is_directory=True)
@@ -60,8 +63,6 @@ class LocalDevTest(unittest.TestCase):
             "        print(os.environ.get('STRIPE_TEST_SECRET', ''))\n"
             "        sys.exit(int(os.environ.get('STRIPE_TEST_EXIT', '0')))\n"
             "    else: sys.exit(18)\n"
-            "elif name == 'kubectl' and args[:5] == ['-n', 'kube-system', 'patch', 'configmap', 'cilium-config']:\n"
-            "    print(os.environ.get('CONFIG_VERSION', '41'), end='')\n"
             "elif name == 'minikube' and args[:2] == ['profile', 'list']:\n"
             "    print(os.environ.get('PROFILES', '{\"valid\": [], \"invalid\": []}'))\n"
             "elif name == 'minikube' and args[:1] == ['status'] and os.environ.get('STOPPED') == '1':\n"
@@ -413,6 +414,7 @@ class LocalDevTest(unittest.TestCase):
         result = self.command(command)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.calls(), [
+            ["kubectl", "apply", "-f", "k8s/manifests/cilium.yaml"],
             ["kubectl", "-n", "kube-system", "rollout", "status", "daemonset/cilium", "--timeout=180s"],
             ["kubectl", "wait", "--for=condition=Established", "crd/ciliumnetworkpolicies.cilium.io", "crd/ciliumclusterwidenetworkpolicies.cilium.io", "--timeout=60s"],
             ["kubectl", "-n", "kube-system", "rollout", "status", "deployment/coredns", "--timeout=180s"],
@@ -438,26 +440,6 @@ class LocalDevTest(unittest.TestCase):
             self.assertIn("app_id = ${UNKEY_GITHUB_APP_ID}", configmap(self.github, name))
         self.assertNotIn("allow_unauthenticated_deployments = true", configmap(self.default, "ctrl-api"))
 
-    def test_hubble_rollout_changes_only_with_config_version(self):
-        patches = []
-        for version in ("41", "41", "42"):
-            self.log.write_text("")
-            result = self.command(["bash", str(ROOT / "dev/setup-hubble.sh")], CONFIG_VERSION=version)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            calls = self.calls()
-            self.assertEqual(len(calls), 4)
-            self.assertEqual(calls[1][:3], ["kubectl", "apply", "-f"])
-            self.assertEqual(calls[2][:6], ["kubectl", "-n", "kube-system", "patch", "daemonset", "cilium"])
-            patches.append(json.loads(calls[2][-1]))
-            self.assertEqual(calls[3], ["kubectl", "-n", "kube-system", "rollout", "status", "daemonset", "cilium", "--timeout=120s"])
-        self.assertEqual(patches[0], patches[1])
-        self.assertNotEqual(patches[1], patches[2])
-        self.assertEqual(patches[2]["spec"]["template"]["metadata"]["annotations"], {"unkey.dev/cilium-config-version": "42"})
-        self.log.write_text("")
-        result = self.command(["bash", str(ROOT / "dev/setup-hubble.sh")], FAIL_COMMAND="kubectl")
-        self.assertEqual(result.returncode, 17)
-        self.assertEqual(len(self.calls()), 1)
-
     def test_dev_applies_cluster_once_and_forwards_options(self):
         result = self.command(["bash", str(ROOT / ".mise/tasks/dev"), "api", "--topolvm_backing_size=32G"], cwd=self.root)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -472,7 +454,7 @@ class LocalDevTest(unittest.TestCase):
         self.assertEqual(len(self.calls()), 2)
         cluster = (ROOT / "dev/cluster.yaml").read_text()
         self.assertIn('"--wait=apiserver,kubelet,node_ready"', cluster)
-        self.assertIn('"--cni=cilium"', cluster)
+        self.assertIn('"--cni=./dev/k8s/manifests/cilium.yaml"', cluster)
         self.assertIn('"--addons=metrics-server"', cluster)
         self.assertIn('"--extra-config=kubelet.serialize-image-pulls=false"', cluster)
 
@@ -495,29 +477,49 @@ class LocalDevTest(unittest.TestCase):
             with self.subTest(stopped=stopped):
                 self.log.write_text("")
                 result = self.command(
-                    ["bash", str(ROOT / "dev/start-cluster.sh"), "changed-cluster.yaml"],
-                    PROFILES=json.dumps({"valid": [{"Name": "minikube"}], "invalid": []}),
+                    ["bash", str(ROOT / "dev/start-cluster.sh"), str(ROOT / "dev/cluster.yaml")],
+                    PROFILES=json.dumps({"valid": [self.profile], "invalid": []}),
                     STOPPED="1" if stopped else "0",
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 calls = self.calls()
-                self.assertNotIn(["ctlptl", "apply", "-f", "changed-cluster.yaml"], calls)
+                self.assertFalse(any(call[:2] == ["ctlptl", "apply"] for call in calls))
                 self.assertNotIn(["minikube", "delete", "-p", "minikube"], calls)
                 starts = [call for call in calls if call[:2] == ["minikube", "start"]]
                 self.assertEqual(starts, [["minikube", "start", "-p", "minikube", "--wait=apiserver,kubelet,node_ready", "--delete-on-failure=false"]] if stopped else [])
+
+    def test_mismatched_cluster_versions_and_networks_stop_without_changing_data(self):
+        for version, cni in (
+            ("v1.35.8", "./dev/k8s/manifests/cilium.yaml"),
+            ("v1.37.0", "./dev/k8s/manifests/cilium.yaml"),
+            ("v1.36.4", "cilium"),
+            ("v1.36.4", "bridge"),
+        ):
+            with self.subTest(version=version, cni=cni):
+                self.log.write_text("")
+                profile = {"Name": "minikube", "Config": {"KubernetesConfig": {
+                    "KubernetesVersion": version, "CNI": cni,
+                }}}
+                result = self.command(
+                    ["bash", str(ROOT / "dev/start-cluster.sh"), str(ROOT / "dev/cluster.yaml")],
+                    PROFILES=json.dumps({"valid": [profile], "invalid": []}),
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("Back up any local data", result.stderr)
+                self.assertEqual(self.calls(), [["minikube", "profile", "list", "-o", "json"]])
 
     def test_cluster_inspection_errors_do_not_trigger_creation(self):
         for env in (
             {"PROFILES": "not-json"},
             {"PROFILES": '{"valid": [], "invalid": [{"Name": "minikube"}]}'},
             {"FAIL_COMMAND": "minikube"},
-            {"PROFILES": '{"valid": [{"Name": "minikube"}], "invalid": []}', "CLUSTER": "{}"},
-            {"PROFILES": '{"valid": [{"Name": "minikube"}], "invalid": []}', "STOPPED": "1",
+            {"PROFILES": json.dumps({"valid": [self.profile], "invalid": []}), "CLUSTER": "{}"},
+            {"PROFILES": json.dumps({"valid": [self.profile], "invalid": []}), "STOPPED": "1",
              "FAIL_COMMAND": "minikube start -p minikube --wait=apiserver,kubelet,node_ready --delete-on-failure=false"},
         ):
             with self.subTest(env=env):
                 self.log.write_text("")
-                result = self.command(["bash", str(ROOT / "dev/start-cluster.sh"), "cluster.yaml"], **env)
+                result = self.command(["bash", str(ROOT / "dev/start-cluster.sh"), str(ROOT / "dev/cluster.yaml")], **env)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertFalse(any(call[:2] == ["ctlptl", "apply"] for call in self.calls()))
 

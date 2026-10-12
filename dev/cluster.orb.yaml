@@ -15,4 +15,4 @@ minikube:
     - "--addons=metrics-server"
     - "--wait=apiserver,kubelet,node_ready"
 registry: ctlptl-registry
-kubernetesVersion: v1.37.0
+kubernetesVersion: v1.36.4
