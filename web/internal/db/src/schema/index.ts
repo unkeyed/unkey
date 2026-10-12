@@ -3,6 +3,7 @@ export * from "./rbac";
 export * from "./keyAuth";
 export * from "./keys";
 export * from "./unkey_root_keys";
+export * from "./cli_device_logins";
 export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./identity";
