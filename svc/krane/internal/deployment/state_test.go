@@ -122,3 +122,56 @@ func TestBuildDeploymentStatus_PodStatuses(t *testing.T) {
 	require.NotContains(t, byName, "pod-failed", "failed pods must not remain active instances")
 	require.NotContains(t, byName, "pod-succeeded", "succeeded pods must not remain active instances")
 }
+
+func TestRoutablePods(t *testing.T) {
+	pod := func(name string, drains, ready, terminating bool) corev1.Pod {
+		p := corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+			Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "app"}}},
+			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+		}
+		if drains {
+			p.Spec.Containers[0].Lifecycle = &corev1.Lifecycle{PreStop: preStopHandler("")}
+		}
+		if ready {
+			p.Status.Conditions = []corev1.PodCondition{{Type: corev1.ContainersReady, Status: corev1.ConditionTrue}}
+		}
+		if terminating {
+			p.DeletionTimestamp = new(metav1.Now())
+		}
+		return p
+	}
+	names := func(pods []corev1.Pod) []string {
+		out := []string{}
+		for _, p := range pods {
+			out = append(out, p.Name)
+		}
+		return out
+	}
+
+	for _, tt := range []struct {
+		name string
+		pods []corev1.Pod
+		want []string
+	}{
+		{"legacy pods stay routable until replacements exist",
+			[]corev1.Pod{pod("old-1", false, true, false), pod("old-2", false, true, false)},
+			[]string{"old-1", "old-2"}},
+		{"legacy pods stay routable while replacements start",
+			[]corev1.Pod{pod("old-1", false, true, false), pod("old-2", false, true, false), pod("new-1", true, true, false), pod("new-2", true, false, false)},
+			[]string{"new-1", "new-2", "old-1", "old-2"}},
+		{"legacy pods leave routing once enough replacements are ready",
+			[]corev1.Pod{pod("old-1", false, true, false), pod("old-2", false, true, false), pod("new-1", true, true, false), pod("new-2", true, true, false)},
+			[]string{"new-1", "new-2"}},
+		{"single replica",
+			[]corev1.Pod{pod("old-1", false, true, false), pod("new-1", true, true, false)},
+			[]string{"new-1"}},
+		{"terminating pods are never routable",
+			[]corev1.Pod{pod("new-1", true, true, false), pod("new-2", true, true, true)},
+			[]string{"new-1"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, names(routablePods(tt.pods)))
+		})
+	}
+}

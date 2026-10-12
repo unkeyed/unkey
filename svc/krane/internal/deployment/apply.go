@@ -105,6 +105,14 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
+	undrained, err := c.hasUndrainedPods(ctx, req.GetK8SNamespace(), req.GetDeploymentId())
+	if err != nil {
+		return err
+	}
+	if undrained {
+		useReplacementStrategy(desired)
+	}
+
 	applied, err := c.applyDeploymentObject(ctx, desired)
 	if err != nil {
 		return err
@@ -344,14 +352,15 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 	}
 
 	podSpec := corev1.PodSpec{
-		RuntimeClassName:             runtimeClass,
-		RestartPolicy:                corev1.RestartPolicyAlways,
-		AutomountServiceAccountToken: new(false),
-		EnableServiceLinks:           new(false),
-		NodeSelector:                 map[string]string{nodeClassLabelKey: CustomerNodeClass},
-		Tolerations:                  []corev1.Toleration{untrustedToleration},
-		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId(), req.GetAutoscaling().GetMaxReplicas()),
-		Containers:                   []corev1.Container{container},
+		TerminationGracePeriodSeconds: new(preStopDrainSeconds + shutdownGraceSeconds),
+		RuntimeClassName:              runtimeClass,
+		RestartPolicy:                 corev1.RestartPolicyAlways,
+		AutomountServiceAccountToken:  new(false),
+		EnableServiceLinks:            new(false),
+		NodeSelector:                  map[string]string{nodeClassLabelKey: CustomerNodeClass},
+		Tolerations:                   []corev1.Toleration{untrustedToleration},
+		TopologySpreadConstraints:     deploymentTopologySpread(req.GetDeploymentId(), req.GetAutoscaling().GetMaxReplicas()),
+		Containers:                    []corev1.Container{container},
 	}
 
 	if len(volumes) > 0 {
@@ -398,6 +407,58 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 			RevisionHistoryLimit: new(revisionHistoryLimit),
 		},
 	}
+}
+
+// useReplacementStrategy makes d replace pods that cannot drain without
+// dropping requests: all new pods start first, krane stops reporting the old
+// pods once the new ones are ready (see routablePods), and Kubernetes deletes
+// the old pods only after preStopDrainSeconds, when frontline no longer routes
+// to them.
+func useReplacementStrategy(d *appsv1.Deployment) {
+	maxSurge := intstr.FromString("100%")
+	d.Spec.Strategy.RollingUpdate.MaxSurge = &maxSurge
+	d.Spec.MinReadySeconds = int32(preStopDrainSeconds)
+}
+
+// hasUndrainedPods reports whether the deployment runs pods whose preStop hook
+// drains for less than preStopDrainSeconds, such as pods from before krane
+// added the drain.
+func (c *Controller) hasUndrainedPods(ctx context.Context, namespace, deploymentID string) (bool, error) {
+	pods, err := c.clientSet.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.New().DeploymentID(deploymentID).ToString(),
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to list pods: %w", err)
+	}
+
+	for i := range pods.Items {
+		pod := &pods.Items[i]
+		if pod.DeletionTimestamp == nil && podDrainSeconds(pod) < preStopDrainSeconds {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// podDrainSeconds returns how long the preStop hook of pod keeps it serving.
+func podDrainSeconds(pod *corev1.Pod) int64 {
+	if len(pod.Spec.Containers) == 0 {
+		return 0
+	}
+	lifecycle := pod.Spec.Containers[0].Lifecycle
+	if lifecycle == nil || lifecycle.PreStop == nil {
+		return 0
+	}
+	if sleep := lifecycle.PreStop.Sleep; sleep != nil {
+		return sleep.Seconds
+	}
+	if exec := lifecycle.PreStop.Exec; exec != nil && len(exec.Command) == 3 && exec.Command[0] == "sh" && exec.Command[1] == "-c" {
+		var seconds int64
+		if _, err := fmt.Sscanf(exec.Command[2], "sleep %d;", &seconds); err == nil {
+			return seconds
+		}
+	}
+	return 0
 }
 
 var signalNamePattern = regexp.MustCompile(`^[A-Z0-9]+$`)

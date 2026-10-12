@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
@@ -163,4 +164,28 @@ func TestWorkloadForReplicaSet(t *testing.T) {
 	w, err = ctrl.workloadForReplicaSet(t.Context(), legacy)
 	require.NoError(t, err)
 	require.Equal(t, legacy.Name, w.k8sName)
+}
+
+func TestHasUndrainedPods(t *testing.T) {
+	desired := testController().buildDeployment(fullApplyRequest(t), false)
+	legacy := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "legacy", Namespace: testNamespace, Labels: desired.Spec.Template.Labels}}
+	current := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "current", Namespace: testNamespace, Labels: desired.Spec.Template.Labels},
+		Spec:       desired.Spec.Template.Spec,
+	}
+
+	ctrl := &Controller{clientSet: fake.NewClientset(current)}
+	undrained, err := ctrl.hasUndrainedPods(t.Context(), testNamespace, testDeploymentID)
+	require.NoError(t, err)
+	require.False(t, undrained)
+
+	ctrl = &Controller{clientSet: fake.NewClientset(current, legacy)}
+	undrained, err = ctrl.hasUndrainedPods(t.Context(), testNamespace, testDeploymentID)
+	require.NoError(t, err)
+	require.True(t, undrained)
+
+	useReplacementStrategy(desired)
+	require.Equal(t, "100%", desired.Spec.Strategy.RollingUpdate.MaxSurge.String())
+	require.Equal(t, 0, desired.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue())
+	require.Equal(t, int32(preStopDrainSeconds), desired.Spec.MinReadySeconds)
 }

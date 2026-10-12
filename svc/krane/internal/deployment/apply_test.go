@@ -394,6 +394,10 @@ func TestBuildDeployment_PreStopDrain(t *testing.T) {
 			require.NotNil(t, c.Lifecycle.PreStop)
 			require.Equal(t, &corev1.SleepAction{Seconds: preStopDrainSeconds}, c.Lifecycle.PreStop.Sleep)
 			require.Nil(t, c.Lifecycle.PreStop.Exec)
+
+			dep := testController().buildDeployment(req, false)
+			require.Equal(t, new(preStopDrainSeconds+shutdownGraceSeconds), dep.Spec.Template.Spec.TerminationGracePeriodSeconds,
+				"the grace period must cover the drain and the app's shutdown")
 		})
 	}
 }
@@ -408,14 +412,35 @@ func TestPreStopHandler(t *testing.T) {
 		{"SIGTERM", sleepOnly},
 		{"SIGQUIT; rm -rf /", sleepOnly},
 		{"SIGINT", &corev1.LifecycleHandler{Exec: &corev1.ExecAction{Command: []string{
-			"sh", "-c", "sleep 15; kill -s INT 1; while kill -0 1 2>/dev/null; do sleep 1; done",
+			"sh", "-c", "sleep 70; kill -s INT 1; while kill -0 1 2>/dev/null; do sleep 1; done",
 		}}}},
 		{"SIGQUIT", &corev1.LifecycleHandler{Exec: &corev1.ExecAction{Command: []string{
-			"sh", "-c", "sleep 15; kill -s QUIT 1; while kill -0 1 2>/dev/null; do sleep 1; done",
+			"sh", "-c", "sleep 70; kill -s QUIT 1; while kill -0 1 2>/dev/null; do sleep 1; done",
 		}}}},
 	} {
 		t.Run(tt.signal, func(t *testing.T) {
 			require.Equal(t, tt.want, preStopHandler(tt.signal))
+		})
+	}
+}
+
+func TestPodDrainSeconds(t *testing.T) {
+	podWith := func(lifecycle *corev1.Lifecycle) *corev1.Pod {
+		return &corev1.Pod{Spec: corev1.PodSpec{Containers: []corev1.Container{{Lifecycle: lifecycle}}}}
+	}
+	for _, tt := range []struct {
+		name string
+		pod  *corev1.Pod
+		want int64
+	}{
+		{"no hook", podWith(nil), 0},
+		{"legacy kill hook", podWith(&corev1.Lifecycle{PreStop: &corev1.LifecycleHandler{Exec: &corev1.ExecAction{Command: []string{"kill", "-SIGINT", "1"}}}}), 0},
+		{"sleep hook", podWith(&corev1.Lifecycle{PreStop: preStopHandler("")}), preStopDrainSeconds},
+		{"shell hook", podWith(&corev1.Lifecycle{PreStop: preStopHandler("SIGQUIT")}), preStopDrainSeconds},
+		{"shorter sleep", podWith(&corev1.Lifecycle{PreStop: &corev1.LifecycleHandler{Sleep: &corev1.SleepAction{Seconds: 15}}}), 15},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, podDrainSeconds(tt.pod))
 		})
 	}
 }

@@ -45,8 +45,8 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, w workload) (*ct
 		Instances: make([]*ctrlv1.ReportDeploymentStatusRequest_Update_Instance, 0, len(pods.Items)),
 	}
 
-	for _, pod := range pods.Items {
-		if pod.Status.PodIP == "" || pod.DeletionTimestamp != nil {
+	for _, pod := range routablePods(pods.Items) {
+		if pod.Status.PodIP == "" {
 			continue
 		}
 
@@ -72,14 +72,7 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, w workload) (*ct
 			// means kubelet has not published readiness yet, which is PENDING
 			// not RUNNING. A False condition is startup-in-progress, not a
 			// permanent failure.
-			ready := false
-			for _, cond := range pod.Status.Conditions {
-				if cond.Type == corev1.ContainersReady && cond.Status == corev1.ConditionTrue {
-					ready = true
-					break
-				}
-			}
-			if ready {
+			if podContainersReady(&pod) {
 				instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_RUNNING
 			} else {
 				instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_PENDING
@@ -107,4 +100,42 @@ func podContainerPort(pod *corev1.Pod) int32 {
 		}
 	}
 	return 8080
+}
+
+// routablePods returns the pods frontline may route to. Terminating pods are
+// left out. Pods that cannot drain are left out as soon as at least as many
+// draining pods are ready to replace them, so frontline stops routing to them
+// before Kubernetes deletes them (see useReplacementStrategy).
+func routablePods(pods []corev1.Pod) []corev1.Pod {
+	var draining, undrained []corev1.Pod
+	readyDraining := 0
+	for _, pod := range pods {
+		switch {
+		case pod.DeletionTimestamp != nil:
+		case podDrainSeconds(&pod) >= preStopDrainSeconds:
+			draining = append(draining, pod)
+			if podContainersReady(&pod) {
+				readyDraining++
+			}
+		default:
+			undrained = append(undrained, pod)
+		}
+	}
+
+	if len(undrained) > 0 && readyDraining >= len(undrained) {
+		return draining
+	}
+	return append(draining, undrained...)
+}
+
+func podContainersReady(pod *corev1.Pod) bool {
+	if pod.Status.Phase != corev1.PodRunning {
+		return false
+	}
+	for _, cond := range pod.Status.Conditions {
+		if cond.Type == corev1.ContainersReady {
+			return cond.Status == corev1.ConditionTrue
+		}
+	}
+	return false
 }
