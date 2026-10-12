@@ -157,8 +157,8 @@ type Querier interface {
 	// DeleteWorkspaceFlagOverride restores inheritance for this workspace only.
 	// Deleting an absent override is intentionally idempotent.
 	//
-	//  DELETE FROM workspace_flag_overrides
-	//  WHERE workspace_id = ? AND flag_id = ?
+	//  DELETE FROM flag_overrides
+	//  WHERE workspace_id = ? AND flag_slug = ?
 	DeleteWorkspaceFlagOverride(ctx context.Context, db DBTX, arg DeleteWorkspaceFlagOverrideParams) error
 	//EndDeploymentStep
 	//
@@ -460,7 +460,7 @@ type Querier interface {
 	// FindFlagBySlug locks the definition during enrollment so a concurrent policy
 	// change cannot race the permission check and override write.
 	//
-	//  SELECT pk, id, slug, description, default_value, visible, allow_opt_in, allow_opt_out
+	//  SELECT pk, slug, description, default_value, visible, allow_opt_in, allow_opt_out
 	//  FROM flags WHERE slug = ? FOR UPDATE
 	FindFlagBySlug(ctx context.Context, db DBTX, slug string) (Flag, error)
 	//FindFrontlineRoutesByDeploymentID
@@ -2341,11 +2341,11 @@ type Querier interface {
 	// ListFlags includes definitions without overrides. Callers resolve NULL override
 	// values to the default, preserving explicit false overrides.
 	//
-	//  SELECT f.pk, f.id, f.slug, f.description, f.default_value, f.visible,
+	//  SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
 	//      f.allow_opt_in, f.allow_opt_out, o.value AS override_value
 	//  FROM flags f
-	//  LEFT JOIN workspace_flag_overrides o
-	//      ON o.flag_id = f.id AND o.workspace_id = ?
+	//  LEFT JOIN flag_overrides o
+	//      ON o.flag_slug = f.slug AND o.workspace_id = ?
 	//  ORDER BY f.slug
 	ListFlags(ctx context.Context, db DBTX, workspaceID string) ([]ListFlagsRow, error)
 	// ListIdentities returns one page of a project's identities with their
@@ -3748,7 +3748,7 @@ type Querier interface {
 	// UpsertWorkspaceFlagOverride makes retries safe and keeps one override per
 	// workspace and flag. The caller validates enrollment permission first.
 	//
-	//  INSERT INTO workspace_flag_overrides (workspace_id, flag_id, value)
+	//  INSERT INTO flag_overrides (workspace_id, flag_slug, value)
 	//  VALUES (?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE value = VALUES(value)
 	UpsertWorkspaceFlagOverride(ctx context.Context, db DBTX, arg UpsertWorkspaceFlagOverrideParams) error

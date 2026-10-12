@@ -11,17 +11,16 @@ import (
 )
 
 const listFlags = `-- name: ListFlags :many
-SELECT f.pk, f.id, f.slug, f.description, f.default_value, f.visible,
+SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
     f.allow_opt_in, f.allow_opt_out, o.value AS override_value
 FROM flags f
-LEFT JOIN workspace_flag_overrides o
-    ON o.flag_id = f.id AND o.workspace_id = ?
+LEFT JOIN flag_overrides o
+    ON o.flag_slug = f.slug AND o.workspace_id = ?
 ORDER BY f.slug
 `
 
 type ListFlagsRow struct {
 	Pk            uint64       `db:"pk"`
-	ID            string       `db:"id"`
 	Slug          string       `db:"slug"`
 	Description   string       `db:"description"`
 	DefaultValue  bool         `db:"default_value"`
@@ -34,11 +33,11 @@ type ListFlagsRow struct {
 // ListFlags includes definitions without overrides. Callers resolve NULL override
 // values to the default, preserving explicit false overrides.
 //
-//	SELECT f.pk, f.id, f.slug, f.description, f.default_value, f.visible,
+//	SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
 //	    f.allow_opt_in, f.allow_opt_out, o.value AS override_value
 //	FROM flags f
-//	LEFT JOIN workspace_flag_overrides o
-//	    ON o.flag_id = f.id AND o.workspace_id = ?
+//	LEFT JOIN flag_overrides o
+//	    ON o.flag_slug = f.slug AND o.workspace_id = ?
 //	ORDER BY f.slug
 func (q *Queries) ListFlags(ctx context.Context, db DBTX, workspaceID string) ([]ListFlagsRow, error) {
 	rows, err := db.QueryContext(ctx, listFlags, workspaceID)
@@ -51,7 +50,6 @@ func (q *Queries) ListFlags(ctx context.Context, db DBTX, workspaceID string) ([
 		var i ListFlagsRow
 		if err := rows.Scan(
 			&i.Pk,
-			&i.ID,
 			&i.Slug,
 			&i.Description,
 			&i.DefaultValue,

@@ -10,21 +10,21 @@ import (
 )
 
 const deleteWorkspaceFlagOverride = `-- name: DeleteWorkspaceFlagOverride :exec
-DELETE FROM workspace_flag_overrides
-WHERE workspace_id = ? AND flag_id = ?
+DELETE FROM flag_overrides
+WHERE workspace_id = ? AND flag_slug = ?
 `
 
 type DeleteWorkspaceFlagOverrideParams struct {
 	WorkspaceID string `db:"workspace_id"`
-	FlagID      string `db:"flag_id"`
+	FlagSlug    string `db:"flag_slug"`
 }
 
 // DeleteWorkspaceFlagOverride restores inheritance for this workspace only.
 // Deleting an absent override is intentionally idempotent.
 //
-//	DELETE FROM workspace_flag_overrides
-//	WHERE workspace_id = ? AND flag_id = ?
+//	DELETE FROM flag_overrides
+//	WHERE workspace_id = ? AND flag_slug = ?
 func (q *Queries) DeleteWorkspaceFlagOverride(ctx context.Context, db DBTX, arg DeleteWorkspaceFlagOverrideParams) error {
-	_, err := db.ExecContext(ctx, deleteWorkspaceFlagOverride, arg.WorkspaceID, arg.FlagID)
+	_, err := db.ExecContext(ctx, deleteWorkspaceFlagOverride, arg.WorkspaceID, arg.FlagSlug)
 	return err
 }

@@ -857,7 +857,6 @@ type Environment struct {
 
 type Flag struct {
 	Pk           uint64 `db:"pk"`
-	ID           string `db:"id"`
 	Slug         string `db:"slug"`
 	Description  string `db:"description"`
 	DefaultValue bool   `db:"default_value"`

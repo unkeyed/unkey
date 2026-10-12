@@ -10,24 +10,24 @@ import (
 )
 
 const upsertWorkspaceFlagOverride = `-- name: UpsertWorkspaceFlagOverride :exec
-INSERT INTO workspace_flag_overrides (workspace_id, flag_id, value)
+INSERT INTO flag_overrides (workspace_id, flag_slug, value)
 VALUES (?, ?, ?)
 ON DUPLICATE KEY UPDATE value = VALUES(value)
 `
 
 type UpsertWorkspaceFlagOverrideParams struct {
 	WorkspaceID string `db:"workspace_id"`
-	FlagID      string `db:"flag_id"`
+	FlagSlug    string `db:"flag_slug"`
 	Value       bool   `db:"value"`
 }
 
 // UpsertWorkspaceFlagOverride makes retries safe and keeps one override per
 // workspace and flag. The caller validates enrollment permission first.
 //
-//	INSERT INTO workspace_flag_overrides (workspace_id, flag_id, value)
+//	INSERT INTO flag_overrides (workspace_id, flag_slug, value)
 //	VALUES (?, ?, ?)
 //	ON DUPLICATE KEY UPDATE value = VALUES(value)
 func (q *Queries) UpsertWorkspaceFlagOverride(ctx context.Context, db DBTX, arg UpsertWorkspaceFlagOverrideParams) error {
-	_, err := db.ExecContext(ctx, upsertWorkspaceFlagOverride, arg.WorkspaceID, arg.FlagID, arg.Value)
+	_, err := db.ExecContext(ctx, upsertWorkspaceFlagOverride, arg.WorkspaceID, arg.FlagSlug, arg.Value)
 	return err
 }
