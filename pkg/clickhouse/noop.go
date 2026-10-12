@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -36,6 +37,16 @@ func (n *noop) GetBillableUsageAboveThreshold(ctx context.Context, year, month i
 
 // GetInstanceMeterUsage implements the Querier interface but always returns an empty slice.
 func (n *noop) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUsageRequest) ([]InstanceMeterUsage, error) {
+	return nil, nil
+}
+
+// GetComputeUsageByEnvironment implements the Querier interface but always returns an empty slice
+func (n *noop) GetComputeUsageByEnvironment(ctx context.Context, workspaceID string, start, end time.Time) ([]ComputeUsageByEnvironment, error) {
+	return nil, nil
+}
+
+// GetActiveKeysByApp implements the Querier interface but always returns an empty slice
+func (n *noop) GetActiveKeysByApp(ctx context.Context, workspaceID string, year, month int) ([]ActiveKeysByApp, error) {
 	return nil, nil
 }
 

@@ -1,0 +1,18 @@
+type: object
+description: Active gateway keys counted for one app in the period.
+required:
+  - gateway
+properties:
+  project:
+    description: The project the app belongs to. Omitted when the app was deleted or `app` is omitted.
+    allOf:
+      - "$ref": "./V2WorkspaceGetUsageResource.yaml"
+  app:
+    description: |
+      The app whose gateway verified the keys. Omitted for keys whose
+      verifications were all recorded before Unkey stored app ids.
+    allOf:
+      - "$ref": "./V2WorkspaceGetUsageResource.yaml"
+  gateway:
+    "$ref": "./V2WorkspaceGetUsageGateway.yaml"
+additionalProperties: false

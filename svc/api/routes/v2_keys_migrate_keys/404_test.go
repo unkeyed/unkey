@@ -66,7 +66,7 @@ func TestMigrateKeysNotFound(t *testing.T) {
 
 	t.Run("api with valid format but invalid id", func(t *testing.T) {
 		// Create a syntactically valid but non-existent API ID
-		fakeApiID := "api_1234567890abcdef"
+		fakeApiID := uid.New(uid.APIPrefix)
 		req := handler.Request{
 			ApiId:       fakeApiID,
 			MigrationId: "unkeyed",

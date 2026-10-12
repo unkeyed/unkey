@@ -145,9 +145,10 @@ export const deployments = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    index("workspace_idx").on(table.workspaceId),
-    index("project_idx").on(table.projectId),
+    index("workspace_created_at_idx").on(table.workspaceId, table.createdAt),
+    index("project_created_at_idx").on(table.projectId, table.createdAt),
     index("status_idx").on(table.status),
+    index("app_created_at_idx").on(table.appId, table.createdAt),
   ],
 );
 

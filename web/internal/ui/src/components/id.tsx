@@ -1,5 +1,5 @@
 "use client";
-import { IconClipboardCheckOutline18, IconClipboardOutline18 } from "@unkey/icons";
+import { IconCheckOutline18, IconCloneOutline18 } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { InfoTooltip } from "./info-tooltip";
@@ -58,9 +58,9 @@ export const Id: React.FC<IdProps> = ({ className, value, truncate, ...props }) 
       <InfoTooltip position={{ side: "bottom" }} content={value}>
         <div className=" flex justify-end border w-full border-none h-full bg-gray-1">
           {isCopied ? (
-            <IconClipboardCheckOutline18 className="my-auto mr-2 bg-gray-1" />
+            <IconCheckOutline18 className="my-auto mr-2 bg-gray-1" />
           ) : (
-            <IconClipboardOutline18 className="my-auto mr-2 bg-gray-1" />
+            <IconCloneOutline18 className="my-auto mr-2 bg-gray-1" />
           )}
         </div>
       </InfoTooltip>
