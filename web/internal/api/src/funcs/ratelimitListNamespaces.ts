@@ -61,7 +61,6 @@ export function ratelimitListNamespaces(
       operations.RatelimitListNamespacesResponse,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
-      | errors.ForbiddenErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | UnkeyError
@@ -94,7 +93,6 @@ async function $do(
         operations.RatelimitListNamespacesResponse,
         | errors.BadRequestErrorResponse
         | errors.UnauthorizedErrorResponse
-        | errors.ForbiddenErrorResponse
         | errors.TooManyRequestsErrorResponse
         | errors.InternalServerErrorResponse
         | UnkeyError
@@ -196,7 +194,6 @@ async function $do(
     operations.RatelimitListNamespacesResponse,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
-    | errors.ForbiddenErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -213,7 +210,6 @@ async function $do(
     }),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
-    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema),
     M.jsonErr(500, errors.InternalServerErrorResponse$inboundSchema),
     M.fail("4XX"),
@@ -235,7 +231,6 @@ async function $do(
         operations.RatelimitListNamespacesResponse,
         | errors.BadRequestErrorResponse
         | errors.UnauthorizedErrorResponse
-        | errors.ForbiddenErrorResponse
         | errors.TooManyRequestsErrorResponse
         | errors.InternalServerErrorResponse
         | UnkeyError

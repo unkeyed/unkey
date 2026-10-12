@@ -18088,23 +18088,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
-                "403":
-                    content:
-                        application/json:
-                            examples:
-                                missingPermission:
-                                    summary: No namespace read permission
-                                    value:
-                                        error:
-                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:projects/*/ratelimits/namespaces/*#read'''
-                                            status: 403
-                                            title: Insufficient Permissions
-                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
-                                        meta:
-                                            requestId: req_1234abcd
-                            schema:
-                                $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires a namespace `#read` grant)
                 "429":
                     content:
                         application/json:

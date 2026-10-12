@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"net/http"
@@ -18,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -48,23 +46,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
-	}
-
-	defaultProjectID, _, err := projects.FindDefaultProject(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
-	if err != nil {
-		return err
-	}
-	defaultProjectNamespaces := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(cmp.Or(defaultProjectID, "*")).RatelimitNamespace("*")
-	defaultProjectNamespacesURN, err := urn.ParseV1(defaultProjectNamespaces.String())
-	if err != nil {
-		return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Internal("invalid namespace collection resource"), fault.Public("Failed to retrieve namespaces."))
-	}
-	if !rbac.HasPermissionIn(defaultProjectNamespacesURN, permissions.Read, principal.Permissions) {
-		// The denial names projects/* so the error does not reveal the default project ID.
-		err = principal.Authorize(rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Project("*").RatelimitNamespace("*"), permissions.Read))
-		if err != nil {
-			return err
-		}
 	}
 
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
