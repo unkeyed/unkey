@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -64,7 +65,7 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 	}, handler.Request{
 		Key: key.Key, Credits: &openapi.KeysVerifyKeyCredits{Cost: 2},
 		Keyspaces: new([]string{
-			otherAPI.KeyAuthID.String, "ks_second", "ks_third", strings.Repeat("x", 100), api.KeyAuthID.String,
+			otherAPI.KeyAuthID.String, uid.New(uid.KeySpacePrefix), uid.New(uid.KeySpacePrefix), strings.Repeat("x", 100), api.KeyAuthID.String,
 		}),
 	})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
@@ -90,6 +91,9 @@ func TestVerifyKey_KeyspaceAllowlistHidesInvalidKeys(t *testing.T) {
 		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
 	}
 
+	privateMeta, err := json.Marshal(map[string]string{"private": "metadata"})
+	require.NoError(t, err)
+
 	for _, state := range []struct {
 		name     string
 		disabled bool
@@ -103,7 +107,7 @@ func TestVerifyKey_KeyspaceAllowlistHidesInvalidKeys(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID, KeySpaceID: api.KeyAuthID.String,
 				Disabled: state.disabled, Expires: state.expires,
-				Name: new("private key"), Meta: new(`{"private":"metadata"}`), Remaining: new(int64(7)),
+				Name: new("private key"), Meta: new(string(privateMeta)), Remaining: new(int64(7)),
 			})
 			for _, tt := range []struct {
 				name      string

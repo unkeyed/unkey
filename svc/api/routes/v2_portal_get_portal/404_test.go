@@ -8,6 +8,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -29,10 +30,11 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 	other := h.CreateWorkspace()
 	otherKeyspace := keyspaceMapping(t, h, other.ID)
 	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
+	missingPortalID := uid.New(uid.PortalPrefix)
 	route, headers := newRoute(t, h,
 		rbac.U(urn.New().Workspace(workspace.ID).Project(visible.ProjectID).Portal(visible.ID), permissions.Read).Value,
 		rbac.U(urn.New().Workspace(workspace.ID).Project(otherPortal.ProjectID).Portal(otherPortal.ID), permissions.Read).Value,
-		rbac.U(urn.New().Workspace(workspace.ID).Project("*").Portal("pc_doesnotexist"), permissions.Read).Value)
+		rbac.U(urn.New().Workspace(workspace.ID).Project("*").Portal(missingPortalID), permissions.Read).Value)
 	ok := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Portal:     new(visible.ID),
 		KeyspaceId: nil,
@@ -44,11 +46,11 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 	unmappedKeyspace := keyspaceMapping(t, h, workspace.ID)
 	unmappedApp := appMapping(t, h, workspace.ID, "unmapped")
 
-	unknownKeyspace := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: "ks_doesnotexist"}
-	unknownApp := portal.Mapping{Type: portal.MappingTypeApp, ID: "app_doesnotexist"}
+	unknownKeyspace := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)}
+	unknownApp := portal.Mapping{Type: portal.MappingTypeApp, ID: uid.New(uid.AppPrefix)}
 
 	testCases := map[string]handler.Request{
-		"unknown id":                    {Portal: new("pc_doesnotexist"), KeyspaceId: nil, AppId: nil},
+		"unknown id":                    {Portal: new(missingPortalID), KeyspaceId: nil, AppId: nil},
 		"unknown slug":                  {Portal: new("no-such-portal"), KeyspaceId: nil, AppId: nil},
 		"portal in another workspace":   {Portal: new(otherPortal.ID), KeyspaceId: nil, AppId: nil},
 		"slug in another workspace":     {Portal: new(otherPortal.Slug), KeyspaceId: nil, AppId: nil},
@@ -98,9 +100,10 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
 
-	allowedKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Portal("pc_doesnotexist"), permissions.Read).Value)
+	missingPortalID := uid.New(uid.PortalPrefix)
+	allowedKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Portal(missingPortalID), permissions.Read).Value)
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey), handler.Request{
-		Portal:     new("pc_doesnotexist"),
+		Portal:     new(missingPortalID),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})

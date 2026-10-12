@@ -59,6 +59,7 @@ type testHarness struct {
 	engine             *testEngine
 	clk                clock.Clock
 	verificationEvents <-chan schema.KeyVerification
+	workspaceID        string
 }
 
 func newTestHarness(t *testing.T) *testHarness {
@@ -175,6 +176,7 @@ func newTestHarness(t *testing.T) *testHarness {
 		engine:             &testEngine{Engine: eng},
 		clk:                clk,
 		verificationEvents: verificationEvents,
+		workspaceID:        uid.New(uid.WorkspacePrefix),
 	}
 }
 
@@ -426,7 +428,7 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 	require.NotNil(t, result.Principal)
 	select {
@@ -476,7 +478,7 @@ func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 	require.NotNil(t, result.Principal)
 
@@ -618,7 +620,7 @@ func TestKeyAuth_MissingKey_Reject(t *testing.T) {
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing API key")
 }
@@ -643,7 +645,7 @@ func TestKeyAuth_InvalidKey_NotFound(t *testing.T) {
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.Error(t, err)
 }
 
@@ -667,7 +669,7 @@ func TestKeyAuth_InvalidKey_Disabled(t *testing.T) {
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.Error(t, err)
 	select {
 	case verification := <-h.verificationEvents:
@@ -754,7 +756,7 @@ func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
 			},
 		}
 
-		result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+		result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 		require.NoError(t, err)
 		require.NotNil(t, result.Principal)
 		require.Equal(t, s1.KeyID, result.Principal.Subject)
@@ -775,7 +777,7 @@ func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
 			},
 		}
 
-		result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+		result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 		require.NoError(t, err)
 		require.NotNil(t, result.Principal)
 		require.Equal(t, s2.KeyID, result.Principal.Subject)
@@ -798,7 +800,7 @@ func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
 			},
 		}
 
-		_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+		_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 		require.Error(t, err)
 		code, ok := fault.GetCode(err)
 		require.True(t, ok)
@@ -827,7 +829,7 @@ func TestEvaluate_DisabledPoliciesSkipped(t *testing.T) {
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 	require.Nil(t, result.Principal)
 }
@@ -857,7 +859,7 @@ func TestEvaluate_MatchFiltering(t *testing.T) {
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 	require.Nil(t, result.Principal)
 }
@@ -1033,14 +1035,14 @@ func TestRateLimit_RemoteIP(t *testing.T) {
 	for range 2 {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		sess, w := newSessionWithRecorder(t, req)
-		_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+		_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 		require.NoError(t, err)
 		require.Equal(t, "2", w.Header().Get("X-RateLimit-Limit"))
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	sess, w := newSessionWithRecorder(t, req)
-	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "rate limited")
 	require.NotEmpty(t, w.Header().Get("Retry-After"))
@@ -1065,7 +1067,7 @@ func TestRateLimit_AuthenticatedSubject(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.Header.Set("Authorization", "Bearer "+s1.RawKey)
 		sess, w := newSessionWithRecorder(t, req)
-		result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+		result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 		require.NoError(t, err)
 		require.NotNil(t, result.Principal)
 		require.Equal(t, "1", w.Header().Get("X-RateLimit-Limit"))
@@ -1076,7 +1078,7 @@ func TestRateLimit_AuthenticatedSubject(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.Header.Set("Authorization", "Bearer "+s1.RawKey)
 		sess, _ := newSessionWithRecorder(t, req)
-		_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+		_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "rate limited")
 	})
@@ -1085,7 +1087,7 @@ func TestRateLimit_AuthenticatedSubject(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.Header.Set("Authorization", "Bearer "+s2.RawKey)
 		sess, _ := newSessionWithRecorder(t, req)
-		result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+		result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 		require.NoError(t, err)
 		require.NotNil(t, result.Principal)
 	})
@@ -1112,7 +1114,7 @@ func TestRateLimit_PrincipalField(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.Header.Set("Authorization", "Bearer "+s1.RawKey)
 		sess, w := newSessionWithRecorder(t, req)
-		result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+		result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 		require.NoError(t, err)
 		require.NotNil(t, result.Principal)
 		require.Equal(t, "1", w.Header().Get("X-RateLimit-Limit"))
@@ -1122,7 +1124,7 @@ func TestRateLimit_PrincipalField(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.Header.Set("Authorization", "Bearer "+s1.RawKey)
 		sess, _ := newSessionWithRecorder(t, req)
-		_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+		_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "rate limited")
 	})
@@ -1131,7 +1133,7 @@ func TestRateLimit_PrincipalField(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.Header.Set("Authorization", "Bearer "+s2.RawKey)
 		sess, _ := newSessionWithRecorder(t, req)
-		result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+		result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 		require.NoError(t, err)
 		require.NotNil(t, result.Principal)
 	})
@@ -1153,7 +1155,7 @@ func TestRateLimit_NoPrincipal(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	sess, _ := newSessionWithRecorder(t, req)
-	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing rate limit identifier")
 }
@@ -1183,7 +1185,7 @@ func TestFirewall_DenyByPath(t *testing.T) {
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.Error(t, err)
 	urn, ok := fault.GetCode(err)
 	require.True(t, ok)
@@ -1212,7 +1214,7 @@ func TestFirewall_DenyByPath_NonMatchPasses(t *testing.T) {
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 }
 
@@ -1241,7 +1243,7 @@ func TestLogging_EnabledMatchingPolicySetsCaptureFlags(t *testing.T) {
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 	require.True(t, result.LogRequestHeaders)
 	require.True(t, result.LogResponseHeaders)
@@ -1267,7 +1269,7 @@ func TestLogging_CaptureFlagsAreIndependent(t *testing.T) {
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 	require.False(t, result.LogRequestHeaders)
 	require.False(t, result.LogResponseHeaders)
@@ -1295,7 +1297,7 @@ func TestLogging_NoMatchConditionsCapturesEveryRequest(t *testing.T) {
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 	require.True(t, result.LogRequestHeaders)
 	require.True(t, result.LogResponseHeaders)
@@ -1327,7 +1329,7 @@ func TestLogging_MultipleMatchingPoliciesUnionFlags(t *testing.T) {
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 	require.True(t, result.LogRequestHeaders)
 	require.False(t, result.LogResponseHeaders)
@@ -1356,7 +1358,7 @@ func TestLogging_NonMatchingPolicyLeavesCaptureOff(t *testing.T) {
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 	require.False(t, result.LogRequestHeaders)
 	require.False(t, result.LogResponseHeaders)
@@ -1380,7 +1382,7 @@ func TestLogging_DisabledPolicyLeavesCaptureOff(t *testing.T) {
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.NoError(t, err)
 	require.False(t, result.LogRequestHeaders)
 	require.False(t, result.LogResponseHeaders)
@@ -1422,7 +1424,7 @@ func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	_, err := h.engine.Evaluate(ctx, sess, req, h.workspaceID, policies)
 	require.Error(t, err)
 	urn, ok := fault.GetCode(err)
 	require.True(t, ok)

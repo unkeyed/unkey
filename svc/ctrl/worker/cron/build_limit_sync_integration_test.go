@@ -18,7 +18,7 @@ import (
 // handler writes unconditionally and relies on Restate leaving an identical
 // write alone.
 func TestRunBuildLimitSync_Integration(t *testing.T) {
-	h := harness.New(t)
+	h := harness.New(t, harness.WithIsolatedMySQL())
 	admin := restateadmin.New(restateadmin.Config{BaseURL: h.RestateAdmin, APIKey: ""})
 	client := hydrav1.NewCronServiceIngressClient(h.Restate, "build-limit-sync")
 

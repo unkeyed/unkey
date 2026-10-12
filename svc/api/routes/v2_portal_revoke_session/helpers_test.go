@@ -2,13 +2,16 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
@@ -46,6 +49,19 @@ func seedPortal(t *testing.T, h *testutil.Harness, workspaceID, slug string) (db
 
 	mapping, _ := h.SeedKeyspaceMapping(t, workspaceID)
 	return h.SeedPortal(t, workspaceID, slug, slug, mapping, nil, nil), mapping
+}
+
+// sessionByCookie reads the session row behind headers returned by
+// [testutil.Harness.CreatePortalSessionForPortal].
+func sessionByCookie(t *testing.T, h *testutil.Harness, headers http.Header) db.PortalSession {
+	t.Helper()
+
+	accessToken, ok := strings.CutPrefix(headers.Get("Cookie"), "portal_session=")
+	require.True(t, ok, "the headers must carry a portal_session cookie")
+	session, err := db.Query.FindPortalSessionByAccessTokenHash(context.Background(), h.DB.RW(),
+		sql.NullString{String: hash.Sha256(accessToken), Valid: true})
+	require.NoError(t, err)
+	return session
 }
 
 // revokeAuditMetas returns the portal target's meta from every
