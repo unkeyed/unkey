@@ -23,8 +23,8 @@ it("loads the session workspace and scoped flags with one regular joined query",
   expect(call?.[1]).toEqual(["org_owned"]);
   const sql = call?.[0].sql;
   expect(sql).toContain("left join `flags` on true");
-  expect(sql).toContain("`workspace_flag_overrides`.`workspace_id` = `workspaces`.`id`");
-  expect(sql).toContain("`workspace_flag_overrides`.`flag_id` = `flags`.`id`");
+  expect(sql).toContain("`flag_overrides`.`workspace_id` = `workspaces`.`id`");
+  expect(sql).toContain("`flag_overrides`.`flag_slug` = `flags`.`slug`");
   expect(sql).toContain("`workspaces`.`org_id` = ?");
   expect(sql).toContain("`workspaces`.`deleted_at_m` is null");
   expect(sql).not.toContain("JSON_OBJECTAGG");
