@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_get_identity"
@@ -20,7 +21,7 @@ func TestUnauthorized(t *testing.T) {
 
 	t.Run("invalid root key", func(t *testing.T) {
 		req := handler.Request{
-			Identity: "identity_123",
+			Identity: uid.New(uid.IdentityPrefix),
 		}
 
 		// Non-existent key

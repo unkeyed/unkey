@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestS3_StartupAssumesBucketExists(t *testing.T) {
@@ -292,8 +293,8 @@ func TestS3_KeyringPattern(t *testing.T) {
 	store := newTestS3Storage(t)
 	ctx := context.Background()
 
-	keyring := "workspace_abc123"
-	dekID := "dek_xyz789"
+	keyring := uid.New(uid.WorkspacePrefix)
+	dekID := uid.New(uid.TestPrefix)
 
 	// Store DEK
 	dekKey := fmt.Sprintf("keyring/%s/%s", keyring, dekID)

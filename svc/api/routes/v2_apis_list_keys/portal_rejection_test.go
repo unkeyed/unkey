@@ -64,13 +64,13 @@ func setupPortalSessionTest(t *testing.T, h *testutil.Harness) portalSessionSetu
 	})
 	require.NoError(t, err)
 
-	identity1ExternalID := "portal_user_A"
+	identity1ExternalID := uid.New(uid.TestPrefix)
 	identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ExternalID:  identity1ExternalID,
 	})
 
-	identity2ExternalID := "portal_user_B"
+	identity2ExternalID := uid.New(uid.TestPrefix)
 	identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ExternalID:  identity2ExternalID,

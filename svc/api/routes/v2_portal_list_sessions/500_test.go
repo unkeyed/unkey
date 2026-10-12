@@ -20,7 +20,7 @@ func TestListSessionsFailsOnMalformedScopes(t *testing.T) {
 	stored := seedPortal(t, h, workspace.ID, "list-malformed-scopes")
 
 	malformed := active(h, "user_1")
-	malformed.scopes = `["keys:read"]`
+	malformed.rawScopes = []byte(`["keys:read"]`)
 	insertSession(t, h, stored.ID, workspace.ID, malformed)
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, headers, request(stored.ID))

@@ -89,7 +89,7 @@ func TestSetRolePermissions(t *testing.T) {
 
 	t.Run("unknown and foreign roles are not found", func(t *testing.T) {
 		otherWorkspace := h.CreateWorkspace()
-		for _, roleID := range []string{"role_missing", h.CreateRole(seed.CreateRoleRequest{WorkspaceID: otherWorkspace.ID, Name: "foreign-role"}).ID} {
+		for _, roleID := range []string{uid.New(uid.RolePrefix), h.CreateRole(seed.CreateRoleRequest{WorkspaceID: otherWorkspace.ID, Name: "foreign-role"}).ID} {
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, roleRequest(roleID, []string{}))
 			require.Equal(t, http.StatusNotFound, res.Status, res.RawBody)
 		}
@@ -153,7 +153,7 @@ func TestSetRolePermissions(t *testing.T) {
 	})
 
 	t.Run("unauthenticated", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer invalid"}}, roleRequest("role_missing", []string{}))
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer invalid"}}, roleRequest(uid.New(uid.RolePrefix), []string{}))
 		require.Equal(t, http.StatusUnauthorized, res.Status, res.RawBody)
 	})
 }
