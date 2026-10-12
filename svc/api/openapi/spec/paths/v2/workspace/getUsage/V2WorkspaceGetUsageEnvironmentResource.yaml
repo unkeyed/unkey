@@ -1,0 +1,14 @@
+type: object
+description: An environment. `slug` is omitted when the environment was deleted.
+required:
+  - id
+properties:
+  id:
+    type: string
+    description: The environment id.
+    example: env_1234abcd
+  slug:
+    type: string
+    description: The environment slug.
+    example: production
+additionalProperties: false

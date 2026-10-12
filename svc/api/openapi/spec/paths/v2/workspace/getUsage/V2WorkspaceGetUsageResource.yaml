@@ -1,0 +1,14 @@
+type: object
+description: A project or app. `name` is omitted when the resource was deleted.
+required:
+  - id
+properties:
+  id:
+    type: string
+    description: The resource id.
+    example: proj_1234abcd
+  name:
+    type: string
+    description: The resource name.
+    example: Payments
+additionalProperties: false

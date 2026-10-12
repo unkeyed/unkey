@@ -45,8 +45,10 @@ func TestDeliverRuntimeLog(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(server.Close)
+	attributes, err := json.Marshal(map[string]any{"order": map[string]any{"id": 42}})
+	require.NoError(t, err)
 	batch := testBatch()
-	batch.Events = []sink.Event{{EventID: "rlog_1", Stream: "runtime_logs", Time: 123, Payload: sink.RuntimeLogPayload{LogID: "rlog_1", Severity: "error", Message: "first\nsecond", Attributes: json.RawMessage(`{"order":{"id":42}}`), ProjectID: "project", AppID: "app", EnvironmentID: "env", DeploymentID: "deployment", Region: "local"}}}
+	batch.Events = []sink.Event{{EventID: "rlog_1", Stream: "runtime_logs", Time: 123, Payload: sink.RuntimeLogPayload{LogID: "rlog_1", Severity: "error", Message: "first\nsecond", Attributes: attributes, ProjectID: "project", AppID: "app", EnvironmentID: "env", DeploymentID: "deployment", Region: "local"}}}
 	result, err := newTestDrain(t, server.URL, "runtime", "token").Deliver(t.Context(), batch)
 	require.NoError(t, err)
 	require.True(t, result.Acknowledged)
@@ -108,7 +110,9 @@ func TestDeliverSuccess(t *testing.T) {
 		require.NotContains(t, verification, "event")
 		require.NotContains(t, verification, "timestamp")
 		require.False(t, scanner.Scan())
-		_, err := w.Write([]byte(`{"ingested":2,"failed":0}`))
+		ingestion, err := json.Marshal(map[string]int{"ingested": 2, "failed": 0})
+		require.NoError(t, err)
+		_, err = w.Write(ingestion)
 		require.NoError(t, err)
 	}))
 	t.Cleanup(server.Close)
@@ -127,12 +131,14 @@ func TestDeliverSuccess(t *testing.T) {
 // TestRejectedResponses guarantees that HTTP rejections and partial ingestion
 // return structured, unacknowledged results.
 func TestRejectedResponses(t *testing.T) {
+	reportedFailure, err := json.Marshal(map[string]int{"failed": 1})
+	require.NoError(t, err)
 	tests := []struct {
 		name   string
 		status int
 		body   string
 	}{
-		{name: "reported failure", status: http.StatusOK, body: `{"failed":1}`},
+		{name: "reported failure", status: http.StatusOK, body: string(reportedFailure)},
 		{name: "bad request", status: http.StatusBadRequest},
 		{name: "server error", status: http.StatusInternalServerError},
 		{name: "rate limited", status: http.StatusTooManyRequests},

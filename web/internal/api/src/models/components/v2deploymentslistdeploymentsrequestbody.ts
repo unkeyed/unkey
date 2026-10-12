@@ -44,6 +44,29 @@ export type V2DeploymentsListDeploymentsRequestBody = {
    */
   status?: Array<DeploymentStatus> | undefined;
   /**
+   * Restrict results to deployments built from any of the given git branches.
+   *
+   * @remarks
+   * Requires `project` and `app` to also be set. Omit or pass an empty list to
+   * return deployments from every branch.
+   */
+  branch?: Array<string> | undefined;
+  /**
+   * Return only deployments created at or after this unix timestamp in
+   *
+   * @remarks
+   * milliseconds (inclusive).
+   */
+  startTime?: number | undefined;
+  /**
+   * Return only deployments created before this unix timestamp in
+   *
+   * @remarks
+   * milliseconds (exclusive). Must be later than `startTime` when both are
+   * set.
+   */
+  endTime?: number | undefined;
+  /**
    * Maximum number of deployments to return per request.
    *
    * @remarks
@@ -65,6 +88,9 @@ export type V2DeploymentsListDeploymentsRequestBody$Outbound = {
   app?: string | undefined;
   environment?: string | undefined;
   status?: Array<string> | undefined;
+  branch?: Array<string> | undefined;
+  startTime?: number | undefined;
+  endTime?: number | undefined;
   limit: number;
   cursor?: string | undefined;
 };
@@ -79,6 +105,9 @@ export const V2DeploymentsListDeploymentsRequestBody$outboundSchema: z.ZodType<
   app: z.string().optional(),
   environment: z.string().optional(),
   status: z.array(DeploymentStatus$outboundSchema).optional(),
+  branch: z.array(z.string()).optional(),
+  startTime: z.number().int().optional(),
+  endTime: z.number().int().optional(),
   limit: z.number().int().default(100),
   cursor: z.string().optional(),
 });

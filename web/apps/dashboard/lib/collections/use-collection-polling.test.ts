@@ -40,6 +40,28 @@ describe("useCollectionPolling", () => {
     hidden.mockRestore();
   });
 
+  it("refetches on tab return only when the last refetch is at least 5s old", () => {
+    const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+    const refetch = vi.fn();
+    renderHook(() => useCollectionPolling(refetch, { intervalMs: 60_000, enabled: true }));
+
+    vi.advanceTimersByTime(60_000);
+    expect(refetch).toHaveBeenCalledTimes(1);
+
+    hidden.mockReturnValue(true);
+    vi.advanceTimersByTime(2000);
+    hidden.mockReturnValue(false);
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(refetch).toHaveBeenCalledTimes(1);
+
+    hidden.mockReturnValue(true);
+    vi.advanceTimersByTime(4000);
+    hidden.mockReturnValue(false);
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(refetch).toHaveBeenCalledTimes(2);
+    hidden.mockRestore();
+  });
+
   it("stops polling when disabled", () => {
     const refetch = vi.fn();
     const { rerender } = renderHook(

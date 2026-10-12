@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	github "github.com/unkeyed/unkey/pkg/github"
 )
 
@@ -36,10 +37,9 @@ func (f FakeGitHub) GetInstallationRepo(_ int64, _ string) (*github.RepoInfo, er
 // it directly to make an installation resolvable.
 func (h *Harness) SeedGitHubInstallation(t *testing.T, workspaceID string, installationID int64) {
 	t.Helper()
-	_, err := h.DB.RW().ExecContext(
-		context.Background(),
-		"INSERT INTO github_app_installations (workspace_id, installation_id, created_at) VALUES (?, ?, ?)",
-		workspaceID, installationID, time.Now().UnixMilli(),
-	)
-	require.NoError(t, err)
+	require.NoError(t, db.Query.InsertGithubAppInstallation(context.Background(), h.DB.RW(), db.InsertGithubAppInstallationParams{
+		WorkspaceID:    workspaceID,
+		InstallationID: installationID,
+		CreatedAt:      time.Now().UnixMilli(),
+	}))
 }

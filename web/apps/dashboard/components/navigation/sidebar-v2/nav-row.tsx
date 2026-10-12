@@ -40,6 +40,8 @@ export function NavRow({ link }: { link: ResolvedNavLink }) {
         tooltip={tooltip}
         isActive={link.isActive}
         className={getButtonStyles(link.isActive)}
+        onMouseEnter={link.onIntent}
+        onFocus={link.onIntent}
         render={
           <Link href={link.href as Route} {...linkProps}>
             {contents}
