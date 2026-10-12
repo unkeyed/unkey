@@ -19,8 +19,14 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/internal/podstatus"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	appslisters "k8s.io/client-go/listers/apps/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
+	toolscache "k8s.io/client-go/tools/cache"
 )
 
 // Controller manages workload Deployments in a Kubernetes cluster by maintaining
@@ -29,10 +35,16 @@ import (
 // The controller receives desired state from the unified WatchDeploymentChanges stream
 // (dispatched by the watcher) and reports actual state via ReportDeploymentStatus.
 //
-// Create a Controller with [New] and run it with [Controller.Run]. The controller
-// runs until the context is cancelled.
+// Create a Controller with [New], start its caches with [Controller.StartCaches]
+// and run it with [Controller.Run]. The controller runs until the context is
+// cancelled.
 type Controller struct {
 	clientSet        kubernetes.Interface
+	informers        informers.SharedInformerFactory
+	deployments      appslisters.DeploymentLister
+	replicaSets      appslisters.ReplicaSetLister
+	pods             corelisters.PodLister
+	podInformer      toolscache.SharedIndexInformer
 	dynamicClient    dynamic.Interface
 	cluster          ctrl.ClusterServiceClient
 	vault            vault.VaultServiceClient
@@ -145,8 +157,23 @@ func New(cfg Config) *Controller {
 		pullSecrets = []corev1.LocalObjectReference{{Name: registryPullSecretName}}
 	}
 
+	factory := informers.NewSharedInformerFactoryWithOptions(cfg.ClientSet, 0,
+		informers.WithTweakListOptions(func(opts *metav1.ListOptions) {
+			opts.LabelSelector = managedWorkloadSelector()
+		}),
+		informers.WithTransform(stripManagedFields),
+	)
+	deployments := factory.Apps().V1().Deployments()
+	replicaSets := factory.Apps().V1().ReplicaSets()
+	pods := factory.Core().V1().Pods()
+
 	return &Controller{
 		clientSet:        cfg.ClientSet,
+		informers:        factory,
+		deployments:      deployments.Lister(),
+		replicaSets:      replicaSets.Lister(),
+		pods:             pods.Lister(),
+		podInformer:      pods.Informer(),
 		dynamicClient:    cfg.DynamicClient,
 		cluster:          cfg.Cluster,
 		vault:            cfg.Vault,
@@ -167,14 +194,38 @@ func New(cfg Config) *Controller {
 	}
 }
 
-// Run runs the background control loops until ctx is cancelled.
+// StartCaches starts the informers for krane-managed Deployments, ReplicaSets
+// and pods and blocks until their caches are synced. The informers run until
+// ctx is cancelled. Call it once, before [Controller.Run] or
+// [Controller.ApplyDeployment], because both read from the caches.
+func (c *Controller) StartCaches(ctx context.Context) error {
+	c.informers.Start(ctx.Done())
+	for informerType, synced := range c.informers.WaitForCacheSync(ctx.Done()) {
+		if !synced {
+			return fmt.Errorf("informer cache for %v did not sync", informerType)
+		}
+	}
+
+	return nil
+}
+
+func stripManagedFields(obj any) (any, error) {
+	if accessor, err := meta.Accessor(obj); err == nil {
+		accessor.SetManagedFields(nil)
+	}
+
+	return obj, nil
+}
+
+// Run runs the background control loops until ctx is cancelled. The caches
+// must be started with [Controller.StartCaches] first.
 //
 // Four independent loops run concurrently:
 //   - [Controller.runActualStateResyncLoop]: periodic safety net for instance
-//     state reporting (complements the real-time pod watch).
+//     state reporting (complements the real-time pod events).
 //   - [Controller.runDesiredStateResyncLoop]: periodic reconciliation of desired
 //     state from the control plane (complements the streaming channel).
-//   - [Controller.runPodWatchLoop]: real-time Kubernetes watch for pod events.
+//   - [Controller.runPodEventHandler]: reports status on pod informer events.
 //   - [Controller.runRolloutGateLoop]: admits template rollouts up to the
 //     concurrency limit.
 //
@@ -186,7 +237,7 @@ func (c *Controller) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 	wg.Go(func() { c.runActualStateResyncLoop(ctx) })
 	wg.Go(func() { c.runDesiredStateResyncLoop(ctx) })
-	wg.Go(func() { c.runPodWatchLoop(ctx) })
+	wg.Go(func() { c.runPodEventHandler(ctx) })
 	wg.Go(func() { c.runRolloutGateLoop(ctx) })
 
 	wg.Wait()

@@ -2,124 +2,83 @@ package deployment
 
 import (
 	"context"
-	"math/rand/v2"
+	"fmt"
 	"strings"
-	"time"
 
 	"github.com/unkeyed/unkey/pkg/conc"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/internal/podstatus"
-	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
+	toolscache "k8s.io/client-go/tools/cache"
 )
 
-// runPodWatchLoop watches deployment pods and reports actual state changes back
-// to the control plane in real-time.
-//
-// The watch filters for pods with "managed-by: krane" and "component: deployment"
-// labels. On any pod event it finds the owning workload, rebuilds the full
-// deployment status, and reports it (deduplicated via fingerprinting).
-//
-// Events are processed concurrently (up to [maxPodWatchConcurrency]) so that a
-// slow RPC for one ReplicaSet does not block reporting for others.
-func (c *Controller) runPodWatchLoop(ctx context.Context) {
-	for ctx.Err() == nil {
-		w, err := c.watchPods(ctx)
-		if err != nil {
-			if ctx.Err() != nil {
-				return
-			}
+type podEvent struct {
+	pod       *corev1.Pod
+	eventType watch.EventType
+}
 
-			metrics.PodWatchReconnectsTotal.WithLabelValues("deployment", "error").Inc()
-			logger.Error("pod watch: unable to establish watch", "error", err.Error())
-
-			if !waitPodWatchBackoff(ctx) {
-				return
-			}
-			continue
+// runPodEventHandler reports actual state changes back to the control plane in
+// real time until ctx is cancelled.
+//
+// On every krane-managed pod event it finds the owning workload, rebuilds the
+// full deployment status, and reports it (deduplicated via fingerprinting).
+// Registering the handler replays every cached pod as an add event, so a new
+// leader reports the current state of all workloads.
+//
+// Events are processed concurrently (up to [conc.DefaultConcurrency]) so that
+// a slow RPC for one workload does not block reporting for others.
+func (c *Controller) runPodEventHandler(ctx context.Context) {
+	events := make(chan podEvent)
+	send := func(obj any, eventType watch.EventType) {
+		if tombstone, ok := obj.(toolscache.DeletedFinalStateUnknown); ok {
+			obj = tombstone.Obj
 		}
-
-		c.drainPodWatch(ctx, w)
-		if ctx.Err() != nil {
+		pod, ok := obj.(*corev1.Pod)
+		if !ok {
+			logger.Error("pod informer: unexpected object", "type", fmt.Sprintf("%T", obj))
 			return
 		}
 
-		metrics.PodWatchReconnectsTotal.WithLabelValues("deployment", "channel_closed").Inc()
-		logger.Warn("pod watch: disconnected, reconnecting")
-		if !waitPodWatchBackoff(ctx) {
-			return
+		select {
+		case events <- podEvent{pod: pod, eventType: eventType}:
+		case <-ctx.Done():
 		}
 	}
-}
 
-func waitPodWatchBackoff(ctx context.Context) bool {
-	backoff := time.Second + time.Millisecond*time.Duration(rand.Float64()*4000)
-	timer := time.NewTimer(backoff)
-	defer timer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return false
-	case <-timer.C:
-		return true
-	}
-}
-
-// watchPods creates a new Kubernetes watch for krane-managed deployment pods.
-func (c *Controller) watchPods(ctx context.Context) (watch.Interface, error) {
-	return c.clientSet.CoreV1().Pods("").Watch(ctx, metav1.ListOptions{
-		LabelSelector: labels.New().
-			ManagedByKrane().
-			ComponentDeployment().
-			ToString(),
+	registration, err := c.podInformer.AddEventHandler(toolscache.ResourceEventHandlerFuncs{
+		AddFunc:    func(obj any) { send(obj, watch.Added) },
+		UpdateFunc: func(_, obj any) { send(obj, watch.Modified) },
+		DeleteFunc: func(obj any) { send(obj, watch.Deleted) },
 	})
-}
-
-// drainPodWatch processes events from a pod watch until the channel closes.
-// Events are handled concurrently with bounded parallelism so that a slow
-// control plane RPC for one ReplicaSet does not delay reporting for others.
-func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
-	sem := conc.NewSem(conc.DefaultConcurrency)
+	if err != nil {
+		logger.Error("pod informer: unable to register event handler", "error", err.Error())
+		return
+	}
 	defer func() {
-		w.Stop()
-		sem.Wait()
+		if err := c.podInformer.RemoveEventHandler(registration); err != nil {
+			logger.Error("pod informer: unable to remove event handler", "error", err.Error())
+		}
 	}()
 
+	sem := conc.NewSem(conc.DefaultConcurrency)
+	defer sem.Wait()
+
 	for {
-		var event watch.Event
-		var ok bool
 		select {
 		case <-ctx.Done():
 			return
-		case event, ok = <-w.ResultChan():
-			if !ok {
-				return
-			}
-		}
-
-		switch event.Type {
-		case watch.Error:
-			logger.Error("pod watch: error event", "event", event.Object)
-		case watch.Bookmark:
-		case watch.Added, watch.Modified, watch.Deleted:
-			pod, ok := event.Object.(*corev1.Pod)
-			if !ok {
-				logger.Error("unable to cast object to pod")
-				continue
-			}
-
+		case event := <-events:
 			sem.Go(ctx, func(ctx context.Context) {
-				c.handlePodEvent(ctx, pod, event.Type)
+				c.handlePodEvent(ctx, event.pod, event.eventType)
 			})
 		}
 	}
 }
 
-// handlePodEvent processes a single pod watch event: finds the owning
+// handlePodEvent processes a single pod event: finds the owning
 // workload through the pod's ReplicaSet, builds deployment status, and reports
 // it if changed.
 func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventType watch.EventType) {
@@ -149,7 +108,7 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		return
 	}
 
-	rs, err := c.clientSet.AppsV1().ReplicaSets(pod.Namespace).Get(ctx, rsName, metav1.GetOptions{})
+	rs, err := c.replicaSets.ReplicaSets(pod.Namespace).Get(rsName)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			// RS already deleted — resync loop handles orphan cleanup.
@@ -162,7 +121,7 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		return
 	}
 
-	w, err := c.workloadForReplicaSet(ctx, rs)
+	w, err := c.workloadForReplicaSet(rs)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "skipped_rs_gone").Inc()
@@ -174,7 +133,7 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		return
 	}
 
-	status, err := c.buildDeploymentStatus(ctx, w)
+	status, err := c.buildDeploymentStatus(w)
 	if err != nil {
 		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "error").Inc()
 		logger.Error("pod watch: unable to build status", "error", err.Error(), "replicaSet", rsName)

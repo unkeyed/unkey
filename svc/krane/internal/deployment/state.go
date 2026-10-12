@@ -1,7 +1,6 @@
 package deployment
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -27,32 +26,30 @@ import (
 // Pod phase is mapped to instance status: Running pods with ContainersReady=True
 // become STATUS_RUNNING, Pending pods and Running pods whose ContainersReady
 // condition is missing or False become STATUS_PENDING.
-func (c *Controller) buildDeploymentStatus(ctx context.Context, w workload) (*ctrlv1.ReportDeploymentStatusRequest, error) {
+func (c *Controller) buildDeploymentStatus(w workload) (*ctrlv1.ReportDeploymentStatusRequest, error) {
 	selector, err := metav1.LabelSelectorAsSelector(w.selector)
 	if err != nil {
 		return nil, err
 	}
 
-	pods, err := c.clientSet.CoreV1().Pods(w.namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: selector.String(),
-	})
+	pods, err := c.pods.Pods(w.namespace).List(selector)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
 
 	update := &ctrlv1.ReportDeploymentStatusRequest_Update{
 		K8SName:   w.k8sName,
-		Instances: make([]*ctrlv1.ReportDeploymentStatusRequest_Update_Instance, 0, len(pods.Items)),
+		Instances: make([]*ctrlv1.ReportDeploymentStatusRequest_Update_Instance, 0, len(pods)),
 	}
 
-	for _, pod := range routablePods(pods.Items) {
+	for _, pod := range routablePods(pods) {
 		if pod.Status.PodIP == "" {
 			continue
 		}
 
 		instance := &ctrlv1.ReportDeploymentStatusRequest_Update_Instance{
 			K8SName:       pod.GetName(),
-			Address:       net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(int(podContainerPort(&pod)))),
+			Address:       net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(int(podContainerPort(pod)))),
 			CpuMillicores: 0,
 			MemoryMib:     0,
 			Status:        ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED,
@@ -72,7 +69,7 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, w workload) (*ct
 			// means kubelet has not published readiness yet, which is PENDING
 			// not RUNNING. A False condition is startup-in-progress, not a
 			// permanent failure.
-			if podContainersReady(&pod) {
+			if podContainersReady(pod) {
 				instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_RUNNING
 			} else {
 				instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_PENDING
@@ -108,18 +105,18 @@ func podContainerPort(pod *corev1.Pod) int32 {
 // useReplacementStrategy). A terminating pod keeps serving for
 // preStopDrainSeconds, so it stays routable while no other pod is ready, for
 // example when the only replica is evicted.
-func routablePods(pods []corev1.Pod) []corev1.Pod {
-	var draining, undrained, terminating []corev1.Pod
+func routablePods(pods []*corev1.Pod) []*corev1.Pod {
+	var draining, undrained, terminating []*corev1.Pod
 	readyDraining, readyUndrained := 0, 0
 
 	for _, pod := range pods {
-		ready := podContainersReady(&pod)
+		ready := podContainersReady(pod)
 		switch {
 		case pod.DeletionTimestamp != nil:
-			if ready && podDrainSeconds(&pod) >= preStopDrainSeconds {
+			if ready && podDrainSeconds(pod) >= preStopDrainSeconds {
 				terminating = append(terminating, pod)
 			}
-		case podDrainSeconds(&pod) >= preStopDrainSeconds:
+		case podDrainSeconds(pod) >= preStopDrainSeconds:
 			draining = append(draining, pod)
 			if ready {
 				readyDraining++
