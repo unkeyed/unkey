@@ -24,7 +24,7 @@ func TestListDomainsScanBudget(t *testing.T) {
 	h.Register(route)
 	env := seedEnvironment(t, h)
 	prefix := uid.DNS1035(16)
-	for i := 0; i < 10_000; i++ {
+	for i := range 10_000 {
 		attachDomain(t, h, env, func(req *seed.CreateCustomDomainRequest) {
 			req.ID = fmt.Sprintf("dom_%s_%05d", prefix, i)
 		})
