@@ -1,0 +1,23 @@
+type: object
+additionalProperties: false
+required:
+  - userCode
+  - permissions
+properties:
+  userCode:
+    type: string
+    minLength: 4
+    maxLength: 32
+  name:
+    type: string
+    maxLength: 255
+    description: Optional name for the root key.
+  permissions:
+    type: array
+    minItems: 1
+    maxItems: 1000
+    description: Permissions to grant. Each permission must be within the caller's existing permissions.
+    items:
+      type: string
+      minLength: 1
+      maxLength: 512

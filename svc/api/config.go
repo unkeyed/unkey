@@ -53,6 +53,13 @@ type GitHubConfig struct {
 	PrivateKeyPEM string `toml:"private_key_pem"`
 }
 
+type CLIAuthConfig struct {
+	WorkOSAPIKey     string `toml:"workos_api_key"`
+	WorkOSClientID   string `toml:"workos_client_id"`
+	WorkOSAPIBaseURL string `toml:"workos_api_base_url" config:"default=https://api.workos.com"`
+	DashboardBaseURL string `toml:"dashboard_base_url" config:"default=https://app.unkey.com"`
+}
+
 // RestateConfig configures the Restate ingress used to submit durable
 // workflows.
 type RestateConfig struct {
@@ -378,6 +385,8 @@ type Config struct {
 	// GitHub configures the GitHub App install flow. See [GitHubConfig].
 	// When unset, github.installApp reports the feature as unconfigured.
 	GitHub GitHubConfig `toml:"github"`
+
+	CLIAuth CLIAuthConfig `toml:"cli_auth"`
 
 	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.
