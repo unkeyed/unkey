@@ -671,6 +671,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 			if identityBefore.Valid && identityBefore != update.IdentityID {
 				keyAuditLog.Targets[0].Meta["identityIdBefore"] = identityBefore.String
+				identityParams := db.FindIdentityByIDParams{
+					WorkspaceID: principal.AuthorizedWorkspaceID,
+					IdentityID:  identityBefore.String,
+					Deleted:     false,
+				}
+				identity, err := db.Query.FindIdentityByID(ctx, tx, identityParams)
+				if db.IsNotFound(err) {
+					identityParams.Deleted = true
+					identity, err = db.Query.FindIdentityByID(ctx, tx, identityParams)
+				}
+				if err != nil && !db.IsNotFound(err) {
+					return fault.Wrap(err, fault.Internal("failed to read previous identity"))
+				}
+				if err == nil {
+					keyAuditLog.Targets[0].Meta["identityNameBefore"] = identity.ExternalID
+					keyAuditLog.Targets[0].Meta["identityDisplayNameBefore"] = identity.ExternalID
+				}
 			}
 			auditLogs = append(auditLogs, keyAuditLog)
 

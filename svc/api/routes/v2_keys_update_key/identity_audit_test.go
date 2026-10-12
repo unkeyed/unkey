@@ -31,6 +31,14 @@ func TestUpdateKeyAuditsIdentityEndpoints(t *testing.T) {
 		WorkspaceID: workspaceID, ProjectID: api.ProjectID,
 		ExternalID: uid.New(uid.TestPrefix), Environment: "default",
 	})
+	deletedIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspaceID, ProjectID: api.ProjectID,
+		ExternalID: uid.New(uid.TestPrefix), Environment: "default",
+	})
+	require.NoError(t, db.Query.SoftDeleteIdentity(t.Context(), h.DB.RW(), db.SoftDeleteIdentityParams{
+		WorkspaceID: workspaceID, IdentityID: deletedIdentity.ID,
+	}))
+	missingIdentityID := uid.New(uid.IdentityPrefix)
 	rootKey := h.CreateRootKey(workspaceID, "api.*.update_key")
 	headers := http.Header{
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -38,19 +46,22 @@ func TestUpdateKeyAuditsIdentityEndpoints(t *testing.T) {
 	}
 
 	for _, tt := range []struct {
-		name             string
-		initial          *string
-		externalID       nullable.Nullable[string]
-		identityID       string
-		targetIDs        []string
-		identityIDBefore string
+		name               string
+		initial            *string
+		externalID         nullable.Nullable[string]
+		identityID         string
+		targetIDs          []string
+		identityIDBefore   string
+		identityNameBefore string
 	}{
-		{"assign", nil, nullable.NewNullableWithValue(newIdentity.ExternalID), newIdentity.ID, []string{newIdentity.ID}, ""},
-		{"replace", &oldIdentity.ID, nullable.NewNullableWithValue(newIdentity.ExternalID), newIdentity.ID, []string{newIdentity.ID}, oldIdentity.ID},
-		{"remove", &oldIdentity.ID, nullable.NewNullNullable[string](), "", nil, oldIdentity.ID},
-		{"unchanged assignment", &oldIdentity.ID, nullable.NewNullableWithValue(oldIdentity.ExternalID), oldIdentity.ID, []string{oldIdentity.ID}, ""},
-		{"omitted identity", &oldIdentity.ID, nullable.Nullable[string]{}, oldIdentity.ID, nil, ""},
-		{"remove absent identity", nil, nullable.NewNullNullable[string](), "", nil, ""},
+		{"assign", nil, nullable.NewNullableWithValue(newIdentity.ExternalID), newIdentity.ID, []string{newIdentity.ID}, "", ""},
+		{"replace", &oldIdentity.ID, nullable.NewNullableWithValue(newIdentity.ExternalID), newIdentity.ID, []string{newIdentity.ID}, oldIdentity.ID, oldIdentity.ExternalID},
+		{"remove", &oldIdentity.ID, nullable.NewNullNullable[string](), "", nil, oldIdentity.ID, oldIdentity.ExternalID},
+		{"remove deleted identity", &deletedIdentity.ID, nullable.NewNullNullable[string](), "", nil, deletedIdentity.ID, deletedIdentity.ExternalID},
+		{"remove missing identity", &missingIdentityID, nullable.NewNullNullable[string](), "", nil, missingIdentityID, ""},
+		{"unchanged assignment", &oldIdentity.ID, nullable.NewNullableWithValue(oldIdentity.ExternalID), oldIdentity.ID, []string{oldIdentity.ID}, "", ""},
+		{"omitted identity", &oldIdentity.ID, nullable.Nullable[string]{}, oldIdentity.ID, nil, "", ""},
+		{"remove absent identity", nil, nullable.NewNullNullable[string](), "", nil, "", ""},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
@@ -75,9 +86,14 @@ func TestUpdateKeyAuditsIdentityEndpoints(t *testing.T) {
 				}
 				if target.Type == "key" {
 					if tt.identityIDBefore == "" {
-						require.NotContains(t, target.Meta, "identityIdBefore")
+						require.Empty(t, target.Meta)
 					} else {
-						require.Equal(t, map[string]any{"identityIdBefore": tt.identityIDBefore}, target.Meta)
+						expected := map[string]any{"identityIdBefore": tt.identityIDBefore}
+						if tt.identityNameBefore != "" {
+							expected["identityNameBefore"] = tt.identityNameBefore
+							expected["identityDisplayNameBefore"] = tt.identityNameBefore
+						}
+						require.Equal(t, expected, target.Meta)
 					}
 				}
 			}
