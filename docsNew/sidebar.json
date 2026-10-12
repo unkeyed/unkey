@@ -1,0 +1,1499 @@
+{
+  "selectors": [
+    {
+      "items": [
+        {
+          "description": "Workspace, billing, root keys, CLI, and error codes shared by both products",
+          "icon": "building",
+          "label": "Platform",
+          "path": "/"
+        },
+        {
+          "description": "Build, deploy, and run your app behind a gateway",
+          "icon": "server",
+          "label": "Compute",
+          "path": "/compute"
+        },
+        {
+          "description": "API keys, rate limiting, identities, permissions, and analytics",
+          "icon": "key",
+          "label": "API management",
+          "path": "/api-management"
+        }
+      ],
+      "kind": "product",
+      "label": "Product"
+    }
+  ],
+  "tabs": [
+    {
+      "groups": [
+        {
+          "group": "Get started",
+          "pages": [
+            "index",
+            "platform/index",
+            "platform/glossary"
+          ]
+        },
+        {
+          "group": "Workspace",
+          "pages": [
+            "platform/workspace/overview",
+            "platform/workspace/settings",
+            "platform/workspace/log-drains",
+            "platform/workspace/team",
+            "platform/workspace/two-factor-auth"
+          ]
+        },
+        {
+          "group": "Audit logs",
+          "pages": [
+            "platform/workspace/audit-logs/overview",
+            "platform/workspace/audit-logs/event-types"
+          ]
+        },
+        {
+          "group": "Billing",
+          "pages": [
+            "platform/billing/plans",
+            "platform/billing/limits",
+            "platform/billing/usage"
+          ]
+        },
+        {
+          "group": "Root keys",
+          "pages": [
+            "platform/root-keys/overview",
+            "platform/root-keys/permissions",
+            "platform/root-keys/configure",
+            "platform/root-keys/permission-reference"
+          ]
+        },
+        {
+          "group": "API",
+          "pages": [
+            "platform/api/overview",
+            "platform/api/authentication",
+            "platform/api/rpc-convention",
+            "platform/api/errors",
+            "platform/api/rate-limits"
+          ]
+        },
+        {
+          "group": "CLI",
+          "pages": [
+            "platform/cli/overview",
+            "platform/cli/install",
+            "platform/cli/authentication",
+            "platform/cli/output-and-flags",
+            "platform/cli/auth/login"
+          ]
+        },
+        {
+          "group": "AI coding",
+          "pages": [
+            "platform/ai-coding/overview",
+            "platform/ai-coding/mcp-servers",
+            "platform/ai-coding/claude-code",
+            "platform/ai-coding/cursor",
+            "platform/ai-coding/other-clients"
+          ]
+        },
+        {
+          "group": "Security",
+          "pages": [
+            "platform/security/overview",
+            "platform/security/key-storage",
+            "platform/security/github-secret-scanning",
+            "platform/security/delete-protection"
+          ]
+        },
+        {
+          "group": "Errors",
+          "pages": [
+            "errors/overview",
+            {
+              "group": "Unkey errors",
+              "pages": [
+                {
+                  "group": "Application",
+                  "pages": [
+                    "errors/unkey/application/assertion_failed",
+                    "errors/unkey/application/deployment_is_current",
+                    "errors/unkey/application/deployment_is_production",
+                    "errors/unkey/application/deployment_is_stopping",
+                    "errors/unkey/application/deployment_no_current",
+                    "errors/unkey/application/deployment_not_production",
+                    "errors/unkey/application/deployment_not_ready",
+                    "errors/unkey/application/deployment_not_running",
+                    "errors/unkey/application/deployment_not_stopped",
+                    "errors/unkey/application/invalid_environment_settings",
+                    "errors/unkey/application/invalid_input",
+                    "errors/unkey/application/precondition_failed",
+                    "errors/unkey/application/protected_resource",
+                    "errors/unkey/application/service_unavailable",
+                    "errors/unkey/application/unexpected_error"
+                  ]
+                },
+                {
+                  "group": "Authentication",
+                  "pages": [
+                    "errors/unkey/authentication/key_not_found",
+                    "errors/unkey/authentication/malformed",
+                    "errors/unkey/authentication/missing",
+                    "errors/unkey/authentication/portal_session_not_found",
+                    "errors/unkey/authentication/portal_token_missing"
+                  ]
+                },
+                {
+                  "group": "Authorization",
+                  "pages": [
+                    "errors/unkey/authorization/forbidden",
+                    "errors/unkey/authorization/insufficient_permissions",
+                    "errors/unkey/authorization/key_disabled",
+                    "errors/unkey/authorization/workspace_disabled"
+                  ]
+                },
+                {
+                  "group": "Data",
+                  "pages": [
+                    "errors/unkey/data/analytics_connection_failed",
+                    "errors/unkey/data/analytics_not_configured",
+                    "errors/unkey/data/api_not_found",
+                    "errors/unkey/data/app_already_exists",
+                    "errors/unkey/data/app_not_found",
+                    "errors/unkey/data/audit_log_not_found",
+                    "errors/unkey/data/deployment_not_found",
+                    "errors/unkey/data/domain_already_exists",
+                    "errors/unkey/data/domain_not_found",
+                    "errors/unkey/data/environment_not_found",
+                    "errors/unkey/data/identity_already_exists",
+                    "errors/unkey/data/identity_not_found",
+                    "errors/unkey/data/key_auth_not_found",
+                    "errors/unkey/data/key_not_found",
+                    "errors/unkey/data/key_space_not_found",
+                    "errors/unkey/data/migration_not_found",
+                    "errors/unkey/data/permission_already_exists",
+                    "errors/unkey/data/permission_not_found",
+                    "errors/unkey/data/policy_not_found",
+                    "errors/unkey/data/portal_already_exists",
+                    "errors/unkey/data/portal_changed",
+                    "errors/unkey/data/portal_not_found",
+                    "errors/unkey/data/project_already_exists",
+                    "errors/unkey/data/project_not_found",
+                    "errors/unkey/data/ratelimit_namespace_gone",
+                    "errors/unkey/data/ratelimit_namespace_not_found",
+                    "errors/unkey/data/ratelimit_override_not_found",
+                    "errors/unkey/data/role_already_exists",
+                    "errors/unkey/data/role_not_found",
+                    "errors/unkey/data/workspace_not_found"
+                  ]
+                },
+                {
+                  "group": "Limits",
+                  "pages": [
+                    "errors/unkey/limits/custom_domain_limit_exceeded"
+                  ]
+                }
+              ]
+            },
+            {
+              "group": "User errors",
+              "pages": [
+                {
+                  "group": "Bad request",
+                  "pages": [
+                    "errors/user/bad_request/client_closed_request",
+                    "errors/user/bad_request/invalid_analytics_function",
+                    "errors/user/bad_request/invalid_analytics_query",
+                    "errors/user/bad_request/invalid_analytics_query_type",
+                    "errors/user/bad_request/invalid_analytics_table",
+                    "errors/user/bad_request/missing_required_header",
+                    "errors/user/bad_request/per_key_breakout_too_large",
+                    "errors/user/bad_request/permissions_query_syntax_error",
+                    "errors/user/bad_request/query_range_exceeds_retention",
+                    "errors/user/bad_request/request_body_too_large",
+                    "errors/user/bad_request/request_body_unreadable",
+                    "errors/user/bad_request/request_timeout"
+                  ]
+                },
+                {
+                  "group": "Too many requests",
+                  "pages": [
+                    "errors/user/too_many_requests/query_quota_exceeded",
+                    "errors/user/too_many_requests/workspace_rate_limited"
+                  ]
+                },
+                {
+                  "group": "Unprocessable entity",
+                  "pages": [
+                    "errors/user/unprocessable_entity/query_execution_timeout",
+                    "errors/user/unprocessable_entity/query_memory_limit_exceeded",
+                    "errors/user/unprocessable_entity/query_rows_limit_exceeded"
+                  ]
+                }
+              ]
+            },
+            {
+              "group": "Frontline errors",
+              "pages": [
+                {
+                  "group": "Capacity",
+                  "pages": [
+                    "errors/frontline/capacity/deployment_offline",
+                    "errors/frontline/capacity/no_running_instances",
+                    "errors/frontline/capacity/spend_limit_reached"
+                  ]
+                },
+                {
+                  "group": "Client",
+                  "pages": [
+                    "errors/frontline/client/firewall_denied",
+                    "errors/frontline/client/insufficient_permissions",
+                    "errors/frontline/client/invalid_key",
+                    "errors/frontline/client/missing_credentials",
+                    "errors/frontline/client/openapi_validation_failed",
+                    "errors/frontline/client/rate_limited",
+                    "errors/frontline/client/usage_exceeded"
+                  ]
+                },
+                {
+                  "group": "Config",
+                  "pages": [
+                    "errors/frontline/config/invalid_configuration"
+                  ]
+                },
+                {
+                  "group": "Platform",
+                  "pages": [
+                    "errors/frontline/platform/config_load_failed",
+                    "errors/frontline/platform/deployment_selection_failed",
+                    "errors/frontline/platform/internal_server_error"
+                  ]
+                },
+                {
+                  "group": "Routing",
+                  "pages": [
+                    "errors/frontline/routing/config_not_found",
+                    "errors/frontline/routing/deployment_not_found"
+                  ]
+                },
+                {
+                  "group": "Upstream",
+                  "pages": [
+                    "errors/frontline/upstream/bad_gateway",
+                    "errors/frontline/upstream/gateway_timeout",
+                    "errors/frontline/upstream/proxy_forward_failed",
+                    "errors/frontline/upstream/service_unavailable"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "href": "/",
+      "icon": "book-open",
+      "path": "/",
+      "product": "Platform",
+      "tab": "Guides",
+      "wrap": false
+    },
+    {
+      "groups": [
+        {
+          "group": "Compute",
+          "pages": [
+            {
+              "group": "Projects",
+              "pages": [
+                {
+                  "page": "POST /v2/projects.createProject",
+                  "route": "/platform/api-reference/projects/create-project"
+                },
+                {
+                  "page": "POST /v2/projects.getProject",
+                  "route": "/platform/api-reference/projects/get-project"
+                },
+                {
+                  "page": "POST /v2/projects.listProjects",
+                  "route": "/platform/api-reference/projects/list-projects"
+                },
+                {
+                  "page": "POST /v2/projects.updateProject",
+                  "route": "/platform/api-reference/projects/update-project"
+                },
+                {
+                  "page": "POST /v2/projects.deleteProject",
+                  "route": "/platform/api-reference/projects/delete-project"
+                }
+              ]
+            },
+            {
+              "group": "Apps",
+              "pages": [
+                {
+                  "page": "POST /v2/apps.createApp",
+                  "route": "/platform/api-reference/apps/create-app"
+                },
+                {
+                  "page": "POST /v2/apps.getApp",
+                  "route": "/platform/api-reference/apps/get-app"
+                },
+                {
+                  "page": "POST /v2/apps.listApps",
+                  "route": "/platform/api-reference/apps/list-apps"
+                },
+                {
+                  "page": "POST /v2/apps.updateApp",
+                  "route": "/platform/api-reference/apps/update-app"
+                },
+                {
+                  "page": "POST /v2/apps.deleteApp",
+                  "route": "/platform/api-reference/apps/delete-app"
+                }
+              ]
+            },
+            {
+              "group": "Environments",
+              "pages": [
+                {
+                  "page": "POST /v2/environments.listEnvironments",
+                  "route": "/platform/api-reference/environments/list-environments"
+                },
+                {
+                  "page": "POST /v2/environments.getEnvironment",
+                  "route": "/platform/api-reference/environments/get-environment"
+                },
+                {
+                  "page": "POST /v2/environments.updateSettings",
+                  "route": "/platform/api-reference/environments/update-environment-settings"
+                },
+                {
+                  "page": "POST /v2/environments.listEnvironmentVariables",
+                  "route": "/platform/api-reference/environments/list-environment-variables"
+                },
+                {
+                  "page": "POST /v2/environments.setEnvironmentVariables",
+                  "route": "/platform/api-reference/environments/set-environment-variables"
+                },
+                {
+                  "page": "POST /v2/environments.removeEnvironmentVariables",
+                  "route": "/platform/api-reference/environments/remove-environment-variables"
+                }
+              ]
+            },
+            {
+              "group": "Deployments",
+              "pages": [
+                {
+                  "page": "POST /v3/deployments.createDeployment",
+                  "route": "/platform/api-reference/deployments/create-deployment"
+                },
+                {
+                  "page": "POST /v2/deployments.getDeployment",
+                  "route": "/platform/api-reference/deployments/get-deployment"
+                },
+                {
+                  "page": "POST /v2/deployments.listDeployments",
+                  "route": "/platform/api-reference/deployments/list-deployments"
+                },
+                {
+                  "page": "POST /v2/deployments.promoteDeployment",
+                  "route": "/platform/api-reference/deployments/promote-deployment"
+                },
+                {
+                  "page": "POST /v2/deployments.rollbackDeployment",
+                  "route": "/platform/api-reference/deployments/rollback-deployment"
+                },
+                {
+                  "page": "POST /v2/deployments.startDeployment",
+                  "route": "/platform/api-reference/deployments/start-deployment"
+                },
+                {
+                  "page": "POST /v2/deployments.stopDeployment",
+                  "route": "/platform/api-reference/deployments/stop-deployment"
+                }
+              ]
+            },
+            {
+              "group": "Domains",
+              "pages": [
+                {
+                  "page": "POST /v2/domains.createDomain",
+                  "route": "/platform/api-reference/domains/create-domain"
+                },
+                {
+                  "page": "POST /v2/domains.getDomain",
+                  "route": "/platform/api-reference/domains/get-domain"
+                },
+                {
+                  "page": "POST /v2/domains.listDomains",
+                  "route": "/platform/api-reference/domains/list-domains"
+                },
+                {
+                  "page": "POST /v2/domains.verifyDomain",
+                  "route": "/platform/api-reference/domains/verify-domain"
+                },
+                {
+                  "page": "POST /v2/domains.deleteDomain",
+                  "route": "/platform/api-reference/domains/delete-domain"
+                }
+              ]
+            },
+            {
+              "group": "Gateway",
+              "pages": [
+                {
+                  "page": "POST /v2/gateway.listPolicies",
+                  "route": "/platform/api-reference/gateway/list-policies"
+                },
+                {
+                  "page": "POST /v2/gateway.setPolicies",
+                  "route": "/platform/api-reference/gateway/set-policies"
+                },
+                {
+                  "page": "POST /v2/gateway.updatePolicy",
+                  "route": "/platform/api-reference/gateway/update-policy"
+                }
+              ]
+            },
+            {
+              "group": "GitHub",
+              "pages": [
+                {
+                  "page": "POST /v2/github.installApp",
+                  "route": "/platform/api-reference/github/install-github-app"
+                }
+              ]
+            },
+            {
+              "group": "Analytics",
+              "pages": [
+                {
+                  "page": "POST /v2/analytics.getGatewayRequests",
+                  "route": "/platform/api-reference/analytics/query-gateway-request-data"
+                },
+                {
+                  "page": "POST /v2/analytics.getRuntimeLogs",
+                  "route": "/platform/api-reference/analytics/query-runtime-log-data"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "API management",
+          "pages": [
+            {
+              "group": "APIs",
+              "pages": [
+                {
+                  "page": "POST /v2/apis.createApi",
+                  "route": "/platform/api-reference/apis/create-api-namespace"
+                },
+                {
+                  "page": "POST /v2/apis.deleteApi",
+                  "route": "/platform/api-reference/apis/delete-api-namespace"
+                },
+                {
+                  "page": "POST /v2/apis.getApi",
+                  "route": "/platform/api-reference/apis/get-api-namespace"
+                },
+                {
+                  "page": "POST /v2/apis.listKeys",
+                  "route": "/platform/api-reference/apis/list-api-keys"
+                }
+              ]
+            },
+            {
+              "group": "Keys",
+              "pages": [
+                {
+                  "page": "POST /v2/keys.addPermissions",
+                  "route": "/platform/api-reference/keys/add-key-permissions"
+                },
+                {
+                  "page": "POST /v2/keys.addRoles",
+                  "route": "/platform/api-reference/keys/add-key-roles"
+                },
+                {
+                  "page": "POST /v2/keys.createKey",
+                  "route": "/platform/api-reference/keys/create-api-key"
+                },
+                {
+                  "page": "POST /v2/keys.deleteKey",
+                  "route": "/platform/api-reference/keys/delete-api-keys"
+                },
+                {
+                  "page": "POST /v2/keys.getKey",
+                  "route": "/platform/api-reference/keys/get-api-key"
+                },
+                {
+                  "page": "POST /v2/keys.migrateKeys",
+                  "route": "/platform/api-reference/keys/migrate-api-keys"
+                },
+                {
+                  "page": "POST /v2/keys.removePermissions",
+                  "route": "/platform/api-reference/keys/remove-key-permissions"
+                },
+                {
+                  "page": "POST /v2/keys.removeRoles",
+                  "route": "/platform/api-reference/keys/remove-key-roles"
+                },
+                {
+                  "page": "POST /v2/keys.rerollKey",
+                  "route": "/platform/api-reference/keys/reroll-key"
+                },
+                {
+                  "page": "POST /v2/keys.setPermissions",
+                  "route": "/platform/api-reference/keys/set-key-permissions"
+                },
+                {
+                  "page": "POST /v2/keys.setRoles",
+                  "route": "/platform/api-reference/keys/set-key-roles"
+                },
+                {
+                  "page": "POST /v2/keys.updateCredits",
+                  "route": "/platform/api-reference/keys/update-key-credits"
+                },
+                {
+                  "page": "POST /v2/keys.updateKey",
+                  "route": "/platform/api-reference/keys/update-key-settings"
+                },
+                {
+                  "page": "POST /v2/keys.verifyKey",
+                  "route": "/platform/api-reference/keys/verify-api-key"
+                },
+                {
+                  "page": "POST /v2/keys.whoami",
+                  "route": "/platform/api-reference/keys/get-api-key-by-hash"
+                }
+              ]
+            },
+            {
+              "group": "Identities",
+              "pages": [
+                {
+                  "page": "POST /v2/identities.createIdentity",
+                  "route": "/platform/api-reference/identities/create-identity"
+                },
+                {
+                  "page": "POST /v2/identities.deleteIdentity",
+                  "route": "/platform/api-reference/identities/delete-identity"
+                },
+                {
+                  "page": "POST /v2/identities.getIdentity",
+                  "route": "/platform/api-reference/identities/get-identity"
+                },
+                {
+                  "page": "POST /v2/identities.listIdentities",
+                  "route": "/platform/api-reference/identities/list-identities"
+                },
+                {
+                  "page": "POST /v2/identities.updateIdentity",
+                  "route": "/platform/api-reference/identities/update-identity"
+                }
+              ]
+            },
+            {
+              "group": "Permissions",
+              "pages": [
+                {
+                  "page": "POST /v2/permissions.createPermission",
+                  "route": "/platform/api-reference/permissions/create-permission"
+                },
+                {
+                  "page": "POST /v2/permissions.createRole",
+                  "route": "/platform/api-reference/permissions/create-role"
+                },
+                {
+                  "page": "POST /v2/permissions.deletePermission",
+                  "route": "/platform/api-reference/permissions/delete-permission"
+                },
+                {
+                  "page": "POST /v2/permissions.deleteRole",
+                  "route": "/platform/api-reference/permissions/delete-role"
+                },
+                {
+                  "page": "POST /v2/permissions.getPermission",
+                  "route": "/platform/api-reference/permissions/get-permission"
+                },
+                {
+                  "page": "POST /v2/permissions.getRole",
+                  "route": "/platform/api-reference/permissions/get-role"
+                },
+                {
+                  "page": "POST /v2/permissions.listPermissions",
+                  "route": "/platform/api-reference/permissions/list-permissions"
+                },
+                {
+                  "page": "POST /v2/permissions.listRoles",
+                  "route": "/platform/api-reference/permissions/list-roles"
+                },
+                {
+                  "page": "POST /v2/permissions.setRolePermissions",
+                  "route": "/platform/api-reference/permissions/set-role-permissions"
+                }
+              ]
+            },
+            {
+              "group": "Rate limiting",
+              "pages": [
+                {
+                  "page": "POST /v2/ratelimit.deleteOverride",
+                  "route": "/platform/api-reference/ratelimit/delete-ratelimit-override"
+                },
+                {
+                  "page": "POST /v2/ratelimit.getOverride",
+                  "route": "/platform/api-reference/ratelimit/get-ratelimit-override"
+                },
+                {
+                  "page": "POST /v2/ratelimit.limit",
+                  "route": "/platform/api-reference/ratelimit/apply-rate-limiting"
+                },
+                {
+                  "page": "POST /v2/ratelimit.listOverrides",
+                  "route": "/platform/api-reference/ratelimit/list-ratelimit-overrides"
+                },
+                {
+                  "page": "POST /v2/ratelimit.multiLimit",
+                  "route": "/platform/api-reference/ratelimit/apply-multiple-rate-limit-checks"
+                },
+                {
+                  "page": "POST /v2/ratelimit.setOverride",
+                  "route": "/platform/api-reference/ratelimit/set-ratelimit-override"
+                }
+              ]
+            },
+            {
+              "group": "Analytics",
+              "pages": [
+                {
+                  "page": "POST /v2/analytics.getRatelimits",
+                  "route": "/platform/api-reference/analytics/query-rate-limit-data"
+                },
+                {
+                  "page": "POST /v2/analytics.getVerifications",
+                  "route": "/platform/api-reference/analytics/query-key-verification-data"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "href": "/platform/api-reference",
+      "icon": "code",
+      "path": "/platform/api-reference",
+      "product": "Platform",
+      "tab": "API reference",
+      "wrap": true
+    },
+    {
+      "groups": [
+        {
+          "group": "Get started",
+          "pages": [
+            "compute/index",
+            "compute/get-started/deploy-from-github",
+            "compute/get-started/deploy-an-image",
+            "compute/get-started/plans"
+          ]
+        },
+        {
+          "group": "Concepts",
+          "pages": [
+            "compute/concepts/projects-apps-environments",
+            "compute/concepts/deployments",
+            "compute/concepts/production-and-preview",
+            "compute/concepts/instances-and-autoscaling",
+            "compute/concepts/regions"
+          ]
+        },
+        {
+          "group": "Build",
+          "pages": [
+            "compute/build/overview",
+            "compute/build/dockerfile",
+            "compute/build/build-secrets",
+            "compute/build/github"
+          ]
+        },
+        {
+          "group": "Configure",
+          "pages": [
+            "compute/configure/build-settings",
+            "compute/configure/runtime-settings",
+            "compute/configure/health-checks",
+            "compute/configure/environment-variables",
+            "compute/configure/limits",
+            "compute/configure/spend-budget"
+          ]
+        },
+        {
+          "group": "Networking",
+          "pages": [
+            "compute/networking/automatic-domains",
+            "compute/networking/custom-domains",
+            "compute/networking/request-lifecycle",
+            "compute/networking/websockets",
+            "compute/networking/private-networking"
+          ]
+        },
+        {
+          "group": "Gateway",
+          "pages": [
+            "compute/gateway/overview",
+            "compute/gateway/policies",
+            "compute/gateway/api-key-auth",
+            "compute/gateway/rate-limiting",
+            "compute/gateway/firewall",
+            "compute/gateway/openapi-validation",
+            "compute/gateway/logging",
+            "compute/gateway/principal",
+            "compute/gateway/local-development",
+            "compute/gateway/errors"
+          ]
+        },
+        {
+          "group": "Observe",
+          "pages": [
+            "compute/observe/overview",
+            "compute/observe/requests",
+            "compute/observe/runtime-logs",
+            "compute/observe/metrics",
+            "compute/observe/build-logs",
+            "compute/observe/analytics-api"
+          ]
+        }
+      ],
+      "href": "/compute",
+      "icon": "book-open",
+      "path": "/compute",
+      "product": "Compute",
+      "tab": "Guides",
+      "wrap": true
+    },
+    {
+      "groups": [
+        {
+          "group": "General",
+          "pages": [
+            "compute/cli/deploy",
+            "compute/cli/healthcheck"
+          ]
+        },
+        {
+          "group": "Projects",
+          "pages": [
+            "compute/cli/projects/create-project",
+            "compute/cli/projects/get-project",
+            "compute/cli/projects/list-projects",
+            "compute/cli/projects/update-project",
+            "compute/cli/projects/delete-project"
+          ]
+        },
+        {
+          "group": "Apps",
+          "pages": [
+            "compute/cli/apps/create-app",
+            "compute/cli/apps/get-app",
+            "compute/cli/apps/list-apps",
+            "compute/cli/apps/update-app",
+            "compute/cli/apps/delete-app"
+          ]
+        },
+        {
+          "group": "Environments",
+          "pages": [
+            "compute/cli/environments/list-environments",
+            "compute/cli/environments/get-environment",
+            "compute/cli/environments/update-settings",
+            "compute/cli/environments/list-environment-variables",
+            "compute/cli/environments/set-environment-variables",
+            "compute/cli/environments/remove-environment-variables"
+          ]
+        },
+        {
+          "group": "Deployments",
+          "pages": [
+            "compute/cli/deployments/create-deployment",
+            "compute/cli/deployments/get-deployment",
+            "compute/cli/deployments/list-deployments",
+            "compute/cli/deployments/promote-deployment",
+            "compute/cli/deployments/rollback-deployment",
+            "compute/cli/deployments/start-deployment",
+            "compute/cli/deployments/stop-deployment"
+          ]
+        },
+        {
+          "group": "Domains",
+          "pages": [
+            "compute/cli/domains/create-domain",
+            "compute/cli/domains/get-domain",
+            "compute/cli/domains/list-domains",
+            "compute/cli/domains/verify-domain",
+            "compute/cli/domains/delete-domain"
+          ]
+        },
+        {
+          "group": "Gateway",
+          "pages": [
+            "compute/cli/gateway/list-policies",
+            "compute/cli/gateway/set-policies",
+            "compute/cli/gateway/update-policy"
+          ]
+        },
+        {
+          "group": "GitHub",
+          "pages": [
+            "compute/cli/github/install-app"
+          ]
+        },
+        {
+          "group": "Analytics",
+          "pages": [
+            "compute/cli/analytics/get-gateway-requests",
+            "compute/cli/analytics/get-runtime-logs"
+          ]
+        }
+      ],
+      "href": "/compute/cli",
+      "icon": "terminal",
+      "path": "/compute/cli",
+      "product": "Compute",
+      "tab": "CLI",
+      "wrap": true
+    },
+    {
+      "groups": [
+        {
+          "group": "Projects",
+          "pages": [
+            {
+              "page": "POST /v2/projects.createProject",
+              "route": "/compute/api-reference/projects/create-project"
+            },
+            {
+              "page": "POST /v2/projects.getProject",
+              "route": "/compute/api-reference/projects/get-project"
+            },
+            {
+              "page": "POST /v2/projects.listProjects",
+              "route": "/compute/api-reference/projects/list-projects"
+            },
+            {
+              "page": "POST /v2/projects.updateProject",
+              "route": "/compute/api-reference/projects/update-project"
+            },
+            {
+              "page": "POST /v2/projects.deleteProject",
+              "route": "/compute/api-reference/projects/delete-project"
+            }
+          ]
+        },
+        {
+          "group": "Apps",
+          "pages": [
+            {
+              "page": "POST /v2/apps.createApp",
+              "route": "/compute/api-reference/apps/create-app"
+            },
+            {
+              "page": "POST /v2/apps.getApp",
+              "route": "/compute/api-reference/apps/get-app"
+            },
+            {
+              "page": "POST /v2/apps.listApps",
+              "route": "/compute/api-reference/apps/list-apps"
+            },
+            {
+              "page": "POST /v2/apps.updateApp",
+              "route": "/compute/api-reference/apps/update-app"
+            },
+            {
+              "page": "POST /v2/apps.deleteApp",
+              "route": "/compute/api-reference/apps/delete-app"
+            }
+          ]
+        },
+        {
+          "group": "Environments",
+          "pages": [
+            {
+              "page": "POST /v2/environments.listEnvironments",
+              "route": "/compute/api-reference/environments/list-environments"
+            },
+            {
+              "page": "POST /v2/environments.getEnvironment",
+              "route": "/compute/api-reference/environments/get-environment"
+            },
+            {
+              "page": "POST /v2/environments.updateSettings",
+              "route": "/compute/api-reference/environments/update-environment-settings"
+            },
+            {
+              "page": "POST /v2/environments.listEnvironmentVariables",
+              "route": "/compute/api-reference/environments/list-environment-variables"
+            },
+            {
+              "page": "POST /v2/environments.setEnvironmentVariables",
+              "route": "/compute/api-reference/environments/set-environment-variables"
+            },
+            {
+              "page": "POST /v2/environments.removeEnvironmentVariables",
+              "route": "/compute/api-reference/environments/remove-environment-variables"
+            }
+          ]
+        },
+        {
+          "group": "Deployments",
+          "pages": [
+            {
+              "page": "POST /v3/deployments.createDeployment",
+              "route": "/compute/api-reference/deployments/create-deployment"
+            },
+            {
+              "page": "POST /v2/deployments.getDeployment",
+              "route": "/compute/api-reference/deployments/get-deployment"
+            },
+            {
+              "page": "POST /v2/deployments.listDeployments",
+              "route": "/compute/api-reference/deployments/list-deployments"
+            },
+            {
+              "page": "POST /v2/deployments.promoteDeployment",
+              "route": "/compute/api-reference/deployments/promote-deployment"
+            },
+            {
+              "page": "POST /v2/deployments.rollbackDeployment",
+              "route": "/compute/api-reference/deployments/rollback-deployment"
+            },
+            {
+              "page": "POST /v2/deployments.startDeployment",
+              "route": "/compute/api-reference/deployments/start-deployment"
+            },
+            {
+              "page": "POST /v2/deployments.stopDeployment",
+              "route": "/compute/api-reference/deployments/stop-deployment"
+            }
+          ]
+        },
+        {
+          "group": "Domains",
+          "pages": [
+            {
+              "page": "POST /v2/domains.createDomain",
+              "route": "/compute/api-reference/domains/create-domain"
+            },
+            {
+              "page": "POST /v2/domains.getDomain",
+              "route": "/compute/api-reference/domains/get-domain"
+            },
+            {
+              "page": "POST /v2/domains.listDomains",
+              "route": "/compute/api-reference/domains/list-domains"
+            },
+            {
+              "page": "POST /v2/domains.verifyDomain",
+              "route": "/compute/api-reference/domains/verify-domain"
+            },
+            {
+              "page": "POST /v2/domains.deleteDomain",
+              "route": "/compute/api-reference/domains/delete-domain"
+            }
+          ]
+        },
+        {
+          "group": "Gateway",
+          "pages": [
+            {
+              "page": "POST /v2/gateway.listPolicies",
+              "route": "/compute/api-reference/gateway/list-policies"
+            },
+            {
+              "page": "POST /v2/gateway.setPolicies",
+              "route": "/compute/api-reference/gateway/set-policies"
+            },
+            {
+              "page": "POST /v2/gateway.updatePolicy",
+              "route": "/compute/api-reference/gateway/update-policy"
+            }
+          ]
+        },
+        {
+          "group": "GitHub",
+          "pages": [
+            {
+              "page": "POST /v2/github.installApp",
+              "route": "/compute/api-reference/github/install-github-app"
+            }
+          ]
+        },
+        {
+          "group": "Analytics",
+          "pages": [
+            {
+              "page": "POST /v2/analytics.getGatewayRequests",
+              "route": "/compute/api-reference/analytics/query-gateway-request-data"
+            },
+            {
+              "page": "POST /v2/analytics.getRuntimeLogs",
+              "route": "/compute/api-reference/analytics/query-runtime-log-data"
+            }
+          ]
+        }
+      ],
+      "href": "/compute/api-reference",
+      "icon": "code",
+      "path": "/compute/api-reference",
+      "product": "Compute",
+      "tab": "API reference",
+      "wrap": true
+    },
+    {
+      "groups": [
+        {
+          "group": "Get started",
+          "pages": [
+            "api-management/index",
+            "api-management/get-started/quickstart",
+            "api-management/get-started/concepts"
+          ]
+        },
+        {
+          "group": "Framework guides",
+          "pages": [
+            "api-management/guides/nextjs",
+            "api-management/guides/express",
+            "api-management/guides/bun",
+            "api-management/guides/hono",
+            "api-management/guides/go",
+            "api-management/guides/python",
+            "api-management/guides/cloudflare-workers"
+          ]
+        },
+        {
+          "group": "Keyspaces",
+          "pages": [
+            "api-management/keyspaces/overview",
+            "api-management/keyspaces/settings",
+            "api-management/keyspaces/listing-keys"
+          ]
+        },
+        {
+          "group": "Keys",
+          "pages": [
+            "api-management/keys/creating-keys",
+            "api-management/keys/updating-keys",
+            "api-management/keys/verifying-keys",
+            "api-management/keys/credits-and-refill",
+            "api-management/keys/expiration",
+            "api-management/keys/enable-disable-delete",
+            "api-management/keys/rerolling-keys",
+            "api-management/keys/metadata-and-tags",
+            "api-management/keys/recoverable-keys",
+            "api-management/keys/looking-up-keys",
+            "api-management/keys/migrating-keys"
+          ]
+        },
+        {
+          "group": "Rate limiting",
+          "pages": [
+            "api-management/ratelimiting/overview",
+            "api-management/ratelimiting/how-it-works",
+            "api-management/ratelimiting/limit-and-multi-limit",
+            "api-management/ratelimiting/overrides",
+            "api-management/ratelimiting/key-and-identity-limits"
+          ]
+        },
+        {
+          "group": "Identities",
+          "pages": [
+            "api-management/identities/overview",
+            "api-management/identities/shared-rate-limits"
+          ]
+        },
+        {
+          "group": "Authorization",
+          "pages": [
+            "api-management/authorization/overview",
+            "api-management/authorization/roles-and-permissions",
+            "api-management/authorization/permission-queries",
+            "api-management/authorization/managing-key-permissions"
+          ]
+        },
+        {
+          "group": "Analytics",
+          "pages": [
+            "api-management/analytics/overview",
+            "api-management/analytics/query-language",
+            "api-management/analytics/restrictions-and-quotas",
+            "api-management/analytics/tables/key-verifications",
+            "api-management/analytics/tables/ratelimits",
+            "api-management/analytics/examples",
+            "api-management/analytics/troubleshooting"
+          ]
+        },
+        {
+          "group": "Developer portal",
+          "pages": [
+            "api-management/portal/overview",
+            "api-management/portal/sessions",
+            "api-management/portal/end-user-experience"
+          ]
+        },
+        {
+          "group": "Security",
+          "pages": [
+            "api-management/security/overview",
+            "api-management/security/recovering-keys"
+          ]
+        },
+        {
+          "group": "Cookbook",
+          "pages": [
+            "api-management/cookbook/index",
+            "api-management/cookbook/per-user-rate-limit",
+            "api-management/cookbook/endpoint-rate-limit",
+            "api-management/cookbook/usage-billing",
+            "api-management/cookbook/tiered-subscriptions",
+            "api-management/cookbook/go-middleware",
+            "api-management/cookbook/fastapi-auth"
+          ]
+        }
+      ],
+      "href": "/api-management",
+      "icon": "book-open",
+      "path": "/api-management",
+      "product": "API management",
+      "tab": "Guides",
+      "wrap": true
+    },
+    {
+      "groups": [
+        {
+          "group": "APIs",
+          "pages": [
+            "api-management/cli/apis/create-api",
+            "api-management/cli/apis/delete-api",
+            "api-management/cli/apis/get-api",
+            "api-management/cli/apis/list-keys"
+          ]
+        },
+        {
+          "group": "Keys",
+          "pages": [
+            "api-management/cli/keys/add-permissions",
+            "api-management/cli/keys/add-roles",
+            "api-management/cli/keys/create-key",
+            "api-management/cli/keys/delete-key",
+            "api-management/cli/keys/get-key",
+            "api-management/cli/keys/migrate-keys",
+            "api-management/cli/keys/remove-permissions",
+            "api-management/cli/keys/remove-roles",
+            "api-management/cli/keys/reroll-key",
+            "api-management/cli/keys/set-permissions",
+            "api-management/cli/keys/set-roles",
+            "api-management/cli/keys/update-credits",
+            "api-management/cli/keys/update-key",
+            "api-management/cli/keys/verify-key",
+            "api-management/cli/keys/whoami"
+          ]
+        },
+        {
+          "group": "Identities",
+          "pages": [
+            "api-management/cli/identities/create-identity",
+            "api-management/cli/identities/delete-identity",
+            "api-management/cli/identities/get-identity",
+            "api-management/cli/identities/list-identities",
+            "api-management/cli/identities/update-identity"
+          ]
+        },
+        {
+          "group": "Permissions",
+          "pages": [
+            "api-management/cli/permissions/create-permission",
+            "api-management/cli/permissions/create-role",
+            "api-management/cli/permissions/delete-permission",
+            "api-management/cli/permissions/delete-role",
+            "api-management/cli/permissions/get-permission",
+            "api-management/cli/permissions/get-role",
+            "api-management/cli/permissions/list-permissions",
+            "api-management/cli/permissions/list-roles",
+            "api-management/cli/permissions/set-role-permissions"
+          ]
+        },
+        {
+          "group": "Rate limiting",
+          "pages": [
+            "api-management/cli/ratelimit/delete-override",
+            "api-management/cli/ratelimit/get-override",
+            "api-management/cli/ratelimit/limit",
+            "api-management/cli/ratelimit/list-overrides",
+            "api-management/cli/ratelimit/multi-limit",
+            "api-management/cli/ratelimit/set-override"
+          ]
+        },
+        {
+          "group": "Analytics",
+          "pages": [
+            "api-management/cli/analytics/get-ratelimits",
+            "api-management/cli/analytics/get-verifications"
+          ]
+        },
+        {
+          "group": "Portal",
+          "pages": [
+            "api-management/cli/portal/create-portal",
+            "api-management/cli/portal/get-portal",
+            "api-management/cli/portal/update-portal",
+            "api-management/cli/portal/delete-portal",
+            "api-management/cli/portal/create-session"
+          ]
+        }
+      ],
+      "href": "/api-management/cli",
+      "icon": "terminal",
+      "path": "/api-management/cli",
+      "product": "API management",
+      "tab": "CLI",
+      "wrap": true
+    },
+    {
+      "groups": [
+        {
+          "group": "APIs",
+          "pages": [
+            {
+              "page": "POST /v2/apis.createApi",
+              "route": "/api-management/api-reference/apis/create-api-namespace"
+            },
+            {
+              "page": "POST /v2/apis.deleteApi",
+              "route": "/api-management/api-reference/apis/delete-api-namespace"
+            },
+            {
+              "page": "POST /v2/apis.getApi",
+              "route": "/api-management/api-reference/apis/get-api-namespace"
+            },
+            {
+              "page": "POST /v2/apis.listKeys",
+              "route": "/api-management/api-reference/apis/list-api-keys"
+            }
+          ]
+        },
+        {
+          "group": "Keys",
+          "pages": [
+            {
+              "page": "POST /v2/keys.addPermissions",
+              "route": "/api-management/api-reference/keys/add-key-permissions"
+            },
+            {
+              "page": "POST /v2/keys.addRoles",
+              "route": "/api-management/api-reference/keys/add-key-roles"
+            },
+            {
+              "page": "POST /v2/keys.createKey",
+              "route": "/api-management/api-reference/keys/create-api-key"
+            },
+            {
+              "page": "POST /v2/keys.deleteKey",
+              "route": "/api-management/api-reference/keys/delete-api-keys"
+            },
+            {
+              "page": "POST /v2/keys.getKey",
+              "route": "/api-management/api-reference/keys/get-api-key"
+            },
+            {
+              "page": "POST /v2/keys.migrateKeys",
+              "route": "/api-management/api-reference/keys/migrate-api-keys"
+            },
+            {
+              "page": "POST /v2/keys.removePermissions",
+              "route": "/api-management/api-reference/keys/remove-key-permissions"
+            },
+            {
+              "page": "POST /v2/keys.removeRoles",
+              "route": "/api-management/api-reference/keys/remove-key-roles"
+            },
+            {
+              "page": "POST /v2/keys.rerollKey",
+              "route": "/api-management/api-reference/keys/reroll-key"
+            },
+            {
+              "page": "POST /v2/keys.setPermissions",
+              "route": "/api-management/api-reference/keys/set-key-permissions"
+            },
+            {
+              "page": "POST /v2/keys.setRoles",
+              "route": "/api-management/api-reference/keys/set-key-roles"
+            },
+            {
+              "page": "POST /v2/keys.updateCredits",
+              "route": "/api-management/api-reference/keys/update-key-credits"
+            },
+            {
+              "page": "POST /v2/keys.updateKey",
+              "route": "/api-management/api-reference/keys/update-key-settings"
+            },
+            {
+              "page": "POST /v2/keys.verifyKey",
+              "route": "/api-management/api-reference/keys/verify-api-key"
+            },
+            {
+              "page": "POST /v2/keys.whoami",
+              "route": "/api-management/api-reference/keys/get-api-key-by-hash"
+            }
+          ]
+        },
+        {
+          "group": "Identities",
+          "pages": [
+            {
+              "page": "POST /v2/identities.createIdentity",
+              "route": "/api-management/api-reference/identities/create-identity"
+            },
+            {
+              "page": "POST /v2/identities.deleteIdentity",
+              "route": "/api-management/api-reference/identities/delete-identity"
+            },
+            {
+              "page": "POST /v2/identities.getIdentity",
+              "route": "/api-management/api-reference/identities/get-identity"
+            },
+            {
+              "page": "POST /v2/identities.listIdentities",
+              "route": "/api-management/api-reference/identities/list-identities"
+            },
+            {
+              "page": "POST /v2/identities.updateIdentity",
+              "route": "/api-management/api-reference/identities/update-identity"
+            }
+          ]
+        },
+        {
+          "group": "Permissions",
+          "pages": [
+            {
+              "page": "POST /v2/permissions.createPermission",
+              "route": "/api-management/api-reference/permissions/create-permission"
+            },
+            {
+              "page": "POST /v2/permissions.createRole",
+              "route": "/api-management/api-reference/permissions/create-role"
+            },
+            {
+              "page": "POST /v2/permissions.deletePermission",
+              "route": "/api-management/api-reference/permissions/delete-permission"
+            },
+            {
+              "page": "POST /v2/permissions.deleteRole",
+              "route": "/api-management/api-reference/permissions/delete-role"
+            },
+            {
+              "page": "POST /v2/permissions.getPermission",
+              "route": "/api-management/api-reference/permissions/get-permission"
+            },
+            {
+              "page": "POST /v2/permissions.getRole",
+              "route": "/api-management/api-reference/permissions/get-role"
+            },
+            {
+              "page": "POST /v2/permissions.listPermissions",
+              "route": "/api-management/api-reference/permissions/list-permissions"
+            },
+            {
+              "page": "POST /v2/permissions.listRoles",
+              "route": "/api-management/api-reference/permissions/list-roles"
+            },
+            {
+              "page": "POST /v2/permissions.setRolePermissions",
+              "route": "/api-management/api-reference/permissions/set-role-permissions"
+            }
+          ]
+        },
+        {
+          "group": "Rate limiting",
+          "pages": [
+            {
+              "page": "POST /v2/ratelimit.deleteOverride",
+              "route": "/api-management/api-reference/ratelimit/delete-ratelimit-override"
+            },
+            {
+              "page": "POST /v2/ratelimit.getOverride",
+              "route": "/api-management/api-reference/ratelimit/get-ratelimit-override"
+            },
+            {
+              "page": "POST /v2/ratelimit.limit",
+              "route": "/api-management/api-reference/ratelimit/apply-rate-limiting"
+            },
+            {
+              "page": "POST /v2/ratelimit.listOverrides",
+              "route": "/api-management/api-reference/ratelimit/list-ratelimit-overrides"
+            },
+            {
+              "page": "POST /v2/ratelimit.multiLimit",
+              "route": "/api-management/api-reference/ratelimit/apply-multiple-rate-limit-checks"
+            },
+            {
+              "page": "POST /v2/ratelimit.setOverride",
+              "route": "/api-management/api-reference/ratelimit/set-ratelimit-override"
+            }
+          ]
+        },
+        {
+          "group": "Analytics",
+          "pages": [
+            {
+              "page": "POST /v2/analytics.getRatelimits",
+              "route": "/api-management/api-reference/analytics/query-rate-limit-data"
+            },
+            {
+              "page": "POST /v2/analytics.getVerifications",
+              "route": "/api-management/api-reference/analytics/query-key-verification-data"
+            }
+          ]
+        }
+      ],
+      "href": "/api-management/api-reference",
+      "icon": "code",
+      "path": "/api-management/api-reference",
+      "product": "API management",
+      "tab": "API reference",
+      "wrap": true
+    },
+    {
+      "groups": [
+        {
+          "group": "SDKs",
+          "pages": [
+            "api-management/sdks/overview",
+            "api-management/sdks/go",
+            "api-management/sdks/python",
+            "api-management/sdks/community/nuxt"
+          ]
+        },
+        {
+          "group": "TypeScript",
+          "pages": [
+            "api-management/sdks/typescript/api",
+            "api-management/sdks/typescript/ratelimit",
+            "api-management/sdks/typescript/hono",
+            "api-management/sdks/typescript/nextjs",
+            "api-management/sdks/typescript/cache"
+          ]
+        }
+      ],
+      "href": "/api-management/sdks",
+      "icon": "box",
+      "path": "/api-management/sdks",
+      "product": "API management",
+      "tab": "SDKs",
+      "wrap": true
+    }
+  ]
+}

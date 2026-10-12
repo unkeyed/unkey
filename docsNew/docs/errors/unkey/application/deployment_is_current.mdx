@@ -1,0 +1,42 @@
+---
+title: "deployment_is_current"
+description: "The deployment is already the app's current deployment."
+sidebar:
+  label: "deployment_is_current"
+---
+
+:::danger
+`err:unkey:application:deployment_is_current`
+:::
+
+The deployment you're promoting or rolling back to is already the current deployment. You get HTTP 412.
+
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The deployment is already the current deployment.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "/errors/unkey/application/deployment_is_current"
+  }
+}
+```
+
+## Likely causes
+
+- You rolled back to the deployment that's already current. That's always rejected, because there's nothing to change.
+- You promoted the deployment that's already current. The one exception: after a rollback, promoting the current deployment confirms the rollback and is allowed.
+
+## How to fix
+
+1. Check which deployment is current with `apps.getApp` or `deployments.listDeployments` before you promote.
+2. If you meant to redeploy, use `deployments.createDeployment` instead.
+
+## Related errors
+
+- [`err:unkey:application:deployment_no_current`](/errors/unkey/application/deployment_no_current): the app has no current deployment.
+- [`err:unkey:application:deployment_not_ready`](/errors/unkey/application/deployment_not_ready): the target isn't ready.

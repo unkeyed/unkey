@@ -1,0 +1,40 @@
+<script is:inline>
+  (() => {
+    const productOf = (pathname) => {
+      const path = pathname.replace(/\/+$/, "") || "/";
+      if (path === "/compute" || path.startsWith("/compute/")) return "compute";
+      if (path === "/api-management" || path.startsWith("/api-management/")) {
+        return "api-management";
+      }
+      return "platform";
+    };
+    const belongs = (href, product) => {
+      let path = "/";
+      try {
+        path = new URL(href, location.origin).pathname;
+      } catch {
+        return true;
+      }
+      path = path.replace(/\/+$/, "") || "/";
+      if (product === "compute") {
+        return path === "/compute" || path.startsWith("/compute/");
+      }
+      if (product === "api-management") {
+        return path === "/api-management" || path.startsWith("/api-management/");
+      }
+      return path === "/" || path.startsWith("/platform") || path.startsWith("/errors");
+    };
+    const apply = () => {
+      const product = productOf(location.pathname);
+      for (const nav of document.querySelectorAll('nav[aria-label="Sections"]')) {
+        for (const link of nav.querySelectorAll("a[href]")) {
+          const node = link.parentElement?.tagName === "LI" ? link.parentElement : link;
+          node.hidden = !belongs(link.getAttribute("href") || "", product);
+        }
+      }
+    };
+    apply();
+    document.addEventListener("astro:page-load", apply);
+    document.addEventListener("astro:after-swap", apply);
+  })();
+</script>

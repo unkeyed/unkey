@@ -1,0 +1,2492 @@
+[
+  {
+    "from": "/platform/root-keys/permissions-legacy",
+    "status": 308,
+    "to": "/platform/root-keys/permission-reference"
+  },
+  {
+    "from": "/api-reference",
+    "status": 308,
+    "to": "/platform/api/overview"
+  },
+  {
+    "from": "/api-reference/analytics/query-gateway-request-data",
+    "status": 308,
+    "to": "/compute/api-reference/analytics/query-gateway-request-data"
+  },
+  {
+    "from": "/api-reference/analytics/query-key-verification-data",
+    "status": 308,
+    "to": "/api-management/api-reference/analytics/query-key-verification-data"
+  },
+  {
+    "from": "/api-reference/analytics/query-rate-limit-data",
+    "status": 308,
+    "to": "/api-management/api-reference/analytics/query-rate-limit-data"
+  },
+  {
+    "from": "/api-reference/analytics/query-runtime-log-data",
+    "status": 308,
+    "to": "/compute/api-reference/analytics/query-runtime-log-data"
+  },
+  {
+    "from": "/api-reference/auth",
+    "status": 308,
+    "to": "/platform/api/authentication"
+  },
+  {
+    "from": "/api-reference/deploy/create-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/create-deployment"
+  },
+  {
+    "from": "/api-reference/deploy/get-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/get-deployment"
+  },
+  {
+    "from": "/api-reference/deployments/create-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/create-deployment"
+  },
+  {
+    "from": "/api-reference/deployments/create-deployment-1",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/create-deployment"
+  },
+  {
+    "from": "/api-reference/deployments/get-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/get-deployment"
+  },
+  {
+    "from": "/api-reference/deployments/list-deployments",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/list-deployments"
+  },
+  {
+    "from": "/api-reference/deployments/promote-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/promote-deployment"
+  },
+  {
+    "from": "/api-reference/deployments/rollback-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/rollback-deployment"
+  },
+  {
+    "from": "/api-reference/deployments/start-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/start-deployment"
+  },
+  {
+    "from": "/api-reference/deployments/stop-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/stop-deployment"
+  },
+  {
+    "from": "/api-reference/errors",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/overview",
+    "status": 308,
+    "to": "/platform/api/overview"
+  },
+  {
+    "from": "/api-reference/rpc",
+    "status": 308,
+    "to": "/platform/api/rpc-convention"
+  },
+  {
+    "from": "/api-reference/v2/keys/verify-api-key",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/verify-api-key"
+  },
+  {
+    "from": "/apis/features/analytics",
+    "status": 308,
+    "to": "/api-management/analytics/overview"
+  },
+  {
+    "from": "/apis/features/remaining",
+    "status": 308,
+    "to": "/api-management/keys/credits-and-refill"
+  },
+  {
+    "from": "/audit-log/introduction",
+    "status": 308,
+    "to": "/platform/workspace/audit-logs/overview"
+  },
+  {
+    "from": "/audit-log/types",
+    "status": 308,
+    "to": "/platform/workspace/audit-logs/event-types"
+  },
+  {
+    "from": "/build-and-deploy/cli",
+    "status": 308,
+    "to": "/compute/cli/deploy"
+  },
+  {
+    "from": "/build-and-deploy/cli-vs-github",
+    "status": 308,
+    "to": "/compute/build/overview"
+  },
+  {
+    "from": "/build-and-deploy/deployments",
+    "status": 308,
+    "to": "/compute/concepts/deployments"
+  },
+  {
+    "from": "/build-and-deploy/github",
+    "status": 308,
+    "to": "/compute/build/github"
+  },
+  {
+    "from": "/build-and-deploy/overview",
+    "status": 308,
+    "to": "/compute/index"
+  },
+  {
+    "from": "/build-and-deploy/regions",
+    "status": 308,
+    "to": "/compute/concepts/regions"
+  },
+  {
+    "from": "/build-and-deploy/rollbacks",
+    "status": 308,
+    "to": "/compute/concepts/production-and-preview"
+  },
+  {
+    "from": "/builds/dockerfile",
+    "status": 308,
+    "to": "/compute/build/dockerfile"
+  },
+  {
+    "from": "/builds/dockerfile-prompt",
+    "status": 308,
+    "to": "/compute/build/dockerfile"
+  },
+  {
+    "from": "/builds/overview",
+    "status": 308,
+    "to": "/compute/build/overview"
+  },
+  {
+    "from": "/cli/analytics/get-gateway-requests",
+    "status": 308,
+    "to": "/compute/cli/analytics/get-gateway-requests"
+  },
+  {
+    "from": "/cli/analytics/get-ratelimits",
+    "status": 308,
+    "to": "/api-management/cli/analytics/get-ratelimits"
+  },
+  {
+    "from": "/cli/analytics/get-runtime-logs",
+    "status": 308,
+    "to": "/compute/cli/analytics/get-runtime-logs"
+  },
+  {
+    "from": "/cli/analytics/get-verifications",
+    "status": 308,
+    "to": "/api-management/cli/analytics/get-verifications"
+  },
+  {
+    "from": "/cli/auth/login",
+    "status": 308,
+    "to": "/platform/cli/auth/login"
+  },
+  {
+    "from": "/cli/authentication",
+    "status": 308,
+    "to": "/platform/cli/authentication"
+  },
+  {
+    "from": "/cli/overview",
+    "status": 308,
+    "to": "/platform/cli/overview"
+  },
+  {
+    "from": "/cookbook",
+    "status": 308,
+    "to": "/api-management/cookbook/index"
+  },
+  {
+    "from": "/cookbook/cloudflare-workers",
+    "status": 308,
+    "to": "/api-management/guides/cloudflare-workers"
+  },
+  {
+    "from": "/cookbook/endpoint-ratelimit",
+    "status": 308,
+    "to": "/api-management/cookbook/endpoint-rate-limit"
+  },
+  {
+    "from": "/cookbook/express-middleware",
+    "status": 308,
+    "to": "/api-management/guides/express"
+  },
+  {
+    "from": "/cookbook/fastapi-auth",
+    "status": 308,
+    "to": "/api-management/cookbook/fastapi-auth"
+  },
+  {
+    "from": "/cookbook/go-echo-middleware",
+    "status": 308,
+    "to": "/api-management/cookbook/go-middleware"
+  },
+  {
+    "from": "/cookbook/go-gin-middleware",
+    "status": 308,
+    "to": "/api-management/cookbook/go-middleware"
+  },
+  {
+    "from": "/cookbook/go-stdlib-middleware",
+    "status": 308,
+    "to": "/api-management/cookbook/go-middleware"
+  },
+  {
+    "from": "/cookbook/index",
+    "status": 308,
+    "to": "/api-management/cookbook/index"
+  },
+  {
+    "from": "/cookbook/nextjs-api-routes",
+    "status": 308,
+    "to": "/api-management/guides/nextjs"
+  },
+  {
+    "from": "/cookbook/per-user-ratelimit",
+    "status": 308,
+    "to": "/api-management/cookbook/per-user-rate-limit"
+  },
+  {
+    "from": "/cookbook/tiered-subscriptions",
+    "status": 308,
+    "to": "/api-management/cookbook/tiered-subscriptions"
+  },
+  {
+    "from": "/cookbook/usage-billing",
+    "status": 308,
+    "to": "/api-management/cookbook/usage-billing"
+  },
+  {
+    "from": "/environments/overview",
+    "status": 308,
+    "to": "/compute/concepts/projects-apps-environments"
+  },
+  {
+    "from": "/glossary",
+    "status": 308,
+    "to": "/platform/glossary"
+  },
+  {
+    "from": "/introduction",
+    "status": 308,
+    "to": "/"
+  },
+  {
+    "from": "/libraries",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/go/api",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/overview",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/nuxt/overview",
+    "status": 308,
+    "to": "/api-management/sdks/community/nuxt"
+  },
+  {
+    "from": "/libraries/py/api",
+    "status": 308,
+    "to": "/api-management/sdks/python"
+  },
+  {
+    "from": "/libraries/py/overview",
+    "status": 308,
+    "to": "/api-management/sdks/python"
+  },
+  {
+    "from": "/libraries/ts/api",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/cache/interface/store",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/cache"
+  },
+  {
+    "from": "/libraries/ts/cache/overview",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/cache"
+  },
+  {
+    "from": "/libraries/ts/hono",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/hono"
+  },
+  {
+    "from": "/libraries/ts/nextjs",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/nextjs"
+  },
+  {
+    "from": "/libraries/ts/overview",
+    "status": 308,
+    "to": "/api-management/sdks/overview"
+  },
+  {
+    "from": "/libraries/ts/ratelimit/override/delete-override",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/libraries/ts/ratelimit/override/get-override",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/libraries/ts/ratelimit/override/list-overrides",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/libraries/ts/ratelimit/override/overview",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/libraries/ts/ratelimit/override/set-override",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/libraries/ts/ratelimit/ratelimit",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/log-drains/overview",
+    "status": 308,
+    "to": "/platform/workspace/log-drains"
+  },
+  {
+    "from": "/networking/domains",
+    "status": 308,
+    "to": "/compute/networking/custom-domains"
+  },
+  {
+    "from": "/networking/overview",
+    "status": 308,
+    "to": "/compute/networking/automatic-domains"
+  },
+  {
+    "from": "/networking/private-networking",
+    "status": 308,
+    "to": "/compute/networking/private-networking"
+  },
+  {
+    "from": "/networking/public-networking",
+    "status": 308,
+    "to": "/compute/networking/request-lifecycle"
+  },
+  {
+    "from": "/networking/websockets",
+    "status": 308,
+    "to": "/compute/networking/websockets"
+  },
+  {
+    "from": "/networking/wildcard-domains",
+    "status": 308,
+    "to": "/compute/networking/automatic-domains"
+  },
+  {
+    "from": "/observability/logs",
+    "status": 308,
+    "to": "/compute/observe/runtime-logs"
+  },
+  {
+    "from": "/observability/metrics",
+    "status": 308,
+    "to": "/compute/observe/metrics"
+  },
+  {
+    "from": "/observability/overview",
+    "status": 308,
+    "to": "/compute/observe/overview"
+  },
+  {
+    "from": "/observability/requests",
+    "status": 308,
+    "to": "/compute/observe/requests"
+  },
+  {
+    "from": "/onboarding",
+    "status": 308,
+    "to": "/api-management/get-started/quickstart"
+  },
+  {
+    "from": "/onboarding/onboarding-api",
+    "status": 308,
+    "to": "/api-management/get-started/quickstart"
+  },
+  {
+    "from": "/onboarding/onboarding-ratelimiting",
+    "status": 308,
+    "to": "/api-management/ratelimiting/overview"
+  },
+  {
+    "from": "/platform/analytics/get-gateway-requests",
+    "status": 308,
+    "to": "/compute/observe/analytics-api"
+  },
+  {
+    "from": "/platform/analytics/get-ratelimits",
+    "status": 308,
+    "to": "/api-management/analytics/tables/ratelimits"
+  },
+  {
+    "from": "/platform/analytics/get-runtime-logs",
+    "status": 308,
+    "to": "/compute/observe/analytics-api"
+  },
+  {
+    "from": "/platform/analytics/getting-started",
+    "status": 308,
+    "to": "/api-management/analytics/overview"
+  },
+  {
+    "from": "/platform/analytics/overview",
+    "status": 308,
+    "to": "/api-management/analytics/overview"
+  },
+  {
+    "from": "/platform/analytics/query-examples",
+    "status": 308,
+    "to": "/api-management/analytics/examples"
+  },
+  {
+    "from": "/platform/analytics/query-restrictions",
+    "status": 308,
+    "to": "/api-management/analytics/restrictions-and-quotas"
+  },
+  {
+    "from": "/platform/analytics/quick-reference",
+    "status": 308,
+    "to": "/api-management/analytics/query-language"
+  },
+  {
+    "from": "/platform/analytics/schema-reference",
+    "status": 308,
+    "to": "/api-management/analytics/tables/key-verifications"
+  },
+  {
+    "from": "/platform/analytics/troubleshooting",
+    "status": 308,
+    "to": "/api-management/analytics/troubleshooting"
+  },
+  {
+    "from": "/platform/apis/features/authorization/example",
+    "status": 308,
+    "to": "/api-management/authorization/roles-and-permissions"
+  },
+  {
+    "from": "/platform/apis/features/authorization/introduction",
+    "status": 308,
+    "to": "/api-management/authorization/overview"
+  },
+  {
+    "from": "/platform/apis/features/authorization/roles-and-permissions",
+    "status": 308,
+    "to": "/api-management/authorization/roles-and-permissions"
+  },
+  {
+    "from": "/platform/apis/features/authorization/verifying",
+    "status": 308,
+    "to": "/api-management/authorization/permission-queries"
+  },
+  {
+    "from": "/platform/apis/features/enabled",
+    "status": 308,
+    "to": "/api-management/keys/enable-disable-delete"
+  },
+  {
+    "from": "/platform/apis/features/environments",
+    "status": 308,
+    "to": "/api-management/keys/metadata-and-tags"
+  },
+  {
+    "from": "/platform/apis/features/ratelimiting/overview",
+    "status": 308,
+    "to": "/api-management/ratelimiting/key-and-identity-limits"
+  },
+  {
+    "from": "/platform/apis/features/refill",
+    "status": 308,
+    "to": "/api-management/keys/credits-and-refill"
+  },
+  {
+    "from": "/platform/apis/features/remaining",
+    "status": 308,
+    "to": "/api-management/keys/credits-and-refill"
+  },
+  {
+    "from": "/platform/apis/features/rerolling-key",
+    "status": 308,
+    "to": "/api-management/keys/rerolling-keys"
+  },
+  {
+    "from": "/platform/apis/features/revocation",
+    "status": 308,
+    "to": "/api-management/keys/enable-disable-delete"
+  },
+  {
+    "from": "/platform/apis/features/temp-keys",
+    "status": 308,
+    "to": "/api-management/keys/expiration"
+  },
+  {
+    "from": "/platform/apis/features/whitelist",
+    "status": 308,
+    "to": "/api-management/keyspaces/settings"
+  },
+  {
+    "from": "/platform/apis/introduction",
+    "status": 308,
+    "to": "/api-management/index"
+  },
+  {
+    "from": "/platform/apis/keys",
+    "status": 308,
+    "to": "/api-management/get-started/concepts"
+  },
+  {
+    "from": "/platform/apis/migrations/introduction",
+    "status": 308,
+    "to": "/api-management/keys/migrating-keys"
+  },
+  {
+    "from": "/platform/apis/migrations/keys",
+    "status": 308,
+    "to": "/api-management/keys/migrating-keys"
+  },
+  {
+    "from": "/platform/apis/overview",
+    "status": 308,
+    "to": "/api-management/keyspaces/overview"
+  },
+  {
+    "from": "/platform/apps/overview",
+    "status": 308,
+    "to": "/compute/concepts/projects-apps-environments"
+  },
+  {
+    "from": "/platform/apps/settings",
+    "status": 308,
+    "to": "/compute/configure/runtime-settings"
+  },
+  {
+    "from": "/platform/gateway/authentication",
+    "status": 308,
+    "to": "/compute/gateway/principal"
+  },
+  {
+    "from": "/platform/gateway/local-development",
+    "status": 308,
+    "to": "/compute/gateway/local-development"
+  },
+  {
+    "from": "/platform/gateway/overview",
+    "status": 308,
+    "to": "/compute/gateway/overview"
+  },
+  {
+    "from": "/platform/gateway/policies/api-key",
+    "status": 308,
+    "to": "/compute/gateway/api-key-auth"
+  },
+  {
+    "from": "/platform/gateway/policies/firewall",
+    "status": 308,
+    "to": "/compute/gateway/firewall"
+  },
+  {
+    "from": "/platform/gateway/policies/logging",
+    "status": 308,
+    "to": "/compute/gateway/logging"
+  },
+  {
+    "from": "/platform/gateway/policies/openapi-validation",
+    "status": 308,
+    "to": "/compute/gateway/openapi-validation"
+  },
+  {
+    "from": "/platform/gateway/policies/overview",
+    "status": 308,
+    "to": "/compute/gateway/policies"
+  },
+  {
+    "from": "/platform/gateway/policies/rate-limiting",
+    "status": 308,
+    "to": "/compute/gateway/rate-limiting"
+  },
+  {
+    "from": "/platform/gateway/principal/examples",
+    "status": 308,
+    "to": "/compute/gateway/principal"
+  },
+  {
+    "from": "/platform/gateway/principal/local-development",
+    "status": 308,
+    "to": "/compute/gateway/local-development"
+  },
+  {
+    "from": "/platform/gateway/principal/overview",
+    "status": 308,
+    "to": "/compute/gateway/principal"
+  },
+  {
+    "from": "/platform/gateway/principal/sources/api-key",
+    "status": 308,
+    "to": "/compute/gateway/principal"
+  },
+  {
+    "from": "/platform/identities/overview",
+    "status": 308,
+    "to": "/api-management/identities/overview"
+  },
+  {
+    "from": "/platform/identities/ratelimits",
+    "status": 308,
+    "to": "/api-management/identities/shared-rate-limits"
+  },
+  {
+    "from": "/platform/instances/overview",
+    "status": 308,
+    "to": "/compute/concepts/instances-and-autoscaling"
+  },
+  {
+    "from": "/platform/projects/overview",
+    "status": 308,
+    "to": "/compute/concepts/projects-apps-environments"
+  },
+  {
+    "from": "/platform/projects/settings",
+    "status": 308,
+    "to": "/compute/concepts/projects-apps-environments"
+  },
+  {
+    "from": "/platform/ratelimiting/automated-overrides",
+    "status": 308,
+    "to": "/api-management/ratelimiting/overrides"
+  },
+  {
+    "from": "/platform/ratelimiting/how-it-works",
+    "status": 308,
+    "to": "/api-management/ratelimiting/how-it-works"
+  },
+  {
+    "from": "/platform/ratelimiting/introduction",
+    "status": 308,
+    "to": "/api-management/ratelimiting/overview"
+  },
+  {
+    "from": "/platform/ratelimiting/modes",
+    "status": 308,
+    "to": "/api-management/ratelimiting/how-it-works"
+  },
+  {
+    "from": "/platform/ratelimiting/overrides",
+    "status": 308,
+    "to": "/api-management/ratelimiting/overrides"
+  },
+  {
+    "from": "/platform/sentinel",
+    "status": 308,
+    "to": "/compute/gateway/overview"
+  },
+  {
+    "from": "/platform/sentinel/authentication",
+    "status": 308,
+    "to": "/compute/gateway/principal"
+  },
+  {
+    "from": "/platform/sentinel/local-development",
+    "status": 308,
+    "to": "/compute/gateway/local-development"
+  },
+  {
+    "from": "/platform/sentinel/overview",
+    "status": 308,
+    "to": "/compute/gateway/overview"
+  },
+  {
+    "from": "/platform/sentinel/policies/api-key",
+    "status": 308,
+    "to": "/compute/gateway/api-key-auth"
+  },
+  {
+    "from": "/platform/sentinel/policies/firewall",
+    "status": 308,
+    "to": "/compute/gateway/firewall"
+  },
+  {
+    "from": "/platform/sentinel/policies/logging",
+    "status": 308,
+    "to": "/compute/gateway/logging"
+  },
+  {
+    "from": "/platform/sentinel/policies/openapi-validation",
+    "status": 308,
+    "to": "/compute/gateway/openapi-validation"
+  },
+  {
+    "from": "/platform/sentinel/policies/overview",
+    "status": 308,
+    "to": "/compute/gateway/policies"
+  },
+  {
+    "from": "/platform/sentinel/policies/rate-limiting",
+    "status": 308,
+    "to": "/compute/gateway/rate-limiting"
+  },
+  {
+    "from": "/platform/sentinel/principal/examples",
+    "status": 308,
+    "to": "/compute/gateway/principal"
+  },
+  {
+    "from": "/platform/sentinel/principal/local-development",
+    "status": 308,
+    "to": "/compute/gateway/local-development"
+  },
+  {
+    "from": "/platform/sentinel/principal/overview",
+    "status": 308,
+    "to": "/compute/gateway/principal"
+  },
+  {
+    "from": "/platform/sentinel/principal/sources/api-key",
+    "status": 308,
+    "to": "/compute/gateway/principal"
+  },
+  {
+    "from": "/platform/variables/overview",
+    "status": 308,
+    "to": "/compute/configure/environment-variables"
+  },
+  {
+    "from": "/platform/workspaces/billing",
+    "status": 308,
+    "to": "/platform/billing/plans"
+  },
+  {
+    "from": "/platform/workspaces/billing/api",
+    "status": 308,
+    "to": "/platform/billing/plans"
+  },
+  {
+    "from": "/platform/workspaces/billing/compute",
+    "status": 308,
+    "to": "/compute/get-started/plans"
+  },
+  {
+    "from": "/platform/workspaces/billing/overview",
+    "status": 308,
+    "to": "/platform/billing/plans"
+  },
+  {
+    "from": "/platform/workspaces/billing/spend-budget",
+    "status": 308,
+    "to": "/compute/configure/spend-budget"
+  },
+  {
+    "from": "/platform/workspaces/overview",
+    "status": 308,
+    "to": "/platform/workspace/overview"
+  },
+  {
+    "from": "/platform/workspaces/quotas",
+    "status": 308,
+    "to": "/platform/billing/limits"
+  },
+  {
+    "from": "/platform/workspaces/settings",
+    "status": 308,
+    "to": "/platform/workspace/settings"
+  },
+  {
+    "from": "/platform/workspaces/team-members",
+    "status": 308,
+    "to": "/platform/workspace/team"
+  },
+  {
+    "from": "/quickstart",
+    "status": 308,
+    "to": "/api-management/get-started/quickstart"
+  },
+  {
+    "from": "/quickstart/apis/bun",
+    "status": 308,
+    "to": "/api-management/guides/bun"
+  },
+  {
+    "from": "/quickstart/apis/express",
+    "status": 308,
+    "to": "/api-management/guides/express"
+  },
+  {
+    "from": "/quickstart/apis/go",
+    "status": 308,
+    "to": "/api-management/guides/go"
+  },
+  {
+    "from": "/quickstart/apis/hono",
+    "status": 308,
+    "to": "/api-management/guides/hono"
+  },
+  {
+    "from": "/quickstart/apis/nextjs",
+    "status": 308,
+    "to": "/api-management/guides/nextjs"
+  },
+  {
+    "from": "/quickstart/apis/python",
+    "status": 308,
+    "to": "/api-management/guides/python"
+  },
+  {
+    "from": "/quickstart/deploy",
+    "status": 308,
+    "to": "/compute/get-started/deploy-from-github"
+  },
+  {
+    "from": "/quickstart/identities/shared-ratelimits",
+    "status": 308,
+    "to": "/api-management/identities/shared-rate-limits"
+  },
+  {
+    "from": "/quickstart/onboarding/onboarding-api",
+    "status": 308,
+    "to": "/api-management/get-started/quickstart"
+  },
+  {
+    "from": "/quickstart/onboarding/onboarding-ratelimiting",
+    "status": 308,
+    "to": "/api-management/ratelimiting/overview"
+  },
+  {
+    "from": "/quickstart/portal",
+    "status": 308,
+    "to": "/api-management/portal/overview"
+  },
+  {
+    "from": "/quickstart/quickstart",
+    "status": 308,
+    "to": "/api-management/get-started/quickstart"
+  },
+  {
+    "from": "/quickstart/ratelimiting/bun",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/quickstart/ratelimiting/express",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/quickstart/ratelimiting/hono",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/quickstart/ratelimiting/nextjs",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/security/delete-protection",
+    "status": 308,
+    "to": "/platform/security/delete-protection"
+  },
+  {
+    "from": "/security/github-scanning",
+    "status": 308,
+    "to": "/platform/security/github-secret-scanning"
+  },
+  {
+    "from": "/security/overview",
+    "status": 308,
+    "to": "/platform/security/overview"
+  },
+  {
+    "from": "/security/permissions",
+    "status": 308,
+    "to": "/api-management/authorization/overview"
+  },
+  {
+    "from": "/security/recovering-keys",
+    "status": 308,
+    "to": "/api-management/security/recovering-keys"
+  },
+  {
+    "from": "/security/roles",
+    "status": 308,
+    "to": "/api-management/authorization/overview"
+  },
+  {
+    "from": "/ai-code-gen/cursor",
+    "status": 308,
+    "to": "/platform/ai-coding/cursor"
+  },
+  {
+    "from": "/ai-code-gen/overview",
+    "status": 308,
+    "to": "/platform/ai-coding/overview"
+  },
+  {
+    "from": "/ai-code-gen/unkey-mcp",
+    "status": 308,
+    "to": "/platform/ai-coding/mcp-servers"
+  },
+  {
+    "from": "/ai-code-gen/windsurf",
+    "status": 308,
+    "to": "/platform/ai-coding/other-clients"
+  },
+  {
+    "from": "/analytics/api",
+    "status": 308,
+    "to": "/api-management/analytics/overview"
+  },
+  {
+    "from": "/analytics/getting-started",
+    "status": 308,
+    "to": "/api-management/analytics/overview"
+  },
+  {
+    "from": "/analytics/overview",
+    "status": 308,
+    "to": "/api-management/analytics/overview"
+  },
+  {
+    "from": "/analytics/query-examples",
+    "status": 308,
+    "to": "/api-management/analytics/examples"
+  },
+  {
+    "from": "/analytics/query-restrictions",
+    "status": 308,
+    "to": "/api-management/analytics/restrictions-and-quotas"
+  },
+  {
+    "from": "/analytics/quick-reference",
+    "status": 308,
+    "to": "/api-management/analytics/query-language"
+  },
+  {
+    "from": "/analytics/quickstarts",
+    "status": 308,
+    "to": "/api-management/analytics/overview"
+  },
+  {
+    "from": "/analytics/schema-reference",
+    "status": 308,
+    "to": "/api-management/analytics/tables/key-verifications"
+  },
+  {
+    "from": "/analytics/troubleshooting",
+    "status": 308,
+    "to": "/api-management/analytics/troubleshooting"
+  },
+  {
+    "from": "/api-reference/analytics/get_verifications",
+    "status": 308,
+    "to": "/api-management/api-reference/analytics/query-key-verification-data"
+  },
+  {
+    "from": "/api-reference/apis/create",
+    "status": 308,
+    "to": "/api-management/api-reference/apis/create-api-namespace"
+  },
+  {
+    "from": "/api-reference/apis/delete",
+    "status": 308,
+    "to": "/api-management/api-reference/apis/delete-api-namespace"
+  },
+  {
+    "from": "/api-reference/apis/delete-keys",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/delete-api-keys"
+  },
+  {
+    "from": "/api-reference/apis/get",
+    "status": 308,
+    "to": "/api-management/api-reference/apis/get-api-namespace"
+  },
+  {
+    "from": "/api-reference/apis/list-keys",
+    "status": 308,
+    "to": "/api-management/api-reference/apis/list-api-keys"
+  },
+  {
+    "from": "/api-reference/authentication",
+    "status": 308,
+    "to": "/platform/api/authentication"
+  },
+  {
+    "from": "/api-reference/errors-v2/overview",
+    "status": 308,
+    "to": "/errors/overview"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/application/assertion_failed",
+    "status": 308,
+    "to": "/errors/unkey/application/assertion_failed"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/application/invalid_input",
+    "status": 308,
+    "to": "/errors/unkey/application/invalid_input"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/application/protected_resource",
+    "status": 308,
+    "to": "/errors/unkey/application/protected_resource"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/application/service_unavailable",
+    "status": 308,
+    "to": "/errors/unkey/application/service_unavailable"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/application/unexpected_error",
+    "status": 308,
+    "to": "/errors/unkey/application/unexpected_error"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/authentication/key_not_found",
+    "status": 308,
+    "to": "/errors/unkey/authentication/key_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/authentication/malformed",
+    "status": 308,
+    "to": "/errors/unkey/authentication/malformed"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/authentication/missing",
+    "status": 308,
+    "to": "/errors/unkey/authentication/missing"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/authorization/forbidden",
+    "status": 308,
+    "to": "/errors/unkey/authorization/forbidden"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/authorization/insufficient_permissions",
+    "status": 308,
+    "to": "/errors/unkey/authorization/insufficient_permissions"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/authorization/key_disabled",
+    "status": 308,
+    "to": "/errors/unkey/authorization/key_disabled"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/authorization/workspace_disabled",
+    "status": 308,
+    "to": "/errors/unkey/authorization/workspace_disabled"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/api_not_found",
+    "status": 308,
+    "to": "/errors/unkey/data/api_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/audit_log_not_found",
+    "status": 308,
+    "to": "/errors/unkey/data/audit_log_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/identity_already_exists",
+    "status": 308,
+    "to": "/errors/unkey/data/identity_already_exists"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/identity_not_found",
+    "status": 308,
+    "to": "/errors/unkey/data/identity_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/key_auth_not_found",
+    "status": 308,
+    "to": "/errors/unkey/data/key_auth_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/key_not_found",
+    "status": 308,
+    "to": "/errors/unkey/data/key_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/permission_not_found",
+    "status": 308,
+    "to": "/errors/unkey/data/permission_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found",
+    "status": 308,
+    "to": "/errors/unkey/data/ratelimit_namespace_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/ratelimit_override_not_found",
+    "status": 308,
+    "to": "/errors/unkey/data/ratelimit_override_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/role_not_found",
+    "status": 308,
+    "to": "/errors/unkey/data/role_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/unkey/data/workspace_not_found",
+    "status": 308,
+    "to": "/errors/unkey/data/workspace_not_found"
+  },
+  {
+    "from": "/api-reference/errors-v2/user/bad_request/permissions_query_syntax_error",
+    "status": 308,
+    "to": "/errors/user/bad_request/permissions_query_syntax_error"
+  },
+  {
+    "from": "/api-reference/errors/introduction",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/keys/add-permissions",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/add-key-permissions"
+  },
+  {
+    "from": "/api-reference/keys/add-roles",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/add-key-roles"
+  },
+  {
+    "from": "/api-reference/keys/create",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/create-api-key"
+  },
+  {
+    "from": "/api-reference/keys/delete",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/delete-api-keys"
+  },
+  {
+    "from": "/api-reference/keys/get",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/get-api-key"
+  },
+  {
+    "from": "/api-reference/keys/remove-permissions",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/remove-key-permissions"
+  },
+  {
+    "from": "/api-reference/keys/remove-role",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/remove-key-roles"
+  },
+  {
+    "from": "/api-reference/keys/remove-roles",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/remove-key-roles"
+  },
+  {
+    "from": "/api-reference/keys/revoke",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/delete-api-keys"
+  },
+  {
+    "from": "/api-reference/keys/set-permissions",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/set-key-permissions"
+  },
+  {
+    "from": "/api-reference/keys/set-roles",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/set-key-roles"
+  },
+  {
+    "from": "/api-reference/keys/update",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/update-key-settings"
+  },
+  {
+    "from": "/api-reference/keys/update-remaining",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/update-key-credits"
+  },
+  {
+    "from": "/api-reference/keys/verifications",
+    "status": 308,
+    "to": "/api-management/api-reference/analytics/query-key-verification-data"
+  },
+  {
+    "from": "/api-reference/keys/verify",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/verify-api-key"
+  },
+  {
+    "from": "/api-reference/keys/whoami",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/get-api-key-by-hash"
+  },
+  {
+    "from": "/api-reference/migrations/create-keys",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/migrate-api-keys"
+  },
+  {
+    "from": "/api-reference/ratelimits/delete-override",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/delete-ratelimit-override"
+  },
+  {
+    "from": "/api-reference/ratelimits/get-override",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/get-ratelimit-override"
+  },
+  {
+    "from": "/api-reference/ratelimits/limit",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/apply-rate-limiting"
+  },
+  {
+    "from": "/api-reference/ratelimits/list-overrides",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/list-ratelimit-overrides"
+  },
+  {
+    "from": "/api-reference/ratelimits/set-override",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/set-ratelimit-override"
+  },
+  {
+    "from": "/api-reference/v1/analytics/get-verification-analytics",
+    "status": 308,
+    "to": "/api-management/api-reference/analytics/query-key-verification-data"
+  },
+  {
+    "from": "/api-reference/v1/apis/create-api-namespace",
+    "status": 308,
+    "to": "/api-management/api-reference/apis/create-api-namespace"
+  },
+  {
+    "from": "/api-reference/v1/apis/delete-api-keys",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/delete-api-keys"
+  },
+  {
+    "from": "/api-reference/v1/apis/delete-api-namespace",
+    "status": 308,
+    "to": "/api-management/api-reference/apis/delete-api-namespace"
+  },
+  {
+    "from": "/api-reference/v1/apis/get-api-namespace",
+    "status": 308,
+    "to": "/api-management/api-reference/apis/get-api-namespace"
+  },
+  {
+    "from": "/api-reference/v1/apis/list-api-keys",
+    "status": 308,
+    "to": "/api-management/api-reference/apis/list-api-keys"
+  },
+  {
+    "from": "/api-reference/v1/authentication",
+    "status": 308,
+    "to": "/platform/api/authentication"
+  },
+  {
+    "from": "/api-reference/v1/identities/create-identity",
+    "status": 308,
+    "to": "/api-management/api-reference/identities/create-identity"
+  },
+  {
+    "from": "/api-reference/v1/identities/delete-identity",
+    "status": 308,
+    "to": "/api-management/api-reference/identities/delete-identity"
+  },
+  {
+    "from": "/api-reference/v1/identities/get-identity",
+    "status": 308,
+    "to": "/api-management/api-reference/identities/get-identity"
+  },
+  {
+    "from": "/api-reference/v1/identities/list-identities",
+    "status": 308,
+    "to": "/api-management/api-reference/identities/list-identities"
+  },
+  {
+    "from": "/api-reference/v1/identities/update-identity",
+    "status": 308,
+    "to": "/api-management/api-reference/identities/update-identity"
+  },
+  {
+    "from": "/api-reference/v1/keys/add-key-permissions",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/add-key-permissions"
+  },
+  {
+    "from": "/api-reference/v1/keys/add-key-roles",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/add-key-roles"
+  },
+  {
+    "from": "/api-reference/v1/keys/create-api-key",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/create-api-key"
+  },
+  {
+    "from": "/api-reference/v1/keys/delete-api-key",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/delete-api-keys"
+  },
+  {
+    "from": "/api-reference/v1/keys/get-api-key",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/get-api-key"
+  },
+  {
+    "from": "/api-reference/v1/keys/get-key-information",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/get-api-key-by-hash"
+  },
+  {
+    "from": "/api-reference/v1/keys/remove-key-permissions",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/remove-key-permissions"
+  },
+  {
+    "from": "/api-reference/v1/keys/remove-key-roles",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/remove-key-roles"
+  },
+  {
+    "from": "/api-reference/v1/keys/set-key-permissions",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/set-key-permissions"
+  },
+  {
+    "from": "/api-reference/v1/keys/set-key-roles",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/set-key-roles"
+  },
+  {
+    "from": "/api-reference/v1/keys/update-key-credits",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/update-key-credits"
+  },
+  {
+    "from": "/api-reference/v1/keys/update-key-settings",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/update-key-settings"
+  },
+  {
+    "from": "/api-reference/v1/keys/verify-api-key",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/verify-api-key"
+  },
+  {
+    "from": "/api-reference/v1/migrations/migrate-keys",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/migrate-api-keys"
+  },
+  {
+    "from": "/api-reference/v1/overview",
+    "status": 308,
+    "to": "/platform/api/overview"
+  },
+  {
+    "from": "/api-reference/v1/permissions/create-permission",
+    "status": 308,
+    "to": "/api-management/api-reference/permissions/create-permission"
+  },
+  {
+    "from": "/api-reference/v1/permissions/create-role",
+    "status": 308,
+    "to": "/api-management/api-reference/permissions/create-role"
+  },
+  {
+    "from": "/api-reference/v1/permissions/delete-permission",
+    "status": 308,
+    "to": "/api-management/api-reference/permissions/delete-permission"
+  },
+  {
+    "from": "/api-reference/v1/permissions/delete-role",
+    "status": 308,
+    "to": "/api-management/api-reference/permissions/delete-role"
+  },
+  {
+    "from": "/api-reference/v1/permissions/get-permission",
+    "status": 308,
+    "to": "/api-management/api-reference/permissions/get-permission"
+  },
+  {
+    "from": "/api-reference/v1/permissions/get-role",
+    "status": 308,
+    "to": "/api-management/api-reference/permissions/get-role"
+  },
+  {
+    "from": "/api-reference/v1/permissions/list-permissions",
+    "status": 308,
+    "to": "/api-management/api-reference/permissions/list-permissions"
+  },
+  {
+    "from": "/api-reference/v1/permissions/list-roles",
+    "status": 308,
+    "to": "/api-management/api-reference/permissions/list-roles"
+  },
+  {
+    "from": "/api-reference/v1/ratelimits/check-rate-limit",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/apply-rate-limiting"
+  },
+  {
+    "from": "/api-reference/v1/ratelimits/delete-rate-limit-override",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/delete-ratelimit-override"
+  },
+  {
+    "from": "/api-reference/v1/ratelimits/get-rate-limit-override",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/get-ratelimit-override"
+  },
+  {
+    "from": "/api-reference/v1/ratelimits/list-rate-limit-overrides",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/list-ratelimit-overrides"
+  },
+  {
+    "from": "/api-reference/v1/ratelimits/set-rate-limit-override",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/set-ratelimit-override"
+  },
+  {
+    "from": "/api-reference/v2/analytics/query-gateway-request-data",
+    "status": 308,
+    "to": "/compute/api-reference/analytics/query-gateway-request-data"
+  },
+  {
+    "from": "/api-reference/v2/analytics/query-key-verification-data",
+    "status": 308,
+    "to": "/api-management/api-reference/analytics/query-key-verification-data"
+  },
+  {
+    "from": "/api-reference/v2/analytics/query-rate-limit-data",
+    "status": 308,
+    "to": "/api-management/api-reference/analytics/query-rate-limit-data"
+  },
+  {
+    "from": "/api-reference/v2/analytics/query-runtime-log-data",
+    "status": 308,
+    "to": "/compute/api-reference/analytics/query-runtime-log-data"
+  },
+  {
+    "from": "/api-reference/v2/auth",
+    "status": 308,
+    "to": "/platform/api/authentication"
+  },
+  {
+    "from": "/api-reference/v2/deploy/create-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/create-deployment"
+  },
+  {
+    "from": "/api-reference/v2/deploy/get-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/get-deployment"
+  },
+  {
+    "from": "/api-reference/v2/deployments/create-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/create-deployment"
+  },
+  {
+    "from": "/api-reference/v2/deployments/get-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/get-deployment"
+  },
+  {
+    "from": "/api-reference/v2/deployments/list-deployments",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/list-deployments"
+  },
+  {
+    "from": "/api-reference/v2/deployments/promote-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/promote-deployment"
+  },
+  {
+    "from": "/api-reference/v2/deployments/rollback-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/rollback-deployment"
+  },
+  {
+    "from": "/api-reference/v2/deployments/start-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/start-deployment"
+  },
+  {
+    "from": "/api-reference/v2/deployments/stop-deployment",
+    "status": 308,
+    "to": "/compute/api-reference/deployments/stop-deployment"
+  },
+  {
+    "from": "/api-reference/v2/errors",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/v2/overview",
+    "status": 308,
+    "to": "/platform/api/overview"
+  },
+  {
+    "from": "/api-reference/v2/rpc",
+    "status": 308,
+    "to": "/platform/api/rpc-convention"
+  },
+  {
+    "from": "/apis/features/authorization/example",
+    "status": 308,
+    "to": "/api-management/authorization/roles-and-permissions"
+  },
+  {
+    "from": "/apis/features/authorization/introduction",
+    "status": 308,
+    "to": "/api-management/authorization/overview"
+  },
+  {
+    "from": "/apis/features/authorization/roles-and-permissions",
+    "status": 308,
+    "to": "/api-management/authorization/roles-and-permissions"
+  },
+  {
+    "from": "/apis/features/authorization/verifying",
+    "status": 308,
+    "to": "/api-management/authorization/permission-queries"
+  },
+  {
+    "from": "/apis/features/enabled",
+    "status": 308,
+    "to": "/api-management/keys/enable-disable-delete"
+  },
+  {
+    "from": "/apis/features/environments",
+    "status": 308,
+    "to": "/api-management/keys/metadata-and-tags"
+  },
+  {
+    "from": "/apis/features/ratelimiting",
+    "status": 308,
+    "to": "/api-management/ratelimiting/key-and-identity-limits"
+  },
+  {
+    "from": "/apis/features/ratelimiting/modes",
+    "status": 308,
+    "to": "/api-management/ratelimiting/how-it-works"
+  },
+  {
+    "from": "/apis/features/ratelimiting/overview",
+    "status": 308,
+    "to": "/api-management/ratelimiting/key-and-identity-limits"
+  },
+  {
+    "from": "/apis/features/refill",
+    "status": 308,
+    "to": "/api-management/keys/credits-and-refill"
+  },
+  {
+    "from": "/apis/features/rerolling-key",
+    "status": 308,
+    "to": "/api-management/keys/rerolling-keys"
+  },
+  {
+    "from": "/apis/features/revocation",
+    "status": 308,
+    "to": "/api-management/keys/enable-disable-delete"
+  },
+  {
+    "from": "/apis/features/temp-keys",
+    "status": 308,
+    "to": "/api-management/keys/expiration"
+  },
+  {
+    "from": "/apis/features/whitelist",
+    "status": 308,
+    "to": "/api-management/keyspaces/settings"
+  },
+  {
+    "from": "/apis/introduction",
+    "status": 308,
+    "to": "/api-management/index"
+  },
+  {
+    "from": "/apis/quickstart/bun",
+    "status": 308,
+    "to": "/api-management/guides/bun"
+  },
+  {
+    "from": "/apis/quickstart/express",
+    "status": 308,
+    "to": "/api-management/guides/express"
+  },
+  {
+    "from": "/apis/quickstart/nextjs",
+    "status": 308,
+    "to": "/api-management/guides/nextjs"
+  },
+  {
+    "from": "/audit-log/log-drains",
+    "status": 308,
+    "to": "/platform/workspace/log-drains"
+  },
+  {
+    "from": "/concepts/identities/overview",
+    "status": 308,
+    "to": "/api-management/identities/overview"
+  },
+  {
+    "from": "/concepts/identities/quickstart",
+    "status": 308,
+    "to": "/api-management/identities/shared-rate-limits"
+  },
+  {
+    "from": "/concepts/identities/ratelimits",
+    "status": 308,
+    "to": "/api-management/identities/shared-rate-limits"
+  },
+  {
+    "from": "/features/analytics",
+    "status": 308,
+    "to": "/api-management/analytics/overview"
+  },
+  {
+    "from": "/features/audit-log",
+    "status": 308,
+    "to": "/platform/workspace/audit-logs/overview"
+  },
+  {
+    "from": "/features/authorization/example",
+    "status": 308,
+    "to": "/api-management/authorization/roles-and-permissions"
+  },
+  {
+    "from": "/features/authorization/introduction",
+    "status": 308,
+    "to": "/api-management/authorization/overview"
+  },
+  {
+    "from": "/features/authorization/roles-and-permissions",
+    "status": 308,
+    "to": "/api-management/authorization/roles-and-permissions"
+  },
+  {
+    "from": "/features/authorization/verifying",
+    "status": 308,
+    "to": "/api-management/authorization/permission-queries"
+  },
+  {
+    "from": "/features/enabled",
+    "status": 308,
+    "to": "/api-management/keys/enable-disable-delete"
+  },
+  {
+    "from": "/features/environments",
+    "status": 308,
+    "to": "/api-management/keys/metadata-and-tags"
+  },
+  {
+    "from": "/features/ratelimiting",
+    "status": 308,
+    "to": "/api-management/ratelimiting/key-and-identity-limits"
+  },
+  {
+    "from": "/features/refill",
+    "status": 308,
+    "to": "/api-management/keys/credits-and-refill"
+  },
+  {
+    "from": "/features/remaining",
+    "status": 308,
+    "to": "/api-management/keys/credits-and-refill"
+  },
+  {
+    "from": "/features/revocation",
+    "status": 308,
+    "to": "/api-management/keys/enable-disable-delete"
+  },
+  {
+    "from": "/features/temp-keys",
+    "status": 308,
+    "to": "/api-management/keys/expiration"
+  },
+  {
+    "from": "/features/whitelist",
+    "status": 308,
+    "to": "/api-management/keyspaces/settings"
+  },
+  {
+    "from": "/integrations/vercel",
+    "status": 308,
+    "to": "/"
+  },
+  {
+    "from": "/libraries/go/api/get",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/api/list",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/apis/get",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/apis/list-keys",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/apis/overview",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/functions/create",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/functions/revoke",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/functions/update",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/functions/verify",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/keys/create",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/keys/delete",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/keys/get",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/keys/get-verifications",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/keys/update",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/keys/update-remaining",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/keys/verify",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/go/ratelimits/limit",
+    "status": 308,
+    "to": "/api-management/sdks/go"
+  },
+  {
+    "from": "/libraries/py/async",
+    "status": 308,
+    "to": "/api-management/sdks/python"
+  },
+  {
+    "from": "/libraries/py/services/apis",
+    "status": 308,
+    "to": "/api-management/sdks/python"
+  },
+  {
+    "from": "/libraries/py/services/identities",
+    "status": 308,
+    "to": "/api-management/sdks/python"
+  },
+  {
+    "from": "/libraries/py/services/keys",
+    "status": 308,
+    "to": "/api-management/sdks/python"
+  },
+  {
+    "from": "/libraries/py/services/migrations",
+    "status": 308,
+    "to": "/api-management/sdks/python"
+  },
+  {
+    "from": "/libraries/py/services/permissions",
+    "status": 308,
+    "to": "/api-management/sdks/python"
+  },
+  {
+    "from": "/libraries/py/services/ratelimits",
+    "status": 308,
+    "to": "/api-management/sdks/python"
+  },
+  {
+    "from": "/libraries/ts/cache",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/cache"
+  },
+  {
+    "from": "/libraries/ts/ratelimit",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/ratelimit"
+  },
+  {
+    "from": "/libraries/ts/sdk/analytics/get",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/apis/create",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/apis/delete",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/apis/get",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/apis/list-keys",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/identities/create-identity",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/identities/delete-identity",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/identities/get-identity",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/identities/list-identity",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/identities/update-identity",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/add-permission",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/add-roles",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/create",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/delete",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/get",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/remove-permission",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/remove-roles",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/revoke",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/set-permission",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/set-roles",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/update",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/update-remaining",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/verifications",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/keys/verify",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/migrations/migrate-to-unkey",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/overview",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/permissions/create-permission",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/permissions/create-role",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/permissions/delete-permission",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/permissions/delete-role",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/permissions/get-permission",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/permissions/get-role",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/ratelimits/limit",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/ratelimits/overrides/delete-override",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/ratelimits/overrides/get-override",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/ratelimits/overrides/list-overrides",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/ts/sdk/ratelimits/overrides/set-override",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/migrations/introduction",
+    "status": 308,
+    "to": "/api-management/keys/migrating-keys"
+  },
+  {
+    "from": "/migrations/keys",
+    "status": 308,
+    "to": "/api-management/keys/migrating-keys"
+  },
+  {
+    "from": "/platform/workspaces/compute-billing",
+    "status": 308,
+    "to": "/compute/get-started/plans"
+  },
+  {
+    "from": "/quickstart/bun",
+    "status": 308,
+    "to": "/api-management/guides/bun"
+  },
+  {
+    "from": "/quickstart/express",
+    "status": 308,
+    "to": "/api-management/guides/express"
+  },
+  {
+    "from": "/quickstart/expresss",
+    "status": 308,
+    "to": "/api-management/guides/express"
+  },
+  {
+    "from": "/quickstart/nextjs",
+    "status": 308,
+    "to": "/api-management/guides/nextjs"
+  },
+  {
+    "from": "/quickstart/onboarding",
+    "status": 308,
+    "to": "/api-management/get-started/quickstart"
+  },
+  {
+    "from": "/quickstart/typescript/bun",
+    "status": 308,
+    "to": "/api-management/guides/bun"
+  },
+  {
+    "from": "/quickstart/typescript/express",
+    "status": 308,
+    "to": "/api-management/guides/express"
+  },
+  {
+    "from": "/ratelimiting/automated-overrides",
+    "status": 308,
+    "to": "/api-management/ratelimiting/overrides"
+  },
+  {
+    "from": "/ratelimiting/introduction",
+    "status": 308,
+    "to": "/api-management/ratelimiting/overview"
+  },
+  {
+    "from": "/ratelimiting/modes",
+    "status": 308,
+    "to": "/api-management/ratelimiting/how-it-works"
+  },
+  {
+    "from": "/ratelimiting/overrides",
+    "status": 308,
+    "to": "/api-management/ratelimiting/overrides"
+  },
+  {
+    "from": "/security",
+    "status": 308,
+    "to": "/platform/security/overview"
+  },
+  {
+    "from": "/security/root-keys",
+    "status": 308,
+    "to": "/platform/root-keys/overview"
+  },
+  {
+    "from": "/api-reference/errors/code/BAD_REQUEST",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/CONFLICT",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/DELETE_PROTECTED",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/DISABLED",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/EXPIRED",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/FORBIDDEN",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/INTERNAL_SERVER_ERROR",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/INVALID_KEY_TYPE",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/KEY_USAGE_EXCEEDED",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/NOT_FOUND",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/NOT_UNIQUE",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/PRECONDITION_FAILED",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/RATELIMITED",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/TOO_MANY_REQUESTS",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/api-reference/errors/code/UNAUTHORIZED",
+    "status": 308,
+    "to": "/platform/api/errors"
+  },
+  {
+    "from": "/cookbook/python-fastapi-ratelimit",
+    "status": 308,
+    "to": "/api-management/cookbook/fastapi-auth"
+  },
+  {
+    "from": "/cookbook/python-flask-auth",
+    "status": 308,
+    "to": "/api-management/guides/python"
+  },
+  {
+    "from": "/libraries/js/apis/get",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/js/apis/list-keys",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/js/keys/create",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/js/keys/revoke",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/js/keys/update",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/js/keys/verify",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/libraries/js/overview",
+    "status": 308,
+    "to": "/api-management/sdks/typescript/api"
+  },
+  {
+    "from": "/platform/sentinel/policies/ip-rules",
+    "status": 308,
+    "to": "/compute/gateway/policies"
+  },
+  {
+    "from": "/platform/sentinel/policies/jwt",
+    "status": 308,
+    "to": "/compute/gateway/policies"
+  },
+  {
+    "from": "/platform/sentinel/principal/sources/jwt",
+    "status": 308,
+    "to": "/compute/gateway/principal"
+  },
+  {
+    "from": "/api-reference/v2/apis/:slug*",
+    "status": 308,
+    "to": "/api-management/api-reference/apis/:slug*"
+  },
+  {
+    "from": "/api-reference/v2/apps/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/apps/:slug*"
+  },
+  {
+    "from": "/api-reference/v2/domains/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/domains/:slug*"
+  },
+  {
+    "from": "/api-reference/v2/environments/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/environments/:slug*"
+  },
+  {
+    "from": "/api-reference/v2/gateway/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/gateway/:slug*"
+  },
+  {
+    "from": "/api-reference/v2/github/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/github/:slug*"
+  },
+  {
+    "from": "/api-reference/v2/identities/:slug*",
+    "status": 308,
+    "to": "/api-management/api-reference/identities/:slug*"
+  },
+  {
+    "from": "/api-reference/v2/keys/:slug*",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/:slug*"
+  },
+  {
+    "from": "/api-reference/v2/permissions/:slug*",
+    "status": 308,
+    "to": "/api-management/api-reference/permissions/:slug*"
+  },
+  {
+    "from": "/api-reference/v2/projects/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/projects/:slug*"
+  },
+  {
+    "from": "/api-reference/v2/ratelimit/:slug*",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/:slug*"
+  },
+  {
+    "from": "/api-reference/apis/:slug*",
+    "status": 308,
+    "to": "/api-management/api-reference/apis/:slug*"
+  },
+  {
+    "from": "/api-reference/keys/:slug*",
+    "status": 308,
+    "to": "/api-management/api-reference/keys/:slug*"
+  },
+  {
+    "from": "/api-reference/identities/:slug*",
+    "status": 308,
+    "to": "/api-management/api-reference/identities/:slug*"
+  },
+  {
+    "from": "/api-reference/permissions/:slug*",
+    "status": 308,
+    "to": "/api-management/api-reference/permissions/:slug*"
+  },
+  {
+    "from": "/api-reference/ratelimit/:slug*",
+    "status": 308,
+    "to": "/api-management/api-reference/ratelimit/:slug*"
+  },
+  {
+    "from": "/api-reference/apps/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/apps/:slug*"
+  },
+  {
+    "from": "/api-reference/domains/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/domains/:slug*"
+  },
+  {
+    "from": "/api-reference/environments/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/environments/:slug*"
+  },
+  {
+    "from": "/api-reference/gateway/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/gateway/:slug*"
+  },
+  {
+    "from": "/api-reference/github/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/github/:slug*"
+  },
+  {
+    "from": "/api-reference/projects/:slug*",
+    "status": 308,
+    "to": "/compute/api-reference/projects/:slug*"
+  },
+  {
+    "from": "/cli/apis/:slug*",
+    "status": 308,
+    "to": "/api-management/cli/apis/:slug*"
+  },
+  {
+    "from": "/cli/identities/:slug*",
+    "status": 308,
+    "to": "/api-management/cli/identities/:slug*"
+  },
+  {
+    "from": "/cli/keys/:slug*",
+    "status": 308,
+    "to": "/api-management/cli/keys/:slug*"
+  },
+  {
+    "from": "/cli/permissions/:slug*",
+    "status": 308,
+    "to": "/api-management/cli/permissions/:slug*"
+  },
+  {
+    "from": "/cli/portal/:slug*",
+    "status": 308,
+    "to": "/api-management/cli/portal/:slug*"
+  },
+  {
+    "from": "/cli/ratelimit/:slug*",
+    "status": 308,
+    "to": "/api-management/cli/ratelimit/:slug*"
+  },
+  {
+    "from": "/cli/apps/:slug*",
+    "status": 308,
+    "to": "/compute/cli/apps/:slug*"
+  },
+  {
+    "from": "/cli/deployments/:slug*",
+    "status": 308,
+    "to": "/compute/cli/deployments/:slug*"
+  },
+  {
+    "from": "/cli/domains/:slug*",
+    "status": 308,
+    "to": "/compute/cli/domains/:slug*"
+  },
+  {
+    "from": "/cli/environments/:slug*",
+    "status": 308,
+    "to": "/compute/cli/environments/:slug*"
+  },
+  {
+    "from": "/cli/gateway/:slug*",
+    "status": 308,
+    "to": "/compute/cli/gateway/:slug*"
+  },
+  {
+    "from": "/cli/github/:slug*",
+    "status": 308,
+    "to": "/compute/cli/github/:slug*"
+  },
+  {
+    "from": "/cli/projects/:slug*",
+    "status": 308,
+    "to": "/compute/cli/projects/:slug*"
+  },
+  {
+    "from": "/api-management/audit-logs/log-drains",
+    "status": 308,
+    "to": "/platform/workspace/log-drains"
+  },
+  {
+    "from": "/api-management/audit-logs/overview",
+    "status": 308,
+    "to": "/platform/workspace/audit-logs/overview"
+  },
+  {
+    "from": "/api-management/audit-logs/event-types",
+    "status": 308,
+    "to": "/platform/workspace/audit-logs/event-types"
+  },
+  {
+    "from": "/api-management/audit-logs",
+    "status": 308,
+    "to": "/platform/workspace/audit-logs/overview"
+  }
+]

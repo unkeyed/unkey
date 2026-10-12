@@ -1,0 +1,17 @@
+[
+  {
+    "from": "/compute/index",
+    "status": 308,
+    "to": "/compute"
+  },
+  {
+    "from": "/api-management/cookbook/index",
+    "status": 308,
+    "to": "/api-management/cookbook"
+  },
+  {
+    "from": "/api-management/index",
+    "status": 308,
+    "to": "/api-management"
+  }
+]

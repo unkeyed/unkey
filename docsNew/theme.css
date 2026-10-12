@@ -1,0 +1,277 @@
+@import url("https://use.typekit.net/tcb4uyw.css");
+
+@font-face {
+  font-family: "articulat-cf-fallback";
+  src: local("Arial");
+  size-adjust: 96.17%;
+  ascent-override: 109.91%;
+  descent-override: 24.29%;
+  line-gap-override: 0%;
+}
+
+:root {
+  --blume-font-display: articulat-cf, articulat-cf-fallback, sans-serif;
+  --unkey-font-mono: var(--blume-font-mono);
+  --unkey-bg: #ffffff;
+  --unkey-bg-subtle: #f9fafb;
+  --unkey-border: #e3e4e9;
+  --unkey-border-strong: #c7c9d1;
+  --unkey-text: #121317;
+  --unkey-text-muted: #60606c;
+  --unkey-text-faint: #777a88;
+  --unkey-success: #067a6f;
+  --unkey-radius-lg: 8px;
+  --unkey-radius-panel: 12px;
+}
+
+[data-theme="dark"] {
+  --unkey-bg: #040406;
+  --unkey-bg-subtle: #121317;
+  --unkey-border: #2e3038;
+  --unkey-border-strong: #464853;
+  --unkey-text: #ffffff;
+  --unkey-text-muted: #abaebb;
+  --unkey-text-faint: #9194a1;
+  --unkey-success: #45b36e;
+}
+
+#blume-content .unkey-home {
+  color: var(--unkey-text);
+}
+
+#blume-content .unkey-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+#blume-content .unkey-product {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--unkey-border);
+  border-radius: var(--unkey-radius-panel);
+  background: var(--unkey-bg);
+  color: var(--unkey-text);
+  text-decoration: none;
+}
+
+#blume-content .unkey-product:hover {
+  border-color: var(--unkey-border-strong);
+}
+
+#blume-content .unkey-product-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 190px;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--unkey-border);
+  background-color: var(--unkey-bg-subtle);
+  background-image: radial-gradient(var(--unkey-border-strong) 0.7px, transparent 0.7px);
+  background-size: 12px 12px;
+}
+
+#blume-content .unkey-console {
+  width: 100%;
+  max-width: 290px;
+  overflow: hidden;
+  border: 1px solid var(--unkey-border-strong);
+  border-radius: var(--unkey-radius-lg);
+  background: var(--unkey-bg);
+  font-family: var(--unkey-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5rem;
+}
+
+#blume-content .unkey-console-head,
+#blume-content .unkey-console-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+}
+
+#blume-content .unkey-console-head {
+  border-bottom: 1px solid var(--unkey-border);
+  color: var(--unkey-text-muted);
+}
+
+#blume-content .unkey-console-row + .unkey-console-row {
+  border-top: 1px solid var(--unkey-border);
+}
+
+#blume-content .unkey-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--unkey-success);
+  font-size: 0.6875rem;
+}
+
+#blume-content .unkey-status::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+#blume-content .unkey-console-muted {
+  color: var(--unkey-text-faint);
+}
+
+#blume-content .unkey-product-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.5rem;
+}
+
+#blume-content .unkey-eyebrow {
+  font-family: var(--unkey-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--unkey-text-faint);
+}
+
+#blume-content .unkey-product-title {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 1.375rem;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+#blume-content .unkey-product-description {
+  margin-bottom: 1.5rem;
+  color: var(--unkey-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+#blume-content .unkey-product-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  align-self: stretch;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--unkey-border);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+#blume-content .unkey-platform-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--unkey-border);
+  border-radius: var(--unkey-radius-lg);
+  background: var(--unkey-bg);
+  color: var(--unkey-text);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+#blume-content .unkey-platform-art {
+  flex: 0 0 38%;
+  align-self: stretch;
+  min-height: 190px;
+  border-right: 1px solid var(--unkey-border);
+  background-color: var(--unkey-bg-subtle);
+  background-image: url("/images/cards/workspace-light.svg"),
+    radial-gradient(var(--unkey-border-strong) 0.7px, transparent 0.7px);
+  background-size: min(100%, 480px) auto, 16px 16px;
+  background-position: center;
+  background-repeat: no-repeat, repeat;
+}
+
+[data-theme="dark"] #blume-content .unkey-platform-art {
+  background-image: url("/images/cards/workspace-dark.svg"),
+    radial-gradient(var(--unkey-border-strong) 0.7px, transparent 0.7px);
+}
+
+#blume-content .unkey-platform-copy {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+#blume-content .unkey-platform-title {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+#blume-content .unkey-platform-description {
+  color: var(--unkey-text-muted);
+}
+
+#blume-content .unkey-resources {
+  margin-top: 2.5rem;
+}
+
+#blume-content .unkey-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+#blume-content .unkey-resource-grid a {
+  padding-top: 1rem;
+  border-top: 1px solid var(--unkey-border);
+  color: var(--unkey-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+#blume-content .unkey-resource-description {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--unkey-text-muted);
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+#blume-content .unkey-product-card {
+  position: relative;
+  border: 1px solid var(--unkey-border);
+  border-radius: var(--unkey-radius-lg);
+  padding: 1.25rem;
+}
+
+#blume-content .unkey-product-card-title {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+#blume-content .unkey-product-card-title::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+@media (max-width: 640px) {
+  #blume-content .unkey-product-grid,
+  #blume-content .unkey-resource-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #blume-content .unkey-platform-link {
+    flex-wrap: wrap;
+  }
+
+  #blume-content .unkey-platform-art {
+    flex-basis: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--unkey-border);
+  }
+}

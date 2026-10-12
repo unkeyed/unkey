@@ -1,0 +1,24 @@
+{
+  "name": "docsnew",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "scripts": {
+    "dev": "blume dev",
+    "build": "blume build",
+    "preview": "blume preview",
+    "validate": "blume validate --strict",
+    "parity": "node --experimental-strip-types scripts/parity.ts",
+    "migrate": "node scripts/migrate.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "blume": "^2.2.3",
+    "yaml": "^2.9.1"
+  }
+}

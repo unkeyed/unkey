@@ -1,0 +1,20 @@
+---
+import PageLayout from "blume/components/layout/PageLayout.astro";
+import data from "blume:data";
+---
+
+<PageLayout
+  site={{ title: data.config.title, description: data.config.description }}
+  logo={data.config.logo}
+  navigation={data.navigation}
+  themeMode={data.config.theme.mode}
+  searchEnabled={data.config.search.enabled}
+  page={{ title: "Page not found", route: "/404" }}
+  noindex={true}
+>
+  <section class="mx-auto max-w-2xl px-6 py-24 text-center">
+    <h1>Page not found</h1>
+    <p>This page does not exist.</p>
+    <p><a href="/">Go to the docs home</a> to choose Compute or API Management.</p>
+  </section>
+</PageLayout>

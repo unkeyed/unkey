@@ -1,0 +1,25 @@
+---
+interface Props {
+  product: "compute" | "api-management" | "platform";
+  href: string;
+  title: string;
+}
+
+const names = {
+  compute: "Compute",
+  "api-management": "API Management",
+  platform: "Platform",
+};
+
+const { product, href, title } = Astro.props;
+---
+
+<div class="unkey-product-card">
+  <h2>
+    <a class="unkey-product-card-title" href={href}>{title}</a>
+  </h2>
+  <p>
+    <strong>{names[product]} docs.</strong>
+    <slot />
+  </p>
+</div>

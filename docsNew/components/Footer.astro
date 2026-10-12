@@ -1,0 +1,76 @@
+---
+const columns = [
+  {
+    header: "Product",
+    items: [
+      { href: "/compute", label: "Compute" },
+      { href: "/api-management", label: "API management" },
+      { href: "https://unkey.com/pricing", label: "Pricing" },
+    ],
+  },
+  {
+    header: "Developers",
+    items: [
+      { href: "https://app.unkey.com", label: "Dashboard" },
+      { href: "https://github.com/unkeyed/unkey", label: "GitHub" },
+      { href: "https://status.unkey.com", label: "Status" },
+    ],
+  },
+  {
+    header: "Company",
+    items: [
+      { href: "https://unkey.com/blog", label: "Blog" },
+      { href: "https://unkey.com/discord", label: "Discord" },
+    ],
+  },
+];
+
+const socials = [
+  { href: "https://x.com/unkeydev", label: "X" },
+  { href: "https://github.com/unkeyed/unkey", label: "GitHub" },
+  { href: "https://www.linkedin.com/company/unkeyed", label: "LinkedIn" },
+  { href: "https://unkey.com/discord", label: "Discord" },
+];
+---
+
+<footer class="border-border border-t px-6 py-10 lg:px-8">
+  <div class="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">
+    {
+      columns.map((column) => (
+        <div>
+          <p class="mb-3 font-medium text-foreground text-sm">{column.header}</p>
+          <ul class="m-0 list-none space-y-2 p-0">
+            {column.items.map((item) => (
+              <li>
+                <a
+                  class="text-muted-foreground text-sm hover:text-foreground"
+                  href={item.href}
+                  rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+                  target={item.href.startsWith("http") ? "_blank" : undefined}
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </div>
+  <ul class="mx-auto mt-8 flex max-w-6xl list-none gap-4 p-0">
+    {
+      socials.map((social) => (
+        <li>
+          <a
+            class="text-muted-foreground text-sm hover:text-foreground"
+            href={social.href}
+            rel="noreferrer"
+            target="_blank"
+          >
+            {social.label}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</footer>

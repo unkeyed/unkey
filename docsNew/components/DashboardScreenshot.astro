@@ -1,0 +1,11 @@
+---
+interface Props {
+  width?: string;
+}
+
+const { width } = Astro.props;
+---
+
+<div style={width ? `width: ${width}; max-width: 100%;` : "max-width: 100%;"}>
+  <slot />
+</div>
