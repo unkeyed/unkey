@@ -115,17 +115,7 @@ func (e *Executor) Execute(
 	}
 
 	if err := verifier.Verify(ctx, verifyOpts...); err != nil {
-		if code, ok := fault.GetCode(err); ok && code == codes.App.Precondition.PreconditionFailed.URN() {
-			return nil, fault.New("ratelimit not configured",
-				fault.Code(codes.Frontline.Internal.RatelimitNotConfigured.URN()),
-				fault.Internal(err.Error()),
-			)
-		}
-		return nil, fault.Wrap(err,
-			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
-			fault.Internal("verification error"),
-			fault.Public("An internal error occurred during authentication."),
-		)
+		return nil, err
 	}
 
 	// Write rate limit headers before checking status so they're present

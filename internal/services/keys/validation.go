@@ -8,14 +8,28 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
-	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
+
+// RatelimitNotConfiguredError is returned by Verify when a named limit has neither a key/identity definition nor a complete inline override.
+type RatelimitNotConfiguredError struct {
+	Name       string
+	KeyID      string
+	IdentityID string
+	ExternalID string
+}
+
+func (e *RatelimitNotConfiguredError) Error() string {
+	message := fmt.Sprintf("ratelimit '%s' was requested but does not exist for key '%s'", e.Name, e.KeyID)
+	if e.IdentityID != "" {
+		return message + fmt.Sprintf(" nor identity: '%s' external ID: '%s'", e.IdentityID, e.ExternalID)
+	}
+	return message + " and there is no identity connected."
+}
 
 // withCredits validates that the key has sufficient usage credits and deducts the specified cost.
 // It updates the key's remaining request count and marks the key as invalid if the limit is exceeded.
@@ -153,18 +167,12 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 
 		dbRl, exists := k.ratelimitConfigs[rl.Name]
 		if !exists {
-			errorMsg := "ratelimit '%s' was requested but does not exist for key '%s'"
-			if k.Key.IdentityID.Valid {
-				errorMsg += " nor identity: '%s' external ID: '%s'"
-			} else {
-				errorMsg += " and there is no identity connected."
+			return &RatelimitNotConfiguredError{
+				Name:       rl.Name,
+				KeyID:      k.Key.ID,
+				IdentityID: k.Key.IdentityID.String,
+				ExternalID: k.Key.ExternalID.String,
 			}
-
-			errorMsg = fmt.Sprintf(errorMsg, rl.Name, k.Key.ID, k.Key.IdentityID.String, k.Key.ExternalID.String)
-			return fault.New("invalid ratelimit requested",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Public(errorMsg),
-			)
 		}
 
 		identifier := k.Key.ID

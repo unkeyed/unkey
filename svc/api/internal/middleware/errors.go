@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -78,6 +79,18 @@ func WithErrorHandling() zen.Middleware {
 						Type:   "about:blank",
 						Detail: detail,
 						Status: routingErr.Status,
+					},
+				})
+			}
+
+			if limitErr, ok := errors.AsType[*keys.RatelimitNotConfiguredError](err); ok {
+				return s.ProblemJSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
+					Meta: openapi.Meta{RequestId: s.RequestID()},
+					Error: openapi.BaseError{
+						Title:  "Precondition Failed",
+						Type:   codes.App.Precondition.PreconditionFailed.DocsURL(),
+						Detail: limitErr.Error(),
+						Status: http.StatusPreconditionFailed,
 					},
 				})
 			}

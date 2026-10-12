@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
@@ -32,6 +33,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/metrics"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
@@ -978,11 +980,12 @@ func TestKeyAuth_NamedRatelimitNotFoundReturns422(t *testing.T) {
 			req.Header.Set("Authorization", "Bearer "+tt.key.RawKey)
 			req.Header.Set("Accept", "application/json")
 			sess, recorder := newSessionWithRecorder(t, req)
-			var evaluationErr error
+			counter := metrics.RequestsTotal.WithLabelValues("4xx", "config", "err:frontline:config:ratelimit_not_configured")
+			before := &dto.Metric{}
+			require.NoError(t, counter.Write(before))
 			handler := middleware.WithObservability(errorpage.NewRenderer())(func(ctx context.Context, sess *zen.Session) error {
 				result, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
 				require.Nil(t, result.Principal)
-				evaluationErr = err
 				return err
 			})
 			require.NoError(t, handler(ctx, sess))
@@ -996,9 +999,9 @@ func TestKeyAuth_NamedRatelimitNotFoundReturns422(t *testing.T) {
 			require.Equal(t, sess.RequestID(), body.Meta.RequestID)
 			require.NotContains(t, recorder.Body.String(), tt.key.KeyID)
 			require.NotContains(t, recorder.Body.String(), tt.key.RawKey)
-			category, ok := fault.GetCategory(evaluationErr)
-			require.True(t, ok)
-			require.Equal(t, codes.CategoryConfig, category)
+			after := &dto.Metric{}
+			require.NoError(t, counter.Write(after))
+			require.Equal(t, before.GetCounter().GetValue()+1, after.GetCounter().GetValue())
 		})
 	}
 }
