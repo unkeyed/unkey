@@ -2,7 +2,6 @@ import { COMPUTE_SIGNUP_CREDIT_CENTS } from "@/lib/stripe/computeSignupCreditAmo
 import { describe, expect, it } from "vitest";
 import {
   CREDITS_INFO,
-  FIRST_INVOICE_CREDIT_NOTE,
   deployNotSubscribedSubtitle,
   firstInvoiceCents,
   planCreditsCopy,
@@ -30,6 +29,5 @@ describe("signup credit copy", () => {
     expect(firstInvoiceCents(2500)).toBe(2000);
     expect(firstInvoiceCents(5000)).toBe(4500);
     expect(firstInvoiceCents(2500)).toBe(2500 - COMPUTE_SIGNUP_CREDIT_CENTS);
-    expect(FIRST_INVOICE_CREDIT_NOTE).toBe("$5 on Unkey");
   });
 });

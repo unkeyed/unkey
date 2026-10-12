@@ -1,4 +1,3 @@
-import { formatDollars } from "@/lib/fmt";
 import { COMPUTE_SIGNUP_CREDIT_CENTS } from "@/lib/stripe/computeSignupCreditAmount";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { COMPUTE_BILLING_DOCS } from "@/lib/support";
@@ -10,8 +9,6 @@ import { COMPUTE_BILLING_DOCS } from "@/lib/support";
 export function firstInvoiceCents(planCents: number): number {
   return Math.max(0, planCents - COMPUTE_SIGNUP_CREDIT_CENTS);
 }
-
-export const FIRST_INVOICE_CREDIT_NOTE = `${formatDollars(COMPUTE_SIGNUP_CREDIT_CENTS)} on Unkey`;
 
 /** Marketing copy for the Compute plan picker. */
 export const PLAN_BLURBS: Record<DeployPlan, string> = {

@@ -20,17 +20,18 @@ import {
 } from "@/lib/billing/plan-features";
 import { formatDollars } from "@/lib/fmt";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
+import { COMPUTE_SIGNUP_CREDIT_CENTS } from "@/lib/stripe/computeSignupCreditAmount";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
-import { IconCheckOutline18 } from "@unkey/icons";
+import { IconCheckOutline18, IconCoinsOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, DialogContainer, Skeleton, toast } from "@unkey/ui";
 import { cn } from "cn";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
-import { FIRST_INVOICE_CREDIT_NOTE, PLAN_BLURBS, firstInvoiceCents } from "./compute-plan-copy";
+import { PLAN_BLURBS, firstInvoiceCents } from "./compute-plan-copy";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
 const CHANGE_NOTE =
@@ -208,7 +209,7 @@ function PlanCard({
         <span className="text-gray-11 text-sm">{PLAN_BLURBS[card.plan]}</span>
       </div>
 
-      <div className={cn("flex items-baseline gap-1", showSignupCredit ? "min-h-9" : "h-9")}>
+      <div className="flex h-9 items-baseline gap-1">
         <PlanPriceLabel price={card.price} showSignupCredit={showSignupCredit} />
       </div>
 
@@ -229,7 +230,14 @@ function PlanCard({
       </Button>
       {card.warning ? <p className="text-sm text-warning-11 leading-5">{card.warning}</p> : null}
 
-      <PlanFeatureList rows={planFeatures(card.plan)} />
+      <PlanFeatureList
+        rows={planFeatures(card.plan)}
+        leading={
+          showSignupCredit && card.price.type === "amount" ? (
+            <SignupCreditFeatureRow interval={card.price.interval} />
+          ) : null
+        }
+      />
       <EveryPlanIncludes />
     </div>
   );
@@ -248,39 +256,33 @@ function PlanPriceLabel({
       <span className="font-semibold text-3xl text-gray-12">Contact us</span>
     ))
     .with({ type: "amount" }, ({ cents, interval }) => {
-      const regular = (
+      const suffix = interval === "year" ? "/yr" : "/mo";
+      return showSignupCredit ? (
+        <p className="flex items-baseline gap-1.5 whitespace-nowrap tabular-nums">
+          <span className="font-semibold text-3xl text-gray-12">
+            {formatDollars(firstInvoiceCents(cents))}
+          </span>
+          <span className="text-gray-11 text-sm">
+            then{" "}
+            <span className="font-semibold text-gray-12">{`${formatDollars(cents)}${suffix}`}</span>
+          </span>
+        </p>
+      ) : (
         <>
-          <span
-            className={cn(
-              "font-semibold text-3xl tabular-nums",
-              showSignupCredit ? "text-gray-9 line-through decoration-gray-8" : "text-gray-12",
-            )}
-          >
+          <span className="font-semibold text-3xl text-gray-12 tabular-nums">
             {formatDollars(cents)}
           </span>
-          <span className="text-gray-11 text-sm">{interval === "year" ? "/yr" : "/mo"}</span>
+          <span className="text-gray-11 text-sm">{suffix}</span>
         </>
-      );
-      if (!showSignupCredit) {
-        return regular;
-      }
-      const timing = interval === "year" ? "first invoice" : "first month";
-      return (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-baseline gap-1">{regular}</div>
-          <p className="text-gray-12 text-sm tabular-nums">
-            {`${timing} ${formatDollars(firstInvoiceCents(cents))}`}
-          </p>
-          <p className="text-gray-11 text-xs leading-4">{FIRST_INVOICE_CREDIT_NOTE}</p>
-        </div>
       );
     })
     .exhaustive();
 }
 
-function PlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
+function PlanFeatureList({ rows, leading }: { rows: PlanFeatureRow[]; leading: ReactNode }) {
   return (
     <ul className="flex flex-col gap-2.5">
+      {leading}
       {rows.map((row) => {
         const Icon = FEATURE_ICONS[row.kind];
         return (
@@ -299,6 +301,17 @@ function PlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
         );
       })}
     </ul>
+  );
+}
+
+function SignupCreditFeatureRow({ interval }: { interval: string | null }) {
+  return (
+    <li className="flex">
+      <span className="-ml-2 flex items-center gap-2.5 rounded-md bg-info-3 px-2 py-1 font-medium text-info-11 text-sm">
+        <IconCoinsOutline18 className="size-4 shrink-0" />
+        {`${formatDollars(COMPUTE_SIGNUP_CREDIT_CENTS)} off your first ${interval === "year" ? "invoice" : "month"}`}
+      </span>
+    </li>
   );
 }
 
