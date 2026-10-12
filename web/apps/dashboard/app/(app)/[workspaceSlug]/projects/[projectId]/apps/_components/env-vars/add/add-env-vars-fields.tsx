@@ -1,10 +1,15 @@
-import { addVariables, envVarErrorToast } from "@/lib/collections/deploy/env-vars";
+import {
+  MAX_VARIABLES,
+  PartialAddError,
+  addVariables,
+  envVarErrorToast,
+} from "@/lib/collections/deploy/env-vars";
 import { plural } from "@/lib/fmt";
-import { MAX_VARIABLES } from "@/lib/trpc/routers/deploy/env-vars/add-plan";
 import { useMutation } from "@tanstack/react-query";
 import { FormField, toast } from "@unkey/ui";
 import { type FormEvent, useState } from "react";
 import { useAppId, useProjectData } from "../../../[appId]/(overview)/data-provider";
+import { environmentName } from "../../environment-label";
 import { ALL_ENVIRONMENTS, EnvironmentSelect } from "../../environment-select";
 import { useVariableRows } from "../variables-table/use-variable-rows";
 import { conflictErrors, isBlankRow, parseVariableRows } from "../variables-table/variable-rows";
@@ -12,7 +17,7 @@ import { VariablesTable } from "../variables-table/variables-table";
 
 export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
   const appId = useAppId();
-  const { environments } = useProjectData();
+  const { projectId, environments } = useProjectData();
   const draft = useVariableRows();
   const [environmentId, setEnvironmentId] = useState(ALL_ENVIRONMENTS);
   const targetEnvironmentIds =
@@ -36,6 +41,20 @@ export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
       onAdded?.();
     },
     onError: (err) => {
+      if (err instanceof PartialAddError) {
+        const saved = environments.filter((e) => err.savedEnvironmentIds.includes(e.id));
+        const unsaved = targetEnvironmentIds.filter((id) => !err.savedEnvironmentIds.includes(id));
+        if (unsaved.length === 1) {
+          setEnvironmentId(unsaved[0]);
+        }
+        toast.error("Some variables were saved", {
+          description:
+            saved.length > 0
+              ? `Saved to ${saved.map((e) => environmentName(e.slug)).join(", ")}. ${err.message}`
+              : err.message,
+        });
+        return;
+      }
       const { message, description } = envVarErrorToast(
         err,
         "Failed to create environment variables",
@@ -60,7 +79,12 @@ export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
       });
       return;
     }
-    add.mutate({ appId, environmentIds: targetEnvironmentIds, variables: parsed.variables });
+    add.mutate({
+      projectId,
+      appId,
+      environmentIds: targetEnvironmentIds,
+      variables: parsed.variables,
+    });
   };
 
   return {

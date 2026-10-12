@@ -7,10 +7,6 @@ import {
 import { createCollection } from "@tanstack/react-db";
 
 import { plural } from "@/lib/fmt";
-import type {
-  AddEnvVarsInput,
-  AddEnvVarsResult,
-} from "@/lib/trpc/routers/deploy/env-vars/add-plan";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import type { EnvironmentVariable } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
@@ -167,14 +163,73 @@ async function listAllVariables(
   return all;
 }
 
-export type VariableInput = AddEnvVarsInput["variables"][number];
+const MAX_VARIABLES_PER_REQUEST = 50;
 
-export async function addVariables(input: AddEnvVarsInput): Promise<AddEnvVarsResult> {
-  const result = await trpcClient.deploy.envVar.add.mutate(input);
-  if (result.status === "added") {
-    await trackSave(envVars.utils.refetch().catch(() => {}));
+export const MAX_VARIABLES = 200;
+
+export type VariableInput = { key: string; value: string; kind: EnvVar["type"] };
+
+export type AddEnvVarsInput = {
+  projectId: string;
+  appId: string;
+  environmentIds: string[];
+  variables: VariableInput[];
+};
+
+export type AddEnvVarsResult =
+  | { status: "taken"; keys: string[] }
+  | { status: "added"; count: number };
+
+export async function addVariables({
+  projectId,
+  appId,
+  environmentIds,
+  variables,
+}: AddEnvVarsInput): Promise<AddEnvVarsResult> {
+  const submitted = new Set(variables.map((v) => v.key));
+  const existing = await Promise.all(
+    environmentIds.map((environmentId) => listAllVariables(projectId, appId, environmentId)),
+  );
+  const taken = [
+    ...new Set(
+      existing
+        .flat()
+        .map((v) => v.key)
+        .filter((key) => submitted.has(key)),
+    ),
+  ].sort();
+  if (taken.length > 0) {
+    await envVars.utils.refetch().catch(() => {});
+    return { status: "taken", keys: taken };
   }
-  return result;
+
+  let wroteAny = false;
+  const writes = await Promise.allSettled(
+    environmentIds.map(async (environmentId) => {
+      for (let i = 0; i < variables.length; i += MAX_VARIABLES_PER_REQUEST) {
+        await getUnkeyClient().environments.setEnvironmentVariables({
+          project: projectId,
+          app: appId,
+          environment: environmentId,
+          variables: variables.slice(i, i + MAX_VARIABLES_PER_REQUEST),
+        });
+        wroteAny = true;
+      }
+    }),
+  );
+  const failed = writes.find((w): w is PromiseRejectedResult => w.status === "rejected");
+  if (failed) {
+    if (!wroteAny) {
+      await envVars.utils.refetch().catch(() => {});
+      throw failed.reason;
+    }
+    await trackSave(envVars.utils.refetch().catch(() => {}));
+    const savedEnvironmentIds = environmentIds.filter((_, i) => writes[i].status === "fulfilled");
+    throw new PartialAddError(savedEnvironmentIds, failed.reason);
+  }
+
+  await trackSave(envVars.utils.refetch().catch(() => {}));
+  return { status: "added", count: variables.length };
 }
 
 export function envVarErrorToast(
@@ -199,8 +254,6 @@ export async function makeVariablesSensitive(variables: EnvVar[]): Promise<numbe
     await envVars.utils.refetch().catch(() => {});
   }
 }
-
-const MAX_VARIABLES_PER_REQUEST = 50;
 
 /** Removes variables by key. Sends one request for each environment. */
 async function removeVariables(variables: EnvVar[]): Promise<void> {
@@ -227,6 +280,15 @@ async function removeVariables(variables: EnvVar[]): Promise<void> {
       }
     }),
   );
+}
+
+export class PartialAddError extends Error {
+  constructor(
+    readonly savedEnvironmentIds: string[],
+    override readonly cause: unknown,
+  ) {
+    super(cause instanceof Error ? cause.message : "Some variables were not saved");
+  }
 }
 
 export class RenameAppliedError extends Error {

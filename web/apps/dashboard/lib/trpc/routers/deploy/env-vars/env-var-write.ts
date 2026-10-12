@@ -3,10 +3,6 @@ import { type Transaction, and, eq, inArray, isDuplicateKeyError, schema } from 
 import { TRPCError } from "@trpc/server";
 import { match } from "@unkey/match";
 
-export function takenKeys(existing: { key: string }[]): string[] {
-  return [...new Set(existing.map((row) => row.key))].sort();
-}
-
 export async function lockAndFindTakenKeys(
   tx: Transaction,
   { appId, environmentIds, keys }: { appId: string; environmentIds: string[]; keys: string[] },
@@ -27,7 +23,7 @@ export async function lockAndFindTakenKeys(
         inArray(schema.appEnvironmentVariables.key, keys),
       ),
     );
-  return takenKeys(existing);
+  return [...new Set(existing.map((row) => row.key))].sort();
 }
 
 export function keyTakenError(key?: string): TRPCError {
@@ -51,13 +47,11 @@ export function toEnvVarWriteError(error: unknown, message: string): TRPCError {
 }
 
 type EnvVarChange =
-  | { action: "set"; key: string }
   | { action: "rename"; key: string; previousKey: string }
   | { action: "makeSensitive"; key: string };
 
 function describeChange(change: EnvVarChange): string {
   return match(change)
-    .with({ action: "set" }, ({ key }) => `Set environment variable ${key}`)
     .with(
       { action: "rename" },
       ({ key, previousKey }) => `Renamed environment variable ${previousKey} to ${key}`,
