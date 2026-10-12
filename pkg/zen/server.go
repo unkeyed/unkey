@@ -35,6 +35,7 @@ type Server struct {
 
 	trustedProxyCIDRs []netip.Prefix
 	sessions          sync.Pool
+	routingErrors     http.Handler
 }
 
 // Flags configures the behavior of a Server instance.
@@ -127,16 +128,7 @@ func New(config Config) (*Server, error) {
 		writeTimeout = 0
 	}
 
-	// Wrap handler with h2c if enabled for HTTP/2 cleartext support
-	var handler http.Handler = mux
-	if config.EnableH2C {
-		//nolint:exhaustruct
-		h2s := &http2.Server{}
-		handler = h2c.NewHandler(mux, h2s)
-	}
-
 	srv := &http.Server{
-		Handler: handler,
 		// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
 		//
 		// > # http.ListenAndServe is doing it wrong
@@ -168,11 +160,13 @@ func New(config Config) (*Server, error) {
 		flags:             flags,
 		config:            config,
 		trustedProxyCIDRs: trustedProxyCIDRs,
+		routingErrors:     nil,
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
 					logRequestToClickHouse: true,
 					streamRequestBody:      config.StreamRequestBody,
+					initErr:                nil,
 					clientIP:               netip.Addr{},
 					principal:              nil,
 					requestID:              "",
@@ -185,6 +179,11 @@ func New(config Config) (*Server, error) {
 				}
 			},
 		},
+	}
+	srv.Handler = s
+	if config.EnableH2C {
+		//nolint:exhaustruct
+		srv.Handler = h2c.NewHandler(s, &http2.Server{})
 	}
 	return s, nil
 }
@@ -316,42 +315,43 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 		pattern = method + " " + path
 	}
 
-	s.mux.HandleFunc(
-		pattern,
-		func(w http.ResponseWriter, r *http.Request) {
-			sess, ok := s.getSession().(*Session)
-			if !ok {
-				panic("Unable to cast session")
-			}
+	s.mux.Handle(pattern, s.handler(middlewares, route.Handle, s.config.StreamRequestBody))
+}
 
-			defer func() {
-				sess.reset()
-				s.returnSession(sess)
-			}()
+func (s *Server) handler(middlewares []Middleware, handle HandleFunc, streamRequestBody bool) http.HandlerFunc {
+	handleFn := func(ctx context.Context, sess *Session) error {
+		if sess.initErr != nil {
+			return sess.initErr
+		}
+		return handle(ctx, sess)
+	}
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		handleFn = middlewares[i](handleFn)
+	}
 
-			handleFn := route.Handle
+	return func(w http.ResponseWriter, r *http.Request) {
+		sess, ok := s.getSession().(*Session)
+		if !ok {
+			panic("Unable to cast session")
+		}
 
-			err := sess.Init(w, r, s.config.MaxRequestBodySize)
-			s.setForwardedClientIP(sess)
-			if err != nil {
-				logger.Error("failed to init session", "error", err)
-				handleFn = func(_ context.Context, _ *Session) error {
-					return err // Return the session init error
-				}
-			}
+		defer func() {
+			sess.reset()
+			s.returnSession(sess)
+		}()
 
-			// Reverses the middlewares to run in the desired order.
-			// If middlewares are [A, B, C], this writes [C, B, A] to s.middlewares.
-			for i := len(middlewares) - 1; i >= 0; i-- {
-				handleFn = middlewares[i](handleFn)
-			}
+		sess.streamRequestBody = streamRequestBody
+		sess.initErr = sess.Init(w, r, s.config.MaxRequestBodySize)
+		s.setForwardedClientIP(sess)
+		if sess.initErr != nil {
+			logger.Error("failed to init session", "error", sess.initErr)
+		}
 
-			err = handleFn(WithSession(r.Context(), sess), sess)
-
-			if err != nil {
-				panic(err)
-			}
-		})
+		err := handleFn(WithSession(r.Context(), sess), sess)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (s *Server) setForwardedClientIP(sess *Session) {

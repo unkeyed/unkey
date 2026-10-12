@@ -3,7 +3,17 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, FormInput, InfoTooltip, SettingCard, toast } from "@unkey/ui";
+import {
+  FormInput,
+  SettingsForm,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowDescription,
+  SettingsRowHeader,
+  SettingsRowTitle,
+  formSaveState,
+  toast,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -51,7 +61,7 @@ export function UpdateWorkspaceName() {
   });
 
   const updateName = trpc.workspace.updateName.useMutation({
-    async onSuccess() {
+    async onSuccess(_data, variables) {
       toast.success("Workspace name updated");
       // Force immediate refetch of all workspace-related queries
       await Promise.all([
@@ -59,7 +69,7 @@ export function UpdateWorkspaceName() {
         utils.user.listMemberships.refetch(),
         utils.workspace.listAvailable.invalidate(),
       ]);
-      setName(watch("workspaceName"));
+      setName(variables.name);
       router.refresh();
     },
     onError(err) {
@@ -69,8 +79,10 @@ export function UpdateWorkspaceName() {
     },
   });
 
+  const isUnchanged = (value: string | undefined) => (value ?? "").trim() === name.trim();
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (workspace?.name === values.workspaceName || !values.workspaceName) {
+    if (isUnchanged(values.workspaceName) || !values.workspaceName) {
       return toast.error("Please provide a different name before saving.");
     }
 
@@ -84,53 +96,39 @@ export function UpdateWorkspaceName() {
     });
   };
 
+  const adminRequired = isAdmin ? undefined : "Admin access required to rename the workspace";
+  const isDirty = !isUnchanged(watch("workspaceName"));
+  const saveState = formSaveState({
+    isSubmitting: updateName.isLoading || isSubmitting,
+    isValid,
+    isDirty,
+    blockedReason: adminRequired,
+  });
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} id="workspace-name-form">
-      <SettingCard
-        title={"Workspace Name"}
-        description={"Not customer-facing. Choose a name that is easy to recognize."}
-        border="top"
-        className="border-b"
-        contentWidth="w-full lg:w-[420px]"
-      >
-        <div className="flex flex-row justify-end items-center w-full gap-x-2">
+    <SettingsForm dirty={isDirty} onSubmit={handleSubmit(onSubmit)} saveState={saveState}>
+      <SettingsRow>
+        <SettingsRowHeader>
+          <SettingsRowTitle>Workspace Name</SettingsRowTitle>
+          <SettingsRowDescription>
+            Not customer-facing. Choose a name that is easy to recognize.
+          </SettingsRowDescription>
+        </SettingsRowHeader>
+        <SettingsRowContent>
           <input type="hidden" name="workspaceId" value={workspace?.id} />
-          <label htmlFor="workspaceName" className="sr-only">
-            Workspace Name
-          </label>
           <FormInput
-            className="w-84"
+            aria-label="Workspace Name"
+            className="max-w-(--setting-w)"
             placeholder="Workspace Name"
             minLength={3}
             maxLength={50}
+            description={adminRequired}
             error={errors.workspaceName?.message}
             {...register("workspaceName")}
+            disabled={!isAdmin}
           />
-          <InfoTooltip
-            content="Admin access required to rename the workspace"
-            disabled={isAdmin}
-            asChild
-          >
-            <span>
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                disabled={
-                  !isAdmin ||
-                  updateName.isLoading ||
-                  isSubmitting ||
-                  !isValid ||
-                  watch("workspaceName") === name
-                }
-                loading={updateName.isLoading || isSubmitting}
-              >
-                Save
-              </Button>
-            </span>
-          </InfoTooltip>
-        </div>
-      </SettingCard>
-    </form>
+        </SettingsRowContent>
+      </SettingsRow>
+    </SettingsForm>
   );
 }

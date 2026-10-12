@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -45,6 +46,14 @@ type Querier interface {
 	// counter-delta vs time-integration rules and the sample-gap handling.
 	GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUsageRequest) ([]InstanceMeterUsage, error)
 
+	// GetComputeUsageByEnvironment returns one workspace's compute usage per
+	// environment for [start, end), from the hourly usage rollup
+	GetComputeUsageByEnvironment(ctx context.Context, workspaceID string, start, end time.Time) ([]ComputeUsageByEnvironment, error)
+
+	// GetActiveKeysByApp returns one workspace's active gateway keys per app for
+	// a calendar month, each key counted once
+	GetActiveKeysByApp(ctx context.Context, workspaceID string, year, month int) ([]ActiveKeysByApp, error)
+
 	// GetDeploymentRequestCount returns the number of gateway requests routed to a
 	// deployment within a recent time window, used to detect idle deployments for scale-down.
 	// Returns 0 (not an error) when the deployment has received no traffic.
@@ -54,6 +63,12 @@ type Querier interface {
 	// (cityHash64(key_id) % totalPartitions == partition) after the given cursor,
 	// ordered by (time, key_id). Used by the KeyLastUsedSync partition workers.
 	GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error)
+
+	// GetBuildLogs returns a page of a deployment's build log entries in seq
+	// order, starting after AfterSeq. A page has at most Limit entries and can
+	// have fewer when the entries are large. HasMore is true when entries were
+	// left out of the page
+	GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (BuildLogsPage, error)
 
 	// InsertAuditLogs synchronously writes a batch of audit log rows to
 	// audit_logs_raw_v1. Used by the AuditLogExport outbox worker — returns

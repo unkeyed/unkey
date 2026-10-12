@@ -25,7 +25,7 @@ export default function IdentityDetailsPage(props: {
     <PageContainer width="full">
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle className="truncate" title={title}>
+          <PageHeaderTitle data-sentry-mask className="truncate" title={title}>
             {title}
           </PageHeaderTitle>
         </PageHeaderContent>

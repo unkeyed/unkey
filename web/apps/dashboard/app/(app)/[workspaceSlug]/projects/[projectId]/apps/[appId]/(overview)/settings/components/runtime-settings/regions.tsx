@@ -20,7 +20,13 @@ import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconLocation2Outline18 } from "@unkey/icons";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  firstMatchingSaveState,
+} from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import { useContext, useEffect, useId, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -29,7 +35,7 @@ import { EnvironmentContext, useEnvironmentSettings } from "../../environment-pr
 import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingDescription, SettingField } from "../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 import { EnvironmentSliderSection } from "../shared/resource-slider";
 
 export const Regions = () => {
@@ -221,7 +227,7 @@ const RegionsSingle = () => {
     currentRegions.length !== defaultRegions.length ||
     currentRegions.some((r) => !defaultRegions.includes(r));
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],
@@ -366,7 +372,7 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
     currentPreviewRegions.some((r) => !defaultPreviewRegions.includes(r));
   const hasChanges = prodHasChanges || previewHasChanges;
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],

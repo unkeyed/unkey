@@ -1,6 +1,16 @@
 import type { RootKeysSortField } from "@/components/root-keys-table/schema/query-logs.schema";
 import type { V2RootKey } from "@/lib/root-keys-api";
-import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
+
+export type RootKey = {
+  id: string;
+  name: string | null;
+  start: string;
+  end: string;
+  createdAt: number;
+  lastUsedAt: number;
+  lastUpdatedAt: number | null;
+  permissions: { name: string }[];
+};
 
 type NameFilter = { operator: string; value: string };
 
@@ -24,29 +34,15 @@ function matchesName(name: string | null, filters: NameFilter[] | null | undefin
 }
 
 function toRootKey(rootKey: V2RootKey): RootKey {
-  const permissions = rootKey.permissions.map((permission) => ({
-    id: permission,
-    name: permission,
-  }));
-
   return {
     id: rootKey.keyId,
-    prefix: "",
+    name: rootKey.name,
     start: rootKey.start,
     end: rootKey.end,
     createdAt: rootKey.createdAt,
     lastUsedAt: rootKey.lastUsedAt,
     lastUpdatedAt: null,
-    expires: rootKey.expires,
-    name: rootKey.name,
-    permissionSummary: {
-      total: permissions.length,
-      categories: {},
-      hasCriticalPerm: permissions.some(({ name }) =>
-        ["delete", "decrypt", "remove"].some((action) => name.toLowerCase().includes(action)),
-      ),
-    },
-    permissions,
+    permissions: rootKey.permissions.map((name) => ({ name })),
   };
 }
 

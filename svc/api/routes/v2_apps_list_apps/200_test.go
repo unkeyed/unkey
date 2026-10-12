@@ -29,7 +29,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 		Name:        "Payments Service",
 		Slug:        projectSlug,
 	})
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":projects/"+project.ID+"/apps/*#read")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -119,7 +119,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 	t.Run("non-existent cursor returns 200 without error", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.Slug,
-			Cursor:  new("app_doesnotexist"),
+			Cursor:  new(uid.New(uid.AppPrefix)),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Pagination)
@@ -179,7 +179,7 @@ func TestListAppsReturnsConfiguredOCISource(t *testing.T) {
 		SourceType:     db.AppsSourceTypeOci,
 		ImageReference: "ghcr.io/acme/api:v1.2.3",
 	})
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -206,7 +206,7 @@ func TestListAppsPagination(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -334,7 +334,7 @@ func TestListAppsSearch(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

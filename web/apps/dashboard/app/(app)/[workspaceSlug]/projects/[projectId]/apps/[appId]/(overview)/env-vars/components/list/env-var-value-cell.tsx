@@ -74,7 +74,7 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({
   }
 
   return (
-    <div className="flex items-center min-w-0">
+    <div data-sentry-mask className="flex items-center min-w-0">
       <div className="shrink-0 w-7 flex items-center justify-center">
         <button
           type="button"

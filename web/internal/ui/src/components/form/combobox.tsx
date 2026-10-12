@@ -113,6 +113,7 @@ function ComboboxInput({ className, icon, wrapperClassName, ref, ...props }: Com
       <ComboboxPrimitive.Input
         ref={ref}
         className={cn("h-8 text-sm placeholder:text-grayA-8", className)}
+        data-1p-ignore
         render={<InputGroupInput />}
         {...props}
       />

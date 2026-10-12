@@ -50,7 +50,7 @@ func TestUpdatePortalRejectsMappingInAnotherProject(t *testing.T) {
 			require.Equal(t, homeKeyspace.ID, row.KeyAuthID.String, "the association must not change")
 			require.False(t, row.AppID.Valid)
 			require.Equal(t, homeProject, row.ProjectID, "the portal must stay in its own project")
-			require.Equal(t, 1, liveSessions(t, h, stored.ID),
+			require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""),
 				"a rejected re-point must not revoke sessions")
 		})
 	}

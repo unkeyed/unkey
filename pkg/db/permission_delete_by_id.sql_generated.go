@@ -10,14 +10,20 @@ import (
 )
 
 const deletePermission = `-- name: DeletePermission :exec
-DELETE FROM permissions
-WHERE id = ?
+DELETE p, rp, kp
+FROM permissions p
+LEFT JOIN roles_permissions rp ON rp.permission_id = p.id
+LEFT JOIN keys_permissions kp ON kp.permission_id = p.id
+WHERE p.id = ?
 `
 
 // DeletePermission
 //
-//	DELETE FROM permissions
-//	WHERE id = ?
+//	DELETE p, rp, kp
+//	FROM permissions p
+//	LEFT JOIN roles_permissions rp ON rp.permission_id = p.id
+//	LEFT JOIN keys_permissions kp ON kp.permission_id = p.id
+//	WHERE p.id = ?
 func (q *Queries) DeletePermission(ctx context.Context, db DBTX, permissionID string) error {
 	_, err := db.ExecContext(ctx, deletePermission, permissionID)
 	return err

@@ -1,0 +1,58 @@
+name: Sync configuration to Notion
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notion-configdocs
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Sync service configurations
+        shell: bash
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: |
+          set -euo pipefail
+          : "${NOTION_TOKEN:?Set the NOTION_TOKEN repository secret}"
+          revision=$(git rev-parse HEAD)
+          status=0
+          while read -r file page_id; do
+            echo "::group::$file"
+            if ! mise exec -- go run ./tools/configdocs \
+              --file "$file" \
+              --struct Config \
+              --ref "$revision" \
+              --notion-page-id "$page_id"; then
+              echo "::error file=$file::Configuration sync failed"
+              status=1
+            fi
+            echo "::endgroup::"
+          done <<'SERVICES'
+          svc/api/config.go 3f2512d6-43f3-81bd-8969-cdf102135a7b
+          svc/ctrl/api/config.go 3f2512d6-43f3-819b-8b6b-e162bf7fa738
+          svc/ctrl/worker/config.go 3f2512d6-43f3-8156-b600-d72b10c8f9db
+          svc/frontline/config.go 3f2512d6-43f3-8171-828b-d190d0ca67ff
+          svc/heimdall/config.go 3f2512d6-43f3-81c3-b343-f05ad1c729b2
+          svc/krane/config.go 3f2512d6-43f3-819e-9faf-c534e1371d0f
+          svc/logdrain/config.go 3f2512d6-43f3-814a-b66e-c424ef1b9c23
+          svc/vault/config.go 3f2512d6-43f3-80aa-a091-c3db4db51c30
+          SERVICES
+          exit "$status"

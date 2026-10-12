@@ -1,0 +1,62 @@
+---
+title: Security
+sidebarTitle: "Overview"
+description: "See how Unkey protects your keys and workspace and what you can turn on."
+sources:
+  - pkg/hash/sha256.go
+  - pkg/encryption/aes.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/vault/internal/vault/rpc_encrypt.go
+  - internal/services/keys/create_v1.go
+  - web/apps/dashboard/lib/auth/roles.ts
+  - web/apps/dashboard/lib/trpc/trpc.ts
+  - web/apps/dashboard/lib/trpc/routers/workspace/changeName.ts
+  - web/apps/dashboard/lib/trpc/routers/api/updateDeleteProtection.ts
+  - web/internal/db/src/schema/util/delete_protection.ts
+  - SECURITY.md
+---
+
+Unkey stores every API key and root key as a SHA-256 hash, so you can issue and verify keys without keeping a homegrown key table. A copy of the database isn't a list of working keys. This page covers that storage and what you can turn on around it.
+
+## How Unkey stores API keys
+
+Unkey doesn't store the API key. On create, it hashes the full key string with SHA-256 and stores the hash as standard base64, not hex. Verification hashes the key your user sent and compares the two strings. There's no salt. The plaintext is returned once, in the create response, and isn't kept.
+
+See the <a href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html" target="_blank">OWASP Secrets Management Cheat Sheet</a> and the <a href="https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html" target="_blank">OWASP REST Security Cheat Sheet</a> for hashing and storing secrets you only need to verify. SHA-256 here is a fast hash of a random key, not a password hash such as bcrypt or Argon2.
+
+If a keyspace must show a key again, you opt in to an encrypted copy beside the hash. The copy is AES-256-GCM, the keyring is the workspace, and only a root key with decrypt permission can read the key back. Verification still uses the hash. See [Key storage](/platform/security/key-storage) and [Recovering keys](/api-management/security/recovering-keys).
+
+## Should you build your own API key system?
+
+You can. What moves to Unkey is generating the random key, storing only the hash, and checking it on each request. `keys.createKey` issues the key. `keys.verifyKey` checks enabled, expiry, credits, rate limits, permissions, and the IP allow list. If you already have hashes and the format matches, [Migrating keys](/api-management/keys/migrating-keys) covers importing them.
+
+You still run your API, unless you deploy it on Compute. You still decide the HTTP status you return to your users. You stop maintaining the keys table, the hash comparison, and, if you use Unkey for them, the rate-limit counters and the monthly credit balance.
+
+## How Unkey protects the workspace
+
+Two controls apply to the workspace itself, separate from how keys are stored.
+
+**Access is scoped.** A root key only works in the workspace that issued it, and every endpoint needs a specific permission. Dashboard users are either an admin or a developer. A developer who tries an admin-only action gets `This action requires admin privileges.` See [Team](/platform/workspace/team).
+
+**Changes are audited.** Changes made in the dashboard appear in the audit log with who made them, the event, and a description. For example, renaming a workspace logs `workspace.update`. How long entries are kept depends on your plan. See [Limits](/platform/billing/limits).
+
+## Security features you can use
+
+<Columns cols={2}>
+  <Card title="Key storage" icon="lock" href="/platform/security/key-storage">
+    Hashing, verification, and the opt-in encrypted storage for recoverable keys.
+  </Card>
+  <Card title="GitHub secret scanning" icon="github" href="/platform/security/github-secret-scanning">
+    What happens when a key is pushed to a public repository.
+  </Card>
+  <Card title="Delete protection" icon="shield-halved" href="/platform/security/delete-protection">
+    A flag that blocks deleting a keyspace, project, or app until you turn it off.
+  </Card>
+  <Card title="Two-factor authentication" icon="mobile-screen" href="/platform/workspace/two-factor-auth">
+    Enroll a second factor on your own account.
+  </Card>
+</Columns>
+
+## Reporting a vulnerability
+
+If you find a security issue, email [security@unkey.com](mailto:security@unkey.com) with steps to reproduce. Don't open a public issue or pull request. Reports about `api.unkey.com` and `app.unkey.com` are in scope. The docs site, the marketing site, and misconfigured self-hosted setups aren't. The full policy is in [SECURITY.md](https://github.com/unkeyed/unkey/blob/main/SECURITY.md).

@@ -105,6 +105,7 @@ export function ComputeUpgradeCelebration({
   const matches = subscriptionQuery.data?.plan === plan;
   const settled = !subscriptionQuery.isFetching;
   const skip = useEffectEvent(() => onClose?.());
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Biome 1.9 does not know useEffectEvent, whose result must stay out of the deps
   useEffect(() => {
     if (settled && !matches) {
       skip();

@@ -1,4 +1,10 @@
-import { Button, InfoTooltip, SettingCard, type SettingCardBorder } from "@unkey/ui";
+import {
+  Button,
+  InfoTooltip,
+  type SaveState,
+  SettingCard,
+  type SettingCardBorder,
+} from "@unkey/ui";
 import { cn } from "cn";
 import type React from "react";
 import { SelectedConfig } from "./selected-config";
@@ -51,7 +57,7 @@ export const FormSettingCard = ({
       title={title}
       description={description}
       border={border}
-      contentWidth="w-full lg:w-[320px] justify-end"
+      contentWidth="w-full @2xl:w-[320px] justify-end"
       expanded={expanded}
       onExpandedChange={onExpandedChange}
       expandable={
@@ -122,17 +128,3 @@ export const FormSettingCard = ({
     </SettingCard>
   );
 };
-
-export type SaveState =
-  | { status: "ready" }
-  | { status: "disabled"; reason?: string }
-  | { status: "saving" };
-
-export function resolveSaveState(checks: ReadonlyArray<[boolean, SaveState]>): SaveState {
-  for (const [condition, state] of checks) {
-    if (condition) {
-      return state;
-    }
-  }
-  return { status: "ready" };
-}

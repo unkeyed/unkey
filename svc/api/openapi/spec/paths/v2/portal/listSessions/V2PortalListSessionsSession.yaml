@@ -1,0 +1,41 @@
+type: object
+required:
+  - id
+  - status
+  - createdAt
+  - expiresAt
+  - scopes
+properties:
+  id:
+    type: string
+    description: The session id.
+    example: ps_1234abcd
+  status:
+    type: string
+    enum:
+      - pending
+      - active
+    description: |
+      `pending` when the portal URL was created but not opened yet. `active`
+      when the end user opened it.
+    example: active
+  createdAt:
+    type: integer
+    format: int64
+    description: When the session was created, in Unix milliseconds.
+    example: 1704067200000
+  expiresAt:
+    type: integer
+    format: int64
+    description: |
+      When the session stops working, in Unix milliseconds. For a `pending`
+      session this is when its portal URL expires.
+    example: 1704153600000
+  scopes:
+    type: array
+    items:
+      type: string
+    description: The capabilities the session was created with.
+    example:
+      - "keys:read"
+additionalProperties: false

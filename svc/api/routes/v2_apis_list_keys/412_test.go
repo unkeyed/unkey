@@ -30,9 +30,11 @@ func TestPreconditionError(t *testing.T) {
 
 	// Create API manually
 	keySpaceID := uid.New(uid.KeySpacePrefix)
+	projectID := createTestProject(t, h, h.Resources().UserWorkspace.ID)
 	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID,
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
+		ProjectID:     projectID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false, String: ""},
 		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
@@ -44,6 +46,7 @@ func TestPreconditionError(t *testing.T) {
 		ID:          apiID,
 		Name:        "test-api",
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -51,7 +54,11 @@ func TestPreconditionError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key", "api.*.read_api", "api.*.decrypt_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		keyspaceGrant(h.Resources().UserWorkspace.ID, projectID, keySpaceID, "read"),
+		keyGrant(h.Resources().UserWorkspace.ID, projectID, keySpaceID, "read"),
+		keyGrant(h.Resources().UserWorkspace.ID, projectID, keySpaceID, "decrypt"),
+	)
 
 	// Set up request headers
 	headers := http.Header{

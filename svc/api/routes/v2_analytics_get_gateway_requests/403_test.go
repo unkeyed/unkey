@@ -15,11 +15,10 @@ func Test403_UnrelatedPermissions(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 
 	for _, permission := range []string{
-		"project.*.read_project",
-		"project.*.read_deployment",
-		"project.*.read_analytics",
-		"api.*.read_analytics",
-		"ratelimit.*.read_analytics",
+		fmt.Sprintf("unkey:v1:%s:projects/*#read", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/deployments/*#read", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/logs#read", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/*/logs#read", workspaceID),
 	} {
 		t.Run(permission, func(t *testing.T) {
 			rootKey := h.CreateRootKey(workspaceID, permission)
@@ -36,7 +35,6 @@ func Test403_UnrelatedPermissions(t *testing.T) {
 // analytics setup cannot mask a permission failure.
 func Test403_ReturnsBeforeAnalyticsLookup(t *testing.T) {
 	for name, permission := range map[string]func(string) string{
-		"legacy unrelated action": func(string) string { return "project.*.read_project" },
 		"URN wrong action": func(workspaceID string) string {
 			return fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/logs#write", workspaceID)
 		},

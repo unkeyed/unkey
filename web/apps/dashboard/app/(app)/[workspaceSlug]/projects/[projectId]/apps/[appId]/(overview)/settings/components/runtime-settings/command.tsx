@@ -2,14 +2,14 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconSquareTerminalOutline18 } from "@unkey/icons";
-import { FormTextarea, InfoTooltip } from "@unkey/ui";
+import { FormTextarea, InfoTooltip, firstMatchingSaveState } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingField } from "../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 
 const commandSchema = z.object({
   command: z.string(),
@@ -42,7 +42,7 @@ export const Command = () => {
   const currentCommand = useWatch({ control, name: "command" });
   const hasChanges = currentCommand !== defaultCommand;
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],

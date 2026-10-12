@@ -19,7 +19,6 @@ import { auditLogsSearch } from "./audit/llm-search";
 import { listAuditMembers } from "./audit/members";
 import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
 import { queryPermissions } from "./authorization/permissions/query";
-import { updatePermission } from "./authorization/permissions/update";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
@@ -27,21 +26,15 @@ import { rolesLlmSearch } from "./authorization/roles/llm-search";
 import { queryRoles } from "./authorization/roles/query";
 import { updateRole } from "./authorization/roles/update";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
-import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
-import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
-import { queryUsage } from "./billing/query-usage";
-import { countCustomDomains } from "./deploy/custom-domains/count";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
-import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { cancelDeployment } from "./deploy/deployment/cancel";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
-import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
-import { listDeployments } from "./deploy/deployment/list";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
+import { listDeploymentDetails } from "./deploy/deployment/list-details";
 import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
@@ -80,13 +73,9 @@ import { githubRouter } from "./github";
 import { queryIdentityDetails } from "./identity/query-identity-details";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
-import { createRootKey } from "./key/createRootKey";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
-import { rerollRootKey } from "./key/reroll";
-import { updateRootKeyName } from "./key/updateRootKeyName";
-import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
 import { logdrain } from "./logdrain";
 import { llmSearch } from "./logs/llm-search";
 import { queryLogs } from "./logs/query-logs";
@@ -113,9 +102,6 @@ import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
-import { deleteRootKeys } from "./settings/root-keys/delete";
-import { getRootKey } from "./settings/root-keys/get";
-import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelDeploy } from "./stripe/cancelDeploy";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { changeDeployPlan } from "./stripe/changeDeployPlan";
@@ -126,7 +112,6 @@ import { getDeployCredit } from "./stripe/getDeployCredit";
 import { getDeployEntitlement } from "./stripe/getDeployEntitlement";
 import { getDeployPlans } from "./stripe/getDeployPlans";
 import { getDeploySubscription } from "./stripe/getDeploySubscription";
-import { getProducts } from "./stripe/getProducts";
 import { getSetupIntent } from "./stripe/getSetupIntent";
 import { getSubscriptionPaymentUrl } from "./stripe/getSubscriptionPaymentUrl";
 import { getUpcomingInvoice } from "./stripe/getUpcomingInvoice";
@@ -143,7 +128,6 @@ import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
 import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { listAvailable } from "./workspace/listAvailable";
-import { onboardingKeyCreation } from "./workspace/onboarding";
 
 export const router = t.router({
   logdrain,
@@ -157,23 +141,6 @@ export const router = t.router({
       timeseries: keyDetailsVerificationsTimeseries,
     }),
     connectedRolesAndPerms: getConnectedRolesAndPerms,
-  }),
-  rootKey: t.router({
-    create: createRootKey,
-    reroll: rerollRootKey,
-    update: t.router({
-      name: updateRootKeyName,
-      // NOTE: permissions replaces the full permission set for a root key.
-      // Clients must send the authoritative list to avoid lost updates.
-      permissions: updateRootKeyPermissions,
-    }),
-  }),
-  settings: t.router({
-    rootKeys: t.router({
-      query: queryRootKeys,
-      get: getRootKey,
-      delete: deleteRootKeys,
-    }),
   }),
   api: t.router({
     updateName: updateApiName,
@@ -202,7 +169,6 @@ export const router = t.router({
     listAvailable,
     getById: getWorkspaceById,
     updateName: changeWorkspaceName,
-    onboarding: onboardingKeyCreation,
   }),
   stripe: t.router({
     createSubscription,
@@ -212,7 +178,6 @@ export const router = t.router({
     getBillingInfo,
     updateCustomer,
     getCheckoutSession,
-    getProducts,
     getSetupIntent,
     getSubscriptionPaymentUrl,
     updateWorkspaceStripeCustomer,
@@ -235,7 +200,6 @@ export const router = t.router({
   authorization: t.router({
     permissions: t.router({
       query: queryPermissions,
-      update: updatePermission,
       llmSearch: permissionsLlmSearch,
     }),
     roles: t.router({
@@ -279,11 +243,8 @@ export const router = t.router({
     llmSearch,
   }),
   billing: t.router({
-    queryUsage,
     queryDeployUsage,
-    queryDeployUsageBreakdown,
     queryDeployUsageTimeseries,
-    queryComputeAllocation,
     getDeployBudget,
     setDeployBudget,
   }),
@@ -342,16 +303,11 @@ export const router = t.router({
       list: listDomains,
       listDisplayDomains,
     }),
-    customDomain: t.router({
-      count: countCustomDomains,
-    }),
     deployment: t.router({
-      list: listDeployments,
       listHeadlines: listDeploymentHeadlines,
       listBranches: listDeploymentBranches,
       listActiveBranches,
-      getById: getDeploymentById,
-      buildSteps: getDeploymentBuildSteps,
+      listDetails: listDeploymentDetails,
       runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       getOpenApiDiff: getOpenApiDiff,

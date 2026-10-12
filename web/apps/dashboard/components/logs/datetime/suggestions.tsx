@@ -17,13 +17,17 @@ export const DateTimeSuggestions = ({ className, options, onChange }: Suggestion
   );
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const isOpening = useRef(true);
 
   useEffect(() => {
     const newCheckedIndex = options.findIndex((option) => option.checked);
     if (newCheckedIndex !== -1) {
       setFocusedIndex(newCheckedIndex);
-      itemRefs.current[newCheckedIndex]?.focus();
+      if (isOpening.current) {
+        itemRefs.current[newCheckedIndex]?.focus();
+      }
     }
+    isOpening.current = false;
   }, [options]);
 
   const scrollIntoView = (index: number) => {

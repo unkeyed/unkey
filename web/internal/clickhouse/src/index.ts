@@ -1,11 +1,7 @@
 import { getAuditLogs } from "./audit-logs";
-import { getBillableRatelimits, getBillableVerifications } from "./billing";
-import { getBuildStepLogs, getBuildSteps } from "./build-steps";
 import {
-  getActiveKeysByApp,
   getActiveKeysUsage,
   getDeployMeterUsage,
-  getDeployUsageByScope,
   getDeployUsageTimeseries,
 } from "./deploy_billing";
 export {
@@ -13,16 +9,12 @@ export {
   activeKeysUsage,
   type DeployMeterUsage,
   deployMeterUsage,
-  type DeployUsageByScope,
-  deployUsageByScope,
   type DeployUsageTimeseries,
   deployUsageTimeseries,
   type DeployUsageTimeseriesGroup,
   deployUsageTimeseriesGroup,
   type DeployUsageTimeseriesInterval,
   deployUsageTimeseriesInterval,
-  type ActiveKeysByApp,
-  activeKeysByApp,
 } from "./deploy_billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import { getInstanceEvents } from "./instance-events";
@@ -314,12 +306,8 @@ export class ClickHouse {
   }
   public get billing() {
     return {
-      billableVerifications: getBillableVerifications(this.querier),
-      billableRatelimits: getBillableRatelimits(this.querier),
       deployMeterUsage: getDeployMeterUsage(this.querier),
-      deployUsageByScope: getDeployUsageByScope(this.querier),
       deployUsageTimeseries: getDeployUsageTimeseries(this.querier),
-      activeKeysByApp: getActiveKeysByApp(this.querier),
       activeKeysUsage: getActiveKeysUsage(this.querier),
     };
   }
@@ -424,12 +412,6 @@ export class ClickHouse {
   public get instanceEvents() {
     return {
       list: getInstanceEvents(this.querier),
-    };
-  }
-  public get buildSteps() {
-    return {
-      getSteps: getBuildSteps(this.querier),
-      getLogs: getBuildStepLogs(this.querier),
     };
   }
   public get auditLogs() {

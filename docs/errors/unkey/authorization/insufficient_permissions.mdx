@@ -1,0 +1,55 @@
+---
+title: "unkey/authorization/insufficient_permissions"
+sidebarTitle: "insufficient_permissions"
+description: "The root key is valid but lacks a permission this operation needs."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/rbac/check.go
+  - pkg/rbac/rbac.go
+  - internal/services/keys/status.go
+  - svc/api/internal/errors/errors.go
+---
+
+<Danger>`err:unkey:authorization:insufficient_permissions`</Danger>
+
+Your root key is valid, but it doesn't have a permission this endpoint needs. You get HTTP 403. On most endpoints, `detail` shows the permission that was missing.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Insufficient permissions to access this resource.",
+    "status": 403,
+    "title": "Insufficient Permissions",
+    "type": "/errors/unkey/authorization/insufficient_permissions"
+  }
+}
+```
+
+## Likely causes
+
+- The root key was never given this permission.
+- The permission names the wrong resource ID, for example an API ID where the URN needs a keyspace ID.
+- The request asks for a broader scope than the key's permission, such as listing deployments without environment filters.
+- Someone saved the key in **Edit root key** and left the permission unchecked. Saving replaces the whole set.
+
+A missing permission doesn't always return 403. Most endpoints that read or change a resource you named return a 404 for it instead, so a 404 doesn't prove the resource is gone. Check the root key's permissions before you decide the ID is wrong.
+
+## How to fix
+
+1. Identify the required resource and action. In `unkey:v1:{workspace_id}:{resource_path}#{action}`, the path selects the resource and the part after `#` selects the action.
+2. Check the workspace and resource IDs, including every parent in the path. Narrow the request's filters if it asks for more resources than the task needs.
+3. Assign the missing permission through the [dashboard or API](/platform/root-keys/configure). For example, `unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#write` permits creating and updating keys in one keyspace. Replace the example IDs with your own.
+
+Give each service its own root key with only what it needs, so a leaked key can't do more. See [Root key permissions](/platform/root-keys/permissions).
+
+`keys.verifyKey` distinguishes the root key's access from your customer's permissions. If the root key lacks `verify` access, the response has `valid: false` and code `NOT_FOUND`. If the customer's key lacks a permission required by your verification query, the code is `INSUFFICIENT_PERMISSIONS`.
+
+## Related errors
+
+- [`err:unkey:authorization:forbidden`](/errors/unkey/authorization/forbidden): the operation isn't allowed for a reason other than a missing permission.
+- [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found): the bearer token isn't a root key at all.
+- [`err:user:bad_request:permissions_query_syntax_error`](/errors/user/bad_request/permissions_query_syntax_error): a permissions query you wrote for `keys.verifyKey` couldn't be parsed.

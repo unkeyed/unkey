@@ -42,6 +42,14 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		return nil, err
 	}
 
+	if key.Status == StatusExpired {
+		return nil, fault.New("invalid root key",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+			fault.Internal(key.message),
+			fault.Public("The provided root key is invalid."),
+		)
+	}
+
 	if key.Status != StatusValid {
 		return nil, fault.Wrap(
 			key.ToFault(),

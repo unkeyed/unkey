@@ -5,7 +5,16 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, SettingCard } from "@unkey/ui";
+import {
+  FormInput,
+  SettingsForm,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowDescription,
+  SettingsRowHeader,
+  SettingsRowTitle,
+  formSaveState,
+} from "@unkey/ui";
 import type { Resolver } from "react-hook-form";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -13,7 +22,6 @@ import { keyPrefixSchema } from "../../_components/create-key/create-key.schema"
 import {
   createApiFormConfig,
   createMutationHandlers,
-  getStandardButtonProps,
   validateFormChange,
 } from "./key-settings-form-helper";
 
@@ -40,7 +48,8 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
   const {
     control,
     handleSubmit,
-    formState: { isValid, isSubmitting, isDirty },
+    reset,
+    formState: { isValid, isSubmitting, isDirty, errors },
   } = useForm<FormValues>({
     ...createApiFormConfig(formSchema),
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
@@ -70,46 +79,48 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
     }
 
     await setDefaultPrefix.mutateAsync(values);
+    reset(values);
     revalidate(routes.apis.settings({ workspaceSlug: workspace.slug, ...scope, apiId }));
   }
 
   return (
-    <SettingCard
-      title="Default Prefix"
-      description={
-        <div className="max-w-[380px]">
-          Sets the default prefix for keys under this keyspace. A trailing underscore is added
-          automatically.
-        </div>
-      }
-      contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
+    <SettingsForm
+      onSubmit={handleSubmit(onSubmit)}
+      dirty={isDirty}
+      saveState={formSaveState({ isSubmitting, isValid, isDirty })}
     >
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-row justify-end items-center gap-x-2 h-9"
-      >
-        <input type="hidden" name="keyAuthId" value={keyAuth.id} />
+      <SettingsRow>
+        <SettingsRowHeader>
+          <SettingsRowTitle>Default Prefix</SettingsRowTitle>
+          <SettingsRowDescription>
+            Sets the default prefix for keys under this keyspace. A trailing underscore is added
+            automatically.
+          </SettingsRowDescription>
+        </SettingsRowHeader>
+        <SettingsRowContent>
+          <input type="hidden" name="keyAuthId" value={keyAuth.id} />
 
-        <Controller
-          control={control}
-          name="defaultPrefix"
-          render={({ field }) => (
-            <Input
-              {...field}
-              className="min-w-64 items-end h-9"
-              autoComplete="off"
-              onBlur={(e) => {
-                if (e.target.value === "") {
-                  return;
-                }
-                field.onBlur();
-              }}
-            />
-          )}
-        />
-
-        <Button {...getStandardButtonProps(isValid, isSubmitting, isDirty)}>Save</Button>
-      </form>
-    </SettingCard>
+          <Controller
+            control={control}
+            name="defaultPrefix"
+            render={({ field }) => (
+              <FormInput
+                {...field}
+                aria-label="Default Prefix"
+                className="max-w-(--setting-w)"
+                autoComplete="off"
+                error={errors.defaultPrefix?.message}
+                onBlur={(e) => {
+                  if (e.target.value === "") {
+                    return;
+                  }
+                  field.onBlur();
+                }}
+              />
+            )}
+          />
+        </SettingsRowContent>
+      </SettingsRow>
+    </SettingsForm>
   );
 };

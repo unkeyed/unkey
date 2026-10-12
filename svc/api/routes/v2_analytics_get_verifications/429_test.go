@@ -22,7 +22,7 @@ func Test429_QueryQuotaExceeded(t *testing.T) {
 	})
 	// Set quota to allow only 1 query per window
 	h.SetupAnalytics(workspace.ID, testutil.WithMaxQueriesPerWindow(1))
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 
 	now := h.Clock.Now().UnixMilli()
 

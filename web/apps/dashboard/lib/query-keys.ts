@@ -1,12 +1,18 @@
+import type { UsagePeriod } from "@/app/(app)/[workspaceSlug]/settings/usage/period";
 const keysRoot = ["keys"] as const;
 const rbacRoot = ["rbac"] as const;
 const rolesRoot = [...rbacRoot, "roles"] as const;
 const permissionsRoot = [...rbacRoot, "permissions"] as const;
 const identitiesRoot = ["identities"] as const;
+const workspaceRoot = ["workspace"] as const;
+const portalSessionLists = (portalId: string) => ["portalSessions", portalId, "list"] as const;
 
 export const queryKeys = {
   apis: {
     detail: (apiId: string) => ["apis", "detail", apiId] as const,
+  },
+  deployments: {
+    buildLogs: (deploymentId: string) => ["deployments", "buildLogs", deploymentId] as const,
   },
   identities: {
     all: identitiesRoot,
@@ -24,6 +30,9 @@ export const queryKeys = {
   },
   portal: {
     detail: (keyAuthId: string) => ["portal", keyAuthId] as const,
+    sessionLists: portalSessionLists,
+    sessions: (portalId: string, search: string) =>
+      [...portalSessionLists(portalId), search] as const,
   },
   rbac: {
     all: rbacRoot,
@@ -39,5 +48,10 @@ export const queryKeys = {
   },
   statusPage: {
     summary: ["status-page-summary"] as const,
+  },
+  workspace: {
+    all: workspaceRoot,
+    limits: [...workspaceRoot, "limits"] as const,
+    usage: (period: UsagePeriod) => [...workspaceRoot, "usage", period] as const,
   },
 };

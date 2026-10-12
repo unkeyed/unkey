@@ -173,10 +173,12 @@ function ManagedAccountWidgets({
   }
 
   return (
-    <ManagedUserWidgets
-      getAccessToken={getWidgetAccessToken}
-      onMutationError={redactAccountWidgetError}
-    />
+    <div data-sentry-mask>
+      <ManagedUserWidgets
+        getAccessToken={getWidgetAccessToken}
+        onMutationError={redactAccountWidgetError}
+      />
+    </div>
   );
 }
 

@@ -1,0 +1,169 @@
+---
+title: Key and identity rate limits
+sidebarTitle: "Key and identity limits"
+description: "Enforce named rate limits on a key or an identity during verification."
+sources:
+  - svc/api/openapi/spec/common/RatelimitRequest.yaml
+  - svc/api/openapi/spec/common/RatelimitResponse.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/KeysVerifyKeyRatelimit.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/V2KeysUpdateKeyRequestBody.yaml
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - internal/services/keys/get.go
+  - internal/services/keys/validation.go
+  - internal/services/keys/verifier.go
+  - internal/services/ratelimit/ratelimit.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema.ts
+  - svc/api/openapi/spec/common/KeyCreditsRefill.yaml
+  - web/internal/api/src/sdk/keys.ts
+---
+
+Put a rate limit and a monthly request quota on each customer's API key, and `keys.verifyKey` enforces both. One call checks the key, the sliding-window limit, and the credit balance, with no Redis to run. To change a customer's numbers, call `keys.updateKey`. No deploy needed.
+
+The rate limit is a named window on the key, such as 100 requests per 60,000 milliseconds. The monthly quota is credits. Set `credits.refill.interval` to `monthly` and the balance refills on `refillDay`. When the window is used up, `data.code` is `RATE_LIMITED`. When credits can't cover the request, `data.code` is `USAGE_EXCEEDED`. Unkey still returns HTTP 200, and your server returns the 429.
+
+```typescript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+export async function handler(request: Request) {
+  const header = request.headers.get("authorization") ?? "";
+  const key = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : header;
+  const { data } = await unkey.keys.verifyKey({ key });
+
+  if (!data.valid && data.code === "RATE_LIMITED") {
+    const resetMs = data.ratelimits?.find((limit) => limit.exceeded)?.reset ?? Date.now();
+    const retryAfter = Math.max(1, Math.ceil((resetMs - Date.now()) / 1000));
+    return new Response("Too many requests", {
+      status: 429,
+      headers: { "Retry-After": String(retryAfter) },
+    });
+  }
+
+  if (!data.valid && data.code === "USAGE_EXCEEDED") {
+    return new Response("Monthly quota exceeded", { status: 429 });
+  }
+
+  return data.valid ? new Response("ok") : new Response("Unauthorized", { status: 401 });
+}
+```
+
+`Retry-After` is in seconds, and <a href="https://www.rfc-editor.org/rfc/rfc6585#section-4" target="_blank">RFC 6585</a> defines both 429 and that header. `reset` on each checked limit is Unix milliseconds. `keys.verifyKey` doesn't set `Retry-After` or `X-RateLimit-*`. Which headers Unkey does send, including on the Compute gateway, is on [Rate limiting](/api-management/ratelimiting/overview#what-a-limited-request-looks-like).
+
+A limit on an identity counts every key linked to that customer together. A limit on a key counts that key alone.
+
+## Define limits
+
+You set limits with `ratelimits` on `keys.createKey`, `keys.updateKey`, `identities.createIdentity`, and `identities.updateIdentity`, up to 50 per key or identity. Each entry has:
+
+<ParamField body="name" type="string" required>
+  3 to 128 characters, unique within the key or identity. You refer to the limit by this name at verification time.
+</ParamField>
+
+<ParamField body="limit" type="integer" required>
+  Tokens per window, 1 or more.
+</ParamField>
+
+<ParamField body="duration" type="integer" required>
+  Window length in milliseconds, 1000 or more.
+</ParamField>
+
+<ParamField body="autoApply" type="boolean" required>
+  `true` checks this limit on every verification. `false` checks it only when a verification names it. Required: leaving it out fails with HTTP 400 and `missing property 'autoApply'`.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
+    "ratelimits": [
+      { "name": "requests", "limit": 100, "duration": 60000, "autoApply": true },
+      { "name": "exports", "limit": 5, "duration": 3600000, "autoApply": false }
+    ]
+  }'
+```
+
+On `keys.updateKey` and `identities.updateIdentity`, `ratelimits` replaces the whole list. Limits you leave out are deleted and matching names are updated. `null` on `keys.updateKey` removes them all. Leave the field out to keep limits as they are.
+
+## Check limits at verification
+
+Auto-applied limits are always checked. To check any other limit, or to spend a custom cost, list it in the verification's `ratelimits` array.
+
+<ParamField body="ratelimits[].name" type="string" required>
+  The name of a limit on the key or its identity, 3 to 255 characters (saved limit names stop at 128; longer names only work for inline limits).
+</ParamField>
+
+<ParamField body="ratelimits[].cost" type="integer" default="1">
+  Tokens to spend on this limit for this verification, 0 or more.
+</ParamField>
+
+<ParamField body="ratelimits[].limit" type="integer">
+  With `duration`, defines an inline limit instead of referring to a configured one. See below.
+</ParamField>
+
+<ParamField body="ratelimits[].duration" type="integer">
+  Window in milliseconds for an inline limit. Send it together with `limit`.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "sk_live_...",
+    "ratelimits": [
+      { "name": "exports" },
+      { "name": "requests", "cost": 3 }
+    ]
+  }'
+```
+
+All listed limits are checked together. If any is exceeded, none is used up, the verification fails with `code: RATE_LIMITED`, and no credits are spent. Naming a limit that isn't on the key or its identity fails the whole request with HTTP 412 [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed).
+
+If the rate limit check can't run, the verification carries on as if the limits passed, so an outage never blocks valid keys.
+
+### Inline limits
+
+An entry with both `limit` and `duration` is an inline limit, used for this call only. It counts against the key (never the identity), isn't saved, and has an empty `id` in the response. Use it when your code decides the numbers per endpoint.
+
+<Warning>
+An inline limit needs a `limit` of 1 or more and a `duration` of 1000 milliseconds or more. Below that you get no error. Instead the verification skips all rate limits, including auto-applied ones, and `data.ratelimits` comes back empty. Check these values in your code before you send them.
+</Warning>
+
+```json
+{ "key": "sk_live_...", "ratelimits": [ { "name": "search", "limit": 20, "duration": 10000 } ] }
+```
+
+## What the response contains
+
+Every checked limit appears in `data.ratelimits` with `id`, `name`, `limit`, `duration`, `remaining`, `reset` (Unix milliseconds), `exceeded`, and `autoApply`. If the key has an identity, `data.identity.ratelimits` lists all of the identity's limits, checked or not.
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "valid": false,
+    "code": "RATE_LIMITED",
+    "keyId": "key_...",
+    "ratelimits": [
+      { "id": "rl_...", "name": "requests", "limit": 100, "duration": 60000, "remaining": 0, "reset": 1704067260000, "exceeded": true, "autoApply": true }
+    ]
+  }
+}
+```
+
+## Key limits and identity limits
+
+A limit on a key counts that key alone. A limit on an identity counts all its keys together, so five keys share one budget. If a key and its identity both have a limit with the same name, the key's limit wins, so you can give one key an exception to a shared limit. [Shared rate limits across keys](/api-management/identities/shared-rate-limits) walks through the identity side.
+
+## From the dashboard
+
+Set the same four fields in the **Create key** dialog's rate limit step, or with **Edit ratelimit** on a key or identity.
+
+<Frame>
+  <img src="/images/dashboard/api-management--ratelimiting-key-and-identity-limits--create-key-ratelimit.png" alt="Create key dialog on the Ratelimit step with the ratelimit toggle and the name, limit, and refill interval fields" />
+</Frame>

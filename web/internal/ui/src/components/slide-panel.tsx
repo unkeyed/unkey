@@ -17,6 +17,7 @@ export type SlidePanelProps = {
   className?: string;
   backdrop?: SlidePanelBackdrop;
   fitContent?: boolean;
+  "data-docs-target"?: string;
 };
 
 export function SlidePanel({
@@ -29,6 +30,7 @@ export function SlidePanel({
   className,
   backdrop = "blur",
   fitContent = false,
+  "data-docs-target": docsTarget,
 }: SlidePanelProps) {
   return (
     <DialogPrimitive.Root
@@ -66,6 +68,7 @@ export function SlidePanel({
         )}
         <DialogPrimitive.Popup
           data-slide-panel-open=""
+          data-docs-target={docsTarget}
           className={cn(
             "[--slide-panel-inset:0.75rem]",
             "fixed z-51 flex flex-col shadow-floating",

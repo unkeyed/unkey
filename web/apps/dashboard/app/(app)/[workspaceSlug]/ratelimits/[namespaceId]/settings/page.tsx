@@ -1,12 +1,12 @@
 "use client";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import {
-  PageBody,
   PageContainer,
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
+  SettingsGroups,
 } from "@unkey/ui";
 import { use } from "react";
 import { SettingsClient } from "./components/settings-client";
@@ -23,7 +23,7 @@ export default function SettingsPage(props: Props) {
 
   return (
     <PageContainer>
-      <PageHeader>
+      <PageHeader className="max-w-[920px]">
         <PageHeaderContent>
           <PageHeaderTitle>Settings</PageHeaderTitle>
         </PageHeaderContent>
@@ -31,9 +31,9 @@ export default function SettingsPage(props: Props) {
           <CopyableIDButton value={namespaceId} />
         </PageHeaderActions>
       </PageHeader>
-      <PageBody>
+      <SettingsGroups>
         <SettingsClient namespaceId={namespaceId} />
-      </PageBody>
+      </SettingsGroups>
     </PageContainer>
   );
 }

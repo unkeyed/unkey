@@ -57,15 +57,7 @@ export const env = () =>
       WORKOS_COOKIE_PASSWORD: z.string().optional(),
       WORKOS_API_HOSTNAME: z.string().optional(),
 
-      // Sentry configuration
-      SENTRY_DISABLED: z
-        .string()
-        .optional()
-        .transform((val) => val === "true"),
-      NEXT_PUBLIC_SENTRY_DISABLED: z
-        .string()
-        .optional()
-        .transform((val) => val === "true"),
+      NEXT_PUBLIC_SENTRY_DSN: z.url().optional(),
     })
     .parse(process.env);
 
@@ -87,9 +79,8 @@ export const workosAuthEnv = () => {
 export const dbEnv = () =>
   z
     .object({
-      DATABASE_HOST: z.string(),
-      DATABASE_USERNAME: z.string(),
-      DATABASE_PASSWORD: z.string(),
+      DATABASE_PRIMARY: z.url(),
+      DATABASE_REPLICA: z.url().optional(),
     })
     .parse(process.env);
 

@@ -7,8 +7,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
-import { useBuildSteps } from "../use-build-steps";
-import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
+import { DeploymentBuildLogs } from "./build-logs/deployment-build-logs";
 import { DeploymentStep } from "./deployment-step";
 
 export function DeploymentBuild() {
@@ -24,8 +23,6 @@ export function DeploymentBuild() {
     deploymentId: deployment.id,
   });
 
-  const buildSteps = useBuildSteps(deployment);
-
   router.prefetch(deploymentUrl);
 
   return (
@@ -38,11 +35,7 @@ export function DeploymentBuild() {
           status="completed"
           expandable={
             <div className="bg-grayA-2">
-              <DeploymentBuildStepsTable
-                steps={buildSteps.data?.steps ?? []}
-                isLoading={buildSteps.isLoading}
-                fixedHeight={750}
-              />
+              <DeploymentBuildLogs fixedHeight={750} />
             </div>
           }
           defaultExpanded

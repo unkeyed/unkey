@@ -1,72 +1,113 @@
 "use client";
 
-import { ManageGitHubAppLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/github-settings/shared";
 import { trpc } from "@/lib/trpc/client";
-import { Github } from "@unkey/icons";
+import { Github, IconArrowUpRightOutline12, IconCheckOutline12 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, SettingCard, Skeleton, toast } from "@unkey/ui";
-import { useCallback } from "react";
+import {
+  Button,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowDescription,
+  SettingsRowHeader,
+  SettingsRowTitle,
+  Skeleton,
+  toast,
+} from "@unkey/ui";
+import { cn } from "cn";
 
 type GithubConnectionState =
   | { status: "loading" }
   | { status: "connected" }
   | { status: "disconnected" };
 
+type InstallStatus = Exclude<GithubConnectionState["status"], "loading">;
+
+const INSTALL_CARD: Record<
+  InstallStatus,
+  { summary: string; indicator: React.ReactNode; border: string }
+> = {
+  connected: {
+    summary: "Installed",
+    indicator: <IconCheckOutline12 className="size-2.5 shrink-0 text-success-11" />,
+    border: "border-solid",
+  },
+  disconnected: {
+    summary: "Not installed",
+    indicator: <span className="size-1.5 shrink-0 rounded-full bg-gray-8" />,
+    border: "border-dashed",
+  },
+};
+
 export function GithubConnection() {
   const { data, isLoading } = trpc.github.hasInstallations.useQuery();
   const prepareInstall = trpc.github.prepareWorkspaceInstall.useMutation();
 
-  const onInstall = useCallback(async () => {
+  const openInstall = async () => {
     try {
       const { state } = await prepareInstall.mutateAsync();
       window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }
-  }, [prepareInstall]);
+  };
 
+  const installStatus: InstallStatus = data?.hasInstallation ? "connected" : "disconnected";
   const state: GithubConnectionState = isLoading
     ? { status: "loading" }
-    : data?.hasInstallation
-      ? { status: "connected" }
-      : { status: "disconnected" };
-
-  const description =
-    state.status === "connected"
-      ? "The Unkey GitHub App is installed on this workspace. Manage it on GitHub."
-      : "Install the Unkey GitHub App on your workspace to deploy from your repositories.";
-
-  const statusBadge =
-    state.status === "connected" ? (
-      <Badge variant="success">Connected</Badge>
-    ) : state.status === "disconnected" ? (
-      <Badge variant="secondary">Not connected</Badge>
-    ) : null;
+    : { status: installStatus };
 
   return (
-    <SettingCard
-      title={
-        <span className="flex items-center gap-2">
-          GitHub
-          {statusBadge}
-        </span>
-      }
-      description={description}
-      border="both"
-      contentWidth="w-full lg:w-[420px] justify-end"
-      icon={<Github className="size-4" />}
-    >
-      <div className="flex w-full items-center justify-end">
+    <SettingsRow>
+      <SettingsRowHeader>
+        <SettingsRowTitle>GitHub</SettingsRowTitle>
+        <SettingsRowDescription>Deploy apps from your GitHub repositories.</SettingsRowDescription>
+      </SettingsRowHeader>
+      <SettingsRowContent>
         {match(state)
-          .with({ status: "loading" }, () => <Skeleton className="h-9 w-40 rounded-lg" />)
-          .with({ status: "connected" }, () => (
-            <ManageGitHubAppLink text="Manage on GitHub" onInstall={onInstall} />
+          .with({ status: "loading" }, () => (
+            <Skeleton className="h-[58px] max-w-(--setting-w) rounded-lg" />
           ))
-          .with({ status: "disconnected" }, () => (
-            <ManageGitHubAppLink text="Install GitHub App" onInstall={onInstall} />
+          .with({ status: "connected" }, ({ status }) => (
+            <GithubAppCard status={status}>
+              <Button variant="outline" loading={prepareInstall.isLoading} onClick={openInstall}>
+                Manage
+                <IconArrowUpRightOutline12 className="size-3! text-gray-11" />
+              </Button>
+            </GithubAppCard>
+          ))
+          .with({ status: "disconnected" }, ({ status }) => (
+            <GithubAppCard status={status}>
+              <Button variant="primary" loading={prepareInstall.isLoading} onClick={openInstall}>
+                Install
+              </Button>
+            </GithubAppCard>
           ))
           .exhaustive()}
+      </SettingsRowContent>
+    </SettingsRow>
+  );
+}
+
+function GithubAppCard({ status, children }: { status: InstallStatus; children: React.ReactNode }) {
+  const card = INSTALL_CARD[status];
+  return (
+    <div
+      className={cn(
+        "flex max-w-(--setting-w) items-center gap-3 rounded-lg border bg-raised p-3",
+        card.border,
+      )}
+    >
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-gray-12 text-gray-1">
+        <Github className="size-4" />
       </div>
-    </SettingCard>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="text-sm font-medium leading-4 text-gray-12">Unkey GitHub App</span>
+        <span className="flex items-center gap-1.5 text-xs leading-4 text-gray-11">
+          {card.indicator}
+          {card.summary}
+        </span>
+      </div>
+      {children}
+    </div>
   );
 }

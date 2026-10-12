@@ -57,7 +57,7 @@ func TestRedeployDeploymentNotFound(t *testing.T) {
 		Project:     setup.Project.Slug,
 		App:         setup.App.Slug,
 		Environment: setup.Environment.Slug,
-		Deployment:  &openapi.DeploymentSourceDeployment{DeploymentId: "d_does_not_exist"},
+		Deployment:  &openapi.DeploymentSourceDeployment{DeploymentId: uid.New(uid.DeploymentPrefix)},
 	})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/deployment_not_found", res.Body.Error.Type)

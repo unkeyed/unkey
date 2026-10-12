@@ -24,6 +24,12 @@ describe("api-scoped paths", () => {
   it("builds the portal path", () => {
     expect(routes.apis.portal({ workspaceSlug: ws, apiId })).toBe("/acme/apis/api_123/portal");
   });
+
+  it("builds the portal sessions path", () => {
+    expect(routes.apis.portalSessions({ workspaceSlug: ws, apiId })).toBe(
+      "/acme/apis/api_123/portal/sessions",
+    );
+  });
 });
 
 describe("key-scoped paths", () => {
@@ -62,6 +68,9 @@ describe("project-scoped api paths", () => {
     );
     expect(routes.apis.portal({ workspaceSlug: ws, projectId, apiId })).toBe(
       "/acme/projects/proj_123/keyspaces/api_123/portal",
+    );
+    expect(routes.apis.portalSessions({ workspaceSlug: ws, projectId, apiId })).toBe(
+      "/acme/projects/proj_123/keyspaces/api_123/portal/sessions",
     );
   });
 

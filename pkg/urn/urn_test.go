@@ -124,6 +124,11 @@ func TestResourceSpecificParsersRoundTrip(t *testing.T) {
 			parse: func(value string) (fmt.Stringer, error) { return ParseDeploymentLogs(value) },
 		},
 		{
+			name:  "deployment build logs",
+			value: deployment.BuildLogs(),
+			parse: func(value string) (fmt.Stringer, error) { return ParseDeploymentBuildLogs(value) },
+		},
+		{
 			name:  "domain",
 			value: environment.Domain("domain_123"),
 			parse: func(value string) (fmt.Stringer, error) { return ParseDomain(value) },
@@ -235,6 +240,32 @@ func TestRootKeyResource(t *testing.T) {
 	require.Equal(t, value, resource.String())
 }
 
+// TestLimitsResource guarantees the workspace builder and parser agree that
+// limits identifies the workspace's limits resource
+func TestLimitsResource(t *testing.T) {
+	t.Parallel()
+
+	value := New().Workspace("ws_123").Limits().String()
+	require.Equal(t, "unkey:v1:ws_123:limits", value)
+
+	resource, err := ParseV1(value)
+	require.NoError(t, err)
+	require.Equal(t, value, resource.String())
+}
+
+// TestUsageResource guarantees the workspace builder and parser agree that
+// usage identifies the workspace's usage resource
+func TestUsageResource(t *testing.T) {
+	t.Parallel()
+
+	value := New().Workspace("ws_123").Usage().String()
+	require.Equal(t, "unkey:v1:ws_123:usage", value)
+
+	resource, err := ParseV1(value)
+	require.NoError(t, err)
+	require.Equal(t, value, resource.String())
+}
+
 // TestParseV1AllowsCanonicalPatterns guarantees canonical resource patterns use
 // wildcards only in supported positions.
 func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
@@ -243,6 +274,8 @@ func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 	for _, value := range []string{
 		"unkey:v1:ws_123:github/apps/*",
 		"unkey:v1:ws_123:rootKeys/*",
+		"unkey:v1:ws_123:limits",
+		"unkey:v1:ws_123:usage",
 		"unkey:v1:ws_123:projects/*",
 		"unkey:v1:ws_123:projects/*/portals/*",
 		"unkey:v1:ws_123:projects/*/portals/*/sessions/*",
@@ -250,6 +283,7 @@ func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 		"unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123",
 		"unkey:v1:ws_123:projects/proj_123/portals/portal_123/**",
 		"unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs",
+		"unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/buildLogs",
 		"unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/logs",
 		"unkey:v1:ws_123:projects/*/keyspaces/*/logs",
 		"unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/logs",
@@ -386,6 +420,7 @@ func TestResourceCatalogBuilders(t *testing.T) {
 		{name: "environment", got: environment.String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123"},
 		{name: "deployment", got: deployment.String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123"},
 		{name: "deployment logs", got: deployment.Logs().String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/logs"},
+		{name: "deployment build logs", got: deployment.BuildLogs().String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/buildLogs"},
 		{name: "domain", got: environment.Domain("dom_123").String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/dom_123"},
 		{name: "environment variable", got: environment.Variable("var_123").String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/variables/var_123"},
 		{name: "gateway logs", got: environment.Gateway().Logs().String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/logs"},

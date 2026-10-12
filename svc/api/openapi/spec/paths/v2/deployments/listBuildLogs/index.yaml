@@ -1,0 +1,178 @@
+post:
+  tags:
+    - deployments
+  summary: List build logs
+  description: |
+    Retrieve the build output of a deployment as a list of log entries, in the
+    order the build printed them. A log entry is one chunk of build output,
+    and can contain several lines or part of a line.
+
+    Poll this endpoint to follow a running build:
+
+    - Send the `pagination.cursor` of the last response as `cursor`. The
+      response contains only the entries after it.
+    - When `hasMore` is true, request again now.
+    - When `hasMore` is false, you have all entries so far. Wait,
+      then request again with the same cursor.
+    - The cursor is absent only when the request had no cursor and the build
+      has no entries yet.
+    - A response can contain fewer than `limit` entries and still have
+      `hasMore: true` when the entries are large.
+
+    New entries become visible up to a few seconds after the build prints
+    them. To know that a build is done, check the deployment status with
+    `getDeployment`. After the status is no longer `building`, request until
+    you get an empty response at least 5 seconds later.
+
+    When a build attempt is retried, an entry from the earlier attempt can
+    arrive after the cursor has moved past it, and a poll does not return it.
+    A request without a cursor returns it. A deployment from a prebuilt image
+    has no build and returns no entries. Build logs are kept for 3 months.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>/buildLogs#read`
+  operationId: deployments.listBuildLogs
+  x-speakeasy-name-override: listBuildLogs
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsListBuildLogsRequestBody.yaml"
+        examples:
+          firstPage:
+            summary: Start at the first entry
+            description: Fetch the build log entries of a deployment from the start
+            value:
+              deploymentId: d_1234abcd
+          nextPage:
+            summary: Continue after a cursor
+            description: Fetch the entries after the previous response
+            value:
+              deploymentId: d_1234abcd
+              cursor: "1704067201000001"
+          oneStep:
+            summary: Entries of one step
+            description: Fetch only the entries of one build step
+            value:
+              deploymentId: d_1234abcd
+              stepId: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+  responses:
+    "200":
+      description: |
+        Successfully retrieved the build log entries.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsListBuildLogsResponseBody.yaml"
+          examples:
+            entries:
+              summary: Log entries of a running build
+              description: Output of two steps, more entries are available
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  - time: 1704067199000
+                    stepId: sha256:1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f3f9c2b7e
+                    step: "[2/7] RUN apk add --no-cache git"
+                    output: stdout
+                    message: "OK: 12 MiB in 18 packages\n"
+                  - time: 1704067201000
+                    stepId: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+                    step: "[3/7] RUN npm ci"
+                    output: stderr
+                    message: "npm warn deprecated inflight@1.0.6\n"
+                pagination:
+                  cursor: "1704067201000001"
+                  hasMore: true
+            caughtUp:
+              summary: No new entries
+              description: The poll is caught up, so request again later with the same cursor
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: []
+                pagination:
+                  cursor: "1704067201000001"
+                  hasMore: false
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidCursor:
+              summary: Invalid cursor
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The cursor is not valid. Send the pagination.cursor of a previous response, or omit it to start at the first entry.
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                  errors: []
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            invalidRootKey:
+              summary: Invalid root key
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: The provided root key is invalid. We could not find the requested key.
+                  status: 401
+                  type: https://unkey.com/docs/errors/unkey/authentication/key_not_found
+    "404":
+      description: Not Found - The requested deployment does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            deploymentNotFound:
+              summary: Deployment not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested deployment does not exist.
+                  status: 404
+                  type: https://unkey.com/docs/errors/unkey/data/deployment_not_found
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            logsUnavailable:
+              summary: Build logs unavailable
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Internal Server Error
+                  detail: Failed to retrieve build logs.
+                  status: 500
+                  type: https://unkey.com/docs/errors/unkey/application/service_unavailable

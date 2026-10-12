@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -39,6 +40,16 @@ func (n *noop) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUs
 	return nil, nil
 }
 
+// GetComputeUsageByEnvironment implements the Querier interface but always returns an empty slice
+func (n *noop) GetComputeUsageByEnvironment(ctx context.Context, workspaceID string, start, end time.Time) ([]ComputeUsageByEnvironment, error) {
+	return nil, nil
+}
+
+// GetActiveKeysByApp implements the Querier interface but always returns an empty slice
+func (n *noop) GetActiveKeysByApp(ctx context.Context, workspaceID string, year, month int) ([]ActiveKeysByApp, error) {
+	return nil, nil
+}
+
 // GetDeploymentRequestCount implements the Querier interface but always returns 0.
 func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error) {
 	return 0, nil
@@ -47,6 +58,11 @@ func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentR
 // GetKeyLastUsedBatchPartitioned implements the Querier interface but always returns an empty slice.
 func (n *noop) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error) {
 	return nil, nil
+}
+
+// GetBuildLogs implements the Querier interface but always returns no entries
+func (n *noop) GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (BuildLogsPage, error) {
+	return BuildLogsPage{Entries: []BuildLogEntry{}, HasMore: false}, nil
 }
 
 // InsertAuditLogs implements the Querier interface but discards the input.

@@ -20,6 +20,9 @@ var developerPermissions = []resourcePermission{
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Delete)},
 
+	{resource: "limits", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "usage", action: rbac.ActionType(rbacpermissions.Read)},
+
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Delete)},
@@ -42,6 +45,7 @@ var developerPermissions = []resourcePermission{
 	{resource: "projects/*/apps/*/environments/*/deployments/*", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "projects/*/apps/*/environments/*/deployments/*", action: rbac.ActionType(rbacpermissions.Delete)},
 	{resource: "projects/*/apps/*/environments/*/deployments/*/logs", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "projects/*/apps/*/environments/*/deployments/*/buildLogs", action: rbac.ActionType(rbacpermissions.Read)},
 
 	{resource: "projects/*/apps/*/environments/*/domains/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/domains/*", action: rbac.ActionType(rbacpermissions.Write)},
@@ -90,12 +94,15 @@ var developerPermissions = []resourcePermission{
 // viewerPermissions includes product reads but excludes API key decryption.
 var viewerPermissions = []resourcePermission{
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "limits", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "usage", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/deployments/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/deployments/*/logs", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "projects/*/apps/*/environments/*/deployments/*/buildLogs", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/domains/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/variables/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/gateway/logs", action: rbac.ActionType(rbacpermissions.Read)},

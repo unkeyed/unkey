@@ -1,20 +1,6 @@
 "use client";
-import {
-  IconGridOutline18,
-  IconMagnifierOutline18,
-  IconSquareBulletListOutline18,
-  IconXmarkOutline18,
-} from "@unkey/icons";
-import {
-  Button,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  ResourceListHeader,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@unkey/ui";
+import { IconGridOutline18, IconSquareBulletListOutline18 } from "@unkey/icons";
+import { ResourceListHeader, SearchInput, Tabs, TabsList, TabsTrigger } from "@unkey/ui";
 import { type AppsView, parseAppsView } from "./use-apps-view";
 
 type Props = {
@@ -33,38 +19,12 @@ export function AppsListControls({ search, onSearchChange, view, onViewChange }:
   return (
     <ResourceListHeader className="md:items-center">
       <div className="flex h-8 w-full items-center md:w-80">
-        <InputGroup className="h-8">
-          <InputGroupAddon className="pointer-events-none">
-            <IconMagnifierOutline18 className="size-4 text-gray-9" />
-          </InputGroupAddon>
-          <InputGroupInput
-            aria-label="Search apps"
-            type="text"
-            value={search}
-            maxLength={256}
-            placeholder="Search by name, repo, image or domain"
-            className="h-8 text-sm font-medium"
-            onChange={(event) => onSearchChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                onSearchChange("");
-              }
-            }}
-          />
-          {search ? (
-            <InputGroupAddon align="inline-end">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Clear search"
-                onClick={() => onSearchChange("")}
-              >
-                <IconXmarkOutline18 className="size-4" />
-              </Button>
-            </InputGroupAddon>
-          ) : null}
-        </InputGroup>
+        <SearchInput
+          value={search}
+          onValueChange={onSearchChange}
+          label="Search apps"
+          placeholder="Search by name, repo, image or domain"
+        />
       </div>
       <Tabs
         value={view}

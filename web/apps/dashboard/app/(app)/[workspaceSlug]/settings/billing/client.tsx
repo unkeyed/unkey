@@ -160,7 +160,7 @@ export const Client: React.FC = () => {
               <SettingCard
                 title="Add payment method"
                 description="Before upgrading, you need to add a payment method."
-                contentWidth="w-full lg:w-[320px]"
+                contentWidth="w-full @2xl:w-[320px]"
               >
                 <div className="flex justify-end w-full">
                   <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>

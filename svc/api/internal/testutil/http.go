@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -445,10 +446,7 @@ func (h *Harness) CreatePortalSessionForPortal(portalID, workspaceID, externalID
 	exchangeCode := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
 	accessToken := string(uid.PortalAccessTokenPrefix) + "_" + uid.Secure()
 
-	scopesJSON, err := json.Marshal(struct {
-		KeyspaceIDs []string `json:"keyspaceIds"`
-		Scopes      []string `json:"scopes"`
-	}{
+	scopesJSON, err := json.Marshal(portal.Grant{
 		KeyspaceIDs: keyspaceIDs,
 		Scopes:      scopes,
 	})
@@ -638,7 +636,11 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 
 	var rootKey string
 	if config.Permissions != nil {
-		rootKey = h.CreateRootKey(workspace.ID, config.Permissions...)
+		permissions := make([]string, len(config.Permissions))
+		for i, permission := range config.Permissions {
+			permissions[i] = strings.ReplaceAll(permission, "{workspaceID}", workspace.ID)
+		}
+		rootKey = h.CreateRootKey(workspace.ID, permissions...)
 	} else {
 		rootKey = h.CreateRootKey(workspace.ID)
 	}

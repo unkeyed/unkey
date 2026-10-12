@@ -39,7 +39,7 @@ export function PolicySummaryRow({ policy, onExpand, onRemove }: PolicySummaryRo
   const more = Math.max(summary.grants.length - GRANT_PREVIEW_LIMIT, 0);
 
   return (
-    <section className="flex items-center gap-2 rounded-lg border border-grayA-4 dark:border-grayA-5 bg-white p-4 dark:bg-black">
+    <section className="flex items-center gap-2 rounded-lg border bg-raised p-4">
       <button
         type="button"
         onClick={onExpand}
@@ -75,7 +75,7 @@ export function PolicyEditor({ policy, error, onChange, onCollapse, onRemove }: 
   const { instances, isLoading } = useScopeInstances(policy.scope);
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-grayA-4 dark:border-grayA-5 bg-white p-4 dark:bg-black">
+    <section className="flex flex-col gap-4 rounded-lg border bg-raised p-4">
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-gray-12">Edit policy</span>
         <div className="ml-auto flex items-center gap-1">

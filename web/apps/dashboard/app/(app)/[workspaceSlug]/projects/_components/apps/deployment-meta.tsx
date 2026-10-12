@@ -4,7 +4,7 @@ import {
 } from "@/lib/collections/deploy/deployment-status";
 import type { ProjectApp } from "@/lib/collections/deploy/project-cards";
 import { match } from "@unkey/match";
-import { useElapsed } from "@unkey/ui";
+import { type RelativePrecision, useElapsed } from "@unkey/ui";
 import { cn } from "cn";
 import { DeploymentStatusIndicator } from "../../[projectId]/apps/[appId]/components/deployment-status-dot";
 
@@ -34,13 +34,29 @@ const TONE: Record<DeploymentStatusGroup, string> = {
   superseded: "text-gray-9",
 };
 
+const PRECISION: Record<DeploymentStatusGroup, RelativePrecision> = {
+  queued: "second",
+  building: "second",
+  failed: "minute",
+  blocked: "minute",
+  stopped: "minute",
+  cancelled: "minute",
+  skipped: "minute",
+  ready: "minute",
+  superseded: "minute",
+};
+
+function useDeploymentAge(deployment: AppDeployment): string {
+  return useElapsed(deployment.deployedAt, "narrow", PRECISION[statusGroupOf(deployment.status)]);
+}
+
 export function useDeploymentPhrase(deployment: AppDeployment): string {
-  const deployedAgo = useElapsed(deployment.deployedAt, "narrow");
+  const deployedAgo = useDeploymentAge(deployment);
   return `${VERB[statusGroupOf(deployment.status)]} ${deployedAgo}`;
 }
 
 export function DeploymentMeta({ deployment }: { deployment: AppDeployment }) {
-  const deployedAgo = useElapsed(deployment.deployedAt, "narrow");
+  const deployedAgo = useDeploymentAge(deployment);
 
   const settled = (group: DeploymentStatusGroup) => (
     <span className={cn("shrink-0 text-xs", TONE[group])}>

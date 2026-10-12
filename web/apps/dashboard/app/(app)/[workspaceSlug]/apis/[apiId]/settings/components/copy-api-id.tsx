@@ -1,26 +1,24 @@
-import { SettingCard } from "@unkey/ui";
-import { CopyButton } from "@unkey/ui";
+import {
+  CopyInput,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowDescription,
+  SettingsRowHeader,
+  SettingsRowTitle,
+} from "@unkey/ui";
 
 export const CopyApiId = ({ apiId }: { apiId: string }) => {
   return (
-    <SettingCard
-      title={"API ID"}
-      description={
-        <div className="max-w-[380px]">An identifier for the API, used in some API calls.</div>
-      }
-      contentWidth="w-full lg:w-[420px] justify-end"
-    >
-      {/* TODO: make this a Code component in UI for CopyKeys with optional hidden button like in Code.*/}
-      <div className="flex flex-row justify-end items-center">
-        <div
-          className={
-            "flex flex-row justify-between min-w-[327px] pl-2 pr-2 py-2 bg-raised border rounded-lg"
-          }
-        >
-          <div className="text-sm text-gray-11">{apiId}</div>
-          <CopyButton value={apiId} variant="ghost" toastMessage={apiId} />
-        </div>
-      </div>
-    </SettingCard>
+    <SettingsRow>
+      <SettingsRowHeader>
+        <SettingsRowTitle>API ID</SettingsRowTitle>
+        <SettingsRowDescription>
+          An identifier for the API, used in some API calls.
+        </SettingsRowDescription>
+      </SettingsRowHeader>
+      <SettingsRowContent>
+        <CopyInput value={apiId} aria-label="API ID" className="max-w-(--setting-w)" />
+      </SettingsRowContent>
+    </SettingsRow>
   );
 };

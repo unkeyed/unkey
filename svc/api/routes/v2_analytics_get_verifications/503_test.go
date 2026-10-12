@@ -19,7 +19,7 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 	_ = h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 
 	// Set up ClickHouse workspace settings with invalid connection info
 	now := h.Clock.Now().UnixMilli()

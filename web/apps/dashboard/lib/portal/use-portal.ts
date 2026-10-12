@@ -81,7 +81,7 @@ function useInvalidatePortal(keyAuthId: string) {
   return () => queryClient.invalidateQueries({ queryKey: queryKeys.portal.detail(keyAuthId) });
 }
 
-function toastUnless(options: PortalMutationOptions | undefined, fallback: string) {
+export function toastUnless(options: PortalMutationOptions | undefined, fallback: string) {
   return (error: unknown) => {
     if (options?.onError?.(error)) {
       return;

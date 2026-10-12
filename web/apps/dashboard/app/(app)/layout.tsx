@@ -91,7 +91,7 @@ export default function Layout({ children }: LayoutProps) {
   if (isLoading || !user || !workspace) {
     return (
       <div className="h-dvh flex flex-col">
-        <LoadingState message="Loading workspace..." />
+        <LoadingState delayMs={300} message="Loading workspace..." />
       </div>
     );
   }

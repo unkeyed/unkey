@@ -5,12 +5,13 @@ import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconHalfDottedCirclePlayOutline18 } from "@unkey/icons";
+import { firstMatchingSaveState } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
 import { SettingDescription } from "../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 
 const dualSchema = z.object({ production: z.boolean(), preview: z.boolean() });
 type DualFormValues = z.infer<typeof dualSchema>;
@@ -77,7 +78,7 @@ const AutoDeployInner = ({
 
   const hasChanges = currentProd !== defaultProd || currentPreview !== defaultPreview;
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],

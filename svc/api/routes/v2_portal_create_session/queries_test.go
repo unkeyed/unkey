@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
@@ -62,7 +63,7 @@ func TestFindApisByKeyAuthIds(t *testing.T) {
 	// Unknown keyspace ids are simply absent from the result.
 	rows, err = db.Query.FindApisByKeyAuthIds(ctx, h.DB.RO(), db.FindApisByKeyAuthIdsParams{
 		WorkspaceID: workspace.ID,
-		KeyAuthIds:  []string{api.KeyAuthID.String, "ks_does_not_exist"},
+		KeyAuthIds:  []string{api.KeyAuthID.String, uid.New(uid.KeySpacePrefix)},
 	})
 	require.NoError(t, err)
 	require.Len(t, rows, 1)

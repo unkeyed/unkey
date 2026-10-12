@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
 )
@@ -46,17 +46,12 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 
 	t.Run("delete identity with external ID from different workspace", func(t *testing.T) {
 		// Create identity in user workspace
-		identityId := uid.New(uid.IdentityPrefix)
-		externalId := "ext_" + identityId
-		err := db.Query.InsertIdentity(t.Context(), h.DB.RW(), db.InsertIdentityParams{
-			ID:          identityId,
-			ExternalID:  externalId,
+		externalId := uid.New(uid.TestPrefix)
+		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        []byte("{}"),
+			ExternalID:  externalId,
 		})
-		require.NoError(t, err)
 
 		// Create a different workspace
 		differentWorkspace := h.CreateWorkspace()
@@ -82,20 +77,15 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 
 	t.Run("delete already deleted identity", func(t *testing.T) {
 		// Create and soft delete an identity
-		identityId := uid.New(uid.IdentityPrefix)
-		externalId := "ext_" + identityId
-		err := db.Query.InsertIdentity(t.Context(), h.DB.RW(), db.InsertIdentityParams{
-			ID:          identityId,
-			ExternalID:  externalId,
+		externalId := uid.New(uid.TestPrefix)
+		identityId := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Environment: "default",
-			CreatedAt:   time.Now().UnixMilli(),
-			Meta:        []byte("{}"),
-		})
-		require.NoError(t, err)
+			ExternalID:  externalId,
+		}).ID
 
 		// Soft delete the identity directly in DB
-		err = db.Query.SoftDeleteIdentity(t.Context(), h.DB.RW(), db.SoftDeleteIdentityParams{
+		err := db.Query.SoftDeleteIdentity(t.Context(), h.DB.RW(), db.SoftDeleteIdentityParams{
 			IdentityID:  identityId,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})

@@ -35,7 +35,10 @@ export function createIdentityOptions({
                 <div className="border rounded-full flex items-center justify-center size-5">
                   <IconUserOutline12 className="text-grayA-11" />
                 </div>
-                <span className="max-w-[200px] truncate font-medium text-gray-12 text-left">
+                <span
+                  data-sentry-mask
+                  className="max-w-[200px] truncate font-medium text-gray-12 text-left"
+                >
                   {identity.externalId.length > 15
                     ? `${identity.externalId.slice(0, 4)}...${identity.externalId.slice(-4)}`
                     : identity.externalId}
@@ -74,7 +77,10 @@ export function createIdentityOptions({
                   <div className="flex items-start justify-between w-full gap-2 h-full">
                     {/* JSON Content */}
                     <div className="overflow-x-auto w-full min-w-0 p-3 h-full">
-                      <pre className="whitespace-pre-wrap break-all text-2xs leading-5 text-gray-12 font-mono h-full overflow-y-auto">
+                      <pre
+                        data-sentry-mask
+                        className="whitespace-pre-wrap break-all text-2xs leading-5 text-gray-12 font-mono h-full overflow-y-auto"
+                      >
                         {JSON.stringify(identity.meta, null, 4)}
                       </pre>
                     </div>
@@ -99,7 +105,10 @@ export function createIdentityOptions({
           <div className="border rounded-full flex items-center justify-center size-5">
             <IconUserOutline12 className="text-grayA-11" />
           </div>
-          <span className="text-gray-12 font-medium text-xs max-w-[200px] truncate text-left">
+          <span
+            data-sentry-mask
+            className="text-gray-12 font-medium text-xs max-w-[200px] truncate text-left"
+          >
             {identity.externalId}
           </span>
         </div>

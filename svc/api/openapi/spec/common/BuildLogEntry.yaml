@@ -1,0 +1,37 @@
+type: object
+required:
+  - time
+  - stepId
+  - step
+  - output
+  - message
+properties:
+  time:
+    type: integer
+    format: int64
+    description: When the build printed the entry, in Unix epoch milliseconds.
+    example: 1704067201000
+  stepId:
+    type: string
+    description: |
+      The build step that printed the entry. Pass it as `stepId` to return only
+      this step's entries.
+    example: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+  step:
+    type: string
+    maxLength: 256
+    description: |
+      The name of the build step, such as `[3/7] RUN npm ci`, cut to 256
+      characters. Empty when the step name is not known.
+    example: "[3/7] RUN npm ci"
+  output:
+    "$ref": "./BuildLogOutput.yaml"
+  message:
+    type: string
+    description: |
+      The text the build printed. One entry can contain several lines or part
+      of a line.
+    example: |
+      added 412 packages in 12s
+additionalProperties: false
+description: One chunk of build output.

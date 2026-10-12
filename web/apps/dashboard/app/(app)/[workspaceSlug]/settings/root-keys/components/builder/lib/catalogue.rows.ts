@@ -56,6 +56,7 @@ export function deploymentRows(environmentPath: string): PermissionRow[] {
       path: deploymentPath,
     }),
     logRow("deployment_log", "Runtime logs", `${deploymentPath}/logs`),
+    logRow("deployment_build_log", "Build logs", `${deploymentPath}/buildLogs`),
   ];
 }
 
@@ -140,7 +141,7 @@ export function portalRows(projectPath: string): PermissionRow[] {
       id: "portal_session",
       label: "Portal sessions",
       path: `${portalPath}/sessions/*`,
-      actions: { read: [], delete: [] },
+      actions: { delete: [] },
     }),
   ];
 }
@@ -155,6 +156,28 @@ export function githubRows(): PermissionRow[] {
       id: "github_app",
       label: "GitHub apps",
       path: "github/apps/*",
+    }),
+  ];
+}
+
+export function limitsRows(): PermissionRow[] {
+  return [
+    permissionRow({
+      id: "limits",
+      label: "Limits",
+      path: "limits",
+      actions: { write: [], delete: [] },
+    }),
+  ];
+}
+
+export function usageRows(): PermissionRow[] {
+  return [
+    permissionRow({
+      id: "usage",
+      label: "Usage",
+      path: "usage",
+      actions: { write: [], delete: [] },
     }),
   ];
 }

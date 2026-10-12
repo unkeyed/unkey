@@ -39,7 +39,7 @@ function Code({
   ...props
 }: CodeProps) {
   return (
-    <div className={cn(codeVariants({ variant }), className)}>
+    <div data-sentry-mask className={cn(codeVariants({ variant }), className)}>
       <pre
         className={cn(
           "border-none bg-transparent focus:outline-hidden focus:ring-0 pr-2 pt-2",

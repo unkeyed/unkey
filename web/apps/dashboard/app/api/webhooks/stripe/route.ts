@@ -668,7 +668,7 @@ export const POST = async (req: Request): Promise<Response> => {
             },
             event: "workspace.update",
             description: `Subscription updated to ${product.name} plan.`,
-            resources: [],
+            resources: [{ type: "workspace", id: ws.id }],
             context: {
               location: "",
               userAgent: undefined,
@@ -811,7 +811,7 @@ export const POST = async (req: Request): Promise<Response> => {
               actor: { type: "system", id: "stripe" },
               event: "workspace.update",
               description: "Cancelled Compute subscription.",
-              resources: [],
+              resources: [{ type: "workspace", id: ws.id }],
               context: { location: "", userAgent: undefined },
             });
           });
@@ -880,7 +880,7 @@ export const POST = async (req: Request): Promise<Response> => {
             description: keepsTeam
               ? "Cancelled API subscription; downgraded to Free (team retained via active Compute plan)."
               : "Cancelled API subscription.",
-            resources: [],
+            resources: [{ type: "workspace", id: ws.id }],
             context: { location: "", userAgent: undefined },
           });
         });

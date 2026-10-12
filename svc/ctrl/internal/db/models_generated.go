@@ -270,6 +270,48 @@ func (ns NullAppsSourceType) Value() (driver.Value, error) {
 	return string(ns.AppsSourceType), nil
 }
 
+type BillingSubscriptionsProduct string
+
+const (
+	BillingSubscriptionsProductApi     BillingSubscriptionsProduct = "api"
+	BillingSubscriptionsProductCompute BillingSubscriptionsProduct = "compute"
+)
+
+func (e *BillingSubscriptionsProduct) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BillingSubscriptionsProduct(s)
+	case string:
+		*e = BillingSubscriptionsProduct(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BillingSubscriptionsProduct: %T", src)
+	}
+	return nil
+}
+
+type NullBillingSubscriptionsProduct struct {
+	BillingSubscriptionsProduct BillingSubscriptionsProduct
+	Valid                       bool // Valid is true if BillingSubscriptionsProduct is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBillingSubscriptionsProduct) Scan(value interface{}) error {
+	if value == nil {
+		ns.BillingSubscriptionsProduct, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BillingSubscriptionsProduct.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBillingSubscriptionsProduct) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BillingSubscriptionsProduct), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -354,49 +396,6 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.CustomDomainsVerificationStatus), nil
-}
-
-type DeploymentChangesResourceType string
-
-const (
-	DeploymentChangesResourceTypeDeploymentTopology  DeploymentChangesResourceType = "deployment_topology"
-	DeploymentChangesResourceTypeSentinel            DeploymentChangesResourceType = "sentinel"
-	DeploymentChangesResourceTypeCiliumNetworkPolicy DeploymentChangesResourceType = "cilium_network_policy"
-)
-
-func (e *DeploymentChangesResourceType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DeploymentChangesResourceType(s)
-	case string:
-		*e = DeploymentChangesResourceType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DeploymentChangesResourceType: %T", src)
-	}
-	return nil
-}
-
-type NullDeploymentChangesResourceType struct {
-	DeploymentChangesResourceType DeploymentChangesResourceType
-	Valid                         bool // Valid is true if DeploymentChangesResourceType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDeploymentChangesResourceType) Scan(value interface{}) error {
-	if value == nil {
-		ns.DeploymentChangesResourceType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DeploymentChangesResourceType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDeploymentChangesResourceType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DeploymentChangesResourceType), nil
 }
 
 type DeploymentStepsStep string
@@ -838,6 +837,16 @@ type Certificate struct {
 	UpdatedAt           sql.NullInt64 `db:"updated_at"`
 }
 
+type ClickhouseOutbox struct {
+	Pk          uint64          `db:"pk"`
+	Version     string          `db:"version"`
+	WorkspaceID string          `db:"workspace_id"`
+	EventID     string          `db:"event_id"`
+	Payload     json.RawMessage `db:"payload"`
+	CreatedAt   int64           `db:"created_at"`
+	DeletedAt   sql.NullInt64   `db:"deleted_at"`
+}
+
 type CustomDomain struct {
 	Pk                    uint64                          `db:"pk"`
 	ID                    string                          `db:"id"`
@@ -903,12 +912,17 @@ type Deployment struct {
 	UpdatedAt                     sql.NullInt64                     `db:"updated_at"`
 }
 
-type DeploymentChange struct {
-	Pk           uint64                        `db:"pk"`
-	ResourceType DeploymentChangesResourceType `db:"resource_type"`
-	ResourceID   string                        `db:"resource_id"`
-	RegionID     string                        `db:"region_id"`
-	CreatedAt    int64                         `db:"created_at"`
+type DeploymentStep struct {
+	Pk            uint64              `db:"pk"`
+	WorkspaceID   string              `db:"workspace_id"`
+	ProjectID     string              `db:"project_id"`
+	EnvironmentID string              `db:"environment_id"`
+	DeploymentID  string              `db:"deployment_id"`
+	AppID         string              `db:"app_id"`
+	Step          DeploymentStepsStep `db:"step"`
+	StartedAt     uint64              `db:"started_at"`
+	EndedAt       sql.NullInt64       `db:"ended_at"`
+	Error         sql.NullString      `db:"error"`
 }
 
 type Environment struct {

@@ -3,7 +3,6 @@ import { type Entities, adapter, identify } from "./plumbing";
 
 // Feature flag registry. To add a flag: declare it here with `flag<T, Entities>({...})`,
 // then register it in ./resolve.ts so the FlagsProvider exposes it to client components.
-// See docs/engineering/contributing/tooling/feature-flags.mdx for the full workflow.
 
 export const helloWorld = flag<boolean, Entities>({
   key: "hello-world",
@@ -76,18 +75,6 @@ export const portalManagement = flag<boolean, Entities>({
   key: "portal-management",
   description: "Show the portal configuration page in the dashboard sidebar. Off until portal GA.",
   defaultValue: false,
-  options: [
-    { value: false, label: "Off" },
-    { value: true, label: "On" },
-  ],
-  identify,
-  adapter: adapter(),
-});
-
-export const rootKeyBuilder = flag<boolean, Entities>({
-  key: "root-key-urn-permissions",
-  description: "Use URN permissions for root keys. Enabled by default in preview deployments.",
-  defaultValue: process.env.VERCEL_ENV === "preview",
   options: [
     { value: false, label: "Off" },
     { value: true, label: "On" },

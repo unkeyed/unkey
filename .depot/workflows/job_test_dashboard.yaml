@@ -23,10 +23,7 @@ jobs:
         env:
           CI: 1
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DATABASE_HOST: localhost:8080
-          DATABASE_USERNAME: unkey
-          DATABASE_PASSWORD: password
-          DATABASE_NAME: unkey
+          DATABASE_PRIMARY: mysql://unkey:password@localhost:8080/unkey
           UNKEY_WORKSPACE_ID: "not-empty"
           UNKEY_API_ID: "not-empty"
           VAULT_URL: "http://localhost:8060"
@@ -41,10 +38,7 @@ jobs:
         env:
           CI: 1
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DATABASE_HOST: localhost:8080
-          DATABASE_USERNAME: unkey
-          DATABASE_PASSWORD: password
-          DATABASE_NAME: unkey
+          DATABASE_PRIMARY: mysql://unkey:password@localhost:8080/unkey
           UNKEY_WORKSPACE_ID: "not-empty"
           UNKEY_API_ID: "not-empty"
           VAULT_URL: "http://localhost:8060"

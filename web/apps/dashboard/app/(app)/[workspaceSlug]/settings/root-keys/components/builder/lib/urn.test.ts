@@ -94,11 +94,11 @@ describe("rowOffers", () => {
   it("offers the actions supported by each general resource", () => {
     for (const scope of RESOURCE_SCOPES) {
       for (const row of catalogueRows(CATALOGUES[scope])) {
-        const logs = row.id.endsWith("_log");
+        const readOnly = row.id.endsWith("_log") || row.id === "limits" || row.id === "usage";
         const session = row.id === "portal_session";
-        expect(rowOffers(row, "read"), `${scope}:${row.id}:read`).toBe(!session);
-        expect(rowOffers(row, "write"), `${scope}:${row.id}:write`).toBe(!logs);
-        expect(rowOffers(row, "delete"), `${scope}:${row.id}:delete`).toBe(!logs && !session);
+        expect(rowOffers(row, "read"), `${scope}:${row.id}:read`).toBe(true);
+        expect(rowOffers(row, "write"), `${scope}:${row.id}:write`).toBe(!readOnly);
+        expect(rowOffers(row, "delete"), `${scope}:${row.id}:delete`).toBe(!readOnly && !session);
       }
     }
   });
@@ -191,6 +191,7 @@ describe("catalogue grammar", () => {
       "projects/*/apps/*/environments/*/domains/*",
       "projects/*/apps/*/environments/*/deployments/*",
       "projects/*/apps/*/environments/*/deployments/*/logs",
+      "projects/*/apps/*/environments/*/deployments/*/buildLogs",
       "projects/*/apps/*/environments/*/gateway/logs",
       "projects/*/apps/*/environments/*/gateway/policies/*",
       "projects/*/keyspaces/*",
@@ -206,6 +207,8 @@ describe("catalogue grammar", () => {
       "projects/*/portals/*/sessions/*",
       "rootKeys/*",
       "github/apps/*",
+      "limits",
+      "usage",
     ]);
   });
 });
@@ -424,6 +427,7 @@ describe("buildUrns on the projects scope", () => {
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/domains/*#read",
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#read",
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*/logs#read",
+      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*/buildLogs#read",
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/gateway/logs#read",
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/gateway/policies/*#read",
       "unkey:v1:ws_123:projects/proj_1/keyspaces/*#read",
@@ -436,6 +440,7 @@ describe("buildUrns on the projects scope", () => {
       "unkey:v1:ws_123:projects/proj_1/rbac/roles/*#read",
       "unkey:v1:ws_123:projects/proj_1/rbac/permissions/*#read",
       "unkey:v1:ws_123:projects/proj_1/portals/*#read",
+      "unkey:v1:ws_123:projects/proj_1/portals/*/sessions/*#read",
     ]);
   });
 
@@ -479,6 +484,7 @@ describe("buildUrns on the apps scope", () => {
       `unkey:v1:ws_123:${APP}/environments/*/domains/*#read`,
       `unkey:v1:ws_123:${APP}/environments/*/deployments/*#read`,
       `unkey:v1:ws_123:${APP}/environments/*/deployments/*/logs#read`,
+      `unkey:v1:ws_123:${APP}/environments/*/deployments/*/buildLogs#read`,
       `unkey:v1:ws_123:${APP}/environments/*/gateway/logs#read`,
       `unkey:v1:ws_123:${APP}/environments/*/gateway/policies/*#read`,
     ]);

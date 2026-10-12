@@ -1,0 +1,54 @@
+---
+title: Build logs
+description: "Read the steps and output Unkey records while building a deployment."
+sources:
+  - pkg/clickhouse/schema/020_build_steps_v1.sql
+  - pkg/clickhouse/schema/021_build_step_logs_v1.sql
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/use-build-logs.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/build-logs/build-log-lines.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/build-logs/deployment-build-logs.tsx
+  - svc/ctrl/worker/deploy/build.go
+  - pkg/clickhouse/user.go
+  - pkg/clickhouse/build_logs.go
+  - svc/api/routes/v2_deployments_list_build_logs/handler.go
+  - svc/api/openapi/spec/paths/v2/deployments/listBuildLogs/index.yaml
+---
+
+Build logs show the output of building a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> as one list, in the order the build printed it. Open the <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, click **Deployments**, and open the deployment. The output appears as the build runs and stays afterwards. A deployment from a prebuilt image has no build, so it has no build logs. See [Deploy a container image](/compute/get-started/deploy-an-image).
+
+## What the list shows
+
+Each line has the time and the text the build printed. A header line shows the step name each time the output changes to a different step. Steps that run in parallel can alternate, so one step can have more than one header.
+
+Unkey adds one line when a step ends:
+
+- `CACHED`: the step did not run, because nothing it depends on changed since an earlier build. See [Builds](/compute/build/overview) for what the cache covers.
+- `DONE 5.3s`: the step ran for this time. A step that took less than 0.05 seconds gets no line.
+- `ERROR: <reason>`: the step failed.
+
+Text the build printed to `stderr` is amber. Many tools write progress and warnings to `stderr`, so amber text does not mean that the step failed. `ERROR:` lines are red.
+
+When a finished step printed more than 40 entries in a row, the list shows the first 5 and the last 5. Click **Show N more entries** to see the others. The dashboard keeps the last 5,000 log entries of a build. Click **Jump to latest** to go to the newest output. While you stay at the end of the list, it follows new output.
+
+## Find why a build failed
+
+Click **Jump to error**, or **View full error** in the build status. The list moves to the last `ERROR:` line. The lines before it usually name the cause, such as a missing dependency, a compile error, or a Dockerfile instruction that failed. When one step fails, BuildKit stops the steps that run in parallel, and these can also show an `ERROR:` line. See [Deployments](/compute/concepts/deployments).
+
+## Read build logs through the API
+
+`deployments.listBuildLogs` returns the output of a build as a list of log entries, in the order the build printed them. An entry is one chunk of output and can contain several lines or part of a line. Each entry has the step ID, the step name, and `output`, which is `stdout` or `stderr`. Many tools write progress and warnings to `stderr`, so `stderr` does not mean that the step failed.
+
+To follow a running build, poll the endpoint with a cursor:
+
+1. Send a request without `cursor` to get the first entries.
+2. Send the `pagination.cursor` of the last response as `cursor` in the next request. The response contains only the entries after it.
+3. When `hasMore` is true, request again now. When it is false, wait, then request again with the same cursor.
+4. Check the deployment status with `deployments.getDeployment`. After the status is no longer `building`, request until you get an empty response at least 5 seconds later.
+
+A response can contain fewer than `limit` entries and still have `hasMore: true` when the entries are large. To get the entries of one step, send its `stepId`. New entries become visible up to a few seconds after the build prints them. When a build attempt is retried, an entry from the earlier attempt can arrive after the cursor has moved past it. A request without a cursor returns it.
+
+The root key needs `read` on the deployment's build logs, for example `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>/buildLogs#read`. Use `*` for an ID to cover all deployments of an environment, app, or project.
+
+## Retention
+
+Build logs are kept for 3 months.

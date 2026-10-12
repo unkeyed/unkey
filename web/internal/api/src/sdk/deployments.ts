@@ -5,6 +5,7 @@
 import { deploymentsCreateDeployment } from "../funcs/deploymentsCreateDeployment.js";
 import { deploymentsCreateDeploymentV3 } from "../funcs/deploymentsCreateDeploymentV3.js";
 import { deploymentsGetDeployment } from "../funcs/deploymentsGetDeployment.js";
+import { deploymentsListBuildLogs } from "../funcs/deploymentsListBuildLogs.js";
 import { deploymentsListDeployments } from "../funcs/deploymentsListDeployments.js";
 import { deploymentsPromoteDeployment } from "../funcs/deploymentsPromoteDeployment.js";
 import { deploymentsRollbackDeployment } from "../funcs/deploymentsRollbackDeployment.js";
@@ -56,9 +57,9 @@ export class Deployments extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have one of the following permissions:
-   * - `environment.*.read_deployment` (to read deployments in any environment)
-   * - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
+   * Your root key must have this permission:
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#read`
+   *   (use `*` for any level)
    */
   async getDeployment(
     request: components.V2DeploymentsGetDeploymentRequestBody,
@@ -72,22 +73,73 @@ export class Deployments extends ClientSDK {
   }
 
   /**
+   * List build logs
+   *
+   * @remarks
+   * Retrieve the build output of a deployment as a list of log entries, in the
+   * order the build printed them. A log entry is one chunk of build output,
+   * and can contain several lines or part of a line.
+   *
+   * Poll this endpoint to follow a running build:
+   *
+   * - Send the `pagination.cursor` of the last response as `cursor`. The
+   *   response contains only the entries after it.
+   * - When `hasMore` is true, request again now.
+   * - When `hasMore` is false, you have all entries so far. Wait,
+   *   then request again with the same cursor.
+   * - The cursor is absent only when the request had no cursor and the build
+   *   has no entries yet.
+   * - A response can contain fewer than `limit` entries and still have
+   *   `hasMore: true` when the entries are large.
+   *
+   * New entries become visible up to a few seconds after the build prints
+   * them. To know that a build is done, check the deployment status with
+   * `getDeployment`. After the status is no longer `building`, request until
+   * you get an empty response at least 5 seconds later.
+   *
+   * When a build attempt is retried, an entry from the earlier attempt can
+   * arrive after the cursor has moved past it, and a poll does not return it.
+   * A request without a cursor returns it. A deployment from a prebuilt image
+   * has no build and returns no entries. Build logs are kept for 3 months.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have the following permission:
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>/buildLogs#read`
+   */
+  async listBuildLogs(
+    request: components.V2DeploymentsListBuildLogsRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DeploymentsListBuildLogsResponseBody> {
+    return unwrapAsync(deploymentsListBuildLogs(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
    * List deployments
    *
    * @remarks
    * Retrieve a paginated list of deployments within a workspace, newest first.
    *
-   * Filter by project, app, environment, and lifecycle status. All filters are
-   * optional; with none set, every deployment in the workspace is returned.
-   * Filters nest: `app` requires `project`, and `environment` requires both
-   * `project` and `app`. Results are paginated; when `hasMore` is true, pass the
-   * returned `cursor` to fetch the next page.
+   * Filter by project, app, environment, lifecycle status, git branch, and
+   * creation time. All filters are optional; with none set, every deployment in
+   * the workspace is returned. Filters nest: `app` requires `project`, and
+   * `environment` and `branch` require both `project` and `app`. Results are
+   * paginated; when `hasMore` is true, pass the returned `cursor` to fetch the
+   * next page.
    *
    * **Required Permissions**
    *
-   * Your root key must have the `environment.*.read_deployment` permission.
-   * Listing spans environments, so a grant on a single environment is not
-   * sufficient.
+   * Your root key must have this permission:
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/*#read`
+   *   (use `*` for every level you do not filter by)
+   *
+   * The permission must cover every deployment the filters select: a grant on
+   * one environment is not sufficient for a request that spans more than that
+   * environment.
    */
   async listDeployments(
     request: components.V2DeploymentsListDeploymentsRequestBody,

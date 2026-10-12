@@ -19,9 +19,4 @@
 // [New] exposes typed resource builders for this hierarchy. For example:
 //
 //	urn.New().Workspace("ws_123").Project("proj_123").App("app_123").String()
-//
-// See:
-//   - docs/engineering/architecture/resources/unkey-resource-names.mdx
-//   - docs/engineering/architecture/authorization/resource-permissions.mdx
-//   - docs/engineering/architecture/authorization/resource-permission-catalog.mdx
 package urn

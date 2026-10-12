@@ -29,6 +29,24 @@ func (e AppSourceType) Valid() bool {
 	}
 }
 
+// Defines values for BuildLogOutput.
+const (
+	BuildLogOutputStderr BuildLogOutput = "stderr"
+	BuildLogOutputStdout BuildLogOutput = "stdout"
+)
+
+// Valid indicates whether the value is a known member of the BuildLogOutput enum.
+func (e BuildLogOutput) Valid() bool {
+	switch e {
+	case BuildLogOutputStderr:
+		return true
+	case BuildLogOutputStdout:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeploymentAction.
 const (
 	DeploymentActionPromote  DeploymentAction = "promote"
@@ -131,6 +149,63 @@ func (e DeploymentStatus) Valid() bool {
 	case DeploymentStatusStopped:
 		return true
 	case DeploymentStatusSuperseded:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeploymentTriggerVia.
+const (
+	DeploymentTriggerViaApi       DeploymentTriggerVia = "api"
+	DeploymentTriggerViaCli       DeploymentTriggerVia = "cli"
+	DeploymentTriggerViaDashboard DeploymentTriggerVia = "dashboard"
+	DeploymentTriggerViaGithub    DeploymentTriggerVia = "github"
+	DeploymentTriggerViaUnkey     DeploymentTriggerVia = "unkey"
+	DeploymentTriggerViaUnknown   DeploymentTriggerVia = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the DeploymentTriggerVia enum.
+func (e DeploymentTriggerVia) Valid() bool {
+	switch e {
+	case DeploymentTriggerViaApi:
+		return true
+	case DeploymentTriggerViaCli:
+		return true
+	case DeploymentTriggerViaDashboard:
+		return true
+	case DeploymentTriggerViaGithub:
+		return true
+	case DeploymentTriggerViaUnkey:
+		return true
+	case DeploymentTriggerViaUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeploymentTriggerActorType.
+const (
+	DeploymentTriggerActorTypeGithub  DeploymentTriggerActorType = "github"
+	DeploymentTriggerActorTypeRootKey DeploymentTriggerActorType = "root_key"
+	DeploymentTriggerActorTypeSystem  DeploymentTriggerActorType = "system"
+	DeploymentTriggerActorTypeUnknown DeploymentTriggerActorType = "unknown"
+	DeploymentTriggerActorTypeUser    DeploymentTriggerActorType = "user"
+)
+
+// Valid indicates whether the value is a known member of the DeploymentTriggerActorType enum.
+func (e DeploymentTriggerActorType) Valid() bool {
+	switch e {
+	case DeploymentTriggerActorTypeGithub:
+		return true
+	case DeploymentTriggerActorTypeRootKey:
+		return true
+	case DeploymentTriggerActorTypeSystem:
+		return true
+	case DeploymentTriggerActorTypeUnknown:
+		return true
+	case DeploymentTriggerActorTypeUser:
 		return true
 	default:
 		return false
@@ -509,6 +584,24 @@ func (e V2PortalCreateSessionRequestBodyScopes) Valid() bool {
 	}
 }
 
+// Defines values for V2PortalListSessionsSessionStatus.
+const (
+	Active  V2PortalListSessionsSessionStatus = "active"
+	Pending V2PortalListSessionsSessionStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the V2PortalListSessionsSessionStatus enum.
+func (e V2PortalListSessionsSessionStatus) Valid() bool {
+	switch e {
+	case Active:
+		return true
+	case Pending:
+		return true
+	default:
+		return false
+	}
+}
+
 // App defines model for App.
 type App struct {
 	// CreatedAt Unix timestamp in milliseconds when the app was created.
@@ -709,6 +802,48 @@ type BaseError struct {
 // BearerTokenLocation Extract the key from the `Authorization Bearer` header.
 type BearerTokenLocation = map[string]interface{}
 
+// BuildLogEntry One chunk of build output.
+type BuildLogEntry struct {
+	// Message The text the build printed. One entry can contain several lines or part
+	// of a line.
+	//
+	//
+	// Example: added 412 packages in 12s
+	Message string `json:"message"`
+
+	// Output The output stream a build log entry was printed to. Many tools write progress
+	// and warnings to `stderr`, so `stderr` does not mean that the step failed.
+	//
+	//
+	// Example: stdout
+	Output BuildLogOutput `json:"output"`
+
+	// Step The name of the build step, such as `[3/7] RUN npm ci`, cut to 256
+	// characters. Empty when the step name is not known.
+	//
+	//
+	// Example: [3/7] RUN npm ci
+	Step string `json:"step"`
+
+	// StepId The build step that printed the entry. Pass it as `stepId` to return only
+	// this step's entries.
+	//
+	//
+	// Example: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+	StepId string `json:"stepId"`
+
+	// Time When the build printed the entry, in Unix epoch milliseconds.
+	//
+	// Example: 1704067201000
+	Time int64 `json:"time"`
+}
+
+// BuildLogOutput The output stream a build log entry was printed to. Many tools write progress
+// and warnings to `stderr`, so `stderr` does not mean that the step failed.
+//
+// Example: stdout
+type BuildLogOutput string
+
 // ConflictErrorResponse Error response when the request conflicts with the current state of the resource. This occurs when:
 // - Attempting to create a resource that already exists
 // - Modifying a resource that has been changed by another operation
@@ -755,7 +890,14 @@ type Deployment struct {
 	// Example: production
 	Environment string           `json:"environment"`
 	Error       *DeploymentError `json:"error,omitempty"`
-	Git         *DeploymentGit   `json:"git,omitempty"`
+
+	// FinishedAt Unix timestamp in milliseconds when the deployment finished, successfully
+	// or not. Omitted while it is in progress.
+	//
+	//
+	// Example: 1704067260000
+	FinishedAt *int64         `json:"finishedAt,omitempty"`
+	Git        *DeploymentGit `json:"git,omitempty"`
 
 	// Id The unique identifier of the deployment, generated by Unkey.
 	//
@@ -791,7 +933,8 @@ type Deployment struct {
 	//
 	//
 	// Example: ready
-	Status DeploymentStatus `json:"status"`
+	Status  DeploymentStatus  `json:"status"`
+	Trigger DeploymentTrigger `json:"trigger"`
 
 	// UpdatedAt Unix timestamp in milliseconds when the deployment was last updated.
 	// Omitted if the deployment has never been updated.
@@ -814,6 +957,13 @@ type DeploymentDocker struct {
 	//
 	// Example: ghcr.io/acme/api:v1.2.3
 	Image string `json:"image"`
+
+	// ResolvedImage The image reference pinned to its sha256 digest. Omitted until Unkey
+	// resolves the image.
+	//
+	//
+	// Example: ghcr.io/acme/api@sha256:3f1d9c0b7e2a4c8f5b6d1e0a9c8b7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a
+	ResolvedImage *string `json:"resolvedImage,omitempty"`
 }
 
 // DeploymentError defines model for DeploymentError.
@@ -847,15 +997,52 @@ type DeploymentErrorCode string
 
 // DeploymentGit defines model for DeploymentGit.
 type DeploymentGit struct {
+	Author *DeploymentGitAuthor `json:"author,omitempty"`
+
 	// Branch The git branch this deployment was built from. Omitted when unknown.
 	//
 	// Example: main
 	Branch *string `json:"branch,omitempty"`
 
+	// CommitMessage The commit message. Omitted when unknown.
+	//
+	// Example: fix: retry on 429
+	CommitMessage *string `json:"commitMessage,omitempty"`
+
 	// CommitSha The git commit SHA this deployment was built from.
 	//
 	// Example: 9f2c1a7d3b
 	CommitSha string `json:"commitSha"`
+
+	// CommitTimestamp Unix timestamp in milliseconds when the commit was authored. Omitted when unknown.
+	//
+	// Example: 1704067100000
+	CommitTimestamp *int64 `json:"commitTimestamp,omitempty"`
+
+	// ForkRepository The `owner/repo` name of the fork this deployment was built from. Omitted
+	// when it was built from the app's connected repository.
+	//
+	//
+	// Example: octocat/payments-api
+	ForkRepository *string `json:"forkRepository,omitempty"`
+
+	// PrNumber The pull request number this deployment was built for. Omitted when the commit is not part of a pull request.
+	//
+	// Example: 412
+	PrNumber *int `json:"prNumber,omitempty"`
+}
+
+// DeploymentGitAuthor defines model for DeploymentGitAuthor.
+type DeploymentGitAuthor struct {
+	// AvatarUrl The avatar URL for `handle`. Omitted when unknown.
+	//
+	// Example: https://avatars.githubusercontent.com/u/583231
+	AvatarUrl *string `json:"avatarUrl,omitempty"`
+
+	// Handle The GitHub login, or the handle the client sent.
+	//
+	// Example: octocat
+	Handle string `json:"handle"`
 }
 
 // DeploymentRuntime defines model for DeploymentRuntime.
@@ -955,6 +1142,53 @@ type DeploymentSourceOCI struct {
 //
 // Example: ready
 type DeploymentStatus string
+
+// DeploymentTrigger defines model for DeploymentTrigger.
+type DeploymentTrigger struct {
+	Actor *DeploymentTriggerActor `json:"actor,omitempty"`
+
+	// Via What started this deployment: `github` (a push or pull request), `api`,
+	// `cli`, `dashboard`, or `unkey` (Unkey itself, for example a rebuild).
+	// `unknown` when it was not recorded. `api`, `cli` and `dashboard` are
+	// reported by the client.
+	//
+	//
+	// Example: github
+	Via DeploymentTriggerVia `json:"via"`
+}
+
+// DeploymentTriggerVia What started this deployment: `github` (a push or pull request), `api`,
+// `cli`, `dashboard`, or `unkey` (Unkey itself, for example a rebuild).
+// `unknown` when it was not recorded. `api`, `cli` and `dashboard` are
+// reported by the client.
+//
+// Example: github
+type DeploymentTriggerVia string
+
+// DeploymentTriggerActor defines model for DeploymentTriggerActor.
+type DeploymentTriggerActor struct {
+	// Id The actor's identifier: a user id, a root key id, a GitHub login, or
+	// `unkey-ops` for Unkey itself.
+	//
+	//
+	// Example: octocat
+	Id string `json:"id"`
+
+	// Type `user` is a dashboard user, `root_key` a root key, `github` the GitHub
+	// user who pushed or opened the pull request, `system` Unkey itself.
+	// `unknown` when the actor isn't recognized.
+	//
+	//
+	// Example: github
+	Type DeploymentTriggerActorType `json:"type"`
+}
+
+// DeploymentTriggerActorType `user` is a dashboard user, `root_key` a root key, `github` the GitHub
+// user who pushed or opened the pull request, `system` Unkey itself.
+// `unknown` when the actor isn't recognized.
+//
+// Example: github
+type DeploymentTriggerActorType string
 
 // DnsRecord defines model for DnsRecord.
 type DnsRecord struct {
@@ -1869,7 +2103,6 @@ type Permission struct {
 	// Name The human-readable name for this permission that describes its purpose.
 	// Should be descriptive enough for developers to understand what access it grants.
 	// Use clear, semantic names that reflect the resources or actions being permitted.
-	// Names must be unique within your workspace to avoid confusion and conflicts.
 	//
 	//
 	// Example: users.read
@@ -3200,6 +3433,48 @@ type V2DeploymentsGetDeploymentResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2DeploymentsListBuildLogsRequestBody Retrieve the build log entries of a deployment. Get the deployment id from
+// `createDeployment` or `listDeployments`.
+type V2DeploymentsListBuildLogsRequestBody struct {
+	// Cursor Pagination cursor from a previous response to fetch the entries after
+	// it. Omit it to start at the first entry of the build.
+	//
+	//
+	// Example: 1704067201000001
+	Cursor *string `json:"cursor,omitempty"`
+
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+
+	// Limit Maximum number of log entries to return. A response can contain fewer
+	// entries and still have `hasMore: true` when the entries are large.
+	Limit *int `json:"limit,omitempty"`
+
+	// StepId Return only the log entries of this build step. Use the `stepId` of an
+	// entry from a previous response. An unknown step returns no entries.
+	// Omit this field to return the entries of every step.
+	//
+	//
+	// Example: sha256:3f9c2b7e1d4a6f8c0b5e9d2a7c4f1e8b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f
+	StepId *string `json:"stepId,omitempty"`
+}
+
+// V2DeploymentsListBuildLogsResponseBody defines model for V2DeploymentsListBuildLogsResponseBody.
+type V2DeploymentsListBuildLogsResponseBody struct {
+	// Data The log entries, in the order the build printed them.
+	Data []BuildLogEntry `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
 // V2DeploymentsListDeploymentsRequestBody Filter deployments within a workspace. All filters are optional; with none
 // set, every deployment in the workspace is returned, newest first.
 type V2DeploymentsListDeploymentsRequestBody struct {
@@ -3210,9 +3485,25 @@ type V2DeploymentsListDeploymentsRequestBody struct {
 	// Example: proj_1234abcd
 	App *ResourceIdentifier `json:"app,omitempty"`
 
+	// Branch Restrict results to deployments built from any of the given git branches.
+	// Requires `project` and `app` to also be set. Omit or pass an empty list to
+	// return deployments from every branch.
+	//
+	//
+	// Example: ["main","feature/checkout"]
+	Branch *[]string `json:"branch,omitempty"`
+
 	// Cursor Pagination cursor from a previous response to fetch the next page.
 	// Use when `hasMore: true` in the previous response.
 	Cursor *string `json:"cursor,omitempty"`
+
+	// EndTime Return only deployments created before this unix timestamp in
+	// milliseconds (exclusive). Must be later than `startTime` when both are
+	// set.
+	//
+	//
+	// Example: 1704672000000
+	EndTime *int64 `json:"endTime,omitempty"`
 
 	// Environment Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -3231,6 +3522,13 @@ type V2DeploymentsListDeploymentsRequestBody struct {
 	//
 	// Example: proj_1234abcd
 	Project *ResourceIdentifier `json:"project,omitempty"`
+
+	// StartTime Return only deployments created at or after this unix timestamp in
+	// milliseconds (inclusive).
+	//
+	//
+	// Example: 1704067200000
+	StartTime *int64 `json:"startTime,omitempty"`
 
 	// Status Restrict results to deployments in any of the given lifecycle statuses.
 	// Omit to return deployments in every status.
@@ -5193,7 +5491,6 @@ type V2PermissionsCreatePermissionRequestBody struct {
 	Description *string `json:"description,omitempty"`
 
 	// Name Creates a permission with this human-readable name that describes its purpose.
-	// Names must be unique within your workspace to prevent conflicts during assignment.
 	// Use clear, semantic names that developers can easily understand when building authorization logic.
 	// Consider using hierarchical naming conventions like 'resource.action' for better organization.
 	//
@@ -5500,6 +5797,94 @@ type V2PermissionsSetRolePermissionsResponseBody struct {
 
 // V2PermissionsSetRolePermissionsResponseData Complete list of permissions now directly assigned to the role.
 type V2PermissionsSetRolePermissionsResponseData = []Permission
+
+// V2PermissionsUpdatePermissionRequestBody defines model for V2PermissionsUpdatePermissionRequestBody.
+type V2PermissionsUpdatePermissionRequestBody struct {
+	// Description New description for the permission.
+	// Omit this field to keep the current description. Send null or an empty string to remove it.
+	//
+	//
+	// Example: Allows reading document resources
+	Description nullable.Nullable[string] `json:"description,omitempty"`
+
+	// Name New human-readable name for the permission.
+	// Omit this field to keep the current name.
+	//
+	//
+	// Example: Read documents
+	Name *string `json:"name,omitempty"`
+
+	// Permission The permission to update. Pass the permission ID (`perm_...`) or its current slug.
+	//
+	//
+	// Example: perm_1234567890abcdef
+	Permission string `json:"permission"`
+
+	// Slug New slug for the permission. Keys and roles that have this permission get the new slug in verification responses.
+	// The slug must be unique in your workspace.
+	// Omit this field to keep the current slug.
+	//
+	//
+	// Example: documents.read
+	Slug *string `json:"slug,omitempty"`
+}
+
+// V2PermissionsUpdatePermissionResponseBody defines model for V2PermissionsUpdatePermissionResponseBody.
+type V2PermissionsUpdatePermissionResponseBody struct {
+	Data Permission `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsUpdateRoleRequestBody defines model for V2PermissionsUpdateRoleRequestBody.
+type V2PermissionsUpdateRoleRequestBody struct {
+	// Description New description for the role.
+	// Omit this field to keep the current description. Send null or an empty string to remove it.
+	//
+	//
+	// Example: Read-only access for customer support
+	Description nullable.Nullable[string] `json:"description,omitempty"`
+
+	// Name New name for the role. The name must be unique in your workspace.
+	// Omit this field to keep the current name.
+	//
+	//
+	// Example: support.readonly
+	Name *string `json:"name,omitempty"`
+
+	// Role The role to update. Pass the role ID (`role_...`) or its current name.
+	//
+	//
+	// Example: role_1234567890abcdef
+	Role string `json:"role"`
+}
+
+// V2PermissionsUpdateRoleResponseBody defines model for V2PermissionsUpdateRoleResponseBody.
+type V2PermissionsUpdateRoleResponseBody struct {
+	Data V2PermissionsUpdateRoleResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsUpdateRoleResponseData defines model for V2PermissionsUpdateRoleResponseData.
+type V2PermissionsUpdateRoleResponseData struct {
+	// Description The description of the role after the update. Omitted when the role has no description.
+	//
+	// Example: Read-only access for customer support
+	Description string `json:"description,omitempty"`
+
+	// Id The ID of the updated role.
+	//
+	// Example: role_1234567890abcdef
+	Id string `json:"id"`
+
+	// Name The name of the role after the update.
+	//
+	// Example: support.readonly
+	Name string `json:"name"`
+}
 
 // V2PortalCreatePortalRequestBody defines model for V2PortalCreatePortalRequestBody.
 type V2PortalCreatePortalRequestBody struct {
@@ -5887,6 +6272,94 @@ type V2PortalListKeysResponseBody struct {
 
 // V2PortalListKeysResponseData Array of the portal end user's API keys.
 type V2PortalListKeysResponseData = []KeyResponseData
+
+// V2PortalListSessionsRequestBody defines model for V2PortalListSessionsRequestBody.
+type V2PortalListSessionsRequestBody struct {
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	//
+	//
+	// Example: user_123
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit Maximum number of end users to return per request.
+	Limit *int `json:"limit,omitempty"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+
+	// Search Returns only end users whose `externalId` starts with this string.
+	// Matching is case-sensitive, and `%` and `_` match literally.
+	//
+	//
+	// Example: user_
+	Search *string `json:"search,omitempty"`
+}
+
+// V2PortalListSessionsResponseBody defines model for V2PortalListSessionsResponseBody.
+type V2PortalListSessionsResponseBody struct {
+	// Data End users with revocable sessions, ordered by `externalId`.
+	Data []V2PortalListSessionsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2PortalListSessionsResponseData defines model for V2PortalListSessionsResponseData.
+type V2PortalListSessionsResponseData struct {
+	// ExternalId The end user's identifier, as passed to `portal.createSession`.
+	//
+	// Example: user_123
+	ExternalId string `json:"externalId"`
+
+	// Sessions The end user's revocable sessions, newest first.
+	Sessions []V2PortalListSessionsSession `json:"sessions"`
+}
+
+// V2PortalListSessionsSession defines model for V2PortalListSessionsSession.
+type V2PortalListSessionsSession struct {
+	// CreatedAt When the session was created, in Unix milliseconds.
+	//
+	// Example: 1704067200000
+	CreatedAt int64 `json:"createdAt"`
+
+	// ExpiresAt When the session stops working, in Unix milliseconds. For a `pending`
+	// session this is when its portal URL expires.
+	//
+	//
+	// Example: 1704153600000
+	ExpiresAt int64 `json:"expiresAt"`
+
+	// Id The session id.
+	//
+	// Example: ps_1234abcd
+	Id string `json:"id"`
+
+	// Scopes The capabilities the session was created with.
+	//
+	// Example: ["keys:read"]
+	Scopes []string `json:"scopes"`
+
+	// Status `pending` when the portal URL was created but not opened yet. `active`
+	// when the end user opened it.
+	//
+	//
+	// Example: active
+	Status V2PortalListSessionsSessionStatus `json:"status"`
+}
+
+// V2PortalListSessionsSessionStatus `pending` when the portal URL was created but not opened yet. `active`
+// when the end user opened it.
+//
+// Example: active
+type V2PortalListSessionsSessionStatus string
 
 // V2PortalRevokeSessionRequestBody defines model for V2PortalRevokeSessionRequestBody.
 type V2PortalRevokeSessionRequestBody struct {
@@ -6629,6 +7102,283 @@ type V2RootKeysUpdateKeyResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2WorkspaceGetLimitsLimit A workspace limit and, when the limit has one, the current value against it.
+type V2WorkspaceGetLimitsLimit struct {
+	// Current The current value against `limit`. Omitted when the limit has no current
+	// value, such as a retention period or a per-instance size.
+	//
+	//
+	// Example: 1
+	Current *float64 `json:"current,omitempty"`
+
+	// Limit The maximum the workspace can have. `null` means unlimited.
+	//
+	// Example: 5
+	Limit nullable.Nullable[int64] `json:"limit"`
+}
+
+// V2WorkspaceGetLimitsResponseBody defines model for V2WorkspaceGetLimitsResponseBody.
+type V2WorkspaceGetLimitsResponseBody struct {
+	// Data The workspace limits. The Compute limits are present only when the workspace
+	// has a Compute plan.
+	Data V2WorkspaceGetLimitsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2WorkspaceGetLimitsResponseData The workspace limits. The Compute limits are present only when the workspace
+// has a Compute plan.
+type V2WorkspaceGetLimitsResponseData struct {
+	// ApiBillableOperationsCountMaxPerMonth Billable key verifications and rate limit operations per calendar month
+	// (UTC). `current` counts the current month.
+	ApiBillableOperationsCountMaxPerMonth V2WorkspaceGetLimitsLimit `json:"apiBillableOperationsCountMaxPerMonth"`
+
+	// ApiRequestsCountMaxPerMinute Authenticated API requests per minute. Requests above it get a 429.
+	// `limit` is `null` when the workspace has no per-minute limit. Has no `current`.
+	ApiRequestsCountMaxPerMinute V2WorkspaceGetLimitsLimit `json:"apiRequestsCountMaxPerMinute"`
+
+	// AutoscalingReplicasMax Instances that autoscaling runs for one app in one region. Has no `current`.
+	// Present only with a Compute plan.
+	AutoscalingReplicasMax *V2WorkspaceGetLimitsLimit `json:"autoscalingReplicasMax,omitempty"`
+
+	// BuildsConcurrentMax Builds that run at the same time. Has no `current`. Present only with a Compute plan.
+	BuildsConcurrentMax *V2WorkspaceGetLimitsLimit `json:"buildsConcurrentMax,omitempty"`
+
+	// CpuCoresMax CPU cores the workspace can reserve across all running deployments.
+	// `current` is reserved capacity, not live usage: each running deployment
+	// reserves its instance CPU times its maximum replicas, in each region it
+	// runs in. A deploy that would bring `current` above `limit` is rejected.
+	// Present only with a Compute plan.
+	CpuCoresMax *V2WorkspaceGetLimitsLimit `json:"cpuCoresMax,omitempty"`
+
+	// CpuCoresMaxPerInstance CPU cores for one instance. Has no `current`. Present only with a Compute plan.
+	CpuCoresMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"cpuCoresMaxPerInstance,omitempty"`
+
+	// CustomDomainsMax Custom domains across all apps. `current` is the custom domains attached
+	// now. `limit` is `null` when the plan has no limit. Present only with a
+	// Compute plan.
+	CustomDomainsMax *V2WorkspaceGetLimitsLimit `json:"customDomainsMax,omitempty"`
+
+	// LogdrainsMax Log drains. `current` is the log drains in the workspace now.
+	LogdrainsMax V2WorkspaceGetLimitsLimit `json:"logdrainsMax"`
+
+	// LogsAuditRetentionDaysMax How many days audit logs are kept. Has no `current`.
+	LogsAuditRetentionDaysMax V2WorkspaceGetLimitsLimit `json:"logsAuditRetentionDaysMax"`
+
+	// LogsRetentionDaysMax How many days back request and runtime logs can be queried. Has no `current`.
+	LogsRetentionDaysMax V2WorkspaceGetLimitsLimit `json:"logsRetentionDaysMax"`
+
+	// MemoryMibMax Memory in MiB the workspace can reserve across all running deployments.
+	// `current` is reserved memory, counted the same way as `cpuCoresMax`.
+	// Present only with a Compute plan.
+	MemoryMibMax *V2WorkspaceGetLimitsLimit `json:"memoryMibMax,omitempty"`
+
+	// MemoryMibMaxPerInstance Memory in MiB for one instance. Has no `current`. Present only with a Compute plan.
+	MemoryMibMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"memoryMibMaxPerInstance,omitempty"`
+
+	// StorageMibMax Ephemeral disk in MiB the workspace can reserve across all running
+	// deployments. `current` is reserved disk, counted the same way as
+	// `cpuCoresMax`. Present only with a Compute plan.
+	StorageMibMax *V2WorkspaceGetLimitsLimit `json:"storageMibMax,omitempty"`
+
+	// StorageMibMaxPerInstance Ephemeral disk in MiB for one instance. Has no `current`. Present only with a Compute plan.
+	StorageMibMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"storageMibMaxPerInstance,omitempty"`
+}
+
+// V2WorkspaceGetUsageApi Billable operations through the Unkey API in the period. Key verifications
+// through the Unkey gateway are not counted here. The gateway bills by active
+// keys, see `gateway`.
+type V2WorkspaceGetUsageApi struct {
+	// Ratelimits Billable rate limit operations.
+	//
+	// Example: 2000
+	Ratelimits int64 `json:"ratelimits"`
+
+	// Verifications Billable key verifications.
+	//
+	// Example: 40000
+	Verifications int64 `json:"verifications"`
+}
+
+// V2WorkspaceGetUsageBreakdowns The totals split by environment and by app.
+type V2WorkspaceGetUsageBreakdowns struct {
+	// ByApp One row per app whose gateway verified keys in the period, and one row
+	// without `app` for keys that have no app id. Most `gateway.activeKeys`
+	// first, then by app id. Empty when no keys were verified.
+	ByApp []V2WorkspaceGetUsageByAppRow `json:"byApp"`
+
+	// ByEnvironment One row per environment with compute usage in the period, most
+	// `compute.cpuSeconds` first, then by project id and environment id.
+	// Empty when nothing ran.
+	ByEnvironment []V2WorkspaceGetUsageByEnvironmentRow `json:"byEnvironment"`
+}
+
+// V2WorkspaceGetUsageByAppRow Active gateway keys counted for one app in the period.
+type V2WorkspaceGetUsageByAppRow struct {
+	// App The app whose gateway verified the keys. Omitted for keys whose
+	// verifications were all recorded before Unkey stored app ids.
+	App *V2WorkspaceGetUsageResource `json:"app,omitempty"`
+
+	// Gateway Unkey gateway usage in the period.
+	Gateway V2WorkspaceGetUsageGateway `json:"gateway"`
+
+	// Project The project the app belongs to. Omitted when the app was deleted or `app` is omitted.
+	Project *V2WorkspaceGetUsageResource `json:"project,omitempty"`
+}
+
+// V2WorkspaceGetUsageByEnvironmentRow Compute one environment used in the period.
+type V2WorkspaceGetUsageByEnvironmentRow struct {
+	// App The app the environment belongs to. Omitted when the usage was recorded
+	// before Unkey stored app ids and the environment was deleted since.
+	App *V2WorkspaceGetUsageResource `json:"app,omitempty"`
+
+	// Compute Compute usage in the period.
+	Compute V2WorkspaceGetUsageCompute `json:"compute"`
+
+	// Environment An environment. `slug` is omitted when the environment was deleted.
+	Environment V2WorkspaceGetUsageEnvironmentResource `json:"environment"`
+
+	// Project The project the environment belongs to.
+	Project V2WorkspaceGetUsageResource `json:"project"`
+}
+
+// V2WorkspaceGetUsageCompute Compute usage in the period.
+type V2WorkspaceGetUsageCompute struct {
+	// CpuSeconds CPU time used, in seconds.
+	//
+	// Example: 5400.5
+	CpuSeconds float64 `json:"cpuSeconds"`
+
+	// EgressGiB Public network egress, in GiB.
+	//
+	// Example: 1.4
+	EgressGiB float64 `json:"egressGiB"`
+
+	// MemoryGiBHours Memory used over time, in GiB-hours.
+	//
+	// Example: 96.2
+	MemoryGiBHours float64 `json:"memoryGiBHours"`
+
+	// StorageGiBHours Ephemeral disk reserved over time, in GiB-hours.
+	//
+	// Example: 0
+	StorageGiBHours float64 `json:"storageGiBHours"`
+}
+
+// V2WorkspaceGetUsageEnvironmentResource An environment. `slug` is omitted when the environment was deleted.
+type V2WorkspaceGetUsageEnvironmentResource struct {
+	// Id The environment id.
+	//
+	// Example: env_1234abcd
+	Id string `json:"id"`
+
+	// Slug The environment slug.
+	//
+	// Example: production
+	Slug *string `json:"slug,omitempty"`
+}
+
+// V2WorkspaceGetUsageGateway Unkey gateway usage in the period.
+type V2WorkspaceGetUsageGateway struct {
+	// ActiveKeys Distinct keys verified through the Unkey gateway. A key verified through
+	// several apps counts once, for the app that verified it most.
+	//
+	//
+	// Example: 12
+	ActiveKeys int64 `json:"activeKeys"`
+}
+
+// V2WorkspaceGetUsagePeriod The time window the usage covers.
+type V2WorkspaceGetUsagePeriod struct {
+	// End Unix timestamp in milliseconds of the end of the period, exclusive. For
+	// the current month it is the time of the request. For a past month it is
+	// the start of the next month.
+	//
+	//
+	// Example: 1790946000000
+	End int64 `json:"end"`
+
+	// Start Unix timestamp in milliseconds of the first day of the month, 00:00 UTC.
+	//
+	// Example: 1790812800000
+	Start int64 `json:"start"`
+}
+
+// V2WorkspaceGetUsageRequestBody defines model for V2WorkspaceGetUsageRequestBody.
+type V2WorkspaceGetUsageRequestBody struct {
+	// Period The calendar month (UTC) to read. Omit it for the current month to date. A
+	// past month returns the full month. It cannot be in the future, and it must
+	// start within the last 90 days, because compute usage is kept for 90 days.
+	Period *V2WorkspaceGetUsageRequestPeriod `json:"period,omitempty"`
+}
+
+// V2WorkspaceGetUsageRequestPeriod The calendar month (UTC) to read. Omit it for the current month to date. A
+// past month returns the full month. It cannot be in the future, and it must
+// start within the last 90 days, because compute usage is kept for 90 days.
+type V2WorkspaceGetUsageRequestPeriod struct {
+	// Month The month, from 1 (January) to 12 (December).
+	//
+	// Example: 9
+	Month int `json:"month"`
+
+	// Year The year, for example 2026.
+	//
+	// Example: 2026
+	Year int `json:"year"`
+}
+
+// V2WorkspaceGetUsageResource A project or app. `name` is omitted when the resource was deleted.
+type V2WorkspaceGetUsageResource struct {
+	// Id The resource id.
+	//
+	// Example: proj_1234abcd
+	Id string `json:"id"`
+
+	// Name The resource name.
+	//
+	// Example: Payments
+	Name *string `json:"name,omitempty"`
+}
+
+// V2WorkspaceGetUsageResponseBody defines model for V2WorkspaceGetUsageResponseBody.
+type V2WorkspaceGetUsageResponseBody struct {
+	Data V2WorkspaceGetUsageResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2WorkspaceGetUsageResponseData defines model for V2WorkspaceGetUsageResponseData.
+type V2WorkspaceGetUsageResponseData struct {
+	// Breakdowns The totals split by environment and by app.
+	Breakdowns V2WorkspaceGetUsageBreakdowns `json:"breakdowns"`
+
+	// Period The time window the usage covers.
+	Period V2WorkspaceGetUsagePeriod `json:"period"`
+
+	// Totals Workspace totals in the period. `compute` is the sum of
+	// `breakdowns.byEnvironment[].compute`. `gateway.activeKeys` is the sum of
+	// `breakdowns.byApp[].gateway.activeKeys`.
+	Totals V2WorkspaceGetUsageTotals `json:"totals"`
+}
+
+// V2WorkspaceGetUsageTotals Workspace totals in the period. `compute` is the sum of
+// `breakdowns.byEnvironment[].compute`. `gateway.activeKeys` is the sum of
+// `breakdowns.byApp[].gateway.activeKeys`.
+type V2WorkspaceGetUsageTotals struct {
+	// Api Billable operations through the Unkey API in the period. Key verifications
+	// through the Unkey gateway are not counted here. The gateway bills by active
+	// keys, see `gateway`.
+	Api V2WorkspaceGetUsageApi `json:"api"`
+
+	// Compute Compute usage in the period.
+	Compute V2WorkspaceGetUsageCompute `json:"compute"`
+
+	// Gateway Unkey gateway usage in the period.
+	Gateway V2WorkspaceGetUsageGateway `json:"gateway"`
+}
+
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
 type V3DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -6801,6 +7551,9 @@ type DeploymentsCreateDeploymentJSONRequestBody = V2DeploymentsCreateDeploymentR
 // DeploymentsGetDeploymentJSONRequestBody defines body for DeploymentsGetDeployment for application/json ContentType.
 type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequestBody
 
+// DeploymentsListBuildLogsJSONRequestBody defines body for DeploymentsListBuildLogs for application/json ContentType.
+type DeploymentsListBuildLogsJSONRequestBody = V2DeploymentsListBuildLogsRequestBody
+
 // DeploymentsListDeploymentsJSONRequestBody defines body for DeploymentsListDeployments for application/json ContentType.
 type DeploymentsListDeploymentsJSONRequestBody = V2DeploymentsListDeploymentsRequestBody
 
@@ -6945,6 +7698,12 @@ type PermissionsListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
 // PermissionsSetRolePermissionsJSONRequestBody defines body for PermissionsSetRolePermissions for application/json ContentType.
 type PermissionsSetRolePermissionsJSONRequestBody = V2PermissionsSetRolePermissionsRequestBody
 
+// PermissionsUpdatePermissionJSONRequestBody defines body for PermissionsUpdatePermission for application/json ContentType.
+type PermissionsUpdatePermissionJSONRequestBody = V2PermissionsUpdatePermissionRequestBody
+
+// PermissionsUpdateRoleJSONRequestBody defines body for PermissionsUpdateRole for application/json ContentType.
+type PermissionsUpdateRoleJSONRequestBody = V2PermissionsUpdateRoleRequestBody
+
 // PortalCreatePortalJSONRequestBody defines body for PortalCreatePortal for application/json ContentType.
 type PortalCreatePortalJSONRequestBody = V2PortalCreatePortalRequestBody
 
@@ -6965,6 +7724,9 @@ type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody
 
 // PortalListKeysJSONRequestBody defines body for PortalListKeys for application/json ContentType.
 type PortalListKeysJSONRequestBody = V2PortalListKeysRequestBody
+
+// PortalListSessionsJSONRequestBody defines body for PortalListSessions for application/json ContentType.
+type PortalListSessionsJSONRequestBody = V2PortalListSessionsRequestBody
 
 // PortalRerollKeyJSONRequestBody defines body for PortalRerollKey for application/json ContentType.
 type PortalRerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody
@@ -7022,6 +7784,9 @@ type RootKeysRerollKeyJSONRequestBody = V2RootKeysRerollKeyRequestBody
 
 // RootKeysUpdateKeyJSONRequestBody defines body for RootKeysUpdateKey for application/json ContentType.
 type RootKeysUpdateKeyJSONRequestBody = V2RootKeysUpdateKeyRequestBody
+
+// WorkspaceGetUsageJSONRequestBody defines body for WorkspaceGetUsage for application/json ContentType.
+type WorkspaceGetUsageJSONRequestBody = V2WorkspaceGetUsageRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody

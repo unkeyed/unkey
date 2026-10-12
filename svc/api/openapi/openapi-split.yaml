@@ -128,6 +128,8 @@ tags:
     description: Rate limiting operations
   - name: github
     description: GitHub App installation operations
+  - name: workspace
+    description: Workspace limits and usage operations
 
 paths:
   # Health Endpoints
@@ -159,6 +161,8 @@ paths:
     $ref: "./spec/paths/v2/deployments/createDeployment/index.yaml"
   /v2/deployments.getDeployment:
     $ref: "./spec/paths/v2/deployments/getDeployment/index.yaml"
+  /v2/deployments.listBuildLogs:
+    $ref: "./spec/paths/v2/deployments/listBuildLogs/index.yaml"
   /v2/deployments.listDeployments:
     $ref: "./spec/paths/v2/deployments/listDeployments/index.yaml"
   /v2/deployments.stopDeployment:
@@ -258,6 +262,8 @@ paths:
     $ref: "./spec/paths/v2/portal/createSession/index.yaml"
   /v2/portal.revokeSession:
     $ref: "./spec/paths/v2/portal/revokeSession/index.yaml"
+  /v2/portal.listSessions:
+    $ref: "./spec/paths/v2/portal/listSessions/index.yaml"
   /v2/portal.exchangeCode:
     $ref: "./spec/paths/v2/portal/exchangeCode/index.yaml"
   /v2/portal.listKeys:
@@ -282,6 +288,12 @@ paths:
   # GitHub Endpoints
   /v2/github.installApp:
     $ref: "./spec/paths/v2/github/installApp/index.yaml"
+
+  # Workspace Endpoints
+  /v2/workspace.getLimits:
+    $ref: "./spec/paths/v2/workspace/getLimits/index.yaml"
+  /v2/workspace.getUsage:
+    $ref: "./spec/paths/v2/workspace/getUsage/index.yaml"
 
   # App Endpoints
   /v2/apps.createApp:
@@ -348,6 +360,10 @@ paths:
     $ref: "./spec/paths/v2/permissions/listPermissions/index.yaml"
   /v2/permissions.deletePermission:
     $ref: "./spec/paths/v2/permissions/deletePermission/index.yaml"
+  /v2/permissions.updatePermission:
+    $ref: "./spec/paths/v2/permissions/updatePermission/index.yaml"
+  /v2/permissions.updateRole:
+    $ref: "./spec/paths/v2/permissions/updateRole/index.yaml"
 
 components:
   securitySchemes:

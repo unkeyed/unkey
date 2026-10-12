@@ -2,11 +2,14 @@ import type * as Sentry from "@sentry/nextjs";
 
 type ReplayOptions = NonNullable<Parameters<typeof Sentry.replayIntegration>[0]>;
 
+// Text is visible by default so replays show what the user did. Anything that
+// renders secrets or PII must carry `data-sentry-mask` (or a selector below).
 export const replayPrivacyOptions: ReplayOptions = {
-  maskAllText: true,
+  maskAllText: false,
   maskAllInputs: true,
-  blockAllMedia: true,
+  blockAllMedia: false,
   mask: [
+    "[data-sentry-mask]",
     "[type='email']",
     ".email",
     "[data-email]",
@@ -21,10 +24,11 @@ export const replayPrivacyOptions: ReplayOptions = {
     "[data-external-id]",
     ".external-id",
     "[type='password']",
+    "[data-sonner-toast]",
   ],
-  unmask: ["[data-sentry-unmask]"],
-  block: ["[data-sensitive-media]", ".sensitive-media"],
-  unblock: ["[data-sentry-unblock]"],
+  unmask: [],
+  block: ["img", "video", "picture", "[data-sensitive-media]", ".sensitive-media"],
+  unblock: [],
   ignore: ["[type='password']", "[data-sensitive-input]", ".sensitive-input"],
   networkDetailAllowUrls: [],
   networkCaptureBodies: false,

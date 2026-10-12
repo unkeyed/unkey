@@ -31,7 +31,9 @@ export const UsersFilter = () => {
       filterField="users"
       checkPath="value"
       renderOptionContent={(checkbox) => (
-        <div className="text-gray-12 text-xs">{checkbox.label}</div>
+        <div data-sentry-mask className="text-gray-12 text-xs">
+          {checkbox.label}
+        </div>
       )}
       createFilterValue={(option) => ({
         value: option.value,

@@ -1,13 +1,14 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconFolderLinkOutline18 } from "@unkey/icons";
+import { firstMatchingSaveState } from "@unkey/ui";
 import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingField } from "../shared/form-blocks";
-import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 import { useRepoTree } from "./use-repo-tree";
 
 const dockerContextSegment = /^[A-Za-z0-9._-]+$/;
@@ -71,7 +72,7 @@ export const RootDirectory = () => {
     [rootDirectorySuggestions],
   );
 
-  const saveState = resolveSaveState([
+  const saveState = firstMatchingSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [currentDockerContext === defaultValue, { status: "disabled", reason: "No changes to save" }],

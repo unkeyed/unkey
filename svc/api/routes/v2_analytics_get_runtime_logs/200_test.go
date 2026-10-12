@@ -1,16 +1,18 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
 func Test200_RawLogs(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, severity: "error", message: "kebap burned"})
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
@@ -25,7 +27,7 @@ func Test200_RawLogs(t *testing.T) {
 func Test200_WorkspaceIsolation(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	otherWorkspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "mine"})
 	insertLog(t, h, runtimeLog{workspaceID: otherWorkspace.ID, message: "theirs"})
@@ -39,7 +41,7 @@ func Test200_WorkspaceIsolation(t *testing.T) {
 
 func Test200_ScopeColumnsAreQueryable(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 
 	mine := insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "wanted"})
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "unwanted"})
@@ -63,7 +65,7 @@ func Test200_ScopeColumnsAreQueryable(t *testing.T) {
 func Test200_WorkspaceFilterCannotEscapeWithOr(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	otherWorkspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "mine"})
 	insertLog(t, h, runtimeLog{workspaceID: otherWorkspace.ID, message: "theirs"})
@@ -91,7 +93,7 @@ func Test200_WorkspaceFilterCannotEscapeWithOr(t *testing.T) {
 // put the column in lower() because the ngrambf_v1 index uses lower(message).
 func Test200_TextSearch(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "upstream TIMEOUT after 30s"})
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "healthcheck ok"})
@@ -114,12 +116,15 @@ func Test200_TextSearch(t *testing.T) {
 // log attributes.
 func Test200_AttributesAreReadable(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 
+	userID := uid.New(uid.TestPrefix)
+	attributes, err := json.Marshal(map[string]string{"route": "/orders", "user_id": userID})
+	require.NoError(t, err)
 	insertLog(t, h, runtimeLog{
 		workspaceID: workspaceID,
 		message:     "order placed",
-		attributes:  `{"route":"/orders","user_id":"usr_kebap"}`,
+		attributes:  string(attributes),
 	})
 
 	t.Run("full attribute string", func(t *testing.T) {
@@ -128,7 +133,7 @@ func Test200_AttributesAreReadable(t *testing.T) {
 		})
 		require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
 		require.Len(t, res.Body.Data, 1)
-		require.Contains(t, fmt.Sprint(res.Body.Data[0]["attributes_text"]), "usr_kebap")
+		require.Contains(t, fmt.Sprint(res.Body.Data[0]["attributes_text"]), userID)
 	})
 
 	// This query is the reason for the grant on JSONExtractString. To select
@@ -149,7 +154,7 @@ func Test200_AttributesAreReadable(t *testing.T) {
 // partitions.
 func Test200_PartitionPruningFilterIsQueryable(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "kebap served"})
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
@@ -163,7 +168,7 @@ func Test200_PartitionPruningFilterIsQueryable(t *testing.T) {
 
 func Test200_RetentionBoundary(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "kebap served"})
 
 	// The default workspace retention is 30 days. The table stores time as unix
@@ -184,7 +189,7 @@ func Test200_CustomRetentionAllowsLongerRange(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID, testutil.WithRetentionDays(90))
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	route := &Handler{AnalyticsConnectionManager: h.AnalyticsConnectionManager}
 	h.Register(route)
 
@@ -196,7 +201,7 @@ func Test200_CustomRetentionAllowsLongerRange(t *testing.T) {
 
 func Test200_AggregateQuery(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_runtime_logs")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 
 	deployment := insertLog(t, h, runtimeLog{workspaceID: workspaceID, severity: "error", message: "first failure"})
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, deploymentID: deployment.deploymentID, severity: "error", message: "second failure"})
