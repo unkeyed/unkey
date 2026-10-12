@@ -31,7 +31,7 @@ import (
 // broader operation's atomicity guarantees.
 type AuditLogService interface {
 	// Insert creates audit log entries for the provided logs and their associated
-	// resources within the given transaction context. Insert handles the complete
+	// targets within the given transaction context. Insert handles the complete
 	// audit log lifecycle including ID generation, timestamp assignment, metadata
 	// serialization, and database persistence.
 	//
@@ -41,8 +41,8 @@ type AuditLogService interface {
 	// the audit logs become part of the existing transaction's scope.
 	//
 	// The logs parameter contains the audit events to be recorded, including
-	// actor information, affected resources, and contextual metadata. Each log
-	// can affect multiple resources, and the service will create appropriate
+	// actor information, affected targets, and contextual metadata. Each log
+	// can affect multiple targets, and the service will create appropriate
 	// target records for efficient querying.
 	//
 	// Returns nil on successful insertion of all logs and their targets. Returns
@@ -70,10 +70,10 @@ type AuditLogService interface {
 	//			ActorName:   "john.doe@company.com",
 	//			RemoteIP:    clientIP,
 	//			UserAgent:   userAgent,
-	//			Resources:   []auditlog.AuditLogResource{
+	//			Targets:     []auditlog.AuditLogTarget{
 	//				{
 	//					ID:          apiID,
-	//					Type:        auditlog.APIResourceType,
+	//					Type:        auditlog.APITargetType,
 	//					DisplayName: "production-payments",
 	//				},
 	//			},

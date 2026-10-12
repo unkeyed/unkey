@@ -186,7 +186,7 @@ export async function linkApiSubscription(
       actor: input.audit.actor,
       event: "workspace.update",
       description: `Subscribed to ${product.name} plan via checkout.`,
-      resources: [{ type: "workspace", id: ws.id }],
+      targets: [{ type: "workspace", id: ws.id }],
       context: { location: input.audit.location, userAgent: input.audit.userAgent },
     });
   });

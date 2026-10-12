@@ -568,16 +568,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						RemoteIP:      s.Location(),
 						UserAgent:     s.UserAgent(),
 						CorrelationID: "",
-						Resources: []auditlog.AuditLogResource{
+						Targets: []auditlog.AuditLogTarget{
 							{
-								Type:        auditlog.KeyResourceType,
+								Type:        auditlog.KeyTargetType,
 								ID:          keyID,
 								Name:        insertKeyParams.Name.String,
 								DisplayName: insertKeyParams.Name.String,
 								Meta:        map[string]any{},
 							},
 							{
-								Type:        auditlog.PermissionResourceType,
+								Type:        auditlog.PermissionTargetType,
 								ID:          reqPerm.ID,
 								Name:        reqPerm.Slug,
 								DisplayName: reqPerm.Slug,
@@ -657,16 +657,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						RemoteIP:      s.Location(),
 						UserAgent:     s.UserAgent(),
 						CorrelationID: "",
-						Resources: []auditlog.AuditLogResource{
+						Targets: []auditlog.AuditLogTarget{
 							{
-								Type:        auditlog.KeyResourceType,
+								Type:        auditlog.KeyTargetType,
 								ID:          keyID,
 								DisplayName: insertKeyParams.Name.String,
 								Name:        insertKeyParams.Name.String,
 								Meta:        map[string]any{},
 							},
 							{
-								Type:        auditlog.RoleResourceType,
+								Type:        auditlog.RoleTargetType,
 								ID:          reqRole.ID,
 								DisplayName: reqRole.Name,
 								Name:        reqRole.Name,
@@ -699,16 +699,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
-						Type:        auditlog.KeyResourceType,
+						Type:        auditlog.KeyTargetType,
 						ID:          keyID,
 						DisplayName: keyID,
 						Name:        keyID,
 						Meta:        map[string]any{},
 					},
 					{
-						Type:        auditlog.APIResourceType,
+						Type:        auditlog.APITargetType,
 						ID:          req.ApiId,
 						DisplayName: api.Name,
 						Name:        api.Name,

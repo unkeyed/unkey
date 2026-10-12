@@ -168,7 +168,7 @@ export async function createKeyCore(
     actor: { type: "user", id: ctx.user.id },
     event: "key.create",
     description: `Created ${keyId}`,
-    resources: [
+    targets: [
       {
         type: "key",
         id: keyId,

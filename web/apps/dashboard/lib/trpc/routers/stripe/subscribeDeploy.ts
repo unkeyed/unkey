@@ -286,7 +286,7 @@ export const subscribeDeploy = workspaceProcedure
           actor: { type: "user", id: ctx.user.id },
           event: "workspace.update",
           description: `Subscribed to Compute ${input.plan} plan.`,
-          resources: [{ type: "workspace", id: ctx.workspace.id }],
+          targets: [{ type: "workspace", id: ctx.workspace.id }],
           context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
         });
       });

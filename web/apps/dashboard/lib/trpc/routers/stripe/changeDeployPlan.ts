@@ -128,7 +128,7 @@ export const changeDeployPlan = workspaceProcedure
         actor: { type: "user", id: ctx.user.id },
         event: "workspace.update",
         description: `Changed Compute plan to ${input.plan}.`,
-        resources: [{ type: "workspace", id: ctx.workspace.id }],
+        targets: [{ type: "workspace", id: ctx.workspace.id }],
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
     });
