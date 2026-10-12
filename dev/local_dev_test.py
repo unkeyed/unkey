@@ -561,5 +561,66 @@ class LocalDevTest(unittest.TestCase):
         self.assertEqual(self.calls(), [["minikube", "stop", "-p", "minikube"]])
 
 
+class TopoLVMTest(unittest.TestCase):
+    def test_missing_loop_nodes_preserve_backing_data_and_attachment(self):
+        image = "gcr.io/k8s-minikube/kicbase:v0.0.51"
+        if not shutil.which("docker"):
+            self.skipTest("Docker is required for the loop-device regression")
+        available = subprocess.run(
+            ["docker", "image", "inspect", image], capture_output=True, timeout=10,
+        )
+        if available.returncode:
+            self.skipTest(f"A running Docker daemon with cached {image} is required")
+        result = subprocess.run(
+            ["docker", "run", "--rm", "--pull=never", "--privileged", "-i",
+             "--mount", f"type=bind,src={ROOT / 'dev/k8s/topolvm/setup-vg.sh'},dst=/setup-vg.sh,readonly",
+             "--entrypoint", "/bin/bash", image, "-seu"],
+            input=r'''
+IMG=/var/lib/topolvm-backing.img
+cleanup() {
+  for sysdev in /sys/block/loop*; do
+    device="/dev/${sysdev##*/}"
+    if [ ! -e "$device" ]; then
+      IFS=: read -r major minor < "$sysdev/dev"
+      mknod -m 0600 "$device" b "$major" "$minor"
+    fi
+  done
+  while IFS=: read -r device rest; do
+    losetup -d "$device"
+  done < <(losetup -j "$IMG")
+}
+trap cleanup EXIT
+
+mkdir -p /test-bin /etc/lvm
+for command in pvcreate vgcreate vgchange vgs; do
+  printf '#!/bin/sh\nexit 0\n' > "/test-bin/$command"
+  chmod +x "/test-bin/$command"
+done
+export PATH="/test-bin:$PATH"
+rm -f /dev/loop[0-9]*
+bash /setup-vg.sh 64M
+loop=$(losetup -j "$IMG" | cut -d: -f1)
+test -b "$loop"
+printf 'persisted' | dd of="$loop" conv=notrunc status=none
+
+rm "$loop"
+bash /setup-vg.sh 64M
+test "$(losetup -j "$IMG" | cut -d: -f1)" = "$loop"
+test "$(dd if="$loop" bs=1 count=9 status=none)" = persisted
+
+losetup -d "$loop"
+rm "$loop"
+bash /setup-vg.sh 64M
+loop=$(losetup -j "$IMG" | cut -d: -f1)
+test -b "$loop"
+test "$(dd if="$loop" bs=1 count=9 status=none)" = persisted
+echo 'Loop bootstrap, reuse, and reattachment preserve data'
+''',
+            capture_output=True, text=True, timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Loop bootstrap, reuse, and reattachment preserve data", result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

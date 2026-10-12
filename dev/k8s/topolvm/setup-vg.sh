@@ -50,13 +50,26 @@ if [ ! -f "$IMG" ]; then
   echo "topolvm: created backing file $IMG ($SIZE sparse)"
 fi
 
-# 2. Loopback device. losetup -j lists existing attachments for the file
-#    so we don't double-attach across restarts.
-LOOP=$(losetup -j "$IMG" | cut -d: -f1 | head -n1)
-if [ -z "$LOOP" ]; then
-  LOOP=$(losetup -f --show "$IMG")
-  echo "topolvm: attached $IMG to $LOOP"
-fi
+# Kernel loop devices are shared, but minikube's /dev has no udev to create
+# missing nodes. Restore existing nodes too so --nooverlap can find our image.
+for attempt in {1..5}; do
+  losetup --find >/dev/null
+  for sysdev in /sys/block/loop*; do
+    device="/dev/${sysdev##*/}"
+    if [ ! -e "$device" ]; then
+      IFS=: read -r major minor < "$sysdev/dev"
+      mknod -m 0600 "$device" b "$major" "$minor"
+    fi
+  done
+  if LOOP=$(losetup --find --show --nooverlap "$IMG"); then
+    break
+  fi
+  if [ "$attempt" -eq 5 ]; then
+    echo "topolvm: could not attach $IMG after restoring loop device nodes" >&2
+    exit 1
+  fi
+done
+echo "topolvm: attached $IMG to $LOOP"
 
 # 3. PV + VG. vgs returns nonzero if the VG doesn't exist; only run the
 #    create commands then. Re-running pvcreate on an in-use PV would error.
