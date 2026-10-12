@@ -322,13 +322,16 @@ func TestDecrementEdgeCases(t *testing.T) {
 		const numGoroutines = 10
 		const cost = 5
 
-		results := make(chan bool, numGoroutines)
+		type verificationResult struct {
+			status int
+			valid  bool
+			err    error
+		}
+		results := make(chan verificationResult, numGoroutines)
 		var wg sync.WaitGroup
 
 		for range numGoroutines {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 
 				req := handler.Request{
 					Key: keyResponse.Key,
@@ -340,20 +343,20 @@ func TestDecrementEdgeCases(t *testing.T) {
 				res, err := integration.CallRandomNode[handler.Request, handler.Response](
 					lb, "POST", "/v2/keys.verifyKey", headers, req)
 
-				require.NoError(t, err)
-				require.Equal(t, 200, res.Status)
-
-				results <- res.Body.Data.Valid
-			}()
+				results <- verificationResult{status: res.Status, valid: res.Body.Data.Valid, err: err}
+			})
 		}
 
 		wg.Wait()
 		close(results)
+		require.Len(t, results, numGoroutines)
 
 		// Count successes - should be exactly 5 (5 * 5 = 25 credits)
 		var successCount int
-		for success := range results {
-			if success {
+		for result := range results {
+			require.NoError(t, result.err)
+			require.Equal(t, 200, result.status)
+			if result.valid {
 				successCount++
 			}
 		}

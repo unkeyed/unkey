@@ -132,22 +132,16 @@ func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
 					logger.Warn("cri watcher close failed", "error", cerr.Error())
 				}
 			}()
-			watcherWG.Add(1)
-			go func() {
-				defer watcherWG.Done()
+			watcherWG.Go(func() {
 				if err := watcher.Run(ctx); err != nil && ctx.Err() == nil {
 					logger.Error("cri watcher stopped", "error", err.Error())
 				}
-			}()
+			})
 		}
 	}
 
 	<-ctx.Done()
 
-	// Wait for CRI handler goroutine to finish before returning. The
-	// periodic repeat.Every also needs to drain — `stop()` via defer blocks
-	// until any in-flight tick completes. Combined, Run doesn't return until
-	// all in-flight handlers have had a chance to Buffer() their rows.
 	watcherWG.Wait()
 
 	return ctx.Err()
