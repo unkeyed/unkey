@@ -46,7 +46,6 @@ export async function createSubscriptionCheckout(
       billing_mode: { type: "classic" },
       proration_behavior: "create_prorations",
     },
-    allow_promotion_codes: true,
     ...(input.customerId ? { customer: input.customerId } : {}),
     ...(input.customText ? { custom_text: input.customText } : {}),
     success_url: input.successUrl,
