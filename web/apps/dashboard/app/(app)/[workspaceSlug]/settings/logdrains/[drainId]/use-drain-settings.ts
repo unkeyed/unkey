@@ -1,11 +1,9 @@
 "use client";
 
-import { queryKeys } from "@/lib/query-keys";
-import { trpc } from "@/lib/trpc/client";
-import type { Router } from "@/lib/trpc/routers";
+import { useDeleteLogdrainMutation, useUpdateLogdrainMutation } from "@/lib/logdrains-query";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
-import type { inferRouterInputs } from "@trpc/server";
+import type { LogdrainDestinationWrite } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -13,51 +11,46 @@ import {
   type DrainDetail,
   type DrainFormValues,
   drainToFormValues,
-  editDrainSchema,
+  editDrainSchemaFor,
   emptyDrainForm,
+  headersChanged,
   submittedEventTypes,
   submittedSources,
   submittedStatusClasses,
 } from "../drain-schema";
 
 export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted: () => void }) {
-  const utils = trpc.useUtils();
-  const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const values = useMemo(() => drainToFormValues(drain), [drain]);
 
   const form = useForm<DrainFormValues>({
-    resolver: zodResolver(editDrainSchema),
+    resolver: zodResolver(editDrainSchemaFor(values)),
     defaultValues: emptyDrainForm,
     values,
     mode: "onChange",
   });
 
   const onUpdated = () => {
-    utils.logdrain.list.invalidate();
-    utils.logdrain.get.invalidate({ id: drain.id });
     toast.success("Log drain updated");
   };
-  const update = trpc.logdrain.update.useMutation({
+  const update = useUpdateLogdrainMutation({
     onSuccess: onUpdated,
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
   // Its own instance, so pausing from the menu does not put the panel's Save button into loading.
-  const setStatus = trpc.logdrain.update.useMutation({
+  const setStatus = useUpdateLogdrainMutation({
     onSuccess: onUpdated,
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
 
-  const remove = trpc.logdrain.delete.useMutation({
+  const remove = useDeleteLogdrainMutation({
     onSuccess: () => {
-      utils.logdrain.list.invalidate();
-      queryClient.invalidateQueries({ queryKey: queryKeys.workspace.limits });
       toast.success("Log drain deleted");
       setConfirmDelete(false);
       onDeleted();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
 
   const save = (onSaved: () => void) =>
@@ -98,20 +91,23 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
         onSaved();
         return;
       }
+      const filters = {
+        ...(eventTypesChanged ? { eventTypes } : {}),
+        ...(outcomesChanged ? { outcomes: submitted.outcomes } : {}),
+        ...(keySpacesChanged ? { keySpaceIds: submitted.keySpaceIds } : {}),
+        ...(severitiesChanged ? { severities: submitted.severities } : {}),
+        ...(namespacesChanged ? { namespaceIds: submitted.namespaceIds } : {}),
+        ...(passedChanged ? { passed: submitted.passed } : {}),
+        ...(statusesChanged ? { statusClasses } : {}),
+        ...(projectsChanged ? { projectIds: sources.projectIds } : {}),
+        ...(appsChanged ? { appIds: sources.appIds } : {}),
+        ...(environmentsChanged ? { environmentIds: sources.environmentIds } : {}),
+      };
       update.mutate(
         {
-          id: drain.id,
+          logdrainId: drain.id,
           ...(name !== drain.name ? { name } : {}),
-          ...(eventTypesChanged ? { eventTypes } : {}),
-          ...(outcomesChanged ? { outcomes: submitted.outcomes } : {}),
-          ...(keySpacesChanged ? { keySpaceIds: submitted.keySpaceIds } : {}),
-          ...(severitiesChanged ? { severities: submitted.severities } : {}),
-          ...(namespacesChanged ? { namespaceIds: submitted.namespaceIds } : {}),
-          ...(passedChanged ? { passed: submitted.passed } : {}),
-          ...(statusesChanged ? { statusClasses } : {}),
-          ...(projectsChanged ? { projectIds: sources.projectIds } : {}),
-          ...(appsChanged ? { appIds: sources.appIds } : {}),
-          ...(environmentsChanged ? { environmentIds: sources.environmentIds } : {}),
+          ...(Object.keys(filters).length > 0 ? { filters } : {}),
           ...(destination !== undefined ? { destination } : {}),
         },
         { onSuccess: onSaved },
@@ -120,7 +116,7 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
 
   const toggleStatus = () =>
     setStatus.mutate({
-      id: drain.id,
+      logdrainId: drain.id,
       status: drain.status === "running" ? "paused_by_user" : "running",
     });
 
@@ -139,8 +135,6 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
 
 export type DrainSettings = ReturnType<typeof useDrainSettings>;
 
-type UpdateDestination = inferRouterInputs<Router>["logdrain"]["update"]["destination"];
-
 function sameEventTypes<T extends string | number | boolean>(left: T[], right: T[]): boolean {
   return left.length === right.length && left.every((eventType) => right.includes(eventType));
 }
@@ -148,36 +142,25 @@ function sameEventTypes<T extends string | number | boolean>(left: T[], right: T
 function changedDestination(
   submitted: DrainFormValues,
   current: DrainFormValues,
-): UpdateDestination | undefined {
+): LogdrainDestinationWrite | undefined {
   switch (submitted.kind) {
     case "http": {
       const headers = submitted.headers.filter((header) => header.name.trim() !== "");
-      const headersChanged =
-        headers.length !== current.headers.length ||
-        headers.some(
-          (header, index) =>
-            header.name.trim() !== current.headers[index]?.name || header.value !== "",
-        );
+      const changedHeaders = headersChanged(submitted.headers, current.headers);
       const url = submitted.url.trim();
-      if (url === current.url && submitted.format === current.format && !headersChanged) {
+      if (url === current.url && submitted.format === current.format && !changedHeaders) {
         return undefined;
       }
       return {
-        kind: "http",
-        config: {
+        http: {
           ...(url !== current.url ? { url } : {}),
           ...(submitted.format !== current.format ? { format: submitted.format } : {}),
-          ...(headersChanged
+          ...(changedHeaders
             ? {
-                headers: headers.map((header) =>
-                  header.stored && header.value === ""
-                    ? { mode: "preserve" as const, name: header.name.trim() }
-                    : {
-                        mode: "set" as const,
-                        name: header.name.trim(),
-                        value: header.value,
-                      },
-                ),
+                headers: headers.map((header) => ({
+                  name: header.name.trim(),
+                  value: header.value,
+                })),
               }
             : {}),
         },
@@ -190,8 +173,7 @@ function changedDestination(
         return undefined;
       }
       return {
-        kind: "axiom",
-        config: {
+        axiom: {
           ...(dataset !== current.dataset ? { dataset } : {}),
           ...(token !== "" ? { token: submitted.token } : {}),
         },

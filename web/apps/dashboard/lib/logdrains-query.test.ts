@@ -1,0 +1,144 @@
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { type PropsWithChildren, createElement } from "react";
+import { afterEach, expect, it, vi } from "vitest";
+import {
+  useCreateLogdrainMutation,
+  useDeleteLogdrainMutation,
+  useLogdrains,
+} from "./logdrains-query";
+
+const api = vi.hoisted(() => ({
+  listLogdrains: vi.fn(),
+  createLogdrain: vi.fn(),
+  deleteLogdrain: vi.fn(),
+  getLimits: vi.fn(),
+}));
+vi.mock("@/hooks/use-workspace-navigation", () => ({
+  useWorkspaceNavigation: () => ({ id: "ws_1" }),
+}));
+vi.mock("@/lib/unkey-client", () => ({
+  getUnkeyClient: () => ({ logdrains: api, workspace: api }),
+}));
+
+afterEach(() => {
+  cleanup();
+  vi.resetAllMocks();
+});
+
+it.each(["create", "delete"] as const)("refreshes workspace limits after %s", async (operation) => {
+  const current = operation === "create" ? 2 : 0;
+  api.getLimits
+    .mockResolvedValueOnce({ data: { logdrainsMax: { current: 1, limit: 5 } } })
+    .mockResolvedValueOnce({ data: { logdrainsMax: { current, limit: 5 } } });
+  api.createLogdrain.mockResolvedValue({ data: { id: "ld_created" } });
+  api.deleteLogdrain.mockResolvedValue({ data: { id: "ld_deleted" } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: PropsWithChildren) =>
+    createElement(QueryClientProvider, { client }, children);
+  const { result } = renderHook(
+    () => ({
+      limits: useWorkspaceLimits(),
+      create: useCreateLogdrainMutation({ onSuccess: vi.fn(), onError: vi.fn() }),
+      remove: useDeleteLogdrainMutation({ onSuccess: vi.fn(), onError: vi.fn() }),
+    }),
+    { wrapper },
+  );
+  await waitFor(() => expect(result.current.limits.data?.logdrainsMax.current).toBe(1));
+  if (operation === "create") {
+    result.current.create.mutate({
+      name: "Logs",
+      stream: { auditLogs: {} },
+      destination: { http: { url: "https://logs.example.com" } },
+    });
+  } else {
+    result.current.remove.mutate({ logdrainId: "ld_deleted" });
+  }
+  await waitFor(() => expect(result.current.limits.data?.logdrainsMax.current).toBe(current));
+  client.clear();
+});
+
+it("does not load drains when the limits page is disabled", async () => {
+  api.listLogdrains.mockResolvedValue({ data: [], pagination: { hasMore: false } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: PropsWithChildren) =>
+    createElement(QueryClientProvider, { client }, children);
+  const { result, rerender } = renderHook(({ enabled }) => useLogdrains({ enabled }), {
+    wrapper,
+    initialProps: { enabled: false },
+  });
+  expect(result.current.fetchStatus).toBe("idle");
+  expect(api.listLogdrains).not.toHaveBeenCalled();
+  rerender({ enabled: true });
+  await waitFor(() => expect(result.current.data).toEqual([]));
+  client.clear();
+});
+
+it("loads every page before exposing the workspace drain count", async () => {
+  api.listLogdrains
+    .mockResolvedValueOnce({
+      data: [{ id: "ld_a" }],
+      pagination: { hasMore: true, cursor: "ld_a" },
+    })
+    .mockResolvedValueOnce({ data: [{ id: "ld_b" }], pagination: { hasMore: false } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: PropsWithChildren) =>
+    createElement(QueryClientProvider, { client }, children);
+  const { result } = renderHook(() => useLogdrains(), { wrapper });
+  await waitFor(() => expect(result.current.data).toEqual([{ id: "ld_a" }, { id: "ld_b" }]));
+  expect(api.listLogdrains).toHaveBeenNthCalledWith(
+    2,
+    { limit: 100, cursor: "ld_a" },
+    { signal: expect.any(AbortSignal) },
+  );
+  client.clear();
+});
+
+it("refreshes a list that was still loading when a drain was created", async () => {
+  api.listLogdrains
+    .mockImplementationOnce(
+      (_input, { signal }: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener(
+            "abort",
+            () => reject(new DOMException("Aborted", "AbortError")),
+            { once: true },
+          );
+        }),
+    )
+    .mockResolvedValueOnce({ data: [{ id: "ld_created" }], pagination: { hasMore: false } });
+  api.createLogdrain.mockResolvedValueOnce({ data: { id: "ld_created" } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: PropsWithChildren) =>
+    createElement(QueryClientProvider, { client }, children);
+  const { result } = renderHook(
+    () => ({
+      list: useLogdrains(),
+      create: useCreateLogdrainMutation({ onSuccess: vi.fn(), onError: vi.fn() }),
+    }),
+    { wrapper },
+  );
+  await waitFor(() => expect(result.current.list.isFetching).toBe(true));
+  result.current.create.mutate({
+    name: "Logs",
+    stream: { auditLogs: {} },
+    destination: { http: { url: "https://logs.example.com" } },
+  });
+  await waitFor(() => expect(result.current.list.data).toEqual([{ id: "ld_created" }]));
+  client.clear();
+});
+
+it("does not expose a partial count when an API page has no continuation cursor", async () => {
+  api.listLogdrains.mockResolvedValueOnce({
+    data: [{ id: "ld_a" }],
+    pagination: { hasMore: true },
+  });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: PropsWithChildren) =>
+    createElement(QueryClientProvider, { client }, children);
+  const { result } = renderHook(() => useLogdrains(), { wrapper });
+  await waitFor(() => expect(result.current.isError).toBe(true));
+  expect(result.current.data).toBeUndefined();
+  client.clear();
+});

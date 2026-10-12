@@ -18,6 +18,9 @@ const sourceState = vi.hoisted(() => ({
   empty: false,
 }));
 const createDrain = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/logdrains-query", () => ({
+  useCreateLogdrainMutation: () => ({ mutate: createDrain, isLoading: false }),
+}));
 vi.mock("@/hooks/use-project-environments", () => ({
   useProjectEnvironments: () => ({
     data: [
@@ -69,8 +72,6 @@ vi.mock("@/lib/trpc/client", () => ({
         list: { useQuery: () => ({ data: [{ id: "ns", name: "Payments" }], isLoading: false }) },
       },
     },
-    useUtils: () => ({ logdrain: { list: { invalidate: vi.fn() } } }),
-    logdrain: { create: { useMutation: () => ({ mutate: createDrain, isLoading: false }) } },
     deploy: {
       environmentSettings: {
         getAvailableKeyspaces: {
@@ -104,6 +105,12 @@ it("submits only runtime filters after switching from a restricted gateway", asy
   fireEvent.change(screen.getByRole("textbox", { name: "URL" }), {
     target: { value: "https://example.com/ingest" },
   });
+  fireEvent.change(screen.getByPlaceholderText("Authorization"), {
+    target: { value: "Authorization" },
+  });
+  fireEvent.change(screen.getByPlaceholderText("Bearer …"), {
+    target: { value: "Bearer token" },
+  });
   fireEvent.click(screen.getByRole("combobox", { name: "Stream" }));
   fireEvent.keyDown(await screen.findByRole("option", { name: "Gateway HTTP requests" }), {
     key: "Enter",
@@ -122,13 +129,21 @@ it("submits only runtime filters after switching from a restricted gateway", asy
   await waitFor(() =>
     expect(createDrain.mock.calls[0]?.[0]).toEqual({
       name: "Runtime export",
-      stream: "runtime_logs",
-      severities: [],
-      projectIds: ["other-project"],
-      appIds: [],
-      environmentIds: [],
-      kind: "http",
-      config: { url: "https://example.com/ingest", format: "json", headers: {} },
+      stream: {
+        runtimeLogs: {
+          severities: [],
+          projectIds: ["other-project"],
+          appIds: [],
+          environmentIds: [],
+        },
+      },
+      destination: {
+        http: {
+          url: "https://example.com/ingest",
+          format: "json",
+          headers: [{ name: "Authorization", value: "Bearer token" }],
+        },
+      },
     }),
   );
 });
@@ -160,9 +175,13 @@ it.each(["Gateway HTTP requests", "Runtime logs"])(
     fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
     await waitFor(() =>
       expect(createDrain.mock.calls[0]?.[0]).toMatchObject({
-        projectIds: [],
-        appIds: [],
-        environmentIds: [],
+        stream: {
+          [stream === "Runtime logs" ? "runtimeLogs" : "gatewayRequests"]: {
+            projectIds: [],
+            appIds: [],
+            environmentIds: [],
+          },
+        },
       }),
     );
     fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
@@ -175,9 +194,13 @@ it.each(["Gateway HTTP requests", "Runtime logs"])(
     fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
     await waitFor(() =>
       expect(createDrain.mock.calls[1]?.[0]).toMatchObject({
-        projectIds: ["project"],
-        appIds: [],
-        environmentIds: [],
+        stream: {
+          [stream === "Runtime logs" ? "runtimeLogs" : "gatewayRequests"]: {
+            projectIds: ["project"],
+            appIds: [],
+            environmentIds: [],
+          },
+        },
       }),
     );
   },
@@ -332,7 +355,7 @@ function Form() {
       eventTypes: ["key.create"],
       eventTypesMode: "specific",
       outcomes: ["RATE_LIMITED"],
-      statusClasses: [4],
+      statusClasses: ["4xx"],
       severities: ["error"],
       passed: [false],
     },

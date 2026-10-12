@@ -1,4 +1,3 @@
-import { httpFormatSchema } from "@/lib/trpc/routers/logdrain/validation";
 import { describe, expect, it } from "vitest";
 import {
   type DrainFormValues,
@@ -9,6 +8,7 @@ import {
   submittedEventTypes,
   submittedSources,
   submittedStatusClasses,
+  submittedStream,
 } from "./drain-schema";
 
 function messagesFor(schema: typeof createDrainSchema, values: Partial<DrainFormValues>): string[] {
@@ -22,9 +22,67 @@ const httpDrain = {
   url: "https://example.com/ingest",
 } satisfies Partial<DrainFormValues>;
 
+it("creates a nested audit stream without top-level filters", () => {
+  expect(
+    submittedStream({ ...emptyDrainForm, eventTypesMode: "specific", eventTypes: ["key.create"] }),
+  ).toEqual({
+    auditLogs: { eventTypes: ["key.create"] },
+  });
+});
+
+it.each<{ stream: DrainFormValues["stream"]; expected: object }>([
+  {
+    stream: "ratelimits",
+    expected: { ratelimits: { namespaceIds: ["ns"], passed: [true, false] } },
+  },
+  {
+    stream: "key_verifications",
+    expected: { keyVerifications: { outcomes: ["VALID"], keySpaceIds: ["ks"] } },
+  },
+  {
+    stream: "gateway_requests",
+    expected: {
+      gatewayRequests: {
+        statusClasses: ["4xx"],
+        projectIds: ["project"],
+        appIds: [],
+        environmentIds: [],
+      },
+    },
+  },
+  {
+    stream: "runtime_logs",
+    expected: {
+      runtimeLogs: {
+        severities: ["warn"],
+        projectIds: [],
+        appIds: ["runtime-app"],
+        environmentIds: [],
+      },
+    },
+  },
+])("creates exactly one nested $stream object", ({ stream, expected }) => {
+  expect(
+    submittedStream({
+      ...emptyDrainForm,
+      stream,
+      namespaceIds: ["ns"],
+      passed: [true, false],
+      outcomes: ["VALID"],
+      keySpaceIds: ["ks"],
+      statusMode: "custom",
+      statusClasses: ["4xx"],
+      sourceMode: "some",
+      projectIds: ["project"],
+      severities: ["warn"],
+      runtimeSourceMode: "some",
+      runtimeAppIds: ["runtime-app"],
+    }),
+  ).toEqual(expected);
+});
+
 describe("createDrainSchema", () => {
-  it("accepts HEC in the API and both destination forms", () => {
-    expect(httpFormatSchema.parse("hec")).toBe("hec");
+  it("accepts HEC in both destination forms", () => {
     for (const schema of [createDrainSchema, editDrainSchema]) {
       const result = schema.parse({
         ...emptyDrainForm,
@@ -168,7 +226,7 @@ describe("createDrainSchema", () => {
 describe("submittedStatusClasses", () => {
   it("sends nothing in all mode", () => {
     expect(
-      submittedStatusClasses({ ...emptyDrainForm, statusMode: "all", statusClasses: [2] }),
+      submittedStatusClasses({ ...emptyDrainForm, statusMode: "all", statusClasses: ["2xx"] }),
     ).toEqual([]);
   });
 
@@ -177,26 +235,20 @@ describe("submittedStatusClasses", () => {
       id: "drain",
       name: "Gateway",
       status: "running",
-      kind: "http",
       stream: "gateway_requests",
-      config: { url: "https://example.com/ingest", format: "ndjson", headers: [] },
-      eventTypes: [],
-      outcomes: [],
-      keySpaceIds: [],
-      statusClasses: [5, 4],
-      severities: [],
-      projectIds: [],
-      appIds: [],
-      environmentIds: [],
+      destination: { http: { url: "https://example.com/ingest", format: "ndjson", headers: [] } },
+      filters: { statusClasses: ["5xx", "4xx"] },
+      batchSize: 10000,
+      createdAt: 123,
     });
     expect(values.statusMode).toBe("custom");
-    expect(submittedStatusClasses(values)).toEqual([5, 4]);
+    expect(submittedStatusClasses(values)).toEqual(["5xx", "4xx"]);
   });
 
   it("sends the chosen classes in custom mode", () => {
     expect(
-      submittedStatusClasses({ ...emptyDrainForm, statusMode: "custom", statusClasses: [3] }),
-    ).toEqual([3]);
+      submittedStatusClasses({ ...emptyDrainForm, statusMode: "custom", statusClasses: ["3xx"] }),
+    ).toEqual(["3xx"]);
   });
 });
 
@@ -206,17 +258,13 @@ describe("submittedSources", () => {
       id: "drain",
       name: "Runtime",
       status: "running",
-      kind: "http",
       stream: "runtime_logs",
-      config: { url: "https://example.com/ingest", format: "ndjson", headers: ["Authorization"] },
-      eventTypes: [],
-      outcomes: [],
-      keySpaceIds: [],
-      statusClasses: [],
-      severities: ["warn"],
-      projectIds: ["deleted-project"],
-      appIds: [],
-      environmentIds: [],
+      destination: {
+        http: { url: "https://example.com/ingest", format: "ndjson", headers: ["Authorization"] },
+      },
+      filters: { severities: ["warn"], projectIds: ["deleted-project"] },
+      batchSize: 10000,
+      createdAt: 123,
     });
     expect(values.runtimeSourceMode).toBe("some");
     expect(values.sourceMode).toBe("all");
