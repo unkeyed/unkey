@@ -73,7 +73,7 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		// 5 samples, 15s apart. CPU and egress are monotonic counters;
 		// memory and disk are flat gauges.
 		var samples []schema.InstanceCheckpoint
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			samples = append(samples, container.sample(ws, resource, base+int64(i)*sampleGap, sampleValues{
 				cpuUsec:     int64(i) * 1_000_000, // 1 CPU-second per step
 				egressBytes: int64(i) * 1000,
@@ -145,7 +145,7 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		// Restart 0: cpu climbs 0 -> 3e6 over 3 samples.
 		c0 := newContainerWithRestart(0)
 		var samples []schema.InstanceCheckpoint
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			samples = append(samples, c0.sample(ws, resource, base+int64(i)*sampleGap, sampleValues{
 				cpuUsec:     int64(i) * 1_000_000,
 				egressBytes: int64(i) * 500,
@@ -158,7 +158,7 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		// double-count; per-container_uid integration must not.
 		c1 := newContainerWithRestart(1)
 		restartBase := base + 3*sampleGap
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			samples = append(samples, c1.sample(ws, resource, restartBase+int64(i)*sampleGap, sampleValues{
 				cpuUsec:     int64(i) * 1_000_000,
 				egressBytes: int64(i) * 500,
@@ -239,7 +239,7 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		var samples []schema.InstanceCheckpoint
 		ca := newContainer()
 		cb := newContainer()
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			samples = append(samples, ca.sample(wsA, resA, base+int64(i)*sampleGap, sampleValues{
 				cpuUsec: int64(i) * 2_000_000, memoryBytes: gib, diskBytes: gib,
 			}))

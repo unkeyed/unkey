@@ -42,7 +42,7 @@ func TestSuccess(t *testing.T) {
 	otherExternalID := uid.New(uid.TestPrefix)
 
 	// Create initial metadata
-	metaMap := map[string]interface{}{
+	metaMap := map[string]any{
 		"name":    "Test User",
 		"email":   "test@example.com",
 		"plan":    "free",
@@ -90,7 +90,7 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("update metadata", func(t *testing.T) {
-		newMeta := map[string]interface{}{
+		newMeta := map[string]any{
 			"joined": "2023-01-01",
 			"active": true,
 		}
@@ -200,7 +200,7 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("clear metadata", func(t *testing.T) {
 		// Empty map should clear metadata
-		emptyMeta := map[string]interface{}{}
+		emptyMeta := map[string]any{}
 
 		req := handler.Request{
 			Identity: externalID,
@@ -218,7 +218,7 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("update both metadata and ratelimits", func(t *testing.T) {
-		newMeta := map[string]interface{}{
+		newMeta := map[string]any{
 			"plan":    "enterprise",
 			"credits": 1000,
 		}

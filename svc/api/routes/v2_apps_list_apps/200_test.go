@@ -46,7 +46,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 	})
 
 	seeded := map[string]string{}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		app := h.CreateApp(seed.CreateAppRequest{
 			ID:          uid.New(uid.AppPrefix),
@@ -221,7 +221,7 @@ func TestListAppsPagination(t *testing.T) {
 	})
 
 	total := 5
-	for i := 0; i < total; i++ {
+	for i := range total {
 		h.CreateApp(seed.CreateAppRequest{
 			ID:          uid.New(uid.AppPrefix),
 			WorkspaceID: workspace.ID,

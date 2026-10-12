@@ -123,7 +123,7 @@ func TestParseEntries(t *testing.T) {
 
 	t.Run("parses long header", func(t *testing.T) {
 		entries := make([]string, 0, 200)
-		for i := 0; i < 200; i++ {
+		for i := range 200 {
 			entries = append(entries, "metric"+strconv.Itoa(i)+"=1ms")
 		}
 		header := strings.Join(entries, ",")

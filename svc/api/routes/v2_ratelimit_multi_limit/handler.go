@@ -3,6 +3,7 @@ package v2_ratelimit_multi_limit
 import (
 	"context"
 	"database/sql"
+	"maps"
 	"net/http"
 	"strconv"
 	"time"
@@ -115,9 +116,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return createErr
 		}
 
-		for name, ns := range created {
-			namespaces[name] = ns
-		}
+		maps.Copy(namespaces, created)
 	}
 
 	// Verify permissions for rate limiting

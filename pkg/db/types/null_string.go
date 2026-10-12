@@ -35,7 +35,7 @@ func (ns *NullString) UnmarshalJSON(data []byte) error {
 }
 
 // Scan implements the sql.Scanner interface.
-func (ns *NullString) Scan(value interface{}) error {
+func (ns *NullString) Scan(value any) error {
 	return (*sql.NullString)(ns).Scan(value)
 }
 

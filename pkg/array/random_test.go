@@ -38,7 +38,7 @@ func TestRandom(t *testing.T) {
 		}
 
 		results := make(map[int]bool)
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			result := Random(elements)
 			results[result] = true
 		}
@@ -66,7 +66,7 @@ func TestRandom(t *testing.T) {
 		copy(originalCopy, original)
 
 		// Call Random many times
-		for i := 0; i < 50; i++ {
+		for range 50 {
 			Random(original)
 		}
 

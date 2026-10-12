@@ -3,6 +3,7 @@ package util
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/apierrors"
 )
@@ -26,11 +27,12 @@ func FormatError(err error) string {
 	}
 
 	if badRequest, ok := errors.AsType[*apierrors.BadRequestErrorResponse](err); ok {
-		msg := badRequest.Error_.GetDetail()
+		var msg strings.Builder
+		msg.WriteString(badRequest.Error_.GetDetail())
 		for _, ve := range badRequest.Error_.GetErrors() {
-			msg += fmt.Sprintf("\n  %s: %s", ve.GetLocation(), ve.GetMessage())
+			msg.WriteString(fmt.Sprintf("\n  %s: %s", ve.GetLocation(), ve.GetMessage()))
 		}
-		return msg
+		return msg.String()
 	}
 
 	return err.Error()

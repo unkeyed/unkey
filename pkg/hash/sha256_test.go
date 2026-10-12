@@ -8,7 +8,7 @@ import (
 )
 
 func TestSha256(t *testing.T) {
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		b := []byte{32}
 		_, err := rand.Read(b)
 		require.NoError(t, err)

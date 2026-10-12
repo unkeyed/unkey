@@ -38,7 +38,7 @@ func TestUpdateIdentityAuthorization(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		meta := map[string]interface{}{
+		meta := map[string]any{
 			"test": "value",
 		}
 		req := handler.Request{
@@ -65,7 +65,7 @@ func TestUpdateIdentityAuthorization(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		meta := map[string]interface{}{
+		meta := map[string]any{
 			"test": "value",
 		}
 		req := handler.Request{
@@ -93,7 +93,7 @@ func TestUpdateIdentityAuthorization(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		meta := map[string]interface{}{
+		meta := map[string]any{
 			"test": "value",
 		}
 		req := handler.Request{

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"strings"
 	"sync"
@@ -131,9 +132,7 @@ func (r *Runner) handleReady(w http.ResponseWriter, req *http.Request) {
 
 	r.health.mu.RLock()
 	checks := make(map[string]ReadinessCheck, len(r.health.checks))
-	for name, check := range r.health.checks {
-		checks[name] = check
-	}
+	maps.Copy(checks, r.health.checks)
 	r.health.mu.RUnlock()
 
 	if len(checks) == 0 {

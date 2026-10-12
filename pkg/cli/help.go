@@ -38,7 +38,7 @@ func (c *Command) showHeader() {
 		}
 
 		fmt.Printf("DESCRIPTION:\n")
-		for _, line := range strings.Split(c.Description, "\n") {
+		for line := range strings.SplitSeq(c.Description, "\n") {
 			if line == "" {
 				fmt.Println()
 			} else {

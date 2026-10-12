@@ -552,7 +552,7 @@ func (c *Client) CreateDeployment(installationID int64, repo string, ref string,
 
 	apiURL := fmt.Sprintf("%s/repos/%s/deployments", c.baseURL, repo)
 
-	result, err := request[ghDeploymentResponse](c.httpClient, http.MethodPost, apiURL, headers, map[string]interface{}{
+	result, err := request[ghDeploymentResponse](c.httpClient, http.MethodPost, apiURL, headers, map[string]any{
 		"ref":                    ref,
 		"environment":            environment,
 		"description":            description,
@@ -577,7 +577,7 @@ func (c *Client) CreateDeploymentStatus(installationID int64, repo string, deplo
 
 	apiURL := fmt.Sprintf("%s/repos/%s/deployments/%d/statuses", c.baseURL, repo, deploymentID)
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"state":         state,
 		"description":   description,
 		"auto_inactive": true,

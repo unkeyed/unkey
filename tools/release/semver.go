@@ -86,11 +86,8 @@ func cmp(a, b semver) int {
 	if len(b.pre) == 0 {
 		return -1
 	}
-	n := len(a.pre)
-	if len(b.pre) < n {
-		n = len(b.pre)
-	}
-	for i := 0; i < n; i++ {
+	n := min(len(b.pre), len(a.pre))
+	for i := range n {
 		ai, an, aNum := identifier(a.pre[i])
 		bi, bn, bNum := identifier(b.pre[i])
 		switch {

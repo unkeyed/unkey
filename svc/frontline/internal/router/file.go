@@ -169,7 +169,7 @@ func validHostname(hostname string) bool {
 	if len(hostname) == 0 || len(hostname) > 253 {
 		return false
 	}
-	for _, label := range strings.Split(hostname, ".") {
+	for label := range strings.SplitSeq(hostname, ".") {
 		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
 			return false
 		}

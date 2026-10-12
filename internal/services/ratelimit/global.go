@@ -162,10 +162,7 @@ func (s *service) runGlobalPushOnce() {
 	// the circuit breaker likely tripped, and the next tick will re-emit
 	// whatever did not commit because lastPushed never advanced for it.
 	for start := 0; start < len(pending); start += globalPushChunkSize {
-		end := start + globalPushChunkSize
-		if end > len(pending) {
-			end = len(pending)
-		}
+		end := min(start+globalPushChunkSize, len(pending))
 		chunk := pending[start:end]
 		chunkRows := make([]db.UpsertRatelimitGlobalCountersParams, len(chunk))
 		for i, item := range chunk {

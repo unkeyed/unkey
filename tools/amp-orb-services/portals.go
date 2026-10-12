@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net"
 	"net/http"
 	"net/url"
@@ -235,7 +236,7 @@ ORDER BY route.deployment_id, route.created_at;
 
 	routes := make([]deploymentRoute, 0)
 	seen := make(map[string]struct{})
-	for _, line := range strings.Split(strings.TrimSpace(result), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(result), "\n") {
 		fields := strings.Split(line, "\t")
 		if len(fields) != 6 {
 			continue
@@ -267,9 +268,7 @@ func (m *portalManager) reconcile(routes []deploymentRoute) error {
 
 	m.mu.Lock()
 	current := make(map[string]managedPortal, len(m.portals))
-	for deploymentID, portal := range m.portals {
-		current[deploymentID] = portal
-	}
+	maps.Copy(current, m.portals)
 	m.mu.Unlock()
 
 	for deploymentID, managed := range current {
@@ -367,7 +366,7 @@ func (m *portalManager) startPortal(route deploymentRoute, port int) (managedPor
 		return managedPortal{}, err
 	}
 	portalURL := ""
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		if strings.HasPrefix(strings.TrimSpace(line), "https://") {
 			portalURL = strings.TrimSpace(line)
 		}

@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -325,8 +326,8 @@ func (s *Server) handler(middlewares []Middleware, handle HandleFunc, streamRequ
 		}
 		return handle(ctx, sess)
 	}
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		handleFn = middlewares[i](handleFn)
+	for _, middleware := range slices.Backward(middlewares) {
+		handleFn = middleware(handleFn)
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
