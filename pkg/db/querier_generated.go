@@ -3083,6 +3083,14 @@ type Querier interface {
 	//  LIMIT ?
 	//  FOR UPDATE
 	LockLivePortalSessionsByExternalID(ctx context.Context, db DBTX, arg LockLivePortalSessionsByExternalIDParams) ([]PortalSession, error)
+	// Serialize configuration, status, and delete operations with worker writes.
+	// The workspace predicate prevents locking or reading a foreign drain.
+	//
+	//  SELECT pk, id, workspace_id, name, stream, config, status, consecutive_failures,
+	//    committed_offset_inserted_at, committed_offset_event_id, next_attempt_at,
+	//    lease_id, fencing_token, lease_expires_at, created_at, updated_at
+	//  FROM logdrains WHERE workspace_id = ? AND id = ? FOR UPDATE
+	LockLogdrain(ctx context.Context, db DBTX, arg LockLogdrainParams) (Logdrain, error)
 	//LockPermissionByIdOrSlug
 	//
 	//  (
@@ -3583,6 +3591,14 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
+	// Caller holds the drain lock. Keep the committed cursor unchanged and expire
+	// leases for delivery changes so in-flight workers cannot commit stale state.
+	//
+	//  UPDATE logdrains SET name = ?, config = ?, status = ?,
+	//    lease_expires_at = ?, consecutive_failures = ?,
+	//    next_attempt_at = ?, updated_at = ?
+	//  WHERE workspace_id = ? AND id = ?
+	UpdateLogdrain(ctx context.Context, db DBTX, arg UpdateLogdrainParams) error
 	// UpdateLogdrainsMax sets how many log drains a workspace may configure.
 	// Intended for tests: UpsertLimit leaves logdrains_max at its default.
 	//
