@@ -10,14 +10,14 @@ import (
 )
 
 const findFlagBySlug = `-- name: FindFlagBySlug :one
-SELECT pk, id, slug, description, default_value, allow_opt_in, allow_opt_out
+SELECT pk, id, slug, description, default_value, visible, allow_opt_in, allow_opt_out
 FROM flags WHERE slug = ? FOR UPDATE
 `
 
 // FindFlagBySlug locks the definition during enrollment so a concurrent policy
 // change cannot race the permission check and override write.
 //
-//	SELECT pk, id, slug, description, default_value, allow_opt_in, allow_opt_out
+//	SELECT pk, id, slug, description, default_value, visible, allow_opt_in, allow_opt_out
 //	FROM flags WHERE slug = ? FOR UPDATE
 func (q *Queries) FindFlagBySlug(ctx context.Context, db DBTX, slug string) (Flag, error) {
 	row := db.QueryRowContext(ctx, findFlagBySlug, slug)
@@ -28,6 +28,7 @@ func (q *Queries) FindFlagBySlug(ctx context.Context, db DBTX, slug string) (Fla
 		&i.Slug,
 		&i.Description,
 		&i.DefaultValue,
+		&i.Visible,
 		&i.AllowOptIn,
 		&i.AllowOptOut,
 	)

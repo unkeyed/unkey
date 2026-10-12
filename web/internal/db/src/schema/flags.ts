@@ -9,6 +9,7 @@ export const flags = mysqlTable("flags", {
   slug: caseSensitiveVarchar("slug", { length: 128 }).notNull().unique(),
   description: varchar("description", { length: 1024 }).notNull(),
   defaultValue: boolean("default_value").notNull(),
+  visible: boolean("visible").notNull().default(true),
   allowOptIn: boolean("allow_opt_in").notNull().default(false),
   allowOptOut: boolean("allow_opt_out").notNull().default(false),
 });

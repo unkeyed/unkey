@@ -861,6 +861,7 @@ type Flag struct {
 	Slug         string `db:"slug"`
 	Description  string `db:"description"`
 	DefaultValue bool   `db:"default_value"`
+	Visible      bool   `db:"visible"`
 	AllowOptIn   bool   `db:"allow_opt_in"`
 	AllowOptOut  bool   `db:"allow_opt_out"`
 }

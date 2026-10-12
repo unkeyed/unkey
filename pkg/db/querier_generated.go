@@ -460,7 +460,7 @@ type Querier interface {
 	// FindFlagBySlug locks the definition during enrollment so a concurrent policy
 	// change cannot race the permission check and override write.
 	//
-	//  SELECT pk, id, slug, description, default_value, allow_opt_in, allow_opt_out
+	//  SELECT pk, id, slug, description, default_value, visible, allow_opt_in, allow_opt_out
 	//  FROM flags WHERE slug = ? FOR UPDATE
 	FindFlagBySlug(ctx context.Context, db DBTX, slug string) (Flag, error)
 	//FindFrontlineRoutesByDeploymentID
@@ -2341,7 +2341,7 @@ type Querier interface {
 	// ListFlags includes definitions without overrides. Callers resolve NULL override
 	// values to the default, preserving explicit false overrides.
 	//
-	//  SELECT f.pk, f.id, f.slug, f.description, f.default_value,
+	//  SELECT f.pk, f.id, f.slug, f.description, f.default_value, f.visible,
 	//      f.allow_opt_in, f.allow_opt_out, o.value AS override_value
 	//  FROM flags f
 	//  LEFT JOIN workspace_flag_overrides o
