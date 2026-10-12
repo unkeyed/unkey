@@ -335,7 +335,7 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 		})
 	}
 
-	err := g.Wait()
+	err = g.Wait()
 	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
 
 	// Verify identity still exists
@@ -382,7 +382,7 @@ func TestBulkIdentityUpdateDeadlock(t *testing.T) {
 	}
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspaceID)
+	projectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), workspaceID)
 	require.NoError(t, err)
 	numIdentities := 50
 	rlNames := []string{"rl_a", "rl_b", "rl_c", "rl_d", "rl_e"}
@@ -404,6 +404,7 @@ func TestBulkIdentityUpdateDeadlock(t *testing.T) {
 		}
 		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			ExternalID:  externalID,
 			Ratelimits:  seedRL,

@@ -147,7 +147,7 @@ func TestUpdateSettingsRejectsAmbiguousRegionNames(t *testing.T) {
 				CanSchedule: canSchedule,
 			}))
 
-			rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
+			rootKey := h.CreateRootKey(env.workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#write", env.workspaceID, env.projectID, env.appID, env.environmentID))
 			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, authHeaders(rootKey), handler.Request{
 				Project: env.projectID, App: env.appID, Environment: env.environmentID,
 				Port:    new(9090),
