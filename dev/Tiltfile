@@ -357,8 +357,35 @@ k8s_yaml(encode_yaml_stream(clickhouse_resources))
 k8s_resource('clickhouse', objects=['clickhouse-schema:configmap', 'clickhouse-init:configmap', 'clickhouse-pvc:persistentvolumeclaim'], port_forwards=['8123:8123','9000:9000'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])
 
 # Vector Logs (collects logs from krane-managed deployments -> ClickHouse)
-k8s_yaml('k8s/manifests/vector-logs.yaml')
-k8s_resource('vector-logs', objects=['vector-logs-config:configmap', 'vector-logs:serviceaccount'], resource_deps=['clickhouse', 'rbac', 'uncategorized'], labels=['observability'])
+local_resource(
+  'vector-migrate',
+  # The chart changes the immutable selector. Stop the old collector before sharing its checkpoints.
+  '''
+  set -eu
+  selector=$(kubectl -n unkey get daemonset vector-logs --ignore-not-found -o jsonpath='{.spec.selector.matchLabels.app}')
+  if [ "$selector" = vector-logs ]; then
+    kubectl -n unkey delete daemonset vector-logs --cascade=foreground --wait=true --timeout=60s
+  fi
+  ''',
+  resource_deps=['namespace'],
+  labels=['observability'],
+  allow_parallel=True,
+)
+helm_resource(
+  'vector-logs',
+  'vector',
+  namespace='unkey',
+  flags=[
+    '--repo', 'https://helm.vector.dev',
+    '--version', '0.39.0',
+    '--values', 'k8s/vector/values.yaml',
+    '--set-file', 'extraObjects[0].data.vector\\.toml=k8s/vector/vector.toml',
+    '--take-ownership',
+  ],
+  deps=['k8s/vector/values.yaml', 'k8s/vector/vector.toml'],
+  resource_deps=['clickhouse', 'vector-migrate'],
+  labels=['observability'],
+)
 
 # S3 (Garage) service
 k8s_yaml('k8s/manifests/s3.yaml')

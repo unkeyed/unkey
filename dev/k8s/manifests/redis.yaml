@@ -8,6 +8,8 @@ metadata:
     app: redis
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: redis
@@ -18,20 +20,32 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:8.0@sha256:ae471bdc20de180beed36e347d170ec0bdf8faa327959ea1f24692f22b05b955
+          image: ghcr.io/dragonflydb/dragonfly:v1.38.1@sha256:baf70ba7ad182a992b988497cfa31a488978c8fab7712079784c2401f447e402
+          args:
+            - --dbfilename=
+            - --proactor_threads=2
+            - --maxmemory=512mb
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
           ports:
             - containerPort: 6379
           readinessProbe:
             exec:
               command:
-                - redis-cli
-                - ping
+                - sh
+                - -ec
+                - 'test "$(redis-cli ping)" = PONG'
             periodSeconds: 1
           livenessProbe:
             exec:
               command:
-                - redis-cli
-                - ping
+                - sh
+                - -ec
+                - 'test "$(redis-cli ping)" = PONG'
             initialDelaySeconds: 10
             periodSeconds: 30
 
