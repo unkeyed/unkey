@@ -8,6 +8,7 @@ required:
   - project
   - availableActions
   - regions
+  - trigger
   - runtime
   - createdAt
 properties:
@@ -46,6 +47,10 @@ properties:
     "$ref": "./DeploymentDocker.yaml"
     description: |
       Compatibility field present for OCI image-sourced deployments. Mutually exclusive with `git`.
+  trigger:
+    "$ref": "./DeploymentTrigger.yaml"
+    description: |
+      What started this deployment and who started it.
   availableActions:
     type: array
     items:
@@ -66,6 +71,15 @@ properties:
     "$ref": "./DeploymentError.yaml"
     description: |
       Why the deployment failed. Present only when `status` is `failed`.
+  finishedAt:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 9223372036854775807
+    description: |
+      Unix timestamp in milliseconds when the deployment finished, successfully
+      or not. Omitted while it is in progress.
+    example: 1704067260000
   domains:
     type: array
     items:

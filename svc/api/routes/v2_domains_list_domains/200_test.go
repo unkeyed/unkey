@@ -362,7 +362,7 @@ func TestListDomainsUnknownCursor(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value)
 
 	req := makeRequest(env)
-	req.Cursor = new("dom_doesnotexist")
+	req.Cursor = new(uid.New(uid.DomainPrefix))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

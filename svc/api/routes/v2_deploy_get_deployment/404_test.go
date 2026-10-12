@@ -32,7 +32,7 @@ func TestNotFound(t *testing.T) {
 		}
 
 		req := handler.Request{
-			DeploymentId: "d_nonexistent123",
+			DeploymentId: uid.New(uid.DeploymentPrefix),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

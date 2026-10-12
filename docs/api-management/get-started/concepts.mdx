@@ -13,6 +13,8 @@ sources:
   - web/apps/dashboard/lib/trpc/routers/key/createRootKey.ts
 ---
 
+To issue and verify API keys for a public API, use API Management. A keyspace holds the keys, `keys.createKey` issues one, and your server calls `keys.verifyKey` on each request. You don't build the hash lookup yourself.
+
 API Management has four objects. A keyspace groups keys. A key is what your user sends you. An identity ties several keys to one user or organization. A root key is what you send to Unkey. Credits, rate limits, permissions, and analytics are all settings on, or views of, these four.
 
 ## Keyspace

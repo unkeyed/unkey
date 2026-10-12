@@ -52,12 +52,133 @@ type Querier interface {
 	//  FROM instances i
 	//  WHERE i.deployment_id IN (/*SLICE:ids*/?)
 	CountActiveDeploymentsByIds(ctx context.Context, ids []string) (int64, error)
+	// CountAppBuildSettingsByAppId counts an app's build settings rows. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `app_build_settings`
+	//  WHERE app_id = ?
+	CountAppBuildSettingsByAppId(ctx context.Context, appID string) (int64, error)
+	// CountAppBuildSettingsByWorkspaceId counts a workspace's build settings rows. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `app_build_settings`
+	//  WHERE workspace_id = ?
+	CountAppBuildSettingsByWorkspaceId(ctx context.Context, workspaceID string) (int64, error)
+	// CountAppEnvironmentVariablesByAppId counts an app's environment variables. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `app_environment_variables`
+	//  WHERE app_id = ?
+	CountAppEnvironmentVariablesByAppId(ctx context.Context, appID string) (int64, error)
+	// CountAppRegionalSettingsByAppId counts an app's regional settings rows. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `app_regional_settings`
+	//  WHERE app_id = ?
+	CountAppRegionalSettingsByAppId(ctx context.Context, appID string) (int64, error)
+	// CountAppRegionalSettingsByWorkspaceAndApp counts an app's regional settings rows within a workspace. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `app_regional_settings`
+	//  WHERE workspace_id = ? AND app_id = ?
+	CountAppRegionalSettingsByWorkspaceAndApp(ctx context.Context, arg CountAppRegionalSettingsByWorkspaceAndAppParams) (int64, error)
+	// CountAppRegionalSettingsByWorkspaceId counts a workspace's regional settings rows. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `app_regional_settings`
+	//  WHERE workspace_id = ?
+	CountAppRegionalSettingsByWorkspaceId(ctx context.Context, workspaceID string) (int64, error)
+	// CountAppRuntimeSettingsByAppId counts an app's runtime settings rows. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `app_runtime_settings`
+	//  WHERE app_id = ?
+	CountAppRuntimeSettingsByAppId(ctx context.Context, appID string) (int64, error)
+	// CountAppRuntimeSettingsByWorkspaceId counts a workspace's runtime settings rows. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `app_runtime_settings`
+	//  WHERE workspace_id = ?
+	CountAppRuntimeSettingsByWorkspaceId(ctx context.Context, workspaceID string) (int64, error)
+	// CountAppSourceOciByAppId counts an app's OCI source rows. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `app_source_oci`
+	//  WHERE app_id = ?
+	CountAppSourceOciByAppId(ctx context.Context, appID string) (int64, error)
+	// CountAppsById counts apps with an id. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `apps`
+	//  WHERE id = ?
+	CountAppsById(ctx context.Context, id string) (int64, error)
+	// CountCiliumNetworkPoliciesByAppId counts an app's Cilium network policies. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `cilium_network_policies`
+	//  WHERE app_id = ?
+	CountCiliumNetworkPoliciesByAppId(ctx context.Context, appID string) (int64, error)
+	// CountCustomDomainsByDomain counts custom domain rows for a hostname across
+	// all workspaces. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `custom_domains`
+	//  WHERE domain = ?
+	CountCustomDomainsByDomain(ctx context.Context, domain string) (int64, error)
 	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
 	//
 	//  SELECT COUNT(*)
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
 	CountCustomDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
+	// CountDeploymentStepsByDeploymentId counts a deployment's steps. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `deployment_steps`
+	//  WHERE deployment_id = ?
+	CountDeploymentStepsByDeploymentId(ctx context.Context, deploymentID string) (int64, error)
+	// CountDeploymentTopologiesByDeploymentId counts a deployment's topology rows. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `deployment_topology`
+	//  WHERE deployment_id = ?
+	CountDeploymentTopologiesByDeploymentId(ctx context.Context, deploymentID string) (int64, error)
+	// CountDeploymentsByAppId counts an app's deployments. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `deployments`
+	//  WHERE app_id = ?
+	CountDeploymentsByAppId(ctx context.Context, appID string) (int64, error)
+	// CountEnvironmentsByAppId counts an app's environments. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `environments`
+	//  WHERE app_id = ?
+	CountEnvironmentsByAppId(ctx context.Context, appID string) (int64, error)
+	// CountEnvironmentsByWorkspaceAndProject counts a project's environments within a workspace. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `environments`
+	//  WHERE workspace_id = ? AND project_id = ?
+	CountEnvironmentsByWorkspaceAndProject(ctx context.Context, arg CountEnvironmentsByWorkspaceAndProjectParams) (int64, error)
+	// CountFrontlineRoutesByAppId counts an app's frontline routes. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `frontline_routes`
+	//  WHERE app_id = ?
+	CountFrontlineRoutesByAppId(ctx context.Context, appID string) (int64, error)
+	// CountGithubRepoConnectionsByAppId counts an app's GitHub repository connections. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `github_repo_connections`
+	//  WHERE app_id = ?
+	CountGithubRepoConnectionsByAppId(ctx context.Context, appID string) (int64, error)
+	// CountProjectsById counts projects with an id. Only tests use this query.
+	//
+	//  SELECT COUNT(*)
+	//  FROM `projects`
+	//  WHERE id = ?
+	CountProjectsById(ctx context.Context, id string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -116,6 +237,14 @@ type Querier interface {
 	//  JOIN deployments d ON d.id = dt.deployment_id
 	//  WHERE d.environment_id = ?
 	DeleteDeploymentTopologiesByEnvironmentId(ctx context.Context, environmentID string) error
+	// DeleteDeploymentTopologiesByRegionIds hard deletes up to limit topology rows
+	// in the given regions and reports how many it removed. Only tests use this
+	// query.
+	//
+	//  DELETE FROM `deployment_topology`
+	//  WHERE region_id IN (/*SLICE:region_ids*/?)
+	//  LIMIT ?
+	DeleteDeploymentTopologiesByRegionIds(ctx context.Context, arg DeleteDeploymentTopologiesByRegionIdsParams) (int64, error)
 	//DeleteDeploymentsByEnvironmentId
 	//
 	//  DELETE FROM deployments WHERE environment_id = ?
@@ -165,6 +294,12 @@ type Querier interface {
 	//
 	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?
 	DeleteInstance(ctx context.Context, arg DeleteInstanceParams) error
+	// DeleteLimitsByWorkspaceId removes a workspace's limits row, so a test can
+	// exercise the state before billing has written it. Only tests use this query.
+	//
+	//  DELETE FROM `limits`
+	//  WHERE workspace_id = ?
+	DeleteLimitsByWorkspaceId(ctx context.Context, workspaceID string) error
 	//DeleteProjectById
 	//
 	//  DELETE FROM projects WHERE id = ?
@@ -293,6 +428,13 @@ type Querier interface {
 	//  ORDER BY pk
 	//  LIMIT ?
 	FindClickhouseOutboxBatch(ctx context.Context, arg FindClickhouseOutboxBatchParams) ([]FindClickhouseOutboxBatchRow, error)
+	// FindClickhouseOutboxByWorkspaceAndEventId returns one outbox row, including
+	// rows the drainer already marked deleted. Only tests use this query.
+	//
+	//  SELECT pk, version, workspace_id, event_id, payload, created_at, deleted_at
+	//  FROM `clickhouse_outbox`
+	//  WHERE workspace_id = ? AND event_id = ?
+	FindClickhouseOutboxByWorkspaceAndEventId(ctx context.Context, arg FindClickhouseOutboxByWorkspaceAndEventIdParams) (ClickhouseOutbox, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -503,6 +645,13 @@ type Querier interface {
 	//  INNER JOIN `regions` r ON r.id = dt.region_id
 	//  WHERE dt.deployment_id = ?
 	FindDeploymentRegions(ctx context.Context, deploymentID string) ([]Region, error)
+	// FindDeploymentStepByDeploymentAndStep returns one step of a deployment.
+	// Only tests use this query.
+	//
+	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error
+	//  FROM `deployment_steps`
+	//  WHERE deployment_id = ? AND step = ?
+	FindDeploymentStepByDeploymentAndStep(ctx context.Context, arg FindDeploymentStepByDeploymentAndStepParams) (DeploymentStep, error)
 	// FindDeploymentTopologyByDeploymentAndRegion returns a single deployment topology with all
 	// joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 	//
@@ -933,6 +1082,19 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAppSourceOci(ctx context.Context, arg InsertAppSourceOciParams) error
+	// InsertBillingSubscription records a workspace's Stripe subscription for one
+	// product. Only tests use this query.
+	//
+	//  INSERT INTO `billing_subscriptions` (
+	//      workspace_id,
+	//      product,
+	//      stripe_subscription_id
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertBillingSubscription(ctx context.Context, arg InsertBillingSubscriptionParams) error
 	//InsertCertificate
 	//
 	//  INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
@@ -1982,6 +2144,14 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE workspace_id = ?
 	SetWorkspaceDeployPlan(ctx context.Context, arg SetWorkspaceDeployPlanParams) error
+	// SetWorkspaceDeploySpendBudget sets or clears a workspace's Deploy spend budget
+	// and whether reaching it stops compute. Only tests use this query.
+	//
+	//  UPDATE `workspace_billing`
+	//  SET spend_budget_cents = ?,
+	//      spend_budget_stop = ?
+	//  WHERE workspace_id = ?
+	SetWorkspaceDeploySpendBudget(ctx context.Context, arg SetWorkspaceDeploySpendBudgetParams) error
 	// Records whether the spend cap has suspended a workspace's compute. Written by
 	// the spend-cap check on the suspend/resume transition; read by the orchestrator
 	// (to keep checking a suspended workspace even after its budget is removed) and
@@ -1992,6 +2162,13 @@ type Querier interface {
 	//      updated_at_m = ?
 	//  WHERE workspace_id = ?
 	SetWorkspaceDeploySpendSuspended(ctx context.Context, arg SetWorkspaceDeploySpendSuspendedParams) error
+	// SetWorkspaceStripeCustomerId links a workspace's billing row to a Stripe
+	// customer. Only tests use this query.
+	//
+	//  UPDATE `workspace_billing`
+	//  SET stripe_customer_id = ?
+	//  WHERE workspace_id = ?
+	SetWorkspaceStripeCustomerId(ctx context.Context, arg SetWorkspaceStripeCustomerIdParams) error
 	//SoftDeleteKeyByID
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
@@ -2085,6 +2262,13 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateCustomDomainCheckAttempt(ctx context.Context, arg UpdateCustomDomainCheckAttemptParams) error
+	// UpdateCustomDomainCreatedAt backdates a custom domain the service created, so
+	// a test can control its age. Only tests use this query.
+	//
+	//  UPDATE `custom_domains`
+	//  SET created_at = ?
+	//  WHERE id = ?
+	UpdateCustomDomainCreatedAt(ctx context.Context, arg UpdateCustomDomainCreatedAtParams) error
 	//UpdateCustomDomainFailed
 	//
 	//  UPDATE custom_domains
@@ -2119,6 +2303,13 @@ type Querier interface {
 	//  SET build_id = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentBuildID(ctx context.Context, arg UpdateDeploymentBuildIDParams) error
+	// UpdateDeploymentCreatedAt backdates a deployment the workflow created, so a
+	// test can control its age. Only tests use this query.
+	//
+	//  UPDATE `deployments`
+	//  SET created_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentCreatedAt(ctx context.Context, arg UpdateDeploymentCreatedAtParams) error
 	//UpdateDeploymentDesiredState
 	//
 	//  UPDATE deployments

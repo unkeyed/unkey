@@ -12,6 +12,13 @@ export type DeploymentDocker = {
    * The OCI image reference requested for this deployment.
    */
   image: string;
+  /**
+   * The image reference pinned to its sha256 digest. Omitted until Unkey
+   *
+   * @remarks
+   * resolves the image.
+   */
+  resolvedImage?: string | undefined;
 };
 
 /** @internal */
@@ -21,6 +28,7 @@ export const DeploymentDocker$inboundSchema: z.ZodType<
   unknown
 > = z.object({
   image: z.string(),
+  resolvedImage: z.string().optional(),
 });
 
 export function deploymentDockerFromJSON(

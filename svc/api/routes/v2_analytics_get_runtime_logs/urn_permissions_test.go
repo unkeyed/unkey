@@ -2,9 +2,11 @@ package handler
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
@@ -58,24 +60,28 @@ func Test200_URNDeploymentPermissionUnionPreservesAncestry(t *testing.T) {
 			deploymentID,
 		)
 	}
+	projectA, appA, envA, deploymentA := uid.New(uid.ProjectPrefix), uid.New(uid.AppPrefix), uid.New(uid.EnvironmentPrefix), uid.New(uid.DeploymentPrefix)
+	projectB, appB, envB, deploymentB := uid.New(uid.ProjectPrefix), uid.New(uid.AppPrefix), uid.New(uid.EnvironmentPrefix), uid.New(uid.DeploymentPrefix)
 	rootKey := h.CreateRootKey(workspaceID,
-		permissionFor("proj_a", "app_a", "env_a", "dep_a"),
-		permissionFor("proj_b", "app_b", "env_b", "dep_b"),
+		permissionFor(projectA, appA, envA, deploymentA),
+		permissionFor(projectB, appB, envB, deploymentB),
 	)
 
-	insertLog(t, h, runtimeLog{logID: "log_allowed_a", workspaceID: workspaceID, projectID: "proj_a", appID: "app_a", environmentID: "env_a", deploymentID: "dep_a"})
-	insertLog(t, h, runtimeLog{logID: "log_allowed_b", workspaceID: workspaceID, projectID: "proj_b", appID: "app_b", environmentID: "env_b", deploymentID: "dep_b"})
-	insertLog(t, h, runtimeLog{logID: "log_crossed_a", workspaceID: workspaceID, projectID: "proj_a", appID: "app_a", environmentID: "env_a", deploymentID: "dep_b"})
-	insertLog(t, h, runtimeLog{logID: "log_crossed_b", workspaceID: workspaceID, projectID: "proj_b", appID: "app_b", environmentID: "env_b", deploymentID: "dep_a"})
-	insertLog(t, h, runtimeLog{logID: "log_forbidden", workspaceID: workspaceID, projectID: "proj_c", appID: "app_c", environmentID: "env_c", deploymentID: "dep_c"})
+	allowedA := insertLog(t, h, runtimeLog{workspaceID: workspaceID, projectID: projectA, appID: appA, environmentID: envA, deploymentID: deploymentA})
+	allowedB := insertLog(t, h, runtimeLog{workspaceID: workspaceID, projectID: projectB, appID: appB, environmentID: envB, deploymentID: deploymentB})
+	insertLog(t, h, runtimeLog{workspaceID: workspaceID, projectID: projectA, appID: appA, environmentID: envA, deploymentID: deploymentB})
+	insertLog(t, h, runtimeLog{workspaceID: workspaceID, projectID: projectB, appID: appB, environmentID: envB, deploymentID: deploymentA})
+	insertLog(t, h, runtimeLog{workspaceID: workspaceID})
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
 		Query: "SELECT log_id FROM runtime_logs_v1 WHERE log_id = 'not_present' OR 1=1 ORDER BY log_id",
 	})
 	require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
+	allowedLogIDs := []string{allowedA.logID, allowedB.logID}
+	slices.Sort(allowedLogIDs)
 	require.Equal(t, []map[string]any{
-		{"log_id": "log_allowed_a"},
-		{"log_id": "log_allowed_b"},
+		{"log_id": allowedLogIDs[0]},
+		{"log_id": allowedLogIDs[1]},
 	}, res.Body.Data)
 }
 
@@ -83,19 +89,21 @@ func Test200_URNDeploymentPermissionUnionPreservesAncestry(t *testing.T) {
 // descendant permission reads that project's logs but not a sibling's logs.
 func Test200_URNAncestorPermissionScopesProjectLogs(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
+	allowedProjectID := uid.New(uid.ProjectPrefix)
 	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf(
-		"unkey:v1:%s:projects/proj_allowed/**#read",
+		"unkey:v1:%s:projects/%s/**#read",
 		workspaceID,
+		allowedProjectID,
 	))
 
-	insertLog(t, h, runtimeLog{logID: "log_allowed", workspaceID: workspaceID, projectID: "proj_allowed"})
-	insertLog(t, h, runtimeLog{logID: "log_forbidden", workspaceID: workspaceID, projectID: "proj_forbidden"})
+	allowed := insertLog(t, h, runtimeLog{workspaceID: workspaceID, projectID: allowedProjectID})
+	insertLog(t, h, runtimeLog{workspaceID: workspaceID})
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
 		Query: "SELECT log_id FROM runtime_logs_v1 ORDER BY log_id",
 	})
 	require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
-	require.Equal(t, []map[string]any{{"log_id": "log_allowed"}}, res.Body.Data)
+	require.Equal(t, []map[string]any{{"log_id": allowed.logID}}, res.Body.Data)
 }
 
 // Test200_URNPermissionWithoutMatchingRowsReturnsEmpty verifies that a valid
@@ -103,8 +111,12 @@ func Test200_URNAncestorPermissionScopesProjectLogs(t *testing.T) {
 func Test200_URNPermissionWithoutMatchingRowsReturnsEmpty(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf(
-		"unkey:v1:%s:projects/proj_missing/apps/app_missing/environments/env_missing/deployments/dep_missing/logs#read",
+		"unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/%s/logs#read",
 		workspaceID,
+		uid.New(uid.ProjectPrefix),
+		uid.New(uid.AppPrefix),
+		uid.New(uid.EnvironmentPrefix),
+		uid.New(uid.DeploymentPrefix),
 	))
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "must stay hidden"})
 
@@ -119,14 +131,15 @@ func Test200_URNPermissionWithoutMatchingRowsReturnsEmpty(t *testing.T) {
 // the logs resource itself while preserving deployment scope.
 func Test200_URNLogDescendantsIncludeTheLogResource(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
+	projectID, appID, environmentID, deploymentID := uid.New(uid.ProjectPrefix), uid.New(uid.AppPrefix), uid.New(uid.EnvironmentPrefix), uid.New(uid.DeploymentPrefix)
 	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf(
-		"unkey:v1:%s:projects/proj_a/apps/app_a/environments/env_a/deployments/dep_a/logs/**#read", workspaceID,
+		"unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/%s/logs/**#read", workspaceID, projectID, appID, environmentID, deploymentID,
 	))
-	insertLog(t, h, runtimeLog{logID: "allowed", workspaceID: workspaceID, projectID: "proj_a", appID: "app_a", environmentID: "env_a", deploymentID: "dep_a"})
-	insertLog(t, h, runtimeLog{logID: "denied", workspaceID: workspaceID, projectID: "proj_a", appID: "app_a", environmentID: "env_a", deploymentID: "dep_b"})
+	allowed := insertLog(t, h, runtimeLog{workspaceID: workspaceID, projectID: projectID, appID: appID, environmentID: environmentID, deploymentID: deploymentID})
+	insertLog(t, h, runtimeLog{workspaceID: workspaceID, projectID: projectID, appID: appID, environmentID: environmentID})
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: "SELECT log_id FROM runtime_logs_v1"})
 	require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
-	require.Equal(t, []map[string]any{{"log_id": "allowed"}}, res.Body.Data)
+	require.Equal(t, []map[string]any{{"log_id": allowed.logID}}, res.Body.Data)
 }
 
 // Test403_RejectsURNPermissionsOutsideRuntimeLogReadScope verifies that empty,

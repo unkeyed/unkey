@@ -1,5 +1,6 @@
 "use client";
 
+import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { trpc } from "@/lib/trpc/client";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import { AlertBanner, AlertBannerDescription, Button, DialogContainer, toast } from "@unkey/ui";
@@ -39,6 +40,7 @@ export function CancelComputeDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
 
   const cancel = trpc.stripe.cancelDeploy.useMutation({
     onSuccess: async () => {
@@ -49,7 +51,7 @@ export function CancelComputeDialog({
         trpcUtils.stripe.getDeployEntitlement.invalidate(),
         trpcUtils.stripe.getUpcomingInvoice.invalidate(),
         trpcUtils.billing.queryDeployUsage.invalidate(),
-        trpcUtils.workspace.getCurrent.invalidate(),
+        invalidateWorkspace(),
       ]);
     },
     onError: (err) => toast.error(err.message),
@@ -92,12 +94,12 @@ export function CancelApiDialog({
 }) {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
 
   const cancel = trpc.stripe.cancelSubscription.useMutation({
     onSuccess: async () => {
       await Promise.all([
-        trpcUtils.workspace.getCurrent.invalidate(),
-        trpcUtils.billing.queryUsage.invalidate(),
+        invalidateWorkspace(),
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.stripe.getUpcomingInvoice.invalidate(),
       ]);
