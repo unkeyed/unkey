@@ -4,6 +4,7 @@ import { type SQL, and, count, db, eq, gt, isNull, or, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { identities, keys as keysSchema } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { resolveIdentityFilter } from "../identity-filter";
 import type { KeyDetails } from "./schema";
 
 interface GetAllKeysInput {
@@ -140,6 +141,36 @@ export async function getAllKeys({
       }
     }
 
+    const identityConditions: SQL[] = [];
+    for (const filter of identityFilters ?? []) {
+      const value = filter.value;
+      if (typeof value !== "string") {
+        continue;
+      }
+
+      switch (filter.operator) {
+        case "contains":
+          identityConditions.push(sql`LOWER(${identities.externalId}) LIKE LOWER(${`%${value}%`})`);
+          break;
+        case "startsWith":
+          identityConditions.push(sql`LOWER(${identities.externalId}) LIKE LOWER(${`${value}%`})`);
+          break;
+        case "endsWith":
+          identityConditions.push(sql`LOWER(${identities.externalId}) LIKE LOWER(${`%${value}`})`);
+          break;
+        default:
+          identityConditions.push(eq(identities.externalId, value));
+      }
+    }
+
+    const identityFilter =
+      identityConditions.length > 0
+        ? await resolveIdentityFilter({
+            workspaceId,
+            condition: sql`(${sql.join(identityConditions, sql` AND `)})`,
+          })
+        : undefined;
+
     // Helper function to build the filter conditions (without cursor)
     // biome-ignore lint/suspicious/noExplicitAny: Drizzle query builder types are complex and vary between schema and query contexts
     const buildFilterConditions = (key: any, helpers: any): SQL<unknown> => {
@@ -148,6 +179,10 @@ export async function getAllKeys({
         helpers.isNull(key.deletedAtM),
         helpers.or(helpers.isNull(key.expires), helpers.gt(key.expires, new Date())),
       ];
+
+      if (identityFilter) {
+        conditions.push(identityFilter);
+      }
 
       // Apply tag-based key filtering if we have filtered key IDs
       if (tagFilteredKeyIds !== null) {
@@ -216,44 +251,6 @@ export async function getAllKeys({
         }
         if (keyIdConditions.length > 0) {
           conditions.push(helpers.sql`(${helpers.sql.join(keyIdConditions, helpers.sql` OR `)})`);
-        }
-      }
-
-      if (identityFilters && identityFilters.length > 0) {
-        const individualIdentityFilterConditions = [];
-        for (const filter of identityFilters) {
-          const value = filter.value;
-          if (typeof value !== "string") {
-            continue;
-          }
-
-          const identityCondition = helpers.sql`EXISTS (
-                SELECT 1 FROM ${identities} -- Use schema object for table name is fine
-                WHERE ${helpers.sql.raw("identities.id")} = ${
-                  key.identityId
-                } -- Use raw 'identities.id'; use schema 'key.identityId' for outer ref
-                  AND ${(() => {
-                    const rawExternalIdColumn = helpers.sql.raw("identities.external_id");
-                    switch (filter.operator) {
-                      case "is":
-                        return helpers.sql`${rawExternalIdColumn} = ${value}`;
-                      case "contains":
-                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`%${value}%`})`;
-                      case "startsWith":
-                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`${value}%`})`;
-                      case "endsWith":
-                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`%${value}`})`;
-                      default:
-                        return helpers.sql`${rawExternalIdColumn} = ${value}`;
-                    }
-                  })()}
-            )`;
-
-          individualIdentityFilterConditions.push(identityCondition);
-        }
-
-        if (individualIdentityFilterConditions.length > 0) {
-          conditions.push(...individualIdentityFilterConditions);
         }
       }
 
