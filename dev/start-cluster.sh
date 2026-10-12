@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-profiles=$(minikube profile list -o json)
+profiles=$(minikube profile list --light -o json)
 profile_count=$(jq '[.valid[], .invalid[]] | map(select(.Name == "minikube")) | length' <<< "$profiles")
 if jq -e '.invalid[]? | select(.Name == "minikube")' <<< "$profiles" >/dev/null; then
   echo "The minikube profile is invalid. Repair it or explicitly reset it; dev will not delete it." >&2
@@ -27,7 +27,9 @@ if ! jq -e --arg version "$expected_version" --arg cni "$expected_cni" '
   .valid[] | select(.Name == "minikube") | .Config.KubernetesConfig |
   .KubernetesVersion == $version and .CNI == $cni
 ' <<< "$profiles" >/dev/null; then
-  echo "The existing minikube profile does not match $1 (Kubernetes $expected_version, CNI $expected_cni)." >&2
+  jq -r '.valid[] | select(.Name == "minikube") | .Config.KubernetesConfig |
+    "Existing minikube: Kubernetes \(.KubernetesVersion), CNI \(.CNI)."' <<< "$profiles" >&2
+  echo "Required by $1: Kubernetes $expected_version, CNI $expected_cni." >&2
   echo "Back up any local data you need, then explicitly reset with mise exec -- minikube delete -p minikube and start dev again. Nothing was deleted." >&2
   exit 1
 fi

@@ -67,6 +67,7 @@ class LocalDevTest(unittest.TestCase):
             "        sys.exit(int(os.environ.get('STRIPE_TEST_EXIT', '0')))\n"
             "    else: sys.exit(18)\n"
             "elif name == 'minikube' and args[:2] == ['profile', 'list']:\n"
+            "    if os.environ.get('UNRELATED_STALE_PROFILE') and '--light' not in args: sys.exit(19)\n"
             "    print(os.environ.get('PROFILES', '{\"valid\": [], \"invalid\": []}'))\n"
             "elif name == 'minikube' and args[:1] == ['status'] and os.environ.get('STOPPED') == '1':\n"
             "    sys.exit(7)\n"
@@ -462,7 +463,7 @@ class LocalDevTest(unittest.TestCase):
         result = self.command(["bash", str(ROOT / ".mise/tasks/dev"), "api", "--topolvm_backing_size=32G"], cwd=self.root)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.calls(), [
-            ["minikube", "profile", "list", "-o", "json"],
+            ["minikube", "profile", "list", "--light", "-o", "json"],
             ["ctlptl", "apply", "-f", "./dev/cluster.yaml"],
             ["tilt", "up", "-f", "./dev/Tiltfile", "--", "api", "--topolvm_backing_size=32G"],
         ])
@@ -480,7 +481,7 @@ class LocalDevTest(unittest.TestCase):
         result = self.command(["bash", str(ROOT / ".mise/tasks/dev-orb"), "api"], cwd=self.root, PORT="10350")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.calls(), [
-            ["minikube", "profile", "list", "-o", "json"],
+            ["minikube", "profile", "list", "--light", "-o", "json"],
             ["ctlptl", "apply", "-f", "./dev/cluster.orb.yaml"],
             ["tilt", "up", "--file", "./dev/Tiltfile", "--host", "0.0.0.0",
              "--port", "10350", "--stream", "--", "--orb=true", "api"],
@@ -496,7 +497,8 @@ class LocalDevTest(unittest.TestCase):
                 self.log.write_text("")
                 result = self.command(
                     ["bash", str(ROOT / "dev/start-cluster.sh"), str(ROOT / "dev/cluster.yaml")],
-                    PROFILES=json.dumps({"valid": [self.profile], "invalid": []}),
+                    PROFILES=json.dumps({"valid": [self.profile], "invalid": [{"Name": "ebs-local-test"}]}),
+                    UNRELATED_STALE_PROFILE="1",
                     STOPPED="1" if stopped else "0",
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
@@ -524,7 +526,8 @@ class LocalDevTest(unittest.TestCase):
                 )
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("Back up any local data", result.stderr)
-                self.assertEqual(self.calls(), [["minikube", "profile", "list", "-o", "json"]])
+                self.assertIn(f"Existing minikube: Kubernetes {version}, CNI {cni}.", result.stderr)
+                self.assertEqual(self.calls(), [["minikube", "profile", "list", "--light", "-o", "json"]])
 
     def test_cluster_inspection_errors_do_not_trigger_creation(self):
         for env in (
@@ -550,7 +553,7 @@ class LocalDevTest(unittest.TestCase):
                     self.log.write_text("")
                     result = self.command(["bash", str(ROOT / "dev/start-cluster.sh"), "cluster.yaml"], MINIKUBE_HOME=home)
                     self.assertNotEqual(result.returncode, 0)
-                    self.assertEqual(self.calls(), [["minikube", "profile", "list", "-o", "json"]])
+                    self.assertEqual(self.calls(), [["minikube", "profile", "list", "--light", "-o", "json"]])
 
     def test_down_preserves_cluster_data(self):
         result = self.command(["bash", str(ROOT / ".mise/tasks/down")])
