@@ -399,13 +399,10 @@ components:
                 revalidateKeysCache:
                     type: boolean
                     default: false
+                    deprecated: true
                     description: |-
-                        EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:
-                        - You've just created a key and need to display it immediately
-                        - You need absolute certainty about the current key state
-                        - You're debugging cache consistency issues
-
-                        This parameter comes with a performance cost and should be used sparingly.
+                        Deprecated. Accepted for backward compatibility and has no effect.
+                        Keys are always read from the primary database, regardless of this value.
             additionalProperties: false
         V2ApisListKeysResponseBody:
             type: object

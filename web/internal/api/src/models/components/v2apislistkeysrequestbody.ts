@@ -45,14 +45,12 @@ export type V2ApisListKeysRequestBody = {
    */
   decrypt?: boolean | undefined;
   /**
-   * EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:
+   * Deprecated. Accepted for backward compatibility and has no effect.
    *
    * @remarks
-   * - You've just created a key and need to display it immediately
-   * - You need absolute certainty about the current key state
-   * - You're debugging cache consistency issues
+   * Keys are always read from the primary database, regardless of this value.
    *
-   * This parameter comes with a performance cost and should be used sparingly.
+   * @deprecated field: This will be removed in a future release, please migrate away from it as soon as possible.
    */
   revalidateKeysCache?: boolean | undefined;
 };

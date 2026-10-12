@@ -14,6 +14,8 @@ import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 Use `apis.listKeys` to list the keys in a keyspace, up to 100 per page. It's handy for a "your API keys" screen, for finding every key a user owns, or for auditing a keyspace. It only returns the full key for recoverable keys, and only when you ask.
 
+Keys are read from the primary database, including when you filter by `externalId`. The deprecated `revalidateKeysCache` parameter is accepted for backward compatibility and has no effect.
+
 <RootKeyPrereq />
 
 The root key needs two permissions: `api.*.read_key` or `api.<api_id>.read_key`, **and** `api.*.read_api` or `api.<api_id>.read_api`. Adding `decrypt: true` additionally needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key`. See [Root key permissions](/platform/root-keys/permissions).

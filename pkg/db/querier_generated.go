@@ -2674,17 +2674,27 @@ type Querier interface {
 	//                  ) AS combined_rl),
 	//                 JSON_ARRAY()
 	//         )                    AS ratelimits
-	//  FROM `keys` k
-	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+	//  FROM (
+	//      SELECT k.pk
+	//      FROM `keys` k
+	//               STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+	//      WHERE k.key_auth_id = ?
+	//        AND k.id >= ?
+	//        AND (? IS NULL OR k.identity_id = (
+	//            SELECT identity_filter.id FROM identities identity_filter
+	//            WHERE identity_filter.workspace_id = ?
+	//              AND identity_filter.external_id = ?
+	//              AND identity_filter.deleted = false
+	//        ))
+	//        AND k.deleted_at_m IS NULL
+	//        AND ka.deleted_at_m IS NULL
+	//      ORDER BY k.id ASC
+	//      LIMIT ?
+	//  ) AS page
+	//           JOIN `keys` k ON k.pk = page.pk
 	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 	//           LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
-	//  WHERE k.key_auth_id = ?
-	//    AND k.id >= ?
-	//    AND (? IS NULL OR k.identity_id = ?)
-	//    AND k.deleted_at_m IS NULL
-	//    AND ka.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
-	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListLiveKeysByKeySpaceIDs
 	//
