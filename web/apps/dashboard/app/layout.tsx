@@ -1,7 +1,5 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { getAuth, toAuthenticatedUser } from "@/lib/auth/get-auth";
-import { FlagsProvider } from "@/lib/flags/provider";
-import { resolveAll } from "@/lib/flags/resolve";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
 import { GeistMono } from "geist/font/mono";
@@ -80,7 +78,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [flags, auth] = await Promise.all([resolveAll(), getAuth()]);
+  const auth = await getAuth();
   return (
     <html
       lang="en"
@@ -88,29 +86,27 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full antialiased">
-        <FlagsProvider value={flags}>
-          <ReactQueryProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <AuthProvider>
-                <WorkspaceProvider initialUser={toAuthenticatedUser(auth)}>
-                  <Toaster />
-                  {children}
-                  <CommandMenu />
-                  <Suspense fallback={null}>
-                    <Feedback />
-                  </Suspense>
-                  <Analytics />
-                  {process.env.NODE_ENV === "development" && <VercelToolbar />}
-                </WorkspaceProvider>
-              </AuthProvider>
-            </ThemeProvider>
-          </ReactQueryProvider>
-        </FlagsProvider>
+        <ReactQueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AuthProvider>
+              <WorkspaceProvider initialUser={toAuthenticatedUser(auth)}>
+                <Toaster />
+                {children}
+                <CommandMenu />
+                <Suspense fallback={null}>
+                  <Feedback />
+                </Suspense>
+                <Analytics />
+                {process.env.NODE_ENV === "development" && <VercelToolbar />}
+              </WorkspaceProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );

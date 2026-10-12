@@ -1,12 +1,15 @@
+export type WorkspaceFlag = {
+  readonly slug: string;
+  readonly defaultValue: boolean;
+};
+
 export function useFlag({
   workspace,
-  name,
-  default: defaultValue,
+  flag,
 }: {
   workspace: { flags: Partial<Record<string, boolean>> } | null | undefined;
-  name: string;
-  default: boolean;
+  flag: WorkspaceFlag;
 }): boolean {
-  const value = workspace?.flags[name];
-  return typeof value === "boolean" ? value : defaultValue;
+  const value = workspace?.flags[flag.slug];
+  return typeof value === "boolean" ? value : flag.defaultValue;
 }

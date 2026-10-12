@@ -3,7 +3,10 @@ import { useFlag } from "./workspace-flags";
 
 it("preserves an explicit false instead of using a true fallback", () => {
   expect(
-    useFlag({ workspace: { flags: { preview: false } }, name: "preview", default: true }),
+    useFlag({
+      workspace: { flags: { preview: false } },
+      flag: { slug: "preview", defaultValue: true },
+    }),
   ).toBe(false);
 });
 
@@ -13,9 +16,16 @@ it.each([
   { workspace: null, name: "preview", default: false, expected: false },
   { workspace: undefined, name: "preview", default: true, expected: true },
 ])("resolves $name with workspace $workspace and default $default", ({ expected, ...options }) => {
-  expect(useFlag(options)).toBe(expected);
+  expect(
+    useFlag({
+      workspace: options.workspace,
+      flag: { slug: options.name, defaultValue: options.default },
+    }),
+  ).toBe(expected);
 });
 
 it("uses the fallback for an absent slug that matches an object prototype property", () => {
-  expect(useFlag({ workspace: { flags: {} }, name: "constructor", default: false })).toBe(false);
+  expect(
+    useFlag({ workspace: { flags: {} }, flag: { slug: "constructor", defaultValue: false } }),
+  ).toBe(false);
 });

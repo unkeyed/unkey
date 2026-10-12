@@ -1,5 +1,8 @@
+import { getAuth } from "@/lib/auth/get-auth";
+import { loadWorkspace } from "@/lib/db/load-workspace";
 import { portalManagement } from "@/lib/flags";
 import { routes } from "@/lib/navigation/routes";
+import { useFlag as resolveFlag } from "@/lib/workspace-flags";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { PortalNav } from "./components/portal-nav";
@@ -14,7 +17,9 @@ export default async function ApiPortalLayout({
   children: ReactNode;
   params: Promise<{ workspaceSlug: string; apiId: string; projectId?: string }>;
 }) {
-  if (!(await portalManagement())) {
+  const { orgId, userId } = await getAuth();
+  const workspace = orgId && userId ? await loadWorkspace(orgId, [portalManagement]) : undefined;
+  if (!resolveFlag({ workspace, flag: portalManagement })) {
     const { workspaceSlug, apiId, projectId } = await params;
     redirect(routes.apis.detail({ workspaceSlug, apiId, projectId }));
   }
