@@ -24,7 +24,6 @@ export const ratelimitNamespaces = mysqlTable(
         table.name,
       ),
       projectIdIdx: index("ratelimit_namespaces_project_id_idx").on(table.projectId),
-      workspaceIdIdx: index("ratelimit_namespaces_workspace_id_idx").on(table.workspaceId),
     };
   },
 );

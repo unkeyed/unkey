@@ -43,8 +43,7 @@ type ListRatelimitNamespacesRow struct {
 	UpdatedAtM sql.NullInt64 `db:"updated_at_m"`
 }
 
-// Newest first. The workspace_id index is stored as (workspace_id, pk), so it
-// serves both the range and the order. The cursor resumes at its row's pk, inclusive
+// Newest first. The cursor resumes at its row's pk, inclusive
 //
 //	SELECT ns.id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m
 //	FROM ratelimit_namespaces ns
