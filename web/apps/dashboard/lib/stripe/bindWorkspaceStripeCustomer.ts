@@ -20,7 +20,7 @@ export async function bindWorkspaceStripeCustomer(input: {
       actor: { type: "user", id: input.userId },
       event: "workspace.update",
       description: "Updated Stripe customer ID",
-      resources: [{ type: "workspace", id: input.workspaceId }],
+      targets: [{ type: "workspace", id: input.workspaceId }],
       context: { location: "", userAgent: undefined },
     });
   });
