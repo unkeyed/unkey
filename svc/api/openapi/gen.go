@@ -7102,6 +7102,31 @@ type V2RootKeysUpdateKeyResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2WorkspaceGetFlagsFlag defines model for V2WorkspaceGetFlagsFlag.
+type V2WorkspaceGetFlagsFlag struct {
+	// AllowDisable Whether enrollment policy permits disabling this flag. This does not grant the caller permission to change it.
+	AllowDisable bool `json:"allowDisable"`
+
+	// AllowEnable Whether enrollment policy permits enabling this flag. This does not grant the caller permission to change it.
+	AllowEnable bool `json:"allowEnable"`
+
+	// Description Public description of the flag.
+	Description string `json:"description"`
+
+	// Value Effective value. A workspace override takes precedence over the database default, including an explicit false override.
+	Value bool `json:"value"`
+}
+
+// V2WorkspaceGetFlagsResponseBody defines model for V2WorkspaceGetFlagsResponseBody.
+type V2WorkspaceGetFlagsResponseBody struct {
+	// Data Every database-defined flag, keyed by its lowercase snake_case slug.
+	// Returns an empty object when no flag definitions exist.
+	Data map[string]V2WorkspaceGetFlagsFlag `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2WorkspaceGetLimitsLimit A workspace limit and, when the limit has one, the current value against it.
 type V2WorkspaceGetLimitsLimit struct {
 	// Current The current value against `limit`. Omitted when the limit has no current
@@ -7377,6 +7402,41 @@ type V2WorkspaceGetUsageTotals struct {
 
 	// Gateway Unkey gateway usage in the period.
 	Gateway V2WorkspaceGetUsageGateway `json:"gateway"`
+}
+
+// V2WorkspaceUpdateFlagRequestBody defines model for V2WorkspaceUpdateFlagRequestBody.
+type V2WorkspaceUpdateFlagRequestBody struct {
+	// Slug Lowercase snake_case slug of an existing flag definition.
+	Slug string `json:"slug"`
+
+	// Value Workspace override to save. False is an explicit override, not a request to remove it.
+	Value bool `json:"value"`
+}
+
+// V2WorkspaceUpdateFlagResponseBody defines model for V2WorkspaceUpdateFlagResponseBody.
+type V2WorkspaceUpdateFlagResponseBody struct {
+	Data V2WorkspaceUpdateFlagResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2WorkspaceUpdateFlagResponseData defines model for V2WorkspaceUpdateFlagResponseData.
+type V2WorkspaceUpdateFlagResponseData struct {
+	// AllowDisable Whether enrollment policy permits disabling this flag. This does not grant the caller permission to change it.
+	AllowDisable bool `json:"allowDisable"`
+
+	// AllowEnable Whether enrollment policy permits enabling this flag. This does not grant the caller permission to change it.
+	AllowEnable bool `json:"allowEnable"`
+
+	// Description Public description of the flag.
+	Description string `json:"description"`
+
+	// Slug Slug of the updated flag.
+	Slug string `json:"slug"`
+
+	// Value Saved workspace override.
+	Value bool `json:"value"`
 }
 
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
@@ -7787,6 +7847,9 @@ type RootKeysUpdateKeyJSONRequestBody = V2RootKeysUpdateKeyRequestBody
 
 // WorkspaceGetUsageJSONRequestBody defines body for WorkspaceGetUsage for application/json ContentType.
 type WorkspaceGetUsageJSONRequestBody = V2WorkspaceGetUsageRequestBody
+
+// WorkspaceUpdateFlagJSONRequestBody defines body for WorkspaceUpdateFlag for application/json ContentType.
+type WorkspaceUpdateFlagJSONRequestBody = V2WorkspaceUpdateFlagRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody

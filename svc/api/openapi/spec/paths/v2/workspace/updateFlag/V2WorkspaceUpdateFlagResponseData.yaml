@@ -1,0 +1,24 @@
+type: object
+required:
+  - slug
+  - value
+  - description
+  - allowEnable
+  - allowDisable
+properties:
+  slug:
+    type: string
+    description: Slug of the updated flag.
+  value:
+    type: boolean
+    description: Saved workspace override.
+  description:
+    type: string
+    description: Public description of the flag.
+  allowEnable:
+    type: boolean
+    description: Whether enrollment policy permits enabling this flag. This does not grant the caller permission to change it.
+  allowDisable:
+    type: boolean
+    description: Whether enrollment policy permits disabling this flag. This does not grant the caller permission to change it.
+additionalProperties: false

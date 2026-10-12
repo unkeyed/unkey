@@ -1,0 +1,79 @@
+post:
+  tags:
+    - workspace
+  summary: Get workspace flags
+  description: |
+    Get every flag's effective value, public description, and enrollment policy
+    for the authenticated workspace.
+
+    The request takes no parameters. Workspace overrides take precedence over
+    database defaults, including explicit false overrides. The response includes
+    all database-defined flags, not only flags in the dashboard preview catalog.
+    This endpoint does not register flags or change their values.
+
+    Normal reads use a workspace-scoped cache: values are fresh for 10 seconds
+    and may be served for up to 1 minute while refreshing in the background.
+    Reads after an update may return a cached value until the cache refreshes.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `unkey:v1:<workspace_id>:flags#read`
+  operationId: workspace.getFlags
+  x-speakeasy-name-override: getFlags
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  responses:
+    "200":
+      description: Workspace flags keyed by slug, or an empty object when no definitions exist.
+      content:
+        application/json:
+          schema:
+            $ref: "./V2WorkspaceGetFlagsResponseBody.yaml"
+          examples:
+            flags:
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  projects_nav:
+                    value: true
+                    description: Preview project navigation.
+                    allowEnable: true
+                    allowDisable: false
+            empty:
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request, including a missing Authorization header.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Requires `unkey:v1:<workspace_id>:flags#read`.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

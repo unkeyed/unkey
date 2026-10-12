@@ -290,6 +290,10 @@ paths:
     $ref: "./spec/paths/v2/github/installApp/index.yaml"
 
   # Workspace Endpoints
+  /v2/workspace.getFlags:
+    $ref: "./spec/paths/v2/workspace/getFlags/index.yaml"
+  /v2/workspace.updateFlag:
+    $ref: "./spec/paths/v2/workspace/updateFlag/index.yaml"
   /v2/workspace.getLimits:
     $ref: "./spec/paths/v2/workspace/getLimits/index.yaml"
   /v2/workspace.getUsage:

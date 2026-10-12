@@ -9,8 +9,8 @@ import (
 )
 
 // bulkUpsertFlag is the base query for bulk insert
-const bulkUpsertFlag = `INSERT INTO flags (slug, description, default_value, visible, allow_enable, allow_disable) VALUES %s ON DUPLICATE KEY UPDATE description = VALUES(description),
-    default_value = VALUES(default_value), visible = VALUES(visible),
+const bulkUpsertFlag = `INSERT INTO flags (slug, description, default_value, allow_enable, allow_disable) VALUES %s ON DUPLICATE KEY UPDATE description = VALUES(description),
+    default_value = VALUES(default_value),
     allow_enable = VALUES(allow_enable), allow_disable = VALUES(allow_disable)`
 
 // UpsertFlag performs bulk insert in a single query
@@ -23,7 +23,7 @@ func (q *BulkQueries) UpsertFlag(ctx context.Context, db DBTX, args []UpsertFlag
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertFlag, strings.Join(valueClauses, ", "))
@@ -34,7 +34,6 @@ func (q *BulkQueries) UpsertFlag(ctx context.Context, db DBTX, args []UpsertFlag
 		allArgs = append(allArgs, arg.Slug)
 		allArgs = append(allArgs, arg.Description)
 		allArgs = append(allArgs, arg.DefaultValue)
-		allArgs = append(allArgs, arg.Visible)
 		allArgs = append(allArgs, arg.AllowEnable)
 		allArgs = append(allArgs, arg.AllowDisable)
 	}

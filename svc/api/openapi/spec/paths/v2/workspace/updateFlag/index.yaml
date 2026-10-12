@@ -1,0 +1,75 @@
+post:
+  tags:
+    - workspace
+  summary: Update a workspace flag
+  description: |
+    Save a flag override for the authenticated workspace and return the saved
+    value, public description, and enrollment policy.
+
+    The flag definition must already exist. Enabling requires `allowEnable`;
+    disabling requires `allowDisable`. The policy applies to every write,
+    including retries of the same value. This endpoint does not register flags
+    or restrict updates to the dashboard preview catalog.
+
+    The override and workspace audit event commit in one transaction. The
+    response reflects that transaction. Subsequent `workspace.getFlags` reads
+    may return a cached value until the cache refreshes.
+
+    **Required Permissions**
+
+    Your root key must have `unkey:v1:<workspace_id>:flags#write`.
+    All supported dashboard roles have this permission.
+  operationId: workspace.updateFlag
+  x-speakeasy-name-override: updateFlag
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "./V2WorkspaceUpdateFlagRequestBody.yaml"
+  responses:
+    "200":
+      description: Saved flag override and its definition metadata.
+      content:
+        application/json:
+          schema:
+            $ref: "./V2WorkspaceUpdateFlagResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Missing write permission or enrollment direction blocked by policy.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Flag definition not found.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

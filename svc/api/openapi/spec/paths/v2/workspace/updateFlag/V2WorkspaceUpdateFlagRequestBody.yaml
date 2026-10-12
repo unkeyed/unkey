@@ -1,0 +1,15 @@
+type: object
+required:
+  - slug
+  - value
+properties:
+  slug:
+    type: string
+    minLength: 1
+    maxLength: 128
+    pattern: "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+    description: Lowercase snake_case slug of an existing flag definition.
+  value:
+    type: boolean
+    description: Workspace override to save. False is an explicit override, not a request to remove it.
+additionalProperties: false

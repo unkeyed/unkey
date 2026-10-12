@@ -1,0 +1,20 @@
+type: object
+required:
+  - value
+  - description
+  - allowEnable
+  - allowDisable
+properties:
+  value:
+    type: boolean
+    description: Effective value. A workspace override takes precedence over the database default, including an explicit false override.
+  description:
+    type: string
+    description: Public description of the flag.
+  allowEnable:
+    type: boolean
+    description: Whether enrollment policy permits enabling this flag. This does not grant the caller permission to change it.
+  allowDisable:
+    type: boolean
+    description: Whether enrollment policy permits disabling this flag. This does not grant the caller permission to change it.
+additionalProperties: false
