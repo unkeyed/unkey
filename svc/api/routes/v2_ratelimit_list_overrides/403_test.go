@@ -51,7 +51,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	h.Register(route)
 
 	// Create a key for a different workspace
-	differentWorkspaceID := "ws_different"
+	differentWorkspaceID := uid.New(uid.WorkspacePrefix)
 	differentWorkspaceKey := h.CreateRootKey(differentWorkspaceID)
 
 	headers := http.Header{

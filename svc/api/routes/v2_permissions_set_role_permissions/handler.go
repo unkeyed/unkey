@@ -79,7 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	result := make([]rolePermission, 0, len(requestedSlugs))
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		role, lockErr := db.Query.LockRoleByIDOrNameAndWorkspaceID(ctx, tx, db.LockRoleByIDOrNameAndWorkspaceIDParams{
+		role, lockErr := db.Query.LockRoleByIdOrName(ctx, tx, db.LockRoleByIdOrNameParams{
 			Search: *roleRef, WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
 		if lockErr != nil {

@@ -2,12 +2,14 @@ package portal_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
@@ -123,8 +125,8 @@ func TestResolveMappingProjectRejectsForeignAndAbsentResources(t *testing.T) {
 	testCases := map[string]portal.Mapping{
 		"keyspace owned by another workspace": {Type: portal.MappingTypeKeyspace, ID: otherApi.KeyAuthID.String},
 		"app owned by another workspace":      {Type: portal.MappingTypeApp, ID: otherApp.ID},
-		"keyspace that exists nowhere":        {Type: portal.MappingTypeKeyspace, ID: "ks_doesnotexist"},
-		"app that exists nowhere":             {Type: portal.MappingTypeApp, ID: "app_doesnotexist"},
+		"keyspace that exists nowhere":        {Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)},
+		"app that exists nowhere":             {Type: portal.MappingTypeApp, ID: uid.New(uid.AppPrefix)},
 	}
 
 	for name, mapping := range testCases {
@@ -154,10 +156,10 @@ func TestResolveMappingProjectRejectsDeletedKeyspace(t *testing.T) {
 		DefaultBytes:  nil,
 	})
 
-	_, err := h.DB.RW().ExecContext(ctx,
-		"UPDATE key_auth SET deleted_at_m = ? WHERE id = ?",
-		time.Now().UnixMilli(), api.KeyAuthID.String,
-	)
+	err := db.Query.SoftDeleteKeySpace(ctx, h.DB.RW(), db.SoftDeleteKeySpaceParams{
+		Now:        sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		KeySpaceID: api.KeyAuthID.String,
+	})
 	require.NoError(t, err)
 
 	got, err := portal.ResolveMappingProject(ctx, h.DB.RO(), workspace.ID, portal.Mapping{

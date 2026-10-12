@@ -44,7 +44,7 @@ func bufferRequest(t *testing.T, h *testutil.Harness, row schema.FrontlineReques
 	if row.EnvironmentID == "" {
 		row.EnvironmentID = uid.New("env")
 	}
-	row.FrontlineID = "frontline_internal"
+	row.FrontlineID = uid.New(uid.FrontlinePrefix)
 	row.InstanceAddress = "10.1.2.3"
 	row.Platform = "k8s"
 

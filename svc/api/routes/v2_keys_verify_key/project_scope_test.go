@@ -2,11 +2,14 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -25,21 +28,43 @@ func TestVerifyKeyUsesKeyspaceProjectForURN(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	keyspaceProjectID := api.ProjectID
-	key := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: workspace.ID, KeySpaceID: api.KeyAuthID.String})
 	apiProject := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspace.ID,
 		Name:        "API project",
 		Slug:        uid.New("project"),
 	})
-	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE apis SET project_id = ? WHERE id = ?", apiProject.ID, api.ID)
+	keyspaceProject := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Keyspace project",
+		Slug:        uid.New("project"),
+	})
+	keyspaceProjectID := keyspaceProject.ID
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	err := db.Query.InsertKeySpace(context.Background(), h.DB.RW(), db.InsertKeySpaceParams{
+		ID:          keySpaceID,
+		WorkspaceID: workspace.ID,
+		ProjectID:   keyspaceProjectID,
+		CreatedAtM:  time.Now().UnixMilli(),
+	})
 	require.NoError(t, err)
+	apiID := uid.New(uid.APIPrefix)
+	err = db.Query.InsertApi(context.Background(), h.DB.RW(), db.InsertApiParams{
+		ID:          apiID,
+		Name:        "test-api",
+		WorkspaceID: workspace.ID,
+		ProjectID:   apiProject.ID,
+		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
+		CreatedAtM:  time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+	key := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: workspace.ID, KeySpaceID: keySpaceID})
 
 	call := func(t *testing.T, projectID string) openapi.V2KeysVerifyKeyResponseData {
 		t.Helper()
-		permission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#verify", workspace.ID, projectID, api.KeyAuthID.String, key.KeyID)
+		permission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#verify", workspace.ID, projectID, keySpaceID, key.KeyID)
 		rootKey := h.CreateRootKey(workspace.ID, permission)
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 			"Content-Type":  {"application/json"},
