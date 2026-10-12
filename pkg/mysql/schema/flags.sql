@@ -4,8 +4,8 @@ CREATE TABLE `flags` (
 	`description` varchar(1024) NOT NULL,
 	`default_value` boolean NOT NULL,
 	`visible` boolean NOT NULL DEFAULT true,
-	`allow_opt_in` boolean NOT NULL DEFAULT false,
-	`allow_opt_out` boolean NOT NULL DEFAULT false,
+	`allow_enable` boolean NOT NULL DEFAULT false,
+	`allow_disable` boolean NOT NULL DEFAULT false,
 	CONSTRAINT `flags_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `flags_slug_unique` UNIQUE(`slug`)
 );

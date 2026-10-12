@@ -16,10 +16,16 @@ export const flags = mysqlTable("flags", {
    * should show all flags regardless. Visibility does not affect evaluation.
    */
   visible: boolean("visible").notNull().default(true),
-  /** Whether customers may enable this feature for their workspace. Write paths must enforce this policy. */
-  allowOptIn: boolean("allow_opt_in").notNull().default(false),
-  /** Whether customers may disable this feature for their workspace. Write paths must enforce this policy. */
-  allowOptOut: boolean("allow_opt_out").notNull().default(false),
+  /**
+   * Whether customers may set their workspace override to true. Customer write
+   * paths must enforce this policy; internal administration is not restricted.
+   */
+  allowEnable: boolean("allow_enable").notNull().default(false),
+  /**
+   * Whether customers may set their workspace override to false. Customer write
+   * paths must enforce this policy; internal administration is not restricted.
+   */
+  allowDisable: boolean("allow_disable").notNull().default(false),
 });
 
 export const flagOverrides = mysqlTable(

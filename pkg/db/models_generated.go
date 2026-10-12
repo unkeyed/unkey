@@ -861,8 +861,8 @@ type Flag struct {
 	Description  string `db:"description"`
 	DefaultValue bool   `db:"default_value"`
 	Visible      bool   `db:"visible"`
-	AllowOptIn   bool   `db:"allow_opt_in"`
-	AllowOptOut  bool   `db:"allow_opt_out"`
+	AllowEnable  bool   `db:"allow_enable"`
+	AllowDisable bool   `db:"allow_disable"`
 }
 
 type FrontlineRoute struct {
