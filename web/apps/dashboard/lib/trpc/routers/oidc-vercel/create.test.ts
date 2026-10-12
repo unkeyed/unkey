@@ -4,7 +4,6 @@ import { createOIDCVercelIntegration } from "./create";
 import type { OIDCVercelInput } from "./validation";
 
 const insertedRows = vi.hoisted(() => vi.fn());
-const upsertPermissions = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db", async () => {
   const { schema } = await import("@unkey/db");
@@ -23,15 +22,6 @@ vi.mock("@/lib/db", async () => {
     schema,
   };
 });
-
-vi.mock("@/lib/env", () => ({
-  env: () => ({ UNKEY_WORKSPACE_ID: "ws_unkey" }),
-}));
-
-vi.mock("../rbac", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../rbac")>()),
-  upsertPermissions,
-}));
 
 vi.mock("../../trpc", async () => {
   const { initTRPC } = await import("@trpc/server");
@@ -71,14 +61,6 @@ function caller() {
 
 beforeEach(() => {
   insertedRows.mockClear();
-  upsertPermissions.mockReset();
-  upsertPermissions.mockResolvedValue({
-    permissions: [
-      { id: "perm_read", slug: "api.*.read_api" },
-      { id: "perm_create", slug: "api.*.create_key" },
-    ],
-    auditLogs: [],
-  });
 });
 
 it("rejects URN grants for another workspace", async () => {
@@ -95,19 +77,23 @@ it("creates the integration with root-key permission slugs", async () => {
   const result = await caller().create(input);
 
   expect(result.id).toMatch(/^vco_/);
-  expect(upsertPermissions).toHaveBeenCalledWith(
-    expect.anything(),
-    expect.objectContaining({ workspace: { id: "ws_test" } }),
-    "ws_unkey",
-    input.permissions,
-  );
   expect(insertedRows).toHaveBeenCalledTimes(2);
   expect(insertedRows.mock.calls[0]?.[1]).toMatchObject({
     id: result.id,
     audience: result.audience,
   });
-  expect(insertedRows.mock.calls[1]?.[1]).toEqual([
-    { oidcVercelId: result.id, permissionId: "perm_read", workspaceId: "ws_test" },
-    { oidcVercelId: result.id, permissionId: "perm_create", workspaceId: "ws_test" },
+  expect(insertedRows.mock.calls[1]?.[1]).toMatchObject([
+    {
+      principalId: result.id,
+      principalType: "oidc",
+      slug: "api.*.read_api",
+      workspaceId: "ws_test",
+    },
+    {
+      principalId: result.id,
+      principalType: "oidc",
+      slug: "api.*.create_key",
+      workspaceId: "ws_test",
+    },
   ]);
 });

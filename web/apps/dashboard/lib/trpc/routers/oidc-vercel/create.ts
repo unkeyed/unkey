@@ -1,9 +1,8 @@
 import { db, schema } from "@/lib/db";
-import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { workspaceProcedure } from "../../trpc";
-import { assertPermissionsBelongToWorkspace, upsertPermissions } from "../rbac";
+import { assertPermissionsBelongToWorkspace } from "../rbac";
 import { oidcVercelInputSchema } from "./validation";
 
 export const createOIDCVercelIntegration = workspaceProcedure
@@ -15,12 +14,6 @@ export const createOIDCVercelIntegration = workspaceProcedure
 
     try {
       await db.transaction(async (tx) => {
-        const permissions =
-          input.permissions.length > 0
-            ? (await upsertPermissions(tx, ctx, env().UNKEY_WORKSPACE_ID, input.permissions))
-                .permissions
-            : [];
-
         await tx.insert(schema.oidcVercel).values({
           id,
           workspaceId: ctx.workspace.id,
@@ -32,12 +25,15 @@ export const createOIDCVercelIntegration = workspaceProcedure
           enabled: true,
         });
 
-        if (permissions.length > 0) {
-          await tx.insert(schema.oidcVercelPermissions).values(
-            permissions.map((permission) => ({
-              oidcVercelId: id,
-              permissionId: permission.id,
+        if (input.permissions.length > 0) {
+          await tx.insert(schema.unkeyPrincipalPermissions).values(
+            input.permissions.map((slug) => ({
+              id: newId("permission"),
+              principalType: "oidc" as const,
+              principalId: id,
               workspaceId: ctx.workspace.id,
+              slug,
+              createdAt: Date.now(),
             })),
           );
         }

@@ -1,4 +1,4 @@
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { workspaceProcedure } from "../../trpc";
 
@@ -15,27 +15,29 @@ export const listOIDCVercelIntegrations = workspaceProcedure.query(async ({ ctx 
         vercelEnvironment: true,
         enabled: true,
       },
-      with: {
-        permissions: {
-          columns: { permissionId: true },
-          with: {
-            permission: {
-              columns: {
-                id: true,
-                name: true,
-                slug: true,
-                description: true,
-              },
-            },
-          },
-        },
-      },
       orderBy: (table, { desc }) => [desc(table.createdAt)],
     });
 
-    return integrations.map(({ permissions, ...integration }) => ({
+    const permissions =
+      integrations.length > 0
+        ? await db.query.unkeyPrincipalPermissions.findMany({
+            where: and(
+              eq(schema.unkeyPrincipalPermissions.workspaceId, ctx.workspace.id),
+              eq(schema.unkeyPrincipalPermissions.principalType, "oidc"),
+              inArray(
+                schema.unkeyPrincipalPermissions.principalId,
+                integrations.map(({ id }) => id),
+              ),
+            ),
+            columns: { principalId: true, slug: true },
+          })
+        : [];
+
+    return integrations.map((integration) => ({
       ...integration,
-      permissions: permissions.map(({ permission }) => permission),
+      permissions: permissions
+        .filter(({ principalId }) => principalId === integration.id)
+        .map(({ slug }) => ({ slug })),
     }));
   } catch (error) {
     console.error("Failed to list Vercel OIDC integrations", error);

@@ -4,7 +4,6 @@ import { updateOIDCVercelIntegration } from "./update";
 
 const insertedRows = vi.hoisted(() => vi.fn());
 const deletedTables = vi.hoisted(() => vi.fn());
-const upsertPermissions = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db", async () => {
   const { and, eq, schema } = await import("@unkey/db");
@@ -38,15 +37,6 @@ vi.mock("@/lib/db", async () => {
   };
 });
 
-vi.mock("@/lib/env", () => ({
-  env: () => ({ UNKEY_WORKSPACE_ID: "ws_unkey" }),
-}));
-
-vi.mock("../rbac", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../rbac")>()),
-  upsertPermissions,
-}));
-
 vi.mock("../../trpc", async () => {
   const { initTRPC } = await import("@trpc/server");
   return {
@@ -78,14 +68,6 @@ function caller() {
 beforeEach(() => {
   insertedRows.mockClear();
   deletedTables.mockClear();
-  upsertPermissions.mockReset();
-  upsertPermissions.mockResolvedValue({
-    permissions: [
-      { id: "perm_read", slug: "api.*.read_api" },
-      { id: "perm_create", slug: "api.*.create_key" },
-    ],
-    auditLogs: [],
-  });
 });
 
 it("replaces integration permissions from root-key permission slugs", async () => {
@@ -99,15 +81,19 @@ it("replaces integration permissions from root-key permission slugs", async () =
     permissions: ["api.*.read_api", "api.*.create_key"],
   });
 
-  expect(upsertPermissions).toHaveBeenCalledWith(
-    expect.anything(),
-    expect.objectContaining({ workspace: { id: "ws_test" } }),
-    "ws_unkey",
-    ["api.*.read_api", "api.*.create_key"],
-  );
   expect(deletedTables).toHaveBeenCalledTimes(1);
-  expect(insertedRows).toHaveBeenCalledWith(expect.anything(), [
-    { oidcVercelId: "vco_test", permissionId: "perm_read", workspaceId: "ws_test" },
-    { oidcVercelId: "vco_test", permissionId: "perm_create", workspaceId: "ws_test" },
+  expect(insertedRows.mock.calls[0]?.[1]).toMatchObject([
+    {
+      principalId: "vco_test",
+      principalType: "oidc",
+      slug: "api.*.read_api",
+      workspaceId: "ws_test",
+    },
+    {
+      principalId: "vco_test",
+      principalType: "oidc",
+      slug: "api.*.create_key",
+      workspaceId: "ws_test",
+    },
   ]);
 });

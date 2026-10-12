@@ -18,11 +18,12 @@ export const deleteOIDCVercelIntegration = workspaceProcedure
         }
 
         await tx
-          .delete(schema.oidcVercelPermissions)
+          .delete(schema.unkeyPrincipalPermissions)
           .where(
             and(
-              eq(schema.oidcVercelPermissions.oidcVercelId, input.id),
-              eq(schema.oidcVercelPermissions.workspaceId, ctx.workspace.id),
+              eq(schema.unkeyPrincipalPermissions.principalId, input.id),
+              eq(schema.unkeyPrincipalPermissions.principalType, "oidc"),
+              eq(schema.unkeyPrincipalPermissions.workspaceId, ctx.workspace.id),
             ),
           );
         await tx

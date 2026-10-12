@@ -1062,9 +1062,8 @@ type Querier interface {
 	//    AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
 	// Loads the integration trust policy and permission grants selected by the
-	// token's exact, case-sensitive audience. Permission IDs are globally unique,
-	// so grants can reference the shared Unkey permission rows used by root keys.
-	// The left joins preserve an integration with no grants as one row with a null slug.
+	// token's exact, case-sensitive audience. Grants are scoped to its workspace
+	// and OIDC principal. The left join preserves integrations without grants.
 	//
 	//  SELECT ov.id,
 	//         ov.workspace_id,
@@ -1080,11 +1079,10 @@ type Querier interface {
 	//  JOIN workspaces w
 	//    ON w.id = ov.workspace_id
 	//    AND w.deleted_at_m IS NULL
-	//  LEFT JOIN oidc_vercel_permissions ovp
-	//    ON ovp.oidc_vercel_id = ov.id
-	//    AND ovp.workspace_id = ov.workspace_id
-	//  LEFT JOIN permissions p
-	//    ON p.id = ovp.permission_id
+	//  LEFT JOIN unkey_principal_permissions p
+	//    ON p.principal_id = ov.id
+	//    AND p.principal_type = 'oidc'
+	//    AND p.workspace_id = ov.workspace_id
 	//  WHERE ov.audience = ?
 	//  ORDER BY p.slug
 	FindOIDCVercelIntegrationByAudience(ctx context.Context, db DBTX, audience string) ([]FindOIDCVercelIntegrationByAudienceRow, error)
@@ -2062,6 +2060,18 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertLogdrain(ctx context.Context, db DBTX, arg InsertLogdrainParams) error
+	// InsertOIDCVercelIntegration binds a customer workspace to an exact audience
+	// and Vercel trust policy. The audience and workspace trust tuple must be unique.
+	//
+	//  INSERT INTO oidc_vercel (
+	//      id, workspace_id, name, audience, vercel_team_slug,
+	//      vercel_project_name, vercel_environment, enabled, created_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?,
+	//      ?, ?,
+	//      ?, ?, ?
+	//  )
+	InsertOIDCVercelIntegration(ctx context.Context, db DBTX, arg InsertOIDCVercelIntegrationParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (

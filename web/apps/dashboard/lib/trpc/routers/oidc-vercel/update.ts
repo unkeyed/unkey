@@ -1,9 +1,9 @@
 import { and, db, eq, schema } from "@/lib/db";
-import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
+import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
-import { assertPermissionsBelongToWorkspace, upsertPermissions } from "../rbac";
+import { assertPermissionsBelongToWorkspace } from "../rbac";
 import { oidcVercelInputSchema } from "./validation";
 
 export const updateOIDCVercelIntegration = workspaceProcedure
@@ -26,12 +26,6 @@ export const updateOIDCVercelIntegration = workspaceProcedure
           throw new TRPCError({ code: "NOT_FOUND", message: "Integration not found." });
         }
 
-        const permissions =
-          input.permissions.length > 0
-            ? (await upsertPermissions(tx, ctx, env().UNKEY_WORKSPACE_ID, input.permissions))
-                .permissions
-            : [];
-
         await tx
           .update(schema.oidcVercel)
           .set({
@@ -49,19 +43,23 @@ export const updateOIDCVercelIntegration = workspaceProcedure
           );
 
         await tx
-          .delete(schema.oidcVercelPermissions)
+          .delete(schema.unkeyPrincipalPermissions)
           .where(
             and(
-              eq(schema.oidcVercelPermissions.oidcVercelId, input.id),
-              eq(schema.oidcVercelPermissions.workspaceId, ctx.workspace.id),
+              eq(schema.unkeyPrincipalPermissions.principalId, input.id),
+              eq(schema.unkeyPrincipalPermissions.principalType, "oidc"),
+              eq(schema.unkeyPrincipalPermissions.workspaceId, ctx.workspace.id),
             ),
           );
-        if (permissions.length > 0) {
-          await tx.insert(schema.oidcVercelPermissions).values(
-            permissions.map((permission) => ({
-              oidcVercelId: input.id,
-              permissionId: permission.id,
+        if (input.permissions.length > 0) {
+          await tx.insert(schema.unkeyPrincipalPermissions).values(
+            input.permissions.map((slug) => ({
+              id: newId("permission"),
+              principalId: input.id,
+              principalType: "oidc" as const,
               workspaceId: ctx.workspace.id,
+              slug,
+              createdAt: Date.now(),
             })),
           );
         }

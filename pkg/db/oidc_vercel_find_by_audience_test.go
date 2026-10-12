@@ -5,15 +5,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// TestFindOIDCVercelIntegrationByAudience_LoadsSharedPermissions guarantees that
-// Vercel OIDC integrations can use the same global permission rows as root keys.
-func TestFindOIDCVercelIntegrationByAudience_LoadsSharedPermissions(t *testing.T) {
+// TestFindOIDCVercelIntegrationByAudience_IsolatesPrincipalPermissions guarantees
+// that grants from another workspace, principal type, or principal are not loaded.
+func TestFindOIDCVercelIntegrationByAudience_IsolatesPrincipalPermissions(t *testing.T) {
 	mysqlConfig := containers.MySQL(t)
 	database, err := New(Config{
 		PrimaryDSN:  mysqlConfig.DSN,
@@ -25,9 +24,7 @@ func TestFindOIDCVercelIntegrationByAudience_LoadsSharedPermissions(t *testing.T
 
 	ctx := t.Context()
 	workspaceID := uid.New(uid.WorkspacePrefix)
-	permissionWorkspaceID := uid.New(uid.WorkspacePrefix)
 	integrationID := uid.New("vco")
-	permissionID := uid.New(uid.PermissionPrefix)
 	audience := "https://api.unkey.com/oidc/vercel/" + integrationID
 	createdAtM := time.Now().UnixMilli()
 
@@ -41,46 +38,45 @@ func TestFindOIDCVercelIntegrationByAudience_LoadsSharedPermissions(t *testing.T
 	})
 	require.NoError(t, err)
 
-	err = Query.InsertPermission(ctx, database.RW(), InsertPermissionParams{
-		PermissionID: permissionID,
-		WorkspaceID:  permissionWorkspaceID,
-		ProjectID:    uid.New(uid.ProjectPrefix),
-		Name:         "api.*.read_api",
-		Slug:         "api.*.read_api",
-		Description:  dbtype.NullString{},
-		CreatedAtM:   createdAtM,
+	err = Query.InsertOIDCVercelIntegration(ctx, database.RW(), InsertOIDCVercelIntegrationParams{
+		ID:                integrationID,
+		WorkspaceID:       workspaceID,
+		Name:              "Production API",
+		Audience:          audience,
+		VercelTeamSlug:    "acme",
+		VercelProjectName: "storefront",
+		VercelEnvironment: "production",
+		Enabled:           true,
+		CreatedAt:         createdAtM,
 	})
 	require.NoError(t, err)
 
-	_, err = database.RW().ExecContext(
-		ctx,
-		`INSERT INTO oidc_vercel
-			(id, workspace_id, name, audience, vercel_team_slug, vercel_project_name, vercel_environment, enabled, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, true, ?)`,
-		integrationID,
-		workspaceID,
-		"Production API",
-		audience,
-		"acme",
-		"storefront",
-		"production",
-		createdAtM,
-	)
-	require.NoError(t, err)
-
-	_, err = database.RW().ExecContext(
-		ctx,
-		`INSERT INTO oidc_vercel_permissions
-			(oidc_vercel_id, permission_id, workspace_id, created_at)
-		 VALUES (?, ?, ?, ?)`,
-		integrationID,
-		permissionID,
-		workspaceID,
-		createdAtM,
-	)
-	require.NoError(t, err)
+	for _, grant := range []InsertUnkeyPermissionParams{
+		{WorkspaceID: uid.New(uid.WorkspacePrefix), PrincipalType: UnkeyPrincipalPermissionsPrincipalTypeOidc, PrincipalID: integrationID, Slug: "api.*.delete_api"},
+		{WorkspaceID: workspaceID, PrincipalType: UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: integrationID, Slug: "api.*.create_api"},
+		{WorkspaceID: workspaceID, PrincipalType: UnkeyPrincipalPermissionsPrincipalTypeOidc, PrincipalID: uid.New("vco"), Slug: "api.*.create_key"},
+	} {
+		grant.ID = uid.New(uid.PermissionPrefix)
+		grant.CreatedAt = createdAtM
+		require.NoError(t, Query.InsertUnkeyPermission(ctx, database.RW(), grant))
+	}
 
 	rows, err := Query.FindOIDCVercelIntegrationByAudience(ctx, database.RO(), audience)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	require.Equal(t, integrationID, rows[0].ID)
+	require.False(t, rows[0].PermissionSlug.Valid)
+
+	require.NoError(t, Query.InsertUnkeyPermission(ctx, database.RW(), InsertUnkeyPermissionParams{
+		ID:            uid.New(uid.PermissionPrefix),
+		WorkspaceID:   workspaceID,
+		PrincipalType: UnkeyPrincipalPermissionsPrincipalTypeOidc,
+		PrincipalID:   integrationID,
+		Slug:          "api.*.read_api",
+		CreatedAt:     createdAtM,
+	}))
+
+	rows, err = Query.FindOIDCVercelIntegrationByAudience(ctx, database.RO(), audience)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	require.True(t, rows[0].PermissionSlug.Valid)

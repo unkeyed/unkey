@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
-import { permissions } from "./rbac";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -32,40 +31,9 @@ export const oidcVercel = mysqlTable(
   ],
 );
 
-export const oidcVercelRelations = relations(oidcVercel, ({ one, many }) => ({
+export const oidcVercelRelations = relations(oidcVercel, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [oidcVercel.workspaceId],
-    references: [workspaces.id],
-  }),
-  permissions: many(oidcVercelPermissions),
-}));
-
-export const oidcVercelPermissions = mysqlTable(
-  "oidc_vercel_permissions",
-  {
-    pk: primaryKey(),
-    oidcVercelId: id("oidc_vercel_id").notNull(),
-    permissionId: id("permission_id").notNull(),
-    workspaceId: id("workspace_id").notNull(),
-    ...lifecycleDates,
-  },
-  (table) => [
-    uniqueIndex("oidc_vercel_permission_idx").on(table.oidcVercelId, table.permissionId),
-    index("permission_id_idx").on(table.permissionId),
-  ],
-);
-
-export const oidcVercelPermissionsRelations = relations(oidcVercelPermissions, ({ one }) => ({
-  oidcVercel: one(oidcVercel, {
-    fields: [oidcVercelPermissions.oidcVercelId],
-    references: [oidcVercel.id],
-  }),
-  permission: one(permissions, {
-    fields: [oidcVercelPermissions.permissionId],
-    references: [permissions.id],
-  }),
-  workspace: one(workspaces, {
-    fields: [oidcVercelPermissions.workspaceId],
     references: [workspaces.id],
   }),
 }));

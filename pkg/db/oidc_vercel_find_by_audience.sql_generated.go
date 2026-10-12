@@ -25,11 +25,10 @@ FROM oidc_vercel ov
 JOIN workspaces w
   ON w.id = ov.workspace_id
   AND w.deleted_at_m IS NULL
-LEFT JOIN oidc_vercel_permissions ovp
-  ON ovp.oidc_vercel_id = ov.id
-  AND ovp.workspace_id = ov.workspace_id
-LEFT JOIN permissions p
-  ON p.id = ovp.permission_id
+LEFT JOIN unkey_principal_permissions p
+  ON p.principal_id = ov.id
+  AND p.principal_type = 'oidc'
+  AND p.workspace_id = ov.workspace_id
 WHERE ov.audience = ?
 ORDER BY p.slug
 `
@@ -48,9 +47,8 @@ type FindOIDCVercelIntegrationByAudienceRow struct {
 }
 
 // Loads the integration trust policy and permission grants selected by the
-// token's exact, case-sensitive audience. Permission IDs are globally unique,
-// so grants can reference the shared Unkey permission rows used by root keys.
-// The left joins preserve an integration with no grants as one row with a null slug.
+// token's exact, case-sensitive audience. Grants are scoped to its workspace
+// and OIDC principal. The left join preserves integrations without grants.
 //
 //	SELECT ov.id,
 //	       ov.workspace_id,
@@ -66,11 +64,10 @@ type FindOIDCVercelIntegrationByAudienceRow struct {
 //	JOIN workspaces w
 //	  ON w.id = ov.workspace_id
 //	  AND w.deleted_at_m IS NULL
-//	LEFT JOIN oidc_vercel_permissions ovp
-//	  ON ovp.oidc_vercel_id = ov.id
-//	  AND ovp.workspace_id = ov.workspace_id
-//	LEFT JOIN permissions p
-//	  ON p.id = ovp.permission_id
+//	LEFT JOIN unkey_principal_permissions p
+//	  ON p.principal_id = ov.id
+//	  AND p.principal_type = 'oidc'
+//	  AND p.workspace_id = ov.workspace_id
 //	WHERE ov.audience = ?
 //	ORDER BY p.slug
 func (q *Queries) FindOIDCVercelIntegrationByAudience(ctx context.Context, db DBTX, audience string) ([]FindOIDCVercelIntegrationByAudienceRow, error) {
