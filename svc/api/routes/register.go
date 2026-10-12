@@ -11,6 +11,7 @@ import (
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 
 	v2RatelimitCreateNamespace "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_create_namespace"
+	v2RatelimitDeleteNamespace "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_namespace"
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_get_override"
 	v2RatelimitLimit "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
@@ -314,6 +315,16 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2RatelimitUpdateNamespace.Handler{
+			DB:             svc.Database,
+			Auditlogs:      svc.Auditlogs,
+			NamespaceCache: svc.Caches.RatelimitNamespace,
+		},
+	)
+
+	// v2/ratelimit.deleteNamespace
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2RatelimitDeleteNamespace.Handler{
 			DB:             svc.Database,
 			Auditlogs:      svc.Auditlogs,
 			NamespaceCache: svc.Caches.RatelimitNamespace,

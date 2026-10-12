@@ -2915,6 +2915,16 @@ type Querier interface {
 	//  ORDER BY ns.pk DESC
 	//  LIMIT ?
 	ListRatelimitNamespaces(ctx context.Context, db DBTX, arg ListRatelimitNamespacesParams) ([]ListRatelimitNamespacesRow, error)
+	//ListRatelimitOverrideIDsByNamespaceID
+	//
+	//  SELECT id
+	//  FROM ratelimit_overrides
+	//  WHERE workspace_id = ?
+	//    AND namespace_id = ?
+	//    AND deleted_at_m IS NULL
+	//  ORDER BY id
+	//  FOR UPDATE
+	ListRatelimitOverrideIDsByNamespaceID(ctx context.Context, db DBTX, arg ListRatelimitOverrideIDsByNamespaceIDParams) ([]string, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
@@ -3409,6 +3419,14 @@ type Querier interface {
 	//      deleted_at_m =  ?
 	//  WHERE id = ?
 	SoftDeleteRatelimitOverride(ctx context.Context, db DBTX, arg SoftDeleteRatelimitOverrideParams) error
+	//SoftDeleteRatelimitOverridesByNamespaceID
+	//
+	//  UPDATE ratelimit_overrides
+	//  SET deleted_at_m = ?
+	//  WHERE workspace_id = ?
+	//    AND namespace_id = ?
+	//    AND deleted_at_m IS NULL
+	SoftDeleteRatelimitOverridesByNamespaceID(ctx context.Context, db DBTX, arg SoftDeleteRatelimitOverridesByNamespaceIDParams) error
 	// SoftDeleteUnkeyRootKey tombstones a live new-format root key in one workspace.
 	//
 	//  UPDATE unkey_root_keys

@@ -3,6 +3,7 @@
  */
 
 import { ratelimitCreateNamespace } from "../funcs/ratelimitCreateNamespace.js";
+import { ratelimitDeleteNamespace } from "../funcs/ratelimitDeleteNamespace.js";
 import { ratelimitDeleteOverride } from "../funcs/ratelimitDeleteOverride.js";
 import { ratelimitGetOverride } from "../funcs/ratelimitGetOverride.js";
 import { ratelimitLimit } from "../funcs/ratelimitLimit.js";
@@ -38,6 +39,31 @@ export class Ratelimit extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2RatelimitCreateNamespaceResponseBody> {
     return unwrapAsync(ratelimitCreateNamespace(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Delete ratelimit namespace
+   *
+   * @remarks
+   * Delete a rate limit namespace and all of its overrides, identified by the namespace ID or name.
+   *
+   * **Important**: A deleted name cannot be reused. `ratelimit.limit` and `ratelimit.multiLimit` return 410 for it instead of creating a new namespace, so a deleted namespace does not turn into unlimited traffic. Other API nodes can take up to a minute to see the deletion.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#delete` (to delete every namespace)
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#delete` (to delete a specific namespace)
+   */
+  async deleteNamespace(
+    request: components.V2RatelimitDeleteNamespaceRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2RatelimitDeleteNamespaceResponseBody> {
+    return unwrapAsync(ratelimitDeleteNamespace(
       this,
       request,
       options,

@@ -284,6 +284,8 @@ export * from "./v2projectsupdateprojectrequestbody.js";
 export * from "./v2projectsupdateprojectresponsebody.js";
 export * from "./v2ratelimitcreatenamespacerequestbody.js";
 export * from "./v2ratelimitcreatenamespaceresponsebody.js";
+export * from "./v2ratelimitdeletenamespacerequestbody.js";
+export * from "./v2ratelimitdeletenamespaceresponsebody.js";
 export * from "./v2ratelimitdeleteoverriderequestbody.js";
 export * from "./v2ratelimitdeleteoverrideresponsebody.js";
 export * from "./v2ratelimitdeleteoverrideresponsedata.js";

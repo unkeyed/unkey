@@ -254,6 +254,8 @@ paths:
     $ref: "./spec/paths/v2/ratelimit/createNamespace/index.yaml"
   /v2/ratelimit.updateNamespace:
     $ref: "./spec/paths/v2/ratelimit/updateNamespace/index.yaml"
+  /v2/ratelimit.deleteNamespace:
+    $ref: "./spec/paths/v2/ratelimit/deleteNamespace/index.yaml"
 
   # Portal Endpoints
   /v2/portal.createPortal:
