@@ -750,7 +750,7 @@ if not ORB:
 
 local_resource(
     'api-sdk',
-    cmd='pnpm --dir=../web --filter=@unkey/api build',
+    cmd='pnpm --dir=../web --filter=@unkey/api build --incremental --tsBuildInfoFile esm/.tsbuildinfo',
     deps=['../web/internal/api/src', '../web/internal/api/tsconfig.json', '../web/internal/api/package.json'],
     labels=['build'],
     allow_parallel=True,
