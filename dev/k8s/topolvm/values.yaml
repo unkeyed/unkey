@@ -53,4 +53,13 @@ node:
   tolerations:
     - operator: Exists
 
-storageClasses: []
+storageClasses:
+  - name: topolvm-ssd
+    storageClass:
+      fsType: ext4
+      reclaimPolicy: Delete
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      additionalParameters:
+        topolvm.io/device-class: ssd

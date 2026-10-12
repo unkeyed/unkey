@@ -98,25 +98,39 @@ account and TLS verification. This avoids a 30-second startup timeout when
 service networking is not ready. Existing PVCs and storage paths are unchanged.
 Keep the built-in `storage-provisioner` addon disabled while using Tilt.
 
-Minikube waits for the API server, kubelet, and node readiness. Tilt then checks
-Cilium, its policy CRDs, and CoreDNS before applying network policies. It does
-not wait for old application pods before starting Tilt, so Tilt can repair
-failed deployments and reactivate TopoLVM volumes after a restart.
+Minikube waits for the API server and kubelet before starting Tilt. Tilt installs
+Cilium through Helm, then checks the Cilium agent, policy CRDs, node readiness,
+and CoreDNS before applying network policies. Node readiness cannot gate Helm
+installation because the node needs Cilium to become ready. Hubble readiness
+does not block application startup. Orbs use bridge networking and wait for
+node readiness during Minikube startup instead.
 
 An existing Minikube profile is reused, not reapplied through `ctlptl`.
 Changes to `dev/cluster.yaml` apply only when creating a cluster, because
-`ctlptl apply` can delete a cluster when its configuration changes. To adopt
-cluster configuration changes, explicitly reset it using the command below.
+`ctlptl apply` can delete a cluster when its configuration changes. Startup also
+accepts this branch's previous manifest-backed Cilium profile. On resume, it
+disables Minikube's CNI installer so Helm owns subsequent Cilium updates.
+Other Kubernetes version or CNI changes require an explicit reset.
 
 The toolchain pins Minikube 1.39.0, Kubernetes/kubectl 1.37.0, and Cilium 1.20.2.
 Kubernetes 1.37.0 is built into Minikube's version list, avoiding a remote
-version lookup during startup. Cilium and Hubble use manifests generated from
-the same chart with `mise exec -- bash dev/generate-cilium.sh`. Orbs use bridge
-networking and the matching CiliumNetworkPolicy CRD without policy enforcement.
+version lookup during startup. Tilt manages actual Helm releases for Cilium
+(including Hubble) and TopoLVM 15.5.4. Their configuration lives in
+`dev/k8s/cilium/values.yaml` and `dev/k8s/topolvm/values.yaml`. Helm adopts the
+previously applied local resources without deleting volumes. TopoLVM's chart
+also owns the `topolvm-ssd` StorageClass. Orbs keep the matching
+CiliumNetworkPolicy CRD without policy enforcement or a Cilium release.
+
+Inspect the installed releases with:
+
+```bash
+mise exec -- helm list --all-namespaces
+```
 
 Startup rejects profiles with a different Kubernetes version or CNI mode.
-Existing clusters are not upgraded or deleted automatically. Save any data
-you need before an explicit reset.
+The task does not request a Kubernetes upgrade or cluster deletion. Minikube
+can reset an unhealthy control plane during recovery. Back up local data
+before recovering an unhealthy cluster or explicitly resetting it.
 
 Run `mise install --locked --yes` after pulling toolchain changes. The web
 dependency task installs pinned Node and pnpm if needed and invokes pnpm
