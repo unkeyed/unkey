@@ -29,11 +29,11 @@ func TestForbidden(t *testing.T) {
 	// Create test identities in different environments
 	workspaceID := h.Resources().UserWorkspace.ID
 	defaultExternalID := uid.New(uid.TestPrefix)
-	h.CreateIdentity(seed.CreateIdentityRequest{
+	projectID := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		ExternalID:  defaultExternalID,
-	})
+	}).ProjectID
 	prodExternalID := uid.New(uid.TestPrefix)
 	prodIdentityID := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
