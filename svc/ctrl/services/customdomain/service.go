@@ -219,10 +219,10 @@ func (s *Service) AddCustomDomain(
 				RemoteIP:      a.GetRemoteIp(),
 				UserAgent:     a.GetUserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          domainID,
-						Type:        auditlog.DomainResourceType,
+						Type:        auditlog.DomainTargetType,
 						Meta:        map[string]any{"domain": domain, "projectId": req.Msg.GetProjectId(), "appId": req.Msg.GetAppId(), "environmentId": req.Msg.GetEnvironmentId()},
 						Name:        domain,
 						DisplayName: domain,
@@ -357,10 +357,10 @@ func (s *Service) DeleteCustomDomain(
 				RemoteIP:      a.GetRemoteIp(),
 				UserAgent:     a.GetUserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          domain.ID,
-						Type:        auditlog.DomainResourceType,
+						Type:        auditlog.DomainTargetType,
 						Meta:        map[string]any{"domain": domain.Domain, "projectId": domain.ProjectID, "appId": domain.AppID, "environmentId": domain.EnvironmentID},
 						Name:        domain.Domain,
 						DisplayName: domain.Domain,
@@ -440,10 +440,10 @@ func (s *Service) RetryVerification(
 				RemoteIP:      a.GetRemoteIp(),
 				UserAgent:     a.GetUserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          domain.ID,
-						Type:        auditlog.DomainResourceType,
+						Type:        auditlog.DomainTargetType,
 						Meta:        map[string]any{"domain": domain.Domain, "projectId": domain.ProjectID, "appId": domain.AppID, "environmentId": domain.EnvironmentID},
 						Name:        domain.Domain,
 						DisplayName: domain.Domain,

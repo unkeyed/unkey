@@ -507,9 +507,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							RemoteIP:      s.Location(),
 							UserAgent:     s.UserAgent(),
 							CorrelationID: "",
-							Resources: []auditlog.AuditLogResource{
+							Targets: []auditlog.AuditLogTarget{
 								{
-									Type:        auditlog.PermissionResourceType,
+									Type:        auditlog.PermissionTargetType,
 									ID:          toCreate.PermissionID,
 									Name:        toCreate.Slug,
 									DisplayName: toCreate.Name,
@@ -633,16 +633,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
-						Type:        auditlog.KeyResourceType,
+						Type:        auditlog.KeyTargetType,
 						ID:          key.Key.ID,
 						DisplayName: key.Key.Name.String,
 						Name:        key.Key.Name.String,
 						Meta:        map[string]any{},
 					},
 					{
-						Type:        auditlog.APIResourceType,
+						Type:        auditlog.APITargetType,
 						ID:          key.Api.ID,
 						DisplayName: key.Api.Name,
 						Name:        key.Api.Name,

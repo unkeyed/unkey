@@ -35,7 +35,7 @@ export const createNamespace = workspaceProcedure
           },
           event: "ratelimitNamespace.create",
           description: `Created ${namespaceId}`,
-          resources: [
+          targets: [
             {
               type: "ratelimitNamespace",
               id: namespaceId,

@@ -68,13 +68,13 @@ func (s *Service) Delete(
 		WorkspaceID:   project.WorkspaceID,
 		Event:         auditlog.ProjectDeleteEvent,
 		Display:       fmt.Sprintf("Deleted project %s", project.ID),
-		Resource: auditlog.AuditLogResource{
+		Targets: []auditlog.AuditLogTarget{{
 			ID:          project.ID,
-			Type:        auditlog.ProjectResourceType,
+			Type:        auditlog.ProjectTargetType,
 			Meta:        map[string]any{"name": project.Name, "slug": project.Slug},
 			Name:        project.Name,
 			DisplayName: project.Name,
-		},
+		}},
 	}); err != nil {
 		return nil, fmt.Errorf("insert audit log: %w", err)
 	}
