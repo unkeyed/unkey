@@ -34,16 +34,21 @@ export function ComputeOverview() {
 
   return (
     <SettingsGroup>
-      <div className="flex items-center justify-between">
-        <SettingsGroupTitle>Compute</SettingsGroupTitle>
-        <Button variant="outline" size="sm" onClick={() => setConfiguring(true)}>
-          <IconGearOutline12 />
-          Configure
-        </Button>
-      </div>
+      <SettingsGroupTitle>Compute</SettingsGroupTitle>
       <SettingsGroupContent>
         <RegionViz
           settings={settings}
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-raised"
+              onClick={() => setConfiguring(true)}
+            >
+              <IconGearOutline12 />
+              Configure
+            </Button>
+          }
           unavailable={
             new Set(unschedulableIn(availableFrom(regionsQuery), readCompute(settings).regions))
           }

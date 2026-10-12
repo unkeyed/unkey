@@ -23,9 +23,10 @@ const NODE_GAP = 24;
 type VizProps = {
   settings: EnvironmentSettings;
   unavailable: ReadonlySet<string>;
+  action?: ReactNode;
 };
 
-export function RegionViz({ settings, unavailable }: VizProps) {
+export function RegionViz({ settings, unavailable, action }: VizProps) {
   const values = readCompute(settings);
   const n = Math.max(settings.regions.length, 1);
   const size = [
@@ -34,7 +35,8 @@ export function RegionViz({ settings, unavailable }: VizProps) {
     ["Disk", IconHardDriveOutline18, formatStorage(values.storageMib)],
   ] as const;
   return (
-    <div className="flex aspect-[350/128] w-full flex-col justify-center bg-grayA-2 px-6 py-5">
+    <div className="relative flex aspect-[350/128] w-full flex-col justify-center bg-grayA-2 px-6 py-5">
+      {action ? <div className="absolute top-3 right-3">{action}</div> : null}
       <div
         className="mx-auto flex w-full flex-col"
         style={{ maxWidth: n * NODE_W + (n - 1) * NODE_GAP }}
@@ -70,7 +72,7 @@ export function RegionViz({ settings, unavailable }: VizProps) {
               <div
                 key={name}
                 data-blocked={blocked}
-                className="flex min-w-0 flex-col overflow-hidden rounded-lg bg-raised shadow-sm ring-1 ring-grayA-5 transition-shadow hover:ring-grayA-8 data-[blocked=true]:ring-warning-7"
+                className="flex min-w-0 flex-col overflow-hidden rounded-lg bg-raised shadow-sm ring-1 ring-grayA-5 data-[blocked=true]:ring-warning-7"
               >
                 <span className="flex min-w-0 items-center gap-1.5 px-3 py-2">
                   <RegionFlag region={name} shape="rect" size="sm" />
