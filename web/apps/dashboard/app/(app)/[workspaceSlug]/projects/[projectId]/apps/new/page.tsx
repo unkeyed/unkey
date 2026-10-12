@@ -109,7 +109,10 @@ function AppSetup({ projectId, projectHref }: { projectId: string; projectHref: 
             <ConfigureDeploymentStep
               projectId={projectId}
               appId={appId}
-              onDeploymentCreated={setDeploymentId}
+              onDeploymentCreated={(id) => {
+                bypass();
+                setDeploymentId(id);
+              }}
             />
           ) : null}
         </StepWizard.Step>
