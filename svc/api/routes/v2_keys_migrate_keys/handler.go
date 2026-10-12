@@ -546,7 +546,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			auditLogs = append(auditLogs, auditlog.AuditLog{
+			keyAuditLog := auditlog.AuditLog{
 				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.KeyCreateEvent,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
@@ -573,7 +573,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Meta:        map[string]any{},
 					},
 				},
-			})
+			}
+			if keyParams.IdentityID.Valid {
+				keyAuditLog.Targets = append(keyAuditLog.Targets, auditlog.AuditLogTarget{
+					Type:        auditlog.IdentityTargetType,
+					ID:          keyParams.IdentityID.String,
+					DisplayName: "",
+					Name:        "",
+					Meta:        map[string]any{},
+				})
+			}
+			auditLogs = append(auditLogs, keyAuditLog)
 
 			keysArray = append(keysArray, keyParams)
 		}

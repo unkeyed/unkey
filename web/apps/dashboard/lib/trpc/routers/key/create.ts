@@ -174,6 +174,7 @@ export async function createKeyCore(
         id: keyId,
         name: input.name,
       },
+      ...(requestedIdentityId ? [{ type: "identity" as const, id: requestedIdentityId }] : []),
     ],
     context: {
       location: ctx.audit.location,
