@@ -1,6 +1,6 @@
 "use client";
 
-import type { Deployment } from "@/lib/collections";
+import type { Deployment, DeploymentSummary } from "@/lib/collections";
 import type { Route } from "next";
 import { createContext, use } from "react";
 import type { Pulse } from "./g-pulse";
@@ -26,8 +26,8 @@ export type ProductionCardContextValue = {
   deploymentHref: Route;
   logsHref: Route;
   requestsHref: Route;
-  rollbackTarget: Deployment | undefined;
-  undoCandidates: Deployment[];
+  rollbackTarget: DeploymentSummary | undefined;
+  undoCandidates: DeploymentSummary[];
   pulse: Pulse;
   isChartLoading: boolean;
   isChartError: boolean;

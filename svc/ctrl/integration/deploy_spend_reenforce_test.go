@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/email"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 )
@@ -40,7 +41,7 @@ func TestDeploySpendCheck_ReEnforcesLeakedCompute(t *testing.T) {
 	ctx := h.Context()
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 	setAppCurrent(t, h, dep.AppID, dep.ID)
@@ -99,7 +100,7 @@ func TestDeploySpendCheck_SkipsSuspendAfterCancel(t *testing.T) {
 	ctx := h.Context()
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 	setAppCurrent(t, h, dep.AppID, dep.ID)
@@ -149,7 +150,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 
 	// App 1, running and current.
 	dep1 := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 	setAppCurrent(t, h, dep1.AppID, dep1.ID)
@@ -187,7 +188,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 	// 2) Leaked compute: a deployment in a second app, created after the first
 	//    teardown's snapshot (the gate-read to row-insert race).
 	dep2 := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 	require.NotEqual(t, dep1.AppID, dep2.AppID, "second deployment must be a distinct app")
@@ -242,7 +243,7 @@ func TestDeploySpendCheck_StalePeriodNoOp(t *testing.T) {
 	ctx := h.Context()
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
-		Region:       "us-east-1",
+		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 	setAppCurrent(t, h, dep.AppID, dep.ID)

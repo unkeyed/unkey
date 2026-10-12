@@ -55,7 +55,7 @@ func Test200_InaccessibleKeySpacesReturnNoData(t *testing.T) {
 		require.Len(c, res.Body.Data, 1)
 	}, 30*time.Second, time.Second)
 
-	for _, keySpaceID := range []string{otherAPI.KeyAuthID.String, "ks_nonexistent123"} {
+	for _, keySpaceID := range []string{otherAPI.KeyAuthID.String, uid.New(uid.KeySpacePrefix)} {
 		res := testutil.CallRoute[Request, Response](h, route, headers, Request{
 			Query: fmt.Sprintf("SELECT key_space_id FROM key_verifications_v1 WHERE key_space_id = '%s'", keySpaceID),
 		})

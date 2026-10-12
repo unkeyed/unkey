@@ -39,17 +39,22 @@ import {
  * @remarks
  * Retrieve a paginated list of deployments within a workspace, newest first.
  *
- * Filter by project, app, environment, and lifecycle status. All filters are
- * optional; with none set, every deployment in the workspace is returned.
- * Filters nest: `app` requires `project`, and `environment` requires both
- * `project` and `app`. Results are paginated; when `hasMore` is true, pass the
- * returned `cursor` to fetch the next page.
+ * Filter by project, app, environment, lifecycle status, git branch, and
+ * creation time. All filters are optional; with none set, every deployment in
+ * the workspace is returned. Filters nest: `app` requires `project`, and
+ * `environment` and `branch` require both `project` and `app`. Results are
+ * paginated; when `hasMore` is true, pass the returned `cursor` to fetch the
+ * next page.
  *
  * **Required Permissions**
  *
- * Your root key must have the `environment.*.read_deployment` permission.
- * Listing spans environments, so a grant on a single environment is not
- * sufficient.
+ * Your root key must have this permission:
+ * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/*#read`
+ *   (use `*` for every level you do not filter by)
+ *
+ * The permission must cover every deployment the filters select: a grant on
+ * one environment is not sufficient for a request that spans more than that
+ * environment.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

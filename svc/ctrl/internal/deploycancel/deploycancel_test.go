@@ -2,9 +2,9 @@ package deploycancel
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -56,11 +57,14 @@ func TestCancelAbortsDeployments(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	var stepError sql.NullString
-	require.NoError(t, f.database.RO().QueryRowContext(ctx,
-		"SELECT error FROM deployment_steps WHERE deployment_id = ?", building.ID,
-	).Scan(&stepError))
-	require.Equal(t, "KEBAP", stepError.String, "the in-flight step must carry the cancel reason")
+	steps, err := pkgdb.Query.ListDeploymentStepsByIds(ctx, f.database.RO(), pkgdb.ListDeploymentStepsByIdsParams{
+		WorkspaceID:   building.WorkspaceID,
+		DeploymentIds: []string{building.ID},
+	})
+	require.NoError(t, err)
+	failedSteps := slices.DeleteFunc(steps, func(s pkgdb.DeploymentStep) bool { return s.Error.String == "" })
+	require.Len(t, failedSteps, 1)
+	require.Equal(t, "KEBAP", failedSteps[0].Error.String, "the in-flight step must carry the cancel reason")
 
 	f.requireStatus(t, ctx, building.ID, mysqltype.DeploymentsStatusCancelled)
 	f.requireStatus(t, ctx, pending.ID, mysqltype.DeploymentsStatusCancelled)

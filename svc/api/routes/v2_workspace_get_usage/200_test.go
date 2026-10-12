@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -146,10 +147,10 @@ func TestGetUsage(t *testing.T) {
 	labsKey := uid.New(uid.KeyPrefix)
 	insertVerifications(t, h, workspaceID, labsKey, labsApp.ID, "gateway", monthStart, 4)
 
-	insertBillable(t, h, "billable_verifications_per_month_v2", workspaceID, monthStart, 40)
-	insertBillable(t, h, "billable_ratelimits_per_month_v2", workspaceID, monthStart, 2)
-	insertBillable(t, h, "billable_verifications_per_month_v2", workspaceID, lastMonth, 7)
-	insertBillable(t, h, "billable_ratelimits_per_month_v2", workspaceID, lastMonth, 1)
+	insertRow(t, h, schema.BillableVerificationsPerMonthV2{Year: int16(monthStart.Year()), Month: int8(monthStart.Month()), WorkspaceID: workspaceID, Count: 40})
+	insertRow(t, h, schema.BillableRatelimitsPerMonthV2{Year: int16(monthStart.Year()), Month: int8(monthStart.Month()), WorkspaceID: workspaceID, Count: 2})
+	insertRow(t, h, schema.BillableVerificationsPerMonthV2{Year: int16(lastMonth.Year()), Month: int8(lastMonth.Month()), WorkspaceID: workspaceID, Count: 7})
+	insertRow(t, h, schema.BillableRatelimitsPerMonthV2{Year: int16(lastMonth.Year()), Month: int8(lastMonth.Month()), WorkspaceID: workspaceID, Count: 1})
 
 	t.Run("current month to date", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers(rootKey), handler.Request{})
@@ -319,29 +320,44 @@ func ref(id string, name *string) openapi.V2WorkspaceGetUsageResource {
 // an hour
 func insertUsage(t *testing.T, h *testutil.Harness, row usageRow) {
 	t.Helper()
-	err := h.ClickHouse.Exec(t.Context(),
-		"INSERT INTO default.instance_usage_per_hour_v1 (time, workspace_id, project_id, app_id, environment_id, resource_type, resource_id, container_uid, instance_id, cpu_seconds, memory_gib_hours, disk_gib_hours, network_egress_public_bytes) VALUES (?, ?, ?, ?, ?, 'deployment', ?, ?, ?, ?, ?, ?, ?)",
-		row.hour, row.workspaceID, row.projectID, row.appID, row.environmentID,
-		uid.New(uid.DeploymentPrefix), uid.New("ctr"), uid.New(uid.InstancePrefix),
-		row.cpuSeconds, row.memoryGiBHours, row.diskGiBHours, row.egressBytes,
-	)
-	require.NoError(t, err)
+	insertRow(t, h, schema.InstanceUsagePerHourV1{
+		Time:                     row.hour,
+		WorkspaceID:              row.workspaceID,
+		ProjectID:                row.projectID,
+		AppID:                    row.appID,
+		EnvironmentID:            row.environmentID,
+		ResourceType:             "deployment",
+		ResourceID:               uid.New(uid.DeploymentPrefix),
+		ContainerUID:             uid.New("ctr"),
+		InstanceID:               uid.New(uid.InstancePrefix),
+		CPUSeconds:               row.cpuSeconds,
+		MemoryGiBHours:           row.memoryGiBHours,
+		DiskGiBHours:             row.diskGiBHours,
+		NetworkEgressPublicBytes: row.egressBytes,
+	})
 }
 
 func insertVerifications(t *testing.T, h *testutil.Harness, workspaceID, keyID, appID, source string, month time.Time, count int64) {
 	t.Helper()
-	err := h.ClickHouse.Exec(t.Context(),
-		"INSERT INTO default.key_verifications_per_month_v3 (time, workspace_id, key_space_id, identity_id, external_id, key_id, outcome, source, app_id, tags, count) VALUES (?, ?, ?, '', '', ?, 'VALID', ?, ?, [], ?)",
-		month, workspaceID, uid.New(uid.KeySpacePrefix), keyID, source, appID, count,
-	)
-	require.NoError(t, err)
+	insertRow(t, h, schema.KeyVerificationsPerMonthV3{
+		Time:        month,
+		WorkspaceID: workspaceID,
+		KeySpaceID:  uid.New(uid.KeySpacePrefix),
+		IdentityID:  "",
+		ExternalID:  "",
+		KeyID:       keyID,
+		Outcome:     "VALID",
+		Source:      source,
+		AppID:       appID,
+		Tags:        []string{},
+		Count:       count,
+	})
 }
 
-func insertBillable(t *testing.T, h *testutil.Harness, table, workspaceID string, month time.Time, count int64) {
+func insertRow[T schema.Row](t *testing.T, h *testutil.Harness, row T) {
 	t.Helper()
-	err := h.ClickHouse.Exec(t.Context(),
-		"INSERT INTO default."+table+" (year, month, workspace_id, count) VALUES (?, ?, ?, ?)",
-		month.Year(), int(month.Month()), workspaceID, count,
-	)
+	batch, err := h.ClickHouse.Conn().PrepareBatch(t.Context(), clickhouse.InsertQuery[T]())
 	require.NoError(t, err)
+	require.NoError(t, batch.AppendStruct(&row))
+	require.NoError(t, batch.Send())
 }
