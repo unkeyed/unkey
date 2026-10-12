@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -82,7 +84,10 @@ func TestURNLogReadScopesRowsByOwnership(t *testing.T) {
 		{"key_space_id": forbiddenAPI.KeyAuthID.String},
 	}, res.Body.Data)
 
-	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE key_auth SET deleted_at_m = ? WHERE id = ?", time.Now().UnixMilli(), allowedAPI.KeyAuthID.String)
+	err := db.Query.SoftDeleteKeySpace(t.Context(), h.DB.RW(), db.SoftDeleteKeySpaceParams{
+		Now:        sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		KeySpaceID: allowedAPI.KeyAuthID.String,
+	})
 	require.NoError(t, err)
 	res = testutil.CallRoute[Request, Response](h, route, analyticsHeaders(h.CreateRootKey(workspace.ID, permission)), query)
 	require.Equal(t, http.StatusOK, res.Status, "body: %s", res.RawBody)

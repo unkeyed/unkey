@@ -130,7 +130,7 @@ func TestInvoiceCreated_IgnoresUnknownCustomer(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
 	h := &handler{db: database} //nolint:exhaustruct // restate/stripe unused on ignore path
-	err = h.invoiceCreated(context.Background(), webhook.Event{}, renewalInvoice("cus_no_deploy_workspace", "sub_test"))
+	err = h.invoiceCreated(context.Background(), webhook.Event{}, renewalInvoice(uid.New("cus"), uid.New("sub")))
 	require.ErrorIs(t, err, webhook.ErrIgnore)
 }
 
@@ -168,7 +168,7 @@ func TestInvoiceCreated_RejectsEmptyBillingReason(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
 	h := &handler{db: database} //nolint:exhaustruct // stripe/restate unused on ignore path
-	inv := renewalInvoice("cus_test", "sub_test")
+	inv := renewalInvoice(uid.New("cus"), uid.New("sub"))
 	inv.BillingReason = ""
 	err = h.invoiceCreated(context.Background(), webhook.Event{}, inv)
 	require.ErrorIs(t, err, webhook.ErrIgnore)
@@ -183,7 +183,7 @@ func TestFindDeployWorkspaceByStripeCustomerID_RequiresDeployPlan(t *testing.T) 
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
 	_, err = database.FindDeployWorkspaceByStripeCustomerID(context.Background(), sql.NullString{
-		String: "cus_without_workspace",
+		String: uid.New("cus"),
 		Valid:  true,
 	})
 	require.True(t, db.IsNotFound(err))
@@ -212,16 +212,23 @@ func TestInvoiceCreated_IgnoresMismatchedSubscription(t *testing.T) {
 		CreatedAt:    time.Now().UnixMilli(),
 		K8sNamespace: uid.DNS1035(),
 	}))
-	_, err = database.RW().ExecContext(context.Background(),
-		`INSERT INTO workspace_billing (workspace_id, plan, stripe_customer_id) VALUES (?, ?, ?)`,
-		wsID, "pro", customerID,
-	)
-	require.NoError(t, err)
-	_, err = database.RW().ExecContext(context.Background(),
-		`INSERT INTO billing_subscriptions (workspace_id, product, stripe_subscription_id) VALUES (?, 'compute', ?)`,
-		wsID, subID,
-	)
-	require.NoError(t, err)
+	require.NoError(t, database.InsertWorkspaceBilling(context.Background(), db.InsertWorkspaceBillingParams{
+		WorkspaceID: wsID,
+		CreatedAt:   time.Now().UnixMilli(),
+	}))
+	require.NoError(t, database.SetWorkspaceDeployPlan(context.Background(), db.SetWorkspaceDeployPlanParams{
+		Plan:        sql.NullString{Valid: true, String: "pro"},
+		WorkspaceID: wsID,
+	}))
+	require.NoError(t, database.SetWorkspaceStripeCustomerId(context.Background(), db.SetWorkspaceStripeCustomerIdParams{
+		StripeCustomerID: sql.NullString{Valid: true, String: customerID},
+		WorkspaceID:      wsID,
+	}))
+	require.NoError(t, database.InsertBillingSubscription(context.Background(), db.InsertBillingSubscriptionParams{
+		WorkspaceID:          wsID,
+		Product:              db.BillingSubscriptionsProductCompute,
+		StripeSubscriptionID: subID,
+	}))
 
 	h := &handler{db: database} //nolint:exhaustruct // stripe/restate unused on ignore path
 	err = h.invoiceCreated(context.Background(), webhook.Event{}, renewalInvoice(customerID, "sub_other_product"))
