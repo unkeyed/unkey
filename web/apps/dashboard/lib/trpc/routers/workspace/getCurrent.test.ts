@@ -6,8 +6,8 @@ const mocks = vi.hoisted(() => ({ findFirst: vi.fn() }));
 
 const defaults = {
   "hello-world": false,
-  "deploy-billing": false,
-  "billing-ui-upgrades": false,
+  "deploy-billing": true,
+  "billing-ui-upgrades": true,
   "show-darksouls-success-banner": false,
   "projects-nav": false,
   "portal-management": false,

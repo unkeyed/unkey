@@ -7,12 +7,12 @@ export const helloWorld = {
 
 export const deployBilling = {
   slug: "deploy-billing",
-  defaultValue: false,
+  defaultValue: true,
 } as const satisfies WorkspaceFlag;
 
 export const billingUIUpgrades = {
   slug: "billing-ui-upgrades",
-  defaultValue: false,
+  defaultValue: true,
 } as const satisfies WorkspaceFlag;
 
 export const showDarksoulsSuccessBanner = {
