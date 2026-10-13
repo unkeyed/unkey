@@ -3,7 +3,6 @@ package timing
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -148,26 +147,29 @@ func formatDurationUnit(duration time.Duration, unit time.Duration, suffix strin
 // entry fails validation, the call is silently ignored. This allows instrumentation code
 // to be added unconditionally without error handling.
 //
-// Use [Write] to serialize an entry without checking request-level telemetry policy.
+// Use [Write] when the session is already available.
 func Record(ctx context.Context, entry Entry) {
 	session, ok := zen.SessionFromContext(ctx)
-	if !ok || !session.DebugTelemetryEnabled() {
+	if !ok {
 		return
 	}
 
-	Write(session.ResponseWriter(), entry)
+	Write(session, entry)
 }
 
-// Write adds a timing entry directly to the response headers. If the entry
-// fails validation, the call is silently ignored.
+// Write adds a timing entry to the session's response headers. If debug telemetry
+// is disabled or the entry fails validation, the call is silently ignored.
 //
-// Use [Record] to respect the request's debug telemetry opt-in.
-func Write(w http.ResponseWriter, entry Entry) {
+// Use [Record] when the session is only available through a context.
+func Write(session *zen.Session, entry Entry) {
+	if !session.DebugTelemetryEnabled() {
+		return
+	}
 	if err := entry.Validate(); err != nil {
 		return
 	}
 
-	w.Header().Add(HeaderName, entry.String())
+	session.AddHeader(HeaderName, entry.String())
 }
 
 // ParseEntries parses a comma-separated string of timing entries. This is useful
