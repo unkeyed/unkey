@@ -144,30 +144,24 @@ func formatDurationUnit(duration time.Duration, unit time.Duration, suffix strin
 }
 
 // Record writes a timing entry to the response headers via the [zen.Session]
-// associated with the context. If no session is present or the entry fails
-// validation, the call is silently ignored. This allows instrumentation code
+// associated with the context. If no session has debug telemetry enabled or the
+// entry fails validation, the call is silently ignored. This allows instrumentation code
 // to be added unconditionally without error handling.
 //
-// Use [Write] when you have direct access to an [http.ResponseWriter] instead
-// of a context with a session.
+// Use [Write] to serialize an entry without checking request-level telemetry policy.
 func Record(ctx context.Context, entry Entry) {
-	if err := entry.Validate(); err != nil {
-		return
-	}
-
 	session, ok := zen.SessionFromContext(ctx)
-	if !ok {
+	if !ok || !session.DebugTelemetryEnabled() {
 		return
 	}
 
-	session.AddHeader(HeaderName, entry.String())
+	Write(session.ResponseWriter(), entry)
 }
 
 // Write adds a timing entry directly to the response headers. If the entry
 // fails validation, the call is silently ignored.
 //
-// Use [Record] when working with a context that contains a [zen.Session],
-// which is the common case in request handlers.
+// Use [Record] to respect the request's debug telemetry opt-in.
 func Write(w http.ResponseWriter, entry Entry) {
 	if err := entry.Validate(); err != nil {
 		return

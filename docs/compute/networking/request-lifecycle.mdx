@@ -80,7 +80,6 @@ Callers can't fake the `X-Unkey-*` headers, including `X-Unkey-Principal`: we re
 | `X-Unkey-Request-Id` | The request ID. Quote it when you contact support. |
 | `X-Unkey-Region` | The gateway's `<platform>::<region>`. |
 | `X-Unkey-Frontline-Id` | The gateway ID. |
-| `X-Unkey-Timing` | Time spent in the gateway, such as `frontline_routing{scope=frontline}=1.25ms`, `frontline{scope=frontline}=...` before forwarding, and `total{scope=frontline}=...` for the whole request. Can appear more than once. |
 | `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` | Present when a per-key rate limit or a rate limit policy applied. `Reset` is Unix seconds. If several limits apply, the strictest one is shown. |
 | `Retry-After` | Only when rate limited. Whole seconds until the limit resets, at least 1. |
 

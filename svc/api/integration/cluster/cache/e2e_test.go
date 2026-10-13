@@ -35,6 +35,7 @@ func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
 		"Authorization": []string{"Bearer " + rootKey},
 		"Content-Type":  []string{"application/json"},
 	}
+	headers.Set("X-Unkey-Debug", "1")
 
 	// Step 1: Populate cache on all nodes by making API calls
 	for i, addr := range clusterAddrs {
@@ -145,6 +146,16 @@ func TestCacheDebugHeaders(t *testing.T) {
 		"Authorization": []string{"Bearer " + rootKey},
 		"Content-Type":  []string{"application/json"},
 	}
+
+	defaultResp, err := integration.CallNode[openapi.V2ApisGetApiRequestBody, openapi.V2ApisGetApiResponseBody](
+		t, addr, "POST", "/v2/apis.getApi",
+		headers,
+		openapi.V2ApisGetApiRequestBody{ApiId: api.ID},
+	)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, defaultResp.Status)
+	require.Empty(t, defaultResp.Headers.Values(timing.HeaderName))
+	headers.Set("X-Unkey-Debug", "1")
 
 	// Test cache debug headers format
 	resp, err := integration.CallNode[openapi.V2ApisGetApiRequestBody, openapi.V2ApisGetApiResponseBody](

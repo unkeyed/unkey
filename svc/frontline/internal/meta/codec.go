@@ -29,8 +29,9 @@ type Hop struct {
 // Metadata is the trusted data sent between Frontline regions.
 type Metadata struct {
 	paseto.Claims
-	Hops     []Hop  `json:"hops"`
-	ClientIP string `json:"client_ip,omitempty"`
+	Hops                  []Hop  `json:"hops"`
+	ClientIP              string `json:"client_ip,omitempty"`
+	DebugTelemetryEnabled bool   `json:"debug_telemetry_enabled,omitempty"`
 }
 
 // New creates a metadata codec from a hex-encoded Ed25519 seed.

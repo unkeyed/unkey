@@ -48,6 +48,9 @@
 // session is present, the entry is serialized and added to the response headers.
 // This keeps observability wiring close to the request without exposing sessions
 // to application code.
+// Record respects the session's debug telemetry opt-in, captured from
+// X-Unkey-Debug using strconv.ParseBool or restored from verified peer metadata.
+// Write only validates and serializes entries without checking that opt-in.
 //
 //	 timing.Record(ctx, timing.Entry{
 //		Name:     "cache_get",
