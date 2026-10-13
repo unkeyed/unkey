@@ -1,5 +1,6 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { getAuth, toAuthenticatedUser } from "@/lib/auth/get-auth";
+import { FlagProvider } from "@/lib/flags/provider";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
 import { GeistMono } from "geist/font/mono";
@@ -86,7 +87,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full antialiased">
-        <ReactQueryProvider>
+        <ReactQueryProvider key={`${auth.orgId}:${auth.userId}`}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -95,14 +96,20 @@ export default async function RootLayout({
           >
             <AuthProvider>
               <WorkspaceProvider initialUser={toAuthenticatedUser(auth)}>
-                <Toaster />
-                {children}
-                <CommandMenu />
-                <Suspense fallback={null}>
-                  <Feedback />
-                </Suspense>
-                <Analytics />
-                {process.env.NODE_ENV === "development" && <VercelToolbar />}
+                <FlagProvider
+                  orgId={auth.orgId}
+                  userId={auth.userId}
+                  impersonating={Boolean(auth.impersonator)}
+                >
+                  <Toaster />
+                  {children}
+                  <CommandMenu />
+                  <Suspense fallback={null}>
+                    <Feedback />
+                  </Suspense>
+                  <Analytics />
+                  {process.env.NODE_ENV === "development" && <VercelToolbar />}
+                </FlagProvider>
               </WorkspaceProvider>
             </AuthProvider>
           </ThemeProvider>
