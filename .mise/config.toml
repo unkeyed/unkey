@@ -25,7 +25,7 @@ go = "1.27.2"
 "github:planetscale/cli" = "0.284.0"
 "github:depot/cli" = "2.101.67"
 "github:chronark/rask" = "0.7.0"
-"github:golangci/golangci-lint" = "2.13.2"
+"github:golangci/golangci-lint" = "2.14.0"
 "github:goreleaser/goreleaser-pro" = "2.15.4"
 "github:pnpm/pnpm" = { version = "11.28.5", platforms.macos-x64.asset_pattern = "pnpm-darwin-x64.tar.gz" }
 "github:speakeasy-api/speakeasy" = "1.790.1"
