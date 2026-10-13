@@ -114,14 +114,11 @@ func TestDeveloperPermissionsGolden(t *testing.T) {
 	require.Equal(t, string(want), got)
 }
 
-// TestViewerPermissionsGolden permits flag enrollment but no other writes or key decryption.
+// TestViewerPermissionsGolden excludes writes and key decryption.
 func TestViewerPermissionsGolden(t *testing.T) {
 	t.Parallel()
 
 	for _, permission := range rolePolicies["viewer"] {
-		if permission.resource == "flags" && permission.action == "write" {
-			continue
-		}
 		require.Equal(t, "read", string(permission.action))
 	}
 
