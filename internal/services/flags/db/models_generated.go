@@ -5,17 +5,17 @@
 package db
 
 type Flag struct {
-	Pk           uint64 `db:"pk"`
-	Slug         string `db:"slug"`
-	Description  string `db:"description"`
-	DefaultValue bool   `db:"default_value"`
-	AllowEnable  bool   `db:"allow_enable"`
-	AllowDisable bool   `db:"allow_disable"`
+	Pk             uint64 `db:"pk"`
+	Slug           string `db:"slug"`
+	Description    string `db:"description"`
+	DefaultEnabled bool   `db:"default_enabled"`
+	AllowOptIn     bool   `db:"allow_opt_in"`
+	AllowOptOut    bool   `db:"allow_opt_out"`
 }
 
 type FlagOverride struct {
 	Pk          uint64 `db:"pk"`
 	WorkspaceID string `db:"workspace_id"`
 	FlagSlug    string `db:"flag_slug"`
-	Value       bool   `db:"value"`
+	Enabled     bool   `db:"enabled"`
 }

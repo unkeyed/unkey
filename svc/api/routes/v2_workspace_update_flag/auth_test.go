@@ -22,8 +22,8 @@ func TestUpdateFlagAuthorization(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	other := h.CreateWorkspace()
 	slug := "auth_" + uid.DNS1035()
-	require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{Slug: slug, AllowEnable: true, AllowDisable: true}))
-	require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), h.DB.RW(), db.UpsertWorkspaceFlagOverrideParams{WorkspaceID: workspaceID, FlagSlug: slug, Value: false}))
+	require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{Slug: slug, AllowOptIn: true, AllowOptOut: true}))
+	require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), h.DB.RW(), db.UpsertWorkspaceFlagOverrideParams{WorkspaceID: workspaceID, FlagSlug: slug, Enabled: false}))
 	for _, tc := range []struct {
 		name, key string
 		status    int
@@ -54,7 +54,7 @@ func TestUpdateFlagRejectsWorkspaceSelectorAndMissingEnabled(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	other := h.CreateWorkspace()
 	slug := "input_" + uid.DNS1035()
-	require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{Slug: slug, AllowEnable: true, AllowDisable: true}))
+	require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{Slug: slug, AllowOptIn: true, AllowOptOut: true}))
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":flags#write")
 	type workspaceSelector struct {
 		Slug        string `json:"slug"`
@@ -79,8 +79,8 @@ func TestUpdateFlagDashboardRoles(t *testing.T) {
 			route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Flags: h.Flags}
 			workspaceID := h.Resources().UserWorkspace.ID
 			slug := "role_" + uid.DNS1035()
-			require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{Slug: slug, AllowEnable: true, AllowDisable: true}))
-			require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), h.DB.RW(), db.UpsertWorkspaceFlagOverrideParams{WorkspaceID: workspaceID, FlagSlug: slug, Value: false}))
+			require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{Slug: slug, AllowOptIn: true, AllowOptOut: true}))
+			require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), h.DB.RW(), db.UpsertWorkspaceFlagOverrideParams{WorkspaceID: workspaceID, FlagSlug: slug, Enabled: false}))
 			resolver := authworkos.NewRoleMappingResolver(jwtResolver{principal: &authprincipal.Principal{
 				Version:               authprincipal.Version,
 				Subject:               authprincipal.Subject{ID: uid.Secure(), Name: "dashboard user", Type: authprincipal.SubjectTypeUser},

@@ -26,20 +26,20 @@ func TestGetFlagsResolvesOnlyCallerOverrides(t *testing.T) {
 	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#read")
 
 	for _, flag := range []db.UpsertFlagParams{
-		{Slug: "default_on", Description: "Enabled by default", DefaultValue: true, AllowEnable: false, AllowDisable: true},
-		{Slug: "default_off", Description: "Disabled by default", DefaultValue: false, AllowEnable: true, AllowDisable: false},
-		{Slug: "override_off", Description: "Explicit opt out", DefaultValue: true, AllowEnable: true, AllowDisable: true},
-		{Slug: "override_on", Description: "Explicit opt in", DefaultValue: false, AllowEnable: true, AllowDisable: false},
+		{Slug: "default_on", Description: "Enabled by default", DefaultEnabled: true, AllowOptIn: false, AllowOptOut: true},
+		{Slug: "default_off", Description: "Disabled by default", DefaultEnabled: false, AllowOptIn: true, AllowOptOut: false},
+		{Slug: "override_off", Description: "Explicit opt out", DefaultEnabled: true, AllowOptIn: true, AllowOptOut: true},
+		{Slug: "override_on", Description: "Explicit opt in", DefaultEnabled: false, AllowOptIn: true, AllowOptOut: false},
 	} {
 		require.NoError(t, db.Query.UpsertFlag(t.Context(), database.RW(), flag))
 	}
 	for _, override := range []db.UpsertWorkspaceFlagOverrideParams{
-		{WorkspaceID: workspaceID, FlagSlug: "override_off", Value: false},
-		{WorkspaceID: workspaceID, FlagSlug: "override_on", Value: true},
-		{WorkspaceID: otherWorkspace.ID, FlagSlug: "default_on", Value: false},
-		{WorkspaceID: otherWorkspace.ID, FlagSlug: "default_off", Value: true},
-		{WorkspaceID: otherWorkspace.ID, FlagSlug: "override_off", Value: true},
-		{WorkspaceID: otherWorkspace.ID, FlagSlug: "override_on", Value: false},
+		{WorkspaceID: workspaceID, FlagSlug: "override_off", Enabled: false},
+		{WorkspaceID: workspaceID, FlagSlug: "override_on", Enabled: true},
+		{WorkspaceID: otherWorkspace.ID, FlagSlug: "default_on", Enabled: false},
+		{WorkspaceID: otherWorkspace.ID, FlagSlug: "default_off", Enabled: true},
+		{WorkspaceID: otherWorkspace.ID, FlagSlug: "override_off", Enabled: true},
+		{WorkspaceID: otherWorkspace.ID, FlagSlug: "override_on", Enabled: false},
 	} {
 		require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), database.RW(), override))
 	}
@@ -80,7 +80,7 @@ func TestGetFlagsResolvesOnlyCallerOverrides(t *testing.T) {
 	require.False(t, other.Body.Data["override_on"].Enabled)
 
 	require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), database.RW(), db.UpsertWorkspaceFlagOverrideParams{
-		WorkspaceID: workspaceID, FlagSlug: "override_off", Value: true,
+		WorkspaceID: workspaceID, FlagSlug: "override_off", Enabled: true,
 	}))
 	cached := callGetFlags(h, route, rootKey)
 	require.Equal(t, http.StatusOK, cached.Status, cached.RawBody)

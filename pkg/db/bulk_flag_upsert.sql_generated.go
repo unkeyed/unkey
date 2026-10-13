@@ -9,9 +9,9 @@ import (
 )
 
 // bulkUpsertFlag is the base query for bulk insert
-const bulkUpsertFlag = `INSERT INTO flags (slug, description, default_value, allow_enable, allow_disable) VALUES %s ON DUPLICATE KEY UPDATE description = VALUES(description),
-    default_value = VALUES(default_value),
-    allow_enable = VALUES(allow_enable), allow_disable = VALUES(allow_disable)`
+const bulkUpsertFlag = `INSERT INTO flags (slug, description, default_enabled, allow_opt_in, allow_opt_out) VALUES %s ON DUPLICATE KEY UPDATE description = VALUES(description),
+    default_enabled = VALUES(default_enabled),
+    allow_opt_in = VALUES(allow_opt_in), allow_opt_out = VALUES(allow_opt_out)`
 
 // UpsertFlag performs bulk insert in a single query
 func (q *BulkQueries) UpsertFlag(ctx context.Context, db DBTX, args []UpsertFlagParams) error {
@@ -33,9 +33,9 @@ func (q *BulkQueries) UpsertFlag(ctx context.Context, db DBTX, args []UpsertFlag
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.Slug)
 		allArgs = append(allArgs, arg.Description)
-		allArgs = append(allArgs, arg.DefaultValue)
-		allArgs = append(allArgs, arg.AllowEnable)
-		allArgs = append(allArgs, arg.AllowDisable)
+		allArgs = append(allArgs, arg.DefaultEnabled)
+		allArgs = append(allArgs, arg.AllowOptIn)
+		allArgs = append(allArgs, arg.AllowOptOut)
 	}
 
 	// Execute the bulk insert

@@ -3,10 +3,10 @@ package flags
 import "context"
 
 type Flag struct {
-	Value        bool
-	Description  string
-	AllowEnable  bool
-	AllowDisable bool
+	Enabled     bool
+	Description string
+	AllowOptIn  bool
+	AllowOptOut bool
 }
 
 // Service reports workspace feature flags. Implementations are safe for
