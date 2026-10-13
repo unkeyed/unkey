@@ -3,7 +3,6 @@
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { V2WorkspaceGetFlagsResponseBody } from "@unkey/api/models/components";
-import { usePathname } from "next/navigation";
 import { type PropsWithChildren, createContext, useContext } from "react";
 import * as flags from ".";
 
@@ -19,18 +18,19 @@ type FlagContextValue = {
 const FlagContext = createContext<FlagContextValue | null>(null);
 
 export function FlagProvider({
-  orgId,
+  initialFlags,
   children,
 }: PropsWithChildren<{
-  orgId: string | null;
+  initialFlags: FlagMap | null | undefined;
 }>) {
-  const pathname = usePathname();
   const client = useQueryClient();
-  const queryKey = ["workspace", "flags", orgId];
-  const enabled = Boolean(orgId) && !pathname?.startsWith("/auth");
-  const query = useQuery({
+  const queryKey = ["workspace", "flags"];
+  const enabled = initialFlags !== null;
+  const query = useQuery<FlagMap>({
     queryKey,
     enabled,
+    initialData: initialFlags ?? undefined,
+    refetchOnMount: initialFlags === undefined,
     keepPreviousData: false,
     queryFn: async ({ signal }) => {
       const response = await getUnkeyClient().workspace.getFlags({ signal });

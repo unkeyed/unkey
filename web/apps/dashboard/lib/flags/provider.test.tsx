@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { V2WorkspaceGetFlagsResponseBody } from "@unkey/api/models/components";
+import { useState } from "react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { FlagProvider, useFlag, useFlags } from "./provider";
-
-vi.mock("next/navigation", () => ({ usePathname: () => "/workspace/settings/platform-features" }));
 
 beforeEach(() => {
   vi.stubEnv("UNKEY_ROOT_KEY", undefined);
@@ -22,14 +23,14 @@ function Consumer() {
   return <output>{JSON.stringify({ billing, projects, upgrades })}</output>;
 }
 
-it("shares one authenticated API read and preserves explicit false before code fallbacks", async () => {
-  const requests: Request[] = [];
-  vi.stubGlobal("fetch", async (request: Request) => {
-    requests.push(request);
-    return new Response(
-      JSON.stringify({
-        meta: { requestId: crypto.randomUUID() },
-        data: {
+it("renders server flags immediately without a duplicate request and preserves false before fallbacks", async () => {
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const tree = (
+    <QueryClientProvider client={client}>
+      <FlagProvider
+        initialFlags={{
           deploy_billing: {
             value: false,
             description: "Billing",
@@ -42,54 +43,31 @@ it("shares one authenticated API read and preserves explicit false before code f
             allowEnable: true,
             allowDisable: true,
           },
-        },
-      }),
-      { headers: { "Content-Type": "application/json" } },
-    );
-  });
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(
-    <QueryClientProvider client={client}>
-      <FlagProvider orgId={crypto.randomUUID()}>
+        }}
+      >
         <Consumer />
         <Consumer />
       </FlagProvider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
-  await waitFor(() =>
-    expect(screen.getAllByRole("status").map((node) => node.textContent)).toEqual([
-      '{"billing":false,"projects":true,"upgrades":true}',
-      '{"billing":false,"projects":true,"upgrades":true}',
-    ]),
-  );
-  expect(requests).toHaveLength(1);
-  expect(new URL(requests[0].url).pathname).toBe("/proxy/v2/workspace.getFlags");
-  expect(requests[0].headers.has("Authorization")).toBe(false);
+  const container = document.createElement("div");
+  document.body.append(container);
+  container.innerHTML = renderToString(tree);
+  expect(
+    screen.getAllByRole("status").map((node) => JSON.parse(node.textContent ?? "null")),
+  ).toEqual([
+    { billing: false, projects: true, upgrades: true },
+    { billing: false, projects: true, upgrades: true },
+  ]);
+  render(tree, { container, hydrate: true });
+  await act(async () => {});
+  expect(fetcher).not.toHaveBeenCalled();
   client.clear();
 });
 
-it("isolates organizations while loading, reports read errors, and never fetches signed-out flags", async () => {
-  let fail = false;
-  const fetcher = vi.fn(async () =>
-    fail
-      ? new Response(null, { status: 403 })
-      : new Response(
-          JSON.stringify({
-            meta: { requestId: crypto.randomUUID() },
-            data: {
-              projects_nav: {
-                value: true,
-                description: "Navigation",
-                allowEnable: true,
-                allowDisable: true,
-              },
-            },
-          }),
-          { headers: { "Content-Type": "application/json" } },
-        ),
-  );
+it("isolates flags when the auth boundary remounts, retries failed server reads, and skips anonymous reads", async () => {
+  const fetcher = vi.fn(async () => new Response(null, { status: 403 }));
   vi.stubGlobal("fetch", fetcher);
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   function State() {
     const flags = useFlags();
     return (
@@ -97,32 +75,63 @@ it("isolates organizations while loading, reports read errors, and never fetches
         <Consumer />
         {flags.isLoading && <span>Loading</span>}
         {flags.error && <span role="alert">Read failed</span>}
+        <button type="button" onClick={() => flags.refetch()}>
+          Refresh
+        </button>
       </>
     );
   }
-  function Tree({ orgId }: { orgId: string | null }) {
+  const clients: QueryClient[] = [];
+  function Tree({
+    initialFlags,
+  }: { initialFlags: V2WorkspaceGetFlagsResponseBody["data"] | null | undefined }) {
+    const [client] = useState(() => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      clients.push(client);
+      return client;
+    });
     return (
       <QueryClientProvider client={client}>
-        <FlagProvider orgId={orgId}>
+        <FlagProvider initialFlags={initialFlags}>
           <State />
         </FlagProvider>
       </QueryClientProvider>
     );
   }
-  const view = render(<Tree orgId={crypto.randomUUID()} />);
-  await waitFor(() => expect(screen.getByRole("status").textContent).toContain('"projects":true'));
-  fail = true;
-  view.rerender(<Tree orgId={crypto.randomUUID()} />);
-  expect(screen.getByRole("status").textContent).toBe(
-    '{"billing":true,"projects":false,"upgrades":true}',
+  const view = render(
+    <Tree
+      key={crypto.randomUUID()}
+      initialFlags={{
+        projects_nav: {
+          value: true,
+          description: "Navigation",
+          allowEnable: true,
+          allowDisable: true,
+        },
+      }}
+    />,
   );
+  expect(JSON.parse(screen.getByRole("status").textContent ?? "null")).toEqual({
+    billing: true,
+    projects: true,
+    upgrades: true,
+  });
+  view.rerender(<Tree key={crypto.randomUUID()} initialFlags={undefined} />);
+  expect(JSON.parse(screen.getByRole("status").textContent ?? "null")).toEqual({
+    billing: true,
+    projects: false,
+    upgrades: true,
+  });
+  expect(screen.getByText("Loading")).toBeDefined();
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Read failed");
-  expect(fetcher).toHaveBeenCalledTimes(2);
-  view.rerender(<Tree orgId={null} />);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  view.rerender(<Tree key={crypto.randomUUID()} initialFlags={null} />);
   await act(async () => {});
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole("alert")).toBeNull();
-  client.clear();
+  for (const client of clients) {
+    client.clear();
+  }
 });
 
 it("applies the saved value without losing metadata or letting an older read overwrite it", async () => {
@@ -144,7 +153,7 @@ it("applies the saved value without losing metadata or letting an older read ove
   let reads = 0;
   vi.stubGlobal("fetch", async () => {
     reads++;
-    return reads === 2 ? oldRead : response(reads > 2);
+    return oldRead;
   });
   function Controls() {
     const flags = useFlags();
@@ -167,14 +176,14 @@ it("applies the saved value without losing metadata or letting an older read ove
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <FlagProvider orgId={crypto.randomUUID()}>
+      <FlagProvider initialFlags={{ projects_nav: entry }}>
         <Controls />
       </FlagProvider>
     </QueryClientProvider>,
   );
-  await waitFor(() => expect(reads).toBe(1));
+  expect(reads).toBe(0);
   fireEvent.click(screen.getByText("Read"));
-  await waitFor(() => expect(reads).toBe(2));
+  await waitFor(() => expect(reads).toBe(1));
   fireEvent.click(screen.getByText("Saved"));
   await waitFor(() => expect(screen.getByRole("status").textContent).toContain('"projects":true'));
   await act(async () => finishOldRead(response(false)));
@@ -185,6 +194,6 @@ it("applies the saved value without losing metadata or letting an older read ove
     allowEnable: true,
     allowDisable: false,
   });
-  expect(reads).toBe(2);
+  expect(reads).toBe(1);
   client.clear();
 });
