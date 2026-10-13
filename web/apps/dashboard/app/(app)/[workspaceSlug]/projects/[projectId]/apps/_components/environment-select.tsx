@@ -1,11 +1,11 @@
-import type { Environment } from "@/lib/collections/deploy/environments";
+import { type Environment, productionFirst } from "@/lib/collections/deploy/environments";
 import { IconChevronDownOutline18 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import type { ComponentProps } from "react";
 import { useProjectData } from "../[appId]/(overview)/data-provider";
 import { EnvironmentLabel, environmentName } from "./environment-label";
 
-export const ALL_ENVIRONMENTS = "all";
+import { ALL_ENVIRONMENTS } from "./environment-scope";
 
 type Option = { value: string; label: string; environment?: Environment };
 
@@ -25,7 +25,7 @@ export function EnvironmentSelect({
   const { environments } = useProjectData();
   const options: Option[] = [
     { value: ALL_ENVIRONMENTS, label: "All environments" },
-    ...environments.map((environment) => ({
+    ...productionFirst(environments).map((environment) => ({
       value: environment.id,
       label: environmentName(environment.slug),
       environment,

@@ -15,11 +15,10 @@ describe("resolveGroupSave", () => {
     expect(resolveGroupSave([untouched])).toEqual({ status: "clean" });
   });
 
-  it("submits only the valid dirty rows and counts every dirty row", () => {
+  it("submits only the valid dirty rows", () => {
     expect(resolveGroupSave([name, invalidBytes, prefix, untouched])).toEqual({
       status: "ready",
       submit: [name, prefix],
-      dirty: 3,
     });
   });
 

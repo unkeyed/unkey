@@ -2,10 +2,7 @@
 
 import { LoadError } from "@/components/load-error";
 import { useResourceSearch } from "@/components/resource-search-input";
-import { collection } from "@/lib/collections";
 import type { Environment } from "@/lib/collections/deploy/environments";
-import { useCollectionLoad } from "@/lib/collections/use-collection-load";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { IconTableCodeOutline18 } from "@unkey/icons";
 import {
   EmptyState,
@@ -18,8 +15,9 @@ import {
   ResourceListItem,
 } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
-import { ALL_ENVIRONMENTS } from "../../environment-select";
+import { ALL_ENVIRONMENTS } from "../../environment-scope";
 import { ENV_VARS_SEARCH_KEY, type SortOption } from "../toolbar/env-vars-toolbar";
+import { useAppEnvVars } from "../use-app-env-vars";
 import { type EnvVarItem, EnvVarRow, compareByName, withEnvironments } from "./env-var-row";
 import { EnvVarSelectionBar } from "./env-var-selection-bar";
 import { EnvVarsSkeleton } from "./env-vars-skeleton";
@@ -69,13 +67,8 @@ export function EnvVarsList({
   const closeEdit = useCallback(() => setEditingId(null), []);
   const [searchQuery] = useResourceSearch(ENV_VARS_SEARCH_KEY);
 
-  const { data: envVarData, isLoading } = useLiveQuery(
-    (q) =>
-      q
-        .from({ v: collection.envVars })
-        .where(({ v }) => and(eq(v.projectId, projectId), eq(v.appId, appId))),
-    [projectId, appId],
-  );
+  const envVars = useAppEnvVars(projectId, appId);
+  const envVarData = envVars.status === "ready" ? envVars.data : undefined;
 
   const rows = useMemo((): EnvVarItem[] => {
     if (!envVarData) {
@@ -95,13 +88,11 @@ export function EnvVarsList({
     );
   }, [envVarData, environments, searchQuery, environmentFilter, sortBy]);
 
-  const envVarsLoad = useCollectionLoad(collection.envVars.utils);
-
-  if (envVarsLoad.failed) {
-    return <LoadError title="Could not load environment variables" onRetry={envVarsLoad.retry} />;
+  if (envVars.status === "failed") {
+    return <LoadError title="Could not load environment variables" onRetry={envVars.retry} />;
   }
 
-  if (isLoading) {
+  if (envVars.status === "loading") {
     return <EnvVarsSkeleton />;
   }
 

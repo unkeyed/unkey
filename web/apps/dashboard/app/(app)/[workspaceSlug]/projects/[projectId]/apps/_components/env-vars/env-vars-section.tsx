@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAppId, useProjectData } from "../../[appId]/(overview)/data-provider";
-import { ALL_ENVIRONMENTS } from "../environment-select";
+import { ALL_ENVIRONMENTS } from "../environment-scope";
 import { EnvVarsList } from "./list/env-vars-list";
 import { EnvVarsToolbar, type SortOption } from "./toolbar/env-vars-toolbar";
 

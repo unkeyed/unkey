@@ -58,7 +58,7 @@ export function AddEnvVarsButton() {
                 size="md"
                 className="px-3"
                 loading={form.isPending}
-                disabled={form.isPending || form.targetEnvironmentIds.length === 0}
+                disabled={form.isPending || !form.canSubmit}
               >
                 Save
               </Button>

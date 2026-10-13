@@ -119,7 +119,7 @@ function EnvironmentRow({
                 key={region.name}
                 content={<RegionLine region={region} />}
                 position={{ side: "top" }}
-                triggerClassName="relative z-10"
+                triggerClassName="relative z-10 flex"
               >
                 <RegionFlag region={region.name} shape="rect" size="sm" />
                 <span className="sr-only">
@@ -137,7 +137,7 @@ function EnvironmentRow({
                   </span>
                 }
                 position={{ side: "top" }}
-                triggerClassName="relative z-10"
+                triggerClassName="relative z-10 flex"
               >
                 <Badge variant="code" className="shrink-0 text-gray-11" aria-hidden>
                   +{hiddenRegions.length}

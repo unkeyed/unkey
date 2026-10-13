@@ -30,7 +30,7 @@ export function ComputeSettings() {
       summary={computeSummary(readCompute(settings))}
     >
       <SettingsForm {...compute.formProps}>
-        <ComputeFields compute={compute} className="px-5 pt-4 pb-6" />
+        <ComputeFields compute={compute} className="px-5 pt-4 pb-6" hideLockedSizes />
       </SettingsForm>
     </SettingsGroupCollapsible>
   );
