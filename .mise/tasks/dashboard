@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #MISE description="Run local development setup for dashboard"
-#MISE depends=["build", "install-web"]
+#MISE depends=["build", "install-web", "docker-builder"]
 set -euo pipefail
 
-docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait
+docker compose -f web/apps/dashboard/dev/docker-compose.yaml build --builder unkey
+docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait --no-build
 bin/unkey dev seed local
 pnpm --dir=web turbo run dev --filter=@unkey/dashboard

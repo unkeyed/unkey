@@ -110,7 +110,12 @@ export const keys = mysqlTable(
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
     pendingMigrationIdIndex: index("pending_migration_id_idx").on(table.pendingMigrationId),
     workspaceIdIndex: index("idx_keys_on_workspace_id").on(table.workspaceId),
-    identityIdIndex: index("identity_id_idx").on(table.identityId, table.keyAuthId, table.id),
+    identityIdIndex: index("identity_id_idx").on(
+      table.identityId,
+      table.keyAuthId,
+      table.deletedAtM,
+      table.id,
+    ),
     refillIndex: index("idx_keys_refill").on(table.refillAmount, table.deletedAtM),
   }),
 );

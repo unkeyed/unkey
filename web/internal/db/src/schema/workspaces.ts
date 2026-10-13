@@ -5,6 +5,7 @@ import { apis } from "./apis";
 import { billingSubscriptions } from "./billing_subscriptions";
 import { certificates } from "./certificates";
 import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
+import { computeSignupCreditClaims } from "./compute_signup_credit_claims";
 import { githubAppInstallations } from "./github_app";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
@@ -89,6 +90,7 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   }),
   billing: one(workspaceBilling),
   billingSubscriptions: many(billingSubscriptions),
+  computeSignupCreditClaims: many(computeSignupCreditClaims),
   clickhouseSettings: one(clickhouseWorkspaceSettings),
 
   projects: many(projects),

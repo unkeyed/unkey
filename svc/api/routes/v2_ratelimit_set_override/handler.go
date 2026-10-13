@@ -156,9 +156,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				UserAgent:     s.UserAgent(),
 				Display:       fmt.Sprintf("Set ratelimit override for %s and %s", nsRow.ID, req.Identifier),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
-						Type:        auditlog.RatelimitOverrideResourceType,
+						Type:        auditlog.RatelimitOverrideTargetType,
 						ID:          ovrID,
 						Name:        req.Identifier,
 						DisplayName: req.Identifier,

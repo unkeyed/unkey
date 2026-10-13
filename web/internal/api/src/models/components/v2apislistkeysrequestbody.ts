@@ -45,14 +45,11 @@ export type V2ApisListKeysRequestBody = {
    */
   decrypt?: boolean | undefined;
   /**
-   * EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:
+   * When true, reads keys and their identities from the primary database to avoid replica lag.
    *
    * @remarks
-   * - You've just created a key and need to display it immediately
-   * - You need absolute certainty about the current key state
-   * - You're debugging cache consistency issues
-   *
-   * This parameter comes with a performance cost and should be used sparingly.
+   * When false or omitted, reads from a replica, which may not reflect recent changes.
+   * Primary reads can have higher latency, depending on your region.
    */
   revalidateKeysCache?: boolean | undefined;
 };
@@ -84,7 +81,5 @@ export const V2ApisListKeysRequestBody$outboundSchema: z.ZodType<
 export function v2ApisListKeysRequestBodyToJSON(
   v2ApisListKeysRequestBody: V2ApisListKeysRequestBody,
 ): string {
-  return JSON.stringify(
-    V2ApisListKeysRequestBody$outboundSchema.parse(v2ApisListKeysRequestBody),
-  );
+  return JSON.stringify(V2ApisListKeysRequestBody$outboundSchema.parse(v2ApisListKeysRequestBody));
 }

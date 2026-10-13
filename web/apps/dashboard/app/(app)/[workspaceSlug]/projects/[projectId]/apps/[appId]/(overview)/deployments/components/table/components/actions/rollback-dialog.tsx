@@ -4,9 +4,10 @@ import {
   useAppId,
   useProjectData,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-recent-deployments";
 import { getDomainPriority } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/domain-priority";
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
-import { type Deployment, collection } from "@/lib/collections";
+import { type DeploymentSummary, collection } from "@/lib/collections";
 import { deploymentTitle } from "@/lib/collections/deploy/deployment-title";
 import { rollbackCandidates } from "@/lib/collections/deploy/rollback";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
@@ -21,8 +22,8 @@ import { RollbackDeploymentPair } from "./components/rollback-deployment-pair";
 type RollbackDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  targetDeployment: Deployment;
-  currentDeployment: Deployment;
+  targetDeployment: DeploymentSummary;
+  currentDeployment: DeploymentSummary;
 };
 
 export function RollbackDialog({
@@ -31,8 +32,9 @@ export function RollbackDialog({
   targetDeployment,
   currentDeployment,
 }: RollbackDialogProps) {
-  const { projectId, deployments, customDomains, awaitLiveDeployment } = useProjectData();
-  const [selected, setSelected] = useState(targetDeployment);
+  const { projectId, customDomains, awaitLiveDeployment } = useProjectData();
+  const { deployments } = useRecentDeployments();
+  const [selected, setSelected] = useState<DeploymentSummary>(targetDeployment);
   const [picking, setPicking] = useState(false);
   const pickerId = useId();
 
@@ -190,7 +192,7 @@ function Label({ children }: { children: ReactNode }) {
   return <h3 className="text-sm text-gray-11">{children}</h3>;
 }
 
-function CommitMeta({ deployment }: { deployment: Deployment }) {
+function CommitMeta({ deployment }: { deployment: DeploymentSummary }) {
   return (
     <span className="flex shrink-0 items-center gap-1.5">
       {deployment.gitCommitSha && (
