@@ -291,7 +291,8 @@ function listKey(subset: DeploymentSubset): string {
 
 // Lists whose last page came back shorter than asked. A window that grows past
 // such a list, as useLiveInfiniteQuery does right after a short first page, has
-// nothing left to load
+// nothing left to load. A refetch of a page already held still asks the server:
+// an empty answer would delete that page's rows
 const exhaustedLists = new Set<string>();
 
 function heldRows(subset: DeploymentSubset): Deployment[] {
@@ -309,7 +310,10 @@ function heldRows(subset: DeploymentSubset): Deployment[] {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-async function fetchDeploymentRows(subset: DeploymentSubset): Promise<ApiDeployment[]> {
+async function fetchDeploymentRows(
+  subset: DeploymentSubset,
+  isRefetch: boolean,
+): Promise<ApiDeployment[]> {
   if (subset.deploymentId !== undefined) {
     try {
       const response = await getUnkeyClient().deployments.getDeployment({
@@ -325,7 +329,7 @@ async function fetchDeploymentRows(subset: DeploymentSubset): Promise<ApiDeploym
   }
 
   const isNextPage = subset.before !== undefined || subset.offset !== undefined;
-  if (isNextPage && exhaustedLists.has(listKey(subset))) {
+  if (isNextPage && !isRefetch && exhaustedLists.has(listKey(subset))) {
     return [];
   }
   const held = isNextPage ? heldRows(subset) : [];
@@ -407,7 +411,10 @@ export const deployments = createCollection<Deployment, string>(
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      const rows = await fetchDeploymentRows({ ...subset, projectId });
+      const rows = await fetchDeploymentRows(
+        { ...subset, projectId },
+        queryClient.getQueryData(ctx.queryKey) !== undefined,
+      );
       if (rows.length === 0) {
         return [];
       }
