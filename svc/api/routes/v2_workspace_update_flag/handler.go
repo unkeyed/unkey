@@ -55,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Public("Failed to retrieve the flag definition."))
 		}
-		if (req.Value && !flag.AllowEnable) || (!req.Value && !flag.AllowDisable) {
+		if (req.Enabled && !flag.AllowEnable) || (!req.Enabled && !flag.AllowDisable) {
 			return fault.New("flag enrollment direction forbidden",
 				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
 				fault.Public("The flag's enrollment policy does not permit this value."))
@@ -67,7 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err := db.Query.UpsertWorkspaceFlagOverride(ctx, tx, db.UpsertWorkspaceFlagOverrideParams{
 			WorkspaceID: principal.AuthorizedWorkspaceID,
 			FlagSlug:    req.Slug,
-			Value:       req.Value,
+			Value:       req.Enabled,
 		}); err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -89,7 +89,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ID:          principal.AuthorizedWorkspaceID,
 				Name:        principal.AuthorizedWorkspaceID,
 				DisplayName: principal.AuthorizedWorkspaceID,
-				Meta:        map[string]any{"slug": req.Slug, "before": before, "after": req.Value},
+				Meta:        map[string]any{"slug": req.Slug, "before": before, "after": req.Enabled},
 			}},
 		}})
 	})

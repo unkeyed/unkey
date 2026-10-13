@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -45,11 +46,21 @@ func TestGetFlagsResolvesOnlyCallerOverrides(t *testing.T) {
 
 	res := callGetFlags(h, route, rootKey)
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+	var wire struct {
+		Data map[string]map[string]json.RawMessage `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(res.RawBody), &wire))
+	require.Contains(t, wire.Data["default_on"], "enabled")
+	require.Contains(t, wire.Data["default_on"], "allowOptIn")
+	require.Contains(t, wire.Data["default_on"], "allowOptOut")
+	require.NotContains(t, wire.Data["default_on"], "value")
+	require.NotContains(t, wire.Data["default_on"], "allowEnable")
+	require.NotContains(t, wire.Data["default_on"], "allowDisable")
 	require.Equal(t, map[string]openapi.V2WorkspaceGetFlagsFlag{
-		"default_on":   {Value: true, Description: "Enabled by default", AllowEnable: false, AllowDisable: true},
-		"default_off":  {Value: false, Description: "Disabled by default", AllowEnable: true, AllowDisable: false},
-		"override_off": {Value: false, Description: "Explicit opt out", AllowEnable: true, AllowDisable: true},
-		"override_on":  {Value: true, Description: "Explicit opt in", AllowEnable: true, AllowDisable: false},
+		"default_on":   {Enabled: true, Description: "Enabled by default", AllowOptIn: false, AllowOptOut: true},
+		"default_off":  {Enabled: false, Description: "Disabled by default", AllowOptIn: true, AllowOptOut: false},
+		"override_off": {Enabled: false, Description: "Explicit opt out", AllowOptIn: true, AllowOptOut: true},
+		"override_on":  {Enabled: true, Description: "Explicit opt in", AllowOptIn: true, AllowOptOut: false},
 	}, res.Body.Data)
 
 	type workspaceSelector struct {
@@ -65,8 +76,8 @@ func TestGetFlagsResolvesOnlyCallerOverrides(t *testing.T) {
 	otherKey := h.CreateRootKey(otherWorkspace.ID, "unkey:v1:"+otherWorkspace.ID+":flags#read")
 	other := callGetFlags(h, route, otherKey)
 	require.Equal(t, http.StatusOK, other.Status, other.RawBody)
-	require.True(t, other.Body.Data["override_off"].Value)
-	require.False(t, other.Body.Data["override_on"].Value)
+	require.True(t, other.Body.Data["override_off"].Enabled)
+	require.False(t, other.Body.Data["override_on"].Enabled)
 
 	require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), database.RW(), db.UpsertWorkspaceFlagOverrideParams{
 		WorkspaceID: workspaceID, FlagSlug: "override_off", Value: true,
@@ -78,7 +89,7 @@ func TestGetFlagsResolvesOnlyCallerOverrides(t *testing.T) {
 	h.Clock.Tick(time.Minute)
 	refreshed := callGetFlags(h, route, rootKey)
 	require.Equal(t, http.StatusOK, refreshed.Status, refreshed.RawBody)
-	require.True(t, refreshed.Body.Data["override_off"].Value)
+	require.True(t, refreshed.Body.Data["override_off"].Enabled)
 
 	require.NoError(t, database.Close())
 	cached = callGetFlags(h, route, rootKey)

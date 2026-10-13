@@ -47,10 +47,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	data := make(map[string]openapi.V2WorkspaceGetFlagsFlag, len(values))
 	for slug, flag := range values {
 		data[slug] = openapi.V2WorkspaceGetFlagsFlag{
-			Value:        flag.Value,
-			Description:  flag.Description,
-			AllowEnable:  flag.AllowEnable,
-			AllowDisable: flag.AllowDisable,
+			Enabled:     flag.Value,
+			Description: flag.Description,
+			AllowOptIn:  flag.AllowEnable,
+			AllowOptOut: flag.AllowDisable,
 		}
 	}
 

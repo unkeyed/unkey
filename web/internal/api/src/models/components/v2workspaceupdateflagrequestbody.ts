@@ -12,13 +12,13 @@ export type V2WorkspaceUpdateFlagRequestBody = {
   /**
    * Set to true to enable the flag or false to disable it, regardless of the flag's default.
    */
-  value: boolean;
+  enabled: boolean;
 };
 
 /** @internal */
 export type V2WorkspaceUpdateFlagRequestBody$Outbound = {
   slug: string;
-  value: boolean;
+  enabled: boolean;
 };
 
 /** @internal */
@@ -28,7 +28,7 @@ export const V2WorkspaceUpdateFlagRequestBody$outboundSchema: z.ZodType<
   V2WorkspaceUpdateFlagRequestBody
 > = z.object({
   slug: z.string(),
-  value: z.boolean(),
+  enabled: z.boolean(),
 });
 
 export function v2WorkspaceUpdateFlagRequestBodyToJSON(

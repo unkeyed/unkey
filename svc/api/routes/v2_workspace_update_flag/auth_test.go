@@ -39,7 +39,7 @@ func TestUpdateFlagAuthorization(t *testing.T) {
 			if tc.key == "" {
 				headers.Del("Authorization")
 			}
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Slug: slug, Value: true})
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Slug: slug, Enabled: true})
 			require.Equal(t, tc.status, res.Status, res.RawBody)
 			assertOverride(t, h, workspaceID, slug, true, false)
 			assertOverride(t, h, other.ID, slug, false, false)
@@ -47,7 +47,7 @@ func TestUpdateFlagAuthorization(t *testing.T) {
 	}
 }
 
-func TestUpdateFlagRejectsWorkspaceSelectorAndMissingValue(t *testing.T) {
+func TestUpdateFlagRejectsWorkspaceSelectorAndMissingEnabled(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Flags: h.Flags}
 	h.Register(route)
@@ -58,15 +58,15 @@ func TestUpdateFlagRejectsWorkspaceSelectorAndMissingValue(t *testing.T) {
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":flags#write")
 	type workspaceSelector struct {
 		Slug        string `json:"slug"`
-		Value       bool   `json:"value"`
+		Enabled     bool   `json:"enabled"`
 		WorkspaceID string `json:"workspaceId"`
 	}
-	selected := testutil.CallRoute[workspaceSelector, handler.Response](h, route, flagHeaders(key), workspaceSelector{Slug: slug, Value: true, WorkspaceID: other.ID})
+	selected := testutil.CallRoute[workspaceSelector, handler.Response](h, route, flagHeaders(key), workspaceSelector{Slug: slug, Enabled: true, WorkspaceID: other.ID})
 	require.Equal(t, http.StatusBadRequest, selected.Status, selected.RawBody)
-	type missingValue struct {
+	type missingEnabled struct {
 		Slug string `json:"slug"`
 	}
-	missing := testutil.CallRoute[missingValue, handler.Response](h, route, flagHeaders(key), missingValue{Slug: slug})
+	missing := testutil.CallRoute[missingEnabled, handler.Response](h, route, flagHeaders(key), missingEnabled{Slug: slug})
 	require.Equal(t, http.StatusBadRequest, missing.Status, missing.RawBody)
 	assertOverride(t, h, workspaceID, slug, false, false)
 	assertOverride(t, h, other.ID, slug, false, false)
@@ -100,7 +100,7 @@ func TestUpdateFlagDashboardRoles(t *testing.T) {
 				}
 			})
 			h.Register(route, stack...)
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, flagHeaders("dashboard_jwt"), handler.Request{Slug: slug, Value: true})
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, flagHeaders("dashboard_jwt"), handler.Request{Slug: slug, Enabled: true})
 			status := http.StatusForbidden
 			if role != "unknown" && role != "viewer" {
 				status = http.StatusOK

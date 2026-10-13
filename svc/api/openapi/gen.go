@@ -7104,17 +7104,17 @@ type V2RootKeysUpdateKeyResponseBody struct {
 
 // V2WorkspaceGetFlagsFlag defines model for V2WorkspaceGetFlagsFlag.
 type V2WorkspaceGetFlagsFlag struct {
-	// AllowDisable Whether this flag can be disabled. Updating it also requires `flags#write` permission.
-	AllowDisable bool `json:"allowDisable"`
+	// AllowOptIn Whether this flag can be enabled. Updating it also requires `flags#write` permission.
+	AllowOptIn bool `json:"allowOptIn"`
 
-	// AllowEnable Whether this flag can be enabled. Updating it also requires `flags#write` permission.
-	AllowEnable bool `json:"allowEnable"`
+	// AllowOptOut Whether this flag can be disabled. Updating it also requires `flags#write` permission.
+	AllowOptOut bool `json:"allowOptOut"`
 
 	// Description What the flag controls.
 	Description string `json:"description"`
 
-	// Value Whether the feature is enabled for this workspace. A workspace-specific value overrides the flag's default.
-	Value bool `json:"value"`
+	// Enabled Whether the feature is enabled for this workspace. A workspace-specific value overrides the flag's default.
+	Enabled bool `json:"enabled"`
 }
 
 // V2WorkspaceGetFlagsResponseBody defines model for V2WorkspaceGetFlagsResponseBody.
@@ -7406,11 +7406,11 @@ type V2WorkspaceGetUsageTotals struct {
 
 // V2WorkspaceUpdateFlagRequestBody defines model for V2WorkspaceUpdateFlagRequestBody.
 type V2WorkspaceUpdateFlagRequestBody struct {
+	// Enabled Set to true to enable the flag or false to disable it, regardless of the flag's default.
+	Enabled bool `json:"enabled"`
+
 	// Slug Lowercase snake_case slug of the flag to update, as returned by `workspace.getFlags`.
 	Slug string `json:"slug"`
-
-	// Value Set to true to enable the flag or false to disable it, regardless of the flag's default.
-	Value bool `json:"value"`
 }
 
 // V2WorkspaceUpdateFlagResponseBody defines model for V2WorkspaceUpdateFlagResponseBody.
