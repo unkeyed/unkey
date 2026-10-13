@@ -7,12 +7,15 @@ import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation } from "@tanstack/react-query";
+import { IconSparkle3Outline18 } from "@unkey/icons";
 import {
   Badge,
   Button,
   EmptyState,
   EmptyStateDescription,
   EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
   PageContainer,
   PageHeader,
   PageHeaderContent,
@@ -102,7 +105,11 @@ export default function PlatformFeaturesPage() {
               </div>
             ) : previews.length === 0 ? (
               <EmptyState frame="none">
-                <EmptyStateHeader>
+                <EmptyStateIcon>
+                  <IconSparkle3Outline18 />
+                </EmptyStateIcon>
+                <EmptyStateHeader className="gap-1">
+                  <EmptyStateTitle>No preview features available</EmptyStateTitle>
                   <EmptyStateDescription>
                     There are no preview features to opt in to at the moment.
                   </EmptyStateDescription>
