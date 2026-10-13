@@ -29,14 +29,17 @@ export default function PlatformFeaturesPage() {
   const enabled = useFlag("platformFeatures");
   const utils = trpc.useUtils();
   const features = useFlags();
-  const previews = Object.entries(features.data ?? {})
-    .flatMap(([slug, flag]) => {
-      const preview = platformPreviews.find((preview) => preview.flag.slug === slug);
-      return preview || user?.impersonator
-        ? [{ ...flag, slug, title: preview?.title ?? slug }]
-        : [];
-    })
-    .sort((a, b) => a.slug.localeCompare(b.slug));
+  const previews = platformPreviews.map((preview) => {
+    const state = features.data?.[preview.flag.slug];
+    return {
+      slug: preview.flag.slug,
+      title: preview.title,
+      description: preview.description,
+      enabled: state?.enabled ?? preview.flag.defaultValue,
+      allowOptIn: state?.allowOptIn ?? false,
+      allowOptOut: state?.allowOptOut ?? false,
+    };
+  });
   const update = useMutation({
     onMutate: () => features.cancel(),
     mutationFn: async (input: { slug: string; enabled: boolean }) => {
