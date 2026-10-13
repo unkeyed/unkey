@@ -1,6 +1,7 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { getAuth, toAuthenticatedUser } from "@/lib/auth/get-auth";
 import { FlagProvider } from "@/lib/flags/provider";
+import { loadFlags } from "@/lib/flags/server";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
 import { GeistMono } from "geist/font/mono";
@@ -80,6 +81,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const auth = await getAuth();
+  const flags = await loadFlags(auth).catch(() => {
+    console.error("Failed to load initial workspace flags; retrying on the client");
+    return undefined;
+  });
   return (
     <html
       lang="en"
@@ -96,7 +101,7 @@ export default async function RootLayout({
           >
             <AuthProvider>
               <WorkspaceProvider initialUser={toAuthenticatedUser(auth)}>
-                <FlagProvider orgId={auth.userId ? auth.orgId : null}>
+                <FlagProvider initialFlags={flags}>
                   <Toaster />
                   {children}
                   <CommandMenu />
