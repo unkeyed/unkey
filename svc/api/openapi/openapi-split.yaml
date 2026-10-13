@@ -250,6 +250,8 @@ paths:
     $ref: "./spec/paths/v2/ratelimit/deleteOverride/index.yaml"
   /v2/ratelimit.listNamespaces:
     $ref: "./spec/paths/v2/ratelimit/listNamespaces/index.yaml"
+  /v2/ratelimit.createNamespace:
+    $ref: "./spec/paths/v2/ratelimit/createNamespace/index.yaml"
 
   # Portal Endpoints
   /v2/portal.createPortal:
