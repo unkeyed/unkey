@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Stop minikube, preserving local data (exit Tilt first)"
+#MISE description="Stop Unkey's minikube cluster, preserving data (exit Tilt first)"
 set -euo pipefail
 
-minikube stop -p minikube
+minikube stop -p unkey

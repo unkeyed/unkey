@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=ctlptl.schema.json
 apiVersion: ctlptl.dev/v1alpha1
 kind: Cluster
+name: unkey
 product: minikube
 minikube:
   startFlags:
@@ -14,5 +15,5 @@ minikube:
     - "--cni=bridge"
     - "--addons=metrics-server"
     - "--wait=apiserver,kubelet,node_ready"
-registry: ctlptl-registry
+registry: unkey-registry
 kubernetesVersion: v1.37.0

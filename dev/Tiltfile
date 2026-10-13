@@ -7,7 +7,10 @@ watch_file('../.mise/mise.lock')
 load('ext://namespace', 'namespace_create')
 load('ext://secret', 'secret_create_generic')
 load('ext://helm_resource', 'helm_resource')
-load('ext://restart_process', 'docker_build_with_restart')
+
+allow_k8s_contexts('unkey')
+if k8s_context() != 'unkey':
+    fail('Use mise run dev to start and select the Unkey cluster. Other Kubernetes contexts are not modified.')
 
 config.define_string('topolvm_backing_size')
 config.define_bool('orb')
@@ -24,12 +27,7 @@ TOPOLVM_BACKING_SIZE = cfg.get('topolvm_backing_size', '20G')
 
 update_settings(max_parallel_updates=16)
 
-# Tilt's background docker pruner: drop stale tilt-* tags it created earlier.
-docker_prune_settings(
-  num_builds=5,
-  keep_recent=1,
-  max_age_mins=60,
-)
+docker_prune_settings(disable=True)
 
 # Check which optional credential files exist
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
@@ -45,7 +43,7 @@ local_resource(
 
 local_resource(
   'storage-provisioner',
-  'minikube addons disable storage-provisioner && kubectl apply -f k8s/manifests/storage-provisioner.yaml',
+  'minikube -p unkey addons disable storage-provisioner && kubectl apply -f k8s/manifests/storage-provisioner.yaml',
   deps=['k8s/manifests/storage-provisioner.yaml'],
   labels=['storage'],
   allow_parallel=True,
@@ -69,13 +67,13 @@ local_resource(
 local_resource(
   'registry',
   '''
-  REGISTRY_IP=$(docker inspect ctlptl-registry --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' | awk '{print $NF}')
+  REGISTRY_IP=$(docker inspect unkey-registry --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' | awk '{print $NF}')
   echo "Registry IP: $REGISTRY_IP"
   cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Service
 metadata:
-  name: ctlptl-registry
+  name: unkey-registry
   namespace: unkey
 spec:
   ports:
@@ -85,10 +83,10 @@ spec:
 apiVersion: discovery.k8s.io/v1
 kind: EndpointSlice
 metadata:
-  name: ctlptl-registry
+  name: unkey-registry
   namespace: unkey
   labels:
-    kubernetes.io/service-name: ctlptl-registry
+    kubernetes.io/service-name: unkey-registry
 addressType: IPv4
 endpoints:
   - addresses:
@@ -133,7 +131,7 @@ else:
       'cilium-ready',
       'kubectl -n kube-system rollout status daemonset/cilium --timeout=180s && ' +
       'kubectl wait --for=condition=Established crd/ciliumnetworkpolicies.cilium.io crd/ciliumclusterwidenetworkpolicies.cilium.io --timeout=60s && ' +
-      'kubectl wait --for=condition=Ready node/minikube --timeout=180s && ' +
+      'kubectl wait --for=condition=Ready node/unkey --timeout=180s && ' +
       'kubectl -n kube-system rollout status deployment/coredns --timeout=180s',
       resource_deps=['cilium'],
       labels=['setup'],
@@ -150,7 +148,7 @@ else:
 
 local_resource(
   'topolvm-disable-old-csi',
-  'minikube addons disable csi-hostpath-driver 2>&1 | tail -1 || true',
+  'minikube -p unkey addons disable csi-hostpath-driver 2>&1 | tail -1 || true',
   labels=['storage'],
   allow_parallel=True,
 )
@@ -161,8 +159,8 @@ local_resource(
   # `minikube ssh -- bash < file` would work, but `minikube ssh` always
   # allocates a PTY and the wrapping SSH session keeps the terminal open
   # after the script exits, hanging Tilt. Copy + exec avoids the PTY trap.
-  'minikube cp k8s/topolvm/setup-vg.sh /tmp/topolvm-setup-vg.sh && ' +
-  'minikube ssh -- sudo bash /tmp/topolvm-setup-vg.sh ' + TOPOLVM_BACKING_SIZE,
+  'minikube -p unkey cp k8s/topolvm/setup-vg.sh /tmp/topolvm-setup-vg.sh && ' +
+  'minikube -p unkey ssh -- sudo bash /tmp/topolvm-setup-vg.sh ' + TOPOLVM_BACKING_SIZE,
   deps=['k8s/topolvm/setup-vg.sh'],
   resource_deps=['topolvm-disable-old-csi'],
   labels=['storage'],
@@ -473,12 +471,15 @@ def go_service_image(ref, name):
         labels=['build'],
         allow_parallel=True,
     )
-    docker_build_with_restart(
+    custom_build(
         ref=ref,
-        context='bin/' + name,
-        dockerfile='Dockerfile.binary',
-        entrypoint=['/unkey'],
-        live_update=[sync('bin/%s/unkey' % name, '/unkey')],
+        command='mise run build-image -- -t "$EXPECTED_REF" -f dev/Dockerfile.binary dev/bin/' + name,
+        dir='..',
+        deps=['bin/' + name, 'Dockerfile.binary', '../.mise/tasks/build-image', '../.mise/tasks/docker-builder'],
+        live_update=[
+            sync('bin/%s/unkey' % name, '/unkey'),
+            run('date > /tmp/.restart-proc'),
+        ],
     )
     return compile_name
 
@@ -565,14 +566,8 @@ if has_depot_credentials:
     namespace = "unkey"
     image = "moby/buildkit:v0.26.3"
 
-    # Built images are pushed to the ctlptl-provisioned local registry. The
-    # "ctlptl-registry" name resolves both from pods (via the Service the
-    # Tiltfile creates in the unkey namespace) and from the minikube node's
-    # containerd (via docker network DNS), so the same image reference works
-    # for pushing and pulling. The registry has no TLS and no auth, hence
-    # insecure and empty credentials.
     [registry]
-    repository = "ctlptl-registry:5000/deployments"
+    repository = "unkey-registry:5000/deployments"
     insecure = true
 ''',
         '''    # A local .env.depot opts into the production-equivalent remote backend.
@@ -727,7 +722,7 @@ k8s_resource(
 if not ORB:
     local_resource(
         'build-portal-image',
-        'docker build -t unkey/portal:local -f ../web/apps/portal/Dockerfile .. && minikube image load unkey/portal:local',
+        'mise run build-image -- -t unkey/portal:local -f web/apps/portal/Dockerfile . && minikube -p unkey image load unkey/portal:local',
         deps=['../web/apps/portal', '../web/internal/ui', '../web/internal/icons', '../web/internal/id'],
         labels=['build'],
         auto_init=False,

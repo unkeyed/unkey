@@ -110,12 +110,14 @@ containerd runtime. The Helm-managed Cilium path uses this flag so Tilt can
 install Cilium. It also bypasses Minikube's driver and resource safety checks.
 The startup script still rejects incompatible Kubernetes versions and CNI modes.
 
-An existing Minikube profile is reused, not reapplied through `ctlptl`.
+Unkey uses the Minikube profile `unkey` and registry `unkey-registry`.
+The previous generic `minikube` profile and `ctlptl-registry` are left alone.
+Their data is not moved into the `unkey` cluster.
+
+An existing `unkey` profile is reused, not reapplied through `ctlptl`.
 Changes to `dev/cluster.yaml` apply only when creating a cluster, because
-`ctlptl apply` can delete a cluster when its configuration changes. Startup also
-accepts this branch's previous manifest-backed Cilium profile. On resume, it
-disables Minikube's CNI installer so Helm owns subsequent Cilium updates.
-Other Kubernetes version or CNI changes require an explicit reset.
+`ctlptl apply` can delete a cluster when its configuration changes.
+Kubernetes version or CNI changes require an explicit reset.
 
 The toolchain pins Minikube 1.39.0, Kubernetes/kubectl 1.37.0, and Cilium 1.20.2.
 Kubernetes 1.37.0 is built into Minikube's version list, avoiding a remote
@@ -189,11 +191,27 @@ This preserves the cluster, images, and local data. Run `mise run dev` to resume
 Do not use `tilt down` for a routine stop: it deletes Kubernetes resources,
 including persistent volume claims.
 
-To reset the cluster and delete its local data, exit Tilt and run:
+To delete Unkey's local data and builds, exit Tilt and stop tests. Preview the
+targets, then run the cleanup and type `unkey` to confirm:
 
 ```bash
-mise exec -- minikube delete -p minikube
+mise run nuke --dry-run
+mise run nuke
 ```
+
+This removes the `unkey` cluster, owned dev and test containers, volumes,
+networks, images, and the dedicated `unkey` Docker builder and its cache.
+It also removes this checkout's build outputs and Next.js/Turbo caches.
+Environment files and dependencies remain.
+
+Containers, volumes, and networks use `dev.unkey.project=unkey`. Built images
+use `dev.unkey.image=true`, so containers do not inherit resource ownership
+from an image. Minikube and Buildx use dedicated names and owned state volumes.
+Older Unkey Compose project labels and image source labels are also recognized.
+Resources still used by other containers are kept.
+
+Shared upstream images, Docker's shared build cache, other Minikube profiles,
+and the legacy `minikube`/`ctlptl-registry` resources are not removed.
 
 ## Environment configuration
 
