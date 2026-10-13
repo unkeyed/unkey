@@ -44,7 +44,10 @@ export default function PlatformFeaturesPage() {
       await getUnkeyClient().workspace.updateFlag(input);
     },
     async onSuccess(_data, input) {
-      await Promise.all([features.applyUpdate(input), utils.workspace.getCurrent.invalidate()]);
+      await Promise.all([
+        features.setCachedFlagValue(input),
+        utils.workspace.getCurrent.invalidate(),
+      ]);
       router.refresh();
       toast.success("Preview feature updated");
     },
