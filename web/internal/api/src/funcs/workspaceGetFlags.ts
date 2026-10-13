@@ -28,17 +28,15 @@ import { Result } from "../types/fp.js";
  * Get workspace flags
  *
  * @remarks
- * Get every flag's effective value, public description, and enrollment policy
- * for the authenticated workspace.
+ * Get feature flags for the workspace associated with your credentials.
  *
- * The request takes no parameters. Workspace overrides take precedence over
- * database defaults, including explicit false overrides. The response includes
- * all database-defined flags, not only flags in the dashboard preview catalog.
- * This endpoint does not register flags or change their values.
+ * Each flag is keyed by its slug and includes its current value, description,
+ * and whether it can be enabled or disabled. A workspace-specific value takes
+ * precedence over the flag's default. If no flags are available, `data` is an
+ * empty object.
  *
- * Normal reads use a workspace-scoped cache: values are fresh for 10 seconds
- * and may be served for up to 1 minute while refreshing in the background.
- * Reads after an update may return a cached value until the cache refreshes.
+ * This endpoint takes no request body. After `workspace.updateFlag` succeeds,
+ * this endpoint may briefly return the previous value.
  *
  * **Required Permissions**
  *

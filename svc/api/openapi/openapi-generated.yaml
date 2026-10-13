@@ -4378,8 +4378,8 @@ components:
                 data:
                     type: object
                     description: |
-                        Every database-defined flag, keyed by its lowercase snake_case slug.
-                        Returns an empty object when no flag definitions exist.
+                        Flags keyed by their lowercase snake_case slugs.
+                        Empty when no flags are available.
                     additionalProperties:
                         $ref: "#/components/schemas/V2WorkspaceGetFlagsFlag"
             additionalProperties: false
@@ -4422,10 +4422,10 @@ components:
                     minLength: 1
                     maxLength: 128
                     pattern: "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
-                    description: Lowercase snake_case slug of an existing flag definition.
+                    description: Lowercase snake_case slug of the flag to update, as returned by `workspace.getFlags`.
                 value:
                     type: boolean
-                    description: Workspace override to save. False is an explicit override, not a request to remove it.
+                    description: Set to true to enable the flag or false to disable it, regardless of the flag's default.
             additionalProperties: false
         V2WorkspaceUpdateFlagResponseBody:
             type: object
@@ -8378,16 +8378,16 @@ components:
             properties:
                 value:
                     type: boolean
-                    description: Effective value. A workspace override takes precedence over the database default, including an explicit false override.
+                    description: Whether the feature is enabled for this workspace. A workspace-specific value overrides the flag's default.
                 description:
                     type: string
-                    description: Public description of the flag.
+                    description: What the flag controls.
                 allowEnable:
                     type: boolean
-                    description: Whether enrollment policy permits enabling this flag. This does not grant the caller permission to change it.
+                    description: Whether this flag can be enabled. Updating it also requires `flags#write` permission.
                 allowDisable:
                     type: boolean
-                    description: Whether enrollment policy permits disabling this flag. This does not grant the caller permission to change it.
+                    description: Whether this flag can be disabled. Updating it also requires `flags#write` permission.
             additionalProperties: false
         V2WorkspaceGetLimitsResponseData:
             type: object
@@ -18860,17 +18860,15 @@ paths:
     /v2/workspace.getFlags:
         post:
             description: |
-                Get every flag's effective value, public description, and enrollment policy
-                for the authenticated workspace.
+                Get feature flags for the workspace associated with your credentials.
 
-                The request takes no parameters. Workspace overrides take precedence over
-                database defaults, including explicit false overrides. The response includes
-                all database-defined flags, not only flags in the dashboard preview catalog.
-                This endpoint does not register flags or change their values.
+                Each flag is keyed by its slug and includes its current value, description,
+                and whether it can be enabled or disabled. A workspace-specific value takes
+                precedence over the flag's default. If no flags are available, `data` is an
+                empty object.
 
-                Normal reads use a workspace-scoped cache: values are fresh for 10 seconds
-                and may be served for up to 1 minute while refreshing in the background.
-                Reads after an update may return a cached value until the cache refreshes.
+                This endpoint takes no request body. After `workspace.updateFlag` succeeds,
+                this endpoint may briefly return the previous value.
 
                 **Required Permissions**
 
@@ -18899,7 +18897,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/V2WorkspaceGetFlagsResponseBody'
-                    description: Workspace flags keyed by slug, or an empty object when no definitions exist.
+                    description: Workspace flags keyed by slug, or an empty object when no flags are available.
                 "400":
                     content:
                         application/json:
@@ -19429,22 +19427,13 @@ paths:
     /v2/workspace.updateFlag:
         post:
             description: |
-                Save a flag override for the authenticated workspace.
-
-                The flag definition must already exist. Enabling requires `allowEnable`;
-                disabling requires `allowDisable`. The policy applies to every write,
-                including retries of the same value. This endpoint does not register flags
-                or restrict updates to the dashboard preview catalog.
-
-                The override and workspace audit event commit in one transaction. On success,
-                the response contains an empty data object. Subsequent `workspace.getFlags`
-                reads may return a cached value until the cache refreshes.
+                Enable or disable a flag for your workspace. Use `workspace.getFlags` to
+                find flag slugs and check whether they can be enabled or disabled.
 
                 **Required Permissions**
 
-                Your root key must have `unkey:v1:<workspace_id>:flags#write`.
-                Dashboard roles `admin`, `developer`, and `basic_member` have this permission.
-                The `viewer` role is read-only.
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:flags#write`
             operationId: workspace.updateFlag
             requestBody:
                 content:
@@ -19458,7 +19447,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/V2WorkspaceUpdateFlagResponseBody'
-                    description: Flag override saved successfully.
+                    description: Flag updated successfully. The data object is empty.
                 "400":
                     content:
                         application/json:
@@ -19476,13 +19465,13 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Missing write permission or enrollment direction blocked by policy.
+                    description: Missing write permission, or the flag cannot be enabled or disabled as requested.
                 "404":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
-                    description: Flag definition not found.
+                    description: No flag exists with the supplied slug.
                 "429":
                     content:
                         application/problem+json:

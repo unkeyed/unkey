@@ -3,22 +3,13 @@ post:
     - workspace
   summary: Update a workspace flag
   description: |
-    Save a flag override for the authenticated workspace.
-
-    The flag definition must already exist. Enabling requires `allowEnable`;
-    disabling requires `allowDisable`. The policy applies to every write,
-    including retries of the same value. This endpoint does not register flags
-    or restrict updates to the dashboard preview catalog.
-
-    The override and workspace audit event commit in one transaction. On success,
-    the response contains an empty data object. Subsequent `workspace.getFlags`
-    reads may return a cached value until the cache refreshes.
+    Enable or disable a flag for your workspace. Use `workspace.getFlags` to
+    find flag slugs and check whether they can be enabled or disabled.
 
     **Required Permissions**
 
-    Your root key must have `unkey:v1:<workspace_id>:flags#write`.
-    Dashboard roles `admin`, `developer`, and `basic_member` have this permission.
-    The `viewer` role is read-only.
+    Your root key must have the following permission:
+    - `unkey:v1:<workspace_id>:flags#write`
   operationId: workspace.updateFlag
   x-speakeasy-name-override: updateFlag
   x-unkey-idempotency: idempotent
@@ -32,7 +23,7 @@ post:
           $ref: "./V2WorkspaceUpdateFlagRequestBody.yaml"
   responses:
     "200":
-      description: Flag override saved successfully.
+      description: Flag updated successfully. The data object is empty.
       content:
         application/json:
           schema:
@@ -50,13 +41,13 @@ post:
           schema:
             $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Missing write permission or enrollment direction blocked by policy.
+      description: Missing write permission, or the flag cannot be enabled or disabled as requested.
       content:
         application/json:
           schema:
             $ref: "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      description: Flag definition not found.
+      description: No flag exists with the supplied slug.
       content:
         application/json:
           schema:

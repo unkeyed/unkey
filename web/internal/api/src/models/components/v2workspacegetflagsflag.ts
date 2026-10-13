@@ -9,19 +9,19 @@ import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
 export type V2WorkspaceGetFlagsFlag = {
   /**
-   * Effective value. A workspace override takes precedence over the database default, including an explicit false override.
+   * Whether the feature is enabled for this workspace. A workspace-specific value overrides the flag's default.
    */
   value: boolean;
   /**
-   * Public description of the flag.
+   * What the flag controls.
    */
   description: string;
   /**
-   * Whether enrollment policy permits enabling this flag. This does not grant the caller permission to change it.
+   * Whether this flag can be enabled. Updating it also requires `flags#write` permission.
    */
   allowEnable: boolean;
   /**
-   * Whether enrollment policy permits disabling this flag. This does not grant the caller permission to change it.
+   * Whether this flag can be disabled. Updating it also requires `flags#write` permission.
    */
   allowDisable: boolean;
 };

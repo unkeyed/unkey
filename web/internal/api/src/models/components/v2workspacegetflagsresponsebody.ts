@@ -18,10 +18,10 @@ export type V2WorkspaceGetFlagsResponseBody = {
    */
   meta: Meta;
   /**
-   * Every database-defined flag, keyed by its lowercase snake_case slug.
+   * Flags keyed by their lowercase snake_case slugs.
    *
    * @remarks
-   * Returns an empty object when no flag definitions exist.
+   * Empty when no flags are available.
    */
   data: { [k: string]: V2WorkspaceGetFlagsFlag };
 };

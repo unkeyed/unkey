@@ -30,22 +30,13 @@ import { Result } from "../types/fp.js";
  * Update a workspace flag
  *
  * @remarks
- * Save a flag override for the authenticated workspace.
- *
- * The flag definition must already exist. Enabling requires `allowEnable`;
- * disabling requires `allowDisable`. The policy applies to every write,
- * including retries of the same value. This endpoint does not register flags
- * or restrict updates to the dashboard preview catalog.
- *
- * The override and workspace audit event commit in one transaction. On success,
- * the response contains an empty data object. Subsequent `workspace.getFlags`
- * reads may return a cached value until the cache refreshes.
+ * Enable or disable a flag for your workspace. Use `workspace.getFlags` to
+ * find flag slugs and check whether they can be enabled or disabled.
  *
  * **Required Permissions**
  *
- * Your root key must have `unkey:v1:<workspace_id>:flags#write`.
- * Dashboard roles `admin`, `developer`, and `basic_member` have this permission.
- * The `viewer` role is read-only.
+ * Your root key must have the following permission:
+ * - `unkey:v1:<workspace_id>:flags#write`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
