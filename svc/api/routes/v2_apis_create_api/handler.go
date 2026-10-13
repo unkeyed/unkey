@@ -139,6 +139,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Name:        req.Name,
 						DisplayName: req.Name,
 					},
+					{
+						ID:          keySpaceId,
+						Type:        auditlog.KeySpaceTargetType,
+						Meta:        nil,
+						Name:        "",
+						DisplayName: "",
+					},
 				},
 			},
 		})

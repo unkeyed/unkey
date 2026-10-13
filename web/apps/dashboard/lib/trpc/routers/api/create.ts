@@ -44,6 +44,10 @@ export async function createApiCore(
         id: apiId,
         name: input.name,
       },
+      {
+        type: "keyAuth",
+        id: keyAuthId,
+      },
     ],
     context: {
       location: ctx.audit.location,
