@@ -22,6 +22,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { notFound } from "next/navigation";
+import { useEffect } from "react";
 
 export default function PlatformFeaturesPage() {
   const { isLoading, user } = useWorkspace();
@@ -29,16 +30,31 @@ export default function PlatformFeaturesPage() {
   const enabled = useFlag("platformFeatures");
   const utils = trpc.useUtils();
   const features = useFlags();
-  const previews = platformPreviews.map((preview) => {
+  useEffect(() => {
+    if (!features.data || features.error) {
+      return;
+    }
+    for (const preview of platformPreviews) {
+      if (!features.data[preview.flag.slug]) {
+        console.warn(`Preview flag "${preview.flag.slug}" is missing from the flags API response`);
+      }
+    }
+  }, [features.data, features.error]);
+  const previews = platformPreviews.flatMap((preview) => {
     const state = features.data?.[preview.flag.slug];
-    return {
-      slug: preview.flag.slug,
-      title: preview.title,
-      description: preview.description,
-      enabled: state?.enabled ?? preview.flag.defaultValue,
-      allowOptIn: state?.allowOptIn ?? false,
-      allowOptOut: state?.allowOptOut ?? false,
-    };
+    if (!state) {
+      return [];
+    }
+    return [
+      {
+        slug: preview.flag.slug,
+        title: preview.title,
+        description: preview.description,
+        enabled: state.enabled,
+        allowOptIn: state.allowOptIn,
+        allowOptOut: state.allowOptOut,
+      },
+    ];
   });
   const update = useMutation({
     onMutate: () => features.cancel(),
@@ -85,7 +101,7 @@ export default function PlatformFeaturesPage() {
               </div>
             ) : previews.length === 0 ? (
               <p className="p-5 text-sm text-gray-11">
-                No preview features are available for this workspace.
+                There are no preview features to opt in to at the moment.
               </p>
             ) : (
               previews.map((feature) => {
