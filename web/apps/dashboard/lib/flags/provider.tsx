@@ -20,16 +20,14 @@ const FlagContext = createContext<FlagContextValue | null>(null);
 
 export function FlagProvider({
   orgId,
-  userId,
   children,
 }: PropsWithChildren<{
   orgId: string | null;
-  userId: string | null;
 }>) {
   const pathname = usePathname();
   const client = useQueryClient();
-  const queryKey = ["workspace", "flags", orgId, userId];
-  const enabled = Boolean(orgId && userId) && !pathname?.startsWith("/auth");
+  const queryKey = ["workspace", "flags", orgId];
+  const enabled = Boolean(orgId) && !pathname?.startsWith("/auth");
   const query = useQuery({
     queryKey,
     enabled,
