@@ -12,7 +12,6 @@ import {
   Badge,
   Button,
   EmptyState,
-  EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
@@ -88,7 +87,7 @@ export default function PlatformFeaturesPage() {
     <PageContainer>
       <PageHeader className="max-w-[920px]">
         <PageHeaderContent>
-          <PageHeaderTitle>Platform preview</PageHeaderTitle>
+          <PageHeaderTitle>Platform previews</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
       <SettingsGroups>
@@ -108,11 +107,8 @@ export default function PlatformFeaturesPage() {
                 <EmptyStateIcon>
                   <IconSparkle3Outline18 />
                 </EmptyStateIcon>
-                <EmptyStateHeader className="gap-1">
+                <EmptyStateHeader>
                   <EmptyStateTitle>No preview features available</EmptyStateTitle>
-                  <EmptyStateDescription>
-                    There are no preview features to opt in to at the moment.
-                  </EmptyStateDescription>
                 </EmptyStateHeader>
               </EmptyState>
             ) : (
