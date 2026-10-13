@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -77,7 +78,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
-			fault.Public("The specified key was not found."),
+			fault.Public("We could not find the requested key."),
 		)
 	}
 
@@ -99,10 +100,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		),
 	))
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("user doesn't have permissions and we don't want to leak the existence of the key"),
-			fault.Public("The specified key was not found."),
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Key.NotFound.URN(),
+			"We could not find the requested key.",
 		)
 	}
 
