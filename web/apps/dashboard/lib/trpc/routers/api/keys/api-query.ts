@@ -198,6 +198,7 @@ export async function queryApiKeys({
       conditions.push(
         await resolveIdentityFilter({
           workspaceId,
+          keyspaceId,
           condition: sql`(${sql.join(identityOrs, sql` OR `)})`,
         }),
       );
