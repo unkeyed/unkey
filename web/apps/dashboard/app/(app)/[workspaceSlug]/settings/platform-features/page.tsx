@@ -21,13 +21,12 @@ import {
   SettingsGroups,
   toast,
 } from "@unkey/ui";
-import { notFound, useRouter } from "next/navigation";
+import { notFound } from "next/navigation";
 
 export default function PlatformFeaturesPage() {
   const { isLoading, user } = useWorkspace();
   const canEnroll = canMutateWorkspace(user?.role);
   const enabled = useFlag("platformFeatures");
-  const router = useRouter();
   const utils = trpc.useUtils();
   const features = useFlags();
   const previews = Object.entries(features.data ?? {})
@@ -40,7 +39,7 @@ export default function PlatformFeaturesPage() {
     .sort((a, b) => a.slug.localeCompare(b.slug));
   const update = useMutation({
     onMutate: () => features.cancel(),
-    mutationFn: async (input: { slug: string; value: boolean }) => {
+    mutationFn: async (input: { slug: string; enabled: boolean }) => {
       await getUnkeyClient().workspace.updateFlag(input);
     },
     async onSuccess(_data, input) {
@@ -48,7 +47,6 @@ export default function PlatformFeaturesPage() {
         features.setCachedFlagValue(input),
         utils.workspace.getCurrent.invalidate(),
       ]);
-      router.refresh();
       toast.success("Preview feature updated");
     },
     onError(error) {
@@ -89,9 +87,9 @@ export default function PlatformFeaturesPage() {
             ) : (
               previews.map((feature) => {
                 const blockedReason =
-                  feature.value && !feature.allowDisable
+                  feature.enabled && !feature.allowOptOut
                     ? "Unenrollment is not available for this feature."
-                    : !feature.value && !feature.allowEnable
+                    : !feature.enabled && !feature.allowOptIn
                       ? "Enrollment is not available for this feature."
                       : undefined;
                 return (
@@ -101,8 +99,8 @@ export default function PlatformFeaturesPage() {
                     title={
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="break-words">{feature.title}</span>
-                        <Badge variant={feature.value ? "success" : "primary"}>
-                          {feature.value ? "Enrolled" : "Not enrolled"}
+                        <Badge variant={feature.enabled ? "success" : "primary"}>
+                          {feature.enabled ? "Enrolled" : "Not enrolled"}
                         </Badge>
                       </div>
                     }
@@ -115,16 +113,18 @@ export default function PlatformFeaturesPage() {
                   >
                     <Button
                       variant="outline"
-                      color={feature.value ? "danger" : "default"}
+                      color={feature.enabled ? "danger" : "default"}
                       size="sm"
-                      aria-label={`${feature.value ? "Unenroll from" : "Enroll in"} ${feature.title}`}
+                      aria-label={`${feature.enabled ? "Unenroll from" : "Enroll in"} ${feature.title}`}
                       aria-describedby={`${feature.slug}-description`}
                       disabled={!canEnroll || Boolean(blockedReason) || update.isLoading}
                       loading={update.isLoading && update.variables?.slug === feature.slug}
-                      loadingLabel={feature.value ? "Unenrolling" : "Enrolling"}
-                      onClick={() => update.mutate({ slug: feature.slug, value: !feature.value })}
+                      loadingLabel={feature.enabled ? "Unenrolling" : "Enrolling"}
+                      onClick={() =>
+                        update.mutate({ slug: feature.slug, enabled: !feature.enabled })
+                      }
                     >
-                      {feature.value ? "Unenroll" : "Enroll"}
+                      {feature.enabled ? "Unenroll" : "Enroll"}
                     </Button>
                   </SettingCard>
                 );
