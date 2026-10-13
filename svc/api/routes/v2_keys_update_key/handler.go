@@ -156,7 +156,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
+			var identityBefore sql.NullString
 			if req.ExternalId.IsSpecified() {
+				_, err = db.Query.LockKeyForUpdate(ctx, tx, key.Key.ID)
+				if err != nil {
+					return fault.Wrap(err, fault.Internal("failed to lock key for identity update"))
+				}
+				currentKey, err := db.Query.FindKeyByID(ctx, tx, key.Key.ID)
+				if err != nil {
+					return fault.Wrap(err, fault.Internal("failed to read key identity"))
+				}
+				identityBefore = currentKey.IdentityID
 				update.IdentityIDSpecified = 1
 				if req.ExternalId.IsNull() {
 					update.IdentityID = sql.NullString{Valid: false, String: ""}
@@ -622,7 +632,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			auditLogs = append(auditLogs, auditlog.AuditLog{
+			keyAuditLog := auditlog.AuditLog{
 				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.KeyUpdateEvent,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
@@ -649,7 +659,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Meta:        map[string]any{},
 					},
 				},
-			})
+			}
+			if update.IdentityID.Valid {
+				keyAuditLog.Targets = append(keyAuditLog.Targets, auditlog.AuditLogTarget{
+					Type:        auditlog.IdentityTargetType,
+					ID:          update.IdentityID.String,
+					DisplayName: "",
+					Name:        "",
+					Meta:        map[string]any{},
+				})
+			}
+			if identityBefore.Valid && identityBefore != update.IdentityID {
+				keyAuditLog.Targets[0].Meta["identityIdBefore"] = identityBefore.String
+				identityParams := db.FindIdentityByIDParams{
+					WorkspaceID: principal.AuthorizedWorkspaceID,
+					IdentityID:  identityBefore.String,
+					Deleted:     false,
+				}
+				identity, err := db.Query.FindIdentityByID(ctx, tx, identityParams)
+				if db.IsNotFound(err) {
+					identityParams.Deleted = true
+					identity, err = db.Query.FindIdentityByID(ctx, tx, identityParams)
+				}
+				if err != nil && !db.IsNotFound(err) {
+					return fault.Wrap(err, fault.Internal("failed to read previous identity"))
+				}
+				if err == nil {
+					keyAuditLog.Targets[0].Meta["identityNameBefore"] = identity.ExternalID
+					keyAuditLog.Targets[0].Meta["identityDisplayNameBefore"] = identity.ExternalID
+				}
+			}
+			auditLogs = append(auditLogs, keyAuditLog)
 
 			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 			if err != nil {
