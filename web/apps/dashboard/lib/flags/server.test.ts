@@ -71,3 +71,17 @@ it("loads server flags directly with the session credential and preserves disabl
   });
   await expect(loadFlags()).resolves.toEqual(data);
 });
+
+it("returns undefined when auth or the flags request fails", async () => {
+  vi.mocked(getAuth).mockRejectedValue(new Error("Auth unavailable"));
+  await expect(loadFlags()).resolves.toBeUndefined();
+
+  vi.mocked(getAuth).mockResolvedValue({
+    userId: crypto.randomUUID(),
+    orgId: crypto.randomUUID(),
+    role: "viewer",
+    accessToken: "session-token",
+  });
+  vi.stubGlobal("fetch", async () => new Response(null, { status: 503 }));
+  await expect(loadFlags()).resolves.toBeUndefined();
+});
