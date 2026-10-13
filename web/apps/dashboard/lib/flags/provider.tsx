@@ -13,7 +13,7 @@ type FlagContextValue = {
   error: UseQueryResult<FlagMap>["error"];
   refetch: UseQueryResult<FlagMap>["refetch"];
   cancel: () => Promise<void>;
-  setCachedFlagValue: (update: { slug: string; value: boolean }) => Promise<void>;
+  setCachedFlagValue: (update: { slug: string; enabled: boolean }) => Promise<void>;
 };
 const FlagContext = createContext<FlagContextValue | null>(null);
 
@@ -44,11 +44,11 @@ export function FlagProvider({
     error: query.error,
     refetch: query.refetch,
     cancel: () => client.cancelQueries({ queryKey }),
-    async setCachedFlagValue({ slug, value }: { slug: string; value: boolean }) {
+    async setCachedFlagValue({ slug, enabled }: { slug: string; enabled: boolean }) {
       await client.cancelQueries({ queryKey });
       client.setQueryData<FlagMap>(queryKey, (current) => {
         const entry = current?.[slug];
-        return entry ? { ...current, [slug]: { ...entry, value } } : current;
+        return entry ? { ...current, [slug]: { ...entry, enabled } } : current;
       });
     },
   };
@@ -66,5 +66,5 @@ export function useFlags() {
 export function useFlag(key: keyof typeof flags): boolean {
   const { data } = useFlags();
   const flag = flags[key];
-  return data?.[flag.slug]?.value ?? flag.defaultValue;
+  return data?.[flag.slug]?.enabled ?? flag.defaultValue;
 }
