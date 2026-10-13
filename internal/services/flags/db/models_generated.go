@@ -9,7 +9,6 @@ type Flag struct {
 	Slug         string `db:"slug"`
 	Description  string `db:"description"`
 	DefaultValue bool   `db:"default_value"`
-	Visible      bool   `db:"visible"`
 	AllowEnable  bool   `db:"allow_enable"`
 	AllowDisable bool   `db:"allow_disable"`
 }

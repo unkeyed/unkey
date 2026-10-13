@@ -3,7 +3,6 @@ CREATE TABLE `flags` (
 	`slug` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`description` varchar(1024) NOT NULL,
 	`default_value` boolean NOT NULL,
-	`visible` boolean NOT NULL DEFAULT true,
 	`allow_enable` boolean NOT NULL DEFAULT false,
 	`allow_disable` boolean NOT NULL DEFAULT false,
 	CONSTRAINT `flags_pk` PRIMARY KEY(`pk`),
