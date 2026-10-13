@@ -1,16 +1,29 @@
 "use client";
 
 import { getUnkeyClient } from "@/lib/unkey-client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { V2WorkspaceGetFlagsResponseBody } from "@unkey/api/models/components";
 import { usePathname } from "next/navigation";
 import { type PropsWithChildren, createContext, useContext } from "react";
 import * as flags from ".";
 
 type FlagMap = V2WorkspaceGetFlagsResponseBody["data"];
-const FlagContext = createContext<ReturnType<typeof useWorkspaceFlags> | null>(null);
+type FlagContextValue = Omit<UseQueryResult<FlagMap>, "data" | "isLoading"> & {
+  data: FlagMap | undefined;
+  isLoading: boolean;
+  cancel: () => Promise<void>;
+  applyUpdate: (update: { slug: string; value: boolean }) => Promise<void>;
+};
+const FlagContext = createContext<FlagContextValue | null>(null);
 
-function useWorkspaceFlags(orgId: string | null, userId: string | null) {
+export function FlagProvider({
+  orgId,
+  userId,
+  children,
+}: PropsWithChildren<{
+  orgId: string | null;
+  userId: string | null;
+}>) {
   const pathname = usePathname();
   const client = useQueryClient();
   const queryKey = ["workspace", "flags", orgId, userId];
@@ -25,7 +38,7 @@ function useWorkspaceFlags(orgId: string | null, userId: string | null) {
     },
   });
 
-  return {
+  const value: FlagContextValue = {
     ...query,
     data: enabled ? query.data : undefined,
     isLoading: enabled && query.isLoading,
@@ -38,17 +51,6 @@ function useWorkspaceFlags(orgId: string | null, userId: string | null) {
       });
     },
   };
-}
-
-export function FlagProvider({
-  orgId,
-  userId,
-  children,
-}: PropsWithChildren<{
-  orgId: string | null;
-  userId: string | null;
-}>) {
-  const value = useWorkspaceFlags(orgId, userId);
   return <FlagContext.Provider value={value}>{children}</FlagContext.Provider>;
 }
 
