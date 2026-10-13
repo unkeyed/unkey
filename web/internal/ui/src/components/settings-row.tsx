@@ -32,9 +32,6 @@ const SHOWS_PENDING_NOTE: Record<GroupSave<Member>["status"], boolean> = {
 };
 
 function groupNote(save: GroupSave<Member>, pendingNote: React.ReactNode): React.ReactNode {
-  if (save.status === "ready" && save.submit.length < save.dirty) {
-    return `Saves ${save.submit.length} of ${save.dirty} changes`;
-  }
   return SHOWS_PENDING_NOTE[save.status] ? pendingNote : null;
 }
 
