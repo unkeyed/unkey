@@ -17,7 +17,7 @@ import (
 
 func TestUpdateFlagAuthorization(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Flags: h.Flags}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	other := h.CreateWorkspace()
@@ -49,7 +49,7 @@ func TestUpdateFlagAuthorization(t *testing.T) {
 
 func TestUpdateFlagRejectsWorkspaceSelectorAndMissingValue(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Flags: h.Flags}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	other := h.CreateWorkspace()
@@ -76,7 +76,7 @@ func TestUpdateFlagDashboardRoles(t *testing.T) {
 	for _, role := range []string{"admin", "developer", "basic_member", "viewer", "unknown"} {
 		t.Run(role, func(t *testing.T) {
 			h := testutil.NewHarness(t)
-			route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+			route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Flags: h.Flags}
 			workspaceID := h.Resources().UserWorkspace.ID
 			slug := "role_" + uid.DNS1035()
 			require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{Slug: slug, AllowEnable: true, AllowDisable: true}))
