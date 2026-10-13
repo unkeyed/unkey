@@ -1,4 +1,6 @@
--- name: DeleteOldIdentityByExternalID :exec
+-- name: DeleteOldIdentityByExternalID :execrows
+-- Removes the deleted duplicate and its ratelimits. Callers must first lock
+-- these resources and compare the affected count with the captured audit targets.
 DELETE i, rl
 FROM identities i
 LEFT JOIN ratelimits rl ON i.id = rl.identity_id

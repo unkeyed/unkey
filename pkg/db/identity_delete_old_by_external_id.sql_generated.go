@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const deleteOldIdentityByExternalID = `-- name: DeleteOldIdentityByExternalID :exec
+const deleteOldIdentityByExternalID = `-- name: DeleteOldIdentityByExternalID :execrows
 DELETE i, rl
 FROM identities i
 LEFT JOIN ratelimits rl ON i.id = rl.identity_id
@@ -25,7 +25,8 @@ type DeleteOldIdentityByExternalIDParams struct {
 	CurrentIdentityID string `db:"current_identity_id"`
 }
 
-// DeleteOldIdentityByExternalID
+// Removes the deleted duplicate and its ratelimits. Callers must first lock
+// these resources and compare the affected count with the captured audit targets.
 //
 //	DELETE i, rl
 //	FROM identities i
@@ -34,7 +35,10 @@ type DeleteOldIdentityByExternalIDParams struct {
 //	  AND i.external_id = ?
 //	  AND i.id != ?
 //	  AND i.deleted = true
-func (q *Queries) DeleteOldIdentityByExternalID(ctx context.Context, db DBTX, arg DeleteOldIdentityByExternalIDParams) error {
-	_, err := db.ExecContext(ctx, deleteOldIdentityByExternalID, arg.WorkspaceID, arg.ExternalID, arg.CurrentIdentityID)
-	return err
+func (q *Queries) DeleteOldIdentityByExternalID(ctx context.Context, db DBTX, arg DeleteOldIdentityByExternalIDParams) (int64, error) {
+	result, err := db.ExecContext(ctx, deleteOldIdentityByExternalID, arg.WorkspaceID, arg.ExternalID, arg.CurrentIdentityID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
