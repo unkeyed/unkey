@@ -22,9 +22,7 @@ export class Workspace extends ClientSDK {
    * precedence over the flag's default. If no flags are available, `data` is an
    * empty object.
    *
-   * This endpoint takes no request body. After `workspace.updateFlag` succeeds,
-   * this endpoint may briefly return the previous value.
-   *
+   * This endpoint takes no request body.
    * **Required Permissions**
    *
    * Your root key must have the following permission:
