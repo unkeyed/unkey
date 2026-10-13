@@ -24,33 +24,46 @@ func TestUpdateFlagSavesFalse(t *testing.T) {
 	other := h.CreateWorkspace()
 	slug := "preview_" + uid.DNS1035()
 	require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{
-		Slug: slug, Description: "Uncatalogued preview", DefaultValue: true, AllowEnable: true, AllowDisable: true,
+		Slug:         slug,
+		Description:  "Uncatalogued preview",
+		DefaultValue: true,
+		AllowEnable:  true,
+		AllowDisable: true,
 	}))
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + key}}, handler.Request{Slug: slug, Value: false})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 	require.Equal(t, openapi.V2WorkspaceUpdateFlagResponseData{
-		Slug: slug, Value: false, Description: "Uncatalogued preview", AllowEnable: true, AllowDisable: true,
+		Slug:         slug,
+		Value:        false,
+		Description:  "Uncatalogued preview",
+		AllowEnable:  true,
+		AllowDisable: true,
 	}, res.Body.Data)
 	assertOverride(t, h, workspaceID, slug, true, false)
 	assertOverride(t, h, other.ID, slug, false, false)
+	res = testutil.CallRoute[handler.Request, handler.Response](h, route, flagHeaders(key), handler.Request{Slug: slug, Value: true})
+	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+	require.True(t, res.Body.Data.Value)
+	assertOverride(t, h, workspaceID, slug, true, true)
 	rows, err := db.Query.ListClickhouseOutboxByWorkspace(t.Context(), h.DB.RW(), workspaceID)
 	require.NoError(t, err)
-	found := false
+	changes := []map[string]any{}
 	for _, row := range rows {
 		var event auditlog.Event
 		require.NoError(t, json.Unmarshal(row.Payload, &event))
 		if event.Event == string(auditlog.WorkspaceUpdateEvent) {
-			found = true
 			require.Equal(t, workspaceID, event.WorkspaceID)
 			require.Len(t, event.Targets, 1)
 			require.Equal(t, workspaceID, event.Targets[0].ID)
-			require.Equal(t, slug, event.Targets[0].Meta["slug"])
-			require.Equal(t, false, event.Targets[0].Meta["value"])
+			changes = append(changes, event.Targets[0].Meta)
 			require.NotEmpty(t, event.Actor.ID)
 		}
 	}
-	require.True(t, found, "workspace update audit event missing")
+	require.ElementsMatch(t, []map[string]any{
+		{"slug": slug, "before": true, "after": false},
+		{"slug": slug, "before": false, "after": true},
+	}, changes)
 }
 
 func TestUpdateFlagDirectionPolicy(t *testing.T) {
@@ -72,10 +85,14 @@ func TestUpdateFlagDirectionPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			slug := "policy_" + uid.DNS1035()
 			require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{
-				Slug: slug, AllowEnable: tc.allowEnable, AllowDisable: tc.allowDisable,
+				Slug:         slug,
+				AllowEnable:  tc.allowEnable,
+				AllowDisable: tc.allowDisable,
 			}))
 			require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), h.DB.RW(), db.UpsertWorkspaceFlagOverrideParams{
-				WorkspaceID: workspaceID, FlagSlug: slug, Value: !tc.value,
+				WorkspaceID: workspaceID,
+				FlagSlug:    slug,
+				Value:       !tc.value,
 			}))
 			before, err := db.Query.ListClickhouseOutboxByWorkspace(t.Context(), h.DB.RW(), workspaceID)
 			require.NoError(t, err)

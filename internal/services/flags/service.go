@@ -93,8 +93,10 @@ func (s *service) load(ctx context.Context, workspaceID string) (map[string]Flag
 				value = row.OverrideValue.Bool
 			}
 			values[row.Slug] = Flag{
-				Value: value, Description: row.Description,
-				AllowEnable: row.AllowEnable, AllowDisable: row.AllowDisable,
+				Value:        value,
+				Description:  row.Description,
+				AllowEnable:  row.AllowEnable,
+				AllowDisable: row.AllowDisable,
 			}
 		}
 		return values, nil

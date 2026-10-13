@@ -31,8 +31,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	workspaceID := principal.AuthorizedWorkspaceID
-	if err := principal.Authorize(rbac.U(urn.New().Workspace(workspaceID).Flags(), permissions.Write)); err != nil {
+	if err := principal.Authorize(rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Flags(), permissions.Write)); err != nil {
 		return err
 	}
 	req, err := zen.BindBody[Request](s)
@@ -40,7 +39,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 	data, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (openapi.V2WorkspaceUpdateFlagResponseData, error) {
-		flag, err := db.Query.FindFlagBySlug(ctx, tx, req.Slug)
+		flag, err := db.Query.FindFlagBySlug(ctx, tx, db.FindFlagBySlugParams{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			Slug:        req.Slug,
+		})
 		if db.IsNotFound(err) {
 			return openapi.V2WorkspaceUpdateFlagResponseData{}, fault.New("flag not found",
 				fault.Code(codes.Data.Flag.NotFound.URN()),
@@ -56,15 +58,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
 				fault.Public("The flag's enrollment policy does not permit this value."))
 		}
+		before := flag.DefaultValue
+		if flag.OverrideValue.Valid {
+			before = flag.OverrideValue.Bool
+		}
 		if err := db.Query.UpsertWorkspaceFlagOverride(ctx, tx, db.UpsertWorkspaceFlagOverrideParams{
-			WorkspaceID: workspaceID, FlagSlug: req.Slug, Value: req.Value,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			FlagSlug:    req.Slug,
+			Value:       req.Value,
 		}); err != nil {
 			return openapi.V2WorkspaceUpdateFlagResponseData{}, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Public("Failed to update the flag."))
 		}
 		if err := h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-			WorkspaceID:   workspaceID,
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
 			Event:         auditlog.WorkspaceUpdateEvent,
 			ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 			ActorID:       principal.Subject.ID,
@@ -76,21 +84,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CorrelationID: "",
 			Targets: []auditlog.AuditLogTarget{{
 				Type:        auditlog.WorkspaceTargetType,
-				ID:          workspaceID,
-				Name:        workspaceID,
-				DisplayName: workspaceID,
-				Meta:        map[string]any{"slug": req.Slug, "value": req.Value},
+				ID:          principal.AuthorizedWorkspaceID,
+				Name:        principal.AuthorizedWorkspaceID,
+				DisplayName: principal.AuthorizedWorkspaceID,
+				Meta:        map[string]any{"slug": req.Slug, "before": before, "after": req.Value},
 			}},
 		}}); err != nil {
 			return openapi.V2WorkspaceUpdateFlagResponseData{}, err
 		}
 		return openapi.V2WorkspaceUpdateFlagResponseData{
-			Slug: flag.Slug, Value: req.Value, Description: flag.Description,
-			AllowEnable: flag.AllowEnable, AllowDisable: flag.AllowDisable,
+			Slug:         flag.Slug,
+			Value:        req.Value,
+			Description:  flag.Description,
+			AllowEnable:  flag.AllowEnable,
+			AllowDisable: flag.AllowDisable,
 		}, nil
 	})
 	if err != nil {
 		return err
 	}
-	return s.JSON(http.StatusOK, Response{Meta: openapi.Meta{RequestId: s.RequestID()}, Data: data})
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{RequestId: s.RequestID()},
+		Data: data,
+	})
 }
