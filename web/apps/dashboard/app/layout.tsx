@@ -80,11 +80,13 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const auth = await getAuth();
-  const flags = await loadFlags(auth).catch(() => {
-    console.error("Failed to load initial workspace flags; retrying on the client");
-    return undefined;
-  });
+  const [flags, auth] = await Promise.all([
+    loadFlags().catch(() => {
+      console.error("Failed to load initial workspace flags; retrying on the client");
+      return undefined;
+    }),
+    getAuth(),
+  ]);
   return (
     <html
       lang="en"

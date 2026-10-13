@@ -1,9 +1,12 @@
 // @vitest-environment node
 
+import { getAuth } from "@/lib/auth/get-auth";
 import type { V2WorkspaceGetFlagsResponseBody } from "@unkey/api/models/components";
 import { jwtVerify } from "jose";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { loadFlags } from "./server";
+
+vi.mock("@/lib/auth/get-auth", () => ({ getAuth: vi.fn() }));
 
 vi.mock("@/lib/env", () => ({
   env: () => ({
@@ -12,6 +15,7 @@ vi.mock("@/lib/env", () => ({
   }),
 }));
 
+beforeEach(() => vi.mocked(getAuth).mockReset());
 afterEach(() => vi.unstubAllGlobals());
 
 it("uses a workspace-scoped signed token for local auth", async () => {
@@ -28,16 +32,17 @@ it("uses a workspace-scoped signed token for local auth", async () => {
     expect(payload.roles).toEqual(["admin"]);
     return Response.json({ meta: { requestId: crypto.randomUUID() }, data: {} });
   });
-  await expect(loadFlags({ userId, orgId, role: "admin" })).resolves.toEqual({});
+  vi.mocked(getAuth).mockResolvedValue({ userId, orgId, role: "admin" });
+  await expect(loadFlags()).resolves.toEqual({});
 });
 
 it("does not request flags without an authenticated workspace", async () => {
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
-  await expect(loadFlags({ userId: null, orgId: null, role: null })).resolves.toBeNull();
-  await expect(
-    loadFlags({ userId: crypto.randomUUID(), orgId: null, role: null }),
-  ).resolves.toBeNull();
+  vi.mocked(getAuth).mockResolvedValue({ userId: null, orgId: null, role: null });
+  await expect(loadFlags()).resolves.toBeNull();
+  vi.mocked(getAuth).mockResolvedValue({ userId: crypto.randomUUID(), orgId: null, role: null });
+  await expect(loadFlags()).resolves.toBeNull();
   expect(fetcher).not.toHaveBeenCalled();
 });
 
@@ -58,12 +63,11 @@ it("loads server flags directly with the session credential and preserves disabl
     expect(request.headers.get("authorization")).toBe("Bearer session-token");
     return Response.json({ meta: { requestId: crypto.randomUUID() }, data });
   });
-  await expect(
-    loadFlags({
-      userId: crypto.randomUUID(),
-      orgId: crypto.randomUUID(),
-      role: "viewer",
-      accessToken: "session-token",
-    }),
-  ).resolves.toEqual(data);
+  vi.mocked(getAuth).mockResolvedValue({
+    userId: crypto.randomUUID(),
+    orgId: crypto.randomUUID(),
+    role: "viewer",
+    accessToken: "session-token",
+  });
+  await expect(loadFlags()).resolves.toEqual(data);
 });

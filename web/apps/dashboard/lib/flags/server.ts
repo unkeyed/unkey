@@ -1,9 +1,10 @@
-import type { GetAuthResult } from "@/lib/auth/get-auth";
+import { getAuth } from "@/lib/auth/get-auth";
 import { mintProxyJWT } from "@/lib/auth/mint-proxy-jwt";
 import { env } from "@/lib/env";
 import { Unkey } from "@unkey/api";
 
-export async function loadFlags(auth: GetAuthResult) {
+export async function loadFlags() {
+  const auth = await getAuth();
   if (!auth.userId || !auth.orgId) {
     return null;
   }
