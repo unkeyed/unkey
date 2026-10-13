@@ -1,14 +1,24 @@
 "use client";
 
-import { DeploymentSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/deployment-settings";
-import { Button, useStepWizard } from "@unkey/ui";
+import { ADVANCED_SETTINGS } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/advanced-settings/advanced-settings";
+import { BuildSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/build-settings";
+import { ComputeSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/compute/compute-settings";
+import { RUNTIME_SETTINGS } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/runtime-settings/runtime-settings";
+import { SettingsPageCollapsible } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/settings-page";
+import { NEXT_DEPLOY } from "@/lib/collections/deploy/pending-redeploy";
+import { Button, SettingsGroups, useStepWizard } from "@unkey/ui";
 
-export const ConfigureDeploymentContent = () => {
+export function ConfigureDeploymentContent() {
   const { next } = useStepWizard();
 
   return (
     <div className="w-225">
-      <DeploymentSettings githubReadOnly sections={{ build: true }} />
+      <SettingsGroups pendingNote={NEXT_DEPLOY} className="gap-4 p-0">
+        <BuildSettings githubReadOnly />
+        <ComputeSettings />
+        <SettingsPageCollapsible page={RUNTIME_SETTINGS} />
+        <SettingsPageCollapsible page={ADVANCED_SETTINGS} />
+      </SettingsGroups>
       <div className="flex justify-end mt-6 mb-10 flex-col gap-4">
         <Button type="button" variant="primary" size="xlg" className="rounded-lg" onClick={next}>
           Next
@@ -19,4 +29,4 @@ export const ConfigureDeploymentContent = () => {
       </div>
     </div>
   );
-};
+}
