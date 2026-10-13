@@ -19,17 +19,18 @@ const FlagContext = createContext<FlagContextValue | null>(null);
 
 export function FlagProvider({
   initialFlags,
+  enabled = true,
   children,
 }: PropsWithChildren<{
-  initialFlags: FlagMap | null | undefined;
+  initialFlags: FlagMap | undefined;
+  enabled?: boolean;
 }>) {
   const client = useQueryClient();
   const queryKey = ["workspace", "flags"];
-  const enabled = initialFlags !== null;
   const query = useQuery<FlagMap>({
     queryKey,
     enabled,
-    initialData: initialFlags ?? undefined,
+    initialData: initialFlags,
     refetchOnMount: initialFlags === undefined,
     keepPreviousData: false,
     queryFn: async ({ signal }) => {

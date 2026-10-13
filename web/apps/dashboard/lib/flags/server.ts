@@ -7,7 +7,7 @@ export async function loadFlags() {
   try {
     const auth = await getAuth();
     if (!auth.userId || !auth.orgId) {
-      return null;
+      return undefined;
     }
     let token = auth.accessToken;
     if (!token) {

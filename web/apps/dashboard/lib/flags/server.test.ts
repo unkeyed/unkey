@@ -40,9 +40,9 @@ it("does not request flags without an authenticated workspace", async () => {
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
   vi.mocked(getAuth).mockResolvedValue({ userId: null, orgId: null, role: null });
-  await expect(loadFlags()).resolves.toBeNull();
+  await expect(loadFlags()).resolves.toBeUndefined();
   vi.mocked(getAuth).mockResolvedValue({ userId: crypto.randomUUID(), orgId: null, role: null });
-  await expect(loadFlags()).resolves.toBeNull();
+  await expect(loadFlags()).resolves.toBeUndefined();
   expect(fetcher).not.toHaveBeenCalled();
 });
 

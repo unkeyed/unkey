@@ -84,7 +84,8 @@ it("isolates flags when the auth boundary remounts, retries failed server reads,
   const clients: QueryClient[] = [];
   function Tree({
     initialFlags,
-  }: { initialFlags: V2WorkspaceGetFlagsResponseBody["data"] | null | undefined }) {
+    enabled = true,
+  }: { initialFlags: V2WorkspaceGetFlagsResponseBody["data"] | undefined; enabled?: boolean }) {
     const [client] = useState(() => {
       const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
       clients.push(client);
@@ -92,7 +93,7 @@ it("isolates flags when the auth boundary remounts, retries failed server reads,
     });
     return (
       <QueryClientProvider client={client}>
-        <FlagProvider initialFlags={initialFlags}>
+        <FlagProvider initialFlags={initialFlags} enabled={enabled}>
           <State />
         </FlagProvider>
       </QueryClientProvider>
@@ -125,7 +126,7 @@ it("isolates flags when the auth boundary remounts, retries failed server reads,
   expect(screen.getByText("Loading")).toBeDefined();
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Read failed");
   expect(fetcher).toHaveBeenCalledTimes(1);
-  view.rerender(<Tree key={crypto.randomUUID()} initialFlags={null} />);
+  view.rerender(<Tree key={crypto.randomUUID()} initialFlags={undefined} enabled={false} />);
   await act(async () => {});
   expect(fetcher).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole("alert")).toBeNull();
