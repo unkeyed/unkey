@@ -296,8 +296,8 @@ export const router = t.router({
       }),
     }),
     envVar: t.router({
-      rename: renameEnvVars,
       makeSensitive,
+      rename: renameEnvVars,
     }),
     domain: t.router({
       list: listDomains,

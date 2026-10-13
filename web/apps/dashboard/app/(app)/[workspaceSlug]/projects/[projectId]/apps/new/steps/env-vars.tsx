@@ -3,7 +3,8 @@
 import { IconChevronLeftOutline18 } from "@unkey/icons";
 import { Button, useStepWizard } from "@unkey/ui";
 import { ProjectDataProvider } from "../../[appId]/(overview)/data-provider";
-import { DeploymentEnvVars } from "../../[appId]/(overview)/env-vars/deployment-env-vars";
+import { AddEnvVarsButton } from "../../_components/env-vars/add/add-env-vars-button";
+import { EnvVarsSection } from "../../_components/env-vars/env-vars-section";
 import { DeployAction } from "./deploy-action";
 
 type EnvVarsStepProps = {
@@ -28,7 +29,12 @@ export const EnvVarsStep = ({ projectId, appId, onDeploymentCreated }: EnvVarsSt
       </Button>
       <div className="w-225">
         <ProjectDataProvider projectId={projectId} appId={appId}>
-          <DeploymentEnvVars />
+          <div className="flex flex-col gap-5">
+            <div className="flex justify-end">
+              <AddEnvVarsButton />
+            </div>
+            <EnvVarsSection />
+          </div>
           <DeployAction
             projectId={projectId}
             appId={appId}
