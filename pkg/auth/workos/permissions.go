@@ -93,13 +93,12 @@ var developerPermissions = []resourcePermission{
 	{resource: "projects/*/rbac/permissions/*", action: rbac.ActionType(rbacpermissions.Delete)},
 }
 
-// viewerPermissions includes product reads and flag enrollment but excludes API key decryption.
+// viewerPermissions includes product reads but excludes writes and API key decryption.
 var viewerPermissions = []resourcePermission{
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "limits", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "usage", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "flags", action: rbac.ActionType(rbacpermissions.Read)},
-	{resource: "flags", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Read)},

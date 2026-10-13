@@ -102,11 +102,11 @@ func TestUpdateFlagDashboardRoles(t *testing.T) {
 			h.Register(route, stack...)
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, flagHeaders("dashboard_jwt"), handler.Request{Slug: slug, Value: true})
 			status := http.StatusForbidden
-			if role != "unknown" {
+			if role != "unknown" && role != "viewer" {
 				status = http.StatusOK
 			}
 			require.Equal(t, status, res.Status, res.RawBody)
-			assertOverride(t, h, workspaceID, slug, true, role != "unknown")
+			assertOverride(t, h, workspaceID, slug, true, status == http.StatusOK)
 		})
 	}
 }
