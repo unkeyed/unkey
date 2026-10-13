@@ -108,6 +108,15 @@ export default function UsagePage() {
     ? info?.products.find((product) => product.id === info.currentProductId)
     : undefined;
 
+  const isLegacy = Object.keys(workspace.subscriptions ?? {}).length > 0;
+  const planQuota =
+    apiProduct?.quotas.requestsPerMonth ?? limits?.apiBillableOperationsCountMaxPerMonth;
+  const canUpgrade =
+    planKnown &&
+    !isLegacy &&
+    planQuota !== undefined &&
+    info.products.some((product) => product.quotas.requestsPerMonth > planQuota);
+
   let feeCents: number | null;
   if (!planKnown) {
     feeCents = null;
@@ -133,6 +142,7 @@ export default function UsagePage() {
         (usage.data === undefined && !usage.isError) || (!planKnown && !billingInfo.isError)
       }
       isError={usage.isError && usage.data === undefined}
+      canUpgrade={canUpgrade}
     />
   );
 
