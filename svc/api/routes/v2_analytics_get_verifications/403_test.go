@@ -14,7 +14,7 @@ func Test403_NoAnalyticsPermission(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#read", workspace.ID))
 
 	route := &Handler{
 		DB:                         h.DB,

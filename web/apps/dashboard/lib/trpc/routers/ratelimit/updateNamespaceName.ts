@@ -71,7 +71,7 @@ export const updateNamespaceName = workspaceProcedure
         },
         event: "ratelimitNamespace.update",
         description: `Changed ${namespace.id} name from ${namespace.name} to ${input.name}`,
-        resources: [
+        targets: [
           {
             type: "ratelimitNamespace",
             id: namespace.id,

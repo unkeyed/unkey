@@ -200,7 +200,7 @@ export const updateSubscription = workspaceProcedure
         description: `Scheduled switch to ${newProduct.name} plan for ${new Date(
           result.effectiveAt,
         ).toISOString()}.`,
-        resources: [],
+        targets: [{ type: "workspace", id: ctx.workspace.id }],
         context: {
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,
@@ -249,7 +249,7 @@ export const updateSubscription = workspaceProcedure
         },
         event: "workspace.update",
         description: `Switched to ${newProduct.name} plan.`,
-        resources: [],
+        targets: [{ type: "workspace", id: ctx.workspace.id }],
         context: {
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,

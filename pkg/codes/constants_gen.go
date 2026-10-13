@@ -82,6 +82,11 @@ const (
 	// UnkeyDataErrors
 	// ----------------
 
+	// Flag
+
+	// NotFound indicates the requested flag definition was not found.
+	UnkeyDataErrorsFlagNotFound URN = "err:unkey:data:flag_not_found"
+
 	// Key
 
 	// NotFound indicates the requested key was not found.

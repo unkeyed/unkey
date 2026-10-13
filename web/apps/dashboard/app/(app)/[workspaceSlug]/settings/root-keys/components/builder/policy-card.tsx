@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import { EnvironmentPicker } from "./environment-picker";
 import { instanceLabels, useScopeInstances } from "./hooks/use-scope-instances";
 import { InstancePicker } from "./instance-picker";
 import { CATALOGUES } from "./lib/catalogue";
@@ -72,7 +73,7 @@ type PolicyEditorProps = {
 
 export function PolicyEditor({ policy, error, onChange, onCollapse, onRemove }: PolicyEditorProps) {
   const catalogue = CATALOGUES[policy.scope];
-  const { instances, isLoading } = useScopeInstances(policy.scope);
+  const { instances, isLoading, environmentOptions } = useScopeInstances(policy.scope);
 
   return (
     <section className="flex flex-col gap-4 rounded-lg border bg-raised p-4">
@@ -103,7 +104,7 @@ export function PolicyEditor({ policy, error, onChange, onCollapse, onRemove }: 
             <IconCircleInfoOutline18 className="size-3.5 shrink-0 text-gray-9" />
           </InfoTooltip>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex-1">
             <Select
               value={policy.scope}
@@ -127,14 +128,23 @@ export function PolicyEditor({ policy, error, onChange, onCollapse, onRemove }: 
             </Select>
           </div>
           {catalogue.instanceNoun === null ? null : (
-            <div className="flex-1">
-              <InstancePicker
-                noun={catalogue.instanceNoun}
-                instances={instances}
-                isLoading={isLoading}
-                value={policy.instances}
-                onChange={(next) => onChange({ ...policy, instances: next })}
-              />
+            <div className="min-w-0 flex-1">
+              {environmentOptions ? (
+                <EnvironmentPicker
+                  {...environmentOptions}
+                  isLoading={isLoading}
+                  value={policy.instances}
+                  onChange={(next) => onChange({ ...policy, instances: next })}
+                />
+              ) : (
+                <InstancePicker
+                  noun={catalogue.instanceNoun}
+                  instances={instances}
+                  isLoading={isLoading}
+                  value={policy.instances}
+                  onChange={(next) => onChange({ ...policy, instances: next })}
+                />
+              )}
             </div>
           )}
         </div>

@@ -5,6 +5,7 @@ import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { CopyButton } from "@unkey/ui";
 import { useProjectData } from "../(overview)/data-provider";
+import { useRecentDeployments } from "../(overview)/hooks/use-recent-deployments";
 import { DottedLink } from "./dotted-link";
 
 type DeploymentIdLinkProps = {
@@ -13,9 +14,10 @@ type DeploymentIdLinkProps = {
 
 export function DeploymentIdLink({ deploymentId }: DeploymentIdLinkProps) {
   const workspace = useWorkspaceNavigation();
-  const { projectId, getDeploymentById } = useProjectData();
-  // no appId means the deployment is not in the loaded collection, show the id without a broken link
-  const appId = getDeploymentById(deploymentId)?.appId;
+  const { projectId } = useProjectData();
+  const { deployments } = useRecentDeployments();
+  // no appId means the deployment is not among the recent ones, show the id without a broken link
+  const appId = deployments.find((d) => d.id === deploymentId)?.appId;
 
   if (!appId) {
     return (

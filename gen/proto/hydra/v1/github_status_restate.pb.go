@@ -16,15 +16,14 @@ import (
 // GitHubStatusServiceClient is the client API for hydra.v1.GitHubStatusService service.
 //
 // GitHubStatusService is a Restate virtual object keyed by deployment ID that
-// owns all GitHub deployment status reporting (Deployments API + PR comments).
+// owns GitHub deployments, commit statuses, and PR comments.
 // Any service can fire-and-forget status updates to it without needing GitHub
 // credentials or state about the deployment.
 type GitHubStatusServiceClient interface {
 	// Init sets up the virtual object with deployment context and creates the
-	// GitHub deployment + PR comment. Called once by the deploy workflow after
-	// the build step completes.
+	// GitHub deployment, commit status, and PR comment before the build is queued.
 	Init(opts ...sdk_go.ClientOption) sdk_go.Client[*GitHubStatusInitRequest, *GitHubStatusInitResponse]
-	// ReportStatus updates both the GitHub deployment status and the PR comment.
+	// ReportStatus updates the deployment, commit status, and PR comment.
 	// Fire-and-forget — errors are logged, never propagated.
 	ReportStatus(opts ...sdk_go.ClientOption) sdk_go.Client[*GitHubStatusReportRequest, *GitHubStatusReportResponse]
 }
@@ -64,10 +63,9 @@ func (c *gitHubStatusServiceClient) ReportStatus(opts ...sdk_go.ClientOption) sd
 // This client is used to call the service from outside of a Restate context.
 type GitHubStatusServiceIngressClient interface {
 	// Init sets up the virtual object with deployment context and creates the
-	// GitHub deployment + PR comment. Called once by the deploy workflow after
-	// the build step completes.
+	// GitHub deployment, commit status, and PR comment before the build is queued.
 	Init() ingress.Requester[*GitHubStatusInitRequest, *GitHubStatusInitResponse]
-	// ReportStatus updates both the GitHub deployment status and the PR comment.
+	// ReportStatus updates the deployment, commit status, and PR comment.
 	// Fire-and-forget — errors are logged, never propagated.
 	ReportStatus() ingress.Requester[*GitHubStatusReportRequest, *GitHubStatusReportResponse]
 }
@@ -101,15 +99,14 @@ func (c *gitHubStatusServiceIngressClient) ReportStatus() ingress.Requester[*Git
 // for forward compatibility.
 //
 // GitHubStatusService is a Restate virtual object keyed by deployment ID that
-// owns all GitHub deployment status reporting (Deployments API + PR comments).
+// owns GitHub deployments, commit statuses, and PR comments.
 // Any service can fire-and-forget status updates to it without needing GitHub
 // credentials or state about the deployment.
 type GitHubStatusServiceServer interface {
 	// Init sets up the virtual object with deployment context and creates the
-	// GitHub deployment + PR comment. Called once by the deploy workflow after
-	// the build step completes.
+	// GitHub deployment, commit status, and PR comment before the build is queued.
 	Init(ctx sdk_go.ObjectContext, req *GitHubStatusInitRequest) (*GitHubStatusInitResponse, error)
-	// ReportStatus updates both the GitHub deployment status and the PR comment.
+	// ReportStatus updates the deployment, commit status, and PR comment.
 	// Fire-and-forget — errors are logged, never propagated.
 	ReportStatus(ctx sdk_go.ObjectContext, req *GitHubStatusReportRequest) (*GitHubStatusReportResponse, error)
 }
