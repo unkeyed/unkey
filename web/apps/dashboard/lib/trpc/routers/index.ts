@@ -90,7 +90,6 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
-import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
@@ -226,7 +225,6 @@ export const router = t.router({
     }),
     namespace: t.router({
       queryRatelimitLastUsed,
-      delete: deleteNamespace,
     }),
   }),
   logs: t.router({

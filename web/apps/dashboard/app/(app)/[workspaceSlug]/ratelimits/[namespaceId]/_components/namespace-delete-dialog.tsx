@@ -2,9 +2,9 @@
 
 import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpcClient } from "@/lib/collections/client";
 import { routes } from "@/lib/navigation/routes";
 import { useInvalidateNamespaces } from "@/lib/queries/ratelimit-namespaces";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, Input, Loading, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -54,11 +54,14 @@ export const DeleteNamespaceDialog = ({
   const isValid = watch("name") === namespace.name;
 
   const onSubmit = async () => {
-    const mutation = trpcClient.ratelimit.namespace.delete.mutate({ namespaceId: namespace.id });
+    const mutation = getUnkeyClient().ratelimit.deleteNamespace({ namespace: namespace.id });
     toast.promise(mutation, {
       loading: "Deleting namespace...",
       success: "Namespace deleted",
-      error: "Failed to delete namespace",
+      error: (err) => ({
+        message: "Failed to delete namespace",
+        description: getErrorMessage(err),
+      }),
     });
     try {
       await mutation;
