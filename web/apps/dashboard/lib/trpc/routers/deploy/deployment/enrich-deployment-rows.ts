@@ -33,7 +33,6 @@ export type DeploymentDetails = {
   desiredInstanceCount: number;
   desiredRegions: {
     region: { id: string; name: string; platform: string };
-    flagCode: FlagCode;
   }[];
   hasOpenApiSpec: boolean;
 };
