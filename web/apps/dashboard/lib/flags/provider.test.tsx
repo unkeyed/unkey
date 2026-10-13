@@ -158,7 +158,7 @@ it("applies the saved value without losing metadata or letting an older read ove
         </button>
         <button
           type="button"
-          onClick={() => flags.applyUpdate({ slug: "projects_nav", value: true })}
+          onClick={() => flags.setCachedFlagValue({ slug: "projects_nav", value: true })}
         >
           Saved
         </button>

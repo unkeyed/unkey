@@ -8,11 +8,13 @@ import { type PropsWithChildren, createContext, useContext } from "react";
 import * as flags from ".";
 
 type FlagMap = V2WorkspaceGetFlagsResponseBody["data"];
-type FlagContextValue = Omit<UseQueryResult<FlagMap>, "data" | "isLoading"> & {
+type FlagContextValue = {
   data: FlagMap | undefined;
   isLoading: boolean;
+  error: UseQueryResult<FlagMap>["error"];
+  refetch: UseQueryResult<FlagMap>["refetch"];
   cancel: () => Promise<void>;
-  applyUpdate: (update: { slug: string; value: boolean }) => Promise<void>;
+  setCachedFlagValue: (update: { slug: string; value: boolean }) => Promise<void>;
 };
 const FlagContext = createContext<FlagContextValue | null>(null);
 
@@ -39,11 +41,12 @@ export function FlagProvider({
   });
 
   const value: FlagContextValue = {
-    ...query,
     data: enabled ? query.data : undefined,
     isLoading: enabled && query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
     cancel: () => client.cancelQueries({ queryKey }),
-    async applyUpdate({ slug, value }: { slug: string; value: boolean }) {
+    async setCachedFlagValue({ slug, value }: { slug: string; value: boolean }) {
       await client.cancelQueries({ queryKey });
       client.setQueryData<FlagMap>(queryKey, (current) => {
         const entry = current?.[slug];
