@@ -6,11 +6,11 @@ import * as z from "zod/v3";
 
 export type V2WorkspaceUpdateFlagRequestBody = {
   /**
-   * Lowercase snake_case slug of an existing flag definition.
+   * Lowercase snake_case slug of the flag to update, as returned by `workspace.getFlags`.
    */
   slug: string;
   /**
-   * Workspace override to save. False is an explicit override, not a request to remove it.
+   * Set to true to enable the flag or false to disable it, regardless of the flag's default.
    */
   value: boolean;
 };

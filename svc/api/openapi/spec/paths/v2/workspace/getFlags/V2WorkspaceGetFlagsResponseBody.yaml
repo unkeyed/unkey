@@ -8,8 +8,8 @@ properties:
   data:
     type: object
     description: |
-      Every database-defined flag, keyed by its lowercase snake_case slug.
-      Returns an empty object when no flag definitions exist.
+      Flags keyed by their lowercase snake_case slugs.
+      Empty when no flags are available.
     additionalProperties:
       $ref: "./V2WorkspaceGetFlagsFlag.yaml"
 additionalProperties: false

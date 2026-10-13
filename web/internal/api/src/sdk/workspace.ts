@@ -15,17 +15,15 @@ export class Workspace extends ClientSDK {
    * Get workspace flags
    *
    * @remarks
-   * Get every flag's effective value, public description, and enrollment policy
-   * for the authenticated workspace.
+   * Get feature flags for the workspace associated with your credentials.
    *
-   * The request takes no parameters. Workspace overrides take precedence over
-   * database defaults, including explicit false overrides. The response includes
-   * all database-defined flags, not only flags in the dashboard preview catalog.
-   * This endpoint does not register flags or change their values.
+   * Each flag is keyed by its slug and includes its current value, description,
+   * and whether it can be enabled or disabled. A workspace-specific value takes
+   * precedence over the flag's default. If no flags are available, `data` is an
+   * empty object.
    *
-   * Normal reads use a workspace-scoped cache: values are fresh for 10 seconds
-   * and may be served for up to 1 minute while refreshing in the background.
-   * Reads after an update may return a cached value until the cache refreshes.
+   * This endpoint takes no request body. After `workspace.updateFlag` succeeds,
+   * this endpoint may briefly return the previous value.
    *
    * **Required Permissions**
    *
@@ -107,22 +105,13 @@ export class Workspace extends ClientSDK {
    * Update a workspace flag
    *
    * @remarks
-   * Save a flag override for the authenticated workspace.
-   *
-   * The flag definition must already exist. Enabling requires `allowEnable`;
-   * disabling requires `allowDisable`. The policy applies to every write,
-   * including retries of the same value. This endpoint does not register flags
-   * or restrict updates to the dashboard preview catalog.
-   *
-   * The override and workspace audit event commit in one transaction. On success,
-   * the response contains an empty data object. Subsequent `workspace.getFlags`
-   * reads may return a cached value until the cache refreshes.
+   * Enable or disable a flag for your workspace. Use `workspace.getFlags` to
+   * find flag slugs and check whether they can be enabled or disabled.
    *
    * **Required Permissions**
    *
-   * Your root key must have `unkey:v1:<workspace_id>:flags#write`.
-   * Dashboard roles `admin`, `developer`, and `basic_member` have this permission.
-   * The `viewer` role is read-only.
+   * Your root key must have the following permission:
+   * - `unkey:v1:<workspace_id>:flags#write`
    */
   async updateFlag(
     request: components.V2WorkspaceUpdateFlagRequestBody,

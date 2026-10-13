@@ -8,8 +8,8 @@ properties:
     minLength: 1
     maxLength: 128
     pattern: "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
-    description: Lowercase snake_case slug of an existing flag definition.
+    description: Lowercase snake_case slug of the flag to update, as returned by `workspace.getFlags`.
   value:
     type: boolean
-    description: Workspace override to save. False is an explicit override, not a request to remove it.
+    description: Set to true to enable the flag or false to disable it, regardless of the flag's default.
 additionalProperties: false

@@ -7104,23 +7104,23 @@ type V2RootKeysUpdateKeyResponseBody struct {
 
 // V2WorkspaceGetFlagsFlag defines model for V2WorkspaceGetFlagsFlag.
 type V2WorkspaceGetFlagsFlag struct {
-	// AllowDisable Whether enrollment policy permits disabling this flag. This does not grant the caller permission to change it.
+	// AllowDisable Whether this flag can be disabled. Updating it also requires `flags#write` permission.
 	AllowDisable bool `json:"allowDisable"`
 
-	// AllowEnable Whether enrollment policy permits enabling this flag. This does not grant the caller permission to change it.
+	// AllowEnable Whether this flag can be enabled. Updating it also requires `flags#write` permission.
 	AllowEnable bool `json:"allowEnable"`
 
-	// Description Public description of the flag.
+	// Description What the flag controls.
 	Description string `json:"description"`
 
-	// Value Effective value. A workspace override takes precedence over the database default, including an explicit false override.
+	// Value Whether the feature is enabled for this workspace. A workspace-specific value overrides the flag's default.
 	Value bool `json:"value"`
 }
 
 // V2WorkspaceGetFlagsResponseBody defines model for V2WorkspaceGetFlagsResponseBody.
 type V2WorkspaceGetFlagsResponseBody struct {
-	// Data Every database-defined flag, keyed by its lowercase snake_case slug.
-	// Returns an empty object when no flag definitions exist.
+	// Data Flags keyed by their lowercase snake_case slugs.
+	// Empty when no flags are available.
 	Data map[string]V2WorkspaceGetFlagsFlag `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -7406,10 +7406,10 @@ type V2WorkspaceGetUsageTotals struct {
 
 // V2WorkspaceUpdateFlagRequestBody defines model for V2WorkspaceUpdateFlagRequestBody.
 type V2WorkspaceUpdateFlagRequestBody struct {
-	// Slug Lowercase snake_case slug of an existing flag definition.
+	// Slug Lowercase snake_case slug of the flag to update, as returned by `workspace.getFlags`.
 	Slug string `json:"slug"`
 
-	// Value Workspace override to save. False is an explicit override, not a request to remove it.
+	// Value Set to true to enable the flag or false to disable it, regardless of the flag's default.
 	Value bool `json:"value"`
 }
 
