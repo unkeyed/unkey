@@ -38,15 +38,6 @@ export function DnsRecordTable({ records, isLoading }: DnsRecordTableProps) {
           />
         ))}
       </div>
-
-      {records.map(
-        (record) =>
-          record.note && (
-            <p key={`${record.type}:${record.name}:note`} className="text-xs text-gray-9">
-              <span className="font-medium">{record.type}</span> {record.note}
-            </p>
-          ),
-      )}
     </div>
   );
 }

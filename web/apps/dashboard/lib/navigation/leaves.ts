@@ -2,6 +2,7 @@ import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
   IconCubeOutline18,
+  IconEarthOutline18,
   IconFingerprintOutline18,
   IconGaugeOutline18,
   IconGearOutline18,
@@ -149,6 +150,13 @@ export function buildAppLinks(
       href: routes.projects.apps.envVars(scope),
       icon: IconTableCodeOutline18,
       isActive: page === "env-vars",
+    },
+    {
+      key: "domains",
+      label: "Domains",
+      href: routes.projects.apps.domains(scope),
+      icon: IconEarthOutline18,
+      isActive: page === "domains",
     },
     {
       key: "policies",

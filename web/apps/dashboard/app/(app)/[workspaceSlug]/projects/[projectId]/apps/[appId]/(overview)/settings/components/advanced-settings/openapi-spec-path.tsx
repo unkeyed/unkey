@@ -6,11 +6,11 @@ import { FormInput, firstMatchingSaveState } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
+import { RemoveButton } from "../../../../../_components/remove-button";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard } from "../shared/form-setting-card";
-import { RemoveButton } from "../shared/remove-button";
 
 const openapiSpecPathSchema = z.object({
   openapiSpecPath: z.string().max(512),
@@ -85,7 +85,13 @@ export const OpenapiSpecPath = () => {
             variant={errors.openapiSpecPath ? "error" : "default"}
             {...register("openapiSpecPath")}
           />
-          {openapiSpecPath && <RemoveButton onClick={handleRemove} className="shrink-0" />}
+          {openapiSpecPath && (
+            <RemoveButton
+              label="Remove OpenAPI spec path"
+              onClick={handleRemove}
+              className="shrink-0"
+            />
+          )}
         </div>
       </SettingField>
     </FormSettingCard>

@@ -3,10 +3,7 @@
 import { PlansScreen } from "@/app/(app)/[workspaceSlug]/settings/billing/components/plans-screen";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import {
-  type CustomDomain,
-  isCustomDomainLimitError,
-} from "@/lib/collections/deploy/custom-domains";
+import { type CustomDomain, customDomainErrorKind } from "@/lib/collections/deploy/custom-domains";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
@@ -121,7 +118,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       await tx.isPersisted.promise;
       reset({ environmentId: values.environmentId, domain: "" });
     } catch (err) {
-      if (isCustomDomainLimitError(err)) {
+      if (customDomainErrorKind(err) === "limit") {
         setLimitReached(true);
         return;
       }
