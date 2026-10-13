@@ -1,5 +1,6 @@
 "use client";
 
+import type { AppEnvironmentListProps } from "@/components/deploy/app-environment-list";
 import { useProjectEnvironments } from "@/hooks/use-project-environments";
 import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
 import { trpc } from "@/lib/trpc/client";
@@ -14,6 +15,7 @@ export type ScopeInstance = {
 export type ScopeInstances = {
   instances: ScopeInstance[];
   isLoading: boolean;
+  environmentOptions?: Pick<AppEnvironmentListProps, "apps" | "environments">;
 };
 
 const DEPLOY_SCOPES: ResourceScope[] = ["projects", "apps", "environments"];
@@ -59,12 +61,22 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
           project.apps.map((app) => [app.id, app.name] as const),
         ),
       );
+      const options = (environments.data ?? []).map((environment) => ({
+        ...environment,
+        id: `projects/${environment.projectId}/apps/${environment.appId}/environments/${environment.id}`,
+      }));
       return {
-        instances: (environments.data ?? []).map((environment) => ({
-          id: `projects/${environment.projectId}/apps/${environment.appId}/environments/${environment.id}`,
+        instances: options.map((environment) => ({
+          id: environment.id,
           label: environmentLabel(appNames.get(environment.appId), environment.slug),
         })),
         isLoading: environments.isLoading || projects.isLoading,
+        environmentOptions: {
+          apps: [...appNames]
+            .filter(([appId]) => options.some((option) => option.appId === appId))
+            .map(([appId, name]) => ({ appId, name })),
+          environments: options,
+        },
       };
     }
     case "keyspaces":

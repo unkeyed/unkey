@@ -25,7 +25,7 @@ func Test400_NoAuthHeaderFailsValidation(t *testing.T) {
 // Test400_InvalidQueries guarantees malformed SQL and physical tables fail.
 func Test400_InvalidQueries(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 	id := createNamespace(t, h, workspaceID)
 	tests := []string{
 		"", "SELECT FROM",
@@ -45,7 +45,7 @@ func TestAuthorizeAllowsManyUniqueNamespaces(t *testing.T) {
 	for i := range ids {
 		ids[i] = createNamespace(t, h, workspaceID)
 	}
-	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
 	quoted := make([]string, len(ids))
 	for i, id := range ids {
 		quoted[i] = "'" + id + "'"

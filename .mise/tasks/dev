@@ -4,6 +4,5 @@
 #MISE raw=true
 set -euo pipefail
 
-ctlptl apply -f ./dev/cluster.yaml
-minikube addons enable metrics-server
-tilt up -f ./dev/Tiltfile
+bash ./dev/start-cluster.sh ./dev/cluster.yaml
+exec tilt up -f ./dev/Tiltfile -- "$@"

@@ -28,7 +28,7 @@ func Test403_URNNamespaceReadDoesNotAllowLogRead(t *testing.T) {
 // limit analytics queries.
 func Test403_Permissions(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_namespace")
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/*#limit", workspaceID))
 	for _, query := range []string{
 		"SELECT * FROM ratelimits_v1",
 		"SELECT * FROM ratelimits_v1 WHERE namespace_id = 'rlns_unknown'",
@@ -42,7 +42,7 @@ func Test403_Permissions(t *testing.T) {
 // without analytics permissions are rejected before resolving ClickHouse.
 func Test403_NoPermissionsReturnsBeforeAnalyticsLookup(t *testing.T) {
 	h, route, workspaceID := newRoute(t, false)
-	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_namespace")
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/*#limit", workspaceID))
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: "SELECT * FROM ratelimits_v1"})
 	require.Equal(t, 403, res.Status)

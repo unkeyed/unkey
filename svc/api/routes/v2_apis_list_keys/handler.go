@@ -60,12 +60,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		Key:         req.ApiId,
-	}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
-		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
-	}, caches.DefaultFindFirstOp)
+	usePrimary := ptr.SafeDeref(req.RevalidateKeysCache, false)
+	replica := h.DB.RO()
+	var api db.FindLiveApiByIDRow
+	hit := cache.Miss
+	if usePrimary {
+		replica = h.DB.RW()
+		api, err = db.Query.FindLiveApiByID(ctx, replica, req.ApiId)
+	} else {
+		api, hit, err = h.ApiCache.SWR(ctx, cache.ScopedKey{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			Key:         req.ApiId,
+		}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+			return db.Query.FindLiveApiByID(ctx, replica, req.ApiId)
+		}, caches.DefaultFindFirstOp)
+	}
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -110,18 +119,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.And(
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
-				permissions.Read,
-			),
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String),
-				permissions.Read,
-			),
+	err = principal.Authorize(rbac.And(
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
+			permissions.Read,
 		),
-		ReadKeysPermissions(req.ApiId),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String),
+			permissions.Read,
+		),
 	))
 	if err != nil {
 		// Mask a read-authorization failure as 404 so that callers who lack read
@@ -144,21 +150,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.DecryptKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   api.ApiID,
-				Action:       rbac.DecryptKey,
-			}),
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
-				permissions.Decrypt,
-			),
+		err = principal.Authorize(rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
+			permissions.Decrypt,
 		))
 		if err != nil {
 			return err
@@ -197,47 +191,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 
-	// Resolve identity ID if external_id filter is provided
-	var identityID sql.NullString
-	if req.ExternalId != nil && *req.ExternalId != "" {
-		identity, identityErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
-			WorkspaceID: principal.AuthorizedWorkspaceID,
-			ExternalID:  *req.ExternalId,
-			Deleted:     false,
-		})
-		if identityErr != nil {
-			if db.IsNotFound(identityErr) {
-				// Identity doesn't exist, return empty result set
-				return s.JSON(http.StatusOK, Response{
-					Meta: openapi.Meta{
-						RequestId: s.RequestID(),
-					},
-					Data: []openapi.KeyResponseData{},
-					Pagination: openapi.Pagination{
-						Cursor:  nil,
-						HasMore: false,
-					},
-				})
-			}
-			return fault.Wrap(
-				identityErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve identity."),
-			)
-		}
-		identityID = sql.NullString{String: identity.ID, Valid: true}
-	}
-
-	// Query keys by key_auth_id instead of api_id
 	keyResults, err := db.Query.ListLiveKeysByKeySpaceID(
 		ctx,
-		h.DB.RO(),
+		replica,
 		db.ListLiveKeysByKeySpaceIDParams{
-			KeySpaceID: api.ApiKeyAuthID.String,
-			IDCursor:   p.Cursor,
-			IdentityID: identityID,
-			Limit:      p.FetchLimit(),
+			KeySpaceID:  api.ApiKeyAuthID.String,
+			IDCursor:    p.Cursor,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			ExternalID:  sql.NullString{String: ptr.SafeDeref(req.ExternalId), Valid: req.ExternalId != nil},
+			Limit:       p.FetchLimit(),
 		},
 	)
 	if err != nil {

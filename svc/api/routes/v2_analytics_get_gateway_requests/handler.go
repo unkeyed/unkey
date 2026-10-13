@@ -54,16 +54,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	wildcard := rbac.Tuple{ResourceType: rbac.Project, ResourceID: "*", Action: rbac.ReadGatewayRequests}
 	securityScopes, authorized, err := h.gatewaySecurityScopes(ctx, p.AuthorizedWorkspaceID, p.Permissions)
 	if err != nil {
 		return err
 	}
 	if !authorized {
-		return p.Authorize(rbac.Or(
-			rbac.T(wildcard),
-			rbac.U(gatewayLogsURN(p.AuthorizedWorkspaceID, "project", "app", "environment"), permissions.Read),
-		))
+		return p.Authorize(rbac.U(gatewayLogsURN(p.AuthorizedWorkspaceID, "project", "app", "environment"), permissions.Read))
 	}
 
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{

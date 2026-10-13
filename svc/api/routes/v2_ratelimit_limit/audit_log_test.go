@@ -104,8 +104,8 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 	require.NotEmpty(t, row.ActorName)
 	require.Equal(t, "audit-log-test", row.UserAgent)
 	require.Equal(t, []string{
-		string(auditlog.RatelimitNamespaceResourceType),
-		string(auditlog.RatelimitOverrideResourceType),
+		string(auditlog.RatelimitNamespaceTargetType),
+		string(auditlog.RatelimitOverrideTargetType),
 	}, row.TargetTypes)
 	require.Equal(t, []string{namespaceID, overrideID}, row.TargetIDs)
 	require.Equal(t, []string{namespaceName, identifier}, row.TargetNames)

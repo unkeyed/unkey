@@ -13,6 +13,7 @@ import (
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_get_override"
 	v2RatelimitLimit "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
+	v2RatelimitListNamespaces "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_list_namespaces"
 	v2RatelimitListOverrides "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_list_overrides"
 	v2RatelimitMultiLimit "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_multi_limit"
 	v2RatelimitSetOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_set_override"
@@ -116,8 +117,10 @@ import (
 	v2ProjectsUpdateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 
 	v2GithubInstallApp "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
+	v2WorkspaceGetFlags "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_flags"
 	v2WorkspaceGetLimits "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_limits"
 	v2WorkspaceGetUsage "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_usage"
+	v2WorkspaceUpdateFlag "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_update_flag"
 
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
@@ -284,6 +287,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2RatelimitListOverrides.Handler{
 
+			DB: svc.Database,
+		},
+	)
+
+	// v2/ratelimit.listNamespaces
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2RatelimitListNamespaces.Handler{
 			DB: svc.Database,
 		},
 	)
@@ -1002,6 +1013,16 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			GitHubAppName:       svc.GitHubAppName,
 			GitHubPrivateKeyPEM: svc.GitHubPrivateKeyPEM,
 		},
+	)
+
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2WorkspaceGetFlags.Handler{Flags: svc.Flags},
+	)
+
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2WorkspaceUpdateFlag.Handler{DB: svc.Database, Auditlogs: svc.Auditlogs, Flags: svc.Flags},
 	)
 
 	// v2/workspace.getLimits

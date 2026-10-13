@@ -5,6 +5,7 @@ set -euo pipefail
 
 rm -rf ./gen || true
 rm ./pkg/db/*_generated.go || true
+rm ./internal/services/flags/db/*_generated.go || true
 go generate ./...
 go run ./tools/exportoneof ./gen/proto
 go fmt ./...

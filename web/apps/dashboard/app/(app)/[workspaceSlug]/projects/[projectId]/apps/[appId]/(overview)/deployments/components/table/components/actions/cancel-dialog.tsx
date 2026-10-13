@@ -1,8 +1,9 @@
 "use client";
 
-import { type Deployment, collection } from "@/lib/collections";
+import type { DeploymentSummary } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, toast } from "@unkey/ui";
+import { useProjectData } from "../../../../../data-provider";
 import { DeploymentCard } from "./components/deployment-card";
 
 type CancelDialogProps = {
@@ -12,23 +13,18 @@ type CancelDialogProps = {
   // hide the cancel-trigger button optimistically before the live query
   // observes the status change.
   onCancelled?: () => void;
-  deployment: Deployment;
+  deployment: DeploymentSummary;
 };
 
 export const CancelDialog = ({ isOpen, onClose, onCancelled, deployment }: CancelDialogProps) => {
-  const utils = trpc.useUtils();
+  const { refetchDeployments } = useProjectData();
 
   const cancel = trpc.deploy.deployment.cancel.useMutation({
     onSuccess: () => {
-      utils.invalidate();
+      refetchDeployments();
       toast.success("Deployment cancelled", {
         description: `Cancelled deployment ${deployment.id}`,
       });
-      try {
-        collection.deployments.utils.refetch();
-      } catch (error) {
-        console.error("Refetch error:", error);
-      }
       onCancelled?.();
       onClose();
     },

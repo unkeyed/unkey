@@ -17,7 +17,7 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 
 	t.Run("get existing deployment successfully", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-			Permissions: []string{"project.*.create_deployment", "project.*.read_deployment"},
+			Permissions: []string{"unkey:v1:{workspaceID}:**#*"},
 		})
 
 		deploymentID := uid.New(uid.DeploymentPrefix)
@@ -25,6 +25,7 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 			ID:            deploymentID,
 			WorkspaceID:   setup.Workspace.ID,
 			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
 			EnvironmentID: setup.Environment.ID,
 			GitBranch:     "main",
 		})
@@ -63,7 +64,7 @@ func TestGetDeploymentWithWildcardPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	setupCreate := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
@@ -71,6 +72,7 @@ func TestGetDeploymentWithWildcardPermission(t *testing.T) {
 		ID:            deploymentID,
 		WorkspaceID:   setupCreate.Workspace.ID,
 		ProjectID:     setupCreate.Project.ID,
+		AppID:         setupCreate.App.ID,
 		EnvironmentID: setupCreate.Environment.ID,
 		GitBranch:     "main",
 	})
@@ -80,7 +82,7 @@ func TestGetDeploymentWithWildcardPermission(t *testing.T) {
 	}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(setupCreate.Workspace.ID, "project.*.read_deployment")
+	rootKey := h.CreateRootKey(setupCreate.Workspace.ID, deploymentPermission(setupCreate.Workspace.ID, "*", "*", "*", "*", "read"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -101,7 +103,7 @@ func TestGetDeploymentWithSpecificProjectPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	setupCreate := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
@@ -109,6 +111,7 @@ func TestGetDeploymentWithSpecificProjectPermission(t *testing.T) {
 		ID:            deploymentID,
 		WorkspaceID:   setupCreate.Workspace.ID,
 		ProjectID:     setupCreate.Project.ID,
+		AppID:         setupCreate.App.ID,
 		EnvironmentID: setupCreate.Environment.ID,
 		GitBranch:     "main",
 	})
@@ -118,7 +121,7 @@ func TestGetDeploymentWithSpecificProjectPermission(t *testing.T) {
 	}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(setupCreate.Workspace.ID, fmt.Sprintf("project.%s.read_deployment", setupCreate.Project.ID))
+	rootKey := h.CreateRootKey(setupCreate.Workspace.ID, deploymentPermission(setupCreate.Workspace.ID, setupCreate.Project.ID, "*", "*", "*", "read"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

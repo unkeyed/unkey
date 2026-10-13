@@ -1,6 +1,13 @@
 package pricing
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"regexp"
+	"runtime"
+	"strings"
+	"testing"
+)
 
 // These tests pin every amount in catalog.go, with no network or Stripe call.
 // Any change to an amount that is not matched here fails CI, so a pricing edit
@@ -219,6 +226,48 @@ func indexMeters(t *testing.T) map[string]Meter {
 		m[x.Key] = x
 	}
 	return m
+}
+
+func TestDashboardWebhookEventsMatchHandler(t *testing.T) {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot locate pricing_test.go")
+	}
+	routePath := filepath.Join(
+		filepath.Dir(file),
+		"..", "..",
+		"web", "apps", "dashboard", "app", "api", "webhooks", "stripe", "route.ts",
+	)
+	source, err := os.ReadFile(routePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := map[string]bool{}
+	for _, match := range regexp.MustCompile(`case "([^"]+)"`).FindAllStringSubmatch(string(source), -1) {
+		event := match[1]
+		if !strings.Contains(event, ".") {
+			continue
+		}
+		if handler[event] {
+			t.Errorf("dashboard handler switches on %q more than once", event)
+		}
+		handler[event] = true
+	}
+	listed := map[string]bool{}
+	for _, event := range DashboardWebhookEvents {
+		if listed[event] {
+			t.Errorf("duplicate DashboardWebhookEvents entry %q", event)
+		}
+		listed[event] = true
+		if !handler[event] {
+			t.Errorf("DashboardWebhookEvents includes %q, which route.ts does not switch on", event)
+		}
+	}
+	for event := range handler {
+		if !listed[event] {
+			t.Errorf("route.ts switches on %q, which DashboardWebhookEvents does not include", event)
+		}
+	}
 }
 
 func indexAPIProducts(t *testing.T) map[string]APIProduct {

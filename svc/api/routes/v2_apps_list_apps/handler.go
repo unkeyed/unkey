@@ -69,18 +69,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	legacyPermission := rbac.T(rbac.Tuple{
-		ResourceType: rbac.App,
-		ResourceID:   "*",
-		Action:       rbac.ReadApp,
-	})
-	legacyAllowed := rbac.Check(legacyPermission, principal.Permissions) == nil
 	collection := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID).App("*")
 	collectionURN, err := urn.ParseV1(collection.String())
 	if err != nil {
 		return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Internal("invalid app collection resource"), fault.Public("Failed to retrieve apps."))
 	}
-	if !legacyAllowed && !rbac.HasPermissionIn(collectionURN, permissions.Read, principal.Permissions) {
+	if !rbac.HasPermissionIn(collectionURN, permissions.Read, principal.Permissions) {
 		return fault.New(
 			"project not found",
 			fault.Code(codes.Data.Project.NotFound.URN()),
@@ -100,9 +94,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:     limit,
 		})
 	}, func(row db.ListAppsByProjectRow) bool {
-		if legacyAllowed {
-			return true
-		}
 		resource := urn.New().Workspace(row.WorkspaceID).Project(row.ProjectID).App(row.ID)
 		return rbac.Check(rbac.U(resource, permissions.Read), principal.Permissions) == nil
 	}, func(row db.ListAppsByProjectRow) string { return row.ID })

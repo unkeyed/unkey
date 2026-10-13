@@ -16,7 +16,7 @@ export type { App } from "./deploy/apps";
 export type { CustomDomain } from "./deploy/custom-domains";
 export type { DeploymentStatus } from "./deploy/deployment-status";
 export { DEPLOYMENT_STATUSES } from "./deploy/deployment-status";
-export type { Deployment } from "./deploy/deployments";
+export type { Deployment, DeploymentSummary } from "./deploy/deployments";
 export type { Domain } from "./deploy/domains";
 export type { EnvVar } from "./deploy/env-vars";
 export type { EnvironmentSettings } from "./deploy/environment-settings";
