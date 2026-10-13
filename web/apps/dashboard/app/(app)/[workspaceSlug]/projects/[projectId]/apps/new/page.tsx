@@ -51,7 +51,7 @@ function AppSetup({ projectId, projectHref }: { projectId: string; projectHref: 
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
   const { isDirty, report } = useUnsavedChanges();
-  useReportUnsavedChanges((isDirty || appId !== null) && !deploymentId);
+  useReportUnsavedChanges((isDirty || (appDetails !== null && appId === null)) && !deploymentId);
   const bypass = useLeaveBypass();
 
   const handleSkipGithubSetup = () => {

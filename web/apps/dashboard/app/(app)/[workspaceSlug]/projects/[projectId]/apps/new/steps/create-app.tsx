@@ -25,6 +25,7 @@ export const CreateAppStep = ({ onAppDetailsSubmitted }: CreateAppStepProps) => 
   const {
     register,
     handleSubmit,
+    reset,
     setValue,
     formState: { errors, isSubmitting, isValid, isDirty },
   } = useForm<AppDetails>({
@@ -40,6 +41,7 @@ export const CreateAppStep = ({ onAppDetailsSubmitted }: CreateAppStepProps) => 
       return;
     }
     onAppDetailsSubmitted(values);
+    reset(values);
     next();
   };
 
@@ -52,11 +54,9 @@ export const CreateAppStep = ({ onAppDetailsSubmitted }: CreateAppStepProps) => 
       <div className="flex flex-col items-center border bg-raised rounded-lg justify-center gap-4 py-[18px] px-4 min-w-[600px]">
         <form onSubmit={handleSubmit(onSubmitForm)} className="flex flex-col gap-4 w-full">
           <FormInput
-            requirement="required"
-            label="App Name"
+            label="Name"
             className="[&_input:first-of-type]:h-[36px]"
             autoFocus
-            description="A descriptive name for your app."
             data-1p-ignore
             error={errors.name?.message}
             {...register("name", { onChange: handleNameChange })}
@@ -64,10 +64,8 @@ export const CreateAppStep = ({ onAppDetailsSubmitted }: CreateAppStepProps) => 
           />
 
           <FormInput
-            requirement="required"
             label="Slug"
             className="[&_input:first-of-type]:h-[36px]"
-            description="URL-friendly identifier for your app (auto-generated from name)."
             data-1p-ignore
             error={errors.slug?.message}
             {...register("slug")}
