@@ -96,7 +96,7 @@ export default async function RootLayout({
           >
             <AuthProvider>
               <WorkspaceProvider initialUser={toAuthenticatedUser(auth)}>
-                <FlagProvider orgId={auth.orgId} userId={auth.userId}>
+                <FlagProvider orgId={auth.userId ? auth.orgId : null}>
                   <Toaster />
                   {children}
                   <CommandMenu />

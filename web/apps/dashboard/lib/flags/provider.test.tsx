@@ -50,7 +50,7 @@ it("shares one authenticated API read and preserves explicit false before code f
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <FlagProvider orgId={crypto.randomUUID()} userId={crypto.randomUUID()}>
+      <FlagProvider orgId={crypto.randomUUID()}>
         <Consumer />
         <Consumer />
       </FlagProvider>
@@ -90,7 +90,6 @@ it("isolates organizations while loading, reports read errors, and never fetches
   );
   vi.stubGlobal("fetch", fetcher);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const userId = crypto.randomUUID();
   function State() {
     const flags = useFlags();
     return (
@@ -104,7 +103,7 @@ it("isolates organizations while loading, reports read errors, and never fetches
   function Tree({ orgId }: { orgId: string | null }) {
     return (
       <QueryClientProvider client={client}>
-        <FlagProvider orgId={orgId} userId={orgId ? userId : null}>
+        <FlagProvider orgId={orgId}>
           <State />
         </FlagProvider>
       </QueryClientProvider>
@@ -168,7 +167,7 @@ it("applies the saved value without losing metadata or letting an older read ove
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <FlagProvider orgId={crypto.randomUUID()} userId={crypto.randomUUID()}>
+      <FlagProvider orgId={crypto.randomUUID()}>
         <Controls />
       </FlagProvider>
     </QueryClientProvider>,
