@@ -33,7 +33,7 @@ export default function PlatformFeaturesPage() {
   const previews = Object.entries(features.data ?? {})
     .flatMap(([slug, flag]) => {
       const preview = platformPreviews.find((preview) => preview.flag.slug === slug);
-      return preview || features.impersonating
+      return preview || user?.impersonator
         ? [{ ...flag, slug, title: preview?.title ?? slug }]
         : [];
     })
