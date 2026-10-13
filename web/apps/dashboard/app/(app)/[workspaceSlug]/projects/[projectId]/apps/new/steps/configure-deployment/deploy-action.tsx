@@ -20,7 +20,7 @@ type DeployState =
 const DEPLOY_STATE: Record<DeployState["kind"], { disabled: boolean; note: string }> = {
   loading: { disabled: true, note: "Loading your deployment settings" },
   "no-environment": { disabled: true, note: "This app has no production environment to deploy to" },
-  dirty: { disabled: true, note: "Save your changes to deploy" },
+  dirty: { disabled: true, note: "Finish your changes to deploy" },
   ready: { disabled: false, note: "We'll build your image, provision infrastructure, and more." },
 };
 

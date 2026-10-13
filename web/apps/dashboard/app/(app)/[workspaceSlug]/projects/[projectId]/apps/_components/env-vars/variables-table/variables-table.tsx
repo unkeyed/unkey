@@ -18,7 +18,13 @@ import type { VariableRows } from "./use-variable-rows";
 const sensitiveHelp =
   "Hidden in the dashboard and the API after you save. Unkey encrypts every value.";
 
-export function VariablesTable({ draft }: { draft: VariableRows }) {
+export function VariablesTable({
+  draft,
+  onFocusChange,
+}: {
+  draft: VariableRows;
+  onFocusChange?: (inside: boolean) => void;
+}) {
   const { isDragging, importFile, dropZoneProps } = useDropZone(draft.importEntries);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastIndex = draft.rows.length - 1;
@@ -72,6 +78,12 @@ export function VariablesTable({ draft }: { draft: VariableRows }) {
     <div
       {...dropZoneProps}
       tabIndex={-1}
+      onFocus={() => onFocusChange?.(true)}
+      onBlur={(e) => {
+        if (document.hasFocus() && !e.currentTarget.contains(e.relatedTarget)) {
+          onFocusChange?.(false);
+        }
+      }}
       className="relative overflow-hidden rounded-lg border border-grayA-4 bg-raised outline-hidden [--variables-columns:minmax(0,2fr)_minmax(0,3fr)_96px_36px]"
     >
       <DropOverlay isDragging={isDragging} />

@@ -59,6 +59,7 @@ export function useVariableRows() {
       replaceRows(pasteVariableEntriesAt(rows, id, entries));
     },
     showErrors: setErrors,
+    replace: replaceRows,
     reset: () => replaceRows([newVariableRow()]),
   };
 }

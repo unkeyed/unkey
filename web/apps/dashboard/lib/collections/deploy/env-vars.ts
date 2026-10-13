@@ -165,6 +165,12 @@ async function listAllVariables(
 
 const MAX_VARIABLES_PER_REQUEST = 50;
 
+async function inChunks<T>(items: T[], write: (chunk: T[]) => Promise<unknown>): Promise<void> {
+  for (let i = 0; i < items.length; i += MAX_VARIABLES_PER_REQUEST) {
+    await write(items.slice(i, i + MAX_VARIABLES_PER_REQUEST));
+  }
+}
+
 export const MAX_VARIABLES = 200;
 
 export type VariableInput = { key: string; value: string; kind: EnvVar["type"] };
@@ -205,17 +211,17 @@ export async function addVariables({
 
   let wroteAny = false;
   const writes = await Promise.allSettled(
-    environmentIds.map(async (environmentId) => {
-      for (let i = 0; i < variables.length; i += MAX_VARIABLES_PER_REQUEST) {
+    environmentIds.map((environmentId) =>
+      inChunks(variables, async (chunk) => {
         await getUnkeyClient().environments.setEnvironmentVariables({
           project: projectId,
           app: appId,
           environment: environmentId,
-          variables: variables.slice(i, i + MAX_VARIABLES_PER_REQUEST),
+          variables: chunk,
         });
         wroteAny = true;
-      }
-    }),
+      }),
+    ),
   );
   const failed = writes.find((w): w is PromiseRejectedResult => w.status === "rejected");
   if (failed) {
@@ -230,6 +236,42 @@ export async function addVariables({
 
   await trackSave(envVars.utils.refetch().catch(() => {}));
   return { status: "added", count: variables.length };
+}
+
+export type EnvVarChange = { environmentId: string; set: VariableInput[]; remove: string[] };
+
+export type EnvVarChangeResult =
+  | { change: EnvVarChange; ok: true }
+  | { change: EnvVarChange; ok: false; error: unknown };
+
+export async function applyVariableChanges({
+  projectId,
+  appId,
+  changes,
+}: {
+  projectId: string;
+  appId: string;
+  changes: EnvVarChange[];
+}): Promise<EnvVarChangeResult[]> {
+  const settled = await Promise.allSettled(
+    changes.map(async ({ environmentId, set, remove }) => {
+      const target = { project: projectId, app: appId, environment: environmentId };
+      const client = getUnkeyClient().environments;
+      await inChunks(remove, (chunk) =>
+        client.removeEnvironmentVariables({ ...target, variables: chunk }),
+      );
+      await inChunks(set, (chunk) =>
+        client.setEnvironmentVariables({ ...target, variables: chunk }),
+      );
+    }),
+  );
+  await envVars.utils.refetch().catch(() => {});
+  return changes.map((change, i) => {
+    const result = settled[i];
+    return result.status === "rejected"
+      ? { change, ok: false, error: result.reason }
+      : { change, ok: true };
+  });
 }
 
 export function envVarErrorToast(
@@ -268,17 +310,18 @@ async function removeVariables(variables: EnvVar[]): Promise<void> {
   }
 
   await Promise.all(
-    Array.from(byEnvironment.values(), async (group) => {
-      const keys = group.map((v) => v.key);
-      for (let i = 0; i < keys.length; i += MAX_VARIABLES_PER_REQUEST) {
-        await getUnkeyClient().environments.removeEnvironmentVariables({
-          project: group[0].projectId,
-          app: group[0].appId,
-          environment: group[0].environmentId,
-          variables: keys.slice(i, i + MAX_VARIABLES_PER_REQUEST),
-        });
-      }
-    }),
+    Array.from(byEnvironment.values(), (group) =>
+      inChunks(
+        group.map((v) => v.key),
+        (chunk) =>
+          getUnkeyClient().environments.removeEnvironmentVariables({
+            project: group[0].projectId,
+            app: group[0].appId,
+            environment: group[0].environmentId,
+            variables: chunk,
+          }),
+      ),
+    ),
   );
 }
 

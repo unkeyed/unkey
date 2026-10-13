@@ -20,7 +20,19 @@ export function isBlankRow(row: VariableRow): boolean {
   return row.key.trim() === "" && row.value.trim() === "";
 }
 
+export function isIncompleteRow(row: VariableRow): boolean {
+  return !isBlankRow(row) && (row.key.trim() === "" || row.value.trim() === "");
+}
+
 export function parseVariableRows(rows: VariableRow[]): ParsedRows {
+  const { variables, errors } = splitVariableRows(rows);
+  return errors.size > 0 ? { ok: false, errors } : { ok: true, variables };
+}
+
+export function splitVariableRows(rows: VariableRow[]): {
+  variables: VariableInput[];
+  errors: Map<string, RowErrors>;
+} {
   const errors = new Map<string, RowErrors>();
   const variables: VariableInput[] = [];
   const seen = new Set<string>();
@@ -52,7 +64,7 @@ export function parseVariableRows(rows: VariableRow[]): ParsedRows {
     }
   }
 
-  return errors.size > 0 ? { ok: false, errors } : { ok: true, variables };
+  return { variables, errors };
 }
 
 const TAKEN_NAME = "A variable with this key already exists.";

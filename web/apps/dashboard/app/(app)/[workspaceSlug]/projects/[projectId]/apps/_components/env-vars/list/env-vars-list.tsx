@@ -15,7 +15,7 @@ import {
   ResourceListItem,
 } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
-import { ALL_ENVIRONMENTS } from "../../environment-select";
+import { ALL_ENVIRONMENTS } from "../../environment-scope";
 import { ENV_VARS_SEARCH_KEY, type SortOption } from "../toolbar/env-vars-toolbar";
 import { useAppEnvVars } from "../use-app-env-vars";
 import { type EnvVarItem, EnvVarRow, compareByName, withEnvironments } from "./env-var-row";
@@ -67,7 +67,8 @@ export function EnvVarsList({
   const closeEdit = useCallback(() => setEditingId(null), []);
   const [searchQuery] = useResourceSearch(ENV_VARS_SEARCH_KEY);
 
-  const { data: envVarData, isLoading, failed, retry } = useAppEnvVars(projectId, appId);
+  const envVars = useAppEnvVars(projectId, appId);
+  const envVarData = envVars.status === "ready" ? envVars.data : undefined;
 
   const rows = useMemo((): EnvVarItem[] => {
     if (!envVarData) {
@@ -87,11 +88,11 @@ export function EnvVarsList({
     );
   }, [envVarData, environments, searchQuery, environmentFilter, sortBy]);
 
-  if (failed) {
-    return <LoadError title="Could not load environment variables" onRetry={retry} />;
+  if (envVars.status === "failed") {
+    return <LoadError title="Could not load environment variables" onRetry={envVars.retry} />;
   }
 
-  if (isLoading) {
+  if (envVars.status === "loading") {
     return <EnvVarsSkeleton />;
   }
 

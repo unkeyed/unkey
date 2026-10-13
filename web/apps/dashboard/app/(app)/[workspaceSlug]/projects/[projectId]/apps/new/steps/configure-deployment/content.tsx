@@ -6,7 +6,6 @@ import { BuildSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/
 import { ComputeSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/compute/compute-settings";
 import { RUNTIME_SETTINGS } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/runtime-settings/runtime-settings";
 import { SettingsPageCollapsible } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/settings-page";
-import { NEXT_DEPLOY } from "@/lib/collections/deploy/pending-redeploy";
 import {
   SettingsGroups,
   UnsavedChangesScope,
@@ -25,7 +24,7 @@ export function ConfigureDeploymentContent({
   return (
     <ConfigureFrame>
       <UnsavedChangesScope report={report}>
-        <SettingsGroups pendingNote={NEXT_DEPLOY} className="gap-4 p-0">
+        <SettingsGroups className="gap-4 p-0">
           <BuildSettings githubReadOnly />
           <ComputeSettings />
           <EnvVarsGroup />
