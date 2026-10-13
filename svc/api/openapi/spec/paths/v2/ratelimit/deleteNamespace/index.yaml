@@ -10,7 +10,7 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `unkey:v1:<workspace_id>:projects/*/ratelimits/namespaces/*#delete` (to delete every namespace)
+    - `unkey:v1:<workspace_id>:projects/*/ratelimits/namespaces/*#delete` (to delete any namespace)
     - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#delete` (to delete a specific namespace)
   operationId: ratelimit.deleteNamespace
   x-speakeasy-name-override: deleteNamespace

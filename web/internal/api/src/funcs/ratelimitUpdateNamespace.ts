@@ -39,7 +39,7 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#write` (to rename every namespace)
+ * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#write` (to rename any namespace)
  * - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#write` (to rename a specific namespace)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.

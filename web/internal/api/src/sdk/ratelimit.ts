@@ -56,7 +56,7 @@ export class Ratelimit extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#delete` (to delete every namespace)
+   * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#delete` (to delete any namespace)
    * - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#delete` (to delete a specific namespace)
    */
   async deleteNamespace(
@@ -156,7 +156,7 @@ export class Ratelimit extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#read` (to read every namespace)
+   * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#read` (to read any namespace)
    * - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#read` (to read a specific namespace)
    */
   async listNamespaces(
@@ -260,7 +260,7 @@ export class Ratelimit extends ClientSDK {
    * **Required Permissions**
    *
    * Your root key must have one of the following permissions:
-   * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#write` (to rename every namespace)
+   * - `unkey:v1:<workspace_id>:projects/* /ratelimits/namespaces/*#write` (to rename any namespace)
    * - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#write` (to rename a specific namespace)
    */
   async updateNamespace(
