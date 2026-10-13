@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -12,7 +13,12 @@ import (
 // TestEncodeAuditLogEvents guarantees that canonical targets map to aligned
 // ClickHouse Nested columns without exposing that storage shape to callers.
 func TestEncodeAuditLogEvents(t *testing.T) {
+	emptyObject, err := json.Marshal(map[string]any{})
+	require.NoError(t, err)
+
 	t.Run("event with multiple targets", func(t *testing.T) {
+		actorMeta := map[string]any{"role": "admin"}
+		targetMeta := map[string]any{"k": "v"}
 		events := []auditlog.Event{
 			{
 				EventID:     "log_1",
@@ -26,12 +32,12 @@ func TestEncodeAuditLogEvents(t *testing.T) {
 					Type: "user",
 					ID:   "user_1",
 					Name: "Alice",
-					Meta: map[string]any{"role": "admin"},
+					Meta: actorMeta,
 				},
 				RemoteIP:  "1.2.3.4",
 				UserAgent: "curl",
 				Targets: []auditlog.EventTarget{
-					{Type: "key", ID: "key_1", Name: "foo", Meta: map[string]any{"k": "v"}},
+					{Type: "key", ID: "key_1", Name: "foo", Meta: targetMeta},
 					{Type: "api", ID: "api_1", Name: "myapi"},
 				},
 			},
@@ -49,14 +55,18 @@ func TestEncodeAuditLogEvents(t *testing.T) {
 		require.Equal(t, "key.create", row.Event)
 		require.Equal(t, "Created key foo", row.Description)
 		require.Equal(t, "Alice", row.ActorName)
-		require.JSONEq(t, `{"role":"admin"}`, string(row.ActorMeta))
+		wantActorMeta, err := json.Marshal(actorMeta)
+		require.NoError(t, err)
+		require.JSONEq(t, string(wantActorMeta), string(row.ActorMeta))
 		require.Equal(t, "1.2.3.4", row.RemoteIP)
 		require.Equal(t, []string{"key", "api"}, row.TargetTypes)
 		require.Equal(t, []string{"key_1", "api_1"}, row.TargetIDs)
 		require.Equal(t, []string{"foo", "myapi"}, row.TargetNames)
 		require.Len(t, row.TargetMetas, 2)
-		require.JSONEq(t, `{"k":"v"}`, string(row.TargetMetas[0]))
-		require.JSONEq(t, `{}`, string(row.TargetMetas[1]))
+		wantTargetMeta, err := json.Marshal(targetMeta)
+		require.NoError(t, err)
+		require.JSONEq(t, string(wantTargetMeta), string(row.TargetMetas[0]))
+		require.JSONEq(t, string(emptyObject), string(row.TargetMetas[1]))
 	})
 
 	t.Run("event with no targets", func(t *testing.T) {
@@ -74,8 +84,8 @@ func TestEncodeAuditLogEvents(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		require.Equal(t, auditlog.EventSourcePlatform, rows[0].Source)
-		require.JSONEq(t, `{}`, string(rows[0].ActorMeta))
-		require.JSONEq(t, `{}`, string(rows[0].Meta))
+		require.JSONEq(t, string(emptyObject), string(rows[0].ActorMeta))
+		require.JSONEq(t, string(emptyObject), string(rows[0].Meta))
 		require.Empty(t, rows[0].TargetTypes)
 		require.Empty(t, rows[0].TargetIDs)
 		require.Empty(t, rows[0].TargetNames)

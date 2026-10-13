@@ -1,9 +1,14 @@
 package handler_test
 
 import (
+	"cmp"
+	"context"
+	"database/sql"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
@@ -21,9 +26,8 @@ func TestListWorkspaceWide(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	want := map[string]bool{}
 	for range 3 {
@@ -77,9 +81,8 @@ func TestListFilterByEnvironment(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	// A second environment in the same app whose deployments must be excluded.
 	otherEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -123,9 +126,8 @@ func TestListFilterByProject(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	target := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -180,9 +182,8 @@ func TestListFilterByApp(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	// A second app in the same project whose deployments must be excluded.
 	otherApp := h.CreateApp(seed.CreateAppRequest{
@@ -234,9 +235,8 @@ func TestListFilterByStatus(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	// Seeded deployments are all in status "pending".
 	h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -267,9 +267,8 @@ func TestListEmptyStatusFilter(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	const total = 3
 	for range total {
@@ -296,9 +295,8 @@ func TestListFilterByMultipleStatuses(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	pending := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -345,9 +343,8 @@ func TestListEmptyWorkspace(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -362,9 +359,8 @@ func TestListNewestFirst(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	const total = 5
 	insertionOrder := make([]string, 0, total)
@@ -401,9 +397,8 @@ func TestListWorkspaceIsolation(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	caller := h.CreateTestDeploymentSetup()
+	caller.RootKey = h.CreateRootKey(caller.Workspace.ID, readDeployments(caller.Workspace.ID))
 	other := h.CreateTestDeploymentSetup()
 
 	mine := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -435,9 +430,8 @@ func TestListPagination(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.read_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
 
 	const total = 5
 	created := map[string]bool{}
@@ -480,5 +474,282 @@ func TestListPagination(t *testing.T) {
 	require.Len(t, seen, total)
 	for id := range created {
 		require.True(t, seen[id], "deployment %s missing from paginated results", id)
+	}
+}
+
+// Pages follow creation time, not insertion order, so a deployment inserted
+// late with an older createdAt still lands where the dashboard sorts it. Ties
+// on createdAt fall back to insertion order, newest first.
+func TestListPaginationFollowsCreatedAt(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
+
+	base := time.Now().UnixMilli()
+	type inserted struct {
+		id        string
+		createdAt int64
+		order     int
+	}
+	var rows []inserted
+	for i, offset := range []int64{300, 100, 500, 200, 200, 400} {
+		dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+			ID:            uid.New(uid.DeploymentPrefix),
+			WorkspaceID:   setup.Workspace.ID,
+			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
+			EnvironmentID: setup.Environment.ID,
+			CreatedAt:     base + offset,
+		})
+		rows = append(rows, inserted{id: dep.ID, createdAt: base + offset, order: i})
+	}
+	slices.SortFunc(rows, func(a, b inserted) int {
+		return cmp.Or(cmp.Compare(b.createdAt, a.createdAt), cmp.Compare(b.order, a.order))
+	})
+	want := make([]string, len(rows))
+	for i, r := range rows {
+		want[i] = r.id
+	}
+
+	var got []string
+	var cursor *string
+	for range 10 {
+		req := handler.Request{Limit: new(2), Cursor: cursor}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+		for _, d := range res.Body.Data {
+			got = append(got, d.Id)
+		}
+		if !res.Body.Pagination.HasMore {
+			break
+		}
+		cursor = res.Body.Pagination.Cursor
+	}
+
+	require.Equal(t, want, got)
+}
+
+func TestListFilterByBranch(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
+
+	want := map[string]bool{}
+	for _, branch := range []string{"main", "feature/kebap", "release", ""} {
+		dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+			ID:            uid.New(uid.DeploymentPrefix),
+			WorkspaceID:   setup.Workspace.ID,
+			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
+			EnvironmentID: setup.Environment.ID,
+			Source:        db.DeploymentsSourceGit,
+			GitBranch:     branch,
+			GitCommitSha:  "abc123",
+		})
+		if branch == "main" || branch == "feature/kebap" {
+			want[dep.ID] = true
+		}
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{
+		Project: rid(setup.Project.Slug),
+		App:     rid(setup.App.Slug),
+		Branch:  &[]string{"main", "feature/kebap"},
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, len(want))
+	for _, d := range res.Body.Data {
+		require.True(t, want[d.Id], "deployment %s is not on a requested branch", d.Id)
+	}
+	empty := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{Branch: new([]string{})})
+	require.Equal(t, http.StatusOK, empty.Status, "an empty branch list is no filter, received: %s", empty.RawBody)
+	require.Len(t, empty.Body.Data, 4)
+}
+
+func TestListFilterByTime(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
+
+	const start, end = int64(1_704_067_200_000), int64(1_704_672_000_000)
+	byCreatedAt := map[int64]string{}
+	for _, createdAt := range []int64{start - 1, start, end - 1, end} {
+		dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+			ID:            uid.New(uid.DeploymentPrefix),
+			WorkspaceID:   setup.Workspace.ID,
+			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
+			EnvironmentID: setup.Environment.ID,
+			CreatedAt:     createdAt,
+		})
+		byCreatedAt[createdAt] = dep.ID
+	}
+
+	list := func(req handler.Request) []string {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+		ids := make([]string, len(res.Body.Data))
+		for i, d := range res.Body.Data {
+			ids[i] = d.Id
+		}
+		return ids
+	}
+
+	t.Run("startTime is inclusive and endTime is exclusive", func(t *testing.T) {
+		got := list(handler.Request{StartTime: new(start), EndTime: new(end)})
+		require.ElementsMatch(t, []string{byCreatedAt[start], byCreatedAt[end-1]}, got)
+	})
+	t.Run("startTime alone", func(t *testing.T) {
+		got := list(handler.Request{StartTime: new(end)})
+		require.ElementsMatch(t, []string{byCreatedAt[end]}, got)
+	})
+	t.Run("endTime alone", func(t *testing.T) {
+		got := list(handler.Request{EndTime: new(start)})
+		require.ElementsMatch(t, []string{byCreatedAt[start-1]}, got)
+	})
+}
+
+func TestListDeploymentFields(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
+
+	recordStep := func(deploymentID string, step db.DeploymentStepsStep, endedAt int64) {
+		ctx := context.Background()
+		require.NoError(t, db.Query.InsertDeploymentStep(ctx, h.DB.RW(), db.InsertDeploymentStepParams{
+			WorkspaceID:   setup.Workspace.ID,
+			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
+			EnvironmentID: setup.Environment.ID,
+			DeploymentID:  deploymentID,
+			Step:          step,
+			StartedAt:     1,
+		}))
+		if endedAt == 0 {
+			return
+		}
+		require.NoError(t, db.Query.EndDeploymentStep(ctx, h.DB.RW(), db.EndDeploymentStepParams{
+			DeploymentID: deploymentID,
+			Step:         step,
+			EndedAt:      sql.NullInt64{Valid: true, Int64: endedAt},
+			Error:        sql.NullString{Valid: false},
+		}))
+	}
+
+	triggeredBy := uid.New(uid.KeyPrefix)
+	gitDep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:                     uid.New(uid.DeploymentPrefix),
+		WorkspaceID:            setup.Workspace.ID,
+		ProjectID:              setup.Project.ID,
+		AppID:                  setup.App.ID,
+		EnvironmentID:          setup.Environment.ID,
+		Status:                 mysqltype.DeploymentsStatusReady,
+		Source:                 db.DeploymentsSourceGit,
+		GitBranch:              "main",
+		GitCommitSha:           "9f2c1a7",
+		GitCommitMessage:       "add KEBAP endpoint",
+		GitCommitAuthorHandle:  "octocat",
+		GitCommitAuthorAvatar:  "https://avatars.githubusercontent.com/u/1",
+		GitCommitTimestamp:     1_704_067_100_000,
+		PrNumber:               412,
+		ForkRepositoryFullName: "octocat/kebap",
+		Trigger:                db.DeploymentsTriggerCli,
+		TriggeredBy:            triggeredBy,
+	})
+	recordStep(gitDep.ID, db.DeploymentStepsStepBuilding, 1_704_067_230_000)
+	recordStep(gitDep.ID, db.DeploymentStepsStepDeploying, 1_704_067_260_000)
+
+	ociDep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:             uid.New(uid.DeploymentPrefix),
+		WorkspaceID:    setup.Workspace.ID,
+		ProjectID:      setup.Project.ID,
+		AppID:          setup.App.ID,
+		EnvironmentID:  setup.Environment.ID,
+		Status:         mysqltype.DeploymentsStatusReady,
+		Source:         db.DeploymentsSourceOci,
+		ImageRequested: "ghcr.io/acme/kebap:v1",
+		ImageResolved:  "ghcr.io/acme/kebap@sha256:abc",
+	})
+	recordStep(ociDep.ID, db.DeploymentStepsStepQueued, 1_704_067_230_000)
+	recordStep(ociDep.ID, db.DeploymentStepsStepDeploying, 0)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 2)
+	byID := map[string]openapi.Deployment{}
+	for _, d := range res.Body.Data {
+		byID[d.Id] = d
+	}
+
+	t.Run("git deployment", func(t *testing.T) {
+		d := byID[gitDep.ID]
+		require.Equal(t, &openapi.DeploymentGit{
+			CommitSha:       "9f2c1a7",
+			Branch:          new("main"),
+			CommitMessage:   new("add KEBAP endpoint"),
+			CommitTimestamp: new(int64(1_704_067_100_000)),
+			Author: &openapi.DeploymentGitAuthor{
+				Handle:    "octocat",
+				AvatarUrl: new("https://avatars.githubusercontent.com/u/1"),
+			},
+			PrNumber:       new(412),
+			ForkRepository: new("octocat/kebap"),
+		}, d.Git)
+		require.Equal(t, openapi.DeploymentTrigger{
+			Via:   openapi.DeploymentTriggerViaCli,
+			Actor: &openapi.DeploymentTriggerActor{Type: openapi.DeploymentTriggerActorTypeRootKey, Id: triggeredBy},
+		}, d.Trigger)
+		require.Equal(t, new(int64(1_704_067_260_000)), d.FinishedAt)
+	})
+
+	t.Run("oci deployment with an open step", func(t *testing.T) {
+		d := byID[ociDep.ID]
+		require.Equal(t, &openapi.DeploymentDocker{Image: "ghcr.io/acme/kebap:v1", ResolvedImage: new("ghcr.io/acme/kebap@sha256:abc")}, d.Docker)
+		require.Equal(t, openapi.DeploymentTrigger{Via: openapi.DeploymentTriggerViaUnknown, Actor: nil}, d.Trigger)
+		require.Nil(t, d.FinishedAt, "a step is still open")
+	})
+}
+
+// A cursor names a deployment by id, so it must resolve only inside the
+// caller's workspace: another workspace's id behaves like an unknown one
+func TestListForeignCursor(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	caller := h.CreateTestDeploymentSetup()
+	caller.RootKey = h.CreateRootKey(caller.Workspace.ID, readDeployments(caller.Workspace.ID))
+	other := h.CreateTestDeploymentSetup()
+	h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   caller.Workspace.ID,
+		ProjectID:     caller.Project.ID,
+		AppID:         caller.App.ID,
+		EnvironmentID: caller.Environment.ID,
+	})
+	foreign := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   other.Workspace.ID,
+		ProjectID:     other.Project.ID,
+		AppID:         other.App.ID,
+		EnvironmentID: other.Environment.ID,
+	})
+
+	for _, cursor := range []string{foreign.ID, uid.New(uid.DeploymentPrefix)} {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(caller.RootKey), handler.Request{Cursor: new(cursor)})
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+		require.Empty(t, res.Body.Data)
 	}
 }

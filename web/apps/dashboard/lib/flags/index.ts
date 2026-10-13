@@ -3,7 +3,6 @@ import { type Entities, adapter, identify } from "./plumbing";
 
 // Feature flag registry. To add a flag: declare it here with `flag<T, Entities>({...})`,
 // then register it in ./resolve.ts so the FlagsProvider exposes it to client components.
-// See contributing/tooling/feature-flags.md for the full workflow.
 
 export const helloWorld = flag<boolean, Entities>({
   key: "hello-world",

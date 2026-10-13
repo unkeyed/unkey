@@ -86,6 +86,20 @@ func (s *Service) RollbackDeployment(ctx restate.ObjectContext, req *hydrav1.Rol
 		},
 		auditlog.DeploymentRollbackEvent,
 		fmt.Sprintf("Rolled back to deployment %s", to.ID),
+		auditlog.AuditLogTarget{
+			Type:        auditlog.AppTargetType,
+			ID:          to.AppID,
+			DisplayName: to.AppID,
+			Name:        "",
+			Meta:        nil,
+		},
+		auditlog.AuditLogTarget{
+			Type:        auditlog.DeploymentTargetType,
+			ID:          from.ID,
+			DisplayName: from.ID,
+			Name:        "",
+			Meta:        nil,
+		},
 	); err != nil {
 		return nil, fmt.Errorf("insert rollback audit log: %w", err)
 	}

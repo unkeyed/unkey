@@ -47,6 +47,9 @@ func TestDeveloperRoleCoversProductPermissions(t *testing.T) {
 
 	catalog := []catalogResource{
 		{resource: "github/apps/*", actions: []string{"read", "write", "delete"}},
+		{resource: "limits", actions: []string{"read"}},
+		{resource: "usage", actions: []string{"read"}},
+		{resource: "flags", actions: []string{"read", "write"}},
 		{resource: "projects/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/portals/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/apps/*", actions: []string{"read", "write", "delete"}},
@@ -111,8 +114,7 @@ func TestDeveloperPermissionsGolden(t *testing.T) {
 	require.Equal(t, string(want), got)
 }
 
-// TestViewerPermissionsGolden guarantees the viewer role remains read-only and
-// cannot decrypt API keys.
+// TestViewerPermissionsGolden excludes writes and key decryption.
 func TestViewerPermissionsGolden(t *testing.T) {
 	t.Parallel()
 

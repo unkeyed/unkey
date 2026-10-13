@@ -28,19 +28,22 @@ type seededEnv struct {
 
 func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	t.Helper()
+	return seedEnvironmentInWorkspace(t, h, h.Resources().UserWorkspace.ID)
+}
 
-	workspace := h.Resources().UserWorkspace
+func seedEnvironmentInWorkspace(t *testing.T, h *testutil.Harness, workspaceID string) seededEnv {
+	t.Helper()
 
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
-		WorkspaceID: workspace.ID,
+		WorkspaceID: workspaceID,
 		Name:        "Payments Service",
 		Slug:        randomSlug(),
 	})
 
 	app := h.CreateApp(seed.CreateAppRequest{
 		ID:          uid.New(uid.AppPrefix),
-		WorkspaceID: workspace.ID,
+		WorkspaceID: workspaceID,
 		ProjectID:   project.ID,
 		Name:        "Payments API",
 		Slug:        randomSlug(),
@@ -48,7 +51,7 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
-		WorkspaceID: workspace.ID,
+		WorkspaceID: workspaceID,
 		ProjectID:   project.ID,
 		AppID:       app.ID,
 		Slug:        "production",
@@ -56,7 +59,7 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	})
 
 	return seededEnv{
-		workspaceID:   workspace.ID,
+		workspaceID:   workspaceID,
 		projectID:     project.ID,
 		projectSlug:   project.Slug,
 		appID:         app.ID,

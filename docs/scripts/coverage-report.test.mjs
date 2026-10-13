@@ -1,7 +1,7 @@
 // Fixture tests for coverage-report.mjs. Each test builds a tiny site in a temp
 // directory with its own coverage map and forbidden list.
 //
-//   node --test docs/product/scripts/coverage-report.test.mjs
+//   node --test docs/scripts/coverage-report.test.mjs
 
 import assert from "node:assert/strict";
 import fs from "node:fs";

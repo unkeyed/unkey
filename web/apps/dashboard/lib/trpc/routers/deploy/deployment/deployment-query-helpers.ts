@@ -2,7 +2,6 @@ import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import { type InferSelectModel, ne } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
-import { mapRegionToFlag } from "../network/utils";
 
 // A skipped row records a push the platform declined to build at all (watch
 // paths didn't match, auto-deploy off). Nothing was ever deployed, so the
@@ -67,7 +66,6 @@ export function mapInstanceRow(row: {
       name: row.regionName,
       platform: row.regionPlatform,
     },
-    flagCode: mapRegionToFlag(row.regionName),
     status: row.status,
   };
 }
@@ -113,6 +111,28 @@ export function computeLastExit(
     }
   }
   return result;
+}
+
+export function lastExitsByDeployment(
+  rows: { deploymentId: string; containerStatus: ContainerStatus | null }[],
+): Map<string, LastExit> {
+  const rowsByDeployment = new Map<string, { containerStatus: ContainerStatus | null }[]>();
+  for (const row of rows) {
+    const list = rowsByDeployment.get(row.deploymentId);
+    if (list) {
+      list.push(row);
+    } else {
+      rowsByDeployment.set(row.deploymentId, [row]);
+    }
+  }
+  const lastExits = new Map<string, LastExit>();
+  for (const [deploymentId, deploymentRows] of rowsByDeployment) {
+    const lastExit = computeLastExit(deploymentRows);
+    if (lastExit) {
+      lastExits.set(deploymentId, lastExit);
+    }
+  }
+  return lastExits;
 }
 
 export function normalizeDeploymentRow(deployment: {

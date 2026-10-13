@@ -1,5 +1,6 @@
 "use client";
 
+import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { DEPLOY_METER_RATE_LABELS, priceDeployMetersCents } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatDollars, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
@@ -7,6 +8,7 @@ import { IconCubeOutline18 } from "@unkey/icons";
 import { Button, DialogContainer, InfoHoverCard, InfoTooltip, Skeleton, toast } from "@unkey/ui";
 import { useState } from "react";
 import { ComputePausedBadge } from "./compute-paused";
+import { deployNotSubscribedSubtitle } from "./compute-plan-copy";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { PlansScreen } from "./plans-screen";
 import { ProductCard } from "./product-card";
@@ -33,6 +35,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   hasPaymentMethod,
 }) => {
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [isPlanModalOpen, setPlanModalOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
 
@@ -79,7 +82,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
       trpcUtils.stripe.getDeployEntitlement.invalidate(),
       trpcUtils.stripe.getUpcomingInvoice.invalidate(),
       trpcUtils.billing.queryDeployUsage.invalidate(),
-      trpcUtils.workspace.getCurrent.invalidate(),
+      invalidateWorkspace(),
       trpcUtils.stripe.getDeploySubscription.refetch(),
     ]);
   };
@@ -232,7 +235,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 ? `${formatDollars(planFee)}/${currentPlanOption?.interval ?? "month"}, prorated to ${formatDollars(includedCreditCents)} of fee and credits for this period`
                 : `${formatDollars(planFee)}/${currentPlanOption?.interval ?? "month"}, includes ${formatDollars(planFee)} of usage credits`
               : "The plan fee includes usage credits; usage beyond them is billed on top."
-            : "Run and scale your projects. Every plan includes usage credits equal to its fee."
+            : deployNotSubscribedSubtitle()
         }
         action={
           currentPlan ? (

@@ -1,6 +1,7 @@
 export * from "./apis";
 export * from "./rbac";
 export * from "./keyAuth";
+export * from "./flags";
 export * from "./keys";
 export * from "./unkey_root_keys";
 export * from "./ratelimit";
@@ -9,6 +10,7 @@ export * from "./identity";
 export * from "./limits";
 export * from "./workspace_billing";
 export * from "./billing_subscriptions";
+export * from "./compute_signup_credit_claims";
 export * from "./clickhouse_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";
@@ -42,7 +44,6 @@ export * from "./cilium";
 export * from "./clusters";
 export * from "./regions";
 export * from "./horizontal_autoscaling_policies";
-export * from "./deployment_changes";
 
 // Portal tables
 export * from "./portals";

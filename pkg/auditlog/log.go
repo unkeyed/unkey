@@ -13,8 +13,8 @@ type AuditLog struct {
 	// json encoded metadata
 	ActorMeta map[string]any
 
-	// There can be multiple resources affected by the action
-	Resources []AuditLogResource
+	// There can be multiple targets affected by the action
+	Targets []AuditLogTarget
 
 	RemoteIP  string
 	UserAgent string
@@ -27,12 +27,12 @@ type AuditLog struct {
 	CorrelationID string
 }
 
-// AuditLogResource represents a single resource that was affected by the action
-type AuditLogResource struct {
+// AuditLogTarget represents a single target that was affected by the action
+type AuditLogTarget struct {
 	ID          string
 	DisplayName string
 	Name        string
 	// json encoded metadata
 	Meta map[string]any
-	Type AuditLogResourceType
+	Type AuditLogTargetType
 }

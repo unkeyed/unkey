@@ -182,7 +182,7 @@ function EditablePolicyForm({
             loading={isSaving}
             disabled={isSaving || !isDirty}
           >
-            Save changes
+            Save
           </Button>
         </SlidePanelFooter>
       </form>
@@ -204,7 +204,7 @@ function LegacyKeyView({ draft, onAction }: { draft: LegacyRootKeyDraft } & Acti
       <SlidePanelFooter className="flex items-center justify-between">
         <ActionButtons onAction={onAction} />
         <Button variant="primary" size="md" disabled>
-          Save changes
+          Save
         </Button>
       </SlidePanelFooter>
     </div>

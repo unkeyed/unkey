@@ -34,7 +34,7 @@ func TestNotFoundErrors(t *testing.T) {
 	workspace2 := h.CreateWorkspace()
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace1.ID, "api.*.read_key", "api.*.read_api")
+	rootKey := h.CreateRootKey(workspace1.ID, "unkey:v1:"+(workspace1.ID)+":**#*")
 
 	// Set up request headers
 	headers := http.Header{
@@ -45,7 +45,7 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for non-existent API
 	t.Run("non-existent API", func(t *testing.T) {
 		req := handler.Request{
-			ApiId: "api_does_not_exist_123",
+			ApiId: uid.New(uid.APIPrefix),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -188,7 +188,7 @@ func TestNotFoundErrors(t *testing.T) {
 	// Test case for verifying error response structure
 	t.Run("verify error response structure", func(t *testing.T) {
 		req := handler.Request{
-			ApiId: "api_definitely_does_not_exist",
+			ApiId: uid.New(uid.APIPrefix),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

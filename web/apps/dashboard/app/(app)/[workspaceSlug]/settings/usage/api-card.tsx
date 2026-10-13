@@ -21,14 +21,21 @@ import {
   Skeleton,
 } from "@unkey/ui";
 import { Fragment, type ReactNode } from "react";
+import type { UsagePeriodRange } from "./period";
 
 type ApiCardProps = {
   verifications: number | null;
   ratelimits: number | null;
   quota: number | null;
   feeCents: number | null;
+  range: UsagePeriodRange;
   isLoading: boolean;
+  isError: boolean;
 };
+
+function days(count: number): string {
+  return count === 1 ? "1 day" : `${count} days`;
+}
 
 function fee(feeCents: number | null): string | null {
   if (feeCents === null) {
@@ -37,7 +44,15 @@ function fee(feeCents: number | null): string | null {
   return feeCents === 0 ? formatPrice(0) : formatDollars(feeCents);
 }
 
-export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading }: ApiCardProps) {
+export function ApiCard({
+  verifications,
+  ratelimits,
+  quota,
+  feeCents,
+  range,
+  isLoading,
+  isError,
+}: ApiCardProps) {
   const rows: Array<{ icon: ReactNode; title: string; value: number | null }> = [
     { icon: <IconKey2Outline18 />, title: "Key verifications", value: verifications },
     { icon: <IconGaugeOutline18 />, title: "Rate limit operations", value: ratelimits },
@@ -52,7 +67,10 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
         </ItemMedia>
         <ItemContent>
           <ItemTitle>API management</ItemTitle>
-          <ItemDescription>Valid requests this period</ItemDescription>
+          <ItemDescription>
+            Valid requests, {range.label}
+            {range.daysLeft === null ? null : ` · resets in ${days(range.daysLeft)}`}
+          </ItemDescription>
         </ItemContent>
         <ItemActions className="font-semibold text-2xl text-gray-12 leading-tight tracking-tight tabular-nums">
           <Figure value={fee(feeCents)} isLoading={isLoading} skeletonClassName="h-6 w-16" />
@@ -60,7 +78,7 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
       </ItemHeader>
 
       <div className="px-4 pb-4">
-        <Quota used={used} quota={quota} />
+        <Quota used={used} quota={quota} isError={isError} />
       </div>
 
       <div className="flex items-center gap-3 border-b bg-gray-2 px-4 py-2 font-semibold text-3xs text-gray-9 uppercase tracking-wider">
@@ -88,11 +106,33 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
   );
 }
 
-function Quota({ used, quota }: { used: number | null; quota: number | null }) {
+function Quota({
+  used,
+  quota,
+  isError,
+}: {
+  used: number | null;
+  quota: number | null;
+  isError: boolean;
+}) {
+  if (isError) {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex h-5 items-center">
+          <span className="text-sm text-gray-9">Usage unavailable</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-grayA-3" />
+      </div>
+    );
+  }
+
   if (used === null || quota === null) {
     return (
       <div className="flex flex-col gap-2">
-        <Skeleton className="h-4 w-44" />
+        <div className="flex h-5 items-center justify-between gap-4">
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-3 w-8" />
+        </div>
         <Skeleton className="h-1.5 w-full rounded-full" />
       </div>
     );

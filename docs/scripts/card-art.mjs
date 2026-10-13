@@ -1,7 +1,7 @@
 // Only the homepage ships card artwork. Content-card designs stay in the review
 // manifest as remove; rejected and unused individual SVGs stay off disk.
-// Generate: mise exec -- node docs/product/scripts/card-art.mjs
-// Verify:   mise exec -- node docs/product/scripts/card-art.mjs --check
+// Generate: mise exec -- node docs/scripts/card-art.mjs
+// Verify:   mise exec -- node docs/scripts/card-art.mjs --check
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import fs from "node:fs";

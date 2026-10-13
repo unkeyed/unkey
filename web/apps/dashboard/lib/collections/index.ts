@@ -8,7 +8,6 @@ import { environmentSettings } from "./deploy/environment-settings";
 import { environments } from "./deploy/environments";
 import { policies } from "./deploy/policies";
 import { projects } from "./deploy/projects";
-import { ratelimitNamespaces } from "./ratelimit/namespaces";
 import { ratelimitOverrides } from "./ratelimit/overrides";
 
 // Export types
@@ -16,14 +15,13 @@ export type { App } from "./deploy/apps";
 export type { CustomDomain } from "./deploy/custom-domains";
 export type { DeploymentStatus } from "./deploy/deployment-status";
 export { DEPLOYMENT_STATUSES } from "./deploy/deployment-status";
-export type { Deployment } from "./deploy/deployments";
+export type { Deployment, DeploymentSummary } from "./deploy/deployments";
 export type { Domain } from "./deploy/domains";
 export type { EnvVar } from "./deploy/env-vars";
 export type { EnvironmentSettings } from "./deploy/environment-settings";
 export type { Project } from "./deploy/projects";
 export type { PolicyRow } from "./deploy/policies";
 export type { KeyauthPolicy, Policy, PolicyType } from "./deploy/policies.schema";
-export type { RatelimitNamespace } from "./ratelimit/namespaces";
 export type { RatelimitOverride } from "./ratelimit/overrides";
 export type { Environment } from "./deploy/environments";
 
@@ -31,7 +29,6 @@ export type { Environment } from "./deploy/environments";
 export const collection = {
   projects,
   apps,
-  ratelimitNamespaces,
   ratelimitOverrides,
   environments,
   domains,

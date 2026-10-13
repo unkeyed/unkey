@@ -5,14 +5,16 @@ description: "Import existing key hashes into a keyspace under a migration ID."
 sources:
   - cmd/api/keys/migrate_keys.go
   - svc/api/routes/v2_keys_migrate_keys/handler.go
-  - docs/product/scripts/manifest.json
+  - docs/scripts/manifest.json
 ---
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
+Move keys from a homegrown system into a keyspace with `unkey api keys migrate-keys`. You send hashes, not plaintext keys. Users keep the keys they already have, and your backend then calls `keys.verifyKey` instead of your own lookup. The steps, the SHA-256 base64 format, and what you stop maintaining are on [Migrating keys](/api-management/keys/migrating-keys).
+
 <RootKeyPrereq />
 
-Import keys you already issued elsewhere, by their hashes, so they work with Unkey without being reissued. The command returns `200` even when some fail. `data.migrated` lists each imported hash with its new `keyId`. `data.failed` lists the hashes that didn't import, usually because the hash already exists in Unkey. Hashes must be unique across all of Unkey, not just your workspace. Calls `POST /v2/keys.migrateKeys`. See [Migrating keys](/api-management/keys/migrating-keys).
+The command imports the hashes under a migration ID from support, so the keys work with Unkey without being reissued. It returns `200` even when some keys fail. `data.migrated` lists each imported hash with its new `keyId`. `data.failed` lists the hashes that didn't import, usually because the hash already exists in Unkey. Hashes must be unique across all of Unkey, not just your workspace. Calls `POST /v2/keys.migrateKeys`.
 
 ## Usage
 

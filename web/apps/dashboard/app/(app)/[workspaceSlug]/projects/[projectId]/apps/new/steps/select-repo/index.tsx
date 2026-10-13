@@ -213,6 +213,8 @@ export const SelectRepo = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search repositories..."
+                autoComplete="off"
+                data-1p-ignore
               />
             </InputGroup>
           </div>

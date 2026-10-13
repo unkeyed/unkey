@@ -1,10 +1,8 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Deployment } from "@/lib/collections";
-import { queryClient } from "@/lib/collections/client";
+import type { DeploymentSummary } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { match } from "@unkey/match";
@@ -16,14 +14,13 @@ import { DeploymentSection } from "./components/deployment-section";
 type RedeployDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  selectedDeployment: Deployment;
+  selectedDeployment: DeploymentSummary;
 };
 
 export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: RedeployDialogProps) => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-  const { projectId } = useProjectData();
-  const utils = trpc.useUtils();
+  const { refetchDeployments } = useProjectData();
 
   const redeploy = useMutation({
     mutationFn: async () => {
@@ -35,11 +32,8 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
       });
       return { deploymentId: res.data.deploymentId };
     },
-    onSuccess: async (data) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["deployments", projectId] }),
-        utils.deploy.deployment.invalidate(),
-      ]);
+    onSuccess: (data) => {
+      refetchDeployments();
       onClose();
       router.push(
         routes.projects.apps.deployment({

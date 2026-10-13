@@ -22,17 +22,11 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	ctx := context.Background()
-	workspaceID := uid.New("workspace")
-	otherWorkspaceID := uid.New("workspace")
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	otherWorkspaceID := uid.New(uid.WorkspacePrefix)
 	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
 	occurredAt := time.Now().UTC().Truncate(time.Second).Add(-time.Hour + 123*time.Millisecond)
-
-	t.Cleanup(func() {
-		require.NoError(t, client.Conn().Exec(ctx, `
-			ALTER TABLE audit_logs_raw_v1 DELETE
-			WHERE workspace_id IN (?, ?) SETTINGS mutations_sync = 1
-		`, workspaceID, otherWorkspaceID))
-	})
+	var rows []auditLogRow
 	for _, event := range []struct {
 		workspaceID string
 		id          string
@@ -47,11 +41,14 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 		{workspaceID, "e", insertedAt + 2},
 		{otherWorkspaceID, "z", insertedAt},
 	} {
-		require.NoError(t, client.Conn().Exec(ctx, `
-			INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, time, inserted_at)
-			VALUES (?, 'unkey_mutations', ?, ?, ?)
-		`, event.workspaceID, event.id, occurredAt.UnixMilli(), event.insertedAt))
+		rows = append(rows, auditRow(t, auditlog.Event{
+			EventID:     event.id,
+			Time:        occurredAt.UnixMilli(),
+			WorkspaceID: event.workspaceID,
+			Bucket:      auditlog.BucketUnkeyMutations,
+		}, event.insertedAt))
 	}
+	insertRows(t, client.Conn(), rows...)
 
 	auditLogs := source.NewAuditLogs(client)
 	cursor := source.Cursor{Time: insertedAt, EventID: "b"}
@@ -83,11 +80,9 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	ctx := context.Background()
-	workspaceID := uid.New("workspace")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
-	t.Cleanup(func() {
-		require.NoError(t, client.Conn().Exec(ctx, `ALTER TABLE audit_logs_raw_v1 DELETE WHERE workspace_id = ? SETTINGS mutations_sync = 1`, workspaceID))
-	})
+	var rows []auditLogRow
 	for _, event := range []struct{ id, eventType string }{
 		{"a", "key.verify"},
 		{"b", "key.create"},
@@ -97,11 +92,15 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 		{"f", "key.verify"},
 		{"g", `custom.'\event`},
 	} {
-		require.NoError(t, client.Conn().Exec(ctx, `
-			INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, time, inserted_at, event)
-			VALUES (?, 'unkey_mutations', ?, ?, ?, ?)
-		`, workspaceID, event.id, insertedAt, insertedAt, event.eventType))
+		rows = append(rows, auditRow(t, auditlog.Event{
+			EventID:     event.id,
+			Time:        insertedAt,
+			WorkspaceID: workspaceID,
+			Bucket:      auditlog.BucketUnkeyMutations,
+			Event:       event.eventType,
+		}, insertedAt))
 	}
+	insertRows(t, client.Conn(), rows...)
 	auditLogs := source.NewAuditLogs(client)
 	from := source.Cursor{Time: insertedAt}
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_AuditLogs{AuditLogs: &logdrainv1.AuditLogStreamConfig{EventTypes: []string{"key.create", "key.delete"}}}}
@@ -136,22 +135,33 @@ func TestAuditLogsRead_DashboardBucketsOnly(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	ctx := context.Background()
-	workspaceID := uid.New("workspace")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
-	t.Cleanup(func() {
-		require.NoError(t, client.Conn().Exec(ctx, `ALTER TABLE audit_logs_raw_v1 DELETE WHERE workspace_id = ? SETTINGS mutations_sync = 1`, workspaceID))
-	})
+	var rows []auditLogRow
 	for _, event := range []struct{ id, bucket string }{
 		{"a", auditlog.BucketUnkeyMutations},
 		{"b", auditlog.BucketBackoffice},
 		{"c", auditlog.BucketUnkeyMutations},
-		{"d", "some_other_bucket"},
 	} {
-		require.NoError(t, client.Conn().Exec(ctx, `
-			INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, time, inserted_at)
-			VALUES (?, ?, ?, ?, ?)
-		`, workspaceID, event.bucket, event.id, insertedAt, insertedAt))
+		rows = append(rows, auditRow(t, auditlog.Event{
+			EventID:     event.id,
+			Time:        insertedAt,
+			WorkspaceID: workspaceID,
+			Bucket:      event.bucket,
+		}, insertedAt))
 	}
+	// The encoder rejects unknown buckets, so a row that predates the allow
+	// list is built from a valid one and relabelled.
+	unknown := auditRow(t, auditlog.Event{
+		EventID:     "d",
+		Time:        insertedAt,
+		WorkspaceID: workspaceID,
+		Bucket:      auditlog.BucketUnkeyMutations,
+	}, insertedAt)
+	unknown.Bucket = "some_other_bucket"
+	rows = append(rows, unknown)
+	insertRows(t, client.Conn(), rows...)
+
 	auditLogs := source.NewAuditLogs(client)
 	page, cursor, err := auditLogs.Read(ctx, workspaceID, source.Cursor{Time: insertedAt}, insertedAt+1, 10, nil)
 	require.NoError(t, err)
@@ -159,4 +169,11 @@ func TestAuditLogsRead_DashboardBucketsOnly(t *testing.T) {
 	require.Equal(t, "a", page[0].EventID)
 	require.Equal(t, "c", page[1].EventID)
 	require.Equal(t, source.Cursor{Time: insertedAt, EventID: "c"}, cursor)
+}
+
+func auditRow(t *testing.T, event auditlog.Event, insertedAt int64) auditLogRow {
+	t.Helper()
+	encoded, err := clickhouse.EncodeAuditLogEvents([]auditlog.Event{event})
+	require.NoError(t, err)
+	return auditLogRow{AuditLogV1: encoded[0], InsertedAt: insertedAt}
 }

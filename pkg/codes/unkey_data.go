@@ -14,6 +14,11 @@ type dataWorkspace struct {
 	NotFound Code
 }
 
+type dataFlag struct {
+	// NotFound indicates the requested flag definition was not found.
+	NotFound Code
+}
+
 // dataApi defines errors related to API operations.
 type dataApi struct {
 	// NotFound indicates the requested API was not found.
@@ -105,6 +110,8 @@ type dataRatelimitNamespace struct {
 	NotFound Code
 	// Gone indicates the requested rate limit namespace was deleted and is no longer available.
 	Gone Code
+	// Duplicate indicates a rate limit namespace with this name already exists, deleted or not.
+	Duplicate Code
 }
 
 // dataRatelimitOverride defines errors related to rate limit override operations.
@@ -155,6 +162,7 @@ type dataAnalytics struct {
 // These errors generally relate to CRUD operations on domain entities.
 type UnkeyDataErrors struct {
 	// Resource-specific categories
+	Flag               dataFlag
 	Key                dataKey
 	Workspace          dataWorkspace
 	Api                dataApi
@@ -181,6 +189,9 @@ type UnkeyDataErrors struct {
 // These errors can be referenced directly (e.g., codes.Data.Key.NotFound)
 // for consistent error handling throughout the application.
 var Data = UnkeyDataErrors{
+	Flag: dataFlag{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "flag_not_found"},
+	},
 	Key: dataKey{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_not_found"},
 	},
@@ -243,8 +254,9 @@ var Data = UnkeyDataErrors{
 	},
 
 	RatelimitNamespace: dataRatelimitNamespace{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_not_found"},
-		Gone:     Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_gone"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_not_found"},
+		Gone:      Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_gone"},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_already_exists"},
 	},
 
 	RatelimitOverride: dataRatelimitOverride{

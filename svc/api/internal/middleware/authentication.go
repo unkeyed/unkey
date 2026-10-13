@@ -61,6 +61,10 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 				return err
 			}
 
+			if p.Type == principalauth.TypeJWT && sess.Request().Header.Get("X-Unkey-Client") == "unkey-dashboard" {
+				sess.DisableClickHouseLogging()
+			}
+
 			if p.Subject.Type == principalauth.SubjectTypeRootKey && config.KeyVerifications != nil {
 				keySource, ok := p.Source.(principalauth.KeySource)
 				if !ok {

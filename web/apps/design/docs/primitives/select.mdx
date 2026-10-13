@@ -1,0 +1,24 @@
+---
+title: Select
+description: A dropdown for picking one value from a short list.
+---
+
+<Component path="select/sizes" />
+
+## Sizes
+
+- `md` is the default. Use it in forms.
+- `sm` fits dense rows, toolbars and slide panels. It is 32px tall with a smaller chevron.
+
+Set the size on `SelectTrigger`. `SelectContent` already sits above slide panels and dialogs, so do not add a `z-*` class to it.
+
+## FormSelect
+
+`FormSelect` wraps the four Select parts with a label, a description and an error. Use it before you build a Select by hand.
+
+<Component path="select/form-select-inline" />
+
+- Without `label`, give it an `aria-label`. It then fits inline in a row.
+- `size="sm"` uses the small trigger.
+- `multiple` takes and returns an array of values.
+- The value type follows the options, so `onValueChange` needs no narrowing.

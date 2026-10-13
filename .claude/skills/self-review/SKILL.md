@@ -15,7 +15,7 @@ The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts
 
 1. **Gather all changes.** Run `git status` to see the full picture — staged, unstaged, and untracked files. Then run `git diff` for unstaged changes, `git diff --cached` for staged changes, and read any new untracked files. Read every changed file fully — not just the diff hunks, but the surrounding context.
 
-2. **Read the quality standards.** Read these docs and review your work against each one:
+2. **Read the applicable guidance and quality standards.** Review the root `AGENTS.md` and every nested `AGENTS.md` that governs the changed files. If the review needs internal context that the repository does not contain, use the task-relevant Notion page identified through the root guidance. Read these docs and review your work against each one:
    - `contributing/quality/code-quality.md`
    - `contributing/quality/documentation.md`
    - `contributing/quality/testing/index.md`
@@ -33,7 +33,7 @@ The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts
 
 ## The final question
 
-Before you're done, ask yourself the three questions from the quality guide:
+Before you're done, ask yourself:
 
 1. Did you do the hard thing, or take a shortcut that creates debt?
 2. Would you be confident if this code ran at 10x the current load?

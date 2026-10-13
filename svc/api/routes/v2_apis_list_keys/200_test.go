@@ -12,11 +12,117 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_list_keys"
 )
+
+type laggingDatabase struct {
+	db.Database
+	replica *db.Replica
+}
+
+func (d laggingDatabase) RO() *db.Replica {
+	return d.replica
+}
+
+func TestListKeysRoutesReadsByRevalidateFlag(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+	replicaConfig := containers.MySQLIsolated(t)
+	replica, err := db.New(db.Config{
+		PrimaryDSN:  replicaConfig.DSN,
+		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, replica.Close()) })
+
+	route := &handler.Handler{
+		DB:       laggingDatabase{Database: h.DB, replica: replica.RO()},
+		Vault:    h.Vault,
+		ApiCache: h.Caches.LiveApiByID,
+	}
+	h.Register(route)
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspace.ID,
+		ExternalID:  uid.New(uid.TestPrefix),
+	})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		IdentityID:  &identity.ID,
+	})
+	rootKey := h.CreateRootKey(workspace.ID,
+		keyspaceGrant(workspace.ID, "*", "*", "read"),
+		keyGrant(workspace.ID, "*", "*", "read"),
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	for _, apiReplicated := range []bool{false, true} {
+		if apiReplicated {
+			require.NoError(t, db.Query.InsertKeySpace(ctx, replica.RW(), db.InsertKeySpaceParams{
+				ID:          api.KeyAuthID.String,
+				WorkspaceID: workspace.ID,
+				ProjectID:   api.ProjectID,
+				CreatedAtM:  api.CreatedAtM,
+			}))
+			require.NoError(t, db.Query.InsertApi(ctx, replica.RW(), db.InsertApiParams{
+				ID:          api.ID,
+				Name:        api.Name,
+				WorkspaceID: workspace.ID,
+				ProjectID:   api.ProjectID,
+				AuthType:    api.AuthType,
+				KeyAuthID:   api.KeyAuthID,
+				CreatedAtM:  api.CreatedAtM,
+			}))
+		}
+		t.Run(fmt.Sprintf("api_replicated=%t", apiReplicated), func(t *testing.T) {
+			route.ApiCache.Clear(ctx)
+			for _, tc := range []struct {
+				name       string
+				revalidate *bool
+			}{
+				{name: "omitted", revalidate: nil},
+				{name: "false", revalidate: new(false)},
+				{name: "true", revalidate: new(true)},
+			} {
+				for filterName, externalID := range map[string]*string{"all": nil, "externalId": &identity.ExternalID} {
+					t.Run(tc.name+"/"+filterName, func(t *testing.T) {
+						res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+							ApiId:               api.ID,
+							ExternalId:          externalID,
+							RevalidateKeysCache: tc.revalidate,
+						})
+						readPrimary := tc.revalidate != nil && *tc.revalidate
+						if !apiReplicated && !readPrimary {
+							require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+							return
+						}
+						require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+						require.False(t, res.Body.Pagination.HasMore)
+						if !readPrimary {
+							require.Empty(t, res.Body.Data)
+							return
+						}
+						require.Len(t, res.Body.Data, 1)
+						require.Equal(t, key.KeyID, res.Body.Data[0].KeyId)
+						require.NotNil(t, res.Body.Data[0].Identity)
+						require.Equal(t, identity.ExternalID, res.Body.Data[0].Identity.ExternalId)
+					})
+				}
+			}
+		})
+	}
+}
 
 func TestSuccess(t *testing.T) {
 	ctx := context.Background()
@@ -33,14 +139,13 @@ func TestSuccess(t *testing.T) {
 	// Create a workspace and user
 	workspace := h.Resources().UserWorkspace
 
-	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api", "api.*.decrypt_key")
-
 	// Create a keySpace for the API
 	keySpaceID := uid.New(uid.KeySpacePrefix)
+	projectID := createTestProject(t, h, workspace.ID)
 	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID,
 		WorkspaceID:   workspace.ID,
+		ProjectID:     projectID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},
@@ -59,14 +164,20 @@ func TestSuccess(t *testing.T) {
 		ID:          apiID,
 		Name:        "Test API",
 		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
+	rootKey := h.CreateRootKey(workspace.ID,
+		keyspaceGrant(workspace.ID, "*", "*", "read"),
+		keyGrant(workspace.ID, "*", "*", "read"),
+		keyGrant(workspace.ID, "*", "*", "decrypt"),
+	)
 
 	// Create test identities
-	identity1ExternalID := "test_user_1"
+	identity1ExternalID := uid.New(uid.TestPrefix)
 	identity1Meta, err := json.Marshal(map[string]string{"role": "admin"})
 	require.NoError(t, err)
 	identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
@@ -75,7 +186,7 @@ func TestSuccess(t *testing.T) {
 		Meta:        identity1Meta,
 	})
 
-	identity2ExternalID := "test_user_2"
+	identity2ExternalID := uid.New(uid.TestPrefix)
 	identity2Meta, err := json.Marshal(map[string]string{"role": "user"})
 	require.NoError(t, err)
 	identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
@@ -266,6 +377,10 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("filter by external ID", func(t *testing.T) {
+		h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: h.Resources().RootWorkspace.ID,
+			ExternalID:  identity1ExternalID,
+		})
 		req := handler.Request{
 			ApiId:      apiID,
 			ExternalId: &identity1ExternalID,
@@ -288,8 +403,51 @@ func TestSuccess(t *testing.T) {
 		}
 	})
 
+	t.Run("paginate filtered keys", func(t *testing.T) {
+		req := handler.Request{ApiId: apiID, ExternalId: &identity1ExternalID, Limit: new(1)}
+		first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusOK, first.Status)
+		require.Len(t, first.Body.Data, 1)
+		require.True(t, first.Body.Pagination.HasMore)
+		require.NotNil(t, first.Body.Pagination.Cursor)
+
+		req.Cursor = first.Body.Pagination.Cursor
+		second := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusOK, second.Status)
+		require.Len(t, second.Body.Data, 1)
+		require.False(t, second.Body.Pagination.HasMore)
+		require.Nil(t, second.Body.Pagination.Cursor)
+		require.ElementsMatch(t, []string{key1.KeyID, key2.KeyID}, []string{first.Body.Data[0].KeyId, second.Body.Data[0].KeyId})
+	})
+
+	t.Run("filter by deleted identity returns empty", func(t *testing.T) {
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: workspace.ID,
+			ExternalID:  uid.New(uid.TestPrefix),
+		})
+		h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  keySpaceID,
+			IdentityID:  &identity.ID,
+		})
+		err := db.Query.SoftDeleteIdentity(ctx, h.DB.RW(), db.SoftDeleteIdentityParams{
+			IdentityID:  identity.ID,
+			WorkspaceID: workspace.ID,
+		})
+		require.NoError(t, err)
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			ApiId:      apiID,
+			ExternalId: &identity.ExternalID,
+		})
+		require.Equal(t, http.StatusOK, res.Status)
+		require.Empty(t, res.Body.Data)
+		require.False(t, res.Body.Pagination.HasMore)
+		require.Nil(t, res.Body.Pagination.Cursor)
+	})
+
 	t.Run("filter by non-existent external ID returns empty", func(t *testing.T) {
-		nonExistentID := "non_existent_user"
+		nonExistentID := uid.New(uid.TestPrefix)
 		req := handler.Request{
 			ApiId:      apiID,
 			ExternalId: &nonExistentID,
@@ -398,6 +556,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 			ID:          emptyKeySpaceID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   projectID,
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -407,6 +566,7 @@ func TestSuccess(t *testing.T) {
 			ID:          emptyApiID,
 			Name:        "Empty API",
 			WorkspaceID: workspace.ID,
+			ProjectID:   projectID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 			KeyAuthID:   sql.NullString{Valid: true, String: emptyKeySpaceID},
 			CreatedAtM:  time.Now().UnixMilli(),

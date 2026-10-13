@@ -69,6 +69,9 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.NotEmpty(t, key.Hash)
 	require.NotEmpty(t, key.Start)
 	require.True(t, key.Enabled)
+	logs := h.FindAuditLogsByTargetID(ctx, t, key.ID)
+	require.Len(t, logs, 1)
+	require.Len(t, logs[0].Targets, 2)
 }
 
 // TestCreateKeyWithURNPermission guarantees a workspace-wide key write
@@ -181,7 +184,7 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 	// Test key creation with optional fields
 	name := "Test Key"
 	prefix := "test"
-	externalID := "user_123"
+	externalID := uid.New(uid.TestPrefix)
 	byteLength := 24
 	expires := int64(1704067200000) // Jan 1, 2024
 	enabled := true
@@ -219,6 +222,13 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, api.ProjectID, identity.ProjectID)
+	logs := h.FindAuditLogsByTargetID(ctx, t, key.ID)
+	require.Len(t, logs, 1)
+	require.Equal(t, "key.create", logs[0].Event)
+	require.Len(t, logs[0].Targets, 3)
+	identityLogs := h.FindAuditLogsByTargetID(ctx, t, identity.ID)
+	require.Len(t, identityLogs, 1)
+	require.Equal(t, logs[0].EventID, identityLogs[0].EventID)
 }
 
 // TestCreateKeyWithExistingIdentityDoesNotWaitForIdentityWriteLock guarantees
@@ -285,6 +295,10 @@ func TestCreateKeyWithExistingIdentityDoesNotWaitForIdentityWriteLock(t *testing
 
 	require.False(t, blocked, "request waited for a write lock on the existing identity")
 	require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
+	logs := h.FindAuditLogsByTargetID(t.Context(), t, identity.ID)
+	require.Len(t, logs, 1)
+	require.Equal(t, "key.create", logs[0].Event)
+	require.Len(t, logs[0].Targets, 3)
 }
 
 func TestCreateKeyWithEncryption(t *testing.T) {
@@ -325,7 +339,7 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	req := handler.Request{
 		ApiId:       api.ID,
 		Name:        &name,
-		ExternalId:  new("user_123"),
+		ExternalId:  new(uid.New(uid.TestPrefix)),
 		Enabled:     new(true),
 		Recoverable: new(true),
 	}
@@ -425,7 +439,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	}
 
 	numConcurrent := 20
-	externalID := "user_concurrent_test"
+	externalID := uid.New(uid.TestPrefix)
 
 	var mu sync.Mutex
 	keyIDs := make([]string, 0, numConcurrent)

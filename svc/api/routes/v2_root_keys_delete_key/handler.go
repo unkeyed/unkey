@@ -82,8 +82,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RemoteIP:      s.Location(),
 			UserAgent:     s.UserAgent(),
 			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{{
-				Type: auditlog.KeyResourceType, ID: key.ID, Name: name, DisplayName: name, Meta: map[string]any{},
+			Targets: []auditlog.AuditLogTarget{{
+				Type: auditlog.KeyTargetType, ID: key.ID, Name: name, DisplayName: name, Meta: map[string]any{},
 			}},
 		}})
 	})

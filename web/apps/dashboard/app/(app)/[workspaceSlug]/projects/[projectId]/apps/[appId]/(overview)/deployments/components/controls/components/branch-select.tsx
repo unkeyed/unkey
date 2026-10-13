@@ -57,6 +57,8 @@ export function BranchSelect() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-8 text-sm"
+              autoComplete="off"
+              data-1p-ignore
             />
           </InputGroup>
         </div>

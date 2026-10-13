@@ -11,10 +11,8 @@ window, same shape as CPU.
 We attach inside the pod netns rather than at the pod cgroup because
 `cgroup_skb` is useless under gVisor (runsc traps customer syscalls in
 userspace and never hits the host socket layer) and the host-side veth
-is bypassed by Cilium's `bpf_redirect_peer`. See `../doc.go` and
-`docs/engineering/infra/metering/heimdall.mdx` for the full design write-up
-including the `TC_ACT_UNSPEC` / `TCX_NEXT` trap that keeps DNS working
-for gVisor pods.
+is bypassed by Cilium's `bpf_redirect_peer`. See `../doc.go` for attachment
+details and `network.bpf.c` for the TCX return-code rationale.
 
 ## What each section does
 

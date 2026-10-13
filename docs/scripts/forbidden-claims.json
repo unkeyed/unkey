@@ -1,5 +1,5 @@
 {
-  "$comment": "Literal strings from stale claims in plan Appendix B that must not appear in any page body under docs/product. Frontmatter is not scanned (dashboard route segments such as [namespaceId] appear legitimately in sources). Checked by coverage-report.mjs.",
+  "$comment": "Literal strings from stale claims in plan Appendix B that must not appear in any page body under docs. Frontmatter is not scanned (dashboard route segments such as [namespaceId] appear legitimately in sources). Checked by coverage-report.mjs.",
   "forbidden": [
     {
       "pattern": "namespaceId",

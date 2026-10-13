@@ -9,7 +9,14 @@ import type { Route } from "next";
 import { type WorkspaceScope, buildRoute } from "./shared";
 
 type ProjectScope = WorkspaceScope & { projectId: string };
-type AppScope = ProjectScope & { appId: string };
+export type AppScope = ProjectScope & { appId: string };
+
+export const APP_SETTINGS_PAGES = ["build", "runtime", "environments", "advanced"] as const;
+export type AppSettingsPage = (typeof APP_SETTINGS_PAGES)[number];
+
+export type AppSettingsTarget =
+  | { page?: Exclude<AppSettingsPage, "environments"> }
+  | { page: "environments"; environment?: string };
 
 export const projectRoutes = {
   list({ workspaceSlug, new: isNew }: WorkspaceScope & { new?: boolean }): Route {
@@ -63,9 +70,32 @@ export const projectRoutes = {
       );
     },
 
-    settings(scope: AppScope): Route {
+    settings(target: AppScope & AppSettingsTarget): Route {
+      const params = appParams(target);
+      if (target.page === "environments" && target.environment) {
+        return buildRoute(
+          "/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings/environments/[environment]",
+          { ...params, environment: target.environment },
+        );
+      }
+      if (target.page === "environments") {
+        return buildRoute(
+          "/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings/environments",
+          params,
+        );
+      }
+      if (target.page) {
+        return buildRoute("/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings/[page]", {
+          ...params,
+          page: target.page,
+        });
+      }
+      return buildRoute("/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings", params);
+    },
+
+    domains(scope: AppScope): Route {
       return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings",
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/domains",
         appParams(scope),
       );
     },

@@ -33,7 +33,7 @@ export type UnkeyAuditLog = {
     id: string;
     meta?: Record<string, string | number | boolean | null>;
   };
-  resources: Array<{
+  targets: Array<{
     type:
       | "key"
       | "api"
@@ -149,9 +149,9 @@ export async function insertAuditLogs(
       },
       ...(log.context.location !== undefined ? { remote_ip: log.context.location } : {}),
       ...(log.context.userAgent !== undefined ? { user_agent: log.context.userAgent } : {}),
-      ...(log.resources.length > 0
+      ...(log.targets.length > 0
         ? {
-            targets: log.resources.map((r) => ({
+            targets: log.targets.map((r) => ({
               type: r.type,
               id: r.id,
               ...(r.name !== undefined ? { name: r.name } : {}),

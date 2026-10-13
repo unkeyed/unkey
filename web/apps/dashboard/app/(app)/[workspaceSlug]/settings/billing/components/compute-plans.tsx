@@ -3,6 +3,7 @@
 import { FEATURE_ICONS } from "@/components/billing/plan-feature-icons";
 import { PlanTierIcon } from "@/components/billing/plan-tier-icons";
 import { announceUpgrade } from "@/components/billing/upgrade-success/upgrade-success-dialog";
+import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
   type CurrentPlan,
@@ -19,17 +20,18 @@ import {
 } from "@/lib/billing/plan-features";
 import { formatDollars } from "@/lib/fmt";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
+import { COMPUTE_SIGNUP_CREDIT_CENTS } from "@/lib/stripe/computeSignupCreditAmount";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
-import { IconCheckOutline18 } from "@unkey/icons";
+import { IconCheckOutline18, IconCoinsOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, DialogContainer, Skeleton, toast } from "@unkey/ui";
 import { cn } from "cn";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
-import { PLAN_BLURBS } from "./compute-plan-copy";
+import { PLAN_BLURBS, firstInvoiceCents } from "./compute-plan-copy";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
 const CHANGE_NOTE =
@@ -44,6 +46,8 @@ type ComputePlansProps = {
   from: DeployCheckoutOrigin;
   manage: boolean;
   onChanged: () => void;
+  /** Undefined while the subscription query is loading, so the discount stays hidden. */
+  signupCreditClaimed: boolean | undefined;
 };
 
 export function ComputePlans({
@@ -55,11 +59,14 @@ export function ComputePlans({
   from,
   manage,
   onChanged,
+  signupCreditClaimed,
 }: ComputePlansProps) {
+  const showSignupCredit = signupCreditClaimed === false;
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const pathname = usePathname();
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [pendingOption, setPendingOption] = useState<DeployPlanOption | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<DeployPlan | null>(null);
   const [isCancelOpen, setCancelOpen] = useState(false);
@@ -92,7 +99,7 @@ export function ComputePlans({
         trpcUtils.stripe.getUpcomingInvoice.invalidate(),
         trpcUtils.stripe.getDeployCredit.invalidate(),
         trpcUtils.billing.queryDeployUsage.invalidate(),
-        trpcUtils.workspace.getCurrent.invalidate(),
+        invalidateWorkspace(),
       ]);
       router.refresh();
       setPendingOption(null);
@@ -135,6 +142,7 @@ export function ComputePlans({
             card={card}
             isAdmin={isAdmin}
             checkoutPlan={checkoutPlan}
+            showSignupCredit={showSignupCredit}
             onSelect={select}
           />
         ))}
@@ -179,11 +187,13 @@ function PlanCard({
   card,
   isAdmin,
   checkoutPlan,
+  showSignupCredit,
   onSelect,
 }: {
   card: PlanCardState;
   isAdmin: boolean;
   checkoutPlan: DeployPlan | null;
+  showSignupCredit: boolean;
   onSelect: (option: DeployPlanOption) => void;
 }) {
   const { action } = card;
@@ -200,7 +210,7 @@ function PlanCard({
       </div>
 
       <div className="flex h-9 items-baseline gap-1">
-        <PlanPriceLabel price={card.price} />
+        <PlanPriceLabel price={card.price} showSignupCredit={showSignupCredit} />
       </div>
 
       <Button
@@ -220,32 +230,59 @@ function PlanCard({
       </Button>
       {card.warning ? <p className="text-sm text-warning-11 leading-5">{card.warning}</p> : null}
 
-      <PlanFeatureList rows={planFeatures(card.plan)} />
+      <PlanFeatureList
+        rows={planFeatures(card.plan)}
+        leading={
+          showSignupCredit && card.price.type === "amount" ? (
+            <SignupCreditFeatureRow interval={card.price.interval} />
+          ) : null
+        }
+      />
       <EveryPlanIncludes />
     </div>
   );
 }
 
-function PlanPriceLabel({ price }: { price: PlanPrice }) {
+function PlanPriceLabel({
+  price,
+  showSignupCredit,
+}: {
+  price: PlanPrice;
+  showSignupCredit: boolean;
+}) {
   return match(price)
     .with({ type: "loading" }, () => <Skeleton className="h-8 w-20 self-center rounded-md" />)
     .with({ type: "contact" }, () => (
       <span className="font-semibold text-3xl text-gray-12">Contact us</span>
     ))
-    .with({ type: "amount" }, ({ cents, interval }) => (
-      <>
-        <span className="font-semibold text-3xl text-gray-12 tabular-nums">
-          {formatDollars(cents)}
-        </span>
-        <span className="text-gray-11 text-sm">{interval === "year" ? "/yr" : "/mo"}</span>
-      </>
-    ))
+    .with({ type: "amount" }, ({ cents, interval }) => {
+      const suffix = interval === "year" ? "/yr" : "/mo";
+      return showSignupCredit ? (
+        <p className="flex items-baseline gap-1.5 whitespace-nowrap tabular-nums">
+          <span className="font-semibold text-3xl text-gray-12">
+            {formatDollars(firstInvoiceCents(cents))}
+          </span>
+          <span className="text-gray-11 text-sm">
+            then{" "}
+            <span className="font-semibold text-gray-12">{`${formatDollars(cents)}${suffix}`}</span>
+          </span>
+        </p>
+      ) : (
+        <>
+          <span className="font-semibold text-3xl text-gray-12 tabular-nums">
+            {formatDollars(cents)}
+          </span>
+          <span className="text-gray-11 text-sm">{suffix}</span>
+        </>
+      );
+    })
     .exhaustive();
 }
 
-function PlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
+function PlanFeatureList({ rows, leading }: { rows: PlanFeatureRow[]; leading: ReactNode }) {
   return (
     <ul className="flex flex-col gap-2.5">
+      {leading}
       {rows.map((row) => {
         const Icon = FEATURE_ICONS[row.kind];
         return (
@@ -264,6 +301,17 @@ function PlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
         );
       })}
     </ul>
+  );
+}
+
+function SignupCreditFeatureRow({ interval }: { interval: string | null }) {
+  return (
+    <li className="flex">
+      <span className="-ml-2 flex items-center gap-2.5 rounded-md bg-info-3 px-2 py-1 font-medium text-info-11 text-sm">
+        <IconCoinsOutline18 className="size-4 shrink-0" />
+        {`${formatDollars(COMPUTE_SIGNUP_CREDIT_CENTS)} off your first ${interval === "year" ? "invoice" : "month"}`}
+      </span>
+    </li>
   );
 }
 

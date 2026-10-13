@@ -113,6 +113,7 @@ function ComboboxInput({ className, icon, wrapperClassName, ref, ...props }: Com
       <ComboboxPrimitive.Input
         ref={ref}
         className={cn("h-8 text-sm placeholder:text-grayA-8", className)}
+        data-1p-ignore
         render={<InputGroupInput />}
         {...props}
       />
@@ -220,7 +221,7 @@ function ComboboxItem({
     <ComboboxPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex w-full cursor-pointer select-none items-center overflow-hidden rounded-sm px-2 py-1.5 text-sm outline-hidden",
+        "relative flex w-full cursor-pointer select-none items-center gap-2 overflow-hidden rounded-sm px-2 py-1.5 text-sm outline-hidden",
         "text-gray-12 data-highlighted:bg-grayA-3 data-disabled:cursor-not-allowed data-disabled:opacity-50",
         className,
       )}

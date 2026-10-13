@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	cachesvc "github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
@@ -276,6 +277,12 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
+	flagSvc, err := flags.New(flags.Config{DB: db.ToMySQL(database), Clock: clk})
+	if err != nil {
+		return fmt.Errorf("unable to create flags service: %w", err)
+	}
+	r.Defer(func() error { flagSvc.Close(); return nil })
+
 	rlSvc, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: ctr,
@@ -503,6 +510,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	routes.Register(srv, &routes.Services{
 		Database:          database,
+		Flags:             flagSvc,
 		ClickHouse:        ch,
 		ApiRequests:       apiRequests,
 		DirectAuditLogs:   directAuditLogs,

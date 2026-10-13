@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -9,13 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
-// TestURNLogReadScopesRowsByOwnership guarantees that exact, wildcard,
-// and union permissions expose only rows covered by ownership-derived log URNs.
+// TestURNLogReadScopesRowsByOwnership guarantees that exact and wildcard
+// permissions expose only rows covered by ownership-derived log URNs.
 func TestURNLogReadScopesRowsByOwnership(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
@@ -42,7 +44,7 @@ func TestURNLogReadScopesRowsByOwnership(t *testing.T) {
 	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager, Caches: h.Caches}
 	h.Register(route)
 	query := Request{Query: "SELECT key_space_id FROM key_verifications_v1"}
-	wildcardHeaders := analyticsHeaders(h.CreateRootKey(workspace.ID, "api.*.read_analytics"))
+	wildcardHeaders := analyticsHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/logs#read", workspace.ID)))
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		res := testutil.CallRoute[Request, Response](h, route, wildcardHeaders, query)
 		require.Equal(c, http.StatusOK, res.Status)
@@ -74,15 +76,10 @@ func TestURNLogReadScopesRowsByOwnership(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "body: %s", res.RawBody)
 	require.Empty(t, res.Body.Data)
 
-	unionRootKey := h.CreateRootKey(workspace.ID, permission, "api."+forbiddenAPI.ID+".read_analytics")
-	res = testutil.CallRoute[Request, Response](h, route, analyticsHeaders(unionRootKey), query)
-	require.Equal(t, http.StatusOK, res.Status, "body: %s", res.RawBody)
-	require.ElementsMatch(t, []map[string]any{
-		{"key_space_id": allowedAPI.KeyAuthID.String},
-		{"key_space_id": forbiddenAPI.KeyAuthID.String},
-	}, res.Body.Data)
-
-	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE key_auth SET deleted_at_m = ? WHERE id = ?", time.Now().UnixMilli(), allowedAPI.KeyAuthID.String)
+	err := db.Query.SoftDeleteKeySpace(t.Context(), h.DB.RW(), db.SoftDeleteKeySpaceParams{
+		Now:        sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		KeySpaceID: allowedAPI.KeyAuthID.String,
+	})
 	require.NoError(t, err)
 	res = testutil.CallRoute[Request, Response](h, route, analyticsHeaders(h.CreateRootKey(workspace.ID, permission)), query)
 	require.Equal(t, http.StatusOK, res.Status, "body: %s", res.RawBody)

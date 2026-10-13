@@ -2,7 +2,7 @@
 // with its own repo root, so source paths, the error constants file, and the
 // manifest are all under the test's control.
 //
-//   node --test docs/product/scripts/lint.test.mjs
+//   node --test docs/scripts/lint.test.mjs
 
 import assert from "node:assert/strict";
 import fs from "node:fs";

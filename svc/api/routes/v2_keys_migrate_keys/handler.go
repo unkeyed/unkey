@@ -481,16 +481,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						RemoteIP:      s.Location(),
 						UserAgent:     s.UserAgent(),
 						CorrelationID: "",
-						Resources: []auditlog.AuditLogResource{
+						Targets: []auditlog.AuditLogTarget{
 							{
-								Type:        auditlog.KeyResourceType,
+								Type:        auditlog.KeyTargetType,
 								ID:          keyParams.ID,
 								Name:        keyParams.Name.String,
 								DisplayName: keyParams.Name.String,
 								Meta:        map[string]any{},
 							},
 							{
-								Type:        auditlog.PermissionResourceType,
+								Type:        auditlog.PermissionTargetType,
 								ID:          *permissionID,
 								Name:        permission,
 								DisplayName: permission,
@@ -526,16 +526,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						RemoteIP:      s.Location(),
 						UserAgent:     s.UserAgent(),
 						CorrelationID: "",
-						Resources: []auditlog.AuditLogResource{
+						Targets: []auditlog.AuditLogTarget{
 							{
-								Type:        auditlog.KeyResourceType,
+								Type:        auditlog.KeyTargetType,
 								ID:          keyParams.ID,
 								Name:        keyParams.Name.String,
 								DisplayName: keyParams.Name.String,
 								Meta:        map[string]any{},
 							},
 							{
-								Type:        auditlog.RoleResourceType,
+								Type:        auditlog.RoleTargetType,
 								ID:          *roleID,
 								DisplayName: role,
 								Name:        role,
@@ -546,7 +546,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			auditLogs = append(auditLogs, auditlog.AuditLog{
+			keyAuditLog := auditlog.AuditLog{
 				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.KeyCreateEvent,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
@@ -557,23 +557,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
-						Type:        auditlog.KeyResourceType,
+						Type:        auditlog.KeyTargetType,
 						ID:          keyParams.ID,
 						DisplayName: keyParams.Name.String,
 						Name:        keyParams.Name.String,
 						Meta:        map[string]any{},
 					},
 					{
-						Type:        auditlog.APIResourceType,
+						Type:        auditlog.APITargetType,
 						ID:          req.ApiId,
 						DisplayName: api.ApiName,
 						Name:        api.ApiName,
 						Meta:        map[string]any{},
 					},
 				},
-			})
+			}
+			if keyParams.IdentityID.Valid {
+				keyAuditLog.Targets = append(keyAuditLog.Targets, auditlog.AuditLogTarget{
+					Type:        auditlog.IdentityTargetType,
+					ID:          keyParams.IdentityID.String,
+					DisplayName: "",
+					Name:        "",
+					Meta:        map[string]any{},
+				})
+			}
+			auditLogs = append(auditLogs, keyAuditLog)
 
 			keysArray = append(keysArray, keyParams)
 		}

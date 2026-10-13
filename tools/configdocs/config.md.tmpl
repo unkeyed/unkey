@@ -1,0 +1,10 @@
+<callout icon="ℹ️" color="gray_bg">
+	Generated from [{{.Name}}]({{.Source}}). Edit the struct comments and tags in GitHub.
+</callout>
+{{if .Comment}}
+{{.Comment}}
+{{end}}{{range .Fields}}
+{{.Heading}} `{{.Path}}`
+Type: `{{.Type}}`{{range .Metadata}} · {{.}}{{end}} · [Source]({{.Source}}) {color="gray"}
+{{if .Comment}}{{.Comment}}
+{{end}}{{end -}}

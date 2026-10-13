@@ -2,7 +2,7 @@
 name: docs-writing
 description:
   Use this skill when writing, editing, reviewing, or improving documentation in this repository.
-  Activates for tasks involving content in `docs/product/` or `docs/engineering/`, MDX/Markdown files, or any documentation-related request.
+  Activates for tasks involving content in `docs/`, MDX/Markdown files, or any documentation-related request.
 ---
 
 # Documentation writing skill
@@ -11,9 +11,12 @@ You are a technical writer for Unkey's documentation. Your job is to produce
 clear, accurate, and consistent content that helps developers succeed on
 Unkey.
 
-Refer to `docs/engineering/CONTRIBUTING.md` for frontmatter format, repository structure, and
-the PR process. This skill is the primary reference for voice, style, workflow,
-component usage, and content quality.
+Read the root `AGENTS.md` and any nested `AGENTS.md` that governs the files you
+change. Refer to `contributing/quality/documentation.md` for documentation
+standards. This skill is the primary reference for voice, style, workflow,
+component usage, and content quality. If an internal process question requires
+context that the repository does not contain, use the task-relevant Notion page
+identified through the root guidance.
 
 ## Voice and tone
 
@@ -76,9 +79,8 @@ Use these terms exactly as shown:
 
 ## Content types
 
-- Product docs (`docs/product/`): Explain features, configuration, and reference material. Require a navigation entry in `docs/product/docs.json`.
-- Engineering docs (`docs/engineering/`): Explain internal processes and standards. Require a navigation entry in `docs/engineering/docs.json`.
-- Troubleshooting pages (`docs/product/[topic]/troubleshooting/`): Use Symptom / Cause / Solution format for each issue.
+- Product docs (`docs/`): Explain features, configuration, and reference material. Require a navigation entry in `docs/docs.json`.
+- Troubleshooting pages (`docs/[product]/[topic]/troubleshooting/`): Use Symptom / Cause / Solution format for each issue.
 
 ### Product doc patterns
 
@@ -112,9 +114,6 @@ Deployment guides cover four methods in this order, each as its own h2:
 3. **Deploy from a GitHub repo** — connect repo, configure, deploy
 4. **Use a Dockerfile** — Dockerfile detection note, Docker image note
 
-Read an existing guide (for example `docs/product/quickstart/quickstart.mdx`) for
-the full pattern.
-
 ## Writing process
 
 Follow these four phases for every documentation task.
@@ -122,7 +121,7 @@ Follow these four phases for every documentation task.
 ### Phase 1: Investigate
 
 - Read the existing page (if editing) and any related pages that link to it.
-- Check `docs/engineering/CONTRIBUTING.md` for frontmatter format and repo structure.
+- Check `contributing/quality/documentation.md` for documentation standards.
 - Search the codebase for the feature or component to verify technical accuracy.
 - For new pages, determine the content type (see content types above).
 - Check the relevant `docs.json` if the page needs a navigation entry.
@@ -154,7 +153,6 @@ Follow these four phases for every documentation task.
 - Confirm technical accuracy against the codebase and product behavior.
 - Verify all internal links resolve (use relative paths like `/variables`).
 - Verify all code examples are syntactically correct and use language IDs.
-- Check that frontmatter matches the format in `docs/engineering/CONTRIBUTING.md`.
 - For new doc pages, confirm a navigation entry exists in the relevant `docs.json`.
 - If renaming or moving a page, add a redirect (see redirects below).
 - Run the formatter if one is configured for the project.
@@ -339,12 +337,13 @@ import { Unkey } from "@unkey/api";
 
 ### Snippets
 
-Reusable snippets live under `docs/engineering/snippets/` and can be imported into MDX:
+Reusable snippets live under `docs/snippets/`. Before using or adding a
+snippet, verify its import and export conventions against existing product files.
 
 ```mdx
-import SnippetIntro from "/snippets/snippet-intro.mdx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-<SnippetIntro />
+<RootKeyPrereq />
 ```
 
 ## Operational rules

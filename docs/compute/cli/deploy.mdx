@@ -8,7 +8,7 @@ sources:
   - cmd/api/util/client.go
   - svc/api/routes/v2_deploy_create_deployment/handler.go
   - svc/api/routes/v2_deploy_get_deployment/handler.go
-  - docs/product/scripts/manifest.json
+  - docs/scripts/manifest.json
 ---
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
@@ -67,7 +67,7 @@ The command doesn't accept `--output`, `--config`, or `--body`.
 
 ## Required permissions
 
-`project.*.create_deployment` or `project.<project_id>.create_deployment` to create the deployment, and `project.*.read_deployment` or `project.<project_id>.read_deployment` to follow it. These are project permissions. The `unkey api deployments` commands use environment permissions instead. See [Root key permissions](/platform/root-keys/permissions).
+`project.*.create_deployment` or `project.<project_id>.create_deployment` to create the deployment, and `project.*.read_deployment` or `project.<project_id>.read_deployment` to follow it. These are project permissions. The `unkey api deployments` commands use different permissions, listed on each command's page. See [Root key permissions](/platform/root-keys/permissions).
 
 ## What you'll see
 

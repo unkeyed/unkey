@@ -122,14 +122,12 @@ func seedOutboxEvent(ctx context.Context, database db.Database, event auditlog.E
 
 func outboxDeletedAt(t *testing.T, ctx context.Context, database db.Database, event auditlog.Event) sql.NullInt64 {
 	t.Helper()
-	var deletedAt sql.NullInt64
-	err := database.RW().QueryRowContext(ctx,
-		"SELECT deleted_at FROM clickhouse_outbox WHERE workspace_id = ? AND event_id = ?",
-		event.WorkspaceID,
-		event.EventID,
-	).Scan(&deletedAt)
+	row, err := database.FindClickhouseOutboxByWorkspaceAndEventId(ctx, db.FindClickhouseOutboxByWorkspaceAndEventIdParams{
+		WorkspaceID: event.WorkspaceID,
+		EventID:     event.EventID,
+	})
 	require.NoError(t, err)
-	return deletedAt
+	return row.DeletedAt
 }
 
 // TestExportBatch_ClickHouseFailureLeavesOutboxRowPending protects at-least-once

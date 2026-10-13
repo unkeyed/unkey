@@ -46,16 +46,13 @@ export default defineConfig({
     radius: "md",
     mode: "system",
   },
-  search: {
-    provider: "orama",
-  },
   markdown: {
     code: {
       icons: true,
       wrap: false,
     },
   },
-  ai: {
+  agents: {
     llmsTxt: true,
   },
   seo: {

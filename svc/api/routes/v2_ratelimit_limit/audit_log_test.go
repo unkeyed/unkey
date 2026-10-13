@@ -2,6 +2,7 @@ package v2RatelimitLimit_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -103,12 +104,14 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 	require.NotEmpty(t, row.ActorName)
 	require.Equal(t, "audit-log-test", row.UserAgent)
 	require.Equal(t, []string{
-		string(auditlog.RatelimitNamespaceResourceType),
-		string(auditlog.RatelimitOverrideResourceType),
+		string(auditlog.RatelimitNamespaceTargetType),
+		string(auditlog.RatelimitOverrideTargetType),
 	}, row.TargetTypes)
 	require.Equal(t, []string{namespaceID, overrideID}, row.TargetIDs)
 	require.Equal(t, []string{namespaceName, identifier}, row.TargetNames)
-	require.JSONEq(t, `{}`, row.MetaText)
+	var meta map[string]any
+	require.NoError(t, json.Unmarshal([]byte(row.MetaText), &meta))
+	require.Equal(t, map[string]any{}, meta)
 	require.Equal(t, "{} {}", row.TargetsMetaText)
 	require.NotContains(t, row.MetaText, identifier)
 	require.NotContains(t, row.TargetsMetaText, identifier)

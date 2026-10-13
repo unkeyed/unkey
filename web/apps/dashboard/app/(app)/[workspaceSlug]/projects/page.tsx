@@ -1,6 +1,7 @@
 "use client";
 
 import { ComputeUpgradeCelebration } from "@/components/billing/upgrade-success/upgrade-success-dialog";
+import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { useVisibleProjects } from "@/hooks/use-visible-projects";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { DEPLOY_CHECKOUT_ORIGINS, routes } from "@/lib/navigation/routes";
@@ -60,6 +61,7 @@ function usePendingSubscribe() {
   const workspace = useWorkspaceNavigation();
   const searchParams = useSearchParams();
   const trpcUtils = trpc.useUtils();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [welcome, setWelcome] = useState<{ plan: DeployPlan; thenCreate: boolean } | null>(null);
@@ -101,7 +103,7 @@ function usePendingSubscribe() {
       await Promise.all([
         trpcUtils.stripe.getDeployEntitlement.invalidate(),
         trpcUtils.stripe.getDeploySubscription.invalidate(),
-        trpcUtils.workspace.getCurrent.invalidate(),
+        invalidateWorkspace(),
       ]);
       setWelcome({ plan: pending.plan, thenCreate: pending.from === "create" });
     };
@@ -167,7 +169,7 @@ function usePendingSubscribe() {
       }
       attempt();
     })();
-  }, [searchParams, router, workspace.slug, subscribe, trpcUtils]);
+  }, [searchParams, router, workspace.slug, subscribe, trpcUtils, invalidateWorkspace]);
 
   return { createDialogOpen, setCreateDialogOpen, welcome, closeWelcome };
 }

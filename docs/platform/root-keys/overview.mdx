@@ -34,9 +34,11 @@ Manage root keys on the workspace's **Root Keys** page. You need the [admin role
       CSS pixels, scale 2, in both themes. Crop to the page content, keeping
       the header and all table columns. Never show a full secret."
     src="/platform/root-keys/root-key-list"
-    alt="Root key list with separate keys for CI, debugging, and API key verification"
     capturedAt="2026-10-02T14:11:28Z"
-  />
+  >
+    <img className="block dark:hidden" src="/platform/root-keys/root-key-list-light.png" alt="Root key list with separate keys for CI, debugging, and API key verification" />
+    <img className="hidden dark:block" src="/platform/root-keys/root-key-list-dark.png" alt="Root key list with separate keys for CI, debugging, and API key verification" />
+  </DashboardScreenshot>
 </Frame>
 
 ## What a root key looks like
@@ -74,10 +76,12 @@ Rotating gives you a new root key with the same name and permissions, and stops 
       Do not submit rotation. Capture both themes with transparent padding
       of 24 CSS pixels and no outer shadow at scale 2."
     src="/platform/root-keys/root-key-rotate"
-    alt="Root key rotation dialog with a one-hour grace period"
     width={648}
     capturedAt="2026-10-02T14:02:40Z"
-  />
+  >
+    <img className="block dark:hidden" src="/platform/root-keys/root-key-rotate-light.png" alt="Root key rotation dialog with a one-hour grace period" />
+    <img className="hidden dark:block" src="/platform/root-keys/root-key-rotate-dark.png" alt="Root key rotation dialog with a one-hour grace period" />
+  </DashboardScreenshot>
 </Frame>
 
 When the grace period ends, requests with the old key fail with `err:unkey:authorization:forbidden`. If the old key was already set to expire sooner, it stops at that earlier time.
@@ -97,10 +101,12 @@ Choose **Delete root key** from the row menu and confirm. You can't undo this. T
       delete the key. Capture both themes at scale 2 with transparent padding
       of 24 CSS pixels and no outer shadow."
     src="/platform/root-keys/root-key-delete"
-    alt="Root key deletion dialog with its confirmation unchecked"
     width={608}
     capturedAt="2026-10-02T14:01:41Z"
-  />
+  >
+    <img className="block dark:hidden" src="/platform/root-keys/root-key-delete-light.png" alt="Root key deletion dialog with its confirmation unchecked" />
+    <img className="hidden dark:block" src="/platform/root-keys/root-key-delete-dark.png" alt="Root key deletion dialog with its confirmation unchecked" />
+  </DashboardScreenshot>
 </Frame>
 
 ## If a root key leaks

@@ -30,7 +30,7 @@ updates:
       - "/"
       - "/dev"
       - "/docs/engineering"
-      - "/docs/product"
+      - "/docs"
       - "/svc/heimdall/internal/network/bpf"
       - "/svc/kitchensink"
       - "/web/apps/portal"

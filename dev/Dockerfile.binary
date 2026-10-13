@@ -11,9 +11,13 @@
 # public TLS (Stripe, GitHub, ACME) with x509 unknown-authority errors.
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:d29e660cc75a5b6b1334e03c5c81ccf9bc0884a002c6000dbf0fb96034814478 AS certs
 
+FROM tiltdev/restart-helper:2025-02-17 AS restart-helper
+
 FROM busybox:1.36@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
 
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=restart-helper /tilt-restart-wrapper /entr /
 COPY unkey /unkey
-LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey
-ENTRYPOINT ["/unkey"]
+RUN touch /tmp/.restart-proc && chmod 666 /tmp/.restart-proc
+LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey dev.unkey.image=true
+ENTRYPOINT ["/tilt-restart-wrapper", "--watch_file=/tmp/.restart-proc", "/unkey"]

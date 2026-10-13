@@ -146,7 +146,7 @@ func TestParseMiddleware_WithPolicies(t *testing.T) {
 
 // TestPrincipal_Marshal_WireFormat pins the JSON wire format of the
 // Principal. The header contract documented in
-// docs/product/platform/gateway/principal/overview.mdx is exactly this
+// docs/compute/gateway/principal.mdx is exactly this
 // output — if this test changes, update the docs in the same commit.
 func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 	t.Parallel()
