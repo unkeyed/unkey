@@ -1,14 +1,16 @@
-import { type SQL, and, db, eq, inArray } from "@/lib/db";
+import { type SQL, and, db, eq, inArray, isNull, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { identities, keys } from "@unkey/db/src/schema";
 
-const MAX_IDENTITY_FILTER_IDS = 100;
+const MAX_IDENTITY_FILTER_IDS = 1000;
 
 export async function resolveIdentityFilter({
   workspaceId,
+  keyspaceId,
   condition,
 }: {
   workspaceId: string;
+  keyspaceId: string;
   condition: SQL;
 }) {
   const matchingIdentities = () =>
@@ -17,7 +19,18 @@ export async function resolveIdentityFilter({
       .from(identities)
       .where(and(eq(identities.workspaceId, workspaceId), condition));
 
-  const matches = await matchingIdentities()
+  const matches = await db
+    .selectDistinct({
+      id: sql`${identities}.${sql.identifier(identities.id.name)}`.mapWith(identities.id),
+    })
+    .from(
+      sql`${identities} STRAIGHT_JOIN ${keys} ON ${and(
+        eq(keys.identityId, identities.id),
+        eq(keys.keyAuthId, keyspaceId),
+        isNull(keys.deletedAtM),
+      )}`,
+    )
+    .where(and(eq(identities.workspaceId, workspaceId), condition))
     .limit(MAX_IDENTITY_FILTER_IDS + 1)
     .catch((error) => {
       console.error("Database query error:", error);
