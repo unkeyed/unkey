@@ -192,8 +192,7 @@ export async function getInstallationAccessToken(
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to get installation access token: ${error}`);
+    throw new GitHubApiError(response.status, await response.text());
   }
 
   return installationAccessTokenSchema.parse(await response.json());
