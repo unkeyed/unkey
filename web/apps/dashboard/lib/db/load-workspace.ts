@@ -83,7 +83,7 @@ export async function loadWorkspace(orgId: string, requestedFlags: readonly Work
         ? {
             // Explicit identifiers keep Drizzle from dropping the outer table qualifier.
             flags: sql<unknown>`(
-        SELECT COALESCE(JSON_OBJECTAGG(f.slug, COALESCE(o.value, f.default_value)), JSON_OBJECT())
+        SELECT COALESCE(JSON_OBJECTAGG(f.slug, COALESCE(o.enabled, f.default_enabled)), JSON_OBJECT())
         FROM flags AS f
         LEFT JOIN flag_overrides AS o
           ON o.flag_slug = f.slug
