@@ -411,7 +411,34 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
+			relationshipAuditLog := func(event auditlog.AuditLogEvent, targetType auditlog.AuditLogTargetType, id, name, display string) auditlog.AuditLog {
+				return auditlog.AuditLog{
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
+					Event:         event,
+					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+					ActorID:       principal.Subject.ID,
+					ActorName:     principal.Subject.Name,
+					ActorMeta:     map[string]any{},
+					Display:       display,
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
+					Targets: []auditlog.AuditLogTarget{
+						{Type: auditlog.KeyTargetType, ID: key.Key.ID, Name: key.Key.Name.String, DisplayName: key.Key.Name.String, Meta: map[string]any{}},
+						{Type: targetType, ID: id, Name: name, DisplayName: name, Meta: map[string]any{}},
+					},
+				}
+			}
+
 			if req.Permissions != nil {
+				currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, tx, key.Key.ID)
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("failed to retrieve current key permissions"),
+						fault.Public("Failed to retrieve current key permissions."),
+					)
+				}
 				var existingPermissions []db.Permission
 				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 					WorkspaceID: principal.AuthorizedWorkspaceID,
@@ -533,6 +560,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 				}
 
+				currentPermissionIDs := make(map[string]bool, len(currentPermissions))
+				requestedPermissionIDs := make(map[string]bool, len(requestedPermissions))
+				for _, permission := range requestedPermissions {
+					requestedPermissionIDs[permission.ID] = true
+				}
+				for _, permission := range currentPermissions {
+					currentPermissionIDs[permission.ID] = true
+					if !requestedPermissionIDs[permission.ID] {
+						auditLogs = append(auditLogs, relationshipAuditLog(
+							auditlog.AuthDisconnectPermissionKeyEvent, auditlog.PermissionTargetType,
+							permission.ID, permission.Slug, fmt.Sprintf("Removed permission %s from key %s", permission.Slug, key.Key.ID)))
+					}
+				}
+				for _, permission := range requestedPermissions {
+					if !currentPermissionIDs[permission.ID] {
+						auditLogs = append(auditLogs, relationshipAuditLog(
+							auditlog.AuthConnectPermissionKeyEvent, auditlog.PermissionTargetType,
+							permission.ID, permission.Slug, fmt.Sprintf("Added permission %s to key %s", permission.Slug, key.Key.ID)))
+					}
+				}
+
 				err = db.Query.DeleteAllKeyPermissionsByKeyID(ctx, tx, key.Key.ID)
 				if err != nil {
 					return fault.Wrap(err,
@@ -566,6 +614,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Roles != nil {
+				currentRoles, err := db.Query.ListRolesByKeyID(ctx, tx, key.Key.ID)
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("failed to retrieve current key roles"),
+						fault.Public("Failed to retrieve current key roles."),
+					)
+				}
 				var existingRoles []db.FindRolesByNamesRow
 				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 					WorkspaceID: principal.AuthorizedWorkspaceID,
@@ -599,6 +655,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						fault.Internal("role not found"),
 						fault.Public(fmt.Sprintf("Role '%s' was not found.", requestedName)),
 					)
+				}
+
+				currentRoleIDs := make(map[string]bool, len(currentRoles))
+				requestedRoleIDs := make(map[string]bool, len(requestedRoles))
+				for _, role := range requestedRoles {
+					requestedRoleIDs[role.ID] = true
+				}
+				for _, role := range currentRoles {
+					currentRoleIDs[role.ID] = true
+					if !requestedRoleIDs[role.ID] {
+						auditLogs = append(auditLogs, relationshipAuditLog(
+							auditlog.AuthDisconnectRoleKeyEvent, auditlog.RoleTargetType,
+							role.ID, role.Name, fmt.Sprintf("Removed role %s from key %s", role.Name, key.Key.ID)))
+					}
+				}
+				for _, role := range requestedRoles {
+					if !currentRoleIDs[role.ID] {
+						auditLogs = append(auditLogs, relationshipAuditLog(
+							auditlog.AuthConnectRoleKeyEvent, auditlog.RoleTargetType,
+							role.ID, role.Name, fmt.Sprintf("Added role %s to key %s", role.Name, key.Key.ID)))
+					}
 				}
 
 				err = db.Query.DeleteAllKeyRolesByKeyID(ctx, tx, key.Key.ID)

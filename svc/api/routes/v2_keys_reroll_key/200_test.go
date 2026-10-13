@@ -164,6 +164,26 @@ func TestRerollKeySuccess(t *testing.T) {
 		createdKey := db.ToKeyData(createdKeyRow)
 		rolledKey := db.ToKeyData(rolledKeyRow)
 
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.KeyId)
+		require.Len(t, auditLogs, 1)
+		require.Equal(t, "key.reroll", auditLogs[0].Event)
+		expectedTargets := map[string]string{
+			key.KeyID:           "key",
+			res.Body.Data.KeyId: "key",
+			api.ID:              "api",
+		}
+		for _, role := range createdKey.Roles {
+			expectedTargets[role.ID] = "role"
+		}
+		for _, permission := range createdKey.Permissions {
+			expectedTargets[permission.ID] = "permission"
+		}
+		actualTargets := map[string]string{}
+		for _, target := range auditLogs[0].Targets {
+			actualTargets[target.ID] = target.Type
+		}
+		require.Equal(t, expectedTargets, actualTargets)
+
 		// Compare permissions - build sets of all permission slugs (direct + from roles)
 		createdPermSet := make(map[string]struct{})
 		for _, perm := range createdKey.Permissions {
