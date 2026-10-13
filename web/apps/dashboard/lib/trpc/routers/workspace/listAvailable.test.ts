@@ -1,3 +1,4 @@
+import { createDeploymentOwnershipCache } from "@/lib/trpc/deployment-ownership";
 import { drizzle, schema } from "@unkey/db";
 import { createPool } from "mysql2";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -25,6 +26,7 @@ const caller = router({ listAvailable }).createCaller({
   audit: { userAgent: undefined, location: "test" },
   workspace: undefined,
   tenant: null,
+  deploymentOwnership: createDeploymentOwnershipCache(),
 });
 
 beforeEach(() => {

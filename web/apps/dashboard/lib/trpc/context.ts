@@ -6,6 +6,7 @@ import { getAuth } from "../auth/get-auth";
 import { getClientIp } from "../client-ip";
 import { db } from "../db";
 import { subscriptionIdsByProduct } from "../stripe/billingSubscriptions";
+import { createDeploymentOwnershipCache } from "./deployment-ownership";
 
 const workspaceProjection = {
   columns: {
@@ -200,6 +201,9 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
           role: authResult.role,
         }
       : null,
+    // One map per HTTP request. Middleware copies this reference onto each
+    // procedure, so batched metrics handlers share a single ownership lookup.
+    deploymentOwnership: createDeploymentOwnershipCache(),
   };
 }
 
