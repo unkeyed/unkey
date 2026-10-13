@@ -134,9 +134,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
-						Type:        auditlog.RoleResourceType,
+						Type:        auditlog.RoleTargetType,
 						ID:          role.ID,
 						Name:        result.Name,
 						DisplayName: result.Name,

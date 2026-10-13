@@ -54,14 +54,14 @@ func TestResolverWithRolesLeavesNonJWTPrincipalsAlone(t *testing.T) {
 			principal: &principal.Principal{
 				Type:                  principal.TypeAPIKey,
 				AuthorizedWorkspaceID: "ws_123",
-				Permissions:           []string{"api.*.read_api"},
+				Permissions:           []string{"unkey:v1:ws_123:projects/*#read"},
 			},
 		},
 	}
 
 	p, err := resolver.Resolve(context.Background(), nil)
 	require.NoError(t, err)
-	require.Equal(t, []string{"api.*.read_api"}, p.Permissions)
+	require.Equal(t, []string{"unkey:v1:ws_123:projects/*#read"}, p.Permissions)
 }
 
 // TestResolverWithRolesYieldsAndPropagatesErrors guarantees provider role

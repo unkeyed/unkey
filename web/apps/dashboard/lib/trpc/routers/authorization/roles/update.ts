@@ -163,7 +163,7 @@ export const updateRole = workspaceProcedure
                 id: ctx.user.id,
               },
               description: `Connected role ${roleId} and permission ${permissionId}`,
-              resources: [
+              targets: [
                 { type: "role", id: roleId, name: input.roleName },
                 { type: "permission", id: permissionId },
               ],
@@ -217,7 +217,7 @@ export const updateRole = workspaceProcedure
                 id: ctx.user.id,
               },
               description: `Connected key ${keyId} and role ${roleId}`,
-              resources: [
+              targets: [
                 { type: "key", id: keyId },
                 { type: "role", id: roleId, name: input.roleName },
               ],
@@ -239,7 +239,7 @@ export const updateRole = workspaceProcedure
           id: ctx.user.id,
         },
         description: `Updated role ${roleId}`,
-        resources: [
+        targets: [
           {
             type: "role",
             id: roleId,

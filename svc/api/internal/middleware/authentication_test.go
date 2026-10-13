@@ -20,7 +20,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -147,11 +149,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 					return err
 				}
 
-				return p.Authorize(rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.CreateAPI,
-				}))
+				return p.Authorize(rbac.U(urn.New().Workspace("ws_123").Project("*"), permissions.Write))
 			},
 			wantWorkspaceID: "",
 			wantKeySpaceID:  "ks_123",
@@ -167,11 +165,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 					return err
 				}
 
-				authorizationErr := p.Authorize(rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.CreateAPI,
-				}))
+				authorizationErr := p.Authorize(rbac.U(urn.New().Workspace("ws_123").Project("*"), permissions.Write))
 				if authorizationErr == nil {
 					return errors.New("expected authorization denial")
 				}
@@ -393,7 +387,7 @@ func testMiddlewarePrincipal(authorizedWorkspaceID string) *principal.Principal 
 			WorkspaceID: "ws_root",
 		},
 		AuthorizedWorkspaceID: authorizedWorkspaceID,
-		Permissions:           []string{"api.*.read_key"},
+		Permissions:           []string{"unkey:v1:" + authorizedWorkspaceID + ":rootKeys/*#read"},
 	}
 }
 

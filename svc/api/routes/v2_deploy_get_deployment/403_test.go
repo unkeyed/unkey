@@ -19,7 +19,7 @@ func TestGetDeploymentInsufficientPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	setupCreate := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
 	})
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
@@ -36,7 +36,7 @@ func TestGetDeploymentInsufficientPermissions(t *testing.T) {
 	}
 	h.Register(route)
 
-	rootKeyWithoutRead := h.CreateRootKey(setupCreate.Workspace.ID, "project.*.create_deployment")
+	rootKeyWithoutRead := h.CreateRootKey(setupCreate.Workspace.ID, "unkey:v1:"+setupCreate.Workspace.ID+":**#write")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

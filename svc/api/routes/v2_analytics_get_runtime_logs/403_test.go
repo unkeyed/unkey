@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,12 +15,10 @@ func Test403_UnrelatedPermissions(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 
 	for _, permission := range []string{
-		"api.*.read_analytics",
-		"ratelimit.*.read_analytics",
-		"project.*.read_analytics",
-		"project.*.read_gateway_requests",
-		"project.*.read_project",
-		"project.*.read_deployment",
+		fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/logs#read", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/*/logs#read", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:projects/*#read", workspaceID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/deployments/*#read", workspaceID),
 	} {
 		t.Run(permission, func(t *testing.T) {
 			rootKey := h.CreateRootKey(workspaceID, permission)
@@ -36,7 +35,7 @@ func Test403_UnrelatedPermissions(t *testing.T) {
 // setup.
 func Test403_ReturnsBeforeAnalyticsLookup(t *testing.T) {
 	h, route, workspaceID := newRoute(t, false)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_project")
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*#read", workspaceID))
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
 		Query: "SELECT count() FROM runtime_logs_v1",

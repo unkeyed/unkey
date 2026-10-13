@@ -20,7 +20,7 @@ func TestListDomainsIDSlugCollisionsMatchBoth(t *testing.T) {
 
 	base := seedEnvironment(t, h)
 	baseDomain := attachDomain(t, h, base, nil)
-	headers := authHeaders(h.CreateRootKey(base.workspaceID, "environment.*.read_domain"))
+	headers := authHeaders(h.CreateRootKey(base.workspaceID, "unkey:v1:"+base.workspaceID+":**#read"))
 
 	projectBySlug := h.CreateProject(seed.CreateProjectRequest{
 		ID: uid.New(uid.ProjectPrefix), WorkspaceID: base.workspaceID, Name: "Project slug collision", Slug: base.projectID,
@@ -90,7 +90,7 @@ func TestListDomainsMissingAndMismatchedFiltersReturnEmpty(t *testing.T) {
 	env := seedEnvironment(t, h)
 	domain := attachDomain(t, h, env, nil)
 	other := seedEnvironment(t, h)
-	headers := authHeaders(h.CreateRootKey(env.workspaceID, "environment.*.read_domain"))
+	headers := authHeaders(h.CreateRootKey(env.workspaceID, "unkey:v1:"+env.workspaceID+":**#read"))
 	testCases := []struct {
 		name string
 		req  handler.Request
@@ -138,7 +138,7 @@ func TestListDomainsCrossWorkspaceFiltersReturnEmpty(t *testing.T) {
 	otherDomain := attachDomain(t, h, seededEnv{
 		workspaceID: otherWorkspace.ID, projectID: otherProject.ID, appID: otherApp.ID, environmentID: otherEnvironment.ID,
 	}, nil)
-	headers := authHeaders(h.CreateRootKey(env.workspaceID, "environment.*.read_domain"))
+	headers := authHeaders(h.CreateRootKey(env.workspaceID, "unkey:v1:"+env.workspaceID+":**#read"))
 
 	requests := []handler.Request{
 		{Project: new(otherProject.ID)},

@@ -61,7 +61,7 @@ export const deleteNamespace = workspaceProcedure
         },
         event: "ratelimitNamespace.delete",
         description: `Deleted ${namespace.id}`,
-        resources: [
+        targets: [
           {
             type: "ratelimitNamespace",
             id: namespace.id,
@@ -103,7 +103,7 @@ export const deleteNamespace = workspaceProcedure
             },
             event: "ratelimit.delete_override",
             description: `Deleted ${id} as part of the ${namespace.id} deletion`,
-            resources: [
+            targets: [
               {
                 type: "ratelimitNamespace",
                 id: namespace.id,

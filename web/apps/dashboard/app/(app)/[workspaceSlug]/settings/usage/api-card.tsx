@@ -21,15 +21,21 @@ import {
   Skeleton,
 } from "@unkey/ui";
 import { Fragment, type ReactNode } from "react";
+import type { UsagePeriodRange } from "./period";
 
 type ApiCardProps = {
   verifications: number | null;
   ratelimits: number | null;
   quota: number | null;
   feeCents: number | null;
+  range: UsagePeriodRange;
   isLoading: boolean;
   isError: boolean;
 };
+
+function days(count: number): string {
+  return count === 1 ? "1 day" : `${count} days`;
+}
 
 function fee(feeCents: number | null): string | null {
   if (feeCents === null) {
@@ -43,6 +49,7 @@ export function ApiCard({
   ratelimits,
   quota,
   feeCents,
+  range,
   isLoading,
   isError,
 }: ApiCardProps) {
@@ -60,7 +67,10 @@ export function ApiCard({
         </ItemMedia>
         <ItemContent>
           <ItemTitle>API management</ItemTitle>
-          <ItemDescription>Valid requests this period</ItemDescription>
+          <ItemDescription>
+            Valid requests, {range.label}
+            {range.daysLeft === null ? null : ` · resets in ${days(range.daysLeft)}`}
+          </ItemDescription>
         </ItemContent>
         <ItemActions className="font-semibold text-2xl text-gray-12 leading-tight tracking-tight tabular-nums">
           <Figure value={fee(feeCents)} isLoading={isLoading} skeletonClassName="h-6 w-16" />

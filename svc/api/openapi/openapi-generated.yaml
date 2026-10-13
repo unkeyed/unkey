@@ -400,12 +400,9 @@ components:
                     type: boolean
                     default: false
                     description: |-
-                        EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:
-                        - You've just created a key and need to display it immediately
-                        - You need absolute certainty about the current key state
-                        - You're debugging cache consistency issues
-
-                        This parameter comes with a performance cost and should be used sparingly.
+                        When true, reads keys and their identities from the primary database to avoid replica lag.
+                        When false or omitted, reads from a replica, which may not reflect recent changes.
+                        Primary reads can have higher latency, depending on your region.
             additionalProperties: false
         V2ApisListKeysResponseBody:
             type: object
@@ -4023,6 +4020,51 @@ components:
                 - The resource cannot be restored through the API or dashboard
 
                 To resolve this error, contact support if you need the resource restored.
+        V2RatelimitListNamespacesRequestBody:
+            type: object
+            properties:
+                limit:
+                    type: integer
+                    description: |
+                        Maximum number of namespaces to return per request.
+                        Omit this field to receive up to 100 namespaces.
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    minLength: 1
+                    maxLength: 1024
+                    description: |
+                        Pagination cursor from a previous response to fetch the next page.
+                        Use when `hasMore: true` in the previous response. Omit this field to start from the first page.
+                    example: rlns_1234abcd
+                search:
+                    type: string
+                    maxLength: 256
+                    description: |
+                        Free-form text to filter namespaces. Returns namespaces whose ID or name contains the search string. Matching is case-insensitive.
+                        Omit this field to list every namespace.
+                    example: api
+            additionalProperties: false
+        V2RatelimitListNamespacesResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 100
+                    items:
+                        "$ref": "#/components/schemas/RatelimitNamespace"
+                    description: Namespaces in the workspace, newest first.
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
         V2RatelimitListOverridesRequestBody:
             additionalProperties: false
             properties:
@@ -4325,6 +4367,22 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
+        V2WorkspaceGetFlagsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    type: object
+                    description: |
+                        Flags keyed by their lowercase snake_case slugs.
+                        Empty when no flags are available.
+                    additionalProperties:
+                        $ref: "#/components/schemas/V2WorkspaceGetFlagsFlag"
+            additionalProperties: false
         V2WorkspaceGetLimitsResponseBody:
             type: object
             required:
@@ -4352,6 +4410,33 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2WorkspaceGetUsageResponseData"
+            additionalProperties: false
+        V2WorkspaceUpdateFlagRequestBody:
+            type: object
+            required:
+                - slug
+                - enabled
+            properties:
+                slug:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                    pattern: "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+                    description: Lowercase snake_case slug of the flag to update, as returned by `workspace.getFlags`.
+                enabled:
+                    type: boolean
+                    description: Set to true to enable the flag or false to disable it, regardless of the flag's default.
+            additionalProperties: false
+        V2WorkspaceUpdateFlagResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/EmptyResponse"
             additionalProperties: false
         V3DeploymentsCreateDeploymentRequestBody:
             type: object
@@ -8062,6 +8147,44 @@ components:
                 - remaining
                 - reset
                 - success
+        RatelimitNamespace:
+            type: object
+            required:
+                - id
+                - name
+                - createdAt
+            properties:
+                id:
+                    type: string
+                    description: |
+                        The unique identifier of the namespace, generated by Unkey.
+                    example: rlns_1234abcd
+                name:
+                    type: string
+                    description: |
+                        The name of the namespace, unique within your workspace.
+                        Pass it as `namespace` to `ratelimit.limit` and the override endpoints.
+                    example: api.requests
+                createdAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: |
+                        Unix timestamp in milliseconds when the namespace was created.
+                    example: 1704067200000
+                updatedAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: |
+                        Unix timestamp in milliseconds when the namespace was last updated.
+                        Omitted if the namespace has never been updated.
+                    example: 1704153600000
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
         V2RatelimitListOverridesResponseData:
             type: array
             items:
@@ -8245,6 +8368,27 @@ components:
                     type: string
                     x-unkey-redact: true
                     description: New root key secret, returned only once. Store it securely.
+        V2WorkspaceGetFlagsFlag:
+            type: object
+            required:
+                - enabled
+                - description
+                - allowOptIn
+                - allowOptOut
+            properties:
+                enabled:
+                    type: boolean
+                    description: Whether the feature is enabled for this workspace. A workspace-specific value overrides the flag's default.
+                description:
+                    type: string
+                    description: What the flag controls.
+                allowOptIn:
+                    type: boolean
+                    description: Whether this flag can be enabled. Updating it also requires `flags#write` permission.
+                allowOptOut:
+                    type: boolean
+                    description: Whether this flag can be disabled. Updating it also requires `flags#write` permission.
+            additionalProperties: false
         V2WorkspaceGetLimitsResponseData:
             type: object
             description: |
@@ -17894,6 +18038,144 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: limit
+    /v2/ratelimit.listNamespaces:
+        post:
+            description: |
+                Retrieve a paginated list of the rate limit namespaces in your workspace.
+
+                Use this to find the namespaces your services rate limit against, for example to build an admin view or to look up a namespace ID. Results are ordered newest first and returned in pages. When `hasMore` is true, pass the returned `cursor` to fetch the next page.
+
+                Deleted namespaces are not returned. The list contains only the namespaces your root key can read.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `unkey:v1:<workspace_id>:projects/*/ratelimits/namespaces/*#read` (to read every namespace)
+                - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#read` (to read a specific namespace)
+            operationId: ratelimit.listNamespaces
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            basic:
+                                description: List the first page of namespaces in your workspace
+                                summary: List all namespaces
+                                value: {}
+                            paginated:
+                                description: Fetch a smaller page and continue from the cursor of the previous response
+                                summary: Continue from a cursor
+                                value:
+                                    cursor: rlns_1234abcd
+                                    limit: 20
+                            search:
+                                description: List namespaces whose ID or name contains the search string
+                                summary: Search namespaces
+                                value:
+                                    search: api
+                        schema:
+                            $ref: '#/components/schemas/V2RatelimitListNamespacesRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                empty:
+                                    description: The workspace has no namespaces your root key can read
+                                    summary: No namespaces
+                                    value:
+                                        data: []
+                                        meta:
+                                            requestId: req_9876zyxw
+                                        pagination:
+                                            hasMore: false
+                                morePages:
+                                    description: A page with a cursor for the next page
+                                    summary: More namespaces available
+                                    value:
+                                        data:
+                                            - createdAt: 1704240000000
+                                              id: rlns_5678efgh
+                                              name: email.sends
+                                        meta:
+                                            requestId: req_5678efgh
+                                        pagination:
+                                            cursor: rlns_1234abcd
+                                            hasMore: true
+                                namespaceList:
+                                    description: The last page of namespaces in a workspace
+                                    summary: Namespace list
+                                    value:
+                                        data:
+                                            - createdAt: 1704240000000
+                                              id: rlns_5678efgh
+                                              name: email.sends
+                                            - createdAt: 1704067200000
+                                              id: rlns_1234abcd
+                                              name: api.requests
+                                              updatedAt: 1704153600000
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            hasMore: false
+                            schema:
+                                $ref: '#/components/schemas/V2RatelimitListNamespacesResponseBody'
+                    description: |
+                        Successfully retrieved a page of namespaces. Use the pagination cursor for additional results when `hasMore: true`.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidLimit:
+                                    summary: Invalid limit
+                                    value:
+                                        error:
+                                            detail: One or more fields failed validation
+                                            errors:
+                                                - fix: Use a limit between 1 and 100
+                                                  location: body.limit
+                                                  message: must be less than or equal to 100
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List ratelimit namespaces
+            tags:
+                - ratelimit
+            x-speakeasy-name-override: listNamespaces
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
+            x-unkey-idempotency: idempotent
     /v2/ratelimit.listOverrides:
         post:
             description: |
@@ -18575,6 +18857,82 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: updateKey
+    /v2/workspace.getFlags:
+        post:
+            description: |
+                Get feature flags for the workspace associated with your credentials.
+
+                Each flag is keyed by its slug and includes its current value, description,
+                and whether it can be enabled or disabled. A workspace-specific value takes
+                precedence over the flag's default. If no flags are available, `data` is an
+                empty object.
+
+                This endpoint takes no request body.
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:flags#read`
+            operationId: workspace.getFlags
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                empty:
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                                flags:
+                                    value:
+                                        data:
+                                            projects_nav:
+                                                allowOptIn: true
+                                                allowOptOut: false
+                                                description: Preview project navigation.
+                                                enabled: true
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2WorkspaceGetFlagsResponseBody'
+                    description: Workspace flags keyed by slug, or an empty object when no flags are available.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request, including a missing Authorization header.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Requires `unkey:v1:<workspace_id>:flags#read`.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get workspace flags
+            tags:
+                - workspace
+            x-speakeasy-name-override: getFlags
+            x-unkey-idempotency: idempotent
     /v2/workspace.getLimits:
         post:
             description: |
@@ -19063,6 +19421,73 @@ paths:
             tags:
                 - workspace
             x-speakeasy-name-override: getUsage
+            x-unkey-idempotency: idempotent
+    /v2/workspace.updateFlag:
+        post:
+            description: |
+                Enable or disable a flag for your workspace. Use `workspace.getFlags` to
+                find flag slugs and check whether they can be enabled or disabled.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:flags#write`
+            operationId: workspace.updateFlag
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2WorkspaceUpdateFlagRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2WorkspaceUpdateFlagResponseBody'
+                    description: Flag updated successfully. The data object is empty.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Missing write permission, or the flag cannot be enabled or disabled as requested.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: No flag exists with the supplied slug.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: Update a workspace flag
+            tags:
+                - workspace
+            x-speakeasy-name-override: updateFlag
             x-unkey-idempotency: idempotent
     /v3/deployments.createDeployment:
         post:

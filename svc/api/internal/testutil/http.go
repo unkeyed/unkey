@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
@@ -70,6 +72,7 @@ type Harness struct {
 	// test data that the seeder methods don't cover.
 	DB                         db.Database
 	Caches                     caches.Caches
+	Flags                      flags.Service
 	Keys                       keys.KeyService
 	Auth                       auth.Authenticator
 	PortalAuth                 auth.Authenticator
@@ -140,6 +143,10 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Clock: clk,
 	})
 	require.NoError(t, err)
+
+	flagSvc, err := flags.New(flags.Config{DB: db.ToMySQL(database), Clock: clk})
+	require.NoError(t, err)
+	t.Cleanup(flagSvc.Close)
 
 	srv, err := zen.New(zen.Config{
 		MaxRequestBodySize: 0,
@@ -335,6 +342,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		AnalyticsConnectionManager: analyticsConnManager,
 		Auditlogs:                  audit,
 		Caches:                     caches,
+		Flags:                      flagSvc,
 		middleware:                 nil,
 		portalMiddleware:           nil,
 		publicMiddleware: []zen.Middleware{
@@ -635,7 +643,11 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 
 	var rootKey string
 	if config.Permissions != nil {
-		rootKey = h.CreateRootKey(workspace.ID, config.Permissions...)
+		permissions := make([]string, len(config.Permissions))
+		for i, permission := range config.Permissions {
+			permissions[i] = strings.ReplaceAll(permission, "{workspaceID}", workspace.ID)
+		}
+		rootKey = h.CreateRootKey(workspace.ID, permissions...)
 	} else {
 		rootKey = h.CreateRootKey(workspace.ID)
 	}

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Deployment } from "@/lib/collections";
+import type { Deployment, DeploymentSummary } from "@/lib/collections";
 import {
   DEPLOYMENT_STATUS_LABELS,
   type DeploymentStatusGroup,
@@ -29,7 +29,7 @@ const VISIBLE_BUILD_GROUPS = new Set<DeploymentStatusGroup>([
   "blocked",
 ]);
 
-export function hasVisibleBuildState(deployment: Deployment): boolean {
+export function hasVisibleBuildState(deployment: Pick<Deployment, "status">): boolean {
   return VISIBLE_BUILD_GROUPS.has(statusGroupOf(deployment.status));
 }
 
@@ -38,7 +38,13 @@ const ACTION_LABEL: Partial<Record<DeploymentStatusGroup, string>> = {
   blocked: "Review build",
 };
 
-export function NewerDeploymentRow({ deployment, href }: { deployment: Deployment; href: Route }) {
+export function NewerDeploymentRow({
+  deployment,
+  href,
+}: {
+  deployment: DeploymentSummary & Pick<Deployment, "buildEndedAt">;
+  href: Route;
+}) {
   const buildTime = useBuildDuration(
     deployment.status,
     deployment.createdAt,

@@ -66,7 +66,7 @@ export const setDeployBudget = workspaceProcedure
         input.budgetCents === null
           ? "Removed the Compute spend budget."
           : `Set the Compute spend budget to ${formatDollars(input.budgetCents)}/month (stop workloads: ${input.stopAtBudget ? "on" : "off"}).`,
-      resources: [],
+      targets: [{ type: "workspace", id: ctx.workspace.id }],
       context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
     });
 

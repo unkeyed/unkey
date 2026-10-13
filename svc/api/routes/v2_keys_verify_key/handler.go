@@ -305,7 +305,7 @@ func (h *Handler) bufferAuditLog(
 
 	targets := []auditlog.EventTarget{
 		{
-			Type: string(auditlog.KeyResourceType),
+			Type: string(auditlog.KeyTargetType),
 			ID:   key.Key.ID,
 			Name: key.Key.Name.String,
 			Meta: nil,
@@ -313,7 +313,7 @@ func (h *Handler) bufferAuditLog(
 	}
 	if key.Key.IdentityID.Valid {
 		targets = append(targets, auditlog.EventTarget{
-			Type: string(auditlog.IdentityResourceType),
+			Type: string(auditlog.IdentityTargetType),
 			ID:   key.Key.IdentityID.String,
 			Name: key.Key.ExternalID.String,
 			Meta: nil,
