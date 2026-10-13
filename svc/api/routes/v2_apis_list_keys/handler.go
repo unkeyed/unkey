@@ -61,18 +61,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	usePrimary := ptr.SafeDeref(req.RevalidateKeysCache, false)
-	readDB := h.DB.RO()
+	replica := h.DB.RO()
 	var api db.FindLiveApiByIDRow
 	hit := cache.Miss
 	if usePrimary {
-		readDB = h.DB.RW()
-		api, err = db.Query.FindLiveApiByID(ctx, readDB, req.ApiId)
+		replica = h.DB.RW()
+		api, err = db.Query.FindLiveApiByID(ctx, replica, req.ApiId)
 	} else {
 		api, hit, err = h.ApiCache.SWR(ctx, cache.ScopedKey{
 			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Key:         req.ApiId,
 		}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
-			return db.Query.FindLiveApiByID(ctx, readDB, req.ApiId)
+			return db.Query.FindLiveApiByID(ctx, replica, req.ApiId)
 		}, caches.DefaultFindFirstOp)
 	}
 	if err != nil {
@@ -193,7 +193,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	keyResults, err := db.Query.ListLiveKeysByKeySpaceID(
 		ctx,
-		readDB,
+		replica,
 		db.ListLiveKeysByKeySpaceIDParams{
 			KeySpaceID:  api.ApiKeyAuthID.String,
 			IDCursor:    p.Cursor,
