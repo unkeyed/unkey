@@ -1,14 +1,17 @@
 ---
 name: writing-go-code
-description: Applies Effective Go and the Google Go Style Guide (guide, decisions, best practices) when writing, reviewing, or refactoring Go code. Use for any Go change, code review, or style audit.
+description: Checks the latest stable Go release and applies modern Go APIs, Effective Go, and the Google Go Style Guide when writing, reviewing, or refactoring Go code. Use for any Go change, code review, or style audit.
 ---
 
 # Writing Go Code
 
 Faithful distillations of the authoritative Go style sources live in `reference/`.
 Read the relevant file before writing or reviewing Go; for a full review or
-style audit, read all four:
+style audit, read all five:
 
+- `reference/modern-go.md`: Versioned guidance from official Go release notes
+  and API documentation. Read this for every Go task, together with the live
+  release check below; older style documents do not cover these additions.
 - `reference/effective-go.md` — https://go.dev/doc/effective_go. The community
   baseline: formatting, names, control structures, data, methods, interfaces,
   embedding, concurrency, errors. Predates generics and modules.
@@ -28,6 +31,37 @@ recall. When a rule here seems to conflict with a reference file, the
 reference file wins; when project conventions (AGENTS.md, local style guides)
 conflict with either, the project wins — consistency within a codebase beats
 external style.
+
+## Check current Go releases
+
+At the start of every Go implementation, refactor, review, or style audit:
+
+1. Read the applicable `go.mod` and any `go.work`, build tags, CI configuration,
+   and toolchain pins. Check the installed version through the repository's
+   tool runner (`mise exec -- go version` here). A newer compiler does not
+   raise the module's minimum language or standard-library version.
+2. Fetch https://go.dev/dl/?mode=json and
+   https://go.dev/doc/devel/release live, not from a cached page or model memory.
+   Identify the newest stable release, excluding beta and release candidates.
+   Check patch release fixes as well as language and library additions.
+3. Read the official release notes for that release series and any releases
+   not covered by `reference/modern-go.md`. Check relevant API documentation
+   for improvements to the code in scope, their minimum Go version, behavior
+   changes, deprecations, and experimental status.
+4. Prefer a supported language construct or standard-library API when it
+   removes real complexity. Follow existing repository helpers and contracts.
+   Do not upgrade the toolchain, enable experiments, change wire formats, or
+   rewrite unrelated code merely because a newer release exists.
+5. Report the checked latest version, the repository version, and applicable
+   improvements or compatibility limits. If live sources are unavailable,
+   state that freshness is unverified and use the confirmed repository version.
+   Never guess a release or API. When maintaining this skill, add missing
+   guidance with its minimum version and official source.
+
+Reuse the live check within the same task; repeat it for a new task or after a
+toolchain change. The bundled reference is a starting point, not proof that it
+covers the latest release. Official release notes and API docs determine feature
+availability and semantics; project guidance still determines local style.
 
 ## Blank lines and line breaks
 
@@ -100,7 +134,8 @@ Review every blank line in changed Go code with two checks:
 - Error strings: lower-case start (unless beginning with an exported name), no
   trailing punctuation.
 - Give errors structure: sentinels or typed errors checked with
-  `errors.Is`/`errors.As`. Never inspect `err.Error()` with string matching.
+  `errors.Is` and, on Go 1.26+, `errors.AsType[E]`; use `errors.As` when
+  supporting older versions. Never inspect `err.Error()` with string matching.
 - Wrap with `%w` when callers may need the cause; use `%v` to deliberately
   hide it. Add context the caller does not already have; place `%w` at the
   end — except a categorizing sentinel, which may lead: `"%w: detail"`.
