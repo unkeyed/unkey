@@ -77,7 +77,7 @@ func (s *service) enabled(ctx context.Context, workspaceID, slug string, fallbac
 		return fallback
 	}
 	if value, ok := values[slug]; ok {
-		return value.Value
+		return value.Enabled
 	}
 	return fallback
 }
@@ -92,15 +92,15 @@ func (s *service) load(ctx context.Context, workspaceID string) (map[string]Flag
 		}
 		values := make(map[string]Flag, len(rows))
 		for _, row := range rows {
-			value := row.DefaultValue
-			if row.OverrideValue.Valid {
-				value = row.OverrideValue.Bool
+			enabled := row.DefaultEnabled
+			if row.OverrideEnabled.Valid {
+				enabled = row.OverrideEnabled.Bool
 			}
 			values[row.Slug] = Flag{
-				Value:        value,
-				Description:  row.Description,
-				AllowEnable:  row.AllowEnable,
-				AllowDisable: row.AllowDisable,
+				Enabled:     enabled,
+				Description: row.Description,
+				AllowOptIn:  row.AllowOptIn,
+				AllowOptOut: row.AllowOptOut,
 			}
 		}
 		return values, nil

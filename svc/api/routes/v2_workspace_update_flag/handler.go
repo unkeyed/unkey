@@ -55,19 +55,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Public("Failed to retrieve the flag definition."))
 		}
-		if (req.Enabled && !flag.AllowEnable) || (!req.Enabled && !flag.AllowDisable) {
+		if (req.Enabled && !flag.AllowOptIn) || (!req.Enabled && !flag.AllowOptOut) {
 			return fault.New("flag enrollment direction forbidden",
 				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
 				fault.Public("The flag's enrollment policy does not permit this value."))
 		}
-		before := flag.DefaultValue
-		if flag.OverrideValue.Valid {
-			before = flag.OverrideValue.Bool
+		before := flag.DefaultEnabled
+		if flag.OverrideEnabled.Valid {
+			before = flag.OverrideEnabled.Bool
 		}
 		if err := db.Query.UpsertWorkspaceFlagOverride(ctx, tx, db.UpsertWorkspaceFlagOverrideParams{
 			WorkspaceID: principal.AuthorizedWorkspaceID,
 			FlagSlug:    req.Slug,
-			Value:       req.Enabled,
+			Enabled:     req.Enabled,
 		}); err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

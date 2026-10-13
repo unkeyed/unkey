@@ -18,20 +18,20 @@ func TestService_CachesMetadataAndReturnsIndependentCopies(t *testing.T) {
 	database, service, testClock := newService(t)
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	require.NoError(t, db.Query.UpsertFlag(t.Context(), database.RW(), db.UpsertFlagParams{
-		Slug: flags.HelloWorldSlug, Description: "Original description", DefaultValue: true,
-		AllowEnable: false, AllowDisable: true,
+		Slug: flags.HelloWorldSlug, Description: "Original description", DefaultEnabled: true,
+		AllowOptIn: false, AllowOptOut: true,
 	}))
 	setOverride(t, database, workspaceID, false)
 	values, err := service.Values(t.Context(), workspaceID)
 	require.NoError(t, err)
 	want := map[string]flags.Flag{flags.HelloWorldSlug: {
-		Value: false, Description: "Original description", AllowEnable: false, AllowDisable: true,
+		Enabled: false, Description: "Original description", AllowOptIn: false, AllowOptOut: true,
 	}}
 	require.Equal(t, want, values)
 	delete(values, flags.HelloWorldSlug)
 	require.NoError(t, db.Query.UpsertFlag(t.Context(), database.RW(), db.UpsertFlagParams{
-		Slug: flags.HelloWorldSlug, Description: "Changed description", DefaultValue: true,
-		AllowEnable: true, AllowDisable: false,
+		Slug: flags.HelloWorldSlug, Description: "Changed description", DefaultEnabled: true,
+		AllowOptIn: true, AllowOptOut: false,
 	}))
 	cached, err := service.Values(t.Context(), workspaceID)
 	require.NoError(t, err)
@@ -40,7 +40,7 @@ func TestService_CachesMetadataAndReturnsIndependentCopies(t *testing.T) {
 	refreshed, err := service.Values(t.Context(), workspaceID)
 	require.NoError(t, err)
 	require.Equal(t, map[string]flags.Flag{flags.HelloWorldSlug: {
-		Value: false, Description: "Changed description", AllowEnable: true, AllowDisable: false,
+		Enabled: false, Description: "Changed description", AllowOptIn: true, AllowOptOut: false,
 	}}, refreshed)
 }
 
@@ -73,9 +73,9 @@ func TestService_Precedence(t *testing.T) {
 			values, err := service.Values(ctx, workspaceID)
 			require.NoError(t, err)
 			require.Equal(t, map[string]flags.Flag{flags.HelloWorldSlug: {
-				Value: tt.want, Description: t.Name(), AllowEnable: false, AllowDisable: false,
+				Enabled: tt.want, Description: t.Name(), AllowOptIn: false, AllowOptOut: false,
 			}}, values)
-			values[flags.HelloWorldSlug] = flags.Flag{Value: !tt.want, Description: "Changed", AllowEnable: true, AllowDisable: true}
+			values[flags.HelloWorldSlug] = flags.Flag{Enabled: !tt.want, Description: "Changed", AllowOptIn: true, AllowOptOut: true}
 			require.Equal(t, tt.want, service.IsHelloWorldEnabled(ctx, workspaceID))
 		})
 	}
@@ -173,11 +173,11 @@ func newService(t *testing.T) (db.Database, helloWorldService, *clock.TestClock)
 func upsertHelloWorld(t *testing.T, database db.Database, defaultValue bool) {
 	t.Helper()
 	require.NoError(t, db.Query.UpsertFlag(t.Context(), database.RW(), db.UpsertFlagParams{
-		Slug:         flags.HelloWorldSlug,
-		Description:  t.Name(),
-		DefaultValue: defaultValue,
-		AllowEnable:  false,
-		AllowDisable: false,
+		Slug:           flags.HelloWorldSlug,
+		Description:    t.Name(),
+		DefaultEnabled: defaultValue,
+		AllowOptIn:     false,
+		AllowOptOut:    false,
 	}))
 }
 
@@ -186,6 +186,6 @@ func setOverride(t *testing.T, database db.Database, workspaceID string, value b
 	require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), database.RW(), db.UpsertWorkspaceFlagOverrideParams{
 		WorkspaceID: workspaceID,
 		FlagSlug:    flags.HelloWorldSlug,
-		Value:       value,
+		Enabled:     value,
 	}))
 }

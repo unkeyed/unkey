@@ -10,17 +10,17 @@ export const flags = mysqlTable("flags", {
   /** Customer-facing explanation of the platform feature. */
   description: varchar("description", { length: 1024 }).notNull(),
   /** Effective value when a workspace has no override. */
-  defaultValue: boolean("default_value").notNull(),
+  defaultEnabled: boolean("default_enabled").notNull(),
   /**
    * Whether customers may set their workspace override to true. Customer write
    * paths must enforce this policy; internal administration is not restricted.
    */
-  allowEnable: boolean("allow_enable").notNull().default(false),
+  allowOptIn: boolean("allow_opt_in").notNull().default(false),
   /**
    * Whether customers may set their workspace override to false. Customer write
    * paths must enforce this policy; internal administration is not restricted.
    */
-  allowDisable: boolean("allow_disable").notNull().default(false),
+  allowOptOut: boolean("allow_opt_out").notNull().default(false),
 });
 
 export const flagOverrides = mysqlTable(
@@ -32,7 +32,7 @@ export const flagOverrides = mysqlTable(
     /** References the immutable flags.slug identifier. */
     flagSlug: caseSensitiveVarchar("flag_slug", { length: 128 }).notNull(),
     /** Overrides the default even when false. Deleting this row restores the flag's default. */
-    value: boolean("value").notNull(),
+    enabled: boolean("enabled").notNull(),
   },
   (table) => ({
     workspaceFlag: uniqueIndex("workspace_flag_idx").on(table.workspaceId, table.flagSlug),

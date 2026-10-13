@@ -28,11 +28,11 @@ func TestUpdateFlagSavesFalse(t *testing.T) {
 	other := h.CreateWorkspace()
 	slug := "preview_" + uid.DNS1035()
 	require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{
-		Slug:         slug,
-		Description:  "Uncatalogued preview",
-		DefaultValue: true,
-		AllowEnable:  true,
-		AllowDisable: true,
+		Slug:           slug,
+		Description:    "Uncatalogued preview",
+		DefaultEnabled: true,
+		AllowOptIn:     true,
+		AllowOptOut:    true,
 	}))
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
 	otherKey := h.CreateRootKey(other.ID, "unkey:v1:"+other.ID+":flags#read")
@@ -50,7 +50,7 @@ func TestUpdateFlagSavesFalse(t *testing.T) {
 	require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), h.DB.RW(), db.UpsertWorkspaceFlagOverrideParams{
 		WorkspaceID: other.ID,
 		FlagSlug:    slug,
-		Value:       false,
+		Enabled:     false,
 	}))
 	type updateRequest struct {
 		Slug    string `json:"slug"`
@@ -108,14 +108,14 @@ func TestUpdateFlagDirectionPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			slug := "policy_" + uid.DNS1035()
 			require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{
-				Slug:         slug,
-				AllowEnable:  tc.allowEnable,
-				AllowDisable: tc.allowDisable,
+				Slug:        slug,
+				AllowOptIn:  tc.allowEnable,
+				AllowOptOut: tc.allowDisable,
 			}))
 			require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), h.DB.RW(), db.UpsertWorkspaceFlagOverrideParams{
 				WorkspaceID: workspaceID,
 				FlagSlug:    slug,
-				Value:       !tc.value,
+				Enabled:     !tc.value,
 			}))
 			before, err := db.Query.ListClickhouseOutboxByWorkspace(t.Context(), h.DB.RW(), workspaceID)
 			require.NoError(t, err)
@@ -148,12 +148,12 @@ func TestUpdateFlagRollsBackWhenAuditFails(t *testing.T) {
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	slug := "rollback_" + uid.DNS1035()
-	require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{Slug: slug, AllowEnable: true, AllowDisable: true}))
+	require.NoError(t, db.Query.UpsertFlag(t.Context(), h.DB.RW(), db.UpsertFlagParams{Slug: slug, AllowOptIn: true, AllowOptOut: true}))
 	cached, err := h.Flags.Values(t.Context(), workspaceID)
 	require.NoError(t, err)
 	require.Contains(t, cached, slug)
-	require.False(t, cached[slug].Value)
-	require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), h.DB.RW(), db.UpsertWorkspaceFlagOverrideParams{WorkspaceID: workspaceID, FlagSlug: slug, Value: true}))
+	require.False(t, cached[slug].Enabled)
+	require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), h.DB.RW(), db.UpsertWorkspaceFlagOverrideParams{WorkspaceID: workspaceID, FlagSlug: slug, Enabled: true}))
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":flags#write")
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, flagHeaders(key), handler.Request{Slug: slug, Enabled: false})
 	require.Equal(t, http.StatusInternalServerError, res.Status, res.RawBody)
@@ -175,8 +175,8 @@ func assertOverride(t *testing.T, h *testutil.Harness, workspaceID, slug string,
 	require.NoError(t, err)
 	for _, flag := range flags {
 		if flag.Slug == slug {
-			require.Equal(t, valid, flag.OverrideValue.Valid)
-			require.Equal(t, value, flag.OverrideValue.Bool)
+			require.Equal(t, valid, flag.OverrideEnabled.Valid)
+			require.Equal(t, value, flag.OverrideEnabled.Bool)
 			return
 		}
 	}

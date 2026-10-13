@@ -571,8 +571,8 @@ type Querier interface {
 	// change cannot race the permission check and override write. The workspace
 	// override is read under the same lock for the audit's effective before value.
 	//
-	//  SELECT f.pk, f.slug, f.description, f.default_value,
-	//      f.allow_enable, f.allow_disable, o.value AS override_value
+	//  SELECT f.pk, f.slug, f.description, f.default_enabled,
+	//      f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
 	//  FROM flags f
 	//  LEFT JOIN flag_overrides o
 	//      ON o.flag_slug = f.slug AND o.workspace_id = ?
@@ -2539,8 +2539,8 @@ type Querier interface {
 	// ListFlags includes definitions without overrides. Callers resolve NULL override
 	// values to the default, preserving explicit false overrides.
 	//
-	//  SELECT f.pk, f.slug, f.description, f.default_value,
-	//      f.allow_enable, f.allow_disable, o.value AS override_value
+	//  SELECT f.pk, f.slug, f.description, f.default_enabled,
+	//      f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
 	//  FROM flags f
 	//  LEFT JOIN flag_overrides o
 	//      ON o.flag_slug = f.slug AND o.workspace_id = ?
@@ -3890,12 +3890,12 @@ type Querier interface {
 	// UpsertFlag creates or replaces a definition. Only tests use it, to change the
 	// default of a fixed slug between cases.
 	//
-	//  INSERT INTO flags (slug, description, default_value, allow_enable, allow_disable)
+	//  INSERT INTO flags (slug, description, default_enabled, allow_opt_in, allow_opt_out)
 	//  VALUES (?, ?, ?,
 	//      ?, ?)
 	//  ON DUPLICATE KEY UPDATE description = VALUES(description),
-	//      default_value = VALUES(default_value),
-	//      allow_enable = VALUES(allow_enable), allow_disable = VALUES(allow_disable)
+	//      default_enabled = VALUES(default_enabled),
+	//      allow_opt_in = VALUES(allow_opt_in), allow_opt_out = VALUES(allow_opt_out)
 	UpsertFlag(ctx context.Context, db DBTX, arg UpsertFlagParams) error
 	//UpsertGithubRepoConnection
 	//
@@ -4108,9 +4108,9 @@ type Querier interface {
 	// UpsertWorkspaceFlagOverride makes retries safe and keeps one override per
 	// workspace and flag. The caller validates enrollment permission first.
 	//
-	//  INSERT INTO flag_overrides (workspace_id, flag_slug, value)
+	//  INSERT INTO flag_overrides (workspace_id, flag_slug, enabled)
 	//  VALUES (?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE value = VALUES(value)
+	//  ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)
 	UpsertWorkspaceFlagOverride(ctx context.Context, db DBTX, arg UpsertWorkspaceFlagOverrideParams) error
 }
 
