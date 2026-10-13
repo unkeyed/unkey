@@ -19,19 +19,16 @@ const FlagContext = createContext<FlagContextValue | null>(null);
 
 export function FlagProvider({
   initialFlags,
-  enabled = true,
   children,
 }: PropsWithChildren<{
   initialFlags: FlagMap | undefined;
-  enabled?: boolean;
 }>) {
   const client = useQueryClient();
   const queryKey = ["workspace", "flags"];
   const query = useQuery<FlagMap>({
     queryKey,
-    enabled,
+    enabled: false,
     initialData: initialFlags,
-    refetchOnMount: initialFlags === undefined,
     keepPreviousData: false,
     queryFn: async ({ signal }) => {
       const response = await getUnkeyClient().workspace.getFlags({ signal });
@@ -40,8 +37,8 @@ export function FlagProvider({
   });
 
   const value: FlagContextValue = {
-    data: enabled ? query.data : undefined,
-    isLoading: enabled && query.isLoading,
+    data: query.data,
+    isLoading: query.isInitialLoading,
     error: query.error,
     refetch: query.refetch,
     cancel: () => client.cancelQueries({ queryKey }),

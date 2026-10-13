@@ -65,7 +65,7 @@ it("renders server flags immediately without a duplicate request and preserves f
   client.clear();
 });
 
-it("isolates flags when the auth boundary remounts, retries failed server reads, and skips anonymous reads", async () => {
+it("isolates flags across auth boundaries and only fetches when explicitly requested", async () => {
   const fetcher = vi.fn(async () => new Response(null, { status: 403 }));
   vi.stubGlobal("fetch", fetcher);
   function State() {
@@ -84,8 +84,7 @@ it("isolates flags when the auth boundary remounts, retries failed server reads,
   const clients: QueryClient[] = [];
   function Tree({
     initialFlags,
-    enabled = true,
-  }: { initialFlags: V2WorkspaceGetFlagsResponseBody["data"] | undefined; enabled?: boolean }) {
+  }: { initialFlags: V2WorkspaceGetFlagsResponseBody["data"] | undefined }) {
     const [client] = useState(() => {
       const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
       clients.push(client);
@@ -93,7 +92,7 @@ it("isolates flags when the auth boundary remounts, retries failed server reads,
     });
     return (
       <QueryClientProvider client={client}>
-        <FlagProvider initialFlags={initialFlags} enabled={enabled}>
+        <FlagProvider initialFlags={initialFlags}>
           <State />
         </FlagProvider>
       </QueryClientProvider>
@@ -123,10 +122,13 @@ it("isolates flags when the auth boundary remounts, retries failed server reads,
     projects: false,
     upgrades: true,
   });
-  expect(screen.getByText("Loading")).toBeDefined();
+  await act(async () => {});
+  expect(screen.queryByText("Loading")).toBeNull();
+  expect(fetcher).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByText("Refresh"));
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Read failed");
   expect(fetcher).toHaveBeenCalledTimes(1);
-  view.rerender(<Tree key={crypto.randomUUID()} initialFlags={undefined} enabled={false} />);
+  view.rerender(<Tree key={crypto.randomUUID()} initialFlags={undefined} />);
   await act(async () => {});
   expect(fetcher).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole("alert")).toBeNull();

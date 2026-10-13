@@ -30,7 +30,7 @@ export async function loadFlags() {
     const response = await client.workspace.getFlags({ cache: "no-store", redirect: "error" });
     return response.data;
   } catch {
-    console.error("Failed to load initial workspace flags; retrying on the client");
+    console.error("Failed to load initial workspace flags; using defaults");
     return undefined;
   }
 }
