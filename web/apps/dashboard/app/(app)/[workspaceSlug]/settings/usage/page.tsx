@@ -215,12 +215,14 @@ function NoComputePlan() {
       <div className="px-4 py-8">
         <EmptyState frame="none">
           <EmptyStateHeader>
-            <EmptyStateTitle>No compute plan</EmptyStateTitle>
-            <EmptyStateDescription>Pick a plan to deploy your first app.</EmptyStateDescription>
+            <EmptyStateTitle>Deploy on Unkey</EmptyStateTitle>
+            <EmptyStateDescription>
+              Host your apps with autoscaling, custom domains and logs.
+            </EmptyStateDescription>
           </EmptyStateHeader>
           <EmptyStateActions>
-            <Button variant="primary" size="md" onClick={() => setPlansOpen(true)}>
-              Choose a plan
+            <Button variant="outline" size="md" onClick={() => setPlansOpen(true)}>
+              See deploy plans
             </Button>
           </EmptyStateActions>
         </EmptyState>
