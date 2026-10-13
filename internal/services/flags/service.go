@@ -22,7 +22,7 @@ type Config struct {
 
 type service struct {
 	db    mysql.MySQL
-	cache cache.Cache[string, map[string]bool]
+	cache cache.Cache[string, map[string]Flag]
 }
 
 var _ Service = (*service)(nil)
@@ -38,7 +38,7 @@ func New(config Config) (*service, error) {
 		return nil, fault.Wrap(err, fault.Internal("invalid flags configuration"))
 	}
 
-	workspaceCache, err := cache.New(cache.Config[string, map[string]bool]{
+	flagCache, err := cache.New(cache.Config[string, map[string]Flag]{
 		Fresh:    10 * time.Second,
 		Stale:    time.Minute,
 		MaxSize:  10_000,
@@ -48,7 +48,7 @@ func New(config Config) (*service, error) {
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("create flags cache"))
 	}
-	return &service{db: config.DB, cache: workspaceCache}, nil
+	return &service{db: config.DB, cache: flagCache}, nil
 }
 
 // Close stops cache workers without closing the database. It is idempotent.
@@ -56,12 +56,16 @@ func (s *service) Close() {
 	s.cache.Close()
 }
 
-func (s *service) Values(ctx context.Context, workspaceID string) (map[string]bool, error) {
+func (s *service) Invalidate(ctx context.Context, workspaceID string) {
+	s.cache.Remove(ctx, workspaceID)
+}
+
+func (s *service) Values(ctx context.Context, workspaceID string) (map[string]Flag, error) {
 	values, err := s.load(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]bool, len(values))
+	result := make(map[string]Flag, len(values))
 	maps.Copy(result, values)
 	return result, nil
 }
@@ -73,26 +77,31 @@ func (s *service) enabled(ctx context.Context, workspaceID, slug string, fallbac
 		return fallback
 	}
 	if value, ok := values[slug]; ok {
-		return value
+		return value.Enabled
 	}
 	return fallback
 }
 
-func (s *service) load(ctx context.Context, workspaceID string) (map[string]bool, error) {
-	values, _, err := s.cache.SWR(ctx, workspaceID, func(ctx context.Context) (map[string]bool, error) {
+func (s *service) load(ctx context.Context, workspaceID string) (map[string]Flag, error) {
+	values, _, err := s.cache.SWR(ctx, workspaceID, func(ctx context.Context) (map[string]Flag, error) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		rows, err := db.Query.ListFlagsByWorkspaceID(ctx, s.db.RO(), workspaceID)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Internal("load workspace flags"))
 		}
-		values := make(map[string]bool, len(rows))
+		values := make(map[string]Flag, len(rows))
 		for _, row := range rows {
-			value := row.DefaultValue
-			if row.OverrideValue.Valid {
-				value = row.OverrideValue.Bool
+			enabled := row.DefaultEnabled
+			if row.OverrideEnabled.Valid {
+				enabled = row.OverrideEnabled.Bool
 			}
-			values[row.Slug] = value
+			values[row.Slug] = Flag{
+				Enabled:     enabled,
+				Description: row.Description,
+				AllowOptIn:  row.AllowOptIn,
+				AllowOptOut: row.AllowOptOut,
+			}
 		}
 		return values, nil
 	}, func(err error) cache.Op {

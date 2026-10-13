@@ -11,8 +11,8 @@ import (
 )
 
 const listFlags = `-- name: ListFlags :many
-SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
-    f.allow_enable, f.allow_disable, o.value AS override_value
+SELECT f.pk, f.slug, f.description, f.default_enabled,
+    f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
 FROM flags f
 LEFT JOIN flag_overrides o
     ON o.flag_slug = f.slug AND o.workspace_id = ?
@@ -20,21 +20,20 @@ ORDER BY f.slug
 `
 
 type ListFlagsRow struct {
-	Pk            uint64       `db:"pk"`
-	Slug          string       `db:"slug"`
-	Description   string       `db:"description"`
-	DefaultValue  bool         `db:"default_value"`
-	Visible       bool         `db:"visible"`
-	AllowEnable   bool         `db:"allow_enable"`
-	AllowDisable  bool         `db:"allow_disable"`
-	OverrideValue sql.NullBool `db:"override_value"`
+	Pk              uint64       `db:"pk"`
+	Slug            string       `db:"slug"`
+	Description     string       `db:"description"`
+	DefaultEnabled  bool         `db:"default_enabled"`
+	AllowOptIn      bool         `db:"allow_opt_in"`
+	AllowOptOut     bool         `db:"allow_opt_out"`
+	OverrideEnabled sql.NullBool `db:"override_enabled"`
 }
 
 // ListFlags includes definitions without overrides. Callers resolve NULL override
 // values to the default, preserving explicit false overrides.
 //
-//	SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
-//	    f.allow_enable, f.allow_disable, o.value AS override_value
+//	SELECT f.pk, f.slug, f.description, f.default_enabled,
+//	    f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
 //	FROM flags f
 //	LEFT JOIN flag_overrides o
 //	    ON o.flag_slug = f.slug AND o.workspace_id = ?
@@ -52,11 +51,10 @@ func (q *Queries) ListFlags(ctx context.Context, db DBTX, workspaceID string) ([
 			&i.Pk,
 			&i.Slug,
 			&i.Description,
-			&i.DefaultValue,
-			&i.Visible,
-			&i.AllowEnable,
-			&i.AllowDisable,
-			&i.OverrideValue,
+			&i.DefaultEnabled,
+			&i.AllowOptIn,
+			&i.AllowOptOut,
+			&i.OverrideEnabled,
 		); err != nil {
 			return nil, err
 		}

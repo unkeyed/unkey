@@ -568,11 +568,16 @@ type Querier interface {
 	//  LIMIT 1
 	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error)
 	// FindFlagBySlug locks the definition during enrollment so a concurrent policy
-	// change cannot race the permission check and override write.
+	// change cannot race the permission check and override write. The workspace
+	// override is read under the same lock for the audit's effective before value.
 	//
-	//  SELECT pk, slug, description, default_value, visible, allow_enable, allow_disable
-	//  FROM flags WHERE slug = ? FOR UPDATE
-	FindFlagBySlug(ctx context.Context, db DBTX, slug string) (Flag, error)
+	//  SELECT f.pk, f.slug, f.description, f.default_enabled,
+	//      f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
+	//  FROM flags f
+	//  LEFT JOIN flag_overrides o
+	//      ON o.flag_slug = f.slug AND o.workspace_id = ?
+	//  WHERE f.slug = ? FOR UPDATE
+	FindFlagBySlug(ctx context.Context, db DBTX, arg FindFlagBySlugParams) (FindFlagBySlugRow, error)
 	//FindFrontlineRoutesByDeploymentID
 	//
 	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ?
@@ -2534,8 +2539,8 @@ type Querier interface {
 	// ListFlags includes definitions without overrides. Callers resolve NULL override
 	// values to the default, preserving explicit false overrides.
 	//
-	//  SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
-	//      f.allow_enable, f.allow_disable, o.value AS override_value
+	//  SELECT f.pk, f.slug, f.description, f.default_enabled,
+	//      f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
 	//  FROM flags f
 	//  LEFT JOIN flag_overrides o
 	//      ON o.flag_slug = f.slug AND o.workspace_id = ?
@@ -3913,12 +3918,12 @@ type Querier interface {
 	// UpsertFlag creates or replaces a definition. Only tests use it, to change the
 	// default of a fixed slug between cases.
 	//
-	//  INSERT INTO flags (slug, description, default_value, visible, allow_enable, allow_disable)
+	//  INSERT INTO flags (slug, description, default_enabled, allow_opt_in, allow_opt_out)
 	//  VALUES (?, ?, ?,
-	//      ?, ?, ?)
+	//      ?, ?)
 	//  ON DUPLICATE KEY UPDATE description = VALUES(description),
-	//      default_value = VALUES(default_value), visible = VALUES(visible),
-	//      allow_enable = VALUES(allow_enable), allow_disable = VALUES(allow_disable)
+	//      default_enabled = VALUES(default_enabled),
+	//      allow_opt_in = VALUES(allow_opt_in), allow_opt_out = VALUES(allow_opt_out)
 	UpsertFlag(ctx context.Context, db DBTX, arg UpsertFlagParams) error
 	//UpsertGithubRepoConnection
 	//
@@ -4131,9 +4136,9 @@ type Querier interface {
 	// UpsertWorkspaceFlagOverride makes retries safe and keeps one override per
 	// workspace and flag. The caller validates enrollment permission first.
 	//
-	//  INSERT INTO flag_overrides (workspace_id, flag_slug, value)
+	//  INSERT INTO flag_overrides (workspace_id, flag_slug, enabled)
 	//  VALUES (?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE value = VALUES(value)
+	//  ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)
 	UpsertWorkspaceFlagOverride(ctx context.Context, db DBTX, arg UpsertWorkspaceFlagOverrideParams) error
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertWorkspaceFlagOverride is the base query for bulk insert
-const bulkUpsertWorkspaceFlagOverride = `INSERT INTO flag_overrides (workspace_id, flag_slug, value) VALUES %s ON DUPLICATE KEY UPDATE value = VALUES(value)`
+const bulkUpsertWorkspaceFlagOverride = `INSERT INTO flag_overrides (workspace_id, flag_slug, enabled) VALUES %s ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)`
 
 // UpsertWorkspaceFlagOverride performs bulk insert in a single query
 func (q *BulkQueries) UpsertWorkspaceFlagOverride(ctx context.Context, db DBTX, args []UpsertWorkspaceFlagOverrideParams) error {
@@ -31,7 +31,7 @@ func (q *BulkQueries) UpsertWorkspaceFlagOverride(ctx context.Context, db DBTX, 
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.FlagSlug)
-		allArgs = append(allArgs, arg.Value)
+		allArgs = append(allArgs, arg.Enabled)
 	}
 
 	// Execute the bulk insert
