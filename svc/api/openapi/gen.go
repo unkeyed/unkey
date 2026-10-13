@@ -3009,12 +3009,9 @@ type V2ApisListKeysRequestBody struct {
 	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
 
-	// RevalidateKeysCache EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:
-	// - You've just created a key and need to display it immediately
-	// - You need absolute certainty about the current key state
-	// - You're debugging cache consistency issues
-	//
-	// This parameter comes with a performance cost and should be used sparingly.
+	// RevalidateKeysCache When true, reads keys and their identities from the primary database to avoid replica lag.
+	// When false or omitted, reads from a replica, which may not reflect recent changes.
+	// Primary reads can have higher latency, depending on your region.
 	RevalidateKeysCache *bool `json:"revalidateKeysCache,omitempty"`
 }
 

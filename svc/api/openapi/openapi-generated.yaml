@@ -400,12 +400,9 @@ components:
                     type: boolean
                     default: false
                     description: |-
-                        EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:
-                        - You've just created a key and need to display it immediately
-                        - You need absolute certainty about the current key state
-                        - You're debugging cache consistency issues
-
-                        This parameter comes with a performance cost and should be used sparingly.
+                        When true, reads keys and their identities from the primary database to avoid replica lag.
+                        When false or omitted, reads from a replica, which may not reflect recent changes.
+                        Primary reads can have higher latency, depending on your region.
             additionalProperties: false
         V2ApisListKeysResponseBody:
             type: object
