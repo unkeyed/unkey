@@ -10,7 +10,7 @@ import * as flags from ".";
 type FlagMap = V2WorkspaceGetFlagsResponseBody["data"];
 const FlagContext = createContext<ReturnType<typeof useWorkspaceFlags> | null>(null);
 
-function useWorkspaceFlags(orgId: string | null, userId: string | null, impersonating: boolean) {
+function useWorkspaceFlags(orgId: string | null, userId: string | null) {
   const pathname = usePathname();
   const client = useQueryClient();
   const queryKey = ["workspace", "flags", orgId, userId];
@@ -29,7 +29,6 @@ function useWorkspaceFlags(orgId: string | null, userId: string | null, imperson
     ...query,
     data: enabled ? query.data : undefined,
     isLoading: enabled && query.isLoading,
-    impersonating,
     cancel: () => client.cancelQueries({ queryKey }),
     async applyUpdate({ slug, value }: { slug: string; value: boolean }) {
       await client.cancelQueries({ queryKey });
@@ -44,14 +43,12 @@ function useWorkspaceFlags(orgId: string | null, userId: string | null, imperson
 export function FlagProvider({
   orgId,
   userId,
-  impersonating,
   children,
 }: PropsWithChildren<{
   orgId: string | null;
   userId: string | null;
-  impersonating: boolean;
 }>) {
-  const value = useWorkspaceFlags(orgId, userId, impersonating);
+  const value = useWorkspaceFlags(orgId, userId);
   return <FlagContext.Provider value={value}>{children}</FlagContext.Provider>;
 }
 

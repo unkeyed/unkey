@@ -50,7 +50,7 @@ it("shares one authenticated API read and preserves explicit false before code f
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <FlagProvider orgId={crypto.randomUUID()} userId={crypto.randomUUID()} impersonating={false}>
+      <FlagProvider orgId={crypto.randomUUID()} userId={crypto.randomUUID()}>
         <Consumer />
         <Consumer />
       </FlagProvider>
@@ -104,7 +104,7 @@ it("isolates organizations while loading, reports read errors, and never fetches
   function Tree({ orgId }: { orgId: string | null }) {
     return (
       <QueryClientProvider client={client}>
-        <FlagProvider orgId={orgId} userId={orgId ? userId : null} impersonating={false}>
+        <FlagProvider orgId={orgId} userId={orgId ? userId : null}>
           <State />
         </FlagProvider>
       </QueryClientProvider>
@@ -168,7 +168,7 @@ it("applies the saved value without losing metadata or letting an older read ove
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <FlagProvider orgId={crypto.randomUUID()} userId={crypto.randomUUID()} impersonating={false}>
+      <FlagProvider orgId={crypto.randomUUID()} userId={crypto.randomUUID()}>
         <Controls />
       </FlagProvider>
     </QueryClientProvider>,
