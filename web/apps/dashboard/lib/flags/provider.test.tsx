@@ -32,16 +32,16 @@ it("renders server flags immediately without a duplicate request and preserves f
       <FlagProvider
         initialFlags={{
           deploy_billing: {
-            value: false,
+            enabled: false,
             description: "Billing",
-            allowEnable: false,
-            allowDisable: false,
+            allowOptIn: false,
+            allowOptOut: false,
           },
           projects_nav: {
-            value: true,
+            enabled: true,
             description: "Navigation",
-            allowEnable: true,
-            allowDisable: true,
+            allowOptIn: true,
+            allowOptOut: true,
           },
         }}
       >
@@ -103,10 +103,10 @@ it("isolates flags when the auth boundary remounts, retries failed server reads,
       key={crypto.randomUUID()}
       initialFlags={{
         projects_nav: {
-          value: true,
+          enabled: true,
           description: "Navigation",
-          allowEnable: true,
-          allowDisable: true,
+          allowOptIn: true,
+          allowOptOut: true,
         },
       }}
     />,
@@ -135,12 +135,12 @@ it("isolates flags when the auth boundary remounts, retries failed server reads,
 });
 
 it("applies the saved value without losing metadata or letting an older read overwrite it", async () => {
-  const entry = { value: false, description: "Navigation", allowEnable: true, allowDisable: false };
-  const response = (value: boolean) =>
+  const entry = { enabled: false, description: "Navigation", allowOptIn: true, allowOptOut: false };
+  const response = (enabled: boolean) =>
     new Response(
       JSON.stringify({
         meta: { requestId: crypto.randomUUID() },
-        data: { projects_nav: { ...entry, value } },
+        data: { projects_nav: { ...entry, enabled } },
       }),
       { headers: { "Content-Type": "application/json" } },
     );
@@ -166,7 +166,7 @@ it("applies the saved value without losing metadata or letting an older read ove
         </button>
         <button
           type="button"
-          onClick={() => flags.setCachedFlagValue({ slug: "projects_nav", value: true })}
+          onClick={() => flags.setCachedFlagValue({ slug: "projects_nav", enabled: true })}
         >
           Saved
         </button>
@@ -189,10 +189,10 @@ it("applies the saved value without losing metadata or letting an older read ove
   await act(async () => finishOldRead(response(false)));
   await waitFor(() => expect(screen.getByRole("status").textContent).toContain('"projects":true'));
   expect(JSON.parse(screen.getByTestId("entry").textContent ?? "null")).toEqual({
-    value: true,
+    enabled: true,
     description: "Navigation",
-    allowEnable: true,
-    allowDisable: false,
+    allowOptIn: true,
+    allowOptOut: false,
   });
   expect(reads).toBe(1);
   client.clear();

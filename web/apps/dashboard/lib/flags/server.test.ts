@@ -44,10 +44,10 @@ it("does not request flags without an authenticated workspace", async () => {
 it("loads server flags directly with the session credential and preserves disabled values", async () => {
   const data: V2WorkspaceGetFlagsResponseBody["data"] = {
     deploy_billing: {
-      value: false,
+      enabled: false,
       description: "Billing",
-      allowEnable: true,
-      allowDisable: false,
+      allowOptIn: true,
+      allowOptOut: false,
     },
   };
   vi.stubGlobal("fetch", async (request: Request) => {
