@@ -9,10 +9,15 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { SecondaryNav, SecondaryNavGroup, SecondaryNavItem, SecondaryNavTitle } from "@unkey/ui";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
-import { type ReactNode, useEffect } from "react";
+import type { ReactNode } from "react";
 
 const ITEMS = [
   { segment: "general", label: "General", getHref: routes.settings.general },
+  {
+    segment: "platform-features",
+    label: "Platform preview",
+    getHref: routes.settings.platformFeatures,
+  },
   { segment: "team", label: "Team", getHref: routes.settings.team },
   { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
   { segment: "logdrains", label: "Log Drains", getHref: routes.settings.logdrains.list },
@@ -30,16 +35,16 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const billingUpgrades = useBillingUIUpgrades();
   const { user } = useWorkspace();
   const projectsNav = useFlag("projectsNav");
+  const platformFeatures = useFlag("platformFeatures");
   // Under projects-first navigation Root Keys has its own sidebar entry.
   const rootKeysInRail = user?.role === "admin" && !projectsNav;
   const items = ITEMS.filter(
     (item) => billingUpgrades || !BILLING_UPGRADE_SEGMENTS.has(item.segment),
-  ).filter((item) => rootKeysInRail || item.segment !== "root-keys");
+  )
+    .filter((item) => rootKeysInRail || item.segment !== "root-keys")
+    .filter((item) => platformFeatures || item.segment !== "platform-features");
 
   const prefetchUsage = usePrefetchWorkspaceUsage();
-  useEffect(() => {
-    prefetchUsage();
-  }, [prefetchUsage]);
 
   return (
     <div className="flex flex-col md:flex-row w-full flex-1 min-h-0">

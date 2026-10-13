@@ -1,5 +1,6 @@
 import { queryKeys } from "@/lib/query-keys";
 import { getUnkeyClient } from "@/lib/unkey-client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { useQuery } from "@tanstack/react-query";
 import type { V2WorkspaceGetLimitsResponseData } from "@unkey/api/models/components";
 
@@ -15,10 +16,13 @@ export function useWorkspaceLimits(
     refetchOnWindowFocus?: boolean;
   } = {},
 ) {
+  const { user } = useWorkspace();
   return useQuery<V2WorkspaceGetLimitsResponseData, Error>({
-    queryKey: queryKeys.workspace.limits,
-    queryFn: async () => (await getUnkeyClient().workspace.getLimits()).data,
+    queryKey: [...queryKeys.workspace.limits, user?.orgId, user?.id],
+    queryFn: async ({ signal }) => (await getUnkeyClient().workspace.getLimits({ signal })).data,
     retry: 1,
     ...options,
+    enabled: Boolean(user?.orgId && user.id) && options.enabled !== false,
+    keepPreviousData: false,
   });
 }
