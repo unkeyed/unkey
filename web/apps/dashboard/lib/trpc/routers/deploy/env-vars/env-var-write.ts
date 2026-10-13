@@ -76,7 +76,7 @@ export function envVarAuditLogs({
     actor: { type: "user", id: userId },
     event: "environment.update",
     description: `${describeChange(change)} for environment ${environment.id}`,
-    resources: [
+    targets: [
       {
         type: "environment",
         id: environment.id,
