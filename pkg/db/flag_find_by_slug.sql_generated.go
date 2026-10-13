@@ -11,7 +11,7 @@ import (
 )
 
 const findFlagBySlug = `-- name: FindFlagBySlug :one
-SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
+SELECT f.pk, f.slug, f.description, f.default_value,
     f.allow_enable, f.allow_disable, o.value AS override_value
 FROM flags f
 LEFT JOIN flag_overrides o
@@ -29,7 +29,6 @@ type FindFlagBySlugRow struct {
 	Slug          string       `db:"slug"`
 	Description   string       `db:"description"`
 	DefaultValue  bool         `db:"default_value"`
-	Visible       bool         `db:"visible"`
 	AllowEnable   bool         `db:"allow_enable"`
 	AllowDisable  bool         `db:"allow_disable"`
 	OverrideValue sql.NullBool `db:"override_value"`
@@ -39,7 +38,7 @@ type FindFlagBySlugRow struct {
 // change cannot race the permission check and override write. The workspace
 // override is read under the same lock for the audit's effective before value.
 //
-//	SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
+//	SELECT f.pk, f.slug, f.description, f.default_value,
 //	    f.allow_enable, f.allow_disable, o.value AS override_value
 //	FROM flags f
 //	LEFT JOIN flag_overrides o
@@ -53,7 +52,6 @@ func (q *Queries) FindFlagBySlug(ctx context.Context, db DBTX, arg FindFlagBySlu
 		&i.Slug,
 		&i.Description,
 		&i.DefaultValue,
-		&i.Visible,
 		&i.AllowEnable,
 		&i.AllowDisable,
 		&i.OverrideValue,

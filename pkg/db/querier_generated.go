@@ -571,7 +571,7 @@ type Querier interface {
 	// change cannot race the permission check and override write. The workspace
 	// override is read under the same lock for the audit's effective before value.
 	//
-	//  SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
+	//  SELECT f.pk, f.slug, f.description, f.default_value,
 	//      f.allow_enable, f.allow_disable, o.value AS override_value
 	//  FROM flags f
 	//  LEFT JOIN flag_overrides o
@@ -2539,7 +2539,7 @@ type Querier interface {
 	// ListFlags includes definitions without overrides. Callers resolve NULL override
 	// values to the default, preserving explicit false overrides.
 	//
-	//  SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
+	//  SELECT f.pk, f.slug, f.description, f.default_value,
 	//      f.allow_enable, f.allow_disable, o.value AS override_value
 	//  FROM flags f
 	//  LEFT JOIN flag_overrides o

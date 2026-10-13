@@ -11,7 +11,7 @@ import (
 )
 
 const listFlags = `-- name: ListFlags :many
-SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
+SELECT f.pk, f.slug, f.description, f.default_value,
     f.allow_enable, f.allow_disable, o.value AS override_value
 FROM flags f
 LEFT JOIN flag_overrides o
@@ -24,7 +24,6 @@ type ListFlagsRow struct {
 	Slug          string       `db:"slug"`
 	Description   string       `db:"description"`
 	DefaultValue  bool         `db:"default_value"`
-	Visible       bool         `db:"visible"`
 	AllowEnable   bool         `db:"allow_enable"`
 	AllowDisable  bool         `db:"allow_disable"`
 	OverrideValue sql.NullBool `db:"override_value"`
@@ -33,7 +32,7 @@ type ListFlagsRow struct {
 // ListFlags includes definitions without overrides. Callers resolve NULL override
 // values to the default, preserving explicit false overrides.
 //
-//	SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
+//	SELECT f.pk, f.slug, f.description, f.default_value,
 //	    f.allow_enable, f.allow_disable, o.value AS override_value
 //	FROM flags f
 //	LEFT JOIN flag_overrides o
@@ -53,7 +52,6 @@ func (q *Queries) ListFlags(ctx context.Context, db DBTX, workspaceID string) ([
 			&i.Slug,
 			&i.Description,
 			&i.DefaultValue,
-			&i.Visible,
 			&i.AllowEnable,
 			&i.AllowDisable,
 			&i.OverrideValue,

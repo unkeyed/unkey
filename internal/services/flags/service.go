@@ -38,7 +38,7 @@ func New(config Config) (*service, error) {
 		return nil, fault.Wrap(err, fault.Internal("invalid flags configuration"))
 	}
 
-	workspaceCache, err := cache.New(cache.Config[string, map[string]Flag]{
+	flagCache, err := cache.New(cache.Config[string, map[string]Flag]{
 		Fresh:    10 * time.Second,
 		Stale:    time.Minute,
 		MaxSize:  10_000,
@@ -48,7 +48,7 @@ func New(config Config) (*service, error) {
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("create flags cache"))
 	}
-	return &service{db: config.DB, cache: workspaceCache}, nil
+	return &service{db: config.DB, cache: flagCache}, nil
 }
 
 // Close stops cache workers without closing the database. It is idempotent.

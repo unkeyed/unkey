@@ -12,11 +12,6 @@ export const flags = mysqlTable("flags", {
   /** Effective value when a workspace has no override. */
   defaultValue: boolean("default_value").notNull(),
   /**
-   * Whether customer-facing lists should show this flag. Impersonation views
-   * should show all flags regardless. Visibility does not affect evaluation.
-   */
-  visible: boolean("visible").notNull().default(true),
-  /**
    * Whether customers may set their workspace override to true. Customer write
    * paths must enforce this policy; internal administration is not restricted.
    */
