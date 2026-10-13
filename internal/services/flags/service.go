@@ -56,6 +56,10 @@ func (s *service) Close() {
 	s.cache.Close()
 }
 
+func (s *service) Invalidate(ctx context.Context, workspaceID string) {
+	s.cache.Remove(ctx, workspaceID)
+}
+
 func (s *service) Values(ctx context.Context, workspaceID string) (map[string]Flag, error) {
 	values, err := s.load(ctx, workspaceID)
 	if err != nil {

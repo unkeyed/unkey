@@ -17,4 +17,8 @@ type Service interface {
 	// Unlike the flag methods, it returns load errors instead of falling back to
 	// code defaults. The map is a copy.
 	Values(ctx context.Context, workspaceID string) (map[string]Flag, error)
+
+	// Invalidate evicts the workspace's flags from this service's local cache.
+	// Call it only after a mutation commits.
+	Invalidate(ctx context.Context, workspaceID string)
 }

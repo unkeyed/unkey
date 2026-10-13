@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -22,6 +23,7 @@ type Response = openapi.V2WorkspaceUpdateFlagResponseBody
 type Handler struct {
 	DB        db.Database
 	Auditlogs auditlogs.AuditLogService
+	Flags     flags.Service
 }
 
 func (h *Handler) Method() string { return http.MethodPost }
@@ -94,6 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+	h.Flags.Invalidate(ctx, principal.AuthorizedWorkspaceID)
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.EmptyResponse{},

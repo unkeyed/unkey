@@ -1022,7 +1022,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	srv.RegisterRoute(
 		protectedMiddlewares,
-		&v2WorkspaceUpdateFlag.Handler{DB: svc.Database, Auditlogs: svc.Auditlogs},
+		&v2WorkspaceUpdateFlag.Handler{DB: svc.Database, Auditlogs: svc.Auditlogs, Flags: svc.Flags},
 	)
 
 	// v2/workspace.getLimits
