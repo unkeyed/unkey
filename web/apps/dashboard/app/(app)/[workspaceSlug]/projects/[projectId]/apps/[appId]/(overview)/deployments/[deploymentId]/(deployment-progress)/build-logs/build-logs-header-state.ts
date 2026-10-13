@@ -1,3 +1,4 @@
+import { plural } from "@/lib/fmt";
 import { match } from "@unkey/match";
 import type { BuildLogLine } from "./build-log-lines";
 
@@ -86,17 +87,14 @@ function headerLabel(
 
 export function headerLabelText(label: HeaderLabel): string {
   return match(label)
-    .with(
-      { type: "tone" },
-      ({ tone, lines }) => `${lines.toLocaleString()} ${tone} ${plural(lines)}`,
-    )
+    .with({ type: "tone" }, ({ tone, lines }) => plural(lines, `${tone} line`))
     .with(
       { type: "truncated" },
       ({ shown, total }) =>
         `Showing the last ${shown.toLocaleString()} of ${total.toLocaleString()} lines`,
     )
     .with({ type: "count" }, ({ total, hasMore }) =>
-      hasMore ? `${total.toLocaleString()}+ lines` : `${total.toLocaleString()} ${plural(total)}`,
+      hasMore ? `${total.toLocaleString()}+ lines` : plural(total, "line"),
     )
     .exhaustive();
 }
@@ -126,8 +124,4 @@ export function scrollToLatest({
     return { type: "hidden" };
   }
   return pendingJump === "latest" ? { type: "pending" } : { type: "ready" };
-}
-
-function plural(count: number): string {
-  return count === 1 ? "line" : "lines";
 }

@@ -17,7 +17,7 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
 	id := createNamespace(t, h, workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "ratelimit.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
 	now := h.Clock.Now().UnixMilli()
 	require.NoError(t, db.Query.InsertClickhouseWorkspaceSettings(context.Background(), h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
 		WorkspaceID: workspace.ID, Username: workspace.ID, PasswordEncrypted: "invalid_password", QuotaDurationSeconds: 3600,

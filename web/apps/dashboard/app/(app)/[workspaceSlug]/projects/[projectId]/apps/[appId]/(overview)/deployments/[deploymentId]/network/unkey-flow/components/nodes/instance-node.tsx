@@ -4,11 +4,11 @@ import { IconLayers3Outline18 } from "@unkey/icons";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
 import { NodeWrapper } from "./node-wrapper/node-wrapper";
-import type { InstanceNode as InstanceNodeType, RegionNode as RegionNodeType } from "./types";
+import type { InstanceNode as InstanceNodeType } from "./types";
 
 type InstanceNodeProps = {
   node: InstanceNodeType;
-  flagCode: RegionNodeType["metadata"]["flagCode"];
+  region: string;
   deploymentId?: string;
 };
 
@@ -21,7 +21,7 @@ type InstanceNodeProps = {
 // returns to its normal styling within one product feedback loop.
 const RECENT_CRASH_WINDOW_MS = 30 * 60 * 1000;
 
-export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps) {
+export function InstanceNode({ node, region, deploymentId }: InstanceNodeProps) {
   const { cpu, memory, health, lastExit } = node.metadata;
 
   const { data: rps } = trpc.deploy.network.getInstanceRps.useQuery(
@@ -66,7 +66,7 @@ export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps
         subtitle={subtitle}
         health={effectiveHealth}
       />
-      <CardFooter type="instance" flagCode={flagCode} rps={rps} cpu={cpu} memory={memory} />
+      <CardFooter type="instance" region={region} rps={rps} cpu={cpu} memory={memory} />
     </NodeWrapper>
   );
 }

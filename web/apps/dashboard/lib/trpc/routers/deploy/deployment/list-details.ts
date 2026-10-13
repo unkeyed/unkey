@@ -9,12 +9,10 @@ import {
   regions,
 } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { type FlagCode, mapRegionToFlag } from "../network/utils";
 import { lastExitsByDeployment, mapInstanceRow } from "./deployment-query-helpers";
 
 type DesiredRegion = {
   region: { id: string; name: string; platform: string };
-  flagCode: FlagCode;
 };
 
 type DeploymentDetails = Pick<
@@ -119,7 +117,6 @@ export const listDeploymentDetails = workspaceProcedure
       const key = `${row.appId}:${row.environmentId}`;
       const regionEntry = {
         region: { id: row.regionId, name: row.regionName, platform: row.regionPlatform },
-        flagCode: mapRegionToFlag(row.regionName),
       };
       const existing = desiredByAppEnv.get(key);
       if (existing) {

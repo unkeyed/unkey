@@ -254,10 +254,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					RemoteIP:      s.Location(),
 					UserAgent:     s.UserAgent(),
 					CorrelationID: "",
-					Resources: []auditlog.AuditLogResource{
+					Targets: []auditlog.AuditLogTarget{
 						{
 							ID:          appID,
-							Type:        auditlog.AppResourceType,
+							Type:        auditlog.AppTargetType,
 							Meta:        map[string]any{"repository": resolved.Repository.FullName, "defaultBranch": defaultBranch},
 							Name:        resolved.Repository.FullName,
 							DisplayName: resolved.Repository.FullName,

@@ -69,16 +69,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   "*",
-			Action:       rbac.ReadDomain,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   row.EnvironmentID,
-			Action:       rbac.ReadDomain,
-		}),
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID).Domain(row.ID),
 			permissions.Read,

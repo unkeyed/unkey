@@ -258,6 +258,12 @@ type Querier interface {
 	//
 	//  DELETE FROM `billing_subscriptions` WHERE workspace_id = ?
 	DeleteWorkspaceBillingSubscriptions(ctx context.Context, db DBTX, id string) error
+	// DeleteWorkspaceFlagOverride restores inheritance for this workspace only.
+	// Deleting an absent override is intentionally idempotent.
+	//
+	//  DELETE FROM flag_overrides
+	//  WHERE workspace_id = ? AND flag_slug = ?
+	DeleteWorkspaceFlagOverride(ctx context.Context, db DBTX, arg DeleteWorkspaceFlagOverrideParams) error
 	//EndDeploymentStep
 	//
 	//  UPDATE `deployment_steps`
@@ -561,6 +567,17 @@ type Querier interface {
 	//    AND (environments.id = ? OR environments.slug = ?)
 	//  LIMIT 1
 	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error)
+	// FindFlagBySlug locks the definition during enrollment so a concurrent policy
+	// change cannot race the permission check and override write. The workspace
+	// override is read under the same lock for the audit's effective before value.
+	//
+	//  SELECT f.pk, f.slug, f.description, f.default_enabled,
+	//      f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
+	//  FROM flags f
+	//  LEFT JOIN flag_overrides o
+	//      ON o.flag_slug = f.slug AND o.workspace_id = ?
+	//  WHERE f.slug = ? FOR UPDATE
+	FindFlagBySlug(ctx context.Context, db DBTX, arg FindFlagBySlugParams) (FindFlagBySlugRow, error)
 	//FindFrontlineRoutesByDeploymentID
 	//
 	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ?
@@ -1072,11 +1089,20 @@ type Querier interface {
 	// FindPermissionByIdOrSlug resolves a permission within a workspace so the
 	// caller can authorize access against the permission's actual project.
 	//
-	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
-	//  FROM permissions
-	//  WHERE workspace_id = ?
-	//    AND (id = ? OR slug = ?)
-	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error)
+	//  (
+	//      SELECT p1.pk, p1.id, p1.workspace_id, p1.project_id, p1.name, p1.slug, p1.description, p1.created_at_m, p1.updated_at_m, 0 AS lookup_priority
+	//      FROM permissions p1
+	//      WHERE p1.workspace_id = ? AND p1.id = ?
+	//  )
+	//  UNION ALL
+	//  (
+	//      SELECT p2.pk, p2.id, p2.workspace_id, p2.project_id, p2.name, p2.slug, p2.description, p2.created_at_m, p2.updated_at_m, 1 AS lookup_priority
+	//      FROM permissions p2
+	//      WHERE p2.workspace_id = ? AND p2.slug = ?
+	//  )
+	//  ORDER BY lookup_priority
+	//  LIMIT 1
+	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (FindPermissionByIdOrSlugRow, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
 	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
@@ -2510,6 +2536,16 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//  ORDER BY id ASC
 	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
+	// ListFlags includes definitions without overrides. Callers resolve NULL override
+	// values to the default, preserving explicit false overrides.
+	//
+	//  SELECT f.pk, f.slug, f.description, f.default_enabled,
+	//      f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
+	//  FROM flags f
+	//  LEFT JOIN flag_overrides o
+	//      ON o.flag_slug = f.slug AND o.workspace_id = ?
+	//  ORDER BY f.slug
+	ListFlags(ctx context.Context, db DBTX, workspaceID string) ([]ListFlagsRow, error)
 	// ListIdentities returns one page of a project's identities with their
 	// ratelimits aggregated into a JSON array (empty array when none exist).
 	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
@@ -2643,17 +2679,27 @@ type Querier interface {
 	//                  ) AS combined_rl),
 	//                 JSON_ARRAY()
 	//         )                    AS ratelimits
-	//  FROM `keys` k
-	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+	//  FROM (
+	//      SELECT k.pk
+	//      FROM `keys` k
+	//               STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+	//      WHERE k.key_auth_id = ?
+	//        AND k.id >= ?
+	//        AND (? IS NULL OR k.identity_id = (
+	//            SELECT identity_filter.id FROM identities identity_filter
+	//            WHERE identity_filter.workspace_id = ?
+	//              AND identity_filter.external_id = ?
+	//              AND identity_filter.deleted = false
+	//        ))
+	//        AND k.deleted_at_m IS NULL
+	//        AND ka.deleted_at_m IS NULL
+	//      ORDER BY k.id ASC
+	//      LIMIT ?
+	//  ) AS page
+	//           JOIN `keys` k ON k.pk = page.pk
 	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 	//           LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
-	//  WHERE k.key_auth_id = ?
-	//    AND k.id >= ?
-	//    AND (? IS NULL OR k.identity_id = ?)
-	//    AND k.deleted_at_m IS NULL
-	//    AND ka.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
-	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListLiveKeysByKeySpaceIDs
 	//
@@ -2851,6 +2897,24 @@ type Querier interface {
 	//  FROM ratelimit_namespaces
 	//  WHERE workspace_id = ?
 	ListRatelimitNamespaceOwnershipByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListRatelimitNamespaceOwnershipByWorkspaceRow, error)
+	// Newest first. The cursor resumes at its row's pk, inclusive
+	//
+	//  SELECT ns.id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m
+	//  FROM ratelimit_namespaces ns
+	//  WHERE ns.workspace_id = ?
+	//    AND ns.deleted_at_m IS NULL
+	//    AND (
+	//      ? = ''
+	//      OR ns.pk <= (
+	//        SELECT c.pk FROM ratelimit_namespaces c
+	//        WHERE c.id = ? AND c.workspace_id = ?
+	//      )
+	//    )
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR LOWER(ns.id) LIKE LOWER(?) OR LOWER(ns.name) LIKE LOWER(?))
+	//  ORDER BY ns.pk DESC
+	//  LIMIT ?
+	ListRatelimitNamespaces(ctx context.Context, db DBTX, arg ListRatelimitNamespacesParams) ([]ListRatelimitNamespacesRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
@@ -3069,6 +3133,24 @@ type Querier interface {
 	//  LIMIT ?
 	//  FOR UPDATE
 	LockLivePortalSessionsByExternalID(ctx context.Context, db DBTX, arg LockLivePortalSessionsByExternalIDParams) ([]PortalSession, error)
+	//LockPermissionByIdOrSlug
+	//
+	//  (
+	//      SELECT p1.id, p1.project_id, p1.name, p1.slug, p1.description, 0 AS lookup_priority
+	//      FROM permissions p1
+	//      WHERE p1.workspace_id = ? AND p1.id = ?
+	//      FOR UPDATE
+	//  )
+	//  UNION ALL
+	//  (
+	//      SELECT p2.id, p2.project_id, p2.name, p2.slug, p2.description, 1 AS lookup_priority
+	//      FROM permissions p2
+	//      WHERE p2.workspace_id = ? AND p2.slug = ?
+	//      FOR UPDATE
+	//  )
+	//  ORDER BY lookup_priority
+	//  LIMIT 1
+	LockPermissionByIdOrSlug(ctx context.Context, db DBTX, arg LockPermissionByIdOrSlugParams) (LockPermissionByIdOrSlugRow, error)
 	// Locks the portal row while a session is minted. Disabling, re-pointing, and
 	// deleting a portal all write this row before revoking its sessions, so the
 	// lock orders a mint before or after them: either the revoke sees the new
@@ -3080,14 +3162,24 @@ type Querier interface {
 	//    AND workspace_id = ?
 	//  FOR UPDATE
 	LockPortalForMint(ctx context.Context, db DBTX, arg LockPortalForMintParams) (LockPortalForMintRow, error)
-	//LockRoleByIDOrNameAndWorkspaceID
+	//LockRoleByIdOrName
 	//
-	//  SELECT id, project_id, name
-	//  FROM roles
-	//  WHERE workspace_id = ?
-	//    AND (id = ? OR name = ?)
-	//  FOR UPDATE
-	LockRoleByIDOrNameAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDOrNameAndWorkspaceIDParams) (LockRoleByIDOrNameAndWorkspaceIDRow, error)
+	//  (
+	//      SELECT r1.id, r1.project_id, r1.name, r1.description, 0 AS lookup_priority
+	//      FROM roles r1
+	//      WHERE r1.workspace_id = ? AND r1.id = ?
+	//      FOR UPDATE
+	//  )
+	//  UNION ALL
+	//  (
+	//      SELECT r2.id, r2.project_id, r2.name, r2.description, 1 AS lookup_priority
+	//      FROM roles r2
+	//      WHERE r2.workspace_id = ? AND r2.name = ?
+	//      FOR UPDATE
+	//  )
+	//  ORDER BY lookup_priority
+	//  LIMIT 1
+	LockRoleByIdOrName(ctx context.Context, db DBTX, arg LockRoleByIdOrNameParams) (LockRoleByIdOrNameRow, error)
 	// Returns the highest pk among one end user's sessions on a portal, or 0 when
 	// there are none. Read on the primary before revoking in batches, it bounds the
 	// revoke to sessions that already exist: pk is assigned at insert, so a session
@@ -3548,6 +3640,17 @@ type Querier interface {
 	//  SET logdrains_max = ?
 	//  WHERE workspace_id = ?
 	UpdateLogdrainsMax(ctx context.Context, db DBTX, arg UpdateLogdrainsMaxParams) error
+	//UpdatePermission
+	//
+	//  UPDATE permissions
+	//  SET
+	//      name = ?,
+	//      slug = ?,
+	//      description = ?,
+	//      updated_at_m = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdatePermission(ctx context.Context, db DBTX, arg UpdatePermissionParams) error
 	// Updates a portal's mutable fields, scoped to the workspace so one workspace can
 	// never mutate another's portal.
 	//
@@ -3636,6 +3739,16 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateRatelimit(ctx context.Context, db DBTX, arg UpdateRatelimitParams) error
+	//UpdateRole
+	//
+	//  UPDATE roles
+	//  SET
+	//      name = ?,
+	//      description = ?,
+	//      updated_at_m = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdateRole(ctx context.Context, db DBTX, arg UpdateRoleParams) error
 	// UpdateUnkeyRootKey changes mutable fields on a live new-format root key.
 	//
 	//  UPDATE unkey_root_keys SET
@@ -3802,6 +3915,16 @@ type Querier interface {
 	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsPolicyConfigParams) error
+	// UpsertFlag creates or replaces a definition. Only tests use it, to change the
+	// default of a fixed slug between cases.
+	//
+	//  INSERT INTO flags (slug, description, default_enabled, allow_opt_in, allow_opt_out)
+	//  VALUES (?, ?, ?,
+	//      ?, ?)
+	//  ON DUPLICATE KEY UPDATE description = VALUES(description),
+	//      default_enabled = VALUES(default_enabled),
+	//      allow_opt_in = VALUES(allow_opt_in), allow_opt_out = VALUES(allow_opt_out)
+	UpsertFlag(ctx context.Context, db DBTX, arg UpsertFlagParams) error
 	//UpsertGithubRepoConnection
 	//
 	//  INSERT INTO github_repo_connections (
@@ -4010,6 +4133,13 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      spend_suspended = VALUES(spend_suspended)
 	UpsertWorkspaceBillingSpendSuspended(ctx context.Context, db DBTX, arg UpsertWorkspaceBillingSpendSuspendedParams) error
+	// UpsertWorkspaceFlagOverride makes retries safe and keeps one override per
+	// workspace and flag. The caller validates enrollment permission first.
+	//
+	//  INSERT INTO flag_overrides (workspace_id, flag_slug, enabled)
+	//  VALUES (?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)
+	UpsertWorkspaceFlagOverride(ctx context.Context, db DBTX, arg UpsertWorkspaceFlagOverrideParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -273,6 +273,7 @@ export const ProjectDataProvider = ({
     const environments = environmentsQuery.data ?? [];
     const customDomains = customDomainsQuery.data ?? [];
     const activeApp = appId ? app : primaryApp;
+    const isEnvironmentsLoading = projectAppsQuery.isLoading || environmentsQuery.isLoading;
     const project = projectQuery.data
       ? {
           ...projectQuery.data,
@@ -294,7 +295,7 @@ export const ProjectDataProvider = ({
       apps: projectAppsQuery.data ?? [],
 
       environments,
-      isEnvironmentsLoading: projectAppsQuery.isLoading || environmentsQuery.isLoading,
+      isEnvironmentsLoading,
 
       customDomains,
       isCustomDomainsLoading: customDomainsQuery.isLoading,

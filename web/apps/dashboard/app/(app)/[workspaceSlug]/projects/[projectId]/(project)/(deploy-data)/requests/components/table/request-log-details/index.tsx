@@ -5,16 +5,15 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-id-link";
 import { DeploymentStatusLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/dotted-link";
-import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { EMPTY_TEXT, LogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
+import { RegionFlag } from "@/components/region-flag";
 import { collection } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
@@ -457,7 +456,7 @@ const formatMetaInfo = (log: RequestLogsResponse): React.ReactNode => {
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Region:</span>
         <div className="flex items-center gap-1.5">
-          <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
+          <RegionFlag region={log.region} size="xs" shape="circle" />
           <span className="font-mono">{log.region}</span>
         </div>
       </div>

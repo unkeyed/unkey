@@ -1,3 +1,5 @@
+import type { Environment } from "@/lib/collections/deploy/environments";
+
 export type AppEnvironmentSelection = {
   appIds: Set<string>;
   environmentIds: Set<string>;
@@ -7,7 +9,7 @@ type EnvironmentIdsByApp = ReadonlyMap<string, readonly string[]>;
 type AppEnvironmentField = "appId" | "environmentId";
 type FilterLike = { field: string; value: string | number };
 
-export function groupEnvironmentsByApp<T extends { appId: string; slug: string }>(
+export function groupEnvironmentsByApp<T extends Pick<Environment, "appId" | "slug" | "kind">>(
   environments: readonly T[],
 ): Map<string, T[]> {
   const grouped = new Map<string, T[]>();
@@ -17,7 +19,12 @@ export function groupEnvironmentsByApp<T extends { appId: string; slug: string }
     grouped.set(environment.appId, appEnvironments);
   }
   for (const appEnvironments of grouped.values()) {
-    appEnvironments.sort((left, right) => left.slug.localeCompare(right.slug));
+    appEnvironments.sort((left, right) => {
+      if (left.kind !== right.kind) {
+        return left.kind === "production" ? -1 : 1;
+      }
+      return left.slug.localeCompare(right.slug);
+    });
   }
   return grouped;
 }
@@ -91,6 +98,20 @@ export function toggleEnvironmentSelection(
   appIds.delete(appId);
 
   return { appIds, environmentIds: selectedEnvironmentIds };
+}
+
+export function getSelectedEnvironmentIds(
+  selection: AppEnvironmentSelection,
+  environments: readonly { id: string; appId: string }[],
+): string[] {
+  return [
+    ...new Set([
+      ...selection.environmentIds,
+      ...environments
+        .filter((environment) => selection.appIds.has(environment.appId))
+        .map((environment) => environment.id),
+    ]),
+  ];
 }
 
 export function createAppEnvironmentUnionFilters<TFilter>(

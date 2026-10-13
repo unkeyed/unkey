@@ -1,5 +1,9 @@
+x-unkey-labels: &unkey-labels
+  dev.unkey.project: unkey
+
 services:
   vitess:
+    labels: *unkey-labels
     image: vitess/vttestserver:v24.0.3-mysql80@sha256:230586284ba936139d0f9afb3e7ef8d2494e0fc752cc6ed3f243bcc5082ef485
     command:
       - /vt/bin/vttestserver
@@ -33,6 +37,7 @@ services:
       start_period: 10s
 
   clickhouse:
+    labels: *unkey-labels
     image: clickhouse/clickhouse-server:26.2.1.1139@sha256:f57ed23ab5c4ee0e9a05c2e811bb3580ead222cea30421b3e66234c32e272bce
     environment:
       CLICKHOUSE_USER: default
@@ -58,6 +63,7 @@ services:
       start_period: 10s
 
   mysql:
+    labels: *unkey-labels
     image: mysql:9.4.0
     command:
       - --max_connections=1000
@@ -95,6 +101,7 @@ services:
       start_period: 10s
 
   redis:
+    labels: *unkey-labels
     image: redis:8.0@sha256:ae471bdc20de180beed36e347d170ec0bdf8faa327959ea1f24692f22b05b955
     command:
       - redis-server
@@ -114,6 +121,7 @@ services:
       start_period: 5s
 
   restate:
+    labels: *unkey-labels
     image: docker.io/restatedev/restate:1.7.8@sha256:fe23d866cc625a745f73f14e05ee6ca5b26441af3b18df8c54dfda4e1bb1d52d
     environment:
       # Provision a single partition. Restate routes keyed invocations to a
@@ -145,6 +153,7 @@ services:
       start_period: 5s
 
   s3:
+    labels: *unkey-labels
     image: dxflrs/garage:v2.3.0@sha256:866bd13ed2038ba7e7190e840482bc27234c4afaf77be8cfa439ae088c1e4690
     command: ["/garage", "server", "--single-node", "--default-bucket"]
     environment:
@@ -164,4 +173,10 @@ services:
 
 volumes:
   clickhouse:
+    labels: *unkey-labels
   mysql:
+    labels: *unkey-labels
+
+networks:
+  default:
+    labels: *unkey-labels

@@ -97,6 +97,7 @@ func WithErrorHandling() zen.Middleware {
 			switch urn {
 			// Not Found errors
 			case codes.UnkeyDataErrorsKeyNotFound,
+				codes.UnkeyDataErrorsFlagNotFound,
 				codes.UnkeyDataErrorsWorkspaceNotFound,
 				codes.UnkeyDataErrorsApiNotFound,
 				codes.UnkeyDataErrorsAppNotFound,
