@@ -11,7 +11,7 @@ export type V2WorkspaceGetFlagsFlag = {
   /**
    * Whether the feature is enabled for this workspace. A workspace-specific value overrides the flag's default.
    */
-  value: boolean;
+  enabled: boolean;
   /**
    * What the flag controls.
    */
@@ -19,11 +19,11 @@ export type V2WorkspaceGetFlagsFlag = {
   /**
    * Whether this flag can be enabled. Updating it also requires `flags#write` permission.
    */
-  allowEnable: boolean;
+  allowOptIn: boolean;
   /**
    * Whether this flag can be disabled. Updating it also requires `flags#write` permission.
    */
-  allowDisable: boolean;
+  allowOptOut: boolean;
 };
 
 /** @internal */
@@ -32,10 +32,10 @@ export const V2WorkspaceGetFlagsFlag$inboundSchema: z.ZodType<
   z.ZodTypeDef,
   unknown
 > = z.object({
-  value: z.boolean(),
+  enabled: z.boolean(),
   description: z.string(),
-  allowEnable: z.boolean(),
-  allowDisable: z.boolean(),
+  allowOptIn: z.boolean(),
+  allowOptOut: z.boolean(),
 });
 
 export function v2WorkspaceGetFlagsFlagFromJSON(

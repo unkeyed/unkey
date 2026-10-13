@@ -43,7 +43,7 @@ func TestUpdateFlagSavesFalse(t *testing.T) {
 		res := testutil.CallRaw[getflags.Response](h, req)
 		require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 		require.Contains(t, res.Body.Data, slug)
-		return res.Body.Data[slug].Value
+		return res.Body.Data[slug].Enabled
 	}
 	require.True(t, readValue(key))
 	require.True(t, readValue(otherKey))
@@ -52,7 +52,11 @@ func TestUpdateFlagSavesFalse(t *testing.T) {
 		FlagSlug:    slug,
 		Value:       false,
 	}))
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + key}}, handler.Request{Slug: slug, Value: false})
+	type updateRequest struct {
+		Slug    string `json:"slug"`
+		Enabled bool   `json:"enabled"`
+	}
+	res := testutil.CallRoute[updateRequest, handler.Response](h, route, flagHeaders(key), updateRequest{Slug: slug, Enabled: false})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 	require.Equal(t, openapi.EmptyResponse{}, res.Body.Data)
 	require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -60,7 +64,7 @@ func TestUpdateFlagSavesFalse(t *testing.T) {
 	assertOverride(t, h, other.ID, slug, true, false)
 	require.False(t, readValue(key))
 	require.True(t, readValue(otherKey))
-	res = testutil.CallRoute[handler.Request, handler.Response](h, route, flagHeaders(key), handler.Request{Slug: slug, Value: true})
+	res = testutil.CallRoute[handler.Request, handler.Response](h, route, flagHeaders(key), handler.Request{Slug: slug, Enabled: true})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 	require.Equal(t, openapi.EmptyResponse{}, res.Body.Data)
 	assertOverride(t, h, workspaceID, slug, true, true)
@@ -116,7 +120,7 @@ func TestUpdateFlagDirectionPolicy(t *testing.T) {
 			before, err := db.Query.ListClickhouseOutboxByWorkspace(t.Context(), h.DB.RW(), workspaceID)
 			require.NoError(t, err)
 			for range 2 {
-				res := testutil.CallRoute[handler.Request, handler.Response](h, route, flagHeaders(key), handler.Request{Slug: slug, Value: tc.value})
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, flagHeaders(key), handler.Request{Slug: slug, Enabled: tc.value})
 				require.Equal(t, tc.status, res.Status, res.RawBody)
 			}
 			expected := tc.value
@@ -129,7 +133,7 @@ func TestUpdateFlagDirectionPolicy(t *testing.T) {
 			assertOverride(t, h, workspaceID, slug, true, expected)
 		})
 	}
-	missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, flagHeaders(key), handler.Request{Slug: "missing_" + uid.DNS1035(), Value: true})
+	missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, flagHeaders(key), handler.Request{Slug: "missing_" + uid.DNS1035(), Enabled: true})
 	require.Equal(t, http.StatusNotFound, missing.Status, missing.RawBody)
 	require.Contains(t, missing.Body.Error.Type, "flag_not_found")
 }
@@ -151,7 +155,7 @@ func TestUpdateFlagRollsBackWhenAuditFails(t *testing.T) {
 	require.False(t, cached[slug].Value)
 	require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), h.DB.RW(), db.UpsertWorkspaceFlagOverrideParams{WorkspaceID: workspaceID, FlagSlug: slug, Value: true}))
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":flags#write")
-	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, flagHeaders(key), handler.Request{Slug: slug, Value: false})
+	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, flagHeaders(key), handler.Request{Slug: slug, Enabled: false})
 	require.Equal(t, http.StatusInternalServerError, res.Status, res.RawBody)
 	assertOverride(t, h, workspaceID, slug, true, true)
 	after, err := h.Flags.Values(t.Context(), workspaceID)

@@ -34,10 +34,10 @@ post:
                   requestId: req_1234abcd
                 data:
                   projects_nav:
-                    value: true
+                    enabled: true
                     description: Preview project navigation.
-                    allowEnable: true
-                    allowDisable: false
+                    allowOptIn: true
+                    allowOptOut: false
             empty:
               value:
                 meta:

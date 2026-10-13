@@ -4415,7 +4415,7 @@ components:
             type: object
             required:
                 - slug
-                - value
+                - enabled
             properties:
                 slug:
                     type: string
@@ -4423,7 +4423,7 @@ components:
                     maxLength: 128
                     pattern: "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
                     description: Lowercase snake_case slug of the flag to update, as returned by `workspace.getFlags`.
-                value:
+                enabled:
                     type: boolean
                     description: Set to true to enable the flag or false to disable it, regardless of the flag's default.
             additionalProperties: false
@@ -8371,21 +8371,21 @@ components:
         V2WorkspaceGetFlagsFlag:
             type: object
             required:
-                - value
+                - enabled
                 - description
-                - allowEnable
-                - allowDisable
+                - allowOptIn
+                - allowOptOut
             properties:
-                value:
+                enabled:
                     type: boolean
                     description: Whether the feature is enabled for this workspace. A workspace-specific value overrides the flag's default.
                 description:
                     type: string
                     description: What the flag controls.
-                allowEnable:
+                allowOptIn:
                     type: boolean
                     description: Whether this flag can be enabled. Updating it also requires `flags#write` permission.
-                allowDisable:
+                allowOptOut:
                     type: boolean
                     description: Whether this flag can be disabled. Updating it also requires `flags#write` permission.
             additionalProperties: false
@@ -18887,10 +18887,10 @@ paths:
                                     value:
                                         data:
                                             projects_nav:
-                                                allowDisable: false
-                                                allowEnable: true
+                                                allowOptIn: true
+                                                allowOptOut: false
                                                 description: Preview project navigation.
-                                                value: true
+                                                enabled: true
                                         meta:
                                             requestId: req_1234abcd
                             schema:
