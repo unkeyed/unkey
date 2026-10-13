@@ -9,12 +9,7 @@ import {
 } from "@/lib/collections/deploy/env-vars";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  IconChevronDownOutline18,
-  IconCircleInfoOutline18,
-  IconCloudUploadOutline18,
-  IconPlusOutline18,
-} from "@unkey/icons";
+import { IconCircleInfoOutline18, IconCloudUploadOutline18, IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   InfoTooltip,
@@ -30,6 +25,7 @@ import {
   SlidePanelHeader,
   SlidePanelTitle,
   toast,
+  useReportUnsavedChanges,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
@@ -38,7 +34,6 @@ import { useDropZone } from "../../hooks/use-drop-zone";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
 
-import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { trackSave } from "@/lib/collections/deploy/environment-settings";
 
 type AddEnvVarExpandableProps = {
@@ -59,7 +54,7 @@ export const AddEnvVarExpandable = ({
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting, errors },
+    formState: { isDirty, isSubmitting, errors },
     control,
     reset,
     trigger,
@@ -125,8 +120,7 @@ export const AddEnvVarExpandable = ({
   }, [append, setFocus, fields.length]);
   const { ref: formRef, isDragging, importFile } = useDropZone(reset, trigger, getValues);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  usePreventLeave(isOpen);
+  useReportUnsavedChanges(isOpen && isDirty);
 
   useEffect(
     function purgeLegacyPersistedDraft() {
@@ -328,16 +322,10 @@ export const AddEnvVarExpandable = ({
                         ...environments.map((env) => ({ value: env.id, label: env.slug })),
                       ]}
                     >
-                      <SelectTrigger
-                        id="environment-select"
-                        className="capitalize"
-                        rightIcon={
-                          <IconChevronDownOutline18 className="size-3.5 absolute right-2" />
-                        }
-                      >
+                      <SelectTrigger id="environment-select" className="capitalize" size="sm">
                         <SelectValue placeholder="Select environment" />
                       </SelectTrigger>
-                      <SelectContent className="z-60">
+                      <SelectContent>
                         <SelectItem value="__all__">All Environments</SelectItem>
                         {environments.map((env) => (
                           <SelectItem key={env.id} value={env.id} className="capitalize">

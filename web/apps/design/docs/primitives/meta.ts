@@ -4,5 +4,15 @@ export default defineMeta({
   title: "Primitives",
   icon: "box",
   order: 1,
-  pages: ["alert-banner", "empty-state", "item", "resource-list", "settings-card", "skeleton"],
+  pages: [
+    "alert-banner",
+    "badge",
+    "empty-state",
+    "item",
+    "resource-list",
+    "select",
+    "settings-card",
+    "skeleton",
+    "slide-panel",
+  ],
 });

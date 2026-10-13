@@ -1,11 +1,12 @@
 "use client";
+import { LeaveGuard, useLeaveBypass } from "@/components/leave-guard";
 import { OnboardingStepContainer } from "@/components/onboarding/step-container";
 import { OnboardingStepHeader } from "@/components/onboarding/step-header";
-import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { StepWizard } from "@unkey/ui";
+import { StepWizard, useReportUnsavedChanges } from "@unkey/ui";
+import type { Route } from "next";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ChooseSourceStep } from "./steps/choose-source";
@@ -16,13 +17,22 @@ import { EnvVarsStep } from "./steps/env-vars";
 import { SelectRepo } from "./steps/select-repo";
 
 export default function AppSetupPage() {
+  const params = useParams();
+  const workspace = useWorkspaceNavigation();
+  const projectId = typeof params?.projectId === "string" ? params.projectId : "";
+  const projectHref = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
+
+  return (
+    <LeaveGuard fallbackHref={projectHref}>
+      <AppSetup projectId={projectId} projectHref={projectHref} />
+    </LeaveGuard>
+  );
+}
+
+function AppSetup({ projectId, projectHref }: { projectId: string; projectHref: Route }) {
   const { data: context } = trpc.deploy.project.creationContext.useQuery();
   const searchParams = useSearchParams();
-  const params = useParams();
   const router = useRouter();
-  const workspace = useWorkspaceNavigation();
-
-  const projectId = typeof params?.projectId === "string" ? params.projectId : "";
 
   // Step id to start the wizard at (e.g. "select-repo"). When the GitHub
   // callback redirects here, earlier steps are already complete so we skip ahead.
@@ -36,11 +46,12 @@ export default function AppSetupPage() {
   const [appDetails, setAppDetails] = useState<AppDetails | null>(null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
-  const { bypass } = usePreventLeave(!deploymentId);
+  useReportUnsavedChanges(!deploymentId);
+  const bypass = useLeaveBypass();
 
   const handleSkipGithubSetup = () => {
     bypass();
-    router.replace(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
+    router.replace(projectHref);
   };
 
   return (

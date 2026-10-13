@@ -1,10 +1,10 @@
 "use client";
 
 import { rampColorVar } from "@/components/charts/chart-colors";
+import { RegionFlag } from "@/components/region-flag";
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { freeTierLimits } from "@/lib/limits";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconConnections3Outline18 } from "@unkey/icons";
@@ -12,7 +12,6 @@ import { type SaveState, Slider, firstMatchingSaveState } from "@unkey/ui";
 import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { RegionFlag } from "../../../../components/region-flag";
 import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
 import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
@@ -72,13 +71,7 @@ const RegionFlags = ({ settings }: { settings: EnvironmentSettings }) => {
   return (
     <div className="flex items-center gap-1.5">
       {regions.map((r) => (
-        <RegionFlag
-          key={r}
-          flagCode={mapRegionToFlag(r)}
-          size="xs"
-          shape="circle"
-          className="[&_img]:size-3"
-        />
+        <RegionFlag key={r} region={r} size="xs" shape="circle" className="[&_img]:size-3" />
       ))}
     </div>
   );

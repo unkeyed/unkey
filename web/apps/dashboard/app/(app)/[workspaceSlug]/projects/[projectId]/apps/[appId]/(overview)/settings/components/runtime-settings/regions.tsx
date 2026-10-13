@@ -1,6 +1,6 @@
 "use client";
 
-import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
+import { RegionFlag } from "@/components/region-flag";
 import {
   Multibox,
   MultiboxChip,
@@ -17,7 +17,6 @@ import {
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { trpc } from "@/lib/trpc/client";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconLocation2Outline18 } from "@unkey/icons";
 import {
@@ -87,12 +86,7 @@ const RegionMultibox = ({
                   isUnschedulable ? "bg-warning-3 border-warning-6 text-warning-11" : undefined
                 }
               >
-                <RegionFlag
-                  flagCode={mapRegionToFlag(region)}
-                  size="xs"
-                  shape="circle"
-                  className="[&_img]:size-3"
-                />
+                <RegionFlag region={region} size="xs" shape="circle" className="[&_img]:size-3" />
                 {region}
                 {canRemove && <MultiboxChipRemove />}
               </MultiboxChip>
@@ -121,11 +115,7 @@ const RegionMultibox = ({
           <MultiboxList>
             {(region: string) => (
               <MultiboxItem key={region} value={region}>
-                <RegionFlag
-                  flagCode={mapRegionToFlag(region)}
-                  size="xs"
-                  className="[&_img]:size-3"
-                />
+                <RegionFlag region={region} size="xs" className="[&_img]:size-3" />
                 <span className="text-gray-11 text-xs font-mono">{region}</span>
               </MultiboxItem>
             )}
@@ -147,12 +137,7 @@ const RegionDisplayValue = ({ regions }: { regions: string[] }) => {
           <span key={r} className="flex items-center gap-1.5">
             {i > 0 && <span className="text-grayA-4">|</span>}
             <span className="flex items-center gap-1">
-              <RegionFlag
-                flagCode={mapRegionToFlag(r)}
-                size="xs"
-                shape="circle"
-                className="[&_img]:size-3"
-              />
+              <RegionFlag region={r} size="xs" shape="circle" className="[&_img]:size-3" />
               <span className="text-gray-11">{r}</span>
             </span>
           </span>
@@ -163,7 +148,7 @@ const RegionDisplayValue = ({ regions }: { regions: string[] }) => {
   return (
     <span className="flex items-center gap-1">
       {regions.map((r) => (
-        <RegionFlag key={r} flagCode={mapRegionToFlag(r)} size="xs" shape="circle" />
+        <RegionFlag key={r} region={r} size="xs" shape="circle" />
       ))}
     </span>
   );
@@ -422,13 +407,7 @@ const EnvironmentDisplayValue = ({ label, regions }: { label: string; regions: s
   <div className="flex items-center gap-1.5">
     <span className="text-gray-11 text-xs font-normal">{label}</span>
     {regions.map((r) => (
-      <RegionFlag
-        key={r}
-        flagCode={mapRegionToFlag(r)}
-        size="xs"
-        shape="circle"
-        className="[&_img]:size-3"
-      />
+      <RegionFlag key={r} region={r} size="xs" shape="circle" className="[&_img]:size-3" />
     ))}
   </div>
 );

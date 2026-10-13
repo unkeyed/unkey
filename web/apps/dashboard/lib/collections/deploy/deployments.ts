@@ -1,5 +1,4 @@
 "use client";
-import { flagCodes } from "@/lib/trpc/routers/deploy/network/utils";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { type LoadSubsetOptions, createCollection } from "@tanstack/react-db";
@@ -42,7 +41,6 @@ export const deploymentSchema = z.object({
         name: z.string(),
         platform: z.string(),
       }),
-      flagCode: z.enum(flagCodes),
       status: z.enum(INSTANCE_STATUSES),
     }),
   ),
@@ -54,7 +52,6 @@ export const deploymentSchema = z.object({
         name: z.string(),
         platform: z.string(),
       }),
-      flagCode: z.enum(flagCodes),
     }),
   ),
   cpuMillicores: z.number().int(),

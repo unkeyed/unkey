@@ -1,6 +1,6 @@
 "use client";
 
-import { usePreventLeave } from "@/hooks/use-prevent-leave";
+import { useLeaveBypass } from "@/components/leave-guard";
 import {
   PageBody,
   PageContainer,
@@ -8,6 +8,7 @@ import {
   PageHeaderContent,
   PageHeaderTitle,
   SettingsDangerZone,
+  useReportUnsavedChanges,
 } from "@unkey/ui";
 import { DeleteApp } from "./components/delete-app";
 import { DisconnectGitHub } from "./components/disconnect-github";
@@ -16,7 +17,9 @@ import { EnvironmentSettingsProvider } from "./environment-provider";
 import { useScrollToHash } from "./hooks/use-scroll-to-hash";
 
 export default function SettingsPage() {
-  const { bypass } = usePreventLeave();
+  // The settings forms here do not report their own dirty state.
+  useReportUnsavedChanges(true);
+  const bypass = useLeaveBypass();
   useScrollToHash();
 
   return (

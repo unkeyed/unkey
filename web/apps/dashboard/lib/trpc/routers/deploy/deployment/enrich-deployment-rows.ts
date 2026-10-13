@@ -7,7 +7,6 @@ import {
   openapiSpecs,
   regions,
 } from "@unkey/db/src/schema";
-import { type FlagCode, mapRegionToFlag } from "../network/utils";
 import {
   type DeploymentListSelection,
   lastExitsByDeployment,
@@ -34,7 +33,6 @@ export type DeploymentDetails = {
   desiredInstanceCount: number;
   desiredRegions: {
     region: { id: string; name: string; platform: string };
-    flagCode: FlagCode;
   }[];
   hasOpenApiSpec: boolean;
 };
@@ -144,7 +142,6 @@ export async function loadDeploymentDetails(
       desiredInstanceCount: number;
       desiredRegions: {
         region: { id: string; name: string; platform: string };
-        flagCode: FlagCode;
       }[];
     }
   >();
@@ -152,7 +149,6 @@ export async function loadDeploymentDetails(
     const key = `${row.appId}:${row.environmentId}`;
     const regionEntry = {
       region: { id: row.regionId, name: row.regionName, platform: row.regionPlatform },
-      flagCode: mapRegionToFlag(row.regionName),
     };
     const replicaCount = row.replicas;
     const existing = desiredStateByAppEnv.get(key);
