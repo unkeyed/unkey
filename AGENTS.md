@@ -149,6 +149,12 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 
 ## Go conventions
 
+- Before writing, reviewing, or refactoring Go code, load and follow the
+  repository's `writing-go-code` skill at
+  `.agents/skills/writing-go-code/SKILL.md`, including its reference files and
+  required `no-comments` final pass. If your agent cannot load skills, read
+  those files directly and follow the same workflow. Repository guidance takes
+  precedence over external style rules.
 - Build Go through `mise run build` and test Go through Rask with
   `mise run test` or `mise exec -- rask ./path`.
 - Use `mise exec -- go test` for targeted fuzzing, which needs Go's fuzz runner.
