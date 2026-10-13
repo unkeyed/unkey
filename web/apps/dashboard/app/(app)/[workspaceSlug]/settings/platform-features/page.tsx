@@ -10,6 +10,9 @@ import { useMutation } from "@tanstack/react-query";
 import {
   Badge,
   Button,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
   PageContainer,
   PageHeader,
   PageHeaderContent,
@@ -17,7 +20,6 @@ import {
   SettingCard,
   SettingCardGroup,
   SettingsGroup,
-  SettingsGroupTitle,
   SettingsGroups,
   toast,
 } from "@unkey/ui";
@@ -88,7 +90,6 @@ export default function PlatformFeaturesPage() {
       </PageHeader>
       <SettingsGroups>
         <SettingsGroup>
-          <SettingsGroupTitle>Preview features</SettingsGroupTitle>
           <SettingCardGroup>
             {features.isLoading ? (
               <output className="block p-5 text-sm text-gray-11">Loading preview features…</output>
@@ -100,9 +101,13 @@ export default function PlatformFeaturesPage() {
                 </Button>
               </div>
             ) : previews.length === 0 ? (
-              <p className="p-5 text-sm text-gray-11">
-                There are no preview features to opt in to at the moment.
-              </p>
+              <EmptyState frame="none">
+                <EmptyStateHeader>
+                  <EmptyStateDescription>
+                    There are no preview features to opt in to at the moment.
+                  </EmptyStateDescription>
+                </EmptyStateHeader>
+              </EmptyState>
             ) : (
               previews.map((feature) => {
                 const blockedReason =
