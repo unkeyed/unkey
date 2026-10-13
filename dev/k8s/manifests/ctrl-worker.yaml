@@ -41,14 +41,8 @@ data:
     namespace = "unkey"
     image = "moby/buildkit:v0.26.3"
 
-    # Built images are pushed to the ctlptl-provisioned local registry. The
-    # "ctlptl-registry" name resolves both from pods (via the Service the
-    # Tiltfile creates in the unkey namespace) and from the minikube node's
-    # containerd (via docker network DNS), so the same image reference works
-    # for pushing and pulling. The registry has no TLS and no auth, hence
-    # insecure and empty credentials.
     [registry]
-    repository = "ctlptl-registry:5000/deployments"
+    repository = "unkey-registry:5000/deployments"
     insecure = true
 
     [acme]

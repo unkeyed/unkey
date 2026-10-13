@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#MISE description="Prepare Unkey's isolated Docker build cache"
+set -euo pipefail
+
+endpoint=${DOCKER_HOST:-$(docker context show)}
+volume=$(docker volume ls -q --filter name=^buildx_buildkit_unkey0_state$)
+if [ -n "$volume" ] && [ "$(docker volume inspect "$volume" --format '{{index .Labels "dev.unkey.project"}}')" != unkey ]; then
+  echo "The unkey builder volume is not owned by Unkey. Refusing to adopt it." >&2
+  exit 1
+fi
+if docker buildx inspect unkey >/dev/null 2>&1; then
+  if [ -z "$volume" ]; then
+    echo "Builder unkey has no owned state volume. Refusing to adopt it." >&2
+    exit 1
+  fi
+else
+  docker volume create --name buildx_buildkit_unkey0_state --label dev.unkey.project=unkey >/dev/null
+  docker buildx create --name unkey --driver docker-container "$endpoint" >/dev/null ||
+    docker buildx inspect unkey >/dev/null
+fi
+
+builder=$(docker buildx inspect unkey)
+builder_endpoint=$(awk '$1 == "Endpoint:" {print $2}' <<< "$builder")
+host=${DOCKER_HOST:-$(docker context inspect --format '{{.Endpoints.docker.Host}}')}
+if [ "$(awk '$1 == "Driver:" {print $2}' <<< "$builder")" != docker-container ] ||
+  [ "$(awk '$1 == "Name:" {print $2}' <<< "$builder")" != $'unkey\nunkey0' ] ||
+  { [ "$builder_endpoint" != "$endpoint" ] && [ "$builder_endpoint" != "$host" ]; }; then
+  echo "Builder unkey belongs to a different Docker endpoint or driver. Nothing was changed." >&2
+  exit 1
+fi

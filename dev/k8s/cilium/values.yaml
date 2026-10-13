@@ -1,0 +1,16 @@
+operator:
+  replicas: 1
+
+ipam:
+  operator:
+    clusterPoolIPv4PodCIDRList:
+      - 10.244.0.0/16
+
+hubble:
+  tls:
+    auto:
+      method: cronJob
+  relay:
+    enabled: true
+  ui:
+    enabled: true
