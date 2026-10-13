@@ -1,11 +1,9 @@
 import type { AllOperatorsUrlValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
-import type { ApiKeysCursor } from "@/components/api-keys-table/schema/api-keys.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { type SQL, db, eq, sql } from "@/lib/db";
+import { type SQL, and, count, db, eq, gt, isNull, or, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { identities } from "@unkey/db/src/schema";
+import { identities, keys as keysSchema } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { resolveIdentityFilter } from "../identity-filter";
 import type { KeyDetails } from "./schema";
 
 interface GetAllKeysInput {
@@ -18,22 +16,28 @@ interface GetAllKeysInput {
     tags?: AllOperatorsUrlValue[] | null;
   };
   limit?: number;
-  cursor?: ApiKeysCursor | null;
+  page?: number;
   sortBy?: "id" | "start" | "lastUsedAt";
   sortOrder?: "asc" | "desc";
 }
 
 interface GetAllKeysResult {
   keys: KeyDetails[];
-  nextCursor: ApiKeysCursor | null;
+  totalCount: number;
 }
 
+/**
+ * Gets API keys with filtering and cursor-based pagination
+ *
+ * @param input Query parameters including keyspaceId, workspaceId, filters, and cursor
+ * @returns Object containing matching keys, hasMore flag for pagination, and totalCount
+ */
 export async function getAllKeys({
   keyspaceId,
   workspaceId,
   filters = {},
   limit = 50,
-  cursor,
+  page = 1,
   sortBy = "id",
   sortOrder = "desc",
 }: GetAllKeysInput): Promise<GetAllKeysResult> {
@@ -136,134 +140,136 @@ export async function getAllKeys({
       }
     }
 
-    const identityConditions: SQL[] = [];
-    for (const filter of identityFilters ?? []) {
-      const value = filter.value;
-      if (typeof value !== "string") {
-        continue;
-      }
+    // Helper function to build the filter conditions (without cursor)
+    // biome-ignore lint/suspicious/noExplicitAny: Drizzle query builder types are complex and vary between schema and query contexts
+    const buildFilterConditions = (key: any, helpers: any): SQL<unknown> => {
+      const conditions = [
+        helpers.eq(key.keyAuthId, keyspaceId),
+        helpers.isNull(key.deletedAtM),
+        helpers.or(helpers.isNull(key.expires), helpers.gt(key.expires, new Date())),
+      ];
 
-      switch (filter.operator) {
-        case "contains":
-          identityConditions.push(sql`LOWER(${identities.externalId}) LIKE LOWER(${`%${value}%`})`);
-          break;
-        case "startsWith":
-          identityConditions.push(sql`LOWER(${identities.externalId}) LIKE LOWER(${`${value}%`})`);
-          break;
-        case "endsWith":
-          identityConditions.push(sql`LOWER(${identities.externalId}) LIKE LOWER(${`%${value}`})`);
-          break;
-        default:
-          identityConditions.push(eq(identities.externalId, value));
-      }
-    }
-
-    const identityFilter =
-      identityConditions.length > 0
-        ? await resolveIdentityFilter({
-            workspaceId,
-            keyspaceId,
-            condition: sql`(${sql.join(identityConditions, sql` AND `)})`,
-          })
-        : undefined;
-
-    const keysQuery = await db.query.keys.findMany({
-      where: (key, helpers) => {
-        const conditions = [
-          helpers.eq(key.keyAuthId, keyspaceId),
-          helpers.isNull(key.deletedAtM),
-          helpers.or(helpers.isNull(key.expires), helpers.gt(key.expires, new Date())),
-        ];
-
-        if (cursor) {
-          const compare = sortOrder === "desc" ? helpers.lt : helpers.gt;
-          const tiebreaker =
-            sortBy === "lastUsedAt" ? compare(key.pk, cursor.pk) : compare(key.id, cursor.id);
+      // Apply tag-based key filtering if we have filtered key IDs
+      if (tagFilteredKeyIds !== null) {
+        if (tagFilteredKeyIds.length === 0) {
+          conditions.push(helpers.sql`1 = 0`);
+        } else {
           conditions.push(
-            sortBy === "id"
-              ? compare(key.id, cursor.id)
-              : helpers.or(
-                  compare(key[sortBy], cursor[sortBy]),
-                  helpers.and(helpers.eq(key[sortBy], cursor[sortBy]), tiebreaker),
-                ),
+            helpers.sql`${key.id} IN (${helpers.sql.join(
+              tagFilteredKeyIds.map((id) => helpers.sql`${id}`),
+              helpers.sql`, `,
+            )})`,
           );
         }
+      }
 
-        if (identityFilter) {
-          conditions.push(identityFilter);
-        }
-
-        if (tagFilteredKeyIds !== null) {
-          if (tagFilteredKeyIds.length === 0) {
-            conditions.push(helpers.sql`1 = 0`);
-          } else {
-            conditions.push(
-              helpers.sql`${key.id} IN (${helpers.sql.join(
-                tagFilteredKeyIds.map((id) => helpers.sql`${id}`),
-                helpers.sql`, `,
-              )})`,
-            );
+      // Apply name filters
+      if (names && names.length > 0) {
+        const nameConditions = [];
+        for (const filter of names) {
+          const value = filter.value;
+          if (typeof value !== "string") {
+            continue;
+          }
+          switch (filter.operator) {
+            case "is":
+              nameConditions.push(helpers.eq(key.name, value));
+              break;
+            case "contains":
+              nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`%${value}%`})`);
+              break;
+            case "startsWith":
+              nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`${value}%`})`);
+              break;
+            case "endsWith":
+              nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`%${value}`})`);
+              break;
           }
         }
+        if (nameConditions.length > 0) {
+          conditions.push(helpers.sql`(${helpers.sql.join(nameConditions, helpers.sql` OR `)})`);
+        }
+      }
 
-        if (names && names.length > 0) {
-          const nameConditions = [];
-          for (const filter of names) {
-            const value = filter.value;
-            if (typeof value !== "string") {
-              continue;
-            }
-            switch (filter.operator) {
-              case "is":
-                nameConditions.push(helpers.eq(key.name, value));
-                break;
-              case "contains":
-                nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`%${value}%`})`);
-                break;
-              case "startsWith":
-                nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`${value}%`})`);
-                break;
-              case "endsWith":
-                nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`%${value}`})`);
-                break;
-            }
+      // Apply key ID filters
+      if (keyIds && keyIds.length > 0) {
+        const keyIdConditions = [];
+        for (const filter of keyIds) {
+          const value = filter.value;
+          if (typeof value !== "string") {
+            continue;
           }
-          if (nameConditions.length > 0) {
-            conditions.push(helpers.sql`(${helpers.sql.join(nameConditions, helpers.sql` OR `)})`);
+          switch (filter.operator) {
+            case "is":
+              keyIdConditions.push(helpers.eq(key.id, value));
+              break;
+            case "contains":
+              keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`%${value}%`})`);
+              break;
+            case "startsWith":
+              keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`${value}%`})`);
+              break;
+            case "endsWith":
+              keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`%${value}`})`);
+              break;
           }
         }
+        if (keyIdConditions.length > 0) {
+          conditions.push(helpers.sql`(${helpers.sql.join(keyIdConditions, helpers.sql` OR `)})`);
+        }
+      }
 
-        if (keyIds && keyIds.length > 0) {
-          const keyIdConditions = [];
-          for (const filter of keyIds) {
-            const value = filter.value;
-            if (typeof value !== "string") {
-              continue;
-            }
-            switch (filter.operator) {
-              case "is":
-                keyIdConditions.push(helpers.eq(key.id, value));
-                break;
-              case "contains":
-                keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`%${value}%`})`);
-                break;
-              case "startsWith":
-                keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`${value}%`})`);
-                break;
-              case "endsWith":
-                keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`%${value}`})`);
-                break;
-            }
+      if (identityFilters && identityFilters.length > 0) {
+        const individualIdentityFilterConditions = [];
+        for (const filter of identityFilters) {
+          const value = filter.value;
+          if (typeof value !== "string") {
+            continue;
           }
-          if (keyIdConditions.length > 0) {
-            conditions.push(helpers.sql`(${helpers.sql.join(keyIdConditions, helpers.sql` OR `)})`);
-          }
+
+          const identityCondition = helpers.sql`EXISTS (
+                SELECT 1 FROM ${identities} -- Use schema object for table name is fine
+                WHERE ${helpers.sql.raw("identities.id")} = ${
+                  key.identityId
+                } -- Use raw 'identities.id'; use schema 'key.identityId' for outer ref
+                  AND ${(() => {
+                    const rawExternalIdColumn = helpers.sql.raw("identities.external_id");
+                    switch (filter.operator) {
+                      case "is":
+                        return helpers.sql`${rawExternalIdColumn} = ${value}`;
+                      case "contains":
+                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`%${value}%`})`;
+                      case "startsWith":
+                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`${value}%`})`;
+                      case "endsWith":
+                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`%${value}`})`;
+                      default:
+                        return helpers.sql`${rawExternalIdColumn} = ${value}`;
+                    }
+                  })()}
+            )`;
+
+          individualIdentityFilterConditions.push(identityCondition);
         }
 
-        return helpers.and(...conditions);
-      },
+        if (individualIdentityFilterConditions.length > 0) {
+          conditions.push(...individualIdentityFilterConditions);
+        }
+      }
+
+      return helpers.and(...conditions);
+    };
+
+    // Get the total count using a proper COUNT query instead of fetching all rows
+    const [countResult] = await db
+      .select({ count: count() })
+      .from(keysSchema)
+      .where(buildFilterConditions(keysSchema, { and, isNull, eq, sql, or, gt }));
+
+    const totalCount = countResult?.count ?? 0;
+    const keysQuery = await db.query.keys.findMany({
+      where: (key, helpers) => buildFilterConditions(key, helpers),
       columns: {
-        pk: true,
         id: true,
         name: true,
         identityId: true,
@@ -295,20 +301,17 @@ export async function getAllKeys({
           },
         },
       },
-      limit: limit + 1,
+      limit,
+      offset: (page - 1) * limit,
       orderBy: (keys, helpers) => {
         const column = keys[sortBy];
         const primary = sortOrder === "desc" ? helpers.desc(column) : helpers.asc(column);
-        const tiebreakerColumn = sortBy === "lastUsedAt" ? keys.pk : keys.id;
-        const tiebreaker =
-          sortOrder === "desc" ? helpers.desc(tiebreakerColumn) : helpers.asc(tiebreakerColumn);
+        const tiebreaker = sortOrder === "desc" ? helpers.desc(keys.id) : helpers.asc(keys.id);
         return [primary, tiebreaker];
       },
     });
 
-    const hasMore = keysQuery.length > limit;
-    const keys = keysQuery.slice(0, limit);
-    const last = keys.at(-1);
+    const keys = keysQuery;
 
     const transformedKeys: KeyDetails[] = keys.map((key) => {
       const identityData = key.identity
@@ -352,10 +355,7 @@ export async function getAllKeys({
 
     return {
       keys: transformedKeys,
-      nextCursor:
-        hasMore && last
-          ? { pk: last.pk, id: last.id, start: last.start, lastUsedAt: last.lastUsedAt }
-          : null,
+      totalCount,
     };
   } catch (error) {
     if (error instanceof TRPCError) {

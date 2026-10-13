@@ -9,7 +9,6 @@ import {
   permissions,
   roles,
 } from "@unkey/db/src/schema";
-import { resolveIdentityFilter } from "./identity-filter";
 
 type BaseKey = InferSelectModel<typeof keys>;
 type BaseRole = InferSelectModel<typeof roles>;
@@ -191,17 +190,13 @@ export async function queryApiKeys({
           externalMatch = sql`${identities.externalId} = ${value}`;
       }
 
-      identityOrs.push(externalMatch);
+      identityOrs.push(
+        sql`EXISTS (SELECT 1 FROM ${identities} WHERE ${identities.id} = ${keys.identityId} AND ${externalMatch})`,
+      );
     }
 
     if (identityOrs.length > 0) {
-      conditions.push(
-        await resolveIdentityFilter({
-          workspaceId,
-          keyspaceId,
-          condition: sql`(${sql.join(identityOrs, sql` OR `)})`,
-        }),
-      );
+      conditions.push(sql`(${sql.join(identityOrs, sql` OR `)})`);
     }
   }
 
