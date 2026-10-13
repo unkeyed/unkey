@@ -33,18 +33,13 @@ func TestUpdateFlagSavesFalse(t *testing.T) {
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + key}}, handler.Request{Slug: slug, Value: false})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
-	require.Equal(t, openapi.V2WorkspaceUpdateFlagResponseData{
-		Slug:         slug,
-		Value:        false,
-		Description:  "Uncatalogued preview",
-		AllowEnable:  true,
-		AllowDisable: true,
-	}, res.Body.Data)
+	require.Equal(t, openapi.EmptyResponse{}, res.Body.Data)
+	require.NotEmpty(t, res.Body.Meta.RequestId)
 	assertOverride(t, h, workspaceID, slug, true, false)
 	assertOverride(t, h, other.ID, slug, false, false)
 	res = testutil.CallRoute[handler.Request, handler.Response](h, route, flagHeaders(key), handler.Request{Slug: slug, Value: true})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
-	require.True(t, res.Body.Data.Value)
+	require.Equal(t, openapi.EmptyResponse{}, res.Body.Data)
 	assertOverride(t, h, workspaceID, slug, true, true)
 	rows, err := db.Query.ListClickhouseOutboxByWorkspace(t.Context(), h.DB.RW(), workspaceID)
 	require.NoError(t, err)

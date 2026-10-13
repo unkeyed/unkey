@@ -331,7 +331,6 @@ export * from "./v2workspacegetusageresponsedata.js";
 export * from "./v2workspacegetusagetotals.js";
 export * from "./v2workspaceupdateflagrequestbody.js";
 export * from "./v2workspaceupdateflagresponsebody.js";
-export * from "./v2workspaceupdateflagresponsedata.js";
 export * from "./v3deploymentscreatedeploymentrequestbody.js";
 export * from "./v3deploymentscreatedeploymentresponsebody.js";
 export * from "./v3deploymentscreatedeploymentresponsedata.js";

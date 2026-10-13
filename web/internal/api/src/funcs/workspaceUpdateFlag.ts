@@ -30,22 +30,22 @@ import { Result } from "../types/fp.js";
  * Update a workspace flag
  *
  * @remarks
- * Save a flag override for the authenticated workspace and return the saved
- * value, public description, and enrollment policy.
+ * Save a flag override for the authenticated workspace.
  *
  * The flag definition must already exist. Enabling requires `allowEnable`;
  * disabling requires `allowDisable`. The policy applies to every write,
  * including retries of the same value. This endpoint does not register flags
  * or restrict updates to the dashboard preview catalog.
  *
- * The override and workspace audit event commit in one transaction. The
- * response reflects that transaction. Subsequent `workspace.getFlags` reads
- * may return a cached value until the cache refreshes.
+ * The override and workspace audit event commit in one transaction. On success,
+ * the response contains an empty data object. Subsequent `workspace.getFlags`
+ * reads may return a cached value until the cache refreshes.
  *
  * **Required Permissions**
  *
  * Your root key must have `unkey:v1:<workspace_id>:flags#write`.
- * All supported dashboard roles have this permission.
+ * Dashboard roles `admin`, `developer`, and `basic_member` have this permission.
+ * The `viewer` role is read-only.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
