@@ -108,6 +108,15 @@ export default function UsagePage() {
     ? info?.products.find((product) => product.id === info.currentProductId)
     : undefined;
 
+  const isLegacy = Object.keys(workspace.subscriptions ?? {}).length > 0;
+  const planQuota =
+    apiProduct?.quotas.requestsPerMonth ?? limits?.apiBillableOperationsCountMaxPerMonth;
+  const canUpgrade =
+    planKnown &&
+    !isLegacy &&
+    planQuota !== undefined &&
+    info.products.some((product) => product.quotas.requestsPerMonth > planQuota);
+
   let feeCents: number | null;
   if (!planKnown) {
     feeCents = null;
@@ -133,6 +142,7 @@ export default function UsagePage() {
         (usage.data === undefined && !usage.isError) || (!planKnown && !billingInfo.isError)
       }
       isError={usage.isError && usage.data === undefined}
+      canUpgrade={canUpgrade}
     />
   );
 
@@ -205,12 +215,14 @@ function NoComputePlan() {
       <div className="px-4 py-8">
         <EmptyState frame="none">
           <EmptyStateHeader>
-            <EmptyStateTitle>No compute plan</EmptyStateTitle>
-            <EmptyStateDescription>Pick a plan to deploy your first app.</EmptyStateDescription>
+            <EmptyStateTitle>Deploy on Unkey</EmptyStateTitle>
+            <EmptyStateDescription>
+              Host your apps with autoscaling, custom domains and logs.
+            </EmptyStateDescription>
           </EmptyStateHeader>
           <EmptyStateActions>
-            <Button variant="primary" size="md" onClick={() => setPlansOpen(true)}>
-              Choose a plan
+            <Button variant="outline" size="md" onClick={() => setPlansOpen(true)}>
+              See deploy plans
             </Button>
           </EmptyStateActions>
         </EmptyState>
