@@ -6,18 +6,18 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import { EmptyResponse, EmptyResponse$inboundSchema } from "./emptyresponse.js";
 import { Meta, Meta$inboundSchema } from "./meta.js";
-import {
-  V2WorkspaceUpdateFlagResponseData,
-  V2WorkspaceUpdateFlagResponseData$inboundSchema,
-} from "./v2workspaceupdateflagresponsedata.js";
 
 export type V2WorkspaceUpdateFlagResponseBody = {
   /**
    * Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
    */
   meta: Meta;
-  data: V2WorkspaceUpdateFlagResponseData;
+  /**
+   * Empty response object by design. A successful response indicates this operation was successfully executed.
+   */
+  data: EmptyResponse;
 };
 
 /** @internal */
@@ -27,7 +27,7 @@ export const V2WorkspaceUpdateFlagResponseBody$inboundSchema: z.ZodType<
   unknown
 > = z.object({
   meta: Meta$inboundSchema,
-  data: V2WorkspaceUpdateFlagResponseData$inboundSchema,
+  data: EmptyResponse$inboundSchema,
 });
 
 export function v2WorkspaceUpdateFlagResponseBodyFromJSON(

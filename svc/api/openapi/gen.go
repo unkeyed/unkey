@@ -7474,28 +7474,11 @@ type V2WorkspaceUpdateFlagRequestBody struct {
 
 // V2WorkspaceUpdateFlagResponseBody defines model for V2WorkspaceUpdateFlagResponseBody.
 type V2WorkspaceUpdateFlagResponseBody struct {
-	Data V2WorkspaceUpdateFlagResponseData `json:"data"`
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// V2WorkspaceUpdateFlagResponseData defines model for V2WorkspaceUpdateFlagResponseData.
-type V2WorkspaceUpdateFlagResponseData struct {
-	// AllowDisable Whether enrollment policy permits disabling this flag. This does not grant the caller permission to change it.
-	AllowDisable bool `json:"allowDisable"`
-
-	// AllowEnable Whether enrollment policy permits enabling this flag. This does not grant the caller permission to change it.
-	AllowEnable bool `json:"allowEnable"`
-
-	// Description Public description of the flag.
-	Description string `json:"description"`
-
-	// Slug Slug of the updated flag.
-	Slug string `json:"slug"`
-
-	// Value Saved workspace override.
-	Value bool `json:"value"`
 }
 
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.

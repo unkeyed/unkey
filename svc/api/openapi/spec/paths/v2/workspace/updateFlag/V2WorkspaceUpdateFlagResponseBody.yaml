@@ -6,5 +6,5 @@ properties:
   meta:
     $ref: "../../../../common/Meta.yaml"
   data:
-    $ref: "./V2WorkspaceUpdateFlagResponseData.yaml"
+    $ref: "../../../../common/EmptyResponse.yaml"
 additionalProperties: false
