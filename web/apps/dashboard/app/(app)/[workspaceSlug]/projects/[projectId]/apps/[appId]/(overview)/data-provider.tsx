@@ -1,13 +1,13 @@
 "use client";
 
-import { collection } from "@/lib/collections";
+import { type App, collection } from "@/lib/collections";
+import { queryClient as collectionsQueryClient } from "@/lib/collections/client";
 import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
 import {
   type DeploymentStatus,
   isDeploymentSettling,
 } from "@/lib/collections/deploy/deployment-status";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { pickPrimaryApp } from "@/lib/collections/deploy/project-cards";
@@ -24,10 +24,10 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useSyncExternalStore,
 } from "react";
 import {
   customDomainsQueryFor,
-  deploymentsQueryFor,
   domainsQueryFor,
   environmentsQueryFor,
 } from "./data-provider-queries";
@@ -73,17 +73,17 @@ type ProjectDataContextType = {
   isProjectLoading: boolean;
 
   domains: Domain[];
-  deployments: Deployment[];
+  apps: App[];
   environments: Environment[];
   customDomains: CustomDomain[];
 
   isDomainsLoading: boolean;
-  isDeploymentsLoading: boolean;
   isEnvironmentsLoading: boolean;
   isCustomDomainsLoading: boolean;
 
   getDomainsForDeployment: (deploymentId: string) => Domain[];
-  getDeploymentById: (id: string) => Deployment | undefined;
+  getLiveDomains: () => Domain[];
+  getEnvironmentOrLiveDomains: () => Domain[];
 
   refetchDomains: () => void;
   refetchDeployments: () => void;
@@ -112,8 +112,6 @@ export const ProjectDataProvider = ({
   }
 
   const trpcUtils = trpc.useUtils();
-
-  const deploymentsQuery = useLiveQuery(deploymentsQueryFor(projectId, appId), [projectId, appId]);
 
   const projectQuery = useLiveQuery(
     (q) =>
@@ -147,10 +145,20 @@ export const ProjectDataProvider = ({
   const domainsQuery = useLiveQuery(domainsQueryFor(projectId, appId), [projectId, appId]);
   const refetchDeployments = useCallback(() => {
     collection.deployments.utils.refetch();
-    trpcUtils.deploy.deployment.list.invalidate();
     trpcUtils.deploy.deployment.listActiveBranches.invalidate();
     trpcUtils.deploy.deployment.listBranches.invalidate();
   }, [trpcUtils]);
+  // A poll refetches only the subsets on screen and skips "load more" pages:
+  // new and moving deployments sit on the first page. The last two key
+  // segments are the page offset and cursor, both null for a first page
+  const pollDeployments = useCallback(() => {
+    collectionsQueryClient.refetchQueries({
+      queryKey: ["deployments", projectId],
+      type: "active",
+      predicate: (query) => query.queryKey.slice(-2).every((segment) => segment === null),
+    });
+    trpcUtils.deploy.deployment.listActiveBranches.invalidate();
+  }, [trpcUtils, projectId]);
 
   const refetchAll = useCallback(() => {
     collection.projects.utils.refetch();
@@ -164,11 +172,6 @@ export const ProjectDataProvider = ({
   const liveDeployment = useAwaitTarget<LiveDeploymentTarget>({
     isReached: (target) =>
       app?.currentDeploymentId === target.deploymentId && app.isRolledBack === target.rolledBack,
-    onSettled: refetchAll,
-  });
-  const deploymentStatus = useAwaitTarget<DeploymentStatusTarget>({
-    isReached: (target) =>
-      deploymentsQuery.data?.find((d) => d.id === target.deploymentId)?.status === target.status,
     onSettled: refetchAll,
   });
 
@@ -204,11 +207,44 @@ export const ProjectDataProvider = ({
     appId,
   ]);
 
-  const hasSettlingDeployment = (deploymentsQuery.data ?? []).some(isDeploymentSettling);
+  // Lists of deployments load where a page needs them, so polling speed and
+  // awaited statuses read whichever rows this tab holds. Subscribing without the
+  // initial state loads nothing. The snapshot is a string so the provider
+  // re-renders only when a status changes
+  const deploymentStates = useSyncExternalStore(
+    useCallback((onChange: () => void) => {
+      const subscription = collection.deployments.subscribeChanges(onChange, {
+        includeInitialState: false,
+      });
+      return () => subscription.unsubscribe();
+    }, []),
+    useCallback(
+      () =>
+        [...collection.deployments.values()]
+          .filter((d) => d.projectId === projectId)
+          .map((d) => `${d.id}:${d.status}:${isDeploymentSettling(d) ? 1 : 0}`)
+          .join(","),
+      [projectId],
+    ),
+    () => "",
+  );
+  const { statusById, hasSettlingDeployment } = useMemo(() => {
+    const entries =
+      deploymentStates === "" ? [] : deploymentStates.split(",").map((e) => e.split(":"));
+    return {
+      statusById: new Map(entries.map(([id, status]) => [id, status])),
+      hasSettlingDeployment: entries.some(([, , settling]) => settling === "1"),
+    };
+  }, [deploymentStates]);
+
+  const deploymentStatus = useAwaitTarget<DeploymentStatusTarget>({
+    isReached: (target) => statusById.get(target.deploymentId) === target.status,
+    onSettled: refetchAll,
+  });
   const hasPendingDomain = (customDomainsQuery.data ?? []).some(
     (d) => d.verificationStatus === "pending" || d.verificationStatus === "verifying",
   );
-  useCollectionPolling(refetchDeployments, {
+  useCollectionPolling(pollDeployments, {
     intervalMs: pollIntervalMs(deploymentStatus.waiting, hasSettlingDeployment),
     enabled: true,
   });
@@ -223,7 +259,6 @@ export const ProjectDataProvider = ({
 
   const value = useMemo(() => {
     const domains = domainsQuery.data ?? [];
-    const deployments = deploymentsQuery.data ?? [];
     const environments = environmentsQuery.data ?? [];
     const customDomains = customDomainsQuery.data ?? [];
     const activeApp = appId ? app : primaryApp;
@@ -246,8 +281,7 @@ export const ProjectDataProvider = ({
       domains,
       isDomainsLoading: domainsQuery.isLoading,
 
-      deployments,
-      isDeploymentsLoading: deploymentsQuery.isLoading,
+      apps: projectAppsQuery.data ?? [],
 
       environments,
       isEnvironmentsLoading,
@@ -258,7 +292,10 @@ export const ProjectDataProvider = ({
       getDomainsForDeployment: (deploymentId: string) =>
         domains.filter((d) => d.deploymentId === deploymentId),
 
-      getDeploymentById: (id: string) => deployments.find((d) => d.id === id),
+      getLiveDomains: () => domains.filter((d) => d.sticky === "live"),
+
+      getEnvironmentOrLiveDomains: () =>
+        domains.filter((d) => d.sticky === "environment" || d.sticky === "live"),
 
       refetchDomains: () => collection.domains.utils.refetch(),
       refetchDeployments,
@@ -271,7 +308,7 @@ export const ProjectDataProvider = ({
     projectId,
     appId,
     domainsQuery,
-    deploymentsQuery,
+    projectAppsQuery.data,
     projectQuery,
     projectAppsQuery.isLoading,
     appQuery.isLoading,

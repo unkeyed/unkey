@@ -20,7 +20,7 @@
 //	    h.Register(myRoute)
 //
 //	    ws := h.CreateWorkspace()
-//	    rootKey := h.CreateRootKey(ws.ID, "api.keys.create")
+//	    rootKey := h.CreateRootKey(ws.ID, fmt.Sprintf("unkey:v1:%s:**#*", ws.ID))
 //
 //	    resp := testutil.CallRoute[RequestType, ResponseType](h, myRoute, headers, req)
 //	    require.Equal(t, 200, resp.Status)

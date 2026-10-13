@@ -32,10 +32,11 @@ vi.mock("../data-provider", () => ({
   useAppId: () => "app_container",
   useProjectData: () => ({
     projectId: "proj_backend",
-    deployments: state.deployments,
     environments: [{ id: "env_preview", slug: "preview" }],
-    isDeploymentsLoading: false,
   }),
+}));
+vi.mock("../hooks/use-recent-deployments", () => ({
+  useRecentDeployments: () => ({ deployments: state.deployments, isLoading: false }),
 }));
 vi.mock("../hooks/use-app-current-deployment", () => ({
   useAppCurrentDeployment: () => ({

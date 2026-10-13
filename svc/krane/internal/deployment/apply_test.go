@@ -231,6 +231,18 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 		for _, vol := range rs.Spec.Template.Spec.Volumes {
 			if vol.Name == "data" && vol.Ephemeral != nil {
 				found = true
+				require.NotNil(t, vol.Ephemeral.VolumeClaimTemplate)
+				require.Equal(t, map[string]string{
+					"unkey.com/workspace.id":       testWorkspaceID,
+					"unkey.com/project.id":         testProjectID,
+					"unkey.com/app.id":             testAppID,
+					"unkey.com/environment.id":     testEnvironmentID,
+					"unkey.com/deployment.id":      testDeploymentID,
+					"unkey.com/build.id":           testBuildID,
+					"unkey.com/platform":           "test-platform",
+					"app.kubernetes.io/managed-by": "krane",
+					"app.kubernetes.io/component":  "deployment",
+				}, vol.Ephemeral.VolumeClaimTemplate.Labels)
 			}
 		}
 		require.True(t, found, "ephemeral_storage must produce a generic ephemeral volume")

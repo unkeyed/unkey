@@ -135,19 +135,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          override.ID,
 						Name:        override.Identifier,
 						DisplayName: override.Identifier,
-						Type:        auditlog.RatelimitOverrideResourceType,
+						Type:        auditlog.RatelimitOverrideTargetType,
 						Meta:        nil,
 					},
 					{
 						ID:          ns.ID,
 						Name:        ns.Name,
 						DisplayName: ns.Name,
-						Type:        auditlog.RatelimitNamespaceResourceType,
+						Type:        auditlog.RatelimitNamespaceTargetType,
 						Meta:        nil,
 					},
 				},

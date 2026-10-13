@@ -53,9 +53,6 @@ func TestGetAppForbidden(t *testing.T) {
 		appQuery     string
 		shouldPass   bool
 	}{
-		{name: "wildcard app permission", permissions: []string{"app.*.read_app"}, shouldPass: true},
-		{name: "specific app permission", permissions: []string{fmt.Sprintf("app.%s.read_app", app.ID)}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "app.*.read_app"}, shouldPass: true},
 		{
 			name:         "URN exact app permission with slug lookup",
 			permissions:  []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, app.ID)},
@@ -68,10 +65,6 @@ func TestGetAppForbidden(t *testing.T) {
 			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/*#read", workspace.ID, project.ID)},
 			shouldPass:  true,
 		},
-		{name: "project scoped read does not match", permissions: []string{fmt.Sprintf("project.%s.read_app", project.ID)}, shouldPass: false},
-		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
-		{name: "read does not match create", permissions: []string{"project.*.create_app"}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{
 			name:        "URN permission for another app",
 			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, uid.New(uid.AppPrefix))},
@@ -161,7 +154,7 @@ func TestGetAppExistenceNotLeaked(t *testing.T) {
 	missingID := uid.New(uid.AppPrefix)
 
 	// Key in the same workspace with an unrelated permission but no read_app action.
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#read", workspace.ID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

@@ -36,6 +36,7 @@ import {
   type UsagePeriodOption,
   getUsagePeriodOptions,
   resolveUsagePeriod,
+  usagePeriodRange,
 } from "./period";
 
 const ACTIVE_SUBSCRIPTION_STATES = ["active", "trialing", "past_due"];
@@ -127,6 +128,7 @@ export default function UsagePage() {
       ratelimits={usage.data?.totals.api.ratelimits ?? null}
       quota={limits?.apiBillableOperationsCountMaxPerMonth ?? null}
       feeCents={feeCents}
+      range={usagePeriodRange(period, new Date())}
       isLoading={
         (usage.data === undefined && !usage.isError) || (!planKnown && !billingInfo.isError)
       }
