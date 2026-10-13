@@ -41,11 +41,15 @@ import { useStorageChoice } from "./use-storage-choice";
 
 type FieldProps = { compute: ComputeForm };
 
-export function ComputeFields({ compute, className }: FieldProps & { className?: string }) {
+export function ComputeFields({
+  compute,
+  className,
+  hideLockedSizes = false,
+}: FieldProps & { className?: string; hideLockedSizes?: boolean }) {
   return (
     <div className={cn("grid gap-6", className)}>
       <RegionsField compute={compute} />
-      <SizeField compute={compute} />
+      <SizeField compute={compute} hideLocked={hideLockedSizes} />
       <InstancesField compute={compute} />
       <StorageField compute={compute} />
     </div>
@@ -124,12 +128,12 @@ function unlockLabel(unlock: SizeUnlock): string {
     .exhaustive();
 }
 
-function SizeField({ compute }: FieldProps) {
+function SizeField({ compute, hideLocked }: FieldProps & { hideLocked: boolean }) {
   const { values, limits, busy } = compute;
   const size = useSizeChoice({ values, onChange: compute.change });
   const [plansOpen, setPlansOpen] = useState(false);
   const fields = unitFields(limits);
-  const options = sizeOptions(limits);
+  const options = sizeOptions(limits).filter((option) => !hideLocked || option.type !== "locked");
   const customRows = [
     { key: "cpuMillicores", field: fields.cpu },
     { key: "memoryMib", field: fields.memory },
