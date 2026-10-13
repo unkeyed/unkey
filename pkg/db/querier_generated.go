@@ -568,11 +568,16 @@ type Querier interface {
 	//  LIMIT 1
 	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error)
 	// FindFlagBySlug locks the definition during enrollment so a concurrent policy
-	// change cannot race the permission check and override write.
+	// change cannot race the permission check and override write. The workspace
+	// override is read under the same lock for the audit's effective before value.
 	//
-	//  SELECT pk, slug, description, default_value, visible, allow_enable, allow_disable
-	//  FROM flags WHERE slug = ? FOR UPDATE
-	FindFlagBySlug(ctx context.Context, db DBTX, slug string) (Flag, error)
+	//  SELECT f.pk, f.slug, f.description, f.default_value, f.visible,
+	//      f.allow_enable, f.allow_disable, o.value AS override_value
+	//  FROM flags f
+	//  LEFT JOIN flag_overrides o
+	//      ON o.flag_slug = f.slug AND o.workspace_id = ?
+	//  WHERE f.slug = ? FOR UPDATE
+	FindFlagBySlug(ctx context.Context, db DBTX, arg FindFlagBySlugParams) (FindFlagBySlugRow, error)
 	//FindFrontlineRoutesByDeploymentID
 	//
 	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ?

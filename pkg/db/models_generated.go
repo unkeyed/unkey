@@ -900,16 +900,6 @@ type Environment struct {
 	UpdatedAt        sql.NullInt64             `db:"updated_at"`
 }
 
-type Flag struct {
-	Pk           uint64 `db:"pk"`
-	Slug         string `db:"slug"`
-	Description  string `db:"description"`
-	DefaultValue bool   `db:"default_value"`
-	Visible      bool   `db:"visible"`
-	AllowEnable  bool   `db:"allow_enable"`
-	AllowDisable bool   `db:"allow_disable"`
-}
-
 type FrontlineRoute struct {
 	Pk                       uint64                `db:"pk"`
 	ID                       string                `db:"id"`

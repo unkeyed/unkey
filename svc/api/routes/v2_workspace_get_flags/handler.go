@@ -30,13 +30,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	workspaceID := principal.AuthorizedWorkspaceID
-	err = principal.Authorize(rbac.U(urn.New().Workspace(workspaceID).Flags(), permissions.Read))
+	err = principal.Authorize(rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Flags(), permissions.Read))
 	if err != nil {
 		return err
 	}
 
-	values, err := h.Flags.Values(ctx, workspaceID)
+	values, err := h.Flags.Values(ctx, principal.AuthorizedWorkspaceID)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -48,8 +47,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	data := make(map[string]openapi.V2WorkspaceGetFlagsFlag, len(values))
 	for slug, flag := range values {
 		data[slug] = openapi.V2WorkspaceGetFlagsFlag{
-			Value: flag.Value, Description: flag.Description,
-			AllowEnable: flag.AllowEnable, AllowDisable: flag.AllowDisable,
+			Value:        flag.Value,
+			Description:  flag.Description,
+			AllowEnable:  flag.AllowEnable,
+			AllowDisable: flag.AllowDisable,
 		}
 	}
 

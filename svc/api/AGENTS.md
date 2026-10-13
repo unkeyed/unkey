@@ -3,6 +3,11 @@
 - In tenant-scoped handlers, use the authenticated principal's
   `AuthorizedWorkspaceID`, not a caller-supplied workspace ID. Get the principal
   from `zen.Session`; authentication and resource authorization are separate.
+- Use `principal.AuthorizedWorkspaceID` directly at each use. Do not assign it
+  to a local alias such as `workspaceID`; the full expression keeps the
+  workspace's authenticated source explicit to the reader.
+- Put each field of a multiline struct literal on its own line. Multiple fields
+  may share a line only when the entire struct literal fits neatly on one line.
 - A caller without read access must not distinguish a missing resource from
   an unreadable one. Match the not-found status, error type, title, and detail.
   When masking authorization failures, construct a fresh fault rather than
