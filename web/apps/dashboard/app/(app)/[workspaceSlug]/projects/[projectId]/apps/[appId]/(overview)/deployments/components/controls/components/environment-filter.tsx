@@ -1,10 +1,8 @@
 "use client";
 
 import { IconLayers3Outline18 } from "@unkey/icons";
-import {
-  ALL_ENVIRONMENTS,
-  EnvironmentSelect,
-} from "../../../../../../_components/environment-select";
+import { ALL_ENVIRONMENTS } from "../../../../../../_components/environment-scope";
+import { EnvironmentSelect } from "../../../../../../_components/environment-select";
 import { useProjectData } from "../../../../data-provider";
 import { useFilters } from "../../../hooks/use-filters";
 

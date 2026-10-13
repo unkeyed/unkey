@@ -9,8 +9,17 @@ import {
 import { z } from "zod";
 import { useSettingField } from "../hooks/use-setting-form";
 
+const PORT_MESSAGE = "Use a port from 1 to 65535";
+
 export function Port() {
-  const { form, formProps } = useSettingField("port", z.number().int().min(1).max(65535));
+  const { form, formProps } = useSettingField(
+    "port",
+    z
+      .number({ error: PORT_MESSAGE })
+      .int(PORT_MESSAGE)
+      .min(1, PORT_MESSAGE)
+      .max(65535, PORT_MESSAGE),
+  );
   const error = form.formState.errors.port;
 
   return (
