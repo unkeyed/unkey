@@ -202,10 +202,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          app.ID,
-						Type:        auditlog.AppResourceType,
+						Type:        auditlog.AppTargetType,
 						Meta:        map[string]any{"name": name, "slug": slug, "deleteProtection": deleteProtection},
 						Name:        name,
 						DisplayName: name,
@@ -238,10 +238,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          app.ID,
-						Type:        auditlog.AppResourceType,
+						Type:        auditlog.AppTargetType,
 						Meta:        meta,
 						Name:        resourceName,
 						DisplayName: resourceName,

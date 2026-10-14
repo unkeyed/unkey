@@ -1,0 +1,138 @@
+post:
+  tags:
+    - ratelimit
+  summary: Update ratelimit namespace
+  description: |
+    Rename a rate limit namespace, identified by its ID or current name.
+
+    Renaming to the current name returns the namespace without a write.
+
+    **Important**: Overrides stay with the namespace. Requests that pass the namespace by name, such as `ratelimit.limit`, must use the new name. A `ratelimit.limit` call with the old name can create a new, empty namespace with that name. A name that is in use or was deleted returns 409. Other API nodes can take up to a minute to see the new name.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `unkey:v1:<workspace_id>:projects/*/ratelimits/namespaces/*#write` (to rename any namespace)
+    - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#write` (to rename a specific namespace)
+  operationId: ratelimit.updateNamespace
+  x-speakeasy-name-override: updateNamespace
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitUpdateNamespaceRequestBody.yaml"
+        examples:
+          renameById:
+            summary: Rename a namespace by ID
+            description: Locate the namespace by its ID and give it a new name
+            value:
+              namespace: rlns_1234abcd
+              name: email.outbound
+          renameByName:
+            summary: Rename a namespace by its current name
+            description: Locate the namespace by its current name and give it a new name
+            value:
+              namespace: email.sends
+              name: email.outbound
+  responses:
+    "200":
+      description: Namespace renamed successfully.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitUpdateNamespaceResponseBody.yaml"
+          examples:
+            renamed:
+              summary: Renamed namespace
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: rlns_1234abcd
+                  name: email.outbound
+                  createdAt: 1704067200000
+                  updatedAt: 1704153600000
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            emptyName:
+              summary: Empty name
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: POST request body for '/v2/ratelimit.updateNamespace' failed to validate schema
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                  errors:
+                    - location: /properties/name/minLength
+                      message: "minLength: got 0, want 1"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: |
+        Not Found - The namespace does not exist in your workspace, was deleted, or your root key lacks write access to it.
+        All cases return the same response, so a root key cannot learn which namespaces exist.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            namespaceNotFound:
+              summary: Namespace not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested namespace does not exist.
+                  status: 404
+                  type: https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found
+    "409":
+      description: Conflict - The name is in use or was deleted
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+          examples:
+            nameTaken:
+              summary: Name taken
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Conflicting Resource
+                  detail: A namespace named 'email.outbound' already exists or was deleted in this workspace. Choose a different name.
+                  status: 409
+                  type: https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_already_exists
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

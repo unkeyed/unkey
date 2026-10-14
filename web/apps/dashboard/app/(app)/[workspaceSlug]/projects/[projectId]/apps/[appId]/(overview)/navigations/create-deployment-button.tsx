@@ -2,6 +2,7 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
+import { useGuardedNavigate } from "@/components/leave-guard";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
@@ -31,7 +32,7 @@ import {
   toast,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -112,7 +113,7 @@ export const CreateDeploymentButton = ({
   renderTrigger,
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
-  const router = useRouter();
+  const navigate = useGuardedNavigate();
   const params = useParams<{ workspaceSlug: string }>();
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const { projectId, environments, refetchDeployments } = useProjectData();
@@ -239,7 +240,7 @@ export const CreateDeploymentButton = ({
       setIsOpen(false);
       refetchDeployments();
       await collection.apps.utils.refetch();
-      router.push(
+      navigate(
         routes.projects.apps.deployment({
           workspaceSlug: params.workspaceSlug,
           projectId,

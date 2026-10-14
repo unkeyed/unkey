@@ -205,6 +205,18 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		require.Len(t, keydata.Roles, 1)
 		require.Len(t, keydata.RolePermissions, 0)
 		require.Len(t, keydata.Ratelimits, 1)
+		logs := h.FindAuditLogsByTargetID(ctx, t, keydata.Key.ID)
+		var createTargets []string
+		for _, log := range logs {
+			if log.Event == "key.create" {
+				for _, target := range log.Targets {
+					createTargets = append(createTargets, target.Type+":"+target.ID)
+				}
+			}
+		}
+		require.ElementsMatch(t, []string{
+			"key:" + keydata.Key.ID, "api:" + api.ID, "identity:" + keydata.Identity.ID,
+		}, createTargets)
 	})
 
 	t.Run("Finds the correct ids and doesn't double insert", func(t *testing.T) {

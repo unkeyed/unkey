@@ -93,7 +93,7 @@ export const createWorkspace = protectedProcedure
             actor: { type: "user", id: ctx.user.id },
             event: "workspace.create",
             description: `Created ${workspace.id}`,
-            resources: [
+            targets: [
               {
                 type: "workspace",
                 id: workspace.id,

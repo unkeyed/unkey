@@ -2,14 +2,14 @@ import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../../data-provider";
 
-const PAGE_SIZE = 10;
+export const ACTIVE_BRANCHES_PAGE_SIZE = 10;
 
 export function useActiveBranches() {
   const { projectId } = useProjectData();
   const appId = useAppId();
 
   const query = trpc.deploy.deployment.listActiveBranches.useInfiniteQuery(
-    { projectId, appId, limit: PAGE_SIZE },
+    { projectId, appId, limit: ACTIVE_BRANCHES_PAGE_SIZE },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     },

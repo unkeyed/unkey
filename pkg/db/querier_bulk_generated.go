@@ -22,6 +22,7 @@ type BulkQuerier interface {
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
+	UpsertFlag(ctx context.Context, db DBTX, args []UpsertFlagParams) error
 	InsertGithubAppInstallations(ctx context.Context, db DBTX, args []InsertGithubAppInstallationParams) error
 	InsertGithubRepoConnections(ctx context.Context, db DBTX, args []InsertGithubRepoConnectionParams) error
 	UpsertGithubRepoConnection(ctx context.Context, db DBTX, args []UpsertGithubRepoConnectionParams) error
@@ -54,6 +55,7 @@ type BulkQuerier interface {
 	InsertUnkeyRootKeys(ctx context.Context, db DBTX, args []InsertUnkeyRootKeyParams) error
 	UpsertWorkspaceBillingPlanOverride(ctx context.Context, db DBTX, args []UpsertWorkspaceBillingPlanOverrideParams) error
 	UpsertWorkspaceBillingSpendSuspended(ctx context.Context, db DBTX, args []UpsertWorkspaceBillingSpendSuspendedParams) error
+	UpsertWorkspaceFlagOverride(ctx context.Context, db DBTX, args []UpsertWorkspaceFlagOverrideParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 	UpsertWorkspace(ctx context.Context, db DBTX, args []UpsertWorkspaceParams) error
 }

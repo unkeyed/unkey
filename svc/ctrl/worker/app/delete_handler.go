@@ -80,13 +80,13 @@ func (s *Service) Delete(
 		WorkspaceID:   app.WorkspaceID,
 		Event:         auditlog.AppDeleteEvent,
 		Display:       fmt.Sprintf("Deleted app %s", app.ID),
-		Resource: auditlog.AuditLogResource{
+		Targets: []auditlog.AuditLogTarget{{
 			ID:          app.ID,
-			Type:        auditlog.AppResourceType,
+			Type:        auditlog.AppTargetType,
 			Meta:        map[string]any{"name": app.Name, "slug": app.Slug, "projectId": app.ProjectID},
 			Name:        app.Name,
 			DisplayName: app.Name,
-		},
+		}},
 	}); err != nil {
 		return nil, fmt.Errorf("insert audit log: %w", err)
 	}

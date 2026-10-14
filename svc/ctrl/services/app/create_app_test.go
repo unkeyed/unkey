@@ -305,12 +305,12 @@ func (s failingAuditLogService) Insert(ctx context.Context, tx db.DBTX, logs []a
 	require.Len(s.t, logs, 1)
 	require.Equal(s.t, s.workspaceID, logs[0].WorkspaceID)
 	require.Equal(s.t, auditlog.AppCreateEvent, logs[0].Event)
-	require.Len(s.t, logs[0].Resources, 1)
-	require.Equal(s.t, auditlog.AppResourceType, logs[0].Resources[0].Type)
-	require.Equal(s.t, s.appSlug, logs[0].Resources[0].Meta["slug"])
-	require.Equal(s.t, s.projectID, logs[0].Resources[0].Meta["projectId"])
+	require.Len(s.t, logs[0].Targets, 1)
+	require.Equal(s.t, auditlog.AppTargetType, logs[0].Targets[0].Type)
+	require.Equal(s.t, s.appSlug, logs[0].Targets[0].Meta["slug"])
+	require.Equal(s.t, s.projectID, logs[0].Targets[0].Meta["projectId"])
 
-	appID := logs[0].Resources[0].ID
+	appID := logs[0].Targets[0].ID
 	app, err := db.NewQueries(tx).FindAppById(ctx, appID)
 	require.NoError(s.t, err)
 	require.Equal(s.t, s.workspaceID, app.WorkspaceID)

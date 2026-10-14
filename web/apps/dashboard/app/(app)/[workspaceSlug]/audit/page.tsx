@@ -12,7 +12,7 @@ export default async function AuditPage() {
     <PageContainer width="full">
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Audit Log</PageHeaderTitle>
+          <PageHeaderTitle>Audit log</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
       <PageBody>
