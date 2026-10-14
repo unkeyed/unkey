@@ -8,7 +8,6 @@ sources:
   - svc/api/routes/v2_portal_list_sessions/handler.go
   - svc/api/openapi/spec/paths/v2/portal/createSession/V2PortalCreateSessionRequestBody.yaml
   - svc/api/openapi/spec/paths/v2/portal/createSession/index.yaml
-  - svc/api/openapi/spec/paths/v2/portal/exchangeCode/V2PortalExchangeCodeResponseData.yaml
   - svc/api/routes/v2_portal_update_portal/handler.go
   - svc/api/routes/v2_portal_delete_portal/handler.go
   - pkg/auth/portalrbac/portalrbac.go
@@ -35,8 +34,6 @@ Sign a user into the [developer portal](/api-management/portal/overview) from yo
     The user only sees their own keys. When the token expires, or they click the return link, the portal sends them to the `returnUrl` you set. Without one, there's no return link. To let them back in, create a new session.
   </Step>
 </Steps>
-
-You only call `portal.exchangeCode` yourself if you build your own portal front end. It returns `{ "accessToken": "pat_...", "expiresAt": <ms> }`.
 
 ## Request
 

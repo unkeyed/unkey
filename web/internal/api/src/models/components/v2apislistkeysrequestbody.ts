@@ -81,5 +81,7 @@ export const V2ApisListKeysRequestBody$outboundSchema: z.ZodType<
 export function v2ApisListKeysRequestBodyToJSON(
   v2ApisListKeysRequestBody: V2ApisListKeysRequestBody,
 ): string {
-  return JSON.stringify(V2ApisListKeysRequestBody$outboundSchema.parse(v2ApisListKeysRequestBody));
+  return JSON.stringify(
+    V2ApisListKeysRequestBody$outboundSchema.parse(v2ApisListKeysRequestBody),
+  );
 }
