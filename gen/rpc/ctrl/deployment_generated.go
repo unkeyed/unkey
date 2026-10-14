@@ -14,7 +14,6 @@ import (
 // DeployServiceClient wraps ctrlv1connect.DeployServiceClient with simplified signatures.
 // Request and response types are plain protobuf messages without connect wrappers.
 type DeployServiceClient interface {
-	GetDeployment(ctx context.Context, req *v1.GetDeploymentRequest) (*v1.GetDeploymentResponse, error)
 	DeprovisionCompute(ctx context.Context, req *v1.DeprovisionComputeRequest) (*v1.DeprovisionComputeResponse, error)
 }
 
@@ -28,19 +27,6 @@ type ConnectDeployServiceClient struct {
 // NewConnectDeployServiceClient creates a new ConnectDeployServiceClient.
 func NewConnectDeployServiceClient(inner ctrlv1connect.DeployServiceClient) *ConnectDeployServiceClient {
 	return &ConnectDeployServiceClient{inner: inner}
-}
-
-func (c *ConnectDeployServiceClient) GetDeployment(ctx context.Context, req *v1.GetDeploymentRequest) (*v1.GetDeploymentResponse, error) {
-	ctx, span := tracing.Start(ctx, "DeployService.GetDeployment")
-	defer span.End()
-	resp, err := c.inner.GetDeployment(ctx, connect.NewRequest(req))
-	if err != nil {
-		if connect.CodeOf(err) != connect.CodeNotFound {
-			tracing.RecordError(span, err)
-		}
-		return nil, err
-	}
-	return resp.Msg, nil
 }
 
 func (c *ConnectDeployServiceClient) DeprovisionCompute(ctx context.Context, req *v1.DeprovisionComputeRequest) (*v1.DeprovisionComputeResponse, error) {

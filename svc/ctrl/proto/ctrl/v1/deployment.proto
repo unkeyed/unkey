@@ -3,24 +3,6 @@ package ctrl.v1;
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
-// Deployment status enum
-enum DeploymentStatus {
-  DEPLOYMENT_STATUS_UNSPECIFIED = 0;
-  DEPLOYMENT_STATUS_PENDING = 1;
-  DEPLOYMENT_STATUS_STARTING = 7;
-  DEPLOYMENT_STATUS_BUILDING = 2;
-  DEPLOYMENT_STATUS_DEPLOYING = 3;
-  DEPLOYMENT_STATUS_NETWORK = 4;
-  DEPLOYMENT_STATUS_FINALIZING = 8;
-  DEPLOYMENT_STATUS_READY = 5;
-  DEPLOYMENT_STATUS_FAILED = 6;
-  DEPLOYMENT_STATUS_SKIPPED = 9;
-  DEPLOYMENT_STATUS_AWAITING_APPROVAL = 10;
-  DEPLOYMENT_STATUS_STOPPED = 11;
-  DEPLOYMENT_STATUS_SUPERSEDED = 12;
-  DEPLOYMENT_STATUS_CANCELLED = 13;
-}
-
 // DeploymentTrigger identifies which surface initiated a deployment.
 // Persisted on the deployment row for UI display and filtering.
 enum DeploymentTrigger {
@@ -43,91 +25,12 @@ message GitCommitInfo {
   string fork_repository = 7;
 }
 
-message GetDeploymentRequest {
-  string deployment_id = 1;
-}
-
-message GetDeploymentResponse {
-  Deployment deployment = 1;
-}
-
-message Deployment {
-  string id = 1;
-  string workspace_id = 2;
-  string project_id = 3;
-  string environment_id = 4;
-  string app_id = 21;
-
-  // Source information
-  string git_commit_sha = 5;
-  string git_branch = 6;
-
-  // Status and lifecycle
-  DeploymentStatus status = 7;
-  string error_message = 8; // For failed deployments
-
-  // Configuration snapshot (resolved at creation time)
-  map<string, string> environment_variables = 9;
-
-  // Topology configuration
-  Topology topology = 10;
-
-  // Timestamps
-  int64 created_at = 11;
-  int64 updated_at = 12;
-
-  // Associated hostnames for this deployment
-  repeated string hostnames = 13;
-
-  // Build information
-  string rootfs_image_id = 14;
-  string build_id = 15;
-
-  // Deployment steps
-  repeated DeploymentStep steps = 16;
-
-  // Extended git information
-  string git_commit_message = 17;
-  string git_commit_author_handle = 18;
-  string git_commit_author_avatar_url = 19;
-  int64 git_commit_timestamp = 20; // Unix epoch milliseconds
-}
-
-message DeploymentStep {
-  string status = 1;
-  string message = 2;
-  string error_message = 3;
-  int64 created_at = 4;
-}
-
-message Topology {
-  int32 cpu_millicores = 1;
-  int32 memory_mib = 2;
-
-  // Regional configuration
-  repeated RegionalConfig regions = 3;
-
-  // Runtime settings
-  int32 idle_timeout_seconds = 4; // 0 means no timeout
-  string health_check_path = 5;
-  int32 port = 6;
-
-  // Ephemeral storage (absent = no volume).
-  optional EphemeralStorage ephemeral_storage = 7;
-}
-
 // EphemeralStorage configures a per-pod scratch volume.
 // Krane applies its configured StorageClass (e.g. "ebs-csi-gp3", "standard")
 // when creating the PVC — the control plane doesn't need to know about K8s storage classes.
 message EphemeralStorage {
   // size_mib is the volume size in mebibytes.
   int64 size_mib = 1;
-}
-
-message RegionalConfig {
-  string region = 1;
-  int32 min_instances = 2;
-  int32 max_instances = 3;
 }
 
 message DeprovisionComputeRequest {
@@ -138,9 +41,6 @@ message DeprovisionComputeRequest {
 message DeprovisionComputeResponse {}
 
 service DeployService {
-  // Get deployment details
-  rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse) {}
-
   // DeprovisionCompute tears down a workspace's Compute: it stops all running
   // compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
   // deploy_plan entitlement so the workspace can no longer deploy. The dashboard

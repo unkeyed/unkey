@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/deployment.proto.
  */
 export const file_ctrl_v1_deployment: GenFile = /*@__PURE__*/
-  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEiqQEKDUdpdENvbW1pdEluZm8SEgoKY29tbWl0X3NoYRgBIAEoCRIWCg5jb21taXRfbWVzc2FnZRgCIAEoCRIVCg1hdXRob3JfaGFuZGxlGAMgASgJEhkKEWF1dGhvcl9hdmF0YXJfdXJsGAQgASgJEhEKCXRpbWVzdGFtcBgFIAEoAxIOCgZicmFuY2gYBiABKAkSFwoPZm9ya19yZXBvc2l0b3J5GAcgASgJIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiQAoVR2V0RGVwbG95bWVudFJlc3BvbnNlEicKCmRlcGxveW1lbnQYASABKAsyEy5jdHJsLnYxLkRlcGxveW1lbnQimAUKCkRlcGxveW1lbnQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSDgoGYXBwX2lkGBUgASgJEhYKDmdpdF9jb21taXRfc2hhGAUgASgJEhIKCmdpdF9icmFuY2gYBiABKAkSKQoGc3RhdHVzGAcgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzEhUKDWVycm9yX21lc3NhZ2UYCCABKAkSTAoVZW52aXJvbm1lbnRfdmFyaWFibGVzGAkgAygLMi0uY3RybC52MS5EZXBsb3ltZW50LkVudmlyb25tZW50VmFyaWFibGVzRW50cnkSIwoIdG9wb2xvZ3kYCiABKAsyES5jdHJsLnYxLlRvcG9sb2d5EhIKCmNyZWF0ZWRfYXQYCyABKAMSEgoKdXBkYXRlZF9hdBgMIAEoAxIRCglob3N0bmFtZXMYDSADKAkSFwoPcm9vdGZzX2ltYWdlX2lkGA4gASgJEhAKCGJ1aWxkX2lkGA8gASgJEiYKBXN0ZXBzGBAgAygLMhcuY3RybC52MS5EZXBsb3ltZW50U3RlcBIaChJnaXRfY29tbWl0X21lc3NhZ2UYESABKAkSIAoYZ2l0X2NvbW1pdF9hdXRob3JfaGFuZGxlGBIgASgJEiQKHGdpdF9jb21taXRfYXV0aG9yX2F2YXRhcl91cmwYEyABKAkSHAoUZ2l0X2NvbW1pdF90aW1lc3RhbXAYFCABKAMaOwoZRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlwKDkRlcGxveW1lbnRTdGVwEg4KBnN0YXR1cxgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEhUKDWVycm9yX21lc3NhZ2UYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoAyL4AQoIVG9wb2xvZ3kSFgoOY3B1X21pbGxpY29yZXMYASABKAUSEgoKbWVtb3J5X21pYhgCIAEoBRIoCgdyZWdpb25zGAMgAygLMhcuY3RybC52MS5SZWdpb25hbENvbmZpZxIcChRpZGxlX3RpbWVvdXRfc2Vjb25kcxgEIAEoBRIZChFoZWFsdGhfY2hlY2tfcGF0aBgFIAEoCRIMCgRwb3J0GAYgASgFEjkKEWVwaGVtZXJhbF9zdG9yYWdlGAcgASgLMhkuY3RybC52MS5FcGhlbWVyYWxTdG9yYWdlSACIAQFCFAoSX2VwaGVtZXJhbF9zdG9yYWdlIiQKEEVwaGVtZXJhbFN0b3JhZ2USEAoIc2l6ZV9taWIYASABKAMiTgoOUmVnaW9uYWxDb25maWcSDgoGcmVnaW9uGAEgASgJEhUKDW1pbl9pbnN0YW5jZXMYAiABKAUSFQoNbWF4X2luc3RhbmNlcxgDIAEoBSIxChlEZXByb3Zpc2lvbkNvbXB1dGVSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCSIcChpEZXByb3Zpc2lvbkNvbXB1dGVSZXNwb25zZSrbAwoQRGVwbG95bWVudFN0YXR1cxIhCh1ERVBMT1lNRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEh0KGURFUExPWU1FTlRfU1RBVFVTX1BFTkRJTkcQARIeChpERVBMT1lNRU5UX1NUQVRVU19TVEFSVElORxAHEh4KGkRFUExPWU1FTlRfU1RBVFVTX0JVSUxESU5HEAISHwobREVQTE9ZTUVOVF9TVEFUVVNfREVQTE9ZSU5HEAMSHQoZREVQTE9ZTUVOVF9TVEFUVVNfTkVUV09SSxAEEiAKHERFUExPWU1FTlRfU1RBVFVTX0ZJTkFMSVpJTkcQCBIbChdERVBMT1lNRU5UX1NUQVRVU19SRUFEWRAFEhwKGERFUExPWU1FTlRfU1RBVFVTX0ZBSUxFRBAGEh0KGURFUExPWU1FTlRfU1RBVFVTX1NLSVBQRUQQCRInCiNERVBMT1lNRU5UX1NUQVRVU19BV0FJVElOR19BUFBST1ZBTBAKEh0KGURFUExPWU1FTlRfU1RBVFVTX1NUT1BQRUQQCxIgChxERVBMT1lNRU5UX1NUQVRVU19TVVBFUlNFREVEEAwSHwobREVQTE9ZTUVOVF9TVEFUVVNfQ0FOQ0VMTEVEEA0qzgEKEURlcGxveW1lbnRUcmlnZ2VyEiIKHkRFUExPWU1FTlRfVFJJR0dFUl9VTlNQRUNJRklFRBAAEh0KGURFUExPWU1FTlRfVFJJR0dFUl9HSVRIVUIQARIaChZERVBMT1lNRU5UX1RSSUdHRVJfQVBJEAISGgoWREVQTE9ZTUVOVF9UUklHR0VSX0NMSRADEiAKHERFUExPWU1FTlRfVFJJR0dFUl9EQVNIQk9BUkQQBBIcChhERVBMT1lNRU5UX1RSSUdHRVJfVU5LRVkQBTLCAQoNRGVwbG95U2VydmljZRJQCg1HZXREZXBsb3ltZW50Eh0uY3RybC52MS5HZXREZXBsb3ltZW50UmVxdWVzdBoeLmN0cmwudjEuR2V0RGVwbG95bWVudFJlc3BvbnNlIgASXwoSRGVwcm92aXNpb25Db21wdXRlEiIuY3RybC52MS5EZXByb3Zpc2lvbkNvbXB1dGVSZXF1ZXN0GiMuY3RybC52MS5EZXByb3Zpc2lvbkNvbXB1dGVSZXNwb25zZSIAQo4BCgtjb20uY3RybC52MUIPRGVwbG95bWVudFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z");
+  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEiqQEKDUdpdENvbW1pdEluZm8SEgoKY29tbWl0X3NoYRgBIAEoCRIWCg5jb21taXRfbWVzc2FnZRgCIAEoCRIVCg1hdXRob3JfaGFuZGxlGAMgASgJEhkKEWF1dGhvcl9hdmF0YXJfdXJsGAQgASgJEhEKCXRpbWVzdGFtcBgFIAEoAxIOCgZicmFuY2gYBiABKAkSFwoPZm9ya19yZXBvc2l0b3J5GAcgASgJIiQKEEVwaGVtZXJhbFN0b3JhZ2USEAoIc2l6ZV9taWIYASABKAMiMQoZRGVwcm92aXNpb25Db21wdXRlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkiHAoaRGVwcm92aXNpb25Db21wdXRlUmVzcG9uc2UqzgEKEURlcGxveW1lbnRUcmlnZ2VyEiIKHkRFUExPWU1FTlRfVFJJR0dFUl9VTlNQRUNJRklFRBAAEh0KGURFUExPWU1FTlRfVFJJR0dFUl9HSVRIVUIQARIaChZERVBMT1lNRU5UX1RSSUdHRVJfQVBJEAISGgoWREVQTE9ZTUVOVF9UUklHR0VSX0NMSRADEiAKHERFUExPWU1FTlRfVFJJR0dFUl9EQVNIQk9BUkQQBBIcChhERVBMT1lNRU5UX1RSSUdHRVJfVU5LRVkQBTJwCg1EZXBsb3lTZXJ2aWNlEl8KEkRlcHJvdmlzaW9uQ29tcHV0ZRIiLmN0cmwudjEuRGVwcm92aXNpb25Db21wdXRlUmVxdWVzdBojLmN0cmwudjEuRGVwcm92aXNpb25Db21wdXRlUmVzcG9uc2UiAEKOAQoLY29tLmN0cmwudjFCD0RlcGxveW1lbnRQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message ctrl.v1.GitCommitInfo
@@ -66,266 +66,6 @@ export const GitCommitInfoSchema: GenMessage<GitCommitInfo> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 0);
 
 /**
- * @generated from message ctrl.v1.GetDeploymentRequest
- */
-export type GetDeploymentRequest = Message<"ctrl.v1.GetDeploymentRequest"> & {
-  /**
-   * @generated from field: string deployment_id = 1;
-   */
-  deploymentId: string;
-};
-
-/**
- * Describes the message ctrl.v1.GetDeploymentRequest.
- * Use `create(GetDeploymentRequestSchema)` to create a new message.
- */
-export const GetDeploymentRequestSchema: GenMessage<GetDeploymentRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 1);
-
-/**
- * @generated from message ctrl.v1.GetDeploymentResponse
- */
-export type GetDeploymentResponse = Message<"ctrl.v1.GetDeploymentResponse"> & {
-  /**
-   * @generated from field: ctrl.v1.Deployment deployment = 1;
-   */
-  deployment?: Deployment;
-};
-
-/**
- * Describes the message ctrl.v1.GetDeploymentResponse.
- * Use `create(GetDeploymentResponseSchema)` to create a new message.
- */
-export const GetDeploymentResponseSchema: GenMessage<GetDeploymentResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 2);
-
-/**
- * @generated from message ctrl.v1.Deployment
- */
-export type Deployment = Message<"ctrl.v1.Deployment"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * @generated from field: string workspace_id = 2;
-   */
-  workspaceId: string;
-
-  /**
-   * @generated from field: string project_id = 3;
-   */
-  projectId: string;
-
-  /**
-   * @generated from field: string environment_id = 4;
-   */
-  environmentId: string;
-
-  /**
-   * @generated from field: string app_id = 21;
-   */
-  appId: string;
-
-  /**
-   * Source information
-   *
-   * @generated from field: string git_commit_sha = 5;
-   */
-  gitCommitSha: string;
-
-  /**
-   * @generated from field: string git_branch = 6;
-   */
-  gitBranch: string;
-
-  /**
-   * Status and lifecycle
-   *
-   * @generated from field: ctrl.v1.DeploymentStatus status = 7;
-   */
-  status: DeploymentStatus;
-
-  /**
-   * For failed deployments
-   *
-   * @generated from field: string error_message = 8;
-   */
-  errorMessage: string;
-
-  /**
-   * Configuration snapshot (resolved at creation time)
-   *
-   * @generated from field: map<string, string> environment_variables = 9;
-   */
-  environmentVariables: { [key: string]: string };
-
-  /**
-   * Topology configuration
-   *
-   * @generated from field: ctrl.v1.Topology topology = 10;
-   */
-  topology?: Topology;
-
-  /**
-   * Timestamps
-   *
-   * @generated from field: int64 created_at = 11;
-   */
-  createdAt: bigint;
-
-  /**
-   * @generated from field: int64 updated_at = 12;
-   */
-  updatedAt: bigint;
-
-  /**
-   * Associated hostnames for this deployment
-   *
-   * @generated from field: repeated string hostnames = 13;
-   */
-  hostnames: string[];
-
-  /**
-   * Build information
-   *
-   * @generated from field: string rootfs_image_id = 14;
-   */
-  rootfsImageId: string;
-
-  /**
-   * @generated from field: string build_id = 15;
-   */
-  buildId: string;
-
-  /**
-   * Deployment steps
-   *
-   * @generated from field: repeated ctrl.v1.DeploymentStep steps = 16;
-   */
-  steps: DeploymentStep[];
-
-  /**
-   * Extended git information
-   *
-   * @generated from field: string git_commit_message = 17;
-   */
-  gitCommitMessage: string;
-
-  /**
-   * @generated from field: string git_commit_author_handle = 18;
-   */
-  gitCommitAuthorHandle: string;
-
-  /**
-   * @generated from field: string git_commit_author_avatar_url = 19;
-   */
-  gitCommitAuthorAvatarUrl: string;
-
-  /**
-   * Unix epoch milliseconds
-   *
-   * @generated from field: int64 git_commit_timestamp = 20;
-   */
-  gitCommitTimestamp: bigint;
-};
-
-/**
- * Describes the message ctrl.v1.Deployment.
- * Use `create(DeploymentSchema)` to create a new message.
- */
-export const DeploymentSchema: GenMessage<Deployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 3);
-
-/**
- * @generated from message ctrl.v1.DeploymentStep
- */
-export type DeploymentStep = Message<"ctrl.v1.DeploymentStep"> & {
-  /**
-   * @generated from field: string status = 1;
-   */
-  status: string;
-
-  /**
-   * @generated from field: string message = 2;
-   */
-  message: string;
-
-  /**
-   * @generated from field: string error_message = 3;
-   */
-  errorMessage: string;
-
-  /**
-   * @generated from field: int64 created_at = 4;
-   */
-  createdAt: bigint;
-};
-
-/**
- * Describes the message ctrl.v1.DeploymentStep.
- * Use `create(DeploymentStepSchema)` to create a new message.
- */
-export const DeploymentStepSchema: GenMessage<DeploymentStep> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 4);
-
-/**
- * @generated from message ctrl.v1.Topology
- */
-export type Topology = Message<"ctrl.v1.Topology"> & {
-  /**
-   * @generated from field: int32 cpu_millicores = 1;
-   */
-  cpuMillicores: number;
-
-  /**
-   * @generated from field: int32 memory_mib = 2;
-   */
-  memoryMib: number;
-
-  /**
-   * Regional configuration
-   *
-   * @generated from field: repeated ctrl.v1.RegionalConfig regions = 3;
-   */
-  regions: RegionalConfig[];
-
-  /**
-   * Runtime settings
-   *
-   * 0 means no timeout
-   *
-   * @generated from field: int32 idle_timeout_seconds = 4;
-   */
-  idleTimeoutSeconds: number;
-
-  /**
-   * @generated from field: string health_check_path = 5;
-   */
-  healthCheckPath: string;
-
-  /**
-   * @generated from field: int32 port = 6;
-   */
-  port: number;
-
-  /**
-   * Ephemeral storage (absent = no volume).
-   *
-   * @generated from field: optional ctrl.v1.EphemeralStorage ephemeral_storage = 7;
-   */
-  ephemeralStorage?: EphemeralStorage;
-};
-
-/**
- * Describes the message ctrl.v1.Topology.
- * Use `create(TopologySchema)` to create a new message.
- */
-export const TopologySchema: GenMessage<Topology> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 5);
-
-/**
  * EphemeralStorage configures a per-pod scratch volume.
  * Krane applies its configured StorageClass (e.g. "ebs-csi-gp3", "standard")
  * when creating the PVC — the control plane doesn't need to know about K8s storage classes.
@@ -346,34 +86,7 @@ export type EphemeralStorage = Message<"ctrl.v1.EphemeralStorage"> & {
  * Use `create(EphemeralStorageSchema)` to create a new message.
  */
 export const EphemeralStorageSchema: GenMessage<EphemeralStorage> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 6);
-
-/**
- * @generated from message ctrl.v1.RegionalConfig
- */
-export type RegionalConfig = Message<"ctrl.v1.RegionalConfig"> & {
-  /**
-   * @generated from field: string region = 1;
-   */
-  region: string;
-
-  /**
-   * @generated from field: int32 min_instances = 2;
-   */
-  minInstances: number;
-
-  /**
-   * @generated from field: int32 max_instances = 3;
-   */
-  maxInstances: number;
-};
-
-/**
- * Describes the message ctrl.v1.RegionalConfig.
- * Use `create(RegionalConfigSchema)` to create a new message.
- */
-export const RegionalConfigSchema: GenMessage<RegionalConfig> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 7);
+  messageDesc(file_ctrl_v1_deployment, 1);
 
 /**
  * @generated from message ctrl.v1.DeprovisionComputeRequest
@@ -392,7 +105,7 @@ export type DeprovisionComputeRequest = Message<"ctrl.v1.DeprovisionComputeReque
  * Use `create(DeprovisionComputeRequestSchema)` to create a new message.
  */
 export const DeprovisionComputeRequestSchema: GenMessage<DeprovisionComputeRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 8);
+  messageDesc(file_ctrl_v1_deployment, 2);
 
 /**
  * @generated from message ctrl.v1.DeprovisionComputeResponse
@@ -405,90 +118,7 @@ export type DeprovisionComputeResponse = Message<"ctrl.v1.DeprovisionComputeResp
  * Use `create(DeprovisionComputeResponseSchema)` to create a new message.
  */
 export const DeprovisionComputeResponseSchema: GenMessage<DeprovisionComputeResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 9);
-
-/**
- * Deployment status enum
- *
- * @generated from enum ctrl.v1.DeploymentStatus
- */
-export enum DeploymentStatus {
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_PENDING = 1;
-   */
-  PENDING = 1,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_STARTING = 7;
-   */
-  STARTING = 7,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_BUILDING = 2;
-   */
-  BUILDING = 2,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_DEPLOYING = 3;
-   */
-  DEPLOYING = 3,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_NETWORK = 4;
-   */
-  NETWORK = 4,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_FINALIZING = 8;
-   */
-  FINALIZING = 8,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_READY = 5;
-   */
-  READY = 5,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_FAILED = 6;
-   */
-  FAILED = 6,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_SKIPPED = 9;
-   */
-  SKIPPED = 9,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_AWAITING_APPROVAL = 10;
-   */
-  AWAITING_APPROVAL = 10,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_STOPPED = 11;
-   */
-  STOPPED = 11,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_SUPERSEDED = 12;
-   */
-  SUPERSEDED = 12,
-
-  /**
-   * @generated from enum value: DEPLOYMENT_STATUS_CANCELLED = 13;
-   */
-  CANCELLED = 13,
-}
-
-/**
- * Describes the enum ctrl.v1.DeploymentStatus.
- */
-export const DeploymentStatusSchema: GenEnum<DeploymentStatus> = /*@__PURE__*/
-  enumDesc(file_ctrl_v1_deployment, 0);
+  messageDesc(file_ctrl_v1_deployment, 3);
 
 /**
  * DeploymentTrigger identifies which surface initiated a deployment.
@@ -532,22 +162,12 @@ export enum DeploymentTrigger {
  * Describes the enum ctrl.v1.DeploymentTrigger.
  */
 export const DeploymentTriggerSchema: GenEnum<DeploymentTrigger> = /*@__PURE__*/
-  enumDesc(file_ctrl_v1_deployment, 1);
+  enumDesc(file_ctrl_v1_deployment, 0);
 
 /**
  * @generated from service ctrl.v1.DeployService
  */
 export const DeployService: GenService<{
-  /**
-   * Get deployment details
-   *
-   * @generated from rpc ctrl.v1.DeployService.GetDeployment
-   */
-  getDeployment: {
-    methodKind: "unary";
-    input: typeof GetDeploymentRequestSchema;
-    output: typeof GetDeploymentResponseSchema;
-  },
   /**
    * DeprovisionCompute tears down a workspace's Compute: it stops all running
    * compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local

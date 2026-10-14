@@ -33,9 +33,6 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// DeployServiceGetDeploymentProcedure is the fully-qualified name of the DeployService's
-	// GetDeployment RPC.
-	DeployServiceGetDeploymentProcedure = "/ctrl.v1.DeployService/GetDeployment"
 	// DeployServiceDeprovisionComputeProcedure is the fully-qualified name of the DeployService's
 	// DeprovisionCompute RPC.
 	DeployServiceDeprovisionComputeProcedure = "/ctrl.v1.DeployService/DeprovisionCompute"
@@ -43,8 +40,6 @@ const (
 
 // DeployServiceClient is a client for the ctrl.v1.DeployService service.
 type DeployServiceClient interface {
-	// Get deployment details
-	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// DeprovisionCompute tears down a workspace's Compute: it stops all running
 	// compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
 	// deploy_plan entitlement so the workspace can no longer deploy. The dashboard
@@ -65,12 +60,6 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 	baseURL = strings.TrimRight(baseURL, "/")
 	deployServiceMethods := v1.File_ctrl_v1_deployment_proto.Services().ByName("DeployService").Methods()
 	return &deployServiceClient{
-		getDeployment: connect.NewClient[v1.GetDeploymentRequest, v1.GetDeploymentResponse](
-			httpClient,
-			baseURL+DeployServiceGetDeploymentProcedure,
-			connect.WithSchema(deployServiceMethods.ByName("GetDeployment")),
-			connect.WithClientOptions(opts...),
-		),
 		deprovisionCompute: connect.NewClient[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse](
 			httpClient,
 			baseURL+DeployServiceDeprovisionComputeProcedure,
@@ -82,13 +71,7 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // deployServiceClient implements DeployServiceClient.
 type deployServiceClient struct {
-	getDeployment      *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 	deprovisionCompute *connect.Client[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse]
-}
-
-// GetDeployment calls ctrl.v1.DeployService.GetDeployment.
-func (c *deployServiceClient) GetDeployment(ctx context.Context, req *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
-	return c.getDeployment.CallUnary(ctx, req)
 }
 
 // DeprovisionCompute calls ctrl.v1.DeployService.DeprovisionCompute.
@@ -98,8 +81,6 @@ func (c *deployServiceClient) DeprovisionCompute(ctx context.Context, req *conne
 
 // DeployServiceHandler is an implementation of the ctrl.v1.DeployService service.
 type DeployServiceHandler interface {
-	// Get deployment details
-	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// DeprovisionCompute tears down a workspace's Compute: it stops all running
 	// compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
 	// deploy_plan entitlement so the workspace can no longer deploy. The dashboard
@@ -116,12 +97,6 @@ type DeployServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	deployServiceMethods := v1.File_ctrl_v1_deployment_proto.Services().ByName("DeployService").Methods()
-	deployServiceGetDeploymentHandler := connect.NewUnaryHandler(
-		DeployServiceGetDeploymentProcedure,
-		svc.GetDeployment,
-		connect.WithSchema(deployServiceMethods.ByName("GetDeployment")),
-		connect.WithHandlerOptions(opts...),
-	)
 	deployServiceDeprovisionComputeHandler := connect.NewUnaryHandler(
 		DeployServiceDeprovisionComputeProcedure,
 		svc.DeprovisionCompute,
@@ -130,8 +105,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 	)
 	return "/ctrl.v1.DeployService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case DeployServiceGetDeploymentProcedure:
-			deployServiceGetDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceDeprovisionComputeProcedure:
 			deployServiceDeprovisionComputeHandler.ServeHTTP(w, r)
 		default:
@@ -142,10 +115,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 
 // UnimplementedDeployServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDeployServiceHandler struct{}
-
-func (UnimplementedDeployServiceHandler) GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.GetDeployment is not implemented"))
-}
 
 func (UnimplementedDeployServiceHandler) DeprovisionCompute(context.Context, *connect.Request[v1.DeprovisionComputeRequest]) (*connect.Response[v1.DeprovisionComputeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.DeprovisionCompute is not implemented"))
