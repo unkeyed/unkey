@@ -173,8 +173,8 @@ func TestCreateRejections(t *testing.T) {
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE, resp.GetOutcome())
 	})
 
-	// An operator rebuild sets the guardrail; force clears it. Resurrecting a
-	// deployment someone has already shipped past is almost never intended.
+	// RequireLatest refuses to bring back a deployment that a newer one has
+	// already replaced. Without it the same request goes through.
 	t.Run("a newer deployment already exists", func(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx)
@@ -199,7 +199,7 @@ func TestCreateRejections(t *testing.T) {
 
 		forced := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, forced.GetOutcome(),
-			"clearing the guardrail is how an operator forces the rebuild through")
+			"without RequireLatest the older deployment is created anyway")
 	})
 
 	// Deploy resolves a tag to a digest and refuses an implicit one, so an
@@ -341,22 +341,6 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		require.Equal(t, fixtureImage, image.OciImage.GetImage())
 	})
 
-	// An operator rebuild is asking for the commit specifically, so reusing the
-	// image would rebuild nothing and quietly ship the same code again.
-	t.Run("an operator rebuild is refused once the repository is gone", func(t *testing.T) {
-		ctx := context.Background()
-		h := newCreateHarness(t, ctx)
-
-		source := h.commitDeployment(t, ctx, db.DeploymentsSourceGit, fixtureImage)
-
-		req := h.existingRequest(source.ID, false)
-		req.Trigger.Source = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY
-
-		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
-		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT, resp.GetOutcome())
-		require.Equal(t, 1, h.countDeployments(t, ctx), "only the seeded source")
-	})
-
 	// A CLI deploy records the commit it was built from locally, but what runs
 	// is the image. Rebuilding the commit would run our build instead.
 	t.Run("an image deployment redeploys its image even with a commit and a connection", func(t *testing.T) {
@@ -470,45 +454,6 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		require.Equal(t, prNumber, row.PrNumber.Int64)
 	})
 
-	// An operator rebuild is audited as deployment.rebuild naming both
-	// deployments, so a customer's feed shows which deployment replaced which.
-	// The trigger is what marks it as Unkey's doing.
-	t.Run("an operator rebuild is audited as a rebuild", func(t *testing.T) {
-		ctx := context.Background()
-		h := newCreateHarness(t, ctx)
-
-		source := h.imageDeployment(t, ctx, 0)
-
-		req := h.existingRequest(source.ID, false)
-		req.Trigger = &hydrav1.Trigger{
-			Source: ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY,
-			Actor: &ctrlv1.ActorInfo{
-				Id:        "unkey-ops",
-				Name:      "Unkey Ops",
-				Type:      ctrlv1.ActorType_ACTOR_TYPE_SYSTEM,
-				RemoteIp:  "",
-				UserAgent: "",
-				Meta:      map[string]string{"reason": "image lost from the registry"},
-			},
-			Reason: "image lost from the registry",
-		}
-
-		deploymentID := uid.New(uid.DeploymentPrefix)
-		h.create(t, ctx, deploymentID, req)
-
-		require.Equal(t, 1, h.countAudits(t, ctx, auditlog.DeploymentRebuildEvent, deploymentID))
-		require.Zero(t, h.countAudits(t, ctx, auditlog.DeploymentCreateEvent, deploymentID),
-			"a rebuild records its own event instead of a create")
-
-		payload := h.auditPayload(t, ctx, auditlog.DeploymentRebuildEvent, deploymentID)
-		require.Contains(t, payload, "unkey-ops", "the operator actor must survive onto the audit entry")
-		require.Contains(t, payload, source.ID, "the audit names the deployment being replaced")
-
-		row := h.deployment(t, ctx, deploymentID)
-		require.Equal(t, db.DeploymentsTriggerUnkey, row.Trigger)
-		require.Equal(t, "unkey-ops", row.TriggeredBy.String, "triggered_by is the actor id")
-		require.Equal(t, "image lost from the registry", row.TriggerReason.String)
-	})
 }
 
 // TestCreateSkipWritesRowWithoutBuilding pins the skipped row: it records a
@@ -1601,21 +1546,6 @@ func (h *createHarness) countAudits(t *testing.T, ctx context.Context, event aud
 		}
 	}
 	return count
-}
-
-func (h *createHarness) auditPayload(t *testing.T, ctx context.Context, event auditlog.AuditLogEvent, deploymentID string) string {
-	t.Helper()
-	rows, err := h.database.ListClickhouseOutboxByWorkspace(ctx, h.workspaceID)
-	require.NoError(t, err)
-
-	for _, row := range rows {
-		payload := string(row.Payload)
-		if strings.Contains(payload, string(event)) && strings.Contains(payload, deploymentID) {
-			return payload
-		}
-	}
-	t.Fatalf("no %s audit entry for deployment %s", event, deploymentID)
-	return ""
 }
 
 func (h *createHarness) clearRegions(t *testing.T, ctx context.Context) {

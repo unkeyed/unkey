@@ -79,7 +79,6 @@ const (
 
 	// Deployment events
 	DeploymentCreateEvent    AuditLogEvent = "deployment.create"
-	DeploymentRebuildEvent   AuditLogEvent = "deployment.rebuild"
 	DeploymentStopEvent      AuditLogEvent = "deployment.stop"
 	DeploymentWakeEvent      AuditLogEvent = "deployment.wake"
 	DeploymentPromoteEvent   AuditLogEvent = "deployment.promote"
