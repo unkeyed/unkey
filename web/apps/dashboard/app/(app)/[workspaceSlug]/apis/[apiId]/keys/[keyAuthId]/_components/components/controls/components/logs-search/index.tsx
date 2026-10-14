@@ -58,7 +58,7 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>
-        queryLLMForStructuredOutput.mutateAsync({
+        queryLLMForStructuredOutput.mutate({
           keyspaceId,
           query,
         })
