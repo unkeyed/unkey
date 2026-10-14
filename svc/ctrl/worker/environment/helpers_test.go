@@ -12,6 +12,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -102,7 +103,7 @@ func newFixture(t *testing.T) *fixture {
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
 	require.NoError(t, err)
 
-	deploymentSvc, err := deployment.New(deployment.Config{DB: database, Auditlogs: auditlogSvc})
+	deploymentSvc, err := deployment.New(deployment.Config{DB: database, Auditlogs: auditlogSvc, GitHub: githubclient.NewNoop()})
 	require.NoError(t, err)
 
 	var svc *environment.Service

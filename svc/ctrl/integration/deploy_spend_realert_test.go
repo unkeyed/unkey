@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/email"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -73,7 +74,7 @@ func startSpendCheckCapturing(t *testing.T, database db.Database, sender email.S
 
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
 	require.NoError(t, err)
-	deploymentSvc, err := deployment.New(deployment.Config{DB: database, Auditlogs: auditlogSvc})
+	deploymentSvc, err := deployment.New(deployment.Config{DB: database, Auditlogs: auditlogSvc, GitHub: githubclient.NewNoop()})
 	require.NoError(t, err)
 
 	return restatetest.Start(t,
