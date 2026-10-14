@@ -13,7 +13,7 @@ import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 <RootKeyPrereq />
 
-Delete a [portal](/api-management/portal/overview) and sign out all of its users. Most sessions stop working within about 10 seconds, but some can keep working for up to 5 minutes. The keyspace or app behind the portal isn't touched, its keys keep working, and the slug is free to reuse. Calls `POST /v2/portal.deletePortal`. The portal management commands are unreleased and may change without notice.
+Delete a [portal](/api-management/portal/overview) and sign out all of its users. Most sessions stop working within about 10 seconds, but some can keep working for up to 5 minutes. The keyspace or app behind the portal isn't touched, its keys keep working, and the slug is free to reuse. Calls `POST /v2/portal.deletePortal`.
 
 To stop new sessions without cutting off the users who already have one, disable the portal with [update-portal](/api-management/cli/portal/update-portal) instead.
 

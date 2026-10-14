@@ -1,5 +1,4 @@
 post:
-  x-excluded: true
   tags:
     - portal
   summary: Delete portal

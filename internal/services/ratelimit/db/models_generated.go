@@ -1417,6 +1417,22 @@ type Environment struct {
 	UpdatedAt        sql.NullInt64    `db:"updated_at"`
 }
 
+type Flag struct {
+	Pk             uint64 `db:"pk"`
+	Slug           string `db:"slug"`
+	Description    string `db:"description"`
+	DefaultEnabled bool   `db:"default_enabled"`
+	AllowOptIn     bool   `db:"allow_opt_in"`
+	AllowOptOut    bool   `db:"allow_opt_out"`
+}
+
+type FlagOverride struct {
+	Pk          uint64 `db:"pk"`
+	WorkspaceID string `db:"workspace_id"`
+	FlagSlug    string `db:"flag_slug"`
+	Enabled     bool   `db:"enabled"`
+}
+
 type FrontlineRoute struct {
 	Pk                       uint64                `db:"pk"`
 	ID                       string                `db:"id"`
