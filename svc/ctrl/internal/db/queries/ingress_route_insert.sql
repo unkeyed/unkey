@@ -1,4 +1,7 @@
 -- name: InsertFrontlineRoute :exec
+-- Keeps an existing row for the domain instead of failing the unique
+-- fully-qualified-domain-name key, so two deployments of the same domain
+-- converge on the row that was created first.
 INSERT INTO frontline_routes (
     id,
     project_id,
@@ -20,4 +23,6 @@ VALUES (
     sqlc.arg(sticky),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
-);
+)
+ON DUPLICATE KEY UPDATE
+    id = id;

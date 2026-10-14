@@ -634,28 +634,44 @@ func (w *Workflow) configureRouting(
 
 	for _, domain := range allDomains {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			return db.TxWithResultRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
-				found, err := db.NewQueries(tx).FindFrontlineRouteByFQDN(txCtx, domain.domain)
-				if err != nil {
-					if db.IsNotFound(err) {
-						err = db.NewQueries(tx).InsertFrontlineRoute(runCtx, db.InsertFrontlineRouteParams{
-							ID:                       uid.New(uid.FrontlineRoutePrefix),
-							ProjectID:                deployment.ProjectID,
-							AppID:                    deployment.AppID,
-							DeploymentID:             deployment.ID,
-							EnvironmentID:            deployment.EnvironmentID,
-							FullyQualifiedDomainName: domain.domain,
-							Sticky:                   domain.sticky,
-							CreatedAt:                time.Now().UnixMilli(),
-							UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
-						})
-						return "", err
+			existing, findErr := w.db.FindFrontlineRouteByFQDN(runCtx, domain.domain)
+			if findErr == nil {
+				return existing.ID, nil
+			}
+			if !db.IsNotFound(findErr) {
+				return "", findErr
+			}
 
-					}
-					return "", err
-				}
-				return found.ID, nil
+			routeID := uid.New(uid.FrontlineRoutePrefix)
+			insertErr := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+				return db.NewQueries(tx).InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
+					ID:                       routeID,
+					ProjectID:                deployment.ProjectID,
+					AppID:                    deployment.AppID,
+					DeploymentID:             deployment.ID,
+					EnvironmentID:            deployment.EnvironmentID,
+					FullyQualifiedDomainName: domain.domain,
+					Sticky:                   domain.sticky,
+					CreatedAt:                time.Now().UnixMilli(),
+					UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
+				})
 			})
+			if insertErr != nil {
+				return "", insertErr
+			}
+
+			// The insert keeps a row that a concurrent deployment created for this
+			// domain. Read the row back in its own transaction, whose snapshot is
+			// newer than the insert's: a row inserted here needs no reassignment,
+			// while an existing row is reassigned to this deployment below.
+			route, findErr := w.db.FindFrontlineRouteByFQDN(runCtx, domain.domain)
+			if findErr != nil {
+				return "", findErr
+			}
+			if route.ID == routeID {
+				return "", nil
+			}
+			return route.ID, nil
 		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if getFrontlineRouteErr != nil {
 			return nil, false, fault.Wrap(getFrontlineRouteErr, fault.Public("Route records could not be created."))

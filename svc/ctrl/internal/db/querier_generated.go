@@ -1334,7 +1334,9 @@ type Querier interface {
 	//      ?, ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, arg InsertEnvironmentParams) error
-	//InsertFrontlineRoute
+	// Keeps an existing row for the domain instead of failing the unique
+	// fully-qualified-domain-name key, so two deployments of the same domain
+	// converge on the row that was created first.
 	//
 	//  INSERT INTO frontline_routes (
 	//      id,
@@ -1358,6 +1360,8 @@ type Querier interface {
 	//      ?,
 	//      ?
 	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      id = id
 	InsertFrontlineRoute(ctx context.Context, arg InsertFrontlineRouteParams) error
 	//InsertGithubRepoConnection
 	//

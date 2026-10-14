@@ -9,7 +9,8 @@ import (
 )
 
 // bulkInsertFrontlineRoute is the base query for bulk insert
-const bulkInsertFrontlineRoute = `INSERT INTO frontline_routes ( id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at ) VALUES %s`
+const bulkInsertFrontlineRoute = `INSERT INTO frontline_routes ( id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+    id = id`
 
 // InsertFrontlineRoutes performs bulk insert in a single query
 
