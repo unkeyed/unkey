@@ -27,7 +27,6 @@ import { queryRoles } from "./authorization/roles/query";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
-import { cancelDeployment } from "./deploy/deployment/cancel";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
@@ -298,7 +297,6 @@ export const router = t.router({
       runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       getOpenApiDiff: getOpenApiDiff,
-      cancel: cancelDeployment,
     }),
     requestLogs: t.router({
       query: queryRequestLogs,

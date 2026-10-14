@@ -15,7 +15,6 @@ import (
 // Request and response types are plain protobuf messages without connect wrappers.
 type DeployServiceClient interface {
 	GetDeployment(ctx context.Context, req *v1.GetDeploymentRequest) (*v1.GetDeploymentResponse, error)
-	CancelDeployment(ctx context.Context, req *v1.CancelDeploymentRequest) (*v1.CancelDeploymentResponse, error)
 	DeprovisionCompute(ctx context.Context, req *v1.DeprovisionComputeRequest) (*v1.DeprovisionComputeResponse, error)
 }
 
@@ -35,19 +34,6 @@ func (c *ConnectDeployServiceClient) GetDeployment(ctx context.Context, req *v1.
 	ctx, span := tracing.Start(ctx, "DeployService.GetDeployment")
 	defer span.End()
 	resp, err := c.inner.GetDeployment(ctx, connect.NewRequest(req))
-	if err != nil {
-		if connect.CodeOf(err) != connect.CodeNotFound {
-			tracing.RecordError(span, err)
-		}
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
-func (c *ConnectDeployServiceClient) CancelDeployment(ctx context.Context, req *v1.CancelDeploymentRequest) (*v1.CancelDeploymentResponse, error) {
-	ctx, span := tracing.Start(ctx, "DeployService.CancelDeployment")
-	defer span.End()
-	resp, err := c.inner.CancelDeployment(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)
