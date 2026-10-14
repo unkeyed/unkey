@@ -68,8 +68,8 @@ post:
                   status: 400
                   type: https://unkey.com/docs/errors/unkey/application/invalid_input
                   errors:
-                    - location: body
-                      message: "missing properties: 'deploymentId'"
+                    - location: /required
+                      message: "missing property 'deploymentId'"
     "401":
       description: Unauthorized
       content:

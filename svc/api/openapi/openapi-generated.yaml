@@ -10400,8 +10400,8 @@ paths:
                                         error:
                                             detail: POST request body for '/v2/deployments.authorizeDeployment' failed to validate schema
                                             errors:
-                                                - location: body
-                                                  message: 'missing properties: ''deploymentId'''
+                                                - location: /required
+                                                  message: missing property 'deploymentId'
                                             status: 400
                                             title: Bad Request
                                             type: https://unkey.com/docs/errors/unkey/application/invalid_input
