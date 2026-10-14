@@ -140,8 +140,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		apiMeta := map[string]any{}
-		auditResources := []auditlog.AuditLogResource{{
-			Type:        auditlog.APIResourceType,
+		auditTargets := []auditlog.AuditLogTarget{{
+			Type:        auditlog.APITargetType,
 			ID:          api.ID,
 			DisplayName: api.Name,
 			Name:        api.Name,
@@ -183,8 +183,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			apiMeta["keysDeleted"] = keysDeleted
 			apiMeta["deletedAtM"] = now.UnixMilli()
-			auditResources = append(auditResources, auditlog.AuditLogResource{
-				Type:        auditlog.KeySpaceResourceType,
+			auditTargets = append(auditTargets, auditlog.AuditLogTarget{
+				Type:        auditlog.KeySpaceTargetType,
 				ID:          api.KeyAuthID.String,
 				DisplayName: api.KeyAuthID.String,
 				Name:        api.KeyAuthID.String,
@@ -201,7 +201,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ActorName:     principal.Subject.Name,
 			ActorMeta:     map[string]any{},
 			Display:       fmt.Sprintf("Deleted API %s", req.ApiId),
-			Resources:     auditResources,
+			Targets:       auditTargets,
 			RemoteIP:      s.Location(),
 			UserAgent:     s.UserAgent(),
 			CorrelationID: "",

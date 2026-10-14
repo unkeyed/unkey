@@ -69,6 +69,9 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.NotEmpty(t, key.Hash)
 	require.NotEmpty(t, key.Start)
 	require.True(t, key.Enabled)
+	logs := h.FindAuditLogsByTargetID(ctx, t, key.ID)
+	require.Len(t, logs, 1)
+	require.Len(t, logs[0].Targets, 2)
 }
 
 // TestCreateKeyWithURNPermission guarantees a workspace-wide key write
@@ -180,6 +183,13 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, api.ProjectID, identity.ProjectID)
+	logs := h.FindAuditLogsByTargetID(ctx, t, key.ID)
+	require.Len(t, logs, 1)
+	require.Equal(t, "key.create", logs[0].Event)
+	require.Len(t, logs[0].Targets, 3)
+	identityLogs := h.FindAuditLogsByTargetID(ctx, t, identity.ID)
+	require.Len(t, identityLogs, 1)
+	require.Equal(t, logs[0].EventID, identityLogs[0].EventID)
 }
 
 // TestCreateKeyWithExistingIdentityDoesNotWaitForIdentityWriteLock guarantees
@@ -246,6 +256,10 @@ func TestCreateKeyWithExistingIdentityDoesNotWaitForIdentityWriteLock(t *testing
 
 	require.False(t, blocked, "request waited for a write lock on the existing identity")
 	require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
+	logs := h.FindAuditLogsByTargetID(t.Context(), t, identity.ID)
+	require.Len(t, logs, 1)
+	require.Equal(t, "key.create", logs[0].Event)
+	require.Len(t, logs[0].Targets, 3)
 }
 
 func TestCreateKeyWithEncryption(t *testing.T) {

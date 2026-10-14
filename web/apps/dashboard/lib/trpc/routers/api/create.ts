@@ -38,7 +38,7 @@ export async function createApiCore(
     },
     event: "api.create",
     description: `Created ${apiId}`,
-    resources: [
+    targets: [
       {
         type: "api",
         id: apiId,

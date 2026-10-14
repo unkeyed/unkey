@@ -169,8 +169,10 @@ const NavigableDialogNav = <TStepName extends string>({
             key={item.id}
             variant="outline"
             className={cn(
-              "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0 [&_svg]:size-3.5 hover:bg-grayA-3 border-none",
-              isActive ? "bg-grayA-3" : "",
+              "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0 focus-visible:ring-2 focus-visible:ring-grayA-7 [&_svg]:size-3.5 border-none",
+              isActive
+                ? "bg-grayA-3 hover:bg-grayA-3 focus:hover:bg-grayA-3"
+                : "hover:bg-grayA-2 focus:hover:bg-grayA-2",
               isDisabled && "opacity-50 cursor-not-allowed pointer-events-none",
             )}
             size="md"

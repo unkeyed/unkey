@@ -1,27 +1,132 @@
 #!/usr/bin/env bash
-#MISE description="Delete local Docker, Go, Next.js, and Turborepo caches"
+#MISE description="Delete only Unkey's local cluster, containers, volumes, images, and builds"
+#MISE raw=true
 set -euo pipefail
 
-read -r -p "Delete local Docker data? [Y/n] " delete_docker
-if [[ ! "${delete_docker}" =~ ^[Nn]$ ]]; then
-  running_containers="$(docker --context default ps --quiet)"
-  if [[ -n "${running_containers}" ]]; then
-    docker --context default stop ${running_containers}
-  fi
-
-  containers="$(docker --context default ps --all --quiet)"
-  if [[ -n "${containers}" ]]; then
-    docker --context default rm --force ${containers}
-  fi
-
-  docker --context default builder prune --all --force
-  docker --context default system prune --all --force --volumes
+if [ "$#" -gt 1 ] || { [ "$#" -eq 1 ] && [ "$1" != --dry-run ]; }; then
+  echo "Usage: mise run nuke [--dry-run]" >&2
+  exit 1
 fi
 
-read -r -p "Delete Go, Next.js, and Turborepo caches? [Y/n] " delete_caches
-if [[ ! "${delete_caches}" =~ ^[Nn]$ ]]; then
-  rm -rf ./.cache
+owner_filter='
+  (.Config.Labels // .Labels // {}) as $labels |
+  select($labels["dev.unkey.project"] == "unkey" or
+    (($labels["com.docker.compose.project"] // "") |
+      test("^(unkey-dashboard-dev|unkey-test-[a-f0-9]{12}(-[a-z]+-[0-9]+-[0-9]+)?)$")))
+'
 
-  rm -rf ./**/.turbo
-  rm -rf ./**/.next
+containers=()
+volumes=()
+networks=()
+images=()
+ids=$(docker container ls -aq)
+if [ -n "$ids" ]; then
+  owned=$(docker container inspect $ids | jq -c ".[] | $owner_filter")
+  while IFS= read -r id; do [ -z "$id" ] || containers+=("$id"); done <<< "$(jq -r '.Id' <<< "$owned")"
+  while IFS= read -r name; do [ -z "$name" ] || volumes+=("$name"); done <<< "$(jq -r '.Mounts[]? | select(.Type == "volume") | .Name | select(test("^[a-f0-9]{64}$"))' <<< "$owned")"
 fi
+ids=$(docker volume ls -q)
+if [ -n "$ids" ]; then
+  selected=$(docker volume inspect $ids | jq -r ".[] | $owner_filter | .Name")
+  while IFS= read -r name; do [ -z "$name" ] || volumes+=("$name"); done <<< "$selected"
+fi
+ids=$(docker network ls -q)
+if [ -n "$ids" ]; then
+  selected=$(docker network inspect $ids | jq -r ".[] | $owner_filter | .Id")
+  while IFS= read -r id; do [ -z "$id" ] || networks+=("$id"); done <<< "$selected"
+fi
+owned_images=$(docker image ls -aq --filter label=dev.unkey.image=true)
+legacy_images=$(docker image ls -aq --filter label=org.opencontainers.image.source=https://github.com/unkeyed/unkey)
+selected=$(printf '%s\n%s\n' "$owned_images" "$legacy_images" | sort -u)
+while IFS= read -r id; do [ -z "$id" ] || images+=("$id"); done <<< "$selected"
+
+delete_cluster=false
+cluster_volume=$(docker volume ls -q --filter name=^unkey$ --filter label=dev.unkey.project=unkey)
+if [ -n "$cluster_volume" ]; then
+  users=$(docker container ls -aq --filter volume=unkey)
+  if [ -n "$users" ]; then
+    foreign=$(docker container inspect $users | jq -r '.[] | select(.Name != "/unkey" or .Config.Labels["name.minikube.sigs.k8s.io"] != "unkey") | .Id')
+    if [ -n "$foreign" ]; then
+      echo "The cluster volume is in use by another container. Refusing cleanup." >&2
+      exit 1
+    fi
+  fi
+  delete_cluster=true
+fi
+delete_builder=false
+if builder=$(docker buildx inspect unkey 2>/dev/null); then
+  endpoint=$(awk '$1 == "Endpoint:" {print $2}' <<< "$builder")
+  context=$(docker context show)
+  host=${DOCKER_HOST:-$(docker context inspect --format '{{.Endpoints.docker.Host}}')}
+  if [ "$(awk '$1 == "Driver:" {print $2}' <<< "$builder")" != docker-container ] ||
+    [ "$(awk '$1 == "Name:" {print $2}' <<< "$builder")" != $'unkey\nunkey0' ] ||
+    { [ "$endpoint" != "$host" ] && [ "$endpoint" != "$context" ]; }; then
+    echo "Builder unkey belongs to another Docker endpoint or driver. Refusing cleanup." >&2
+    exit 1
+  fi
+  volume=$(docker volume ls -q --filter name=^buildx_buildkit_unkey0_state$)
+  if [ -z "$volume" ] || [ "$(docker volume inspect "$volume" --format '{{index .Labels "dev.unkey.project"}}')" != unkey ]; then
+    echo "Builder unkey has no owned state volume. Refusing cleanup." >&2
+    exit 1
+  fi
+  delete_builder=true
+fi
+
+echo "Docker: $(docker info --format '{{.Name}}') (${DOCKER_HOST:-$(docker context show)})"
+echo "Unkey cluster: $delete_cluster; Unkey builder/cache: $delete_builder"
+printf 'Containers: %s\n' "${containers[*]:-(none)}"
+printf 'Volumes: %s\n' "${volumes[*]:-(none)}"
+printf 'Networks: %s\n' "${networks[*]:-(none)}"
+printf 'Images: %s\n' "${images[*]:-(none)}"
+echo "Build outputs: this checkout's .cache, bin, dev/bin, .next, and .turbo directories; unkey-bpf cache."
+echo "Shared images, shared build caches, and the legacy minikube/ctlptl-registry are not removed."
+if [ "${1:-}" = --dry-run ]; then
+  exit 0
+fi
+
+echo "Exit Tilt and stop Unkey tests before continuing. Local Unkey data will be lost."
+read -r -p "Type unkey to delete these resources: " confirmation
+[ "$confirmation" = unkey ] || exit 0
+
+if $delete_cluster; then minikube delete -p unkey; fi
+if $delete_builder; then docker buildx rm unkey; fi
+for id in ${containers[@]+"${containers[@]}"}; do docker container rm --force "$id"; done
+
+for name in ${volumes[@]+"${volumes[@]}"}; do
+  existing=$(docker volume ls -q --filter "name=^${name}$")
+  [ -n "$existing" ] || continue
+  users=$(docker container ls -aq --filter "volume=$name")
+  if [ -n "$users" ]; then
+    echo "Keeping volume $name: still used by another container."
+  else
+    docker volume rm "$name"
+  fi
+done
+for id in ${networks[@]+"${networks[@]}"}; do
+  name=$(docker network inspect "$id" --format '{{.Name}}')
+  ids=$(docker container ls -aq)
+  users=""
+  if [ -n "$ids" ]; then
+    users=$(docker container inspect $ids | jq -r --arg name "$name" --arg id "$id" '.[] |
+      select(.HostConfig.NetworkMode == $name or .HostConfig.NetworkMode == $id or .NetworkSettings.Networks[$name] != null) | .Id')
+  fi
+  if [ -n "$users" ]; then
+    echo "Keeping network $id: still used by another container."
+  else
+    docker network rm "$id"
+  fi
+done
+for id in ${images[@]+"${images[@]}"}; do
+  users=$(docker container ls -aq --filter "ancestor=$id")
+  if [ -n "$users" ]; then
+    echo "Keeping image $id: still used by another container."
+    continue
+  fi
+  docker image rm --force "$id"
+done
+
+rm -rf -- ./.cache ./bin ./dev/bin "${XDG_CACHE_HOME:-$HOME/.cache}/unkey-bpf"
+find web -type d \( -name node_modules -o -name .git \) -prune -o \
+  -type d \( -name .next -o -name .turbo \) -prune -exec rm -rf -- {} +
+rm -rf -- ./.turbo
+echo "Removed Unkey resources. Unrelated Docker resources were left alone."

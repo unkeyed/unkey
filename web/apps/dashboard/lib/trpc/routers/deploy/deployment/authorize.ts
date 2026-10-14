@@ -51,11 +51,15 @@ export const authorizeDeployment = workspaceProcedure
         actor: { type: "user", id: ctx.user.id },
         event: "deployment.authorize",
         description: `Authorized deployment ${input.deploymentId} for ${deployment.project.name}`,
-        resources: [
+        targets: [
           {
             type: "project",
             id: deployment.projectId,
             name: deployment.project.name,
+          },
+          {
+            type: "deployment",
+            id: deployment.id,
           },
         ],
         context: ctx.audit,
