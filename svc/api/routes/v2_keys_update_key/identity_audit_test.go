@@ -39,7 +39,7 @@ func TestUpdateKeyAuditsIdentityEndpoints(t *testing.T) {
 		WorkspaceID: workspaceID, IdentityID: deletedIdentity.ID,
 	}))
 	missingIdentityID := uid.New(uid.IdentityPrefix)
-	rootKey := h.CreateRootKey(workspaceID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspaceID, rootKeyGrant(workspaceID, api.ProjectID, api.KeyAuthID.String, "*", "write"))
 	headers := http.Header{
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		"Content-Type":  {"application/json"},
