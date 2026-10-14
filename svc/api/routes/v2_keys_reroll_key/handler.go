@@ -354,23 +354,23 @@ func (h *Handler) RerollKey(
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
-						Type:        auditlog.KeyResourceType,
+						Type:        auditlog.KeyTargetType,
 						ID:          keyID,
 						DisplayName: keyData.Key.Name.String,
 						Name:        keyData.Key.Name.String,
 						Meta:        map[string]any{},
 					},
 					{
-						Type:        auditlog.KeyResourceType,
+						Type:        auditlog.KeyTargetType,
 						ID:          req.KeyId,
 						DisplayName: keyData.Key.Name.String,
 						Name:        keyData.Key.Name.String,
 						Meta:        map[string]any{},
 					},
 					{
-						Type:        auditlog.APIResourceType,
+						Type:        auditlog.APITargetType,
 						ID:          keyData.Api.ID,
 						DisplayName: keyData.Api.Name,
 						Name:        keyData.Api.Name,

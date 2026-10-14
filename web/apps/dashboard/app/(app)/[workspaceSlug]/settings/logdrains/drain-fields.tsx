@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/multibox";
 import { useProjectEnvironments } from "@/hooks/use-project-environments";
 import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
+import { useEveryNamespace } from "@/lib/queries/ratelimit-namespaces";
 import { trpc } from "@/lib/trpc/client";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
@@ -121,7 +122,7 @@ export function EventTypesField() {
 
 function RatelimitFields() {
   const { control } = useFormContext<DrainFormValues>();
-  const namespaces = trpc.ratelimit.namespace.list.useQuery();
+  const namespaces = useEveryNamespace();
   const labels = new Map(namespaces.data?.map((namespace) => [namespace.id, namespace.name]));
   return (
     <>
@@ -139,7 +140,7 @@ function RatelimitFields() {
             searchLabel="Search namespaces"
             placeholder="All namespaces"
             emptyMessage={
-              namespaces.error
+              namespaces.isError
                 ? "Unable to load namespaces."
                 : namespaces.isLoading
                   ? "Loading…"

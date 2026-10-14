@@ -1,9 +1,8 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
-import { useLiveQuery } from "@tanstack/react-db";
+import { useNamespace, useNamespaces } from "@/lib/queries/ratelimit-namespaces";
 import { IconGaugeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
@@ -13,15 +12,10 @@ export function NamespaceCrumb({
   projectId,
 }: { namespaceId: string; projectId?: string }) {
   const workspace = useWorkspaceNavigation();
-  const namespacesQuery = useLiveQuery((q) =>
-    q.from({ namespace: collection.ratelimitNamespaces }).select(({ namespace }) => ({
-      id: namespace.id,
-      name: namespace.name,
-    })),
-  );
-  const namespaces = namespacesQuery.data ?? [];
-  const current = namespaces.find((n) => n.id === namespaceId);
-  const loading = namespacesQuery.isLoading;
+  const currentQuery = useNamespace(namespaceId);
+  const { namespaces } = useNamespaces({ search: "" });
+  const current = currentQuery.data;
+  const loading = currentQuery.isLoading;
 
   const items: CrumbPopoverItem[] = namespaces.map((n) => ({
     id: n.id,

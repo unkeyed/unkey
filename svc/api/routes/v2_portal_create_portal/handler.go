@@ -171,10 +171,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:   portalID,
-						Type: auditlog.PortalResourceType,
+						Type: auditlog.PortalTargetType,
 						// The mapping decides which keyspaces every session minted
 						// from this portal can reach, so an incident reviewer needs it
 						// recorded rather than inferred from the row's later state.

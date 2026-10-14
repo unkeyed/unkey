@@ -9,9 +9,10 @@ import { trpc } from "@/lib/trpc/client";
 import {
   bytesToMib,
   formatBytesPerSecondParts,
-  formatCpuParts,
+  formatCpu,
+  formatMemory,
   formatMemoryParts,
-  formatStorageParts,
+  formatStorage,
   formatTooltipPercent,
 } from "@/lib/utils/deployment-formatters";
 import type { TimeWindow } from "@unkey/clickhouse";
@@ -488,7 +489,7 @@ function CpuSection({
             allocated={allocatedMilli}
             color={CPU_COLOR}
             usedLabel={`${usedMilli}m`}
-            allocatedLabel={`${formatCpuParts(allocatedMilli).value} ${formatCpuParts(allocatedMilli).unit}`}
+            allocatedLabel={formatCpu(allocatedMilli)}
           />
         </div>
       </div>
@@ -561,8 +562,8 @@ function MemorySection({
             used={usedBytes}
             allocated={allocatedBytes}
             color={MEMORY_COLOR}
-            usedLabel={`${formatMemoryParts(bytesToMib(usedBytes)).value} ${formatMemoryParts(bytesToMib(usedBytes)).unit}`}
-            allocatedLabel={`${formatMemoryParts(bytesToMib(allocatedBytes)).value} ${formatMemoryParts(bytesToMib(allocatedBytes)).unit}`}
+            usedLabel={formatMemory(bytesToMib(usedBytes))}
+            allocatedLabel={formatMemory(bytesToMib(allocatedBytes))}
           />
         </div>
       </div>
@@ -634,8 +635,8 @@ function DiskSection({
             used={usedBytes}
             allocated={allocatedBytes}
             color={DISK_COLOR}
-            usedLabel={`${formatStorageParts(bytesToMib(usedBytes)).value} ${formatStorageParts(bytesToMib(usedBytes)).unit}`}
-            allocatedLabel={`${formatStorageParts(bytesToMib(allocatedBytes)).value} ${formatStorageParts(bytesToMib(allocatedBytes)).unit}`}
+            usedLabel={formatStorage(bytesToMib(usedBytes))}
+            allocatedLabel={formatStorage(bytesToMib(allocatedBytes))}
           />
         </div>
       </div>

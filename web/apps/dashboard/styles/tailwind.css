@@ -29,6 +29,13 @@
   --animate-mark-float: mark-float 3.6s cubic-bezier(0.45, 0, 0.55, 1) 1200ms infinite;
   --animate-coin-hop: coin-hop 1100ms linear 100ms both;
   --animate-coin-flip: coin-flip 1100ms cubic-bezier(0.3, 0.6, 0.25, 1) 100ms both;
+  --animate-dash-flow: dash-flow 800ms linear infinite;
+
+  @keyframes dash-flow {
+    to {
+      stroke-dashoffset: -12;
+    }
+  }
 
   @keyframes upgrade-rise {
     from {
