@@ -7,29 +7,54 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findFlagBySlug = `-- name: FindFlagBySlug :one
-SELECT pk, slug, description, default_value, visible, allow_enable, allow_disable
-FROM flags WHERE slug = ? FOR UPDATE
+SELECT f.pk, f.slug, f.description, f.default_enabled,
+    f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
+FROM flags f
+LEFT JOIN flag_overrides o
+    ON o.flag_slug = f.slug AND o.workspace_id = ?
+WHERE f.slug = ? FOR UPDATE
 `
 
+type FindFlagBySlugParams struct {
+	WorkspaceID string `db:"workspace_id"`
+	Slug        string `db:"slug"`
+}
+
+type FindFlagBySlugRow struct {
+	Pk              uint64       `db:"pk"`
+	Slug            string       `db:"slug"`
+	Description     string       `db:"description"`
+	DefaultEnabled  bool         `db:"default_enabled"`
+	AllowOptIn      bool         `db:"allow_opt_in"`
+	AllowOptOut     bool         `db:"allow_opt_out"`
+	OverrideEnabled sql.NullBool `db:"override_enabled"`
+}
+
 // FindFlagBySlug locks the definition during enrollment so a concurrent policy
-// change cannot race the permission check and override write.
+// change cannot race the permission check and override write. The workspace
+// override is read under the same lock for the audit's effective before value.
 //
-//	SELECT pk, slug, description, default_value, visible, allow_enable, allow_disable
-//	FROM flags WHERE slug = ? FOR UPDATE
-func (q *Queries) FindFlagBySlug(ctx context.Context, db DBTX, slug string) (Flag, error) {
-	row := db.QueryRowContext(ctx, findFlagBySlug, slug)
-	var i Flag
+//	SELECT f.pk, f.slug, f.description, f.default_enabled,
+//	    f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
+//	FROM flags f
+//	LEFT JOIN flag_overrides o
+//	    ON o.flag_slug = f.slug AND o.workspace_id = ?
+//	WHERE f.slug = ? FOR UPDATE
+func (q *Queries) FindFlagBySlug(ctx context.Context, db DBTX, arg FindFlagBySlugParams) (FindFlagBySlugRow, error) {
+	row := db.QueryRowContext(ctx, findFlagBySlug, arg.WorkspaceID, arg.Slug)
+	var i FindFlagBySlugRow
 	err := row.Scan(
 		&i.Pk,
 		&i.Slug,
 		&i.Description,
-		&i.DefaultValue,
-		&i.Visible,
-		&i.AllowEnable,
-		&i.AllowDisable,
+		&i.DefaultEnabled,
+		&i.AllowOptIn,
+		&i.AllowOptOut,
+		&i.OverrideEnabled,
 	)
 	return i, err
 }

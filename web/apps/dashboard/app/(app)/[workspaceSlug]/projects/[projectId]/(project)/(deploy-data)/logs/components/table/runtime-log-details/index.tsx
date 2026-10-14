@@ -2,10 +2,9 @@
 
 import { useRuntimeLogs } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/logs/context/runtime-logs-provider";
 import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-id-link";
-import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { LogDetails as SharedLogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
+import { RegionFlag } from "@/components/region-flag";
 import { TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { RuntimeLogHeader } from "./runtime-log-header";
@@ -61,7 +60,7 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
             <div className="flex flex-col gap-2 text-xs">
               <div className="flex items-center gap-1.5">
                 <span className="text-grayA-11">Region:</span>{" "}
-                <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
+                <RegionFlag region={log.region} size="xs" shape="circle" />
                 <span className="font-mono">{log.region}</span>
               </div>
               <div>

@@ -42,11 +42,9 @@ export const KeysList = ({
     keys,
     isInitialLoading,
     isNavigating,
-    totalCount,
     onPageChange,
     page,
-    pageSize,
-    totalPages,
+    hasNextPage,
     sorting,
     onSortingChange,
   } = useApiKeysListQuery({ keyAuthId: keyspaceId });
@@ -198,12 +196,12 @@ export const KeysList = ({
         }
       />
       <PaginationFooter
+        mode="cursor"
         page={page}
-        pageSize={pageSize}
-        totalPages={totalPages}
-        totalCount={totalCount}
+        rowCount={keys.length}
+        hasNextPage={hasNextPage}
         onPageChange={handlePageChange}
-        itemLabel="keys"
+        itemLabel={keys.length === 1 ? "key" : "keys"}
         loading={isInitialLoading}
         disabled={isNavigating}
         headerContent={

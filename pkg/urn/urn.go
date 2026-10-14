@@ -34,6 +34,7 @@ var resourcePathShapes = []resourcePathShape{
 	{resource: rootKey{}, segments: []string{"rootKeys", resourceIDSegment}},
 	{resource: limits{}, segments: []string{"limits"}},
 	{resource: usage{}, segments: []string{"usage"}},
+	{resource: flags{}, segments: []string{"flags"}},
 	{resource: new(Project), segments: []string{"projects", resourceIDSegment}},
 	{resource: new(App), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment}},
 	{resource: new(Environment), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment}},

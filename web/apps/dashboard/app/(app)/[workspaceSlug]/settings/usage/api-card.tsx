@@ -1,8 +1,10 @@
 "use client";
 
+import { AT_RISK } from "@/components/navigation/sidebar-v2/usage-card/use-usage-summary";
 import { formatDollars, formatNumber, formatPrice } from "@/lib/fmt";
 import { IconGaugeOutline18, IconKey2Outline18, IconNodesOutline18 } from "@unkey/icons";
 import {
+  Button,
   Item,
   ItemActions,
   ItemContent,
@@ -20,7 +22,9 @@ import {
   MeterValue,
   Skeleton,
 } from "@unkey/ui";
-import { Fragment, type ReactNode } from "react";
+import { cn } from "cn";
+import { Fragment, type ReactNode, useState } from "react";
+import { PlansScreen } from "../billing/components/plans-screen";
 import type { UsagePeriodRange } from "./period";
 
 type ApiCardProps = {
@@ -31,6 +35,14 @@ type ApiCardProps = {
   range: UsagePeriodRange;
   isLoading: boolean;
   isError: boolean;
+  canUpgrade: boolean;
+};
+
+type MeterTone = "normal" | "atRisk";
+
+const METER_TONES: Record<MeterTone, { label: string; value: string; indicator?: string }> = {
+  normal: { label: "text-gray-12", value: "text-gray-10" },
+  atRisk: { label: "text-error-11", value: "text-error-11", indicator: "bg-error-9" },
 };
 
 function days(count: number): string {
@@ -52,12 +64,15 @@ export function ApiCard({
   range,
   isLoading,
   isError,
+  canUpgrade,
 }: ApiCardProps) {
+  const [plansOpen, setPlansOpen] = useState(false);
   const rows: Array<{ icon: ReactNode; title: string; value: number | null }> = [
     { icon: <IconKey2Outline18 />, title: "Key verifications", value: verifications },
     { icon: <IconGaugeOutline18 />, title: "Rate limit operations", value: ratelimits },
   ];
   const used = verifications === null || ratelimits === null ? null : verifications + ratelimits;
+  const nearLimit = used !== null && quota !== null && usageRatio(used, quota) >= AT_RISK;
 
   return (
     <ItemGroup variant="outline">
@@ -72,6 +87,18 @@ export function ApiCard({
             {range.daysLeft === null ? null : ` · resets in ${days(range.daysLeft)}`}
           </ItemDescription>
         </ItemContent>
+        {canUpgrade ? (
+          <ItemActions>
+            <Button
+              variant={nearLimit ? "primary" : "outline"}
+              size="sm"
+              aria-label="Upgrade API plan"
+              onClick={() => setPlansOpen(true)}
+            >
+              Upgrade
+            </Button>
+          </ItemActions>
+        ) : null}
         <ItemActions className="font-semibold text-2xl text-gray-12 leading-tight tracking-tight tabular-nums">
           <Figure value={fee(feeCents)} isLoading={isLoading} skeletonClassName="h-6 w-16" />
         </ItemActions>
@@ -102,8 +129,16 @@ export function ApiCard({
           </Item>
         </Fragment>
       ))}
+      <PlansScreen open={plansOpen} onOpenChange={setPlansOpen} reason="api-limit" />
     </ItemGroup>
   );
+}
+
+function usageRatio(used: number, quota: number): number {
+  if (quota === 0) {
+    return used === 0 ? 0 : 1;
+  }
+  return used / quota;
 }
 
 function Quota({
@@ -138,18 +173,22 @@ function Quota({
     );
   }
 
-  const percent = quota === 0 ? (used === 0 ? 0 : 100) : Math.round((used / quota) * 100);
+  const ratio = usageRatio(used, quota);
+  const percent = Math.round(ratio * 100);
+  const tone = METER_TONES[ratio >= AT_RISK ? "atRisk" : "normal"];
 
   return (
     <Meter value={used} max={Math.max(quota, 1)}>
       <MeterHeader>
-        <MeterLabel className="text-gray-12">
+        <MeterLabel className={tone.label}>
           {formatNumber(used)} of {formatNumber(quota)} requests
         </MeterLabel>
-        <MeterValue className="font-normal text-gray-10 text-xs">{() => `${percent}%`}</MeterValue>
+        <MeterValue className={cn("font-normal text-xs", tone.value)}>
+          {() => `${percent}%`}
+        </MeterValue>
       </MeterHeader>
       <MeterTrack>
-        <MeterIndicator />
+        <MeterIndicator className={tone.indicator} />
       </MeterTrack>
     </Meter>
   );

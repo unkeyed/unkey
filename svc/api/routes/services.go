@@ -7,6 +7,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
@@ -33,6 +34,8 @@ import (
 type Services struct {
 	// Database provides access to the primary MySQL database for persistence.
 	Database db.Database
+
+	Flags flags.Service
 
 	// Keys handles API key verification and key mutation operations.
 	Keys keys.KeyService

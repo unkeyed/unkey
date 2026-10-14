@@ -1,0 +1,15 @@
+type: object
+required:
+  - slug
+  - enabled
+properties:
+  slug:
+    type: string
+    minLength: 1
+    maxLength: 128
+    pattern: "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+    description: Lowercase snake_case slug of the flag to update, as returned by `workspace.getFlags`.
+  enabled:
+    type: boolean
+    description: Set to true to enable the flag or false to disable it, regardless of the flag's default.
+additionalProperties: false

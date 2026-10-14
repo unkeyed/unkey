@@ -11,24 +11,27 @@ import (
 )
 
 const listFlagsByWorkspaceID = `-- name: ListFlagsByWorkspaceID :many
-SELECT f.slug, f.default_value, o.value AS override_value
+SELECT f.slug, f.default_enabled, f.description, f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
 FROM flags f
 LEFT JOIN flag_overrides o
     ON o.flag_slug = f.slug AND o.workspace_id = ?
 `
 
 type ListFlagsByWorkspaceIDRow struct {
-	Slug          string       `db:"slug"`
-	DefaultValue  bool         `db:"default_value"`
-	OverrideValue sql.NullBool `db:"override_value"`
+	Slug            string       `db:"slug"`
+	DefaultEnabled  bool         `db:"default_enabled"`
+	Description     string       `db:"description"`
+	AllowOptIn      bool         `db:"allow_opt_in"`
+	AllowOptOut     bool         `db:"allow_opt_out"`
+	OverrideEnabled sql.NullBool `db:"override_enabled"`
 }
 
 // ListFlagsByWorkspaceID returns every definition with the workspace's
 // override. The LEFT JOIN keeps definitions without an override as a NULL
-// override_value, so callers can tell inheritance apart from an explicit false.
+// override_enabled, so callers can tell inheritance apart from an explicit false.
 // Overrides whose definition was deleted are not returned.
 //
-//	SELECT f.slug, f.default_value, o.value AS override_value
+//	SELECT f.slug, f.default_enabled, f.description, f.allow_opt_in, f.allow_opt_out, o.enabled AS override_enabled
 //	FROM flags f
 //	LEFT JOIN flag_overrides o
 //	    ON o.flag_slug = f.slug AND o.workspace_id = ?
@@ -41,7 +44,14 @@ func (q *Queries) ListFlagsByWorkspaceID(ctx context.Context, db DBTX, workspace
 	var items []ListFlagsByWorkspaceIDRow
 	for rows.Next() {
 		var i ListFlagsByWorkspaceIDRow
-		if err := rows.Scan(&i.Slug, &i.DefaultValue, &i.OverrideValue); err != nil {
+		if err := rows.Scan(
+			&i.Slug,
+			&i.DefaultEnabled,
+			&i.Description,
+			&i.AllowOptIn,
+			&i.AllowOptOut,
+			&i.OverrideEnabled,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
