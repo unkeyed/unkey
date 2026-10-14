@@ -18,6 +18,11 @@ func TestRollbackDeploymentSwitchesLiveRoutesBack(t *testing.T) {
 	f.requireRoutes(t, f.candidate.ID, f.live.ID)
 	f.requireDesiredStateAfterStopDelay(t, f.candidate.ID, mysqltype.DeploymentsDesiredStateRunning)
 	require.Equal(t, 1, countAudits(t, f.ctx, f.db, f.workspaceID, auditlog.DeploymentRollbackEvent, f.candidate.ID, f.actorID))
+	f.requireAuditTargets(t, auditlog.DeploymentRollbackEvent, map[string]string{
+		f.candidate.ID: "deployment",
+		f.app.ID:       "app",
+		f.live.ID:      "deployment",
+	})
 }
 
 func TestRollbackDeploymentRejectsStaleSource(t *testing.T) {

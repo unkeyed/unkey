@@ -77,8 +77,7 @@ spec:
             httpGet:
               path: /health/ready
               port: 7091
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            periodSeconds: 1
           livenessProbe:
             httpGet:
               path: /health/live

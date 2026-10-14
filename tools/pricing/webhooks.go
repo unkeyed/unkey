@@ -60,6 +60,10 @@ var DashboardWebhookEvents = []string{
 	"customer.subscription.deleted",
 	"invoice.payment_failed",
 	"invoice.payment_succeeded",
+	"payment_method.attached",
+	"checkout.session.completed",
+	"checkout.session.async_payment_succeeded",
+	"invoice.paid",
 }
 
 // ControlWebhookEvents are the events the Go control-plane billing handler

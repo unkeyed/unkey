@@ -1,5 +1,4 @@
-import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
+import { RegionFlag } from "@/components/region-flag";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
@@ -50,7 +49,7 @@ export const createRequestLogsColumns = (): DataTableColumnDef<RequestLogsRespon
     },
     cell: ({ row }) => (
       <div className="flex items-center gap-1.5">
-        <RegionFlag flagCode={mapRegionToFlag(row.original.region)} size="xs" shape="circle" />
+        <RegionFlag region={row.original.region} size="xs" shape="circle" />
         <span className="font-mono text-xs text-gray-11">{row.original.region}</span>
       </div>
     ),

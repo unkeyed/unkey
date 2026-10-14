@@ -2,8 +2,10 @@
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { IconXmarkOutline18 } from "@unkey/icons";
-import type * as React from "react";
+import * as React from "react";
 import { cn } from "../lib/utils";
+import { DiscardChangesDialog } from "./dialog/discard-changes-dialog";
+import { UnsavedChangesScope, useReportUnsavedChanges, useUnsavedChanges } from "./unsaved-changes";
 
 type SlidePanelBackdrop = "blur" | "dim" | "none";
 
@@ -11,6 +13,8 @@ export type SlidePanelProps = {
   children: React.ReactNode;
   isOpen: boolean;
   onClose: () => void;
+  /** Closing asks before the edits are lost. Forms inside the panel report their own dirty state. */
+  dirty?: boolean;
   onExitComplete?: () => void;
   side?: "left" | "right";
   widthClassName?: string;
@@ -24,6 +28,7 @@ export function SlidePanel({
   children,
   isOpen,
   onClose,
+  dirty = false,
   onExitComplete,
   side = "right",
   widthClassName = "w-175",
@@ -32,6 +37,21 @@ export function SlidePanel({
   fitContent = false,
   "data-docs-target": docsTarget,
 }: SlidePanelProps) {
+  const [confirming, setConfirming] = React.useState(false);
+  const inner = useUnsavedChanges();
+  const holdsChanges = isOpen && (dirty || inner.isDirty);
+  useReportUnsavedChanges(holdsChanges);
+  if (!isOpen && confirming) {
+    setConfirming(false);
+  }
+  const requestClose = () => {
+    if (holdsChanges) {
+      setConfirming(true);
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <DialogPrimitive.Root
       open={isOpen}
@@ -47,7 +67,7 @@ export function SlidePanel({
           eventDetails.cancel();
           return;
         }
-        onClose();
+        requestClose();
       }}
       onOpenChangeComplete={(open) => {
         if (!open) {
@@ -58,7 +78,7 @@ export function SlidePanel({
       <DialogPrimitive.Portal>
         {backdrop !== "none" && (
           <DialogPrimitive.Backdrop
-            onClick={onClose}
+            onClick={requestClose}
             className={cn(
               "fixed inset-0 z-50 transition-opacity duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
               "data-starting-style:opacity-0 data-ending-style:opacity-0",
@@ -71,7 +91,7 @@ export function SlidePanel({
           data-docs-target={docsTarget}
           className={cn(
             "[--slide-panel-inset:0.75rem]",
-            "fixed z-51 flex flex-col shadow-floating",
+            "fixed z-50 flex flex-col shadow-floating",
             "rounded-xl bg-raised",
             "top-(--slide-panel-inset) bottom-(--slide-panel-inset)",
             "max-w-[calc(100dvw_-_var(--slide-panel-inset)_*_2)]",
@@ -86,7 +106,17 @@ export function SlidePanel({
             className,
           )}
         >
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
+            <UnsavedChangesScope report={inner.report}>{children}</UnsavedChangesScope>
+          </div>
+          <DiscardChangesDialog
+            open={confirming}
+            onKeepEditing={() => setConfirming(false)}
+            onDiscard={() => {
+              setConfirming(false);
+              onClose();
+            }}
+          />
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -149,6 +179,8 @@ export type SlidePanelFooterProps = {
 export function SlidePanelFooter({ children, className }: SlidePanelFooterProps) {
   return <div className={cn("border-t px-6 py-4", className)}>{children}</div>;
 }
+
+export const SlidePanelClose = DialogPrimitive.Close;
 
 export type SlidePanelCloseButtonProps = DialogPrimitive.Close.Props & {
   ref?: React.Ref<HTMLButtonElement>;

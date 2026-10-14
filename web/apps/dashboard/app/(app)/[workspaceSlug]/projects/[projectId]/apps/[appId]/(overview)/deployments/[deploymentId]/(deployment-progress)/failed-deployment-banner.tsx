@@ -1,5 +1,7 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
+import { routes } from "@/lib/navigation/routes";
+import type { AppScope, AppSettingsTarget } from "@/lib/navigation/routes/projects";
 import { match } from "@unkey/match";
 import {
   AlertBanner,
@@ -11,28 +13,40 @@ import {
 import type { Route } from "next";
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
+import { useProjectData } from "../../../data-provider";
 import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import type { StepsData } from "./deployment-progress";
 import { LIMITS_DOCS_URL, limitFailure } from "./limit-failure";
 
-/** Patterns matched against backend fault.Public messages to decide whether
- *  to show a "Go to Settings" link. Only errors fixable via project settings
- *  (dockerfile path, docker context, regions, git branch) belong here. */
-const SETTINGS_HINT_PATTERNS = [
+type SettingsHint = "build" | "environment";
+
+const HINT_TARGET: Record<
+  SettingsHint,
+  (environmentSlug: string | undefined) => AppSettingsTarget
+> = {
+  build: () => ({ page: "build" }),
+  environment: (environment) => ({ page: "environments", environment }),
+};
+
+const SETTINGS_HINTS: ReadonlyArray<{ pattern: string; hint: SettingsHint }> = [
   // Dockerfile path / docker context (from build.go extractUserBuildError)
-  "check that the file path is correct",
-  "dockerfile appears to be empty",
-  "build target stage was not found",
-  "check the root directory",
+  { pattern: "check that the file path is correct", hint: "build" },
+  { pattern: "dockerfile appears to be empty", hint: "build" },
+  { pattern: "build target stage was not found", hint: "build" },
+  { pattern: "check the root directory", hint: "build" },
   // Region configuration (from deploy_handler.go createTopologies)
-  "configure at least one region",
+  { pattern: "configure at least one region", hint: "environment" },
   // Git branch (from deploy_handler.go buildImage)
-  "git branch could not be resolved",
+  { pattern: "git branch could not be resolved", hint: "build" },
 ];
 
-function isSettingsRelatedError(error: string): boolean {
+function settingsTargetFor(
+  error: string,
+  environmentSlug: string | undefined,
+): AppSettingsTarget | undefined {
   const lower = error.toLowerCase();
-  return SETTINGS_HINT_PATTERNS.some((pattern) => lower.includes(pattern));
+  const found = SETTINGS_HINTS.find(({ pattern }) => lower.includes(pattern));
+  return found ? HINT_TARGET[found.hint](environmentSlug) : undefined;
 }
 
 type StepKey = keyof NonNullable<StepsData>;
@@ -60,18 +74,22 @@ function firstStepError(data: NonNullable<StepsData>): string | undefined {
 // handling for the "Cancelled by user" marker here.
 export function FailedDeploymentBanner({
   stepsData,
-  settingsUrl,
+  appScope,
   limitsUrl,
   deployment,
 }: {
   stepsData: StepsData | undefined;
-  settingsUrl: Route;
+  appScope: AppScope;
   limitsUrl: Route;
   deployment: Deployment;
 }) {
   const [redeployOpen, setRedeployOpen] = useState(false);
   const errorMessage = (stepsData && firstStepError(stepsData)) ?? "Deployment failed";
-  const showSettingsLink = isSettingsRelatedError(errorMessage);
+  const { environments } = useProjectData();
+  const settingsTarget = settingsTargetFor(
+    errorMessage,
+    environments.find((e) => e.id === deployment.environmentId)?.slug,
+  );
   const billingUpgrades = useBillingUIUpgrades();
   const limit = billingUpgrades ? limitFailure(errorMessage) : null;
   const actions = stepsData == null ? "loading" : limit ? "limit" : "generic";
@@ -90,10 +108,12 @@ export function FailedDeploymentBanner({
               </Link>
             </>
           )}
-          {showSettingsLink && (
+          {settingsTarget && (
             <>
               {" "}
-              <Link href={settingsUrl}>Go to Settings</Link>
+              <Link href={routes.projects.apps.settings({ ...appScope, ...settingsTarget })}>
+                Go to Settings
+              </Link>
             </>
           )}
         </AlertBannerDescription>
