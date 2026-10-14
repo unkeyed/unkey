@@ -45,10 +45,15 @@ func (v *VirtualObject) AuthorizeDeployment(ctx restate.ObjectContext, req *hydr
 	}
 
 	commitSHA := deployment.GitCommitSha.String
+	// Some old rows have no source. We treat them as git when they have a
+	// commit SHA, and as an image when they do not
 	useOCI := deployment.Source == db.DeploymentsSourceOci ||
 		((deployment.Source == db.DeploymentsSourceUnknown || deployment.Source == "") && commitSHA == "")
 
 	if useOCI {
+		// Pass image_requested, the image the user asked for. If we passed only
+		// the deployment ID, Create would read image_resolved instead, and that
+		// stays empty until the deployment has built once
 		image := deployment.ImageRequested
 		if !image.Valid || image.String == "" {
 			image = deployment.ImageResolved
@@ -73,8 +78,8 @@ func (v *VirtualObject) AuthorizeDeployment(ctx restate.ObjectContext, req *hydr
 	}
 
 	// Create only accepts an existing row whose status matches the decision, so
-	// the row must be pending before the call. The compare-and-swap loses to a
-	// cancel that lands after the read
+	// the row must be pending before the call. If a cancel lands after the read,
+	// the swap matches no row and the approval stops
 	swapped, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
 		result, swapErr := v.db.CompareAndSwapDeploymentStatus(runCtx, db.CompareAndSwapDeploymentStatusParams{
 			ID:             deploymentID,
@@ -109,10 +114,11 @@ func (v *VirtualObject) AuthorizeDeployment(ctx restate.ObjectContext, req *hydr
 		return nil, restate.ToTerminalError(fmt.Errorf("deployment could not be started: %s %s", outcome, resp.GetDetail()), restate.WithErrorCode(412))
 	}
 
-	// Replaces the failing approval status Create posted on the commit. The run
-	// has already started, so GitHub errors are logged and dropped
+	// While a fork PR waits for approval, its commit shows a red "Unkey Deploy
+	// Authorization" check. Here we turn that check green. The build has
+	// already started, so if GitHub fails we only log it
 	if !useOCI && !v.allowUnauthenticatedDeployments {
-		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		statusErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			repo, findErr := v.db.FindGithubRepoConnectionByAppId(runCtx, deployment.AppID)
 			if db.IsNotFound(findErr) {
 				return nil
@@ -129,11 +135,11 @@ func (v *VirtualObject) AuthorizeDeployment(ctx restate.ObjectContext, req *hydr
 				"Deployment authorized and started",
 				githubclient.DeployAuthorizationContext,
 			)
-		}, restate.WithName("create commit status for authorized deployment"), restate.WithMaxRetryDuration(30*time.Second))
-		if err != nil {
-			logger.Error("failed to post authorized commit status",
+		}, restate.WithName("mark approval check passed"), restate.WithMaxRetryDuration(30*time.Second))
+		if statusErr != nil {
+			logger.Error("failed to mark approval check passed",
 				"deployment_id", deploymentID,
-				"error", err,
+				"error", statusErr,
 			)
 		}
 	}
