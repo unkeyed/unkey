@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -317,6 +318,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 	deploymentSvc, err := deployment.New(deployment.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,
+		GitHub:    githubclient.NewNoop(),
+
+		AllowUnauthenticatedDeployments: false,
 	})
 	require.NoError(t, err)
 
