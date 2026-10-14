@@ -24,7 +24,6 @@ import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
 import { rolesLlmSearch } from "./authorization/roles/llm-search";
 import { queryRoles } from "./authorization/roles/query";
-import { updateRole } from "./authorization/roles/update";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
@@ -90,10 +89,7 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
-import { createNamespace } from "./ratelimit/createNamespace";
-import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
-import { listRatelimitNamespaces } from "./ratelimit/namespaces_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
@@ -101,7 +97,6 @@ import { queryRatelimitLogEnrichment } from "./ratelimit/query-logs/enrichment";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
-import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { cancelDeploy } from "./stripe/cancelDeploy";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { changeDeployPlan } from "./stripe/changeDeployPlan";
@@ -208,7 +203,6 @@ export const router = t.router({
         search: searchKeys,
         query: queryKeys,
       }),
-      update: updateRole,
       llmSearch: rolesLlmSearch,
       connectedKeysAndPerms: getConnectedKeysAndPerms,
     }),
@@ -228,13 +222,7 @@ export const router = t.router({
       }),
     }),
     namespace: t.router({
-      list: listRatelimitNamespaces,
       queryRatelimitLastUsed,
-      create: createNamespace,
-      update: t.router({
-        name: updateNamespaceName,
-      }),
-      delete: deleteNamespace,
     }),
   }),
   logs: t.router({

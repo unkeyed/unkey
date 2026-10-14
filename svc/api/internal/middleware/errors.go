@@ -326,7 +326,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsAppDuplicate,
 				codes.UnkeyDataErrorsDomainDuplicate,
 				codes.UnkeyDataErrorsPortalDuplicate,
-				codes.UnkeyDataErrorsPortalChanged:
+				codes.UnkeyDataErrorsPortalChanged,
+				codes.UnkeyDataErrorsRatelimitNamespaceDuplicate:
 				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

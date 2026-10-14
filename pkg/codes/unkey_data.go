@@ -110,6 +110,8 @@ type dataRatelimitNamespace struct {
 	NotFound Code
 	// Gone indicates the requested rate limit namespace was deleted and is no longer available.
 	Gone Code
+	// Duplicate indicates a rate limit namespace with this name already exists, deleted or not.
+	Duplicate Code
 }
 
 // dataRatelimitOverride defines errors related to rate limit override operations.
@@ -252,8 +254,9 @@ var Data = UnkeyDataErrors{
 	},
 
 	RatelimitNamespace: dataRatelimitNamespace{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_not_found"},
-		Gone:     Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_gone"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_not_found"},
+		Gone:      Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_gone"},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_already_exists"},
 	},
 
 	RatelimitOverride: dataRatelimitOverride{
