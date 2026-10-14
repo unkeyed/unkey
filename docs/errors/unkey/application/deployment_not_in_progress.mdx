@@ -1,0 +1,44 @@
+---
+title: "deployment_not_in_progress"
+sidebarTitle: "deployment_not_in_progress"
+description: "The deployment already finished, so there is nothing to cancel."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_deployments_cancel_deployment/handler.go
+---
+
+<Danger>`err:unkey:application:deployment_not_in_progress`</Danger>
+
+You asked to cancel a deployment that already finished. You get HTTP 412.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The deployment is not in progress. Its status is ready.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "/errors/unkey/application/deployment_not_in_progress"
+  }
+}
+```
+
+## Likely causes
+
+- The deployment finished building and is `ready`.
+- The deployment failed, or someone already cancelled it.
+- A newer deployment superseded it.
+
+## How to fix
+
+1. Read the deployment with `deployments.getDeployment` and check its `status`.
+2. To take a `ready` preview deployment offline, use `deployments.stopDeployment` instead.
+3. If it already ended, there is nothing to do.
+
+## Related errors
+
+- [`err:unkey:application:deployment_not_running`](/errors/unkey/application/deployment_not_running): the stop counterpart, for deployments that are not running.
+- [`err:unkey:data:deployment_not_found`](/errors/unkey/data/deployment_not_found): the deployment does not exist, or your root key cannot write to it.

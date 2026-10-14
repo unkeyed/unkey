@@ -365,7 +365,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyAppErrorsPreconditionDeploymentIsStopping,
 				codes.UnkeyAppErrorsPreconditionDeploymentNotStopped,
 				codes.UnkeyAppErrorsPreconditionDeploymentIsProduction,
-				codes.UnkeyAppErrorsPreconditionDeploymentNotAwaitingApproval:
+				codes.UnkeyAppErrorsPreconditionDeploymentNotAwaitingApproval,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotInProgress:
 				return s.ProblemJSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
