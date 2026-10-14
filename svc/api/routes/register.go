@@ -29,6 +29,7 @@ import (
 	v2DeployCreateDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 	v2DeployGetDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 	v2DeploymentsAuthorizeDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_authorize_deployment"
+	v2DeploymentsCancelDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_cancel_deployment"
 	v2DeploymentsCreateDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
 	v2DeploymentsGetDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_get_deployment"
 	v2DeploymentsListBuildLogs "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_build_logs"
@@ -476,6 +477,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsAuthorizeDeployment.Handler{
+			DB:      svc.Database,
+			Restate: svc.Restate,
+		},
+	)
+
+	// v2/deployments.cancelDeployment
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DeploymentsCancelDeployment.Handler{
 			DB:      svc.Database,
 			Restate: svc.Restate,
 		},
