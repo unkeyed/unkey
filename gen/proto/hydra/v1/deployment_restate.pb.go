@@ -62,6 +62,9 @@ type DeploymentServiceClient interface {
 	// moves the row to pending and hands it to DeployWorkflow.Create, which
 	// starts the build. A refused create puts the row back to awaiting_approval
 	AuthorizeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*AuthorizeDeploymentRequest, *AuthorizeDeploymentResponse]
+	// CancelDeployment aborts a deployment that is still in progress. It ends the
+	// open step, marks the row cancelled and cancels the Deploy invocation
+	CancelDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*CancelDeploymentRequest, *CancelDeploymentResponse]
 }
 
 type deploymentServiceClient struct {
@@ -126,6 +129,14 @@ func (c *deploymentServiceClient) AuthorizeDeployment(opts ...sdk_go.ClientOptio
 	return sdk_go.WithRequestType[*AuthorizeDeploymentRequest](sdk_go.Object[*AuthorizeDeploymentResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "AuthorizeDeployment", cOpts...))
 }
 
+func (c *deploymentServiceClient) CancelDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*CancelDeploymentRequest, *CancelDeploymentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*CancelDeploymentRequest](sdk_go.Object[*CancelDeploymentResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "CancelDeployment", cOpts...))
+}
+
 // DeploymentServiceIngressClient is the ingress client API for hydra.v1.DeploymentService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -157,6 +168,9 @@ type DeploymentServiceIngressClient interface {
 	// moves the row to pending and hands it to DeployWorkflow.Create, which
 	// starts the build. A refused create puts the row back to awaiting_approval
 	AuthorizeDeployment() ingress.Requester[*AuthorizeDeploymentRequest, *AuthorizeDeploymentResponse]
+	// CancelDeployment aborts a deployment that is still in progress. It ends the
+	// open step, marks the row cancelled and cancels the Deploy invocation
+	CancelDeployment() ingress.Requester[*CancelDeploymentRequest, *CancelDeploymentResponse]
 }
 
 type deploymentServiceIngressClient struct {
@@ -201,6 +215,11 @@ func (c *deploymentServiceIngressClient) WakeDeployment() ingress.Requester[*Wak
 func (c *deploymentServiceIngressClient) AuthorizeDeployment() ingress.Requester[*AuthorizeDeploymentRequest, *AuthorizeDeploymentResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*AuthorizeDeploymentRequest, *AuthorizeDeploymentResponse](c.client, c.serviceName, "AuthorizeDeployment", &c.key, &codec)
+}
+
+func (c *deploymentServiceIngressClient) CancelDeployment() ingress.Requester[*CancelDeploymentRequest, *CancelDeploymentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*CancelDeploymentRequest, *CancelDeploymentResponse](c.client, c.serviceName, "CancelDeployment", &c.key, &codec)
 }
 
 // DeploymentServiceServer is the server API for hydra.v1.DeploymentService service.
@@ -254,6 +273,9 @@ type DeploymentServiceServer interface {
 	// moves the row to pending and hands it to DeployWorkflow.Create, which
 	// starts the build. A refused create puts the row back to awaiting_approval
 	AuthorizeDeployment(ctx sdk_go.ObjectContext, req *AuthorizeDeploymentRequest) (*AuthorizeDeploymentResponse, error)
+	// CancelDeployment aborts a deployment that is still in progress. It ends the
+	// open step, marks the row cancelled and cancels the Deploy invocation
+	CancelDeployment(ctx sdk_go.ObjectContext, req *CancelDeploymentRequest) (*CancelDeploymentResponse, error)
 }
 
 // UnimplementedDeploymentServiceServer should be embedded to have
@@ -281,6 +303,9 @@ func (UnimplementedDeploymentServiceServer) WakeDeployment(ctx sdk_go.ObjectCont
 func (UnimplementedDeploymentServiceServer) AuthorizeDeployment(ctx sdk_go.ObjectContext, req *AuthorizeDeploymentRequest) (*AuthorizeDeploymentResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method AuthorizeDeployment not implemented"), sdk_go.WithErrorCode(501))
 }
+func (UnimplementedDeploymentServiceServer) CancelDeployment(ctx sdk_go.ObjectContext, req *CancelDeploymentRequest) (*CancelDeploymentResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method CancelDeployment not implemented"), sdk_go.WithErrorCode(501))
+}
 func (UnimplementedDeploymentServiceServer) testEmbeddedByValue() {}
 
 // UnsafeDeploymentServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -306,5 +331,6 @@ func NewDeploymentServiceServer(srv DeploymentServiceServer, opts ...sdk_go.Serv
 	router = router.Handler("StopDeployment", sdk_go.NewObjectHandler(srv.StopDeployment))
 	router = router.Handler("WakeDeployment", sdk_go.NewObjectHandler(srv.WakeDeployment))
 	router = router.Handler("AuthorizeDeployment", sdk_go.NewObjectHandler(srv.AuthorizeDeployment))
+	router = router.Handler("CancelDeployment", sdk_go.NewObjectHandler(srv.CancelDeployment))
 	return router
 }

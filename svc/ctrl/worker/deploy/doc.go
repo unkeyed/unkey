@@ -81,10 +81,10 @@
 //
 // # Cancellation
 //
-// The CancelDeployment RPC, sibling dedup, and environment deletion all abort a
-// deployment through deploycancel.Cancel: write the reason on the open
-// deployment step, move the row to cancelled or superseded, then cancel the
-// Restate invocation running [Workflow.Deploy]. Restate cancels Deploy's Build
+// DeploymentService.CancelDeployment, sibling dedup, and environment deletion
+// all abort a deployment through deploycancel.Cancel: write the reason on the
+// open deployment step, move the row to cancelled or superseded, then cancel
+// the Restate invocation running [Workflow.Deploy]. Restate cancels Deploy's Build
 // with it: a queued Build never runs, and a running one has its image build
 // aborted through the Run context and frees its slot. The cancel makes
 // Deploy's next SDK call return a TerminalError, which runs the compensations
