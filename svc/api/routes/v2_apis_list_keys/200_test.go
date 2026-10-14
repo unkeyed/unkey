@@ -378,7 +378,7 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("filter by external ID", func(t *testing.T) {
 		h.CreateIdentity(seed.CreateIdentityRequest{
-			WorkspaceID: h.Resources().RootWorkspace.ID,
+			WorkspaceID: h.CreateWorkspace().ID,
 			ExternalID:  identity1ExternalID,
 		})
 		req := handler.Request{
