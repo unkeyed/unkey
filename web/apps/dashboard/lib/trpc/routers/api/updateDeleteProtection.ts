@@ -64,7 +64,7 @@ export const updateAPIDeleteProtection = workspaceProcedure
           description: `API ${api.name} delete protection is now ${
             input.enabled ? "enabled" : "disabled"
           }.}`,
-          resources: [
+          targets: [
             {
               type: "api",
               id: api.id,

@@ -13,7 +13,7 @@ func TestListKeys_ReturnsCreatedKey(t *testing.T) {
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
-	response, err := client.Apis.ListKeys(ctx, components.V2ApisListKeysRequestBody{APIID: api.APIID, Limit: new(int64(10)), RevalidateKeysCache: new(true)})
+	response, err := client.Apis.ListKeys(ctx, components.V2ApisListKeysRequestBody{APIID: api.APIID, Limit: new(int64(10))})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2ApisListKeysResponseBody)
 	require.Contains(t, keyIDs(response.V2ApisListKeysResponseBody.Data), key.KeyID)

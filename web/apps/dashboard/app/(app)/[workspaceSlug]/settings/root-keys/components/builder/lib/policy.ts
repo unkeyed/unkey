@@ -53,6 +53,18 @@ export function toggleRowAction(
   return setRowActions(selection, rowId, next);
 }
 
+export function toggleRowsAction(
+  selection: PermissionSelection,
+  rows: readonly PermissionRow[],
+  action: Action,
+  selected: boolean,
+): PermissionSelection {
+  return rows.reduce<PermissionSelection>(
+    (acc, row) => (rowOffers(row, action) ? toggleRowAction(acc, row.id, action, selected) : acc),
+    selection,
+  );
+}
+
 export function setRowsActions(
   selection: PermissionSelection,
   rows: readonly PermissionRow[],

@@ -1,8 +1,12 @@
 "use client";
 
+import type { AppEnvironmentListProps } from "@/components/deploy/app-environment-list";
 import { useProjectEnvironments } from "@/hooks/use-project-environments";
 import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
+import { collection } from "@/lib/collections";
+import { useEveryNamespace } from "@/lib/queries/ratelimit-namespaces";
 import { trpc } from "@/lib/trpc/client";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import type { ResourceScope } from "../lib/catalogue.types";
 import { environmentLabel } from "../lib/policy-view";
 
@@ -14,6 +18,7 @@ export type ScopeInstance = {
 export type ScopeInstances = {
   instances: ScopeInstance[];
   isLoading: boolean;
+  environmentOptions?: Pick<AppEnvironmentListProps, "apps" | "environments">;
 };
 
 const DEPLOY_SCOPES: ResourceScope[] = ["projects", "apps", "environments"];
@@ -26,9 +31,17 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
   const keyspaces = trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery(undefined, {
     enabled: scope === "keyspaces",
   });
-  const namespaces = trpc.ratelimit.namespace.list.useQuery(undefined, {
-    enabled: scope === "ratelimit-namespaces",
-  });
+  const namespaces = useEveryNamespace({ enabled: scope === "ratelimit-namespaces" });
+  // Every namespace lives in the workspace default project
+  const defaultProject = useLiveQuery(
+    (q) =>
+      scope === "ratelimit-namespaces"
+        ? q
+            .from({ project: collection.projects })
+            .where(({ project }) => eq(project.isDefault, true))
+        : null,
+    [scope],
+  );
 
   switch (scope) {
     case "workspace":
@@ -59,12 +72,22 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
           project.apps.map((app) => [app.id, app.name] as const),
         ),
       );
+      const options = (environments.data ?? []).map((environment) => ({
+        ...environment,
+        id: `projects/${environment.projectId}/apps/${environment.appId}/environments/${environment.id}`,
+      }));
       return {
-        instances: (environments.data ?? []).map((environment) => ({
-          id: `projects/${environment.projectId}/apps/${environment.appId}/environments/${environment.id}`,
+        instances: options.map((environment) => ({
+          id: environment.id,
           label: environmentLabel(appNames.get(environment.appId), environment.slug),
         })),
         isLoading: environments.isLoading || projects.isLoading,
+        environmentOptions: {
+          apps: [...appNames]
+            .filter(([appId]) => options.some((option) => option.appId === appId))
+            .map(([appId, name]) => ({ appId, name })),
+          environments: options,
+        },
       };
     }
     case "keyspaces":
@@ -75,14 +98,18 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
         })),
         isLoading: keyspaces.isLoading,
       };
-    case "ratelimit-namespaces":
+    case "ratelimit-namespaces": {
+      const defaultProjectId = defaultProject.data?.at(0)?.id;
       return {
-        instances: (namespaces.data ?? []).map((namespace) => ({
-          id: `projects/${namespace.projectId}/ratelimits/namespaces/${namespace.id}`,
-          label: namespace.name,
-        })),
-        isLoading: namespaces.isLoading,
+        instances: defaultProjectId
+          ? (namespaces.data ?? []).map((namespace) => ({
+              id: `projects/${defaultProjectId}/ratelimits/namespaces/${namespace.id}`,
+              label: namespace.name,
+            }))
+          : [],
+        isLoading: namespaces.isLoading || defaultProject.isLoading,
       };
+    }
   }
 }
 

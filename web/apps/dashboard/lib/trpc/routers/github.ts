@@ -519,7 +519,7 @@ export const githubRouter = t.router({
               actor: { type: "user", id: ctx.user.id },
               event: "workspace.install_github",
               description: `Bound GitHub installation ${installationId}`,
-              resources: [
+              targets: [
                 {
                   type: "workspace",
                   id: ctx.workspace.id,

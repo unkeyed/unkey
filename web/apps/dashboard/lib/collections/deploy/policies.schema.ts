@@ -6,9 +6,6 @@
  * `ratelimit`, ... is set, which zod cannot switch on, so `fromWirePolicy`
  * attaches `type` on read. `type` and the server-owned `id` are dropped
  * again by the SDK's own outbound schema, which ignores unknown keys.
- *
- * Add a policy type by extending the union below and wiring it through
- * `fromWirePolicy`.
  */
 import { z } from "zod";
 
@@ -30,6 +27,13 @@ export const POLICY_LIMITS = {
   maxRemoteIpEntries: 100,
 } as const;
 
+export const POLICY_ERRORS = {
+  gone: "This policy no longer exists.",
+  sharedName: "Another policy of this type has the same name. Rename one of them first.",
+  atCapacity: `An environment holds at most ${POLICY_LIMITS.maxPolicies} policies.`,
+  environmentMissing: "Couldn't find the environment. Reload the page and try again.",
+} as const;
+
 // protojson emits int64 fields as JSON strings (proto3 JSON mapping), while
 // the dashboard writes plain numbers. Accept both, normalize to number.
 const wireInt64 = z
@@ -48,12 +52,12 @@ export const stringMatchModeSchema = z.enum(["exact", "prefix", "regex"]);
 export type StringMatchMode = z.infer<typeof stringMatchModeSchema>;
 
 const stringMatchBase = { ignoreCase: z.boolean().optional() } as const;
-const stringMatchValue = z.string().min(1);
+export const stringMatchValueSchema = z.string().min(1, "Value is required");
 
 export const stringMatchSchema = z.union([
-  z.object({ ...stringMatchBase, exact: stringMatchValue }).strict(),
-  z.object({ ...stringMatchBase, prefix: stringMatchValue }).strict(),
-  z.object({ ...stringMatchBase, regex: stringMatchValue }).strict(),
+  z.object({ ...stringMatchBase, exact: stringMatchValueSchema }).strict(),
+  z.object({ ...stringMatchBase, prefix: stringMatchValueSchema }).strict(),
+  z.object({ ...stringMatchBase, regex: stringMatchValueSchema }).strict(),
 ]);
 export type StringMatch = z.infer<typeof stringMatchSchema>;
 
@@ -61,13 +65,21 @@ export type StringMatch = z.infer<typeof stringMatchSchema>;
 
 const remoteIpListSchema = z.array(z.string().min(1)).min(1).max(POLICY_LIMITS.maxRemoteIpEntries);
 
-const httpMethod = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
+export const httpMethodSchema = z.enum([
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "HEAD",
+  "OPTIONS",
+]);
 
 export const matchExprSchema = z.union([
   z.object({ path: z.object({ path: stringMatchSchema }).strict() }).strict(),
   z
     .object({
-      method: z.object({ methods: z.array(httpMethod).min(1) }).strict(),
+      method: z.object({ methods: z.array(httpMethodSchema).min(1) }).strict(),
     })
     .strict(),
   z
@@ -290,6 +302,10 @@ export const policySchema = z.discriminatedUnion("type", [
 export type Policy = z.infer<typeof policySchema>;
 export type PolicyType = Policy["type"];
 
+export type PolicyInput = {
+  [T in PolicyType]: Omit<Extract<Policy, { type: T }>, "id">;
+}[PolicyType];
+
 /** A trailing space is invisible once rendered, so it cannot make a second policy. */
 export function normalizePolicyName(name: string): string {
   return name.trim();
@@ -304,26 +320,18 @@ export function policyMatchKey(type: PolicyType, name: string): string {
   return `${type}:${normalizePolicyName(name)}`;
 }
 
+const POLICY_VARIANTS: readonly PolicyType[] = policySchema.options.map(
+  (option) => option.shape.type.value,
+);
+
 /** Attaches the `type` discriminator the API leaves implicit. */
 export function fromWirePolicy(raw: unknown): Policy {
   if (typeof raw !== "object" || raw === null) {
     throw new Error("policy must be an object");
   }
-  const obj: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
-  if ("keyauth" in obj) {
-    return policySchema.parse({ ...obj, type: "keyauth" });
+  const type = POLICY_VARIANTS.find((variant) => variant in raw);
+  if (!type) {
+    throw new Error("unknown gateway policy variant");
   }
-  if ("ratelimit" in obj) {
-    return policySchema.parse({ ...obj, type: "ratelimit" });
-  }
-  if ("firewall" in obj) {
-    return policySchema.parse({ ...obj, type: "firewall" });
-  }
-  if ("openapi" in obj) {
-    return policySchema.parse({ ...obj, type: "openapi" });
-  }
-  if ("logging" in obj) {
-    return policySchema.parse({ ...obj, type: "logging" });
-  }
-  throw new Error("unknown gateway policy variant");
+  return policySchema.parse({ ...raw, type });
 }

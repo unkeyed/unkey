@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Build a local Unkey image in its isolated Docker builder"
+#MISE depends=["docker-builder"]
+set -euo pipefail
+
+docker buildx build --builder unkey --load --label dev.unkey.image=true "$@"

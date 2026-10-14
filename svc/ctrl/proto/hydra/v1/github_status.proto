@@ -6,18 +6,17 @@ import "dev/restate/sdk/go.proto";
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
 // GitHubStatusService is a Restate virtual object keyed by deployment ID that
-// owns all GitHub deployment status reporting (Deployments API + PR comments).
+// owns GitHub deployments, commit statuses, and PR comments.
 // Any service can fire-and-forget status updates to it without needing GitHub
 // credentials or state about the deployment.
 service GitHubStatusService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
   // Init sets up the virtual object with deployment context and creates the
-  // GitHub deployment + PR comment. Called once by the deploy workflow after
-  // the build step completes.
+  // GitHub deployment, commit status, and PR comment before the build is queued.
   rpc Init(GitHubStatusInitRequest) returns (GitHubStatusInitResponse) {}
 
-  // ReportStatus updates both the GitHub deployment status and the PR comment.
+  // ReportStatus updates the deployment, commit status, and PR comment.
   // Fire-and-forget — errors are logged, never propagated.
   rpc ReportStatus(GitHubStatusReportRequest) returns (GitHubStatusReportResponse) {}
 }
@@ -36,8 +35,7 @@ enum GitHubDeploymentState {
 }
 
 // GitHubStatusInitRequest carries all context the virtual object needs to
-// create the GitHub deployment and PR comment. The deploy workflow populates
-// this after the build step so the commit SHA is resolved.
+// report a deployment.
 message GitHubStatusInitRequest {
   int64 installation_id = 1;
   string repo = 2;
