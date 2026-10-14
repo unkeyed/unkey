@@ -36,8 +36,6 @@ data:
 
     [github]
     webhook_secret = "${UNKEY_GITHUB_APP_WEBHOOK_SECRET}"
-    app_id = ${UNKEY_GITHUB_APP_ID}
-    private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
 
     # Stripe webhook for the month-end Deploy billing close. Both come from the
     # optional stripe-credentials secret (dev/.env.stripe); empty leaves
@@ -90,18 +88,6 @@ spec:
                 secretKeyRef:
                   name: github-credentials
                   key: UNKEY_GITHUB_APP_WEBHOOK_SECRET
-                  optional: true
-            - name: UNKEY_GITHUB_PRIVATE_KEY_PEM
-              valueFrom:
-                secretKeyRef:
-                  name: github-credentials
-                  key: UNKEY_GITHUB_PRIVATE_KEY_PEM
-                  optional: true
-            - name: UNKEY_GITHUB_APP_ID
-              valueFrom:
-                secretKeyRef:
-                  name: github-credentials
-                  key: UNKEY_GITHUB_APP_ID
                   optional: true
             - name: UNKEY_DOMAIN_CONNECT_PRIVATE_KEY
               valueFrom:
