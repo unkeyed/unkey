@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -61,16 +62,14 @@ func TestPreconditionFailed(t *testing.T) {
 			},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)
+		res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, validHeaders, req)
 		require.Equal(t, 412, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
+		require.Equal(t, 412, res.Body.Error.Status)
+		require.Equal(t, codes.App.Precondition.PreconditionFailed.DocsURL(), res.Body.Error.Type)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
 
-		// Should contain useful error message about missing ratelimit for key and identity
-		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' nor identity", key.KeyID)
-		require.Contains(t, res.Body.Error.Detail, expectedMsg)
-		require.Contains(t, res.Body.Error.Detail, identity.ID)
-		require.Contains(t, res.Body.Error.Detail, identity.ExternalID)
+		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' nor identity: '%s' external ID: '%s'", key.KeyID, identity.ID, identity.ExternalID)
+		require.Equal(t, expectedMsg, res.Body.Error.Detail)
 	})
 
 	t.Run("without identity - missing ratelimit", func(t *testing.T) {
@@ -94,14 +93,14 @@ func TestPreconditionFailed(t *testing.T) {
 			},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)
+		res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, validHeaders, req)
 		require.Equal(t, 412, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
+		require.Equal(t, 412, res.Body.Error.Status)
+		require.Equal(t, codes.App.Precondition.PreconditionFailed.DocsURL(), res.Body.Error.Type)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
 
-		// Should contain error message indicating no identity connected
-		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' and there is no identity connected", key.KeyID)
-		require.Contains(t, res.Body.Error.Detail, expectedMsg)
+		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' and there is no identity connected.", key.KeyID)
+		require.Equal(t, expectedMsg, res.Body.Error.Detail)
 	})
 
 	t.Run("invalid ratelimit configuration", func(t *testing.T) {
@@ -121,9 +120,10 @@ func TestPreconditionFailed(t *testing.T) {
 			},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)
+		res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, validHeaders, req)
 		require.Equal(t, 412, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
+		require.Equal(t, 412, res.Body.Error.Status)
+		require.Equal(t, codes.App.Precondition.PreconditionFailed.DocsURL(), res.Body.Error.Type)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 }

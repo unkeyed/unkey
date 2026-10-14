@@ -31,6 +31,7 @@ func TestFrontlineURNsEncodeAttributionDomain(t *testing.T) {
 		{codes.Frontline.Internal.InternalServerError, "err:frontline:platform:internal_server_error"},
 		{codes.Frontline.Internal.ConfigLoadFailed, "err:frontline:platform:config_load_failed"},
 		{codes.Frontline.Internal.InvalidConfiguration, "err:frontline:config:invalid_configuration"},
+		{codes.Frontline.Internal.RatelimitNotConfigured, "err:frontline:config:ratelimit_not_configured"},
 		// client
 		{codes.Frontline.Auth.MissingCredentials, "err:frontline:client:missing_credentials"},
 		{codes.Frontline.Auth.InvalidKey, "err:frontline:client:invalid_key"},

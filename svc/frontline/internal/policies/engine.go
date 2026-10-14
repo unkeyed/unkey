@@ -25,8 +25,8 @@ import (
 // to upstream services.
 const PrincipalHeader = "X-Unkey-Principal"
 
-// KeyAuthenticator must return a principal on success and Frontline faults on
-// failure. Implementations own authentication response headers and must support
+// KeyAuthenticator must return a principal on success and an error on failure.
+// Implementations own authentication response headers and must support
 // concurrent requests. appID is for telemetry attribution, not authorization.
 type KeyAuthenticator interface {
 	Execute(ctx context.Context, sess *zen.Session, req *http.Request, appID string, cfg *frontlinev1.KeyAuth) (*principal.Principal, error)
