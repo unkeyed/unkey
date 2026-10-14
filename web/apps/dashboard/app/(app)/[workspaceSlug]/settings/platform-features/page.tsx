@@ -15,6 +15,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
+  InfoTooltip,
   PageContainer,
   PageHeader,
   PageHeaderContent,
@@ -132,27 +133,38 @@ export default function PlatformFeaturesPage() {
                       </div>
                     }
                     description={
-                      <div id={`${feature.slug}-description`}>
-                        {feature.description}
-                        {blockedReason && <span className="block">{blockedReason}</span>}
-                      </div>
+                      <div id={`${feature.slug}-description`}>{feature.description}</div>
                     }
                   >
-                    <Button
-                      variant="outline"
-                      color={feature.enabled ? "danger" : "default"}
-                      size="sm"
-                      aria-label={`${feature.enabled ? "Unenroll from" : "Enroll in"} ${feature.title}`}
-                      aria-describedby={`${feature.slug}-description`}
-                      disabled={!canEnroll || Boolean(blockedReason) || update.isLoading}
-                      loading={update.isLoading && update.variables?.slug === feature.slug}
-                      loadingLabel={feature.enabled ? "Unenrolling" : "Enrolling"}
-                      onClick={() =>
-                        update.mutate({ slug: feature.slug, enabled: !feature.enabled })
-                      }
+                    <InfoTooltip
+                      content={<span id={`${feature.slug}-blocked-reason`}>{blockedReason}</span>}
+                      disabled={!blockedReason}
+                      asChild
+                      position={{ side: "top" }}
                     >
-                      {feature.enabled ? "Unenroll" : "Enroll"}
-                    </Button>
+                      <span
+                        tabIndex={blockedReason ? 0 : undefined}
+                        aria-describedby={
+                          blockedReason ? `${feature.slug}-blocked-reason` : undefined
+                        }
+                      >
+                        <Button
+                          variant="outline"
+                          color={feature.enabled ? "danger" : "default"}
+                          size="sm"
+                          aria-label={`${feature.enabled ? "Unenroll from" : "Enroll in"} ${feature.title}`}
+                          aria-describedby={`${feature.slug}-description`}
+                          disabled={!canEnroll || Boolean(blockedReason) || update.isLoading}
+                          loading={update.isLoading && update.variables?.slug === feature.slug}
+                          loadingLabel={feature.enabled ? "Unenrolling" : "Enrolling"}
+                          onClick={() =>
+                            update.mutate({ slug: feature.slug, enabled: !feature.enabled })
+                          }
+                        >
+                          {feature.enabled ? "Unenroll" : "Enroll"}
+                        </Button>
+                      </span>
+                    </InfoTooltip>
                   </SettingCard>
                 );
               })
