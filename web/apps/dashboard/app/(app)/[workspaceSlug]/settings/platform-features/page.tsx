@@ -1,12 +1,8 @@
 "use client";
 
 import { canMutateWorkspace } from "@/lib/auth/roles";
-import { platformPreviews } from "@/lib/flags/platform-previews";
-import { useFlag, useFlags } from "@/lib/flags/provider";
-import { trpc } from "@/lib/trpc/client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useFlag } from "@/lib/flags/provider";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { useMutation } from "@tanstack/react-query";
 import { IconSparkle3Outline18 } from "@unkey/icons";
 import {
   Badge,
@@ -24,63 +20,17 @@ import {
   SettingCardGroup,
   SettingsGroup,
   SettingsGroups,
-  toast,
 } from "@unkey/ui";
 import { notFound } from "next/navigation";
-import { useEffect } from "react";
+import { usePlatformPreviews } from "./use-platform-previews";
 
 export default function PlatformFeaturesPage() {
   const { isLoading, user } = useWorkspace();
   const canEnroll = canMutateWorkspace(user?.role);
   const enabled = useFlag("platformFeatures");
-  const utils = trpc.useUtils();
-  const features = useFlags();
-  useEffect(() => {
-    if (!features.data || features.error) {
-      return;
-    }
-    for (const preview of platformPreviews) {
-      if (!features.data[preview.flag.slug]) {
-        console.warn(`Preview flag "${preview.flag.slug}" is missing from the flags API response`);
-      }
-    }
-  }, [features.data, features.error]);
-  const previews = platformPreviews.flatMap((preview) => {
-    const state = features.data?.[preview.flag.slug];
-    if (!state) {
-      return [];
-    }
-    return [
-      {
-        slug: preview.flag.slug,
-        title: preview.title,
-        description: preview.description,
-        enabled: state.enabled,
-        allowOptIn: state.allowOptIn,
-        allowOptOut: state.allowOptOut,
-      },
-    ];
-  });
-  const update = useMutation({
-    onMutate: () => features.cancel(),
-    mutationFn: async (input: { slug: string; enabled: boolean }) => {
-      await getUnkeyClient().workspace.updateFlag(input);
-    },
-    async onSuccess(_data, input) {
-      await Promise.all([
-        features.setCachedFlagValue(input),
-        utils.workspace.getCurrent.invalidate(),
-      ]);
-      toast.success("Preview feature updated");
-    },
-    onError(error) {
-      toast.error("We couldn't update the preview feature", {
-        description: getErrorMessage(error),
-      });
-    },
-  });
+  const { previews, update, isLoading: previewsLoading, error, refetch } = usePlatformPreviews();
 
-  if (!isLoading && !features.isLoading && !features.error && !enabled) {
+  if (!isLoading && !previewsLoading && !error && !enabled) {
     notFound();
   }
 
@@ -94,12 +44,12 @@ export default function PlatformFeaturesPage() {
       <SettingsGroups>
         <SettingsGroup>
           <SettingCardGroup>
-            {features.isLoading ? (
+            {previewsLoading ? (
               <output className="block p-5 text-sm text-gray-11">Loading preview features…</output>
-            ) : features.error ? (
+            ) : error ? (
               <div role="alert" className="flex items-center gap-4 p-5 text-sm text-gray-11">
                 We couldn't load preview features.
-                <Button variant="outline" onClick={() => features.refetch()}>
+                <Button variant="outline" onClick={() => refetch()}>
                   Retry
                 </Button>
               </div>
