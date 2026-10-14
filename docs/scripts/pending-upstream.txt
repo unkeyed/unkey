@@ -5,16 +5,6 @@
 # `mise run docs-check` prints the current pending set under "pending upstream publish".
 /v2/workspace.getLimits
 /v2/workspace.getUsage
-# The customer-facing portal endpoints are no longer x-excluded locally, but the
-# published spec still excludes them, so `mint validate` fails with "Failed to
-# generate OpenAPI endpoint page". Add the Portal group once the spec republishes.
-/v2/portal.createPortal
-/v2/portal.createSession
-/v2/portal.deletePortal
-/v2/portal.getPortal
-/v2/portal.listSessions
-/v2/portal.revokeSession
-/v2/portal.updatePortal
 # Internal to the hosted portal and x-excluded on purpose; never listed.
 /v2/portal.exchangeCode
 /v2/portal.getVerifications

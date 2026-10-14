@@ -4723,7 +4723,19 @@
       "deprecated": false
     },
     {
+      "path": "/v2/portal.listSessions",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
       "path": "/v2/portal.rerollKey",
+      "method": "POST",
+      "tag": "portal",
+      "deprecated": false
+    },
+    {
+      "path": "/v2/portal.revokeSession",
       "method": "POST",
       "tag": "portal",
       "deprecated": false

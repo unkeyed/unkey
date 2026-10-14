@@ -559,6 +559,18 @@
                       "POST /v2/analytics.getRatelimits",
                       "POST /v2/analytics.getVerifications"
                     ]
+                  },
+                  {
+                    "group": "Portal",
+                    "pages": [
+                      "POST /v2/portal.createPortal",
+                      "POST /v2/portal.getPortal",
+                      "POST /v2/portal.updatePortal",
+                      "POST /v2/portal.deletePortal",
+                      "POST /v2/portal.createSession",
+                      "POST /v2/portal.listSessions",
+                      "POST /v2/portal.revokeSession"
+                    ]
                   }
                 ]
               }
@@ -1111,6 +1123,18 @@
                 "pages": [
                   "POST /v2/analytics.getRatelimits",
                   "POST /v2/analytics.getVerifications"
+                ]
+              },
+              {
+                "group": "Portal",
+                "pages": [
+                  "POST /v2/portal.createPortal",
+                  "POST /v2/portal.getPortal",
+                  "POST /v2/portal.updatePortal",
+                  "POST /v2/portal.deletePortal",
+                  "POST /v2/portal.createSession",
+                  "POST /v2/portal.listSessions",
+                  "POST /v2/portal.revokeSession"
                 ]
               }
             ],
