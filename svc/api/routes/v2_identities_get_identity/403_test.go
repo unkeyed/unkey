@@ -31,11 +31,11 @@ func TestForbidden(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	externalID := uid.New(uid.TestPrefix)
 
-	h.CreateIdentity(seed.CreateIdentityRequest{
+	identityID := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		ExternalID:  externalID,
-	})
+	}).ID
 	otherIdentityID := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		Environment: "default",
@@ -51,7 +51,7 @@ func TestForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
-		require.Contains(t, res.Body.Error.Detail, "identity.*.read_identity")
+		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("identities/%s#read", identityID))
 		require.NotContains(t, res.Body.Error.Detail, "have:")
 		require.NotContains(t, res.Body.Error.Detail, "{")
 		require.NotContains(t, res.Body.Error.Detail, "}")

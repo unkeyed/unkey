@@ -62,14 +62,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:       limit,
 		})
 	}, func(row db.ListProjectsByWorkspaceIdRow) bool {
-		return rbac.Check(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Project,
-				ResourceID:   "*",
-				Action:       rbac.ReadProject,
-			}),
+		return rbac.Check(
 			rbac.U(urn.New().Workspace(row.WorkspaceID).Project(row.ID), permissions.Read),
-		), principal.Permissions) == nil
+			principal.Permissions,
+		) == nil
 	}, func(row db.ListProjectsByWorkspaceIdRow) string { return row.ID })
 	if err != nil {
 		return fault.Wrap(

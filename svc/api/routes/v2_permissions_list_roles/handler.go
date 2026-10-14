@@ -74,11 +74,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectIDRequired).RBAC().Role("*"),
 			permissions.Read,
 		),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.ReadRole,
-		}),
 	))
 	if err != nil {
 		return err

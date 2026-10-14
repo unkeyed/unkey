@@ -27,7 +27,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	s.DisableClickHouseLogging()
+	s.SkipRequestLog()
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

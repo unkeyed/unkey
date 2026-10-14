@@ -6,7 +6,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
@@ -18,13 +21,20 @@ import (
 // not own has a portal wired up.
 func TestGetPortalMasksEveryMiss(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.read_portal")
 	workspace := h.Resources().UserWorkspace
 
 	// A portal the caller can see, so the passing path is known to work and the
 	// misses below cannot be masking a broken handler.
 	visible := h.SeedPortal(t, workspace.ID, "visible", "visible", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
+	other := h.CreateWorkspace()
+	otherKeyspace := keyspaceMapping(t, h, other.ID)
+	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
+	missingPortalID := uid.New(uid.PortalPrefix)
+	route, headers := newRoute(t, h,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(visible.ProjectID).Portal(visible.ID), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(otherPortal.ProjectID).Portal(otherPortal.ID), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project("*").Portal(missingPortalID), permissions.Read).Value)
 	ok := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Portal:     new(visible.ID),
 		KeyspaceId: nil,
@@ -36,17 +46,11 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 	unmappedKeyspace := keyspaceMapping(t, h, workspace.ID)
 	unmappedApp := appMapping(t, h, workspace.ID, "unmapped")
 
-	// Another workspace with a portal of its own, addressed both by id and through
-	// the keyspace it maps.
-	other := h.CreateWorkspace()
-	otherKeyspace := keyspaceMapping(t, h, other.ID)
-	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
-
 	unknownKeyspace := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)}
 	unknownApp := portal.Mapping{Type: portal.MappingTypeApp, ID: uid.New(uid.AppPrefix)}
 
 	testCases := map[string]handler.Request{
-		"unknown id":                    {Portal: new(uid.New(uid.PortalPrefix)), KeyspaceId: nil, AppId: nil},
+		"unknown id":                    {Portal: new(missingPortalID), KeyspaceId: nil, AppId: nil},
 		"unknown slug":                  {Portal: new("no-such-portal"), KeyspaceId: nil, AppId: nil},
 		"portal in another workspace":   {Portal: new(otherPortal.ID), KeyspaceId: nil, AppId: nil},
 		"slug in another workspace":     {Portal: new(otherPortal.Slug), KeyspaceId: nil, AppId: nil},
@@ -87,7 +91,7 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 	stored := h.SeedPortal(t, workspace.ID, "parity", "parity", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
 
-	deniedKey := h.CreateRootKey(workspace.ID, "portal.*.create_portal")
+	deniedKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID), permissions.Delete).Value)
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), handler.Request{
 		Portal:     new(stored.ID),
 		KeyspaceId: nil,
@@ -96,9 +100,10 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
 
-	allowedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")
+	missingPortalID := uid.New(uid.PortalPrefix)
+	allowedKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Portal(missingPortalID), permissions.Read).Value)
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey), handler.Request{
-		Portal:     new(uid.New(uid.PortalPrefix)),
+		Portal:     new(missingPortalID),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})

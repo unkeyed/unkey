@@ -24,7 +24,7 @@ func TestGetKeyNotFound(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, "*", "*", "*", "read"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -80,22 +80,22 @@ func TestWhoamiDeniedDoesNotLeakKeyExistenceOrIDs(t *testing.T) {
 		{
 			name:        "create permission without read",
 			workspaceID: workspace.ID,
-			permissions: []string{"api.*.create_key"},
+			permissions: []string{rootKeyGrant(workspace.ID, "*", "*", "*", "write")},
 		},
 		{
 			name:        "URN write permission without read",
 			workspaceID: workspace.ID,
-			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)},
+			permissions: []string{rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID, "write")},
 		},
 		{
 			name:        "cross workspace access",
 			workspaceID: otherWorkspace.ID,
-			permissions: []string{"api.*.read_key", "api.*.read_api"},
+			permissions: []string{rootKeyGrant(otherWorkspace.ID, "*", "*", "*", "read")},
 		},
 		{
 			name:        "cross API access",
 			workspaceID: workspace.ID,
-			permissions: []string{fmt.Sprintf("api.%s.read_key", otherAPI.ID)},
+			permissions: []string{rootKeyGrant(workspace.ID, otherAPI.ProjectID, otherAPI.KeyAuthID.String, "*", "read")},
 		},
 	}
 

@@ -24,7 +24,9 @@ func TestSuccess(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#read", h.Resources().UserWorkspace.ID),
+	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -42,7 +44,7 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create identity with ratelimits using testutil helper
-	h.CreateIdentity(seed.CreateIdentityRequest{
+	seededIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		ExternalID:  externalID,
 		Meta:        metaBytes,
@@ -89,6 +91,7 @@ func TestSuccess(t *testing.T) {
 		externalIDWithoutMeta := uid.New(uid.TestPrefix)
 		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   seededIdentity.ProjectID,
 			Environment: "default",
 			ExternalID:  externalIDWithoutMeta,
 		})
@@ -110,6 +113,7 @@ func TestSuccess(t *testing.T) {
 		externalIDWithoutRatelimits := uid.New(uid.TestPrefix)
 		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   seededIdentity.ProjectID,
 			Environment: "default",
 			ExternalID:  externalIDWithoutRatelimits,
 		})
@@ -183,6 +187,7 @@ func TestSuccess(t *testing.T) {
 
 		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   seededIdentity.ProjectID,
 			Environment: "default",
 			ExternalID:  largeMetaExternalID,
 			Meta:        largeMetaBytes,
@@ -281,6 +286,7 @@ func TestSuccess(t *testing.T) {
 		recentExternalID := uid.New(uid.TestPrefix)
 		h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   seededIdentity.ProjectID,
 			Environment: "default",
 			ExternalID:  recentExternalID,
 		})

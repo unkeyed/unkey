@@ -23,7 +23,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	s.DisableClickHouseLogging()
+	s.SkipRequestLog()
 
 	s.AddHeader("Content-Type", "application/yaml")
 	return s.Send(200, openapi.Spec)
