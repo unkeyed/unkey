@@ -232,11 +232,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	deploymentSvc := deployment.New(deployment.Config{
-		Database:     database,
-		Auditlogs:    auditlogSvc,
-		Restate:      restateClient,
-		RestateAdmin: restateAdminClient,
-		Bearer:       cfg.AuthToken,
+		Database: database,
+		Restate:  restateClient,
+		Bearer:   cfg.AuthToken,
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
