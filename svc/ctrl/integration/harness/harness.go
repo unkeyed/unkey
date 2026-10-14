@@ -316,10 +316,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 	require.NoError(t, err)
 
 	deploymentSvc, err := deployment.New(deployment.Config{
-		DB:        database,
-		Auditlogs: auditlogSvc,
-		GitHub:    githubclient.NewNoop(),
-
+		DB:                              database,
+		Auditlogs:                       auditlogSvc,
+		GitHub:                          githubclient.NewNoop(),
 		AllowUnauthenticatedDeployments: false,
 	})
 	require.NoError(t, err)

@@ -26,10 +26,9 @@ const (
 // changes.
 type VirtualObject struct {
 	hydrav1.UnimplementedDeploymentServiceServer
-	db        db.Database
-	auditlogs auditlogs.AuditLogService
-	github    githubclient.GitHubClient
-
+	db                              db.Database
+	auditlogs                       auditlogs.AuditLogService
+	github                          githubclient.GitHubClient
 	allowUnauthenticatedDeployments bool
 }
 

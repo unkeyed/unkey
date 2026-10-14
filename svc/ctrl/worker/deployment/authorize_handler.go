@@ -47,6 +47,7 @@ func (v *VirtualObject) AuthorizeDeployment(ctx restate.ObjectContext, req *hydr
 	commitSHA := deployment.GitCommitSha.String
 	useOCI := deployment.Source == db.DeploymentsSourceOci ||
 		((deployment.Source == db.DeploymentsSourceUnknown || deployment.Source == "") && commitSHA == "")
+
 	if useOCI {
 		image := deployment.ImageRequested
 		if !image.Valid || image.String == "" {
