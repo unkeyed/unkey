@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -136,4 +137,62 @@ func mockStartedAt(mockCtx *mocks.MockContext, startedAt time.Time) {
 			*args.Get(1).(*time.Time) = startedAt
 		}).
 		Return(nil)
+}
+
+// frontlineRouteTable models frontline_routes as an in-memory table that holds
+// one row per fully qualified domain name, so an insert for a name that still
+// has a row fails the way MySQL rejects a duplicate key.
+type frontlineRouteTable struct {
+	db.Database
+	routes map[string]db.InsertFrontlineRouteParams
+	calls  []string
+}
+
+func (f *frontlineRouteTable) FindAppById(_ context.Context, _ string) (db.App, error) {
+	return db.App{ID: "app_1", CurrentDeploymentID: sql.NullString{Valid: true, String: "d_1"}}, nil
+}
+
+func (f *frontlineRouteTable) DeleteFrontlineRouteByFQDN(_ context.Context, fqdn string) error {
+	f.calls = append(f.calls, "delete "+fqdn)
+	delete(f.routes, fqdn)
+	return nil
+}
+
+func (f *frontlineRouteTable) InsertFrontlineRoute(_ context.Context, arg db.InsertFrontlineRouteParams) error {
+	f.calls = append(f.calls, "insert "+arg.FullyQualifiedDomainName)
+	if _, ok := f.routes[arg.FullyQualifiedDomainName]; ok {
+		return fmt.Errorf("Duplicate entry '%s' for key 'frontline_routes.frontline_routes_fully_qualified_domain_name_unique' (errno 1062)", arg.FullyQualifiedDomainName)
+	}
+	f.routes[arg.FullyQualifiedDomainName] = arg
+	return nil
+}
+
+// A route row for the verified name is the state a replayed step meets: the
+// verify workflow retries the step for up to 24 hours, so the step must
+// replace the row and land the route on its own app instead of colliding on
+// the unique FQDN key on every attempt.
+func TestCreateFrontlineRouteReplacesRowHoldingTheName(t *testing.T) {
+	table := &frontlineRouteTable{routes: map[string]db.InsertFrontlineRouteParams{
+		"app.example.com": {
+			ID:                       "fr_previous",
+			ProjectID:                "p_1",
+			AppID:                    "app_1",
+			FullyQualifiedDomainName: "app.example.com",
+		},
+	}}
+	svc := New(Config{DB: table, CnameDomain: "cname.unkey.local"})
+
+	require.NoError(t, svc.createFrontlineRoute(context.Background(), db.CustomDomain{
+		ID:            "dom_1",
+		WorkspaceID:   "ws_1",
+		ProjectID:     "p_1",
+		AppID:         "app_1",
+		EnvironmentID: "env_1",
+		Domain:        "app.example.com",
+	}, time.Now().UnixMilli()))
+
+	require.Equal(t, []string{"delete app.example.com", "insert app.example.com"}, table.calls)
+	require.Len(t, table.routes, 1)
+	require.Equal(t, "d_1", table.routes["app.example.com"].DeploymentID)
+	require.Equal(t, db.FrontlineRoutesStickyLive, table.routes["app.example.com"].Sticky)
 }

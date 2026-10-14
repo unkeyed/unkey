@@ -423,27 +423,7 @@ func (s *Service) onVerificationSuccess(
 	// Create frontline route for traffic routing. If no deployment exists yet,
 	// the route will be assigned when the first deployment happens.
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		app, appErr := s.db.FindAppById(stepCtx, dom.AppID)
-		if appErr != nil {
-			return restate.Void{}, fault.Wrap(appErr, fault.Internal("failed to find app for frontline route"))
-		}
-
-		deploymentID := ""
-		if app.CurrentDeploymentID.Valid {
-			deploymentID = app.CurrentDeploymentID.String
-		}
-
-		return restate.Void{}, s.db.InsertFrontlineRoute(stepCtx, db.InsertFrontlineRouteParams{
-			ID:                       uid.New(uid.FrontlineRoutePrefix),
-			ProjectID:                dom.ProjectID,
-			AppID:                    dom.AppID,
-			DeploymentID:             deploymentID,
-			EnvironmentID:            dom.EnvironmentID,
-			FullyQualifiedDomainName: dom.Domain,
-			Sticky:                   db.FrontlineRoutesStickyLive,
-			CreatedAt:                now,
-			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
-		})
+		return restate.Void{}, s.createFrontlineRoute(stepCtx, dom, now)
 	}, restate.WithName("create frontline route"))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to create frontline route"))
@@ -454,6 +434,40 @@ func (s *Service) onVerificationSuccess(
 	)
 
 	return &hydrav1.VerifyDomainResponse{}, nil
+}
+
+// createFrontlineRoute makes the verified domain routable.
+//
+// The table holds one row per fully qualified domain name, so this step clears
+// any route already holding the name before it inserts. A re-execution of the
+// step then converges on the same end state instead of failing on the unique
+// key and retrying forever.
+func (s *Service) createFrontlineRoute(ctx context.Context, dom db.CustomDomain, now int64) error {
+	app, err := s.db.FindAppById(ctx, dom.AppID)
+	if err != nil {
+		return fault.Wrap(err, fault.Internal("failed to find app for frontline route"))
+	}
+
+	deploymentID := ""
+	if app.CurrentDeploymentID.Valid {
+		deploymentID = app.CurrentDeploymentID.String
+	}
+
+	if err := s.db.DeleteFrontlineRouteByFQDN(ctx, dom.Domain); err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(err, fault.Internal("failed to replace existing frontline route"))
+	}
+
+	return s.db.InsertFrontlineRoute(ctx, db.InsertFrontlineRouteParams{
+		ID:                       uid.New(uid.FrontlineRoutePrefix),
+		ProjectID:                dom.ProjectID,
+		AppID:                    dom.AppID,
+		DeploymentID:             deploymentID,
+		EnvironmentID:            dom.EnvironmentID,
+		FullyQualifiedDomainName: dom.Domain,
+		Sticky:                   db.FrontlineRoutesStickyLive,
+		CreatedAt:                now,
+		UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
+	})
 }
 
 // onVerificationFailed handles failed domain verification after timeout.
