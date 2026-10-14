@@ -43,7 +43,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
-	"github.com/unkeyed/unkey/svc/ctrl/services/ops"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -237,10 +236,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Bearer:   cfg.AuthToken,
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
-	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
-		DeploymentService: deploymentSvc,
-		Bearer:            cfg.AuthToken,
-	})))
 
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(openapi.Config{
 		Database: database,
