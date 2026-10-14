@@ -79,11 +79,33 @@ describe("createSubscriptionCheckout", () => {
           billing_mode: { type: "classic" },
           proration_behavior: "create_prorations",
         },
-        allow_promotion_codes: true,
         success_url: baseInput.successUrl,
       });
     },
   );
+
+  it("stamps the paying user's WorkOS id on the subscription", async () => {
+    const { stripe, create } = stubStripe();
+
+    await createSubscriptionCheckout(stripe, {
+      ...baseInput,
+      product: "compute",
+      workosUserId: "user_payer",
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: { unkey_product: "compute" },
+        subscription_data: expect.objectContaining({
+          metadata: {
+            unkey_product: "compute",
+            workspace_id: "ws_1",
+            workos_user_id: "user_payer",
+          },
+        }),
+      }),
+    );
+  });
 
   it("reuses an open idempotent session", async () => {
     const live = checkoutSession({ id: "cs_open", url: "https://checkout.stripe.test/open" });

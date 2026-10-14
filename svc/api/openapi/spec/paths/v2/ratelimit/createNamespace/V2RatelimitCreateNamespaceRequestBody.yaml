@@ -1,0 +1,18 @@
+type: object
+required:
+  - name
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |
+      The name of the namespace, unique within your workspace. Names are case-sensitive.
+      Pass it as `namespace` to `ratelimit.limit` and the override endpoints.
+    example: email.outbound
+additionalProperties: false
+examples:
+  basic:
+    summary: Create a namespace
+    value:
+      name: email.outbound

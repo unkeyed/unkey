@@ -186,13 +186,13 @@ func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 	if name == "" {
 		name = key.Start
 	}
-	keyResource := auditlog.AuditLogResource{Type: auditlog.KeyResourceType, ID: key.ID, Name: name, DisplayName: name, Meta: map[string]any{}}
+	keyTarget := auditlog.AuditLogTarget{Type: auditlog.KeyTargetType, ID: key.ID, Name: name, DisplayName: name, Meta: map[string]any{}}
 	logs := []auditlog.AuditLog{{
 		WorkspaceID: workspaceID, Event: auditlog.RootKeyUpdateEvent,
 		ActorType: actor.Type, ActorID: actor.ID, ActorName: actor.Name, ActorMeta: actor.Meta,
 		Display: "Updated root key " + key.ID, RemoteIP: s.Location(), UserAgent: s.UserAgent(),
 		CorrelationID: "",
-		Resources:     []auditlog.AuditLogResource{keyResource},
+		Targets:       []auditlog.AuditLogTarget{keyTarget},
 	}}
 	logs = append(logs, array.Map(removedPermissions, func(permission db.ListUnkeyPermissionRowsByPrincipalRow) auditlog.AuditLog {
 		return auditlog.AuditLog{
@@ -200,8 +200,8 @@ func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 			ActorType: actor.Type, ActorID: actor.ID, ActorName: actor.Name, ActorMeta: actor.Meta,
 			Display: "Removed permission " + permission.Slug + " from root key " + key.ID, RemoteIP: s.Location(), UserAgent: s.UserAgent(),
 			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{keyResource, {
-				Type: auditlog.PermissionResourceType, ID: permission.ID,
+			Targets: []auditlog.AuditLogTarget{keyTarget, {
+				Type: auditlog.PermissionTargetType, ID: permission.ID,
 				Name: permission.Slug, DisplayName: permission.Slug, Meta: map[string]any{},
 			}},
 		}
@@ -212,8 +212,8 @@ func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 			ActorType: actor.Type, ActorID: actor.ID, ActorName: actor.Name, ActorMeta: actor.Meta,
 			Display: "Granted " + permission.Slug, RemoteIP: s.Location(), UserAgent: s.UserAgent(),
 			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{keyResource, {
-				Type: auditlog.PermissionResourceType, ID: permission.ID,
+			Targets: []auditlog.AuditLogTarget{keyTarget, {
+				Type: auditlog.PermissionTargetType, ID: permission.ID,
 				Name: permission.Slug, DisplayName: permission.Slug, Meta: map[string]any{},
 			}},
 		}

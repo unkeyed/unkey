@@ -77,6 +77,23 @@ func (s *Service) PromoteDeployment(ctx restate.ObjectContext, req *hydrav1.Prom
 			})
 	}
 
+	targets := []auditlog.AuditLogTarget{{
+		Type:        auditlog.AppTargetType,
+		ID:          deployment.AppID,
+		DisplayName: deployment.AppID,
+		Name:        "",
+		Meta:        nil,
+	}}
+	if demotedID != "" {
+		targets = append(targets, auditlog.AuditLogTarget{
+			Type:        auditlog.DeploymentTargetType,
+			ID:          demotedID,
+			DisplayName: demotedID,
+			Name:        "",
+			Meta:        nil,
+		})
+	}
+
 	if err := audit.InsertDeploymentLifecycle(
 		ctx,
 		s.auditlogs,
@@ -91,6 +108,7 @@ func (s *Service) PromoteDeployment(ctx restate.ObjectContext, req *hydrav1.Prom
 		},
 		auditlog.DeploymentPromoteEvent,
 		fmt.Sprintf("Promoted deployment %s", deployment.ID),
+		targets...,
 	); err != nil {
 		return nil, fmt.Errorf("insert promote audit log: %w", err)
 	}

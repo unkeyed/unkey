@@ -63,6 +63,89 @@ Start the full development setup:
 mise run dev
 ```
 
+To run one service and its dependencies, pass its Tilt resource name:
+
+```bash
+mise run dev -- api
+```
+
+This starts the API, its databases, and required setup without compiling the
+control plane or starting the dashboard. You can pass multiple resource names.
+Selecting `krane` still includes its Cilium policies and storage dependencies.
+To change the selection without restarting Tilt:
+
+```bash
+mise exec -- tilt args -- api
+```
+
+Tilt builds `@unkey/api` before starting the dashboard and rebuilds it when SDK
+source files change. The dashboard picks up the compiled output without a
+manual SDK build. SDK build failures appear in the `api-sdk` resource.
+
+Independent updates run in parallel, with up to 16 active Tilt updates.
+`seed-compile` builds the host CLI while MySQL starts. `seed` then writes the
+fixtures without blocking unrelated updates. Both steps have separate timings
+in Tilt.
+
+MySQL and ClickHouse pull their pinned upstream images directly into the
+cluster. Their SQL and initialization scripts mount from ConfigMaps, so Tilt
+does not rebuild or push database images. A fresh node still downloads the
+upstream images. Image pulls run in parallel.
+
+Tilt manages Minikube's storage provisioner instead of the built-in addon.
+The same provisioner uses the node's API endpoint directly, with its service
+account and TLS verification. This avoids a 30-second startup timeout when
+service networking is not ready. Existing PVCs and storage paths are unchanged.
+Keep the built-in `storage-provisioner` addon disabled while using Tilt.
+
+Minikube waits for the API server and kubelet before starting Tilt. Tilt installs
+Cilium through Helm, then checks the Cilium agent, policy CRDs, node readiness,
+and CoreDNS before applying network policies. Node readiness cannot gate Helm
+installation because the node needs Cilium to become ready. Hubble readiness
+does not block application startup. Orbs use bridge networking and wait for
+node readiness during Minikube startup instead.
+
+Minikube 1.39.0 requires `--force` when CNI installation is disabled with the
+containerd runtime. The Helm-managed Cilium path uses this flag so Tilt can
+install Cilium. It also bypasses Minikube's driver and resource safety checks.
+The startup script still rejects incompatible Kubernetes versions and CNI modes.
+
+Unkey uses the Minikube profile `unkey` and registry `unkey-registry`.
+The previous generic `minikube` profile and `ctlptl-registry` are left alone.
+Their data is not moved into the `unkey` cluster.
+
+An existing `unkey` profile is reused, not reapplied through `ctlptl`.
+Changes to `dev/cluster.yaml` apply only when creating a cluster, because
+`ctlptl apply` can delete a cluster when its configuration changes.
+Kubernetes version or CNI changes require an explicit reset.
+
+The toolchain pins Minikube 1.39.0, Kubernetes/kubectl 1.37.0, and Cilium 1.20.2.
+Kubernetes 1.37.0 is built into Minikube's version list, avoiding a remote
+version lookup during startup. Tilt manages actual Helm releases for Cilium
+(including Hubble) and TopoLVM 15.5.4. Their configuration lives in
+`dev/k8s/cilium/values.yaml` and `dev/k8s/topolvm/values.yaml`. Helm adopts the
+previously applied local resources without deleting volumes. TopoLVM's chart
+also owns the `topolvm-ssd` StorageClass. Orbs keep the matching
+CiliumNetworkPolicy CRD without policy enforcement or a Cilium release.
+
+Inspect the installed releases with:
+
+```bash
+mise exec -- helm list --all-namespaces
+```
+
+Startup rejects profiles with a different Kubernetes version or CNI mode.
+The task does not request a Kubernetes upgrade or cluster deletion. Minikube
+can reset an unhealthy control plane during recovery. Back up local data
+before recovering an unhealthy cluster or explicitly resetting it.
+
+Run `mise install --locked --yes` after pulling toolchain changes. The web
+dependency task installs pinned Node and pnpm if needed and invokes pnpm
+directly, without falling back to Corepack. Installation failures stop the task
+without weakening lockfile or provenance checks. pnpm 11.28.5 publishes no
+Intel macOS standalone binary; this pin supports Apple Silicon Macs, not Intel
+Macs. Don't regenerate a lock entry pointing to `source-maps.tgz`.
+
 Local deployments use in-cluster BuildKit Jobs by default and don't require Depot credentials. To test the Depot backend, copy `dev/.env.depot.example` to `dev/.env.depot` and set both values to your Depot token before starting the environment.
 
 You get:
@@ -97,9 +180,38 @@ Tilt generates trusted TLS certificates using mkcert and Frontline terminates TL
 
 ## Stop the development environment
 
+Exit Tilt with Ctrl+C to stop local processes and port forwards, then stop
+Minikube:
+
 ```bash
 mise run down
 ```
+
+This preserves the cluster, images, and local data. Run `mise run dev` to resume.
+Do not use `tilt down` for a routine stop: it deletes Kubernetes resources,
+including persistent volume claims.
+
+To delete Unkey's local data and builds, exit Tilt and stop tests. Preview the
+targets, then run the cleanup and type `unkey` to confirm:
+
+```bash
+mise run nuke --dry-run
+mise run nuke
+```
+
+This removes the `unkey` cluster, owned dev and test containers, volumes,
+networks, images, and the dedicated `unkey` Docker builder and its cache.
+It also removes this checkout's build outputs and Next.js/Turbo caches.
+Environment files and dependencies remain.
+
+Containers, volumes, and networks use `dev.unkey.project=unkey`. Built images
+use `dev.unkey.image=true`, so containers do not inherit resource ownership
+from an image. Minikube and Buildx use dedicated names and owned state volumes.
+Older Unkey Compose project labels and image source labels are also recognized.
+Resources still used by other containers are kept.
+
+Shared upstream images, Docker's shared build cache, other Minikube profiles,
+and the legacy `minikube`/`ctlptl-registry` resources are not removed.
 
 ## Environment configuration
 
@@ -145,18 +257,22 @@ catalog), so you only add two values:
 - `STRIPE_SECRET_KEY` - a test-mode key (`sk_test_...`) from the shared sandbox.
 - `STRIPE_WEBHOOK_SECRET` - the signing secret for forwarded webhook events.
 
-If the stripe CLI is logged in (`stripe login`), `tilt up` handles webhook
-forwarding for you: it runs `stripe listen` against both the dashboard
-(`localhost:3000/api/webhooks/stripe`) and ctrl-api
-(`localhost:7091/webhooks/stripe`), and writes the shared `STRIPE_WEBHOOK_SECRET`
-into both `web/apps/dashboard/.env` and `dev/.env.stripe`. No manual step needed.
-
-If the CLI is not logged in, forward events and copy the printed `whsec_...`
-yourself:
+Stripe webhook forwarding starts automatically when the Stripe CLI can obtain
+a valid signing secret. For billing development, authenticate before starting:
 
 ```bash
-stripe listen --forward-to http://localhost:3000/api/webhooks/stripe
+mise exec -- stripe login
+mise run dev
 ```
+
+This runs `stripe listen` against both the dashboard
+(`localhost:3000/api/webhooks/stripe`) and ctrl-api
+(`localhost:7091/webhooks/stripe`). Tilt writes the shared `STRIPE_WEBHOOK_SECRET`
+into both `web/apps/dashboard/.env` and `dev/.env.stripe` before starting its
+consumers. A missing CLI, authentication failure, invalid secret, or a check
+that takes more than five seconds skips forwarding without blocking startup.
+Existing credentials stay unchanged and still load from `dev/.env.stripe`.
+After logging in, reload Tilt to retry the check.
 
 To set up a fresh Stripe sandbox (products, meters, prices), follow the catalog
 guide in the infra repo: <a href="https://github.com/unkeyed/infra/blob/main/docs/services/stripe-billing.md" target="_blank">Stripe Billing</a>.
@@ -170,7 +286,7 @@ Each is optional: a missing file disables that piece and never breaks startup.
   - `STRIPE_SECRET_KEY` - test-mode key for the hourly usage push and the
     month-end invoice finalize.
   - `STRIPE_WEBHOOK_SECRET` - the close webhook's signing secret, written
-    automatically by `tilt up` when the stripe CLI is logged in (as above).
+    automatically when the Stripe CLI is available and authenticated (as above).
   - `STRIPE_DEPLOY_*_LOOKUP_KEY` - the price lookup_keys `CancelDeploy` uses to
     find a subscription's Deploy items. Same handles the dashboard uses; empty
     disables cancel.

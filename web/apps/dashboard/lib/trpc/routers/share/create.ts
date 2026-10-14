@@ -54,7 +54,7 @@ export const createSharedSecret = workspaceProcedure
           actor: { type: "user", id: ctx.user.id },
           event: "secret.create",
           description: "Created a one-time share link",
-          resources: [],
+          targets: [],
           context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
         });
       });

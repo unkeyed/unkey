@@ -4,3 +4,16 @@ description: How to compose the rows of a settings group.
 ---
 
 <Component path="settings-group/basic" />
+
+## Settings forms
+
+`SettingsGroups` stacks the groups of a settings page. Each `SettingsGroupContent` draws one card and collects the `SettingsForm` rows inside it. The card shows one Save button for all of its rows, and saves only the rows with changes.
+
+- `pendingNote` on `SettingsGroups` shows beside Save while a card has unsaved changes. Use it to say when the change takes effect.
+- A card reports its unsaved changes to the nearest unsaved-changes scope. See [Slide panel](/primitives/slide-panel#unsaved-changes-registry).
+
+## Collapsible group
+
+<Component path="settings-group/collapsible" />
+
+Use `SettingsGroupCollapsible` for settings that most users keep at the default. The closed header shows `summary`, or "Unsaved changes" while a row in the card is dirty.

@@ -1,69 +1,147 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import type { DiscardChangesDialogProps } from "@unkey/ui";
+import type { Route } from "next";
+import { useRouter } from "next/navigation";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import {
+  type LeaveEvent,
+  type LeavePhase,
+  SENTINEL_STATE,
+  isLeaveSentinel,
+  leavingLinkHref,
+  nextLeaveStep,
+} from "./prevent-leave-model";
 
-const CONFIRM_MESSAGE = "Changes you made may not be saved.";
+// Neither popstate nor pagehide within this window means there is no entry to go back to.
+const BACK_FALLBACK_DELAY_MS = 300;
 
-/**
- * Prevents the user from accidentally leaving the page via tab close, refresh,
- * or browser back navigation. When `enabled` is true the hook:
- *
- * - Listens for `beforeunload` to intercept tab close / refresh.
- * - Pushes a sentinel history entry and listens for `popstate` to intercept the
- *   browser back button, showing a `window.confirm` dialog.
- *
- * Returns a `bypass` function that can be called before an intentional
- * navigation (e.g. an OAuth redirect) to skip the confirmation.
- */
-export function usePreventLeave(enabled = true): { bypass: () => void } {
-  const skipNextRef = useRef(false);
+type Leave = { kind: "back" } | { kind: "link"; href: string };
 
-  // Allows exactly the next beforeunload event through (e.g. an OAuth redirect)
-  // without disabling the guard permanently. The flag auto-resets on the next
-  // tick so the guard stays active for everything else.
-  const bypass = useCallback(() => {
-    skipNextRef.current = true;
-    setTimeout(() => {
-      skipNextRef.current = false;
-    }, 0);
-  }, []);
+function sentinelOnTop(): boolean {
+  return isLeaveSentinel(window.history.state);
+}
 
+function pushSentinel() {
+  window.history.pushState(SENTINEL_STATE, "", window.location.href);
+}
+
+export function usePreventLeave(
+  enabled: boolean,
+  fallbackHref: Route,
+): {
+  bypass: () => void;
+  navigate: (href: Route) => void;
+  prompt: DiscardChangesDialogProps;
+} {
+  const router = useRouter();
+  const phaseRef = useRef<LeavePhase>("idle");
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [pending, setPending] = useState<Leave | null>(null);
+
+  const send = (event: LeaveEvent, nativeEvent?: Event) => {
+    const step = nextLeaveStep(phaseRef.current, event);
+    phaseRef.current = step.phase;
+    for (const effect of step.effects) {
+      switch (effect) {
+        case "pushSentinel":
+          pushSentinel();
+          break;
+        case "historyBack":
+          window.history.back();
+          break;
+        case "blockUnload":
+          nativeEvent?.preventDefault();
+          break;
+        case "askBack":
+          setPending({ kind: "back" });
+          break;
+        case "closePrompt":
+          setPending(null);
+          break;
+        case "armFallback":
+          fallbackTimerRef.current = setTimeout(
+            () => send({ type: "fallbackElapsed" }),
+            BACK_FALLBACK_DELAY_MS,
+          );
+          break;
+        case "disarmFallback":
+          clearTimeout(fallbackTimerRef.current);
+          break;
+        case "goToFallback":
+          router.replace(fallbackHref);
+          break;
+      }
+    }
+  };
+  const sendFromListener = useEffectEvent(send);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Biome 1.9 does not know useEffectEvent, whose result must stay out of the deps
   useEffect(() => {
     if (!enabled) {
       return;
     }
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (skipNextRef.current) {
+    const onBeforeUnload = (event: BeforeUnloadEvent) =>
+      sendFromListener({ type: "beforeunload" }, event);
+    const onPopState = (event: PopStateEvent) =>
+      sendFromListener({ type: "popstate", sentinel: isLeaveSentinel(event.state) });
+    const onPageHide = () => sendFromListener({ type: "pagehide" });
+    const onClick = (event: MouseEvent) => {
+      const href = leavingLinkHref(event);
+      if (href === null) {
         return;
       }
-      e.preventDefault();
+      event.preventDefault();
+      setPending({ kind: "link", href });
     };
 
-    // Push a sentinel history entry so pressing back triggers popstate instead
-    // of leaving the page. On popstate, show a confirm dialog — if the user
-    // cancels we re-push the entry; if they confirm we actually navigate back.
-    window.history.pushState(null, "", window.location.href);
-
-    const handlePopState = () => {
-      if (skipNextRef.current) {
-        return;
-      }
-      if (window.confirm(CONFIRM_MESSAGE)) {
-        window.history.back();
-      } else {
-        window.history.pushState(null, "", window.location.href);
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("popstate", handlePopState);
+    sendFromListener({ type: "guardOn", sentinelOnTop: sentinelOnTop() });
+    window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("popstate", onPopState);
+    window.addEventListener("pagehide", onPageHide);
+    document.addEventListener("click", onClick, true);
 
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("pagehide", onPageHide);
+      document.removeEventListener("click", onClick, true);
+      sendFromListener({ type: "guardOff", sentinelOnTop: sentinelOnTop() });
     };
   }, [enabled]);
 
-  return { bypass };
+  const discard = (leave: Leave) => {
+    setPending(null);
+    if (leave.kind === "back") {
+      send({ type: "leaveBack" });
+      return;
+    }
+    send({ type: "leave" });
+    const url = new URL(leave.href);
+    if (url.origin !== window.location.origin) {
+      window.location.assign(leave.href);
+      return;
+    }
+    router.replace(`${url.pathname}${url.search}${url.hash}` as Route);
+  };
+
+  return {
+    bypass: () => send({ type: "leave" }),
+    navigate: (href) => {
+      if (enabled) {
+        setPending({ kind: "link", href: new URL(href, window.location.href).href });
+      } else {
+        router.push(href);
+      }
+    },
+    prompt: {
+      open: pending !== null,
+      onKeepEditing: () => send({ type: "keepEditing", sentinelOnTop: sentinelOnTop() }),
+      onDiscard: () => {
+        if (pending) {
+          discard(pending);
+        }
+      },
+    },
+  };
 }

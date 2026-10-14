@@ -22,7 +22,7 @@ import {
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { ApiPlans } from "./api-plans";
-import { CREDITS_INFO, CREDITS_LINK_HREF, CREDITS_LINK_LABEL } from "./compute-plan-copy";
+import { CREDITS_LINK_HREF, CREDITS_LINK_LABEL, planCreditsCopy } from "./compute-plan-copy";
 import { ComputePlans } from "./compute-plans";
 import {
   type PaywallProduct,
@@ -108,6 +108,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
         from={from}
         manage={copy.manage}
         onChanged={close}
+        signupCreditClaimed={subscriptionQuery.data?.signupCreditClaimed}
       />
     ),
     api: (
@@ -132,7 +133,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
               onValueChange={(value) =>
                 setSelectedProduct(products.find((product) => product === value) ?? null)
               }
-              className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-24 pb-10 transition-[translate] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-data-starting-style/plans:translate-y-3 motion-reduce:transition-none md:px-6 md:pt-28 md:pb-16"
+              className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-24 pb-10 transition-[translate] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-data-starting-style/plans:translate-y-3 motion-reduce:transition-none md:justify-center md:px-6 md:py-24"
             >
               <div className="relative">
                 <Logo
@@ -151,7 +152,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
                     className={activeProduct === "compute" ? undefined : "invisible"}
                   >
                     {" "}
-                    {CREDITS_INFO}{" "}
+                    {planCreditsCopy()}{" "}
                     <a
                       href={CREDITS_LINK_HREF}
                       target="_blank"

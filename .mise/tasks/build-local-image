@@ -15,7 +15,7 @@ TAG="${TAG:-dev}"
 # Defaults to the Dockerfile's own directory. Dockerfiles that build a binary
 # from the root Go module (e.g. svc/kitchensink) need CONTEXT=. instead.
 CONTEXT="${CONTEXT:-$(dirname "$DOCKERFILE")/}"
-REGISTRY="$(kubectl get configmap local-registry-hosting -n kube-public -o jsonpath='{.data.localRegistryHosting\.v1}' 2>/dev/null | grep '^host:' | awk '{print $2}')"
+REGISTRY="$(kubectl --context unkey get configmap local-registry-hosting -n kube-public -o jsonpath='{.data.localRegistryHosting\.v1}' 2>/dev/null | grep '^host:' | awk '{print $2}')"
 if [ -z "$REGISTRY" ]; then
   echo "Error: Could not find local registry. Is minikube running with ctlptl?"
   exit 1
@@ -23,8 +23,8 @@ fi
 
 echo "Building $NAME:$TAG from $DOCKERFILE (context: $CONTEXT)"
 echo "Pushing to $REGISTRY/$NAME:$TAG"
-docker build -t "$REGISTRY/$NAME:$TAG" -f "$DOCKERFILE" "$CONTEXT"
+mise run build-image -- -t "$REGISTRY/$NAME:$TAG" -f "$DOCKERFILE" "$CONTEXT"
 docker push "$REGISTRY/$NAME:$TAG"
 echo ""
 echo "Image pushed successfully!"
-echo "Use in pod spec: ctlptl-registry:5000/$NAME:$TAG"
+echo "Use in pod spec: unkey-registry:5000/$NAME:$TAG"
