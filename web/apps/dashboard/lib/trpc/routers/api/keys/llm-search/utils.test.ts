@@ -158,4 +158,52 @@ describe("getKeysStructuredSearchFromLLM", () => {
       }),
     );
   });
+  it("should return search guidance when the model picks an operator the field does not support", async () => {
+    const responseData = {
+      filters: [
+        {
+          field: "keyIds",
+          filters: [{ operator: "startsWith", value: "key_abc" }],
+        },
+      ],
+    };
+    const mockResponse = {
+      choices: [{ message: { content: JSON.stringify(responseData) } }],
+    };
+    mockOpenAI.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+
+    await expect(
+      getKeysStructuredSearchFromLLM(
+        mockOpenAI as any,
+        "find keys that start with key_abc",
+        1706024400000,
+      ),
+    ).rejects.toMatchObject({
+      code: "UNPROCESSABLE_CONTENT",
+      message: expect.stringContaining("Try using phrases like"),
+    });
+  });
+
+  it("should accept an operator the field supports", async () => {
+    const responseData = {
+      filters: [
+        {
+          field: "names",
+          filters: [{ operator: "startsWith", value: "test_" }],
+        },
+      ],
+    };
+    const mockResponse = {
+      choices: [{ message: { content: JSON.stringify(responseData) } }],
+    };
+    mockOpenAI.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+
+    const result = await getKeysStructuredSearchFromLLM(
+      mockOpenAI as any,
+      "find keys with a name starting with test_",
+      1706024400000,
+    );
+
+    expect(result).toEqual(responseData);
+  });
 });

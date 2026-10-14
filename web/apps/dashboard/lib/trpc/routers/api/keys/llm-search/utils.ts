@@ -7,6 +7,15 @@ import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type OpenAI from "openai";
 import z from "zod";
 
+const SEARCH_QUERY_EXAMPLES =
+  "Try using phrases like:\n" +
+  "• 'show keys created in the last 30 minutes'\n" +
+  "• 'find keys with name containing test'\n" +
+  "• 'find key with id key_abc123'\n" +
+  "• 'show successful keys since 1h'\n" +
+  "• 'show keys with the outcome valid'\n" +
+  "For additional help, contact support@unkey.com";
+
 /**
  * Creates a Zod schema for validating LLM-generated structured filter output for keys.
  * Used with OpenAI's parse completion to enforce type safety and validation rules
@@ -58,19 +67,19 @@ export async function getKeysStructuredSearchFromLLM(
     if (!rawContent) {
       throw new TRPCError({
         code: "UNPROCESSABLE_CONTENT",
-        message:
-          "Try using phrases like:\n" +
-          "• 'show keys created in the last 30 minutes'\n" +
-          "• 'find keys with name containing test'\n" +
-          "• 'find key with id key_abc123'\n" +
-          "• 'show successful keys since 1h'\n" +
-          "• 'show keys with the outcome valid'\n" +
-          "For additional help, contact support@unkey.com",
+        message: SEARCH_QUERY_EXAMPLES,
       });
     }
 
-    const parsed = filterOutputSchema.parse(JSON.parse(rawContent));
-    return parsed;
+    const parsed = filterOutputSchema.safeParse(JSON.parse(rawContent));
+    if (!parsed.success) {
+      throw new TRPCError({
+        code: "UNPROCESSABLE_CONTENT",
+        message: SEARCH_QUERY_EXAMPLES,
+      });
+    }
+
+    return parsed.data;
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
