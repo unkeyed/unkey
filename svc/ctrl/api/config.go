@@ -27,19 +27,11 @@ type RestateConfig struct {
 }
 
 // GitHubConfig holds GitHub App integration settings for webhook-triggered
-// deployments and deployment authorization.
+// deployments.
 type GitHubConfig struct {
 	// WebhookSecret is the secret used to verify webhook signatures.
 	// Configured in the GitHub App webhook settings.
 	WebhookSecret string `toml:"webhook_secret"`
-
-	// AppID is the GitHub App ID for authentication.
-	// Required for deployment authorization (fetching branch HEAD).
-	AppID int64 `toml:"app_id"`
-
-	// PrivateKeyPEM is the GitHub App private key in PEM format.
-	// Required for deployment authorization (fetching branch HEAD).
-	PrivateKeyPEM string `toml:"private_key_pem"`
 }
 
 // StripeConfig holds the Stripe integration for the month-end Deploy billing
