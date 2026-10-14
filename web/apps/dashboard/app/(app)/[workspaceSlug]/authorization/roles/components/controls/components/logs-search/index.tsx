@@ -59,7 +59,7 @@ export const RolesSearch = () => {
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>
-        queryLLMForStructuredOutput.mutateAsync({
+        queryLLMForStructuredOutput.mutate({
           query,
         })
       }
