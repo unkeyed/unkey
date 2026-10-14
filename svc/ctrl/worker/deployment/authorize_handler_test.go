@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"math/rand/v2"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
@@ -18,6 +20,7 @@ import (
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -28,7 +31,7 @@ import (
 
 func TestAuthorizeDeploymentStartsImageDeployment(t *testing.T) {
 	ctx := context.Background()
-	f := newAuthorizeFixture(t, ctx, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED)
+	f := newHandlerFixture(t, ctx, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED)
 
 	dep := f.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
 		WorkspaceID:    f.workspaceID,
@@ -52,13 +55,13 @@ func TestAuthorizeDeploymentStartsImageDeployment(t *testing.T) {
 	require.Equal(t, mysqltype.DeploymentsStatusPending, create.statusAtCall, "Create only accepts an existing row that is already pending")
 
 	f.requireStatus(t, ctx, dep.ID, mysqltype.DeploymentsStatusPending)
-	require.Equal(t, 1, f.countAudits(t, ctx, dep.ID, actorID))
+	require.Equal(t, 1, f.countAudits(t, ctx, auditlog.DeploymentAuthorizeEvent, dep.ID, actorID))
 	require.Empty(t, f.github.statuses(), "an image deployment has no commit to post a status on")
 }
 
 func TestAuthorizeDeploymentStartsGitDeployment(t *testing.T) {
 	ctx := context.Background()
-	f := newAuthorizeFixture(t, ctx, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED)
+	f := newHandlerFixture(t, ctx, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED)
 
 	repo := "KEBAP/" + uid.DNS1035(8)
 	require.NoError(t, f.database.InsertGithubRepoConnection(ctx, db.InsertGithubRepoConnectionParams{
@@ -92,13 +95,13 @@ func TestAuthorizeDeploymentStartsGitDeployment(t *testing.T) {
 	require.Equal(t, dep.ID, create.GetExistingDeployment().GetDeploymentId(), "Create must reuse the row the push wrote")
 
 	f.requireStatus(t, ctx, dep.ID, mysqltype.DeploymentsStatusPending)
-	require.Equal(t, 1, f.countAudits(t, ctx, dep.ID, actorID))
+	require.Equal(t, 1, f.countAudits(t, ctx, auditlog.DeploymentAuthorizeEvent, dep.ID, actorID))
 	require.Equal(t, []commitStatus{{repo: repo, sha: "9f2c1a7", state: "success"}}, f.github.statuses())
 }
 
 func TestAuthorizeDeploymentRejectsDeploymentNotAwaitingApproval(t *testing.T) {
 	ctx := context.Background()
-	f := newAuthorizeFixture(t, ctx, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED)
+	f := newHandlerFixture(t, ctx, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED)
 
 	dep := f.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
 		WorkspaceID:   f.workspaceID,
@@ -114,14 +117,14 @@ func TestAuthorizeDeploymentRejectsDeploymentNotAwaitingApproval(t *testing.T) {
 
 	require.Empty(t, f.workflow.calls(dep.ID))
 	f.requireStatus(t, ctx, dep.ID, mysqltype.DeploymentsStatusBuilding)
-	require.Zero(t, f.countAudits(t, ctx, dep.ID, actorID))
+	require.Zero(t, f.countAudits(t, ctx, auditlog.DeploymentAuthorizeEvent, dep.ID, actorID))
 }
 
 // A refused create leaves no run behind, so the row goes back to
 // awaiting_approval and the approval can be retried once the cause is fixed.
 func TestAuthorizeDeploymentRevertsWhenCreateRefuses(t *testing.T) {
 	ctx := context.Background()
-	f := newAuthorizeFixture(t, ctx, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN)
+	f := newHandlerFixture(t, ctx, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN)
 
 	dep := f.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
 		WorkspaceID:    f.workspaceID,
@@ -139,22 +142,23 @@ func TestAuthorizeDeploymentRevertsWhenCreateRefuses(t *testing.T) {
 
 	require.Len(t, f.workflow.calls(dep.ID), 1)
 	f.requireStatus(t, ctx, dep.ID, mysqltype.DeploymentsStatusAwaitingApproval)
-	require.Zero(t, f.countAudits(t, ctx, dep.ID, actorID))
+	require.Zero(t, f.countAudits(t, ctx, auditlog.DeploymentAuthorizeEvent, dep.ID, actorID))
 }
 
-type authorizeFixture struct {
+type handlerFixture struct {
 	database      db.Database
 	seeder        *seed.Seeder
 	client        *restateingress.Client
 	workflow      *fakeDeployWorkflow
 	github        *recordingGitHub
+	admin         *recordingAdmin
 	workspaceID   string
 	projectID     string
 	appID         string
 	environmentID string
 }
 
-func newAuthorizeFixture(t *testing.T, ctx context.Context, outcome hydrav1.CreateOutcome) *authorizeFixture {
+func newHandlerFixture(t *testing.T, ctx context.Context, outcome hydrav1.CreateOutcome) *handlerFixture {
 	t.Helper()
 
 	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
@@ -165,11 +169,21 @@ func newAuthorizeFixture(t *testing.T, ctx context.Context, outcome hydrav1.Crea
 	require.NoError(t, err)
 
 	github := &recordingGitHub{Noop: githubclient.NewNoop()}
+	admin := &recordingAdmin{cancelled: nil}
+	adminServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		admin.mu.Lock()
+		defer admin.mu.Unlock()
+		admin.cancelled = append(admin.cancelled, strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/invocations/"), "/cancel"))
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	t.Cleanup(adminServer.Close)
+
 	deploymentSvc, err := deployment.New(deployment.Config{
 		DB:                              database,
 		Auditlogs:                       auditlogSvc,
 		GitHub:                          github,
 		AllowUnauthenticatedDeployments: false,
+		RestateAdmin:                    restateadmin.New(restateadmin.Config{BaseURL: adminServer.URL, APIKey: ""}),
 	})
 	require.NoError(t, err)
 
@@ -205,12 +219,13 @@ func newAuthorizeFixture(t *testing.T, ctx context.Context, outcome hydrav1.Crea
 		Kind:        mysqltype.EnvironmentKindPreview,
 	})
 
-	return &authorizeFixture{
+	return &handlerFixture{
 		database:      database,
 		seeder:        seeder,
 		client:        restateCfg.IngressClient,
 		workflow:      workflow,
 		github:        github,
+		admin:         admin,
 		workspaceID:   workspaceID,
 		projectID:     project.ID,
 		appID:         app.ID,
@@ -218,7 +233,7 @@ func newAuthorizeFixture(t *testing.T, ctx context.Context, outcome hydrav1.Crea
 	}
 }
 
-func (f *authorizeFixture) authorize(ctx context.Context, deploymentID, actorID string) (*hydrav1.AuthorizeDeploymentResponse, error) {
+func (f *handlerFixture) authorize(ctx context.Context, deploymentID, actorID string) (*hydrav1.AuthorizeDeploymentResponse, error) {
 	return hydrav1.NewDeploymentServiceIngressClient(f.client, deploymentID).
 		AuthorizeDeployment().
 		Request(ctx, &hydrav1.AuthorizeDeploymentRequest{
@@ -227,14 +242,14 @@ func (f *authorizeFixture) authorize(ctx context.Context, deploymentID, actorID 
 		})
 }
 
-func (f *authorizeFixture) requireStatus(t *testing.T, ctx context.Context, deploymentID string, want mysqltype.DeploymentsStatus) {
+func (f *handlerFixture) requireStatus(t *testing.T, ctx context.Context, deploymentID string, want mysqltype.DeploymentsStatus) {
 	t.Helper()
 	row, err := f.database.FindDeploymentById(ctx, deploymentID)
 	require.NoError(t, err)
 	require.Equal(t, want, row.Status)
 }
 
-func (f *authorizeFixture) countAudits(t *testing.T, ctx context.Context, deploymentID, actorID string) int {
+func (f *handlerFixture) countAudits(t *testing.T, ctx context.Context, event auditlog.AuditLogEvent, deploymentID, actorID string) int {
 	t.Helper()
 	rows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
 	require.NoError(t, err)
@@ -242,7 +257,7 @@ func (f *authorizeFixture) countAudits(t *testing.T, ctx context.Context, deploy
 	count := 0
 	for _, row := range rows {
 		payload := string(row.Payload)
-		if strings.Contains(payload, string(auditlog.DeploymentAuthorizeEvent)) &&
+		if strings.Contains(payload, string(event)) &&
 			strings.Contains(payload, deploymentID) &&
 			strings.Contains(payload, actorID) {
 			count++
@@ -316,4 +331,15 @@ func (g *recordingGitHub) statuses() []commitStatus {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	return g.sent
+}
+
+type recordingAdmin struct {
+	mu        sync.Mutex
+	cancelled []string
+}
+
+func (a *recordingAdmin) invocations() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.cancelled
 }

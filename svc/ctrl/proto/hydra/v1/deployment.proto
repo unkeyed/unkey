@@ -62,6 +62,10 @@ service DeploymentService {
   // moves the row to pending and hands it to DeployWorkflow.Create, which
   // starts the build. A refused create puts the row back to awaiting_approval
   rpc AuthorizeDeployment(AuthorizeDeploymentRequest) returns (AuthorizeDeploymentResponse) {}
+
+  // CancelDeployment aborts a deployment that is still in progress. It ends the
+  // open step, marks the row cancelled and cancels the Deploy invocation
+  rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse) {}
 }
 
 message ClearScheduledStateChangesRequest {}
@@ -130,3 +134,11 @@ message AuthorizeDeploymentRequest {
 }
 
 message AuthorizeDeploymentResponse {}
+
+message CancelDeploymentRequest {
+  string deployment_id = 1;
+  ctrl.v1.ActorInfo actor = 2;
+  string correlation_id = 3;
+}
+
+message CancelDeploymentResponse {}

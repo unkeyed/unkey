@@ -362,6 +362,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Auditlogs:                       auditlogSvc,
 		GitHub:                          ghClient,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
+		RestateAdmin:                    restateAdminClient,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deployment service: %w", err)
@@ -375,7 +376,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Handler("ClearScheduledStateChanges", restate.NewObjectHandler(deploymentSvc.ClearScheduledStateChanges, privateHandler)).
 		Handler("StopDeployment", restate.NewObjectHandler(deploymentSvc.StopDeployment)).
 		Handler("WakeDeployment", restate.NewObjectHandler(deploymentSvc.WakeDeployment)).
-		Handler("AuthorizeDeployment", restate.NewObjectHandler(deploymentSvc.AuthorizeDeployment)))
+		Handler("AuthorizeDeployment", restate.NewObjectHandler(deploymentSvc.AuthorizeDeployment)).
+		Handler("CancelDeployment", restate.NewObjectHandler(deploymentSvc.CancelDeployment)))
 
 	// DeployTeardownService stops all of a workspace's running Deploy compute and
 	// confirms it drained. Invoked over Restate ingress by cancel (ARCHIVE) and,

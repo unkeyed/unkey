@@ -8,6 +8,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -29,6 +30,7 @@ type VirtualObject struct {
 	db                              db.Database
 	auditlogs                       auditlogs.AuditLogService
 	github                          githubclient.GitHubClient
+	restateAdmin                    *restateadmin.Client
 	allowUnauthenticatedDeployments bool
 }
 
@@ -39,7 +41,7 @@ type Config struct {
 	// DB is the main database connection for workspace, project, and deployment data.
 	DB db.Database
 
-	// Auditlogs records API-originated Stop, Wake and Authorize calls
+	// Auditlogs records API-originated Stop, Wake, Authorize and Cancel calls
 	Auditlogs auditlogs.AuditLogService
 
 	// GitHub posts the success commit status once a deployment is authorized
@@ -48,6 +50,10 @@ type Config struct {
 	// AllowUnauthenticatedDeployments skips GitHub commit statuses, matching
 	// DeployWorkflow, which posts no approval status in this mode
 	AllowUnauthenticatedDeployments bool
+
+	// RestateAdmin cancels a deployment's Deploy invocation. When nil,
+	// CancelDeployment refuses deployments that have one
+	RestateAdmin *restateadmin.Client
 }
 
 // New creates a new VirtualObject from the given configuration.
@@ -65,6 +71,7 @@ func New(cfg Config) (*VirtualObject, error) {
 		auditlogs:                            cfg.Auditlogs,
 		github:                               cfg.GitHub,
 		allowUnauthenticatedDeployments:      cfg.AllowUnauthenticatedDeployments,
+		restateAdmin:                         cfg.RestateAdmin,
 	}, nil
 }
 
