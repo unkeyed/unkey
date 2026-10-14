@@ -3364,6 +3364,25 @@ type V2DeployGitCommit struct {
 	Timestamp *int64 `json:"timestamp,omitempty"`
 }
 
+// V2DeploymentsAuthorizeDeploymentRequestBody defines model for V2DeploymentsAuthorizeDeploymentRequestBody.
+type V2DeploymentsAuthorizeDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsAuthorizeDeploymentResponseBody Authorize a deployment that is awaiting approval.
+type V2DeploymentsAuthorizeDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2DeploymentsCreateDeploymentRequestBody Create a deployment. Provide exactly one of git, image, or deployment.
 type V2DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -7685,6 +7704,9 @@ type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
 //
 // Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
+
+// DeploymentsAuthorizeDeploymentJSONRequestBody defines body for DeploymentsAuthorizeDeployment for application/json ContentType.
+type DeploymentsAuthorizeDeploymentJSONRequestBody = V2DeploymentsAuthorizeDeploymentRequestBody
 
 // DeploymentsCreateDeploymentJSONRequestBody defines body for DeploymentsCreateDeployment for application/json ContentType.
 //
