@@ -110,8 +110,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 		actor := auditactor.FromPrincipal(p)
-		keyResource := auditlog.AuditLogResource{
-			Type:        auditlog.KeyResourceType,
+		keyTarget := auditlog.AuditLogTarget{
+			Type:        auditlog.KeyTargetType,
 			ID:          keyID,
 			Name:        ptr.SafeDeref(req.Name),
 			DisplayName: ptr.SafeDeref(req.Name),
@@ -128,7 +128,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RemoteIP:      s.Location(),
 			UserAgent:     s.UserAgent(),
 			CorrelationID: "",
-			Resources:     []auditlog.AuditLogResource{keyResource},
+			Targets:       []auditlog.AuditLogTarget{keyTarget},
 		}}
 		logs = append(logs, array.Map(permissionRows, func(permission db.InsertUnkeyPermissionParams) auditlog.AuditLog {
 			return auditlog.AuditLog{
@@ -142,10 +142,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
-					keyResource,
+				Targets: []auditlog.AuditLogTarget{
+					keyTarget,
 					{
-						Type:        auditlog.PermissionResourceType,
+						Type:        auditlog.PermissionTargetType,
 						ID:          permission.ID,
 						Name:        permission.Slug,
 						DisplayName: permission.Slug,

@@ -14,6 +14,7 @@ var Cmd = &cli.Command{
 		localCmd,
 		verificationsCmd,
 		frontlineCmd,
+		deploymentsCmd,
 		checkpoints.Cmd,
 		deployusage.Cmd,
 		workspaceusage.Cmd,

@@ -57,6 +57,44 @@ describe("getUnkeyClient", () => {
     expect(request.headers.has("Authorization")).toBe(false);
     await expect(request.clone().json()).resolves.toEqual({ keyId: "key_1234abcd" });
   });
+
+  it.each([{ git: {} }, { oci: { image: "ghcr.io/unkeyed/demo:latest" } }])(
+    "preserves the app source in createApp requests: %j",
+    async (source) => {
+      const requests: Request[] = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+          requests.push(input instanceof Request ? input : new Request(input, init));
+          return new Response(
+            JSON.stringify({ meta: { requestId: "req_create" }, data: { appId: "app_created" } }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }),
+      );
+
+      const result = await getUnkeyClient().apps.createApp({
+        project: "proj_demo",
+        name: "Demo app",
+        slug: "demo-app",
+        ...source,
+      });
+
+      expect(result.data.appId).toBe("app_created");
+      expect(requests).toHaveLength(1);
+      const request = requests[0];
+      if (!request) {
+        throw new Error("Expected the SDK to make a request");
+      }
+      expect(request.url).toBe("http://localhost:3000/proxy/v2/apps.createApp");
+      await expect(request.json()).resolves.toEqual({
+        project: "proj_demo",
+        name: "Demo app",
+        slug: "demo-app",
+        ...source,
+      });
+    },
+  );
 });
 
 describe("getErrorMessage", () => {

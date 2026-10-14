@@ -1,0 +1,31 @@
+type: object
+required:
+  - namespace
+  - name
+properties:
+  namespace:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |
+      The namespace to rename. Pass the namespace ID (`rlns_...`) or its current name.
+    example: rlns_1234abcd
+  name:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |
+      The new name of the namespace, unique within your workspace. Names are case-sensitive.
+    example: email.outbound
+additionalProperties: false
+examples:
+  renameById:
+    summary: Rename a namespace by ID
+    value:
+      namespace: rlns_1234abcd
+      name: email.outbound
+  renameByName:
+    summary: Rename a namespace by its current name
+    value:
+      namespace: email.sends
+      name: email.outbound

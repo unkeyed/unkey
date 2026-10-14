@@ -17,6 +17,14 @@ Use a secondary navigation when pages have sections nested one level deep within
 
 Add the rail in the section layout, then let each page render its own `PageBody`.
 
+## Back link
+
+Detail pages put a `PageHeaderBack` link above the title. It points to the parent list.
+
+<Component path="layout/back" />
+
+In the dashboard, pass a Next.js link with `render={<Link href={listHref} />}` so the navigation stays client-side.
+
 ## Full width
 
 For full width pages like logs, requests, use the full width prop to let your page span the entire width of the viewport.

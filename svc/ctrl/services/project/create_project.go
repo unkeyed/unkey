@@ -87,10 +87,10 @@ func (s *Service) CreateProject(
 				RemoteIP:      a.GetRemoteIp(),
 				UserAgent:     a.GetUserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          projectID,
-						Type:        auditlog.ProjectResourceType,
+						Type:        auditlog.ProjectTargetType,
 						Meta:        map[string]any{"name": req.Msg.GetName(), "slug": req.Msg.GetSlug()},
 						Name:        req.Msg.GetName(),
 						DisplayName: req.Msg.GetName(),

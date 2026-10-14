@@ -5,7 +5,6 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import {
   IconBoltOutline18,
-  IconChevronLeftOutline12,
   IconDotsOutline12,
   IconGearOutline12,
   IconMediaPauseOutline18,
@@ -25,6 +24,7 @@ import {
   PageContainer,
   PageHeader,
   PageHeaderActions,
+  PageHeaderBack,
   PageHeaderContent,
   PageHeaderTitle,
 } from "@unkey/ui";
@@ -77,13 +77,7 @@ export function LogdrainDetail({ drain }: { drain: DrainDetail }) {
     <PageContainer>
       <PageHeader>
         <PageHeaderContent className="flex-1">
-          <Link
-            href={listHref}
-            className="-ml-1 flex w-fit items-center gap-1 rounded-md px-1 py-0.5 text-sm text-gray-10 transition-colors hover:text-gray-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
-          >
-            <IconChevronLeftOutline12 />
-            Log Drains
-          </Link>
+          <PageHeaderBack render={<Link href={listHref} />}>Log Drains</PageHeaderBack>
           <div className="flex min-w-0 items-center gap-3">
             <PageHeaderTitle className="truncate">{drain.name}</PageHeaderTitle>
             <DrainStatusBadge status={drain.status} />

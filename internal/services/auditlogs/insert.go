@@ -90,13 +90,13 @@ func PrepareOutboxRows(ctx context.Context, logs []auditlog.AuditLog) ([]db.Inse
 		auditLogID := uid.New(uid.AuditLogPrefix)
 		now := time.Now().UnixMilli()
 
-		targets := make([]auditlog.EventTarget, 0, len(l.Resources))
-		for _, resource := range l.Resources {
+		targets := make([]auditlog.EventTarget, 0, len(l.Targets))
+		for _, target := range l.Targets {
 			targets = append(targets, auditlog.EventTarget{
-				Type: string(resource.Type),
-				ID:   resource.ID,
-				Name: resource.DisplayName,
-				Meta: resource.Meta,
+				Type: string(target.Type),
+				ID:   target.ID,
+				Name: target.DisplayName,
+				Meta: target.Meta,
 			})
 		}
 

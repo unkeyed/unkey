@@ -161,16 +161,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					RemoteIP:      s.Location(),
 					UserAgent:     s.UserAgent(),
 					CorrelationID: "",
-					Resources: []auditlog.AuditLogResource{
+					Targets: []auditlog.AuditLogTarget{
 						{
-							Type:        auditlog.KeyResourceType,
+							Type:        auditlog.KeyTargetType,
 							ID:          req.KeyId,
 							Name:        key.Key.Name.String,
 							DisplayName: key.Key.Name.String,
 							Meta:        map[string]any{},
 						},
 						{
-							Type:        auditlog.PermissionResourceType,
+							Type:        auditlog.PermissionTargetType,
 							ID:          permission.ID,
 							Name:        permission.Slug,
 							DisplayName: permission.Name,
