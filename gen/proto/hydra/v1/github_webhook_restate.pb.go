@@ -15,9 +15,9 @@ import (
 
 // GitHubWebhookServiceClient is the client API for hydra.v1.GitHubWebhookService service.
 //
-// GitHubWebhookService processes GitHub push events as a Restate virtual object
-// keyed by "{installation_id}:{repo_id}". This serializes webhook processing
-// per repository, preventing races from concurrent pushes to the same repo.
+// GitHubWebhookService processes repository events keyed by
+// "{installation_id}:{repo_id}" and installation deletion keyed by
+// "{installation_id}". Repository events serialize per repository.
 //
 // The HTTP handler validates the signature, parses the payload, and sends
 // the request to this service with X-GitHub-Delivery as the idempotency key,
@@ -27,6 +27,7 @@ type GitHubWebhookServiceClient interface {
 	// matches each app's watch paths against the changed files, then calls
 	// DeployWorkflow.Create once per app to write the row and start it.
 	HandlePush(opts ...sdk_go.ClientOption) sdk_go.Client[*HandlePushRequest, *HandlePushResponse]
+	HandleInstallationDeleted(opts ...sdk_go.ClientOption) sdk_go.Client[*HandleInstallationDeletedRequest, *HandleInstallationDeletedResponse]
 }
 
 type gitHubWebhookServiceClient struct {
@@ -51,6 +52,14 @@ func (c *gitHubWebhookServiceClient) HandlePush(opts ...sdk_go.ClientOption) sdk
 	return sdk_go.WithRequestType[*HandlePushRequest](sdk_go.Object[*HandlePushResponse](c.ctx, "hydra.v1.GitHubWebhookService", c.key, "HandlePush", cOpts...))
 }
 
+func (c *gitHubWebhookServiceClient) HandleInstallationDeleted(opts ...sdk_go.ClientOption) sdk_go.Client[*HandleInstallationDeletedRequest, *HandleInstallationDeletedResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*HandleInstallationDeletedRequest](sdk_go.Object[*HandleInstallationDeletedResponse](c.ctx, "hydra.v1.GitHubWebhookService", c.key, "HandleInstallationDeleted", cOpts...))
+}
+
 // GitHubWebhookServiceIngressClient is the ingress client API for hydra.v1.GitHubWebhookService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -59,6 +68,7 @@ type GitHubWebhookServiceIngressClient interface {
 	// matches each app's watch paths against the changed files, then calls
 	// DeployWorkflow.Create once per app to write the row and start it.
 	HandlePush() ingress.Requester[*HandlePushRequest, *HandlePushResponse]
+	HandleInstallationDeleted() ingress.Requester[*HandleInstallationDeletedRequest, *HandleInstallationDeletedResponse]
 }
 
 type gitHubWebhookServiceIngressClient struct {
@@ -80,13 +90,18 @@ func (c *gitHubWebhookServiceIngressClient) HandlePush() ingress.Requester[*Hand
 	return ingress.NewRequester[*HandlePushRequest, *HandlePushResponse](c.client, c.serviceName, "HandlePush", &c.key, &codec)
 }
 
+func (c *gitHubWebhookServiceIngressClient) HandleInstallationDeleted() ingress.Requester[*HandleInstallationDeletedRequest, *HandleInstallationDeletedResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*HandleInstallationDeletedRequest, *HandleInstallationDeletedResponse](c.client, c.serviceName, "HandleInstallationDeleted", &c.key, &codec)
+}
+
 // GitHubWebhookServiceServer is the server API for hydra.v1.GitHubWebhookService service.
 // All implementations should embed UnimplementedGitHubWebhookServiceServer
 // for forward compatibility.
 //
-// GitHubWebhookService processes GitHub push events as a Restate virtual object
-// keyed by "{installation_id}:{repo_id}". This serializes webhook processing
-// per repository, preventing races from concurrent pushes to the same repo.
+// GitHubWebhookService processes repository events keyed by
+// "{installation_id}:{repo_id}" and installation deletion keyed by
+// "{installation_id}". Repository events serialize per repository.
 //
 // The HTTP handler validates the signature, parses the payload, and sends
 // the request to this service with X-GitHub-Delivery as the idempotency key,
@@ -96,6 +111,7 @@ type GitHubWebhookServiceServer interface {
 	// matches each app's watch paths against the changed files, then calls
 	// DeployWorkflow.Create once per app to write the row and start it.
 	HandlePush(ctx sdk_go.ObjectContext, req *HandlePushRequest) (*HandlePushResponse, error)
+	HandleInstallationDeleted(ctx sdk_go.ObjectContext, req *HandleInstallationDeletedRequest) (*HandleInstallationDeletedResponse, error)
 }
 
 // UnimplementedGitHubWebhookServiceServer should be embedded to have
@@ -107,6 +123,9 @@ type UnimplementedGitHubWebhookServiceServer struct{}
 
 func (UnimplementedGitHubWebhookServiceServer) HandlePush(ctx sdk_go.ObjectContext, req *HandlePushRequest) (*HandlePushResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method HandlePush not implemented"), sdk_go.WithErrorCode(501))
+}
+func (UnimplementedGitHubWebhookServiceServer) HandleInstallationDeleted(ctx sdk_go.ObjectContext, req *HandleInstallationDeletedRequest) (*HandleInstallationDeletedResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method HandleInstallationDeleted not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedGitHubWebhookServiceServer) testEmbeddedByValue() {}
 
@@ -128,5 +147,6 @@ func NewGitHubWebhookServiceServer(srv GitHubWebhookServiceServer, opts ...sdk_g
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.GitHubWebhookService", sOpts...)
 	router = router.Handler("HandlePush", sdk_go.NewObjectHandler(srv.HandlePush))
+	router = router.Handler("HandleInstallationDeleted", sdk_go.NewObjectHandler(srv.HandleInstallationDeleted))
 	return router
 }
