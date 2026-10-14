@@ -1,26 +1,68 @@
 "use client";
 
-import { type ReactNode, createContext, useContext } from "react";
-import type { Flags } from "./resolve";
+import { getUnkeyClient } from "@/lib/unkey-client";
+import { type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { V2WorkspaceGetFlagsResponseBody } from "@unkey/api/models/components";
+import { type PropsWithChildren, createContext, useContext } from "react";
+import * as flags from ".";
 
-const FlagsContext = createContext<Flags | null>(null);
+type FlagMap = V2WorkspaceGetFlagsResponseBody["data"];
+type FlagContextValue = {
+  data: FlagMap | undefined;
+  isLoading: boolean;
+  error: UseQueryResult<FlagMap>["error"];
+  refetch: UseQueryResult<FlagMap>["refetch"];
+  cancel: () => Promise<void>;
+  setCachedFlagValue: (update: { slug: string; enabled: boolean }) => Promise<void>;
+};
+const FlagContext = createContext<FlagContextValue | null>(null);
 
-export function FlagsProvider({ value, children }: { value: Flags; children: ReactNode }) {
-  return <FlagsContext.Provider value={value}>{children}</FlagsContext.Provider>;
+export function FlagProvider({
+  initialFlags,
+  children,
+}: PropsWithChildren<{
+  initialFlags: FlagMap | undefined;
+}>) {
+  const client = useQueryClient();
+  const queryKey = ["workspace", "flags"];
+  const query = useQuery<FlagMap>({
+    queryKey,
+    enabled: false,
+    initialData: initialFlags,
+    keepPreviousData: false,
+    queryFn: async ({ signal }) => {
+      const response = await getUnkeyClient().workspace.getFlags({ signal });
+      return response.data;
+    },
+  });
+
+  const value: FlagContextValue = {
+    data: query.data,
+    isLoading: query.isInitialLoading,
+    error: query.error,
+    refetch: query.refetch,
+    cancel: () => client.cancelQueries({ queryKey }),
+    async setCachedFlagValue({ slug, enabled }: { slug: string; enabled: boolean }) {
+      await client.cancelQueries({ queryKey });
+      client.setQueryData<FlagMap>(queryKey, (current) => {
+        const entry = current?.[slug];
+        return entry ? { ...current, [slug]: { ...entry, enabled } } : current;
+      });
+    },
+  };
+  return <FlagContext.Provider value={value}>{children}</FlagContext.Provider>;
 }
 
-export function useFlag<K extends keyof Flags>(key: K): Flags[K] {
-  const ctx = useContext(FlagsContext);
-  if (!ctx) {
-    throw new Error("useFlag must be used inside FlagsProvider");
+export function useFlags() {
+  const context = useContext(FlagContext);
+  if (!context) {
+    throw new Error("useFlags must be used within a FlagProvider");
   }
-  return ctx[key];
+  return context;
 }
 
-export function useFlags(): Flags {
-  const ctx = useContext(FlagsContext);
-  if (!ctx) {
-    throw new Error("useFlags must be used inside FlagsProvider");
-  }
-  return ctx;
+export function useFlag(key: keyof typeof flags): boolean {
+  const { data } = useFlags();
+  const flag = flags[key];
+  return data?.[flag.slug]?.enabled ?? flag.defaultValue;
 }

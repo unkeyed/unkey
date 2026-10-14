@@ -4,158 +4,18 @@ import type { NextRequest } from "next/server";
 
 import { getAuth } from "../auth/get-auth";
 import { getClientIp } from "../client-ip";
-import { db } from "../db";
-import { subscriptionIdsByProduct } from "../stripe/billingSubscriptions";
-
-const workspaceProjection = {
-  columns: {
-    pk: true,
-    id: true,
-    orgId: true,
-    name: true,
-    slug: true,
-    k8sNamespace: true,
-    betaFeatures: true,
-    subscriptions: true,
-    enabled: true,
-    deleteProtection: true,
-    createdAtM: true,
-    updatedAtM: true,
-    deletedAtM: true,
-  },
-  with: {
-    limits: {
-      columns: {
-        pk: true,
-        workspaceId: true,
-        apiBillableOperationsCountMaxPerMonth: true,
-        apiRequestsCountMaxPerMinute: true,
-        logsRetentionDaysMax: true,
-        logsAuditRetentionDaysMax: true,
-        logdrainsMax: true,
-        teamEnabled: true,
-        cpuCoresMax: true,
-        cpuCoresMaxPerInstance: true,
-        memoryMibMax: true,
-        memoryMibMaxPerInstance: true,
-        storageMibMax: true,
-        storageMibMaxPerInstance: true,
-        buildsConcurrentMax: true,
-        customDomainsMax: true,
-        autoscalingReplicasMax: true,
-      },
-    },
-    billing: {
-      columns: {
-        pk: true,
-        workspaceId: true,
-        tier: true,
-        stripeCustomerId: true,
-        plan: true,
-        planOverride: true,
-        spendBudgetCents: true,
-        spendBudgetStop: true,
-        spendSuspended: true,
-        createdAtM: true,
-        updatedAtM: true,
-        deletedAtM: true,
-      },
-    },
-    billingSubscriptions: {
-      columns: {
-        pk: true,
-        workspaceId: true,
-        product: true,
-        stripeSubscriptionId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    },
-  },
-} satisfies NonNullable<Parameters<typeof db.query.workspaces.findFirst>[0]>;
+import { loadWorkspace } from "../db/load-workspace";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
   const authResult = await getAuth(req as NextRequest);
   const { userId, orgId } = authResult;
 
-  let ws: Awaited<ReturnType<typeof db.query.workspaces.findFirst<typeof workspaceProjection>>> =
-    undefined;
-
-  // Only attempt workspace query if we have both userId and orgId
-  // This prevents unnecessary queries during auth setup phase
+  let workspace: Awaited<ReturnType<typeof loadWorkspace>>;
   if (orgId && userId) {
     try {
-      ws = await db.query.workspaces.findFirst({
-        columns: {
-          pk: true,
-          id: true,
-          orgId: true,
-          name: true,
-          slug: true,
-          k8sNamespace: true,
-          betaFeatures: true,
-          subscriptions: true,
-          enabled: true,
-          deleteProtection: true,
-          createdAtM: true,
-          updatedAtM: true,
-          deletedAtM: true,
-        },
-        with: {
-          limits: {
-            columns: {
-              pk: true,
-              workspaceId: true,
-              apiBillableOperationsCountMaxPerMonth: true,
-              apiRequestsCountMaxPerMinute: true,
-              logsRetentionDaysMax: true,
-              logsAuditRetentionDaysMax: true,
-              logdrainsMax: true,
-              teamEnabled: true,
-              cpuCoresMax: true,
-              cpuCoresMaxPerInstance: true,
-              memoryMibMax: true,
-              memoryMibMaxPerInstance: true,
-              storageMibMax: true,
-              storageMibMaxPerInstance: true,
-              buildsConcurrentMax: true,
-              customDomainsMax: true,
-              autoscalingReplicasMax: true,
-            },
-          },
-          billing: {
-            columns: {
-              pk: true,
-              workspaceId: true,
-              tier: true,
-              stripeCustomerId: true,
-              plan: true,
-              planOverride: true,
-              spendBudgetCents: true,
-              spendBudgetStop: true,
-              spendSuspended: true,
-              createdAtM: true,
-              updatedAtM: true,
-              deletedAtM: true,
-            },
-          },
-          billingSubscriptions: {
-            columns: {
-              pk: true,
-              workspaceId: true,
-              product: true,
-              stripeSubscriptionId: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-        },
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-      });
+      workspace = await loadWorkspace(orgId);
     } catch (_error) {
       console.debug("Workspace query failed in context creation");
-      ws = undefined;
     }
   }
 
@@ -163,37 +23,17 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
     req,
     audit: {
       userAgent: req.headers.get("user-agent") ?? undefined,
-      // Recorded as `remote_ip` on every audit log, so it must be an address we trust rather than
-      // whatever the client put in a forwarding header.
+      // Recorded as `remote_ip` on every audit log, so that value must come from a trusted header.
       location: getClientIp(req.headers) ?? "unknown",
     },
     user: authResult.userId
       ? {
           id: authResult.userId,
-          // Profile from the sealed session cookie; saves provider API calls
-          // for procedures that only need the signed-in user's profile.
+          // The sealed session profile avoids provider API calls for profile-only procedures.
           profile: authResult.user ?? null,
         }
       : null,
-    // Billing state lives on the workspace_billing relation (the columns were
-    // dropped from workspaces). Surface it under the legacy workspace field names
-    // so existing ctx.workspace.<field> reads keep working against the billing
-    // row. Writers target workspaceBilling directly.
-    workspace: ws
-      ? {
-          ...ws,
-          tier: ws.billing?.tier ?? "Free",
-          stripeCustomerId: ws.billing?.stripeCustomerId ?? null,
-          // Subscription ids now live one-per-product in billing_subscriptions;
-          // flatten them back to the two legacy field names read across the app.
-          ...subscriptionIdsByProduct(ws.billingSubscriptions ?? []),
-          deployPlan: ws.billing?.plan ?? null,
-          deployPlanOverride: ws.billing?.planOverride ?? null,
-          deploySpendBudgetCents: ws.billing?.spendBudgetCents ?? null,
-          deploySpendBudgetStop: ws.billing?.spendBudgetStop ?? false,
-          deploySpendSuspended: ws.billing?.spendSuspended ?? false,
-        }
-      : ws,
+    workspace,
     tenant: authResult.orgId
       ? {
           id: authResult.orgId,
