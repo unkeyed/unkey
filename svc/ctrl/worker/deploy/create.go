@@ -210,9 +210,6 @@ type deployPayload struct {
 	Trigger       db.DeploymentsTrigger `json:"trigger"`
 	TriggeredBy   string                `json:"triggered_by"`
 	TriggerReason string                `json:"trigger_reason"`
-
-	// The deployment a rebuild reproduces. Empty otherwise.
-	RebuildSourceID string `json:"rebuild_source_id"`
 }
 
 // validateAndBuildPayload decides every rejection, then resolves the source and
@@ -303,7 +300,6 @@ func (w *Workflow) validateAndBuildPayload(
 		payload.Trigger = triggerFromProto(trigger.GetSource())
 		payload.TriggeredBy = trigger.GetActor().GetId()
 		payload.TriggerReason = trimBytes(trigger.GetReason(), triggerReasonBytesMax)
-		payload.RebuildSourceID = req.GetExistingDeployment().GetDeploymentId()
 		return payload, nil
 	}, restate.WithName("validate and build deploy payload"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
@@ -440,8 +436,7 @@ func (w *Workflow) insertDeployment(
 	}, restate.WithName("insert deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 }
 
-// createAuditLogs builds the audit entry for a new row. A skip gets none, and a
-// rebuild is recorded as deployment.rebuild naming both deployments.
+// createAuditLogs builds the audit entry for a new row. A skip gets none.
 func createAuditLogs(
 	payload deployPayload,
 	deploymentID string,
@@ -452,7 +447,7 @@ func createAuditLogs(
 	}
 
 	target := payload.Target
-	entry := auditlog.AuditLog{
+	return []auditlog.AuditLog{{
 		Event:         auditlog.DeploymentCreateEvent,
 		WorkspaceID:   target.WorkspaceID,
 		Display:       fmt.Sprintf("Created deployment %s", deploymentID),
@@ -476,29 +471,7 @@ func createAuditLogs(
 				},
 			},
 		},
-	}
-
-	if payload.Trigger != db.DeploymentsTriggerUnkey || payload.RebuildSourceID == "" {
-		return []auditlog.AuditLog{entry}
-	}
-
-	entry.Event = auditlog.DeploymentRebuildEvent
-	entry.Display = fmt.Sprintf("Unkey rebuilt deployment %s as %s", payload.RebuildSourceID, deploymentID)
-	if payload.TriggerReason != "" {
-		entry.Display = fmt.Sprintf("%s (reason: %s)", entry.Display, payload.TriggerReason)
-	}
-	entry.Targets[0].Meta["role"] = "new"
-	entry.Targets = append([]auditlog.AuditLogTarget{
-		{
-			Type:        auditlog.DeploymentTargetType,
-			ID:          payload.RebuildSourceID,
-			Name:        "",
-			DisplayName: payload.RebuildSourceID,
-			Meta:        map[string]any{"role": "source"},
-		},
-	}, entry.Targets...)
-
-	return []auditlog.AuditLog{entry}
+	}}
 }
 
 // startDeployment sends Deploy, records its invocation id, then supersedes older

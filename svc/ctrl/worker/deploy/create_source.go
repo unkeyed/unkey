@@ -6,7 +6,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
@@ -73,16 +72,8 @@ func (w *Workflow) resolveSource(
 		return w.resolveGitSource(target, commit, source.Git.GetPrNumber())
 
 	case *hydrav1.DeployCreateRequest_ExistingDeployment:
-		// An operator rebuild has to build the commit, since reusing the image
-		// would rebuild nothing. A user redeploying asked for what that deployment
-		// runs, which is its image once the repository is gone.
-		asked := redeploy
-		if req.GetTrigger().GetSource() == ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY {
-			asked = rebuild
-		}
 		return w.resolveExistingDeployment(ctx, target,
-			source.ExistingDeployment.GetDeploymentId(), source.ExistingDeployment.GetRequireLatest(),
-			asked)
+			source.ExistingDeployment.GetDeploymentId(), source.ExistingDeployment.GetRequireLatest())
 
 	default:
 		if target.SourceType == db.AppsSourceTypeGit {
@@ -110,8 +101,7 @@ func (w *Workflow) resolveSource(
 		}
 		// The current deployment is the newest by definition, so requireLatest
 		// has nothing to check.
-		return w.resolveExistingDeployment(ctx, target, target.CurrentDeploymentID.String, false,
-			redeploy)
+		return w.resolveExistingDeployment(ctx, target, target.CurrentDeploymentID.String, false)
 	}
 }
 
@@ -211,15 +201,6 @@ func (w *Workflow) resolveGitSource(
 	}, nil
 }
 
-// intent separates a rebuild, which reproduces one named deployment and so has
-// to build its commit, from a redeploy, which runs what the app runs now.
-type intent int
-
-const (
-	rebuild intent = iota
-	redeploy
-)
-
 // resolveExistingDeployment reproduces what another deployment ran. The row's
 // recorded source decides: a git build is rebuilt from its commit, an image
 // deployment redeploys its image even if it recorded the commit it came from.
@@ -228,7 +209,6 @@ func (w *Workflow) resolveExistingDeployment(
 	target db.FindDeployTargetRow,
 	deploymentID string,
 	requireLatest bool,
-	asked intent,
 ) (resolvedSource, error) {
 	var failed resolvedSource
 
@@ -290,14 +270,6 @@ func (w *Workflow) resolveExistingDeployment(
 		(src.Source == db.DeploymentsSourceUnknown && commit.SHA != "")
 	if gitBuild && commit.SHA != "" && target.GithubRepositoryFullName.Valid {
 		return w.resolveGitSource(target, commit, src.PrNumber.Int64)
-	}
-	// Reproducing a named git build by reusing its image would rebuild nothing.
-	// A redeploy asked for the image, so it takes it.
-	if src.Source == db.DeploymentsSourceGit && asked == rebuild {
-		return newRejectedSource(rejectf(
-			hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT,
-			"git deployment %s needs both a commit and a repository connection to rebuild from", src.ID,
-		)), nil
 	}
 
 	image := src.ImageResolved.String
