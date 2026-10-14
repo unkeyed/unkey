@@ -715,6 +715,26 @@ components:
                 data:
                     "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
+        V2DeploymentsCancelDeploymentRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2DeploymentsCancelDeploymentResponseBody:
+            description: Cancel a deployment that is still in progress.
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2DeploymentsCreateDeploymentRequestBody:
             type: object
             required:
@@ -10475,6 +10495,136 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: authorizeDeployment
+            x-unkey-idempotency: conditionally-idempotent
+    /v2/deployments.cancelDeployment:
+        post:
+            description: |
+                Cancel a deployment that has not finished yet: queued, waiting for
+                approval, building, or deploying. Cancelling aborts its run and marks it
+                `cancelled`.
+
+                Only in-progress deployments can be cancelled. To take a `ready` preview
+                deployment offline, use `stopDeployment` instead.
+
+                Cancellation is asynchronous: this endpoint only enqueues it and returns
+                immediately. Poll `getDeployment` until the status reaches `cancelled`.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
+            operationId: deployments.cancelDeployment
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            cancel:
+                                description: Abort a deployment whose build is still running
+                                summary: Cancel a building deployment
+                                value:
+                                    deploymentId: d_1234abcd
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsCancelDeploymentRequestBody'
+                required: true
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            examples:
+                                accepted:
+                                    summary: Cancellation enqueued
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsCancelDeploymentResponseBody'
+                    description: |
+                        Cancellation accepted and enqueued. The deployment moves to
+                        `cancelled` asynchronously; poll `getDeployment` to observe it.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                missingDeploymentId:
+                                    summary: Missing deploymentId
+                                    value:
+                                        error:
+                                            detail: POST request body for '/v2/deployments.cancelDeployment' failed to validate schema
+                                            errors:
+                                                - location: /required
+                                                  message: missing property 'deploymentId'
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                notFound:
+                                    summary: Deployment not found
+                                    value:
+                                        error:
+                                            detail: The requested deployment does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: https://unkey.com/docs/errors/unkey/data/deployment_not_found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The deployment does not exist in your workspace, or your
+                        root key cannot write to it. Both cases return the same response, so
+                        deployment existence is never revealed.
+                "412":
+                    content:
+                        application/json:
+                            examples:
+                                notInProgress:
+                                    summary: Deployment already finished
+                                    value:
+                                        error:
+                                            detail: The deployment is not in progress. Its status is ready.
+                                            status: 412
+                                            title: Precondition Failed
+                                            type: https://unkey.com/docs/errors/unkey/application/deployment_not_in_progress
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: |
+                        Precondition failed - The deployment already finished, so there is
+                        nothing to cancel.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Cancel deployment
+            tags:
+                - deployments
+            x-speakeasy-name-override: cancelDeployment
             x-unkey-idempotency: conditionally-idempotent
     /v2/deployments.createDeployment:
         post:

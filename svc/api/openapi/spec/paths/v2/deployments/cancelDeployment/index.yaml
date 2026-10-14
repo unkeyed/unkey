@@ -1,0 +1,129 @@
+post:
+  tags:
+    - deployments
+  summary: Cancel deployment
+  description: |
+    Cancel a deployment that has not finished yet: queued, waiting for
+    approval, building, or deploying. Cancelling aborts its run and marks it
+    `cancelled`.
+
+    Only in-progress deployments can be cancelled. To take a `ready` preview
+    deployment offline, use `stopDeployment` instead.
+
+    Cancellation is asynchronous: this endpoint only enqueues it and returns
+    immediately. Poll `getDeployment` until the status reaches `cancelled`.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
+  operationId: deployments.cancelDeployment
+  x-speakeasy-name-override: cancelDeployment
+  x-unkey-idempotency: conditionally-idempotent
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsCancelDeploymentRequestBody.yaml"
+        examples:
+          cancel:
+            summary: Cancel a building deployment
+            description: Abort a deployment whose build is still running
+            value:
+              deploymentId: d_1234abcd
+  responses:
+    "202":
+      description: |
+        Cancellation accepted and enqueued. The deployment moves to
+        `cancelled` asynchronously; poll `getDeployment` to observe it.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsCancelDeploymentResponseBody.yaml"
+          examples:
+            accepted:
+              summary: Cancellation enqueued
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            missingDeploymentId:
+              summary: Missing deploymentId
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: POST request body for '/v2/deployments.cancelDeployment' failed to validate schema
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                  errors:
+                    - location: /required
+                      message: "missing property 'deploymentId'"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        Not Found - The deployment does not exist in your workspace, or your
+        root key cannot write to it. Both cases return the same response, so
+        deployment existence is never revealed.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            notFound:
+              summary: Deployment not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested deployment does not exist.
+                  status: 404
+                  type: https://unkey.com/docs/errors/unkey/data/deployment_not_found
+    "412":
+      description: |
+        Precondition failed - The deployment already finished, so there is
+        nothing to cancel.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/PreconditionFailedErrorResponse.yaml"
+          examples:
+            notInProgress:
+              summary: Deployment already finished
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Precondition Failed
+                  detail: The deployment is not in progress. Its status is ready.
+                  status: 412
+                  type: https://unkey.com/docs/errors/unkey/application/deployment_not_in_progress
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

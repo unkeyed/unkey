@@ -3401,6 +3401,25 @@ type V2DeploymentsAuthorizeDeploymentResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2DeploymentsCancelDeploymentRequestBody defines model for V2DeploymentsCancelDeploymentRequestBody.
+type V2DeploymentsCancelDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsCancelDeploymentResponseBody Cancel a deployment that is still in progress.
+type V2DeploymentsCancelDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2DeploymentsCreateDeploymentRequestBody Create a deployment. Provide exactly one of git, image, or deployment.
 type V2DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -7725,6 +7744,9 @@ type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
 
 // DeploymentsAuthorizeDeploymentJSONRequestBody defines body for DeploymentsAuthorizeDeployment for application/json ContentType.
 type DeploymentsAuthorizeDeploymentJSONRequestBody = V2DeploymentsAuthorizeDeploymentRequestBody
+
+// DeploymentsCancelDeploymentJSONRequestBody defines body for DeploymentsCancelDeployment for application/json ContentType.
+type DeploymentsCancelDeploymentJSONRequestBody = V2DeploymentsCancelDeploymentRequestBody
 
 // DeploymentsCreateDeploymentJSONRequestBody defines body for DeploymentsCreateDeployment for application/json ContentType.
 //

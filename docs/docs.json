@@ -231,6 +231,7 @@
                           "errors/unkey/application/deployment_is_stopping",
                           "errors/unkey/application/deployment_no_current",
                           "errors/unkey/application/deployment_not_awaiting_approval",
+                          "errors/unkey/application/deployment_not_in_progress",
                           "errors/unkey/application/deployment_not_production",
                           "errors/unkey/application/deployment_not_ready",
                           "errors/unkey/application/deployment_not_running",

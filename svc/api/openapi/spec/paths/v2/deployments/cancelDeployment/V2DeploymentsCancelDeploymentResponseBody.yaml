@@ -1,0 +1,19 @@
+description: Cancel a deployment that is still in progress.
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/EmptyResponse.yaml"
+additionalProperties: false
+examples:
+  success:
+    summary: Cancellation enqueued
+    description: The deployment cancellation was successfully enqueued
+    value:
+      meta:
+        requestId: req_1234abcd
+      data: {}
