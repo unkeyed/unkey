@@ -1,5 +1,5 @@
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { type QueryCollectionUtils, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
@@ -36,7 +36,7 @@ export function projectDisplayName(
   return project.isDefault ? workspaceName : project.name;
 }
 
-export const projects = createCollection<Project, string>(
+export const projects = createCollection<Project, string, QueryCollectionUtils<Project, string>>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["projects"],

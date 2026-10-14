@@ -44,6 +44,10 @@ func (w workspace) Usage() V1 {
 	return V1{WorkspaceID: w.workspaceID, Resource: "usage"}
 }
 
+func (w workspace) Flags() V1 {
+	return V1{WorkspaceID: w.workspaceID, Resource: "flags"}
+}
+
 // Project returns builders for project resource paths.
 //
 // Subresource:

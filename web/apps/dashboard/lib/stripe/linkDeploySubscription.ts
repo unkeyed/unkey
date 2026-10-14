@@ -191,7 +191,7 @@ export async function linkDeploySubscription(
       actor: input.audit.actor,
       event: "workspace.update",
       description: `Subscribed to Compute ${plan} plan via checkout.`,
-      resources: [],
+      targets: [{ type: "workspace", id: ws.id }],
       context: { location: input.audit.location, userAgent: input.audit.userAgent },
     });
   });

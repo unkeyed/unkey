@@ -14,5 +14,6 @@ export * from "./portalgetverifications.js";
 export * from "./portallistkeys.js";
 export * from "./portalrerollkey.js";
 export * from "./projectslistprojects.js";
+export * from "./ratelimitlistnamespaces.js";
 export * from "./ratelimitlistoverrides.js";
 export * from "./rootkeyslistkeys.js";

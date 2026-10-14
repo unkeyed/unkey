@@ -5,6 +5,7 @@ const rolesRoot = [...rbacRoot, "roles"] as const;
 const permissionsRoot = [...rbacRoot, "permissions"] as const;
 const identitiesRoot = ["identities"] as const;
 const workspaceRoot = ["workspace"] as const;
+const ratelimitNamespacesRoot = ["ratelimit", "namespaces"] as const;
 const portalSessionLists = (portalId: string) => ["portalSessions", portalId, "list"] as const;
 
 export const queryKeys = {
@@ -33,6 +34,14 @@ export const queryKeys = {
     sessionLists: portalSessionLists,
     sessions: (portalId: string, search: string) =>
       [...portalSessionLists(portalId), search] as const,
+  },
+  ratelimit: {
+    namespaces: {
+      all: ratelimitNamespacesRoot,
+      list: (search: string) => [...ratelimitNamespacesRoot, "list", search] as const,
+      detail: (namespaceId: string) => [...ratelimitNamespacesRoot, "detail", namespaceId] as const,
+      every: [...ratelimitNamespacesRoot, "every"] as const,
+    },
   },
   rbac: {
     all: rbacRoot,

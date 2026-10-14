@@ -1,12 +1,12 @@
 "use client";
 import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
-import { parseDuration } from "@/lib/duration";
+import { DurationInput } from "@/components/ui/duration-input";
 import { formatMs } from "@/lib/ms";
 import type { RatelimitItem } from "@/lib/schemas/ratelimit";
 import { IconGaugeOutline12, IconTrashOutline18 } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { Controller, useController, useFieldArray, useFormContext } from "react-hook-form";
 
 // The form's `ratelimit` field is a Zod discriminated union (enabled false/true),
@@ -21,79 +21,6 @@ type RatelimitFieldValues = {
     data: RatelimitItem[];
   };
 };
-
-function RefillIntervalField({
-  value,
-  onChange,
-  error,
-  disabled,
-}: {
-  value: number;
-  onChange: (ms: number) => void;
-  error: string | undefined;
-  disabled: boolean;
-}) {
-  const [display, setDisplay] = useState(() => formatMs(value));
-  const [parseError, setParseError] = useState<string>();
-  const localValue = useRef(value);
-
-  useEffect(() => {
-    if (value !== localValue.current) {
-      localValue.current = value;
-      setDisplay(formatMs(value));
-      setParseError(undefined);
-    }
-  }, [value]);
-
-  const updateValue = (nextValue: number) => {
-    localValue.current = nextValue;
-    onChange(nextValue);
-  };
-
-  return (
-    <FormInput
-      className="[&_input:first-of-type]:h-[36px] w-full"
-      label="Refill Interval"
-      placeholder="e.g. 5s, 2m, 1h, 500ms"
-      type="text"
-      value={display}
-      description={
-        value > 0
-          ? `Resets every ${formatMs(value, { long: true })}.`
-          : "How long before the counter resets."
-      }
-      error={parseError ?? error}
-      disabled={disabled}
-      readOnly={disabled}
-      onChange={(e) => {
-        const raw = e.target.value;
-        setDisplay(raw);
-
-        const trimmed = raw.trim();
-        if (trimmed === "") {
-          setParseError(undefined);
-          updateValue(0);
-          return;
-        }
-
-        const asNumber = Number(trimmed);
-        if (Number.isFinite(asNumber) && asNumber > 0) {
-          setParseError(undefined);
-          updateValue(Math.floor(asNumber));
-          return;
-        }
-
-        const parsed = parseDuration(trimmed);
-        if (parsed > 0) {
-          setParseError(undefined);
-          updateValue(parsed);
-        } else {
-          setParseError('Use a duration like "5s", "2m", "1h" or milliseconds');
-        }
-      }}
-    />
-  );
-}
 
 export const RatelimitSetup = ({
   overrideEnabled = false,
@@ -269,11 +196,19 @@ export const RatelimitSetup = ({
                 control={control}
                 name={`ratelimit.data.${index}.refillInterval`}
                 render={({ field }) => (
-                  <RefillIntervalField
+                  <DurationInput
+                    className="[&_input:first-of-type]:h-[36px] w-full"
+                    label="Refill Interval"
                     value={field.value}
                     onChange={field.onChange}
+                    description={
+                      field.value > 0
+                        ? `Resets every ${formatMs(field.value, { long: true })}.`
+                        : "How long before the counter resets."
+                    }
                     error={getFieldError(index, "refillInterval")}
                     disabled={!ratelimitEnabled}
+                    readOnly={!ratelimitEnabled}
                   />
                 )}
               />

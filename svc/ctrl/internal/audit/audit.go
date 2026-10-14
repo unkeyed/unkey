@@ -18,7 +18,7 @@ import (
 
 // Event is a single audit log entry to write from a workflow. The actor fields
 // and the durable-step wiring are shared; callers supply only the parts that
-// vary per resource.
+// vary per target.
 type Event struct {
 	// Actor is the caller threaded in via the workflow request. A cascade
 	// (project -> app -> environment) carries the same actor down every level.
@@ -31,7 +31,7 @@ type Event struct {
 	WorkspaceID string
 	Event       auditlog.AuditLogEvent
 	Display     string
-	Resource    auditlog.AuditLogResource
+	Targets     []auditlog.AuditLogTarget
 }
 
 // Insert writes e as a durable Restate step named "insert audit log".
@@ -50,7 +50,7 @@ func Insert(ctx restate.ObjectContext, svc auditlogs.AuditLogService, e Event) e
 				RemoteIP:      a.GetRemoteIp(),
 				UserAgent:     a.GetUserAgent(),
 				CorrelationID: e.CorrelationID,
-				Resources:     []auditlog.AuditLogResource{e.Resource},
+				Targets:       e.Targets,
 			},
 		})
 	}, restate.WithName("insert audit log"))
@@ -75,6 +75,7 @@ func InsertDeploymentLifecycle(
 	ref DeploymentRef,
 	event auditlog.AuditLogEvent,
 	display string,
+	additionalTargets ...auditlog.AuditLogTarget,
 ) error {
 	if actor == nil {
 		return nil
@@ -86,8 +87,8 @@ func InsertDeploymentLifecycle(
 		WorkspaceID:   ref.WorkspaceID,
 		Event:         event,
 		Display:       display,
-		Resource: auditlog.AuditLogResource{
-			Type:        auditlog.DeploymentResourceType,
+		Targets: append([]auditlog.AuditLogTarget{{
+			Type:        auditlog.DeploymentTargetType,
 			ID:          ref.ID,
 			Name:        "",
 			DisplayName: ref.ID,
@@ -96,6 +97,6 @@ func InsertDeploymentLifecycle(
 				"appId":         ref.AppID,
 				"environmentId": ref.EnvironmentID,
 			},
-		},
+		}}, additionalTargets...),
 	})
 }

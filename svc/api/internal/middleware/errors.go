@@ -97,6 +97,7 @@ func WithErrorHandling() zen.Middleware {
 			switch urn {
 			// Not Found errors
 			case codes.UnkeyDataErrorsKeyNotFound,
+				codes.UnkeyDataErrorsFlagNotFound,
 				codes.UnkeyDataErrorsWorkspaceNotFound,
 				codes.UnkeyDataErrorsApiNotFound,
 				codes.UnkeyDataErrorsAppNotFound,
@@ -325,7 +326,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsAppDuplicate,
 				codes.UnkeyDataErrorsDomainDuplicate,
 				codes.UnkeyDataErrorsPortalDuplicate,
-				codes.UnkeyDataErrorsPortalChanged:
+				codes.UnkeyDataErrorsPortalChanged,
+				codes.UnkeyDataErrorsRatelimitNamespaceDuplicate:
 				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

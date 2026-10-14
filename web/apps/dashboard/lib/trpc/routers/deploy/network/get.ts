@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { mapInstanceStatusToHealth, mapRegionToFlag } from "./utils";
+import { mapInstanceStatusToHealth } from "./utils";
 
 export const getDeploymentTree = workspaceProcedure
   .use(withRatelimit(ratelimit.create))
@@ -88,7 +88,6 @@ export const getDeploymentTree = workspaceProcedure
             direction: "vertical" as const,
             metadata: {
               type: "region" as const,
-              flagCode: mapRegionToFlag(regionName),
               instances: regionInstances.length,
               health,
             },
