@@ -29,7 +29,7 @@ func TestDeletePortalWithDomainsIsRejected(t *testing.T) {
 	require.Equal(t, "This portal still has custom domains. Delete them before deleting the portal.", res.Body.Error.Detail)
 
 	require.True(t, portalExists(t, h, workspace.ID, stored.ID))
-	require.Equal(t, 1, liveSessions(t, h, stored.ID), "a rejected delete must not revoke")
+	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""), "a rejected delete must not revoke")
 	require.Equal(t, 0, countAuditEntriesMentioning(t, h, workspace.ID, "portal.delete"))
 
 	_, err := db.Query.FindPortalDomainById(context.Background(), h.DB.RO(), db.FindPortalDomainByIdParams{

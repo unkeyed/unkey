@@ -263,11 +263,7 @@ func TestAddCustomDomainRejectsHostnameHeldAsPortalDomain(t *testing.T) {
 	require.Equal(t, connect.CodeAlreadyExists, connectErr.Code())
 	require.Equal(t, fault.UserFacingMessage(domaingate.AlreadyExists(f.domain)), connectErr.Message())
 
-	require.Equal(t, 0, countRows(t, ctx, f.database.RW(), `
-		SELECT COUNT(*)
-		FROM custom_domains
-		WHERE workspace_id = ? AND domain = ?
-	`, f.workspaceID, f.domain))
+	requireNoCustomDomain(t, ctx, f.database, f.workspaceID, f.domain)
 
 	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
 	require.NoError(t, err)
