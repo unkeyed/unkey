@@ -86,10 +86,10 @@ func (s *Service) UpdateOciImageSource(
 				RemoteIP:      a.GetRemoteIp(),
 				UserAgent:     a.GetUserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          app.ID,
-						Type:        auditlog.AppResourceType,
+						Type:        auditlog.AppTargetType,
 						Name:        app.Name,
 						DisplayName: app.Name,
 						Meta: map[string]any{

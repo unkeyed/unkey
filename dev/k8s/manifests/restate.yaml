@@ -52,8 +52,7 @@ spec:
             httpGet:
               path: /health
               port: 9070
-            initialDelaySeconds: 10
-            periodSeconds: 5
+            periodSeconds: 1
           livenessProbe:
             httpGet:
               path: /health

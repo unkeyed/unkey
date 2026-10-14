@@ -1,25 +1,28 @@
 "use client";
 
 import { ProjectDataProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { useState } from "react";
+import { EnvironmentSettingsProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/environment-provider";
 import { ConfigureDeploymentContent } from "./content";
-import { OnboardingEnvironmentSettingsProvider } from "./environment-provider";
 import { ConfigureDeploymentFallback } from "./fallback";
 
 type ConfigureDeploymentStepProps = {
   projectId: string;
   appId: string;
+  onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export const ConfigureDeploymentStep = ({ projectId, appId }: ConfigureDeploymentStepProps) => {
-  const [settingsReady, setSettingsReady] = useState(false);
-
+export function ConfigureDeploymentStep({
+  projectId,
+  appId,
+  onDeploymentCreated,
+}: ConfigureDeploymentStepProps) {
   return (
     <ProjectDataProvider projectId={projectId} appId={appId}>
-      <OnboardingEnvironmentSettingsProvider onSettingsReady={() => setSettingsReady(true)}>
-        <ConfigureDeploymentContent />
-      </OnboardingEnvironmentSettingsProvider>
-      <ConfigureDeploymentFallback settingsReady={settingsReady} />
+      <EnvironmentSettingsProvider
+        fallback={<ConfigureDeploymentFallback onDeploymentCreated={onDeploymentCreated} />}
+      >
+        <ConfigureDeploymentContent onDeploymentCreated={onDeploymentCreated} />
+      </EnvironmentSettingsProvider>
     </ProjectDataProvider>
   );
-};
+}

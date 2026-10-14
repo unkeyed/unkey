@@ -1,0 +1,130 @@
+import {
+  MAX_VARIABLES,
+  PartialAddError,
+  addVariables,
+  envVarErrorToast,
+} from "@/lib/collections/deploy/env-vars";
+import { plural } from "@/lib/fmt";
+import { useMutation } from "@tanstack/react-query";
+import { FormField, toast } from "@unkey/ui";
+import { type FormEvent, useState } from "react";
+import { useAppId, useProjectData } from "../../../[appId]/(overview)/data-provider";
+import { environmentName } from "../../environment-label";
+import { ALL_ENVIRONMENTS, targetEnvironmentIds } from "../../environment-scope";
+import { EnvironmentSelect } from "../../environment-select";
+import { useVariableRows } from "../variables-table/use-variable-rows";
+import { conflictErrors, isBlankRow, parseVariableRows } from "../variables-table/variable-rows";
+import { VariablesTable } from "../variables-table/variables-table";
+
+export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
+  const appId = useAppId();
+  const { projectId, environments } = useProjectData();
+  const draft = useVariableRows();
+  const [environmentId, setEnvironmentId] = useState(ALL_ENVIRONMENTS);
+  const targetIds = targetEnvironmentIds(
+    environmentId,
+    environments.map((e) => e.id),
+  );
+
+  const canSubmit = targetIds.length > 0;
+  const isDirty = draft.rows.some((row) => !isBlankRow(row));
+  const reset = () => {
+    draft.reset();
+    setEnvironmentId(ALL_ENVIRONMENTS);
+  };
+
+  const add = useMutation({
+    mutationFn: addVariables,
+    onSuccess: (result) => {
+      if (result.status === "taken") {
+        draft.showErrors(conflictErrors(draft.rows, new Set(result.keys)));
+        return;
+      }
+      toast.success(`Added ${plural(result.count, "variable")}`);
+      reset();
+      onAdded?.();
+    },
+    onError: (err) => {
+      if (err instanceof PartialAddError) {
+        const saved = environments.filter((e) => err.savedEnvironmentIds.includes(e.id));
+        const unsaved = targetIds.filter((id) => !err.savedEnvironmentIds.includes(id));
+        if (unsaved.length === 1) {
+          setEnvironmentId(unsaved[0]);
+        }
+        toast.error("Some variables were saved", {
+          description:
+            saved.length > 0
+              ? `Saved to ${saved.map((e) => environmentName(e.slug)).join(", ")}. ${err.message}`
+              : err.message,
+        });
+        return;
+      }
+      const { message, description } = envVarErrorToast(
+        err,
+        "Failed to create environment variables",
+      );
+      toast.error(message, { description });
+    },
+  });
+
+  const onSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    const parsed = parseVariableRows(draft.rows);
+    if (!parsed.ok) {
+      draft.showErrors(parsed.errors);
+      return;
+    }
+    if (parsed.variables.length === 0 || !canSubmit || add.isLoading) {
+      return;
+    }
+    if (parsed.variables.length > MAX_VARIABLES) {
+      toast.error(`Add at most ${plural(MAX_VARIABLES, "variable")} at once`, {
+        description: `Remove ${plural(parsed.variables.length - MAX_VARIABLES, "row")}, then save again.`,
+      });
+      return;
+    }
+    add.mutate({
+      projectId,
+      appId,
+      environmentIds: [...targetIds],
+      variables: parsed.variables,
+    });
+  };
+
+  return {
+    draft,
+    environmentId,
+    setEnvironmentId,
+    canSubmit,
+    isDirty,
+    isPending: add.isLoading,
+    reset,
+    onSubmit,
+  };
+}
+
+type AddEnvVarsForm = ReturnType<typeof useAddEnvVarsForm>;
+
+export function AddEnvVarsFields({
+  form,
+}: {
+  form: Pick<AddEnvVarsForm, "draft" | "environmentId" | "setEnvironmentId"> & {
+    onTableFocusChange?: (focused: boolean) => void;
+  };
+}) {
+  return (
+    <>
+      <VariablesTable draft={form.draft} onFocusChange={form.onTableFocusChange} />
+      <FormField label="Environment">
+        {({ id }) => (
+          <EnvironmentSelect
+            id={id}
+            value={form.environmentId}
+            onValueChange={form.setEnvironmentId}
+            wrapperClassName="w-60"
+          />
+        )}
+      </FormField>
+    </>
+  );
+}

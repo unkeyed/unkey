@@ -38,7 +38,7 @@ CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 
-CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`,`key_auth_id`,`id`);
+CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`,`key_auth_id`,`deleted_at_m`,`id`);
 
 CREATE INDEX `idx_keys_refill` ON `keys` (`refill_amount`,`deleted_at_m`);
 

@@ -417,7 +417,7 @@ func (h *Handler) mintSession(
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          sessionID,
 						DisplayName: req.ExternalID,
@@ -428,7 +428,7 @@ func (h *Handler) mintSession(
 							"scopes":      req.Scopes,
 							"keyspaceIds": req.KeyspaceIDs,
 						},
-						Type: auditlog.PortalSessionResourceType,
+						Type: auditlog.PortalSessionTargetType,
 					},
 				},
 			},

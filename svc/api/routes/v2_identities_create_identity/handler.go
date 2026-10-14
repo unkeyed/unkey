@@ -141,10 +141,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          identityID,
-						Type:        auditlog.IdentityResourceType,
+						Type:        auditlog.IdentityTargetType,
 						Meta:        nil,
 						Name:        req.ExternalId,
 						DisplayName: req.ExternalId,
@@ -179,16 +179,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					RemoteIP:      s.Location(),
 					UserAgent:     s.UserAgent(),
 					CorrelationID: "",
-					Resources: []auditlog.AuditLogResource{
+					Targets: []auditlog.AuditLogTarget{
 						{
-							Type:        auditlog.IdentityResourceType,
+							Type:        auditlog.IdentityTargetType,
 							ID:          identityID,
 							Name:        req.ExternalId,
 							Meta:        nil,
 							DisplayName: req.ExternalId,
 						},
 						{
-							Type:        auditlog.RatelimitResourceType,
+							Type:        auditlog.RatelimitTargetType,
 							ID:          ratelimitID,
 							DisplayName: ratelimit.Name,
 							Name:        ratelimit.Name,

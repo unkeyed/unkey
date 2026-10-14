@@ -4,6 +4,7 @@ import {
   environments,
   inProjectApps,
 } from "@/lib/collections/deploy/environments";
+import { useCollectionLoad } from "@/lib/collections/use-collection-load";
 import { useLiveQuery } from "@tanstack/react-db";
 
 /** Live environments of every app in the given projects. Idle until `projects` loads. */
@@ -21,7 +22,6 @@ export function useProjectEnvironments(projects: ReadonlyArray<ProjectApps> | un
     [scopeKey],
   );
 
-  // A failed fetch leaves the query collection ready with no rows and records the
-  // error on utils; useLiveQuery's isError only covers exceptions inside sync.
-  return { ...query, isError: environments.utils.isError };
+  const { failed } = useCollectionLoad(environments.utils);
+  return { ...query, isError: failed };
 }

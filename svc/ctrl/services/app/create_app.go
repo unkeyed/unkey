@@ -215,10 +215,10 @@ func (s *Service) CreateApp(
 				RemoteIP:      a.GetRemoteIp(),
 				UserAgent:     a.GetUserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:   appID,
-						Type: auditlog.AppResourceType,
+						Type: auditlog.AppTargetType,
 						Meta: map[string]any{
 							"name":       req.Msg.GetName(),
 							"slug":       req.Msg.GetSlug(),
