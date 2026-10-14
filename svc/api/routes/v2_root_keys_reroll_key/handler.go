@@ -162,14 +162,14 @@ func rerollAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 	if name == "" {
 		name = source.Start
 	}
-	newKey := auditlog.AuditLogResource{Type: auditlog.KeyResourceType, ID: keyID, Name: name, DisplayName: name, Meta: map[string]any{}}
+	newKey := auditlog.AuditLogTarget{Type: auditlog.KeyTargetType, ID: keyID, Name: name, DisplayName: name, Meta: map[string]any{}}
 	logs := []auditlog.AuditLog{{
 		WorkspaceID: workspaceID, Event: auditlog.RootKeyRerollEvent,
 		ActorType: actor.Type, ActorID: actor.ID, ActorName: actor.Name, ActorMeta: actor.Meta,
 		Display: "Rerolled root key " + source.ID + " to " + keyID, RemoteIP: s.Location(), UserAgent: s.UserAgent(),
 		CorrelationID: "",
-		Resources: []auditlog.AuditLogResource{newKey, {
-			Type: auditlog.KeyResourceType, ID: source.ID, Name: name, DisplayName: name, Meta: map[string]any{},
+		Targets: []auditlog.AuditLogTarget{newKey, {
+			Type: auditlog.KeyTargetType, ID: source.ID, Name: name, DisplayName: name, Meta: map[string]any{},
 		}},
 	}}
 	logs = append(logs, array.Map(permissionRows, func(permission db.InsertUnkeyPermissionParams) auditlog.AuditLog {
@@ -178,8 +178,8 @@ func rerollAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string,
 			ActorType: actor.Type, ActorID: actor.ID, ActorName: actor.Name, ActorMeta: actor.Meta,
 			Display: "Granted " + permission.Slug, RemoteIP: s.Location(), UserAgent: s.UserAgent(),
 			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{newKey, {
-				Type: auditlog.PermissionResourceType, ID: permission.ID,
+			Targets: []auditlog.AuditLogTarget{newKey, {
+				Type: auditlog.PermissionTargetType, ID: permission.ID,
 				Name: permission.Slug, DisplayName: permission.Slug, Meta: map[string]any{},
 			}},
 		}

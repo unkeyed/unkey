@@ -14,7 +14,6 @@ const h = vi.hoisted(() => {
   const insert = vi.fn().mockReturnValue({ values });
   const findFirst = vi.fn();
   const transaction = vi.fn(async (cb: (tx: unknown) => unknown) => cb({ update, insert }));
-  const insertAuditLogs = vi.fn();
   return {
     where,
     set,
@@ -24,7 +23,6 @@ const h = vi.hoisted(() => {
     onDuplicateKeyUpdate,
     findFirst,
     transaction,
-    insertAuditLogs,
   };
 });
 
@@ -43,15 +41,16 @@ vi.mock("@/lib/db", () => ({
     limits: {},
   },
 }));
-vi.mock("@unkey/db", () => ({
+vi.mock("@unkey/db", async () => ({
+  ...(await vi.importActual<typeof import("@unkey/db")>("@unkey/db")),
   and: vi.fn(),
   eq: vi.fn(),
   schema: {
     billingSubscriptions: { workspaceId: {}, product: {} },
     limits: {},
+    clickhouseOutbox: {},
   },
 }));
-vi.mock("@/lib/audit", () => ({ insertAuditLogs: h.insertAuditLogs }));
 
 import Stripe from "stripe";
 import { linkDeploySubscription } from "./linkDeploySubscription";
@@ -162,7 +161,6 @@ describe("linkDeploySubscription", () => {
   beforeEach(() => {
     h.findFirst.mockReset();
     h.transaction.mockClear();
-    h.insertAuditLogs.mockClear();
     h.update.mockClear();
     h.insert.mockClear();
     h.values.mockClear();
@@ -287,7 +285,17 @@ describe("linkDeploySubscription", () => {
       stripeSubscriptionId: "sub_1",
     });
     expect(h.values).toHaveBeenCalledWith(starterLimitValues);
-    expect(h.insertAuditLogs).toHaveBeenCalledOnce();
+    expect(h.values.mock.calls.flatMap(([rows]) => (Array.isArray(rows) ? rows : []))).toEqual([
+      expect.objectContaining({
+        workspaceId: WORKSPACE_ID,
+        payload: expect.objectContaining({
+          workspace_id: WORKSPACE_ID,
+          event: "workspace.update",
+          actor: AUDIT.actor,
+          targets: [{ type: "workspace", id: WORKSPACE_ID }],
+        }),
+      }),
+    ]);
   });
 
   it("repairs limits without relinking when the same subscription and plan are linked", async () => {

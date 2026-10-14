@@ -32,12 +32,13 @@ export function useResourceProjectId(resource: ProjectResource | null): ProjectO
     { enabled: Boolean(apiId) },
   );
 
-  const namespaceQuery = useLiveQuery(
+  // Every namespace lives in the workspace default project
+  const defaultProjectQuery = useLiveQuery(
     (q) =>
       namespaceId
         ? q
-            .from({ namespace: collection.ratelimitNamespaces })
-            .where(({ namespace }) => eq(namespace.id, namespaceId))
+            .from({ project: collection.projects })
+            .where(({ project }) => eq(project.isDefault, true))
         : null,
     [namespaceId],
   );
@@ -59,10 +60,10 @@ export function useResourceProjectId(resource: ProjectResource | null): ProjectO
       return apiQuery.data ? owner(apiQuery.data.currentApi.projectId) : loading;
     })
     .with({ type: "namespace" }, () => {
-      if (namespaceQuery.isError) {
+      if (defaultProjectQuery.isError) {
         return unknown;
       }
-      return namespaceQuery.isLoading ? loading : owner(namespaceQuery.data?.at(0)?.projectId);
+      return defaultProjectQuery.isLoading ? loading : owner(defaultProjectQuery.data?.at(0)?.id);
     })
     .with({ type: "identity" }, () => {
       if (identityQuery.isError) {

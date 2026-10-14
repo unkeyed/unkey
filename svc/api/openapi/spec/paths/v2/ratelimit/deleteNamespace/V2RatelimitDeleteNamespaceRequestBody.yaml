@@ -1,0 +1,21 @@
+type: object
+required:
+  - namespace
+properties:
+  namespace:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |
+      The namespace to delete. Pass the namespace ID (`rlns_...`) or its name.
+    example: rlns_1234abcd
+additionalProperties: false
+examples:
+  byId:
+    summary: Delete a namespace by ID
+    value:
+      namespace: rlns_1234abcd
+  byName:
+    summary: Delete a namespace by name
+    value:
+      namespace: email.outbound

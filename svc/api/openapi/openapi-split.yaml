@@ -248,6 +248,14 @@ paths:
     $ref: "./spec/paths/v2/ratelimit/listOverrides/index.yaml"
   /v2/ratelimit.deleteOverride:
     $ref: "./spec/paths/v2/ratelimit/deleteOverride/index.yaml"
+  /v2/ratelimit.listNamespaces:
+    $ref: "./spec/paths/v2/ratelimit/listNamespaces/index.yaml"
+  /v2/ratelimit.createNamespace:
+    $ref: "./spec/paths/v2/ratelimit/createNamespace/index.yaml"
+  /v2/ratelimit.updateNamespace:
+    $ref: "./spec/paths/v2/ratelimit/updateNamespace/index.yaml"
+  /v2/ratelimit.deleteNamespace:
+    $ref: "./spec/paths/v2/ratelimit/deleteNamespace/index.yaml"
 
   # Portal Endpoints
   /v2/portal.createPortal:
@@ -290,6 +298,10 @@ paths:
     $ref: "./spec/paths/v2/github/installApp/index.yaml"
 
   # Workspace Endpoints
+  /v2/workspace.getFlags:
+    $ref: "./spec/paths/v2/workspace/getFlags/index.yaml"
+  /v2/workspace.updateFlag:
+    $ref: "./spec/paths/v2/workspace/updateFlag/index.yaml"
   /v2/workspace.getLimits:
     $ref: "./spec/paths/v2/workspace/getLimits/index.yaml"
   /v2/workspace.getUsage:

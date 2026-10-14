@@ -88,8 +88,8 @@ func TestVerifyKey_WritesRootKeyAuditLog(t *testing.T) {
 	require.NotEmpty(t, row.ActorName)
 	require.Equal(t, "audit-log-test", row.UserAgent)
 	require.Equal(t, []string{
-		string(auditlog.KeyResourceType),
-		string(auditlog.IdentityResourceType),
+		string(auditlog.KeyTargetType),
+		string(auditlog.IdentityTargetType),
 	}, row.TargetTypes)
 	require.Equal(t, []string{key.KeyID, identity.ID}, row.TargetIDs)
 	require.Equal(t, []string{"test-key", identity.ExternalID}, row.TargetNames)
