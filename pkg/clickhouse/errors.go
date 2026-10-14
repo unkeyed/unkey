@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -258,22 +259,17 @@ func WrapClickHouseError(err error) error {
 
 	chErr, isException := errors.AsType[*ch.Exception](err)
 	if !isException {
-		// A failure that is not a ClickHouse exception never reached the query
-		// engine: the connection, the driver, or the pool produced it.
-		return fault.Wrap(err, fault.Internal("executing clickhouse query failed"))
-	}
-
-	errMsg := strings.ToLower(err.Error())
-
-	// Check for resource limit violations via message patterns
-	for pattern, response := range resourceLimitPatterns {
-		if strings.Contains(errMsg, pattern) {
-			return fault.Wrap(
-				err,
-				fault.Code(response.code),
-				fault.Public(response.message),
-			)
+		if opErr, ok := errors.AsType[*ch.OpError](err); ok {
+			// OpError does not implement Unwrap.
+			if conversionErr, ok := errors.AsType[*column.ColumnConverterError](opErr.Err); ok && conversionErr.Op == "ScanRow" {
+				return fault.Wrap(
+					err,
+					fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+					fault.Public("Invalid analytics query"),
+				)
+			}
 		}
+		return fault.Wrap(err, fault.Internal("executing clickhouse query failed"))
 	}
 
 	// Check ClickHouse exception codes for resource errors
@@ -291,6 +287,22 @@ func WrapClickHouseError(err error) error {
 			fault.Public(response.message),
 		)
 	}
+	if operationalExceptionCodes[chErr.Code] {
+		return fault.Wrap(err, fault.Internal("executing clickhouse query failed"))
+	}
+
+	errMsg := strings.ToLower(err.Error())
+
+	// Check for resource limit violations via message patterns
+	for pattern, response := range resourceLimitPatterns {
+		if strings.Contains(errMsg, pattern) {
+			return fault.Wrap(
+				err,
+				fault.Code(response.code),
+				fault.Public(response.message),
+			)
+		}
+	}
 	// ClickHouse uses one exception for row and byte result overflow, so standard
 	// messages are classified above before these version-specific fallbacks.
 	if chErr.Code == 396 {
@@ -306,10 +318,6 @@ func WrapClickHouseError(err error) error {
 			fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
 			fault.Public("Query result exceeds the maximum row count."),
 		)
-	}
-
-	if operationalExceptionCodes[chErr.Code] {
-		return fault.Wrap(err, fault.Internal("executing clickhouse query failed"))
 	}
 
 	// The remaining exceptions are query errors the parser did not catch:

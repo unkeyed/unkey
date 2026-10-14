@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -148,6 +149,10 @@ func TestWrapClickHouseError_InfrastructureFailures(t *testing.T) {
 			err:  &ch.Exception{Code: 210, Name: "DB::NetException", Message: "Connection reset by peer"},
 		},
 		{
+			name: "socket timeout exception",
+			err:  &ch.Exception{Code: 209, Name: "DB::NetException", Message: "Timeout exceeded while reading from socket (peer: clickhouse:9440)"},
+		},
+		{
 			name: "keeper exception",
 			err:  &ch.Exception{Code: 999, Name: "DB::Exception", Message: "KeeperErrorCode = ConnectionLoss for /clickhouse/tables/replicated"},
 		},
@@ -180,5 +185,23 @@ func TestWrapClickHouseError_UserQueryError(t *testing.T) {
 	code, ok := fault.GetCode(wrapped)
 	require.True(t, ok)
 	require.Equal(t, codes.User.BadRequest.InvalidAnalyticsQuery.URN(), code)
+	require.ErrorIs(t, wrapped, err)
+}
+
+func TestWrapClickHouseError_UnsupportedResultType(t *testing.T) {
+	interval := new(column.Interval)
+	conversionErr := interval.ScanRow(new(ch.Dynamic), 0)
+	require.Error(t, conversionErr)
+	err := fault.Wrap(
+		&ch.OpError{Op: "Scan", ColumnName: "x", Err: conversionErr},
+		fault.Public("Failed to read query results"),
+	)
+
+	wrapped := WrapClickHouseError(err)
+	code, ok := fault.GetCode(wrapped)
+	require.True(t, ok)
+	require.Equal(t, codes.User.BadRequest.InvalidAnalyticsQuery.URN(), code)
+	require.Contains(t, fault.UserFacingMessage(wrapped), "Invalid analytics query")
+	require.NotContains(t, fault.UserFacingMessage(wrapped), "Interval")
 	require.ErrorIs(t, wrapped, err)
 }
