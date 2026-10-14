@@ -350,10 +350,9 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("Build", restate.WithIngressPrivate(true), buildRetryPolicy,
 			restate.WithInactivityTimeout(deploy.BuildKeepAliveWindow)))
 	deploymentSvc, err := deployment.New(deployment.Config{
-		DB:        database,
-		Auditlogs: auditlogSvc,
-		GitHub:    ghClient,
-
+		DB:                              database,
+		Auditlogs:                       auditlogSvc,
+		GitHub:                          ghClient,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})
 	if err != nil {
