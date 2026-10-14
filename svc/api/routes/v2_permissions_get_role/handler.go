@@ -74,11 +74,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	)
 	err = principal.Authorize(rbac.Or(
 		readRole,
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.ReadRole,
-		}),
 	))
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(

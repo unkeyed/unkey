@@ -6,7 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -49,13 +52,6 @@ func TestListEnvironmentsForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard environment permission", permissions: []string{"environment.*.read_environment"}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "environment.*.read_environment"}, shouldPass: true},
-		{name: "wrong action", permissions: []string{"environment.*.read_app"}, shouldPass: false},
-		{name: "read_app does not match read_environment", permissions: []string{"environment.*.read_app"}, shouldPass: false},
-		{name: "specific environment scope does not match list", permissions: []string{fmt.Sprintf("environment.%s.read_environment", env.ID)}, shouldPass: false},
-		{name: "project scope does not match", permissions: []string{fmt.Sprintf("project.%s.read_environment", project.ID)}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
@@ -122,7 +118,7 @@ func TestListEnvironmentsExistenceNotLeaked(t *testing.T) {
 	missingApp := slug(t)
 
 	// Key in the same workspace with an unrelated grant but no read_environment action.
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*"), permissions.Read).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

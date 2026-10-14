@@ -19,7 +19,7 @@ func TestGetProjectBadRequest(t *testing.T) {
 	route := &handler.Handler{DB: h.DB}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "project.*.read_project")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*#read", h.Resources().UserWorkspace.ID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

@@ -32,7 +32,7 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_permission")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#read", workspace.ID, projectID))
 
 	// Set up request headers
 	headers := http.Header{
