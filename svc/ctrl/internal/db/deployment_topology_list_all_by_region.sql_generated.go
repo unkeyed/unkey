@@ -16,7 +16,7 @@ const listAllDeploymentTopologiesByRegion = `-- name: ListAllDeploymentTopologie
 SELECT
     dt.pk AS topology_pk,
     CAST((p.id IS NULL OR a.id IS NULL OR e.id IS NULL
-      OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL) AS SIGNED) AS removal_required,
+      OR p.deleted_at IS NOT NULL OR a.deleted_at IS NOT NULL OR e.deleted_at IS NOT NULL) AS SIGNED) AS removal_required,
     dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
     dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
@@ -58,7 +58,7 @@ WHERE r.id = ?
   AND (
     dt.desired_status = 'running'
     OR p.id IS NULL OR a.id IS NULL OR e.id IS NULL
-    OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL
+    OR p.deleted_at IS NOT NULL OR a.deleted_at IS NOT NULL OR e.deleted_at IS NOT NULL
     OR (d.desired_state = 'stopped' AND d.status <> 'stopped')
     OR EXISTS (
       SELECT 1 FROM ` + "`" + `instances` + "`" + ` i
@@ -113,7 +113,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	SELECT
 //	    dt.pk AS topology_pk,
 //	    CAST((p.id IS NULL OR a.id IS NULL OR e.id IS NULL
-//	      OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL) AS SIGNED) AS removal_required,
+//	      OR p.deleted_at IS NOT NULL OR a.deleted_at IS NOT NULL OR e.deleted_at IS NOT NULL) AS SIGNED) AS removal_required,
 //	    dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
 //	    dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
 //	    dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
@@ -155,7 +155,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	  AND (
 //	    dt.desired_status = 'running'
 //	    OR p.id IS NULL OR a.id IS NULL OR e.id IS NULL
-//	    OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL
+//	    OR p.deleted_at IS NOT NULL OR a.deleted_at IS NOT NULL OR e.deleted_at IS NOT NULL
 //	    OR (d.desired_state = 'stopped' AND d.status <> 'stopped')
 //	    OR EXISTS (
 //	      SELECT 1 FROM `instances` i

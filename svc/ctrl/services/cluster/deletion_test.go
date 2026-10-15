@@ -93,15 +93,15 @@ func TestDeletionDesiredStateForDeletingAndMissingParents(t *testing.T) {
 	}{
 		{name: "deleting project", removeParent: func(t *testing.T, ctx context.Context, f deletionFixture) {
 			t.Helper()
-			require.NoError(t, f.database.MarkProjectDeleting(ctx, db.MarkProjectDeletingParams{ID: f.projectID, DeletingAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}}))
+			require.NoError(t, f.database.MarkProjectDeleted(ctx, db.MarkProjectDeletedParams{ID: f.projectID, DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}}))
 		}},
 		{name: "deleting app", removeParent: func(t *testing.T, ctx context.Context, f deletionFixture) {
 			t.Helper()
-			require.NoError(t, f.database.MarkAppDeleting(ctx, db.MarkAppDeletingParams{ID: f.appID, DeletingAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}}))
+			require.NoError(t, f.database.MarkAppDeleted(ctx, db.MarkAppDeletedParams{ID: f.appID, DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}}))
 		}},
 		{name: "deleting environment", removeParent: func(t *testing.T, ctx context.Context, f deletionFixture) {
 			t.Helper()
-			require.NoError(t, f.database.MarkEnvironmentDeleting(ctx, db.MarkEnvironmentDeletingParams{ID: f.environmentID, DeletingAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}}))
+			require.NoError(t, f.database.MarkEnvironmentDeleted(ctx, db.MarkEnvironmentDeletedParams{ID: f.environmentID, DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}}))
 		}},
 		{name: "missing project", removeParent: func(t *testing.T, ctx context.Context, f deletionFixture) {
 			t.Helper()
@@ -164,8 +164,8 @@ func TestDeletionDesiredStateKeepsActiveDeployment(t *testing.T) {
 func TestDeletionReportsRequireExplicitConfirmation(t *testing.T) {
 	f := newDeletionFixture(t, 1)
 	f.createInstance(t, f.regions[0])
-	require.NoError(t, f.database.MarkEnvironmentDeleting(t.Context(), db.MarkEnvironmentDeletingParams{
-		ID: f.environmentID, DeletingAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+	require.NoError(t, f.database.MarkEnvironmentDeleted(t.Context(), db.MarkEnvironmentDeletedParams{
+		ID: f.environmentID, DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 	}))
 
 	req := connect.NewRequest(&ctrlv1.ReportDeploymentStatusRequest{
@@ -229,8 +229,8 @@ func TestDeletionConfirmationIsRegionalIdempotentAndValidated(t *testing.T) {
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	f.requireTopologyCount(t, 2)
 
-	require.NoError(t, f.database.MarkEnvironmentDeleting(t.Context(), db.MarkEnvironmentDeletingParams{
-		ID: f.environmentID, DeletingAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+	require.NoError(t, f.database.MarkEnvironmentDeleted(t.Context(), db.MarkEnvironmentDeletedParams{
+		ID: f.environmentID, DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 	}))
 	err = confirmDeploymentRemoval(t.Context(), queries, f.regions[0].ID, &ctrlv1.ReportDeploymentStatusRequest_Delete{
 		DeploymentId: f.deployment.ID, K8SName: "wrong", RemovalConfirmed: true,
@@ -255,8 +255,8 @@ func TestOwnerlessRemovalConfirmationAcceptsDeletingEnvironment(t *testing.T) {
 	f.requireTopologyCount(t, 1)
 	f.requireInstanceCount(t, f.regions[0], 1)
 
-	require.NoError(t, f.database.MarkEnvironmentDeleting(t.Context(), db.MarkEnvironmentDeletingParams{
-		ID: f.environmentID, DeletingAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+	require.NoError(t, f.database.MarkEnvironmentDeleted(t.Context(), db.MarkEnvironmentDeletedParams{
+		ID: f.environmentID, DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 	}))
 	require.NoError(t, confirmDeploymentRemoval(t.Context(), queries, f.regions[0].ID, report))
 	f.requireTopologyCount(t, 0)
@@ -267,8 +267,8 @@ func TestOwnerlessRemovalConfirmationAcceptsDeletingEnvironment(t *testing.T) {
 
 func TestLateInstanceUpdateDoesNotRecreateInstancesAfterDeletion(t *testing.T) {
 	f := newDeletionFixture(t, 1)
-	require.NoError(t, f.database.MarkAppDeleting(t.Context(), db.MarkAppDeletingParams{
-		ID: f.appID, DeletingAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+	require.NoError(t, f.database.MarkAppDeleted(t.Context(), db.MarkAppDeletedParams{
+		ID: f.appID, DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 	}))
 	req := connect.NewRequest(&ctrlv1.ReportDeploymentStatusRequest{
 		Cluster: f.clusterKey,
@@ -290,11 +290,11 @@ func TestLockActiveEnvironmentRejectsDeletingAncestor(t *testing.T) {
 			now := sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}
 			switch ancestor {
 			case "project":
-				require.NoError(t, f.database.MarkProjectDeleting(t.Context(), db.MarkProjectDeletingParams{ID: f.projectID, DeletingAt: now}))
+				require.NoError(t, f.database.MarkProjectDeleted(t.Context(), db.MarkProjectDeletedParams{ID: f.projectID, DeletedAt: now}))
 			case "app":
-				require.NoError(t, f.database.MarkAppDeleting(t.Context(), db.MarkAppDeletingParams{ID: f.appID, DeletingAt: now}))
+				require.NoError(t, f.database.MarkAppDeleted(t.Context(), db.MarkAppDeletedParams{ID: f.appID, DeletedAt: now}))
 			case "environment":
-				require.NoError(t, f.database.MarkEnvironmentDeleting(t.Context(), db.MarkEnvironmentDeletingParams{ID: f.environmentID, DeletingAt: now}))
+				require.NoError(t, f.database.MarkEnvironmentDeleted(t.Context(), db.MarkEnvironmentDeletedParams{ID: f.environmentID, DeletedAt: now}))
 			}
 			_, err := f.database.LockActiveEnvironment(t.Context(), f.environmentID)
 			require.True(t, db.IsNotFound(err))
@@ -333,12 +333,12 @@ func TestActiveEnvironmentLockSerializesProjectDeletion(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(t.Context(), 250*time.Millisecond)
 	defer cancel()
-	mark := db.MarkProjectDeletingParams{ID: f.projectID, DeletingAt: sql.NullInt64{Int64: 1, Valid: true}}
-	err = f.database.MarkProjectDeleting(ctx, mark)
+	mark := db.MarkProjectDeletedParams{ID: f.projectID, DeletedAt: sql.NullInt64{Int64: 1, Valid: true}}
+	err = f.database.MarkProjectDeleted(ctx, mark)
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 	require.NoError(t, tx.Commit())
 
-	require.NoError(t, f.database.MarkProjectDeleting(t.Context(), mark))
+	require.NoError(t, f.database.MarkProjectDeleted(t.Context(), mark))
 	_, err = f.database.LockActiveEnvironment(t.Context(), f.environmentID)
 	require.True(t, db.IsNotFound(err))
 }
