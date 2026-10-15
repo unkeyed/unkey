@@ -15,7 +15,11 @@ import (
 
 const updateDeploymentStatusIfActive = `-- name: UpdateDeploymentStatusIfActive :exec
 UPDATE deployments
-SET status = ?, updated_at = ?
+SET first_ready_at = COALESCE(first_ready_at, CASE
+        WHEN ? = 'ready' THEN COALESCE(?, created_at)
+        ELSE NULL
+    END),
+    status = ?, updated_at = ?
 WHERE id = ?
   AND status IN (/*SLICE:progressing_statuses*/?)
 `
@@ -32,12 +36,18 @@ type UpdateDeploymentStatusIfActiveParams struct {
 // mysqltype.ProgressingDeploymentStatuses.
 //
 //	UPDATE deployments
-//	SET status = ?, updated_at = ?
+//	SET first_ready_at = COALESCE(first_ready_at, CASE
+//	        WHEN ? = 'ready' THEN COALESCE(?, created_at)
+//	        ELSE NULL
+//	    END),
+//	    status = ?, updated_at = ?
 //	WHERE id = ?
 //	  AND status IN (/*SLICE:progressing_statuses*/?)
 func (q *Queries) UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error {
 	query := updateDeploymentStatusIfActive
 	var queryParams []interface{}
+	queryParams = append(queryParams, arg.Status)
+	queryParams = append(queryParams, arg.UpdatedAt)
 	queryParams = append(queryParams, arg.Status)
 	queryParams = append(queryParams, arg.UpdatedAt)
 	queryParams = append(queryParams, arg.ID)
