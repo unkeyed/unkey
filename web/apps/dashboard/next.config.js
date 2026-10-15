@@ -1,11 +1,6 @@
 const isDev = process.env.NODE_ENV === "development";
 const isProd = process.env.NODE_ENV === "production";
 
-// The Vercel toolbar is injected on preview deployments and rendered manually
-// in development (app/layout.tsx); production never loads it, so production
-// must not whitelist its origins.
-const allowVercelToolbar = isDev || process.env.VERCEL_ENV === "preview";
-
 function shouldUploadSentrySourceMaps() {
   const raw = process.env.SENTRY_UPLOAD_SOURCEMAPS;
   if (raw === undefined || raw.trim() === "") {
@@ -32,34 +27,13 @@ const sentryReleaseName =
 
 const cspEnforced = ["object-src 'none'", "base-uri 'self'", "frame-ancestors 'self'"].join("; ");
 
-const scriptSrc = [
-  "'self'",
-  "'unsafe-inline'",
-  ...(isDev ? ["'unsafe-eval'"] : []),
-  ...(allowVercelToolbar ? ["https://vercel.live"] : []),
-].join(" ");
+const scriptSrc = ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])].join(" ");
 
-const connectSrc = [
-  "'self'",
-  "https://*.ingest.us.sentry.io",
-  ...(allowVercelToolbar ? ["https://vercel.live", "wss://*.pusher.com"] : []),
-].join(" ");
+const connectSrc = ["'self'", "https://*.ingest.us.sentry.io"].join(" ");
 
-// Tailwind/inline style attributes and the chart theme <style> tag; the
-// preview toolbar additionally loads its stylesheet and fonts from
-// vercel.live, and without these allowances previews would flood the console
-// with self-inflicted violations.
-const styleSrc = [
-  "'self'",
-  "'unsafe-inline'",
-  ...(allowVercelToolbar ? ["https://vercel.live"] : []),
-].join(" ");
+const styleSrc = ["'self'", "'unsafe-inline'"].join(" ");
 
-const fontSrc = [
-  "'self'",
-  "data:",
-  ...(allowVercelToolbar ? ["https://vercel.live/fonts"] : []),
-].join(" ");
+const fontSrc = ["'self'", "data:"].join(" ");
 
 // Full policy runs in report-only mode: violations are reported to the
 // browser console (devtools) but nothing is blocked. There is no report-uri:
@@ -75,7 +49,6 @@ const cspReportOnly = [
   `font-src ${fontSrc}`,
   `connect-src ${connectSrc}`,
   "worker-src 'self' blob:",
-  ...(allowVercelToolbar ? ["frame-src https://vercel.live"] : []),
   "form-action 'self'",
 ].join("; ");
 
@@ -207,6 +180,3 @@ module.exports = withSentryConfig(module.exports, {
     },
   },
 });
-
-const withVercelToolbar = require("@vercel/toolbar/plugins/next")();
-module.exports = withVercelToolbar(module.exports);

@@ -26,9 +26,10 @@ func New(restateClient *restateingress.Client, webhookSecret string) http.Handle
 	return webhook.New("github", githubverifier.New(webhookSecret)).
 		On([]string{"push"}, webhook.Typed(h.push)).
 		On([]string{"pull_request"}, webhook.Typed(h.pullRequest)).
+		On([]string{"installation"}, webhook.Typed(h.installation)).
 		// Branch lifecycle events carry no code to deploy; the first push of a
 		// new branch arrives as its own push event (created: true).
-		On([]string{"create", "delete", "installation"}, ignoreEvent).
+		On([]string{"create", "delete"}, ignoreEvent).
 		// GitHub Apps receive every subscribed event; anything without a handler
 		// is deliberately not deployment-relevant.
 		Default(ignoreEvent)

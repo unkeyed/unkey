@@ -79,16 +79,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// it. Anyone who may mint or revoke its sessions may also list them.
 	sessions := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID).Session("*")
 	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Portal,
-			ResourceID:   "*",
-			Action:       rbac.CreatePortalSession,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Portal,
-			ResourceID:   found.ID,
-			Action:       rbac.CreatePortalSession,
-		}),
 		rbac.U(sessions, permissions.Read),
 		rbac.U(sessions, permissions.Write),
 	))

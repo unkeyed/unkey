@@ -40,6 +40,31 @@ type InstallationRow = {
 type InstallationColumn = keyof InstallationRow;
 type Predicate = { column: InstallationColumn; value: unknown } | { predicates: Predicate[] };
 
+type GithubContextProject = {
+  id: string;
+  apps: Array<{ id: string; githubRepoConnection: null }>;
+  workspace: {
+    id: string;
+    githubAppInstallations: Array<{ pk: number; installationId: number }>;
+  };
+};
+
+type RepositoryRow = {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+  html_url: string;
+  default_branch: string;
+  pushed_at: string | null;
+  language: string | null;
+};
+
+type CapturedQueryResolver = (opts: {
+  ctx: Context;
+  input: { projectId: string };
+}) => Promise<unknown>;
+
 const state = vi.hoisted(() => ({
   prepareWorkspaceResolver: null as PrepareWorkspaceResolver | null,
   inputMutationResolvers: [] as RegisterResolver[],
@@ -49,6 +74,10 @@ const state = vi.hoisted(() => ({
   checkedInstallationIds: [] as number[],
   canAccessInstallation: true,
   exchangeError: null as Error | null,
+  project: null as GithubContextProject | null,
+  installationRepos: new Map<number, RepositoryRow[]>(),
+  repoErrors: new Map<number, Error>(),
+  inputQueryResolvers: [] as CapturedQueryResolver[],
 }));
 
 vi.mock("@/lib/db", () => {
@@ -86,7 +115,7 @@ vi.mock("@/lib/db", () => {
           }) => state.rows.find((row) => matches(row, where(installationTable, { and, eq }))),
         },
         projects: {
-          findFirst: async () => undefined,
+          findFirst: async () => state.project ?? undefined,
         },
         apps: {
           findFirst: async () => undefined,
@@ -128,6 +157,15 @@ vi.mock("@/lib/env", () => ({
 
 vi.mock("@/lib/github", () => ({
   MAX_BRANCHES: 20,
+  GitHubApiError: class GitHubApiError extends Error {
+    constructor(
+      public readonly status: number,
+      body: string,
+    ) {
+      super(`GitHub API error ${status}: ${body}`);
+      this.name = "GitHubApiError";
+    }
+  },
   exchangeInstallationOAuthCode: async (code: string) => {
     state.exchangedCodes.push(code);
     if (state.exchangeError) {
@@ -139,7 +177,13 @@ vi.mock("@/lib/github", () => ({
     state.checkedInstallationIds.push(installationId);
     return state.canAccessInstallation;
   },
-  getInstallationRepositories: async () => [],
+  getInstallationRepositories: async (installationId: number) => {
+    const error = state.repoErrors.get(installationId);
+    if (error) {
+      throw error;
+    }
+    return state.installationRepos.get(installationId) ?? [];
+  },
   getMostActiveBranches: async () => [],
   getRepository: async () => null,
   getRepositoryBranches: async () => [],
@@ -159,7 +203,10 @@ vi.mock("../trpc", () => ({
       return resolver;
     },
     input: () => ({
-      query: <T>(resolver: T): T => resolver,
+      query: (resolver: CapturedQueryResolver) => {
+        state.inputQueryResolvers.push(resolver);
+        return resolver;
+      },
       mutation: (resolver: RegisterResolver) => {
         state.inputMutationResolvers.push(resolver);
         return resolver;
@@ -168,6 +215,7 @@ vi.mock("../trpc", () => ({
   },
 }));
 
+import { GitHubApiError } from "@/lib/github";
 import "./github";
 
 const context: Context = {
@@ -340,5 +388,78 @@ describe("registerInstallation", () => {
     }
     expect(state.checkedInstallationIds).toEqual([]);
     expect(state.inserted).toEqual([]);
+  });
+});
+
+function listRepositories(input: { projectId: string }): Promise<unknown> {
+  const resolver = state.inputQueryResolvers[2];
+  if (!resolver) {
+    throw new Error("listRepositories resolver was not registered");
+  }
+  return resolver({ ctx: context, input });
+}
+
+describe("listRepositories", () => {
+  const repository: RepositoryRow = {
+    id: 5,
+    name: "repo",
+    full_name: "acme/repo",
+    private: true,
+    html_url: "https://github.com/acme/repo",
+    default_branch: "main",
+    pushed_at: "2026-10-13T00:00:00Z",
+    language: "TypeScript",
+  };
+
+  beforeEach(() => {
+    state.project = {
+      id: "proj_1",
+      apps: [],
+      workspace: {
+        id: "ws_destination",
+        githubAppInstallations: [
+          { pk: 1, installationId: 100 },
+          { pk: 2, installationId: 200 },
+        ],
+      },
+    };
+    state.installationRepos = new Map([[200, [repository]]]);
+    state.repoErrors = new Map();
+  });
+
+  it("returns repositories from the remaining installations when one installation no longer exists", async () => {
+    state.repoErrors = new Map([[100, new GitHubApiError(404, "Not Found")]]);
+
+    const result = await listRepositories({ projectId: "proj_1" });
+
+    expect(result).toMatchObject({
+      repositories: [{ fullName: "acme/repo", installationId: 200 }],
+    });
+  });
+
+  it("returns an empty list when every installation no longer exists", async () => {
+    state.repoErrors = new Map([
+      [100, new GitHubApiError(404, "Not Found")],
+      [200, new GitHubApiError(404, "Not Found")],
+    ]);
+    state.installationRepos = new Map();
+
+    const result = await listRepositories({ projectId: "proj_1" });
+
+    expect(result).toMatchObject({ repositories: [] });
+  });
+
+  it("fails the query when an installation request fails for another reason", async () => {
+    state.repoErrors = new Map([[100, new GitHubApiError(500, "Internal Server Error")]]);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    try {
+      await expect(listRepositories({ projectId: "proj_1" })).rejects.toMatchObject({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to load GitHub repositories",
+      } satisfies Partial<TRPCError>);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });

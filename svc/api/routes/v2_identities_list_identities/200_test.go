@@ -28,7 +28,7 @@ func TestSuccess(t *testing.T) {
 	// Register the route with the harness
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#read", h.Resources().UserWorkspace.ID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -287,7 +287,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a root key for this workspace
-		singleWorkspaceKey := h.CreateRootKey(singleWorkspaceID, "identity.*.read_identity")
+		singleWorkspaceKey := h.CreateRootKey(singleWorkspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/*#read", singleWorkspaceID, singleProjectID))
 		singleHeaders := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", singleWorkspaceKey)},
@@ -350,7 +350,7 @@ func TestSuccess(t *testing.T) {
 		err = tx.Commit()
 		require.NoError(t, err)
 
-		searchKey := h.CreateRootKey(searchWorkspaceID, "identity.*.read_identity")
+		searchKey := h.CreateRootKey(searchWorkspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/*#read", searchWorkspaceID, searchProjectID))
 		searchHeaders := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", searchKey)},

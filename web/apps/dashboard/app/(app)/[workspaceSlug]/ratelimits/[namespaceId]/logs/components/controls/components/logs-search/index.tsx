@@ -56,7 +56,7 @@ export const LogsSearch = () => {
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"
       onSearch={(query) =>
-        queryLLMForStructuredOutput.mutateAsync({
+        queryLLMForStructuredOutput.mutate({
           query,
           timestamp: Date.now(),
         })

@@ -58,7 +58,7 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
       loadingText="Searching keyspaces..."
       searchMode="allowTypeDuringSearch"
       onSearch={(query) =>
-        searchApiOverview.mutateAsync({
+        searchApiOverview.mutate({
           query,
         })
       }

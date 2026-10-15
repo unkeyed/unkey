@@ -47,7 +47,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	// Test case for insufficient permissions - missing read_permission
 	t.Run("missing read_permission permission", func(t *testing.T) {
 		// Create a root key with some permissions but not read_permission
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_permission") // Only has create, not read
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -89,7 +89,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a root key for the original workspace with read_permission
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_permission")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#read", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -126,7 +126,7 @@ func TestAuthorizationFailureDoesNotCreateDefaultProject(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_permission")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

@@ -35,7 +35,7 @@ func TestOverrideNotFound(t *testing.T) {
 	}
 
 	h.Register(route)
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/%s/overrides/*#read", h.Resources().UserWorkspace.ID, namespaceID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -86,7 +86,7 @@ func TestOverrideNotFound(t *testing.T) {
 	t.Run("identifier not found", func(t *testing.T) {
 
 		namespaceID := uid.New(uid.TestPrefix)
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/%s/overrides/*#read", h.Resources().UserWorkspace.ID, namespaceID))
 		err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 			ID:          namespaceID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,

@@ -16,7 +16,7 @@ import (
 // names nothing at all, so both are rejected before anything is resolved.
 func TestGetPortalRejectsInvalidInput(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.read_portal")
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)

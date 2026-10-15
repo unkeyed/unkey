@@ -11,12 +11,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_list_overrides"
 )
 
 func TestListOverridesSuccessfully(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
+	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID}).ProjectID
 
 	// Create a namespace
 	namespaceID := uid.New("test_ns")
@@ -24,6 +26,7 @@ func TestListOverridesSuccessfully(t *testing.T) {
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   projectID,
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -52,7 +55,7 @@ func TestListOverridesSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.read_override")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/*/overrides/*#read", h.Resources().UserWorkspace.ID, projectID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -99,6 +102,7 @@ func TestListOverridesSuccessfully(t *testing.T) {
 		err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 			ID:          emptyNamespaceID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   projectID,
 			Name:        emptyNamespaceName,
 			CreatedAt:   time.Now().UnixMilli(),
 		})

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -215,6 +216,33 @@ var resourceLimitNames = map[string]errorResponse{
 	},
 }
 
+// operationalExceptionCodes are the ClickHouse exceptions that describe the
+// cluster rather than the query: transport, coordination, replication, and
+// object-storage failures. A query cannot cause them, so they reach the caller
+// as internal errors instead of a bad-request blamed on the caller.
+var operationalExceptionCodes = map[int32]bool{
+	86:   true, // RECEIVED_ERROR_FROM_REMOTE_IO_SERVER
+	203:  true, // NO_FREE_CONNECTION
+	209:  true, // SOCKET_TIMEOUT
+	210:  true, // NETWORK_ERROR
+	225:  true, // NO_ZOOKEEPER
+	244:  true, // UNEXPECTED_ZOOKEEPER_ERROR
+	278:  true, // LEADERSHIP_LOST
+	279:  true, // ALL_CONNECTION_TRIES_FAILED
+	285:  true, // TOO_FEW_LIVE_REPLICAS
+	289:  true, // REPLICA_IS_NOT_IN_QUORUM
+	292:  true, // LEADERSHIP_CHANGED
+	297:  true, // SHARD_HAS_NO_CONNECTIONS
+	499:  true, // S3_ERROR
+	500:  true, // AZURE_BLOB_STORAGE_ERROR
+	519:  true, // NO_REMOTE_SHARD_AVAILABLE
+	999:  true, // KEEPER_EXCEPTION
+	1000: true, // POCO_EXCEPTION
+	1001: true, // STD_EXCEPTION
+	1002: true, // UNKNOWN_EXCEPTION
+	1003: true, // SSH_EXCEPTION
+}
+
 // WrapClickHouseError wraps a ClickHouse error with appropriate error codes and user-friendly messages.
 // It detects resource limit violations and other user errors and tags them with specific error codes.
 func WrapClickHouseError(err error) error {
@@ -229,6 +257,40 @@ func WrapClickHouseError(err error) error {
 		)
 	}
 
+	chErr, isException := errors.AsType[*ch.Exception](err)
+	if !isException {
+		if opErr, ok := errors.AsType[*ch.OpError](err); ok {
+			// OpError does not implement Unwrap.
+			if conversionErr, ok := errors.AsType[*column.ColumnConverterError](opErr.Err); ok && conversionErr.Op == "ScanRow" {
+				return fault.Wrap(
+					err,
+					fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+					fault.Public("Invalid analytics query"),
+				)
+			}
+		}
+		return fault.Wrap(err, fault.Internal("executing clickhouse query failed"))
+	}
+
+	// Check ClickHouse exception codes for resource errors
+	if response, ok := resourceLimitCodes[chErr.Code]; ok {
+		return fault.Wrap(
+			err,
+			fault.Code(response.code),
+			fault.Public(response.message),
+		)
+	}
+	if response, ok := resourceLimitNames[chErr.Name]; ok {
+		return fault.Wrap(
+			err,
+			fault.Code(response.code),
+			fault.Public(response.message),
+		)
+	}
+	if operationalExceptionCodes[chErr.Code] {
+		return fault.Wrap(err, fault.Internal("executing clickhouse query failed"))
+	}
+
 	errMsg := strings.ToLower(err.Error())
 
 	// Check for resource limit violations via message patterns
@@ -241,43 +303,25 @@ func WrapClickHouseError(err error) error {
 			)
 		}
 	}
-
-	// Check ClickHouse exception codes for resource errors
-	if chErr, ok := errors.AsType[*ch.Exception](err); ok {
-		if response, ok := resourceLimitCodes[chErr.Code]; ok {
-			return fault.Wrap(
-				err,
-				fault.Code(response.code),
-				fault.Public(response.message),
-			)
-		}
-		if response, ok := resourceLimitNames[chErr.Name]; ok {
-			return fault.Wrap(
-				err,
-				fault.Code(response.code),
-				fault.Public(response.message),
-			)
-		}
-		// ClickHouse uses one exception for row and byte result overflow, so standard
-		// messages are classified above before these version-specific fallbacks.
-		if chErr.Code == 396 {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
-				fault.Public("Query result exceeds the maximum response size."),
-			)
-		}
-		if chErr.Name == "TOO_MANY_ROWS_OR_BYTES" {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
-				fault.Public("Query result exceeds the maximum row count."),
-			)
-		}
+	// ClickHouse uses one exception for row and byte result overflow, so standard
+	// messages are classified above before these version-specific fallbacks.
+	if chErr.Code == 396 {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
+			fault.Public("Query result exceeds the maximum response size."),
+		)
+	}
+	if chErr.Name == "TOO_MANY_ROWS_OR_BYTES" {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
+			fault.Public("Query result exceeds the maximum row count."),
+		)
 	}
 
-	// All other ClickHouse errors are treated as user query errors (400)
-	// This ensures we never return 500 for query execution issues
+	// The remaining exceptions are query errors the parser did not catch:
+	// unknown identifiers, type mismatches, and the like.
 	return fault.Wrap(
 		err,
 		fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),

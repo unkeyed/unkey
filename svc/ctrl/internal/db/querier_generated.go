@@ -286,10 +286,20 @@ type Querier interface {
 	//
 	//  DELETE FROM frontline_routes WHERE environment_id = ?
 	DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, environmentID string) error
+	// Removes every workspace binding when GitHub deletes an installation.
+	// Safe to repeat if webhook processing retries after the deletion commits.
+	//
+	//  DELETE FROM github_app_installations WHERE installation_id = ?
+	DeleteGithubAppInstallationsByInstallationId(ctx context.Context, installationID int64) error
 	//DeleteGithubRepoConnectionsByAppId
 	//
 	//  DELETE FROM github_repo_connections WHERE app_id = ?
 	DeleteGithubRepoConnectionsByAppId(ctx context.Context, appID string) error
+	// Disconnects apps across all workspaces when their GitHub installation is deleted.
+	// Safe to repeat, including when no repository connections remain.
+	//
+	//  DELETE FROM github_repo_connections WHERE installation_id = ?
+	DeleteGithubRepoConnectionsByInstallationId(ctx context.Context, installationID int64) error
 	//DeleteInstance
 	//
 	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?

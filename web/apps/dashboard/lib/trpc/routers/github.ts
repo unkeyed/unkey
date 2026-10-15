@@ -4,6 +4,7 @@ import { db, eq, schema } from "@/lib/db";
 import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
   type BranchActivity,
+  GitHubApiError,
   MAX_BRANCHES,
   exchangeInstallationOAuthCode,
   getInstallationRepositories,
@@ -658,8 +659,14 @@ export const githubRouter = t.router({
       }> = [];
 
       for (const installation of githubContext.installations) {
+        // A GitHub installation can be removed on GitHub's side while its
+        // binding stays here. It contributes no repositories, and it must not
+        // fail the list for the workspace's other installations.
         const repos = await getInstallationRepositories(installation.installationId).catch(
-          (err) => {
+          (err: unknown) => {
+            if (err instanceof GitHubApiError && err.status === 404) {
+              return [];
+            }
             console.error(err);
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",

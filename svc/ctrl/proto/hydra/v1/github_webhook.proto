@@ -6,9 +6,9 @@ import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
-// GitHubWebhookService processes GitHub push events as a Restate virtual object
-// keyed by "{installation_id}:{repo_id}". This serializes webhook processing
-// per repository, preventing races from concurrent pushes to the same repo.
+// GitHubWebhookService processes repository events keyed by
+// "{installation_id}:{repo_id}" and installation deletion keyed by
+// "{installation_id}". Repository events serialize per repository.
 //
 // The HTTP handler validates the signature, parses the payload, and sends
 // the request to this service with X-GitHub-Delivery as the idempotency key,
@@ -20,6 +20,8 @@ service GitHubWebhookService {
   // matches each app's watch paths against the changed files, then calls
   // DeployWorkflow.Create once per app to write the row and start it.
   rpc HandlePush(HandlePushRequest) returns (HandlePushResponse) {}
+
+  rpc HandleInstallationDeleted(HandleInstallationDeletedRequest) returns (HandleInstallationDeletedResponse) {}
 }
 
 message HandlePushRequest {
@@ -41,3 +43,9 @@ message HandlePushRequest {
 }
 
 message HandlePushResponse {}
+
+message HandleInstallationDeletedRequest {
+  int64 installation_id = 1;
+}
+
+message HandleInstallationDeletedResponse {}

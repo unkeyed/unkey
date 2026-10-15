@@ -6,9 +6,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Service implements the GitHubWebhookService virtual object for processing
-// GitHub push events durably via Restate. Keyed by "{installation_id}:{repo_id}"
-// to serialize webhook processing per repository.
+// Service processes repository events keyed by "{installation_id}:{repo_id}"
+// and installation deletion keyed by "{installation_id}" durably via Restate.
 type Service struct {
 	hydrav1.UnimplementedGitHubWebhookServiceServer
 	db                              db.Database
