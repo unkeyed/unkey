@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
@@ -20,7 +23,7 @@ func TestBadRequests(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#read"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Read).Value},
 	})
 
 	headers := http.Header{

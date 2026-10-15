@@ -8,6 +8,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -25,7 +28,7 @@ func TestGetDomainByName(t *testing.T) {
 		req.CnameVerified = true
 		req.LastCheckedAt = checkedAt
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -60,7 +63,7 @@ func TestGetDomainById(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domainID,
@@ -79,7 +82,7 @@ func TestGetDomainByNameIsCaseInsensitive(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	for _, identifier := range []string{strings.ToUpper(seeded.domain), strings.ToTitle(seeded.domain)} {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
@@ -107,7 +110,7 @@ func TestGetDomainByUnicodeName(t *testing.T) {
 	seeded := seedDomain(t, h, func(req *seed.CreateCustomDomainRequest) {
 		req.Domain = canonical
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: "münchen." + parent,
@@ -127,7 +130,7 @@ func TestGetDomainDnsRecordsMatchCreate(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -159,7 +162,7 @@ func TestGetDomainApexRecords(t *testing.T) {
 	seeded := seedDomain(t, h, func(req *seed.CreateCustomDomainRequest) {
 		req.Domain = apex
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: apex,
@@ -185,7 +188,7 @@ func TestGetDomainVerifiedWithUnreadableRouting(t *testing.T) {
 		req.OwnershipVerified = true
 		req.CnameVerified = false
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -210,7 +213,7 @@ func TestGetDomainFailedReportsError(t *testing.T) {
 		req.VerificationError = verificationError
 		req.LastCheckedAt = time.Now().UnixMilli()
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -243,7 +246,7 @@ func TestGetDomainStatusMapping(t *testing.T) {
 			seeded := seedDomain(t, h, func(req *seed.CreateCustomDomainRequest) {
 				req.VerificationStatus = tc.stored
 			})
-			rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+			rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 				Domain: seeded.domain,
@@ -263,7 +266,7 @@ func TestGetDomainOmitsUnsetOptionalFields(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -286,7 +289,7 @@ func TestGetDomainReportsDomainConnect(t *testing.T) {
 		req.DomainConnectProvider = "Cloudflare"
 		req.DomainConnectURL = "https://dash.cloudflare.com/domainconnect?domain=acme.com"
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -317,7 +320,7 @@ func TestGetDomainOmitsHalfFilledDomainConnect(t *testing.T) {
 				req.DomainConnectProvider = tc.provider
 				req.DomainConnectURL = tc.url
 			})
-			rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+			rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 				Domain: seeded.domain,
@@ -334,7 +337,7 @@ func TestGetDomainWithSpecificEnvironmentPermission(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project(seeded.projectID).App(seeded.appID).Environment(seeded.environmentID).Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,

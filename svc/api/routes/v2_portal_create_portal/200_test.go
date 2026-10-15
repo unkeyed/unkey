@@ -10,7 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -38,17 +41,27 @@ func appOf(m portal.Mapping) *openapi.PortalAppId {
 	return &id
 }
 
-func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handler.Handler, http.Header) {
+func newRoute(t *testing.T, h *testutil.Harness, grants ...string) (*handler.Handler, http.Header) {
 	t.Helper()
 
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, permissions...)
+	workspaceID := h.Resources().UserWorkspace.ID
+	grants = append([]string{}, grants...)
+	grants = append(grants,
+		rbac.U(urn.New().Workspace(workspaceID).Project("*").Keyspace("*"), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*"), permissions.Read).Value,
+	)
+	rootKey := h.CreateRootKey(workspaceID, grants...)
 	return route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
+}
+
+func portalWriteGrant(workspaceID string) string {
+	return rbac.U(urn.New().Workspace(workspaceID).Project("*").Portal("*"), permissions.Write).Value
 }
 
 // keyspaceMapping seeds an api in the workspace and maps to its keyspace.
@@ -95,7 +108,7 @@ func countAuditEntriesMentioning(t *testing.T, h *testutil.Harness, workspaceID,
 
 func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Write).Value)
 	workspace := h.Resources().UserWorkspace
 
 	// A named project rather than the workspace default, so the stored project can
@@ -146,7 +159,7 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 
 func TestCreatePortalDefaultsToEnabled(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Write).Value)
 	workspace := h.Resources().UserWorkspace
 	mapping := keyspaceMapping(t, h, workspace.ID)
 
@@ -166,7 +179,7 @@ func TestCreatePortalDefaultsToEnabled(t *testing.T) {
 
 func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Write).Value)
 	workspace := h.Resources().UserWorkspace
 
 	project := h.CreateProject(seed.CreateProjectRequest{
@@ -212,7 +225,7 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 // unscoped and nothing would notice.
 func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Write).Value)
 	workspace := h.Resources().UserWorkspace
 
 	other := h.CreateWorkspace()
@@ -241,7 +254,7 @@ func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 
 func TestCreatePortalWritesOneAuditEntry(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Write).Value)
 	workspace := h.Resources().UserWorkspace
 	mapping := keyspaceMapping(t, h, workspace.ID)
 

@@ -10,6 +10,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_get_api"
@@ -29,7 +32,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 	// Test with existing API
 	t.Run("get existing api", func(t *testing.T) {
 		// Create a root key with right permissions
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Keyspace("*"), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -121,7 +124,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 
 	// Test API with very long name
 	t.Run("get api with very long name", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Keyspace("*"), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -150,7 +153,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 
 	// Test API with special characters in name
 	t.Run("get api with special characters in name", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Keyspace("*"), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -180,7 +183,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 
 	// Test API with Unicode characters in name
 	t.Run("get api with unicode characters in name", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Keyspace("*"), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -210,7 +213,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 
 	// Test retrieving a recently created API with timestamp verification
 	t.Run("get recently created api with timestamp verification", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Keyspace("*"), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -250,7 +253,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 
 	// Test API with delete protection and verify all fields
 	t.Run("get api with complete data verification", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+(h.Resources().UserWorkspace.ID)+":**#*")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Keyspace("*"), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

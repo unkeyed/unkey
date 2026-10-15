@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
-	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
-
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_rollback_deployment"
@@ -24,7 +25,7 @@ func TestRollbackDeploymentDerivesSource(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*"), permissions.Write).Value},
 	})
 
 	previous := h.CreateDeployment(seed.CreateDeploymentRequest{
