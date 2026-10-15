@@ -33,6 +33,11 @@ type Session struct {
 	requestID string
 	initErr   error
 
+	// debugTelemetryEnabled stores the X-Unkey-Debug opt-in or verified peer metadata
+	// so timing instrumentation and future debug features share a request-level
+	// flag even after header sanitization.
+	debugTelemetryEnabled bool
+
 	w http.ResponseWriter // Wrapped with statusRecorder to capture status code
 	r *http.Request
 
@@ -61,6 +66,8 @@ type Session struct {
 func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
 	s.requestID = uid.New(uid.RequestPrefix)
 	s.clientIP, _ = parseIP(r.RemoteAddr)
+	debugTelemetryEnabled, err := strconv.ParseBool(r.Header.Get("X-Unkey-Debug"))
+	s.debugTelemetryEnabled = err == nil && debugTelemetryEnabled
 
 	// Wrap ResponseWriter with status recorder
 	s.w = &statusRecorder{
@@ -119,6 +126,16 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 	}
 	s.principal = nil
 	return nil
+}
+
+// DebugTelemetryEnabled reports the telemetry opt-in, including verified peer metadata.
+func (s *Session) DebugTelemetryEnabled() bool {
+	return s.debugTelemetryEnabled
+}
+
+// SetDebugTelemetryEnabled overrides the telemetry flag with verified peer metadata.
+func (s *Session) SetDebugTelemetryEnabled(enabled bool) {
+	s.debugTelemetryEnabled = enabled
 }
 
 // SetPrincipal stores the authenticated principal for request-wide metadata.
@@ -561,6 +578,7 @@ const MaxBodyCapture = 1 << 20 // 1 MiB
 func (s *Session) reset() {
 	s.requestID = ""
 	s.initErr = nil
+	s.debugTelemetryEnabled = false
 
 	s.w = nil
 	s.r = nil

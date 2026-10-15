@@ -167,6 +167,7 @@ func New(config Config) (*Server, error) {
 					logRequestToClickHouse: true,
 					streamRequestBody:      config.StreamRequestBody,
 					initErr:                nil,
+					debugTelemetryEnabled:  false,
 					clientIP:               netip.Addr{},
 					principal:              nil,
 					requestID:              "",
