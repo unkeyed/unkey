@@ -49,16 +49,6 @@ func RetryPolicy() restate.HandlerOption {
 	)
 }
 
-func Schedule(ctx restate.Context) error {
-	now, err := restateutil.Now(ctx)
-	if err != nil {
-		return err
-	}
-	hydrav1.NewCronServiceClient(ctx, objectKey).RunResourceCleanup().Send(&hydrav1.RunResourceCleanupRequest{},
-		restate.WithIdempotencyKey(objectKey+"-"+now.UTC().Format("2006-01-02T15:04")))
-	return nil
-}
-
 func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunResourceCleanupRequest) (*hydrav1.RunResourceCleanupResponse, error) {
 	if err := assert.Equal(restate.Key(ctx), objectKey, "resource cleanup must use its singleton key"); err != nil {
 		return nil, restate.ToTerminalError(err)
@@ -113,7 +103,6 @@ func (h *Handler) clean(ctx restate.ObjectContext, rule cleanupRule) (int64, err
 			return total, fmt.Errorf("cleanup %s: %w", rule.name, err)
 		}
 		total += page.Deleted
-		metrics.ResourceCleanupRowsDeleted.WithLabelValues(rule.name).Add(float64(page.Deleted))
 		cursor = page.AfterPK
 		if page.Scanned < batchSize {
 			cursor = 0
@@ -155,6 +144,9 @@ func (h *Handler) cleanPage(ctx context.Context, rule cleanupRule, cursor uint64
 		return cleanupPage{}, err
 	}
 	page.Deleted, err = result.RowsAffected()
+	if err == nil {
+		metrics.ResourceCleanupRowsDeleted.WithLabelValues(rule.name).Add(float64(page.Deleted))
+	}
 	return page, err
 }
 

@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -11,14 +12,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 )
 
-// The project.delete audit log is written here as a durable step rather than
-// on the enqueueing RPC, so the audit record is tied to the retried unit. The
-// actor and correlation ID are forwarded to each app delete (and on to each
-// environment delete) so the whole teardown groups under one correlation ID.
-//
 // Key: project_id
 func (s *Service) Delete(
 	ctx restate.ObjectContext,
@@ -28,7 +23,6 @@ func (s *Service) Delete(
 
 	logger.Info("starting project deletion", "project_id", projectID)
 
-	// Capture project metadata before the row is deleted, for the audit log.
 	project, err := restate.Run(ctx, func(runCtx restate.RunContext) (*db.Project, error) {
 		project, err := s.db.FindProjectById(runCtx, projectID)
 		if db.IsNotFound(err) {
@@ -41,9 +35,17 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.MarkProjectDeleting(runCtx, db.MarkProjectDeletingParams{
-			ID:         projectID,
-			DeletingAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		return db.TxRetry(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			queries := db.NewQueries(tx)
+			now := time.Now().UnixMilli()
+			if err := queries.MarkProjectDeleted(txCtx, db.MarkProjectDeletedParams{
+				ID: projectID, DeletedAt: sql.NullInt64{Valid: true, Int64: now},
+			}); err != nil {
+				return err
+			}
+			return queries.NotifyDeploymentTopologiesByProject(txCtx, db.NotifyDeploymentTopologiesByProjectParams{
+				ProjectID: projectID, UpdatedAt: now,
+			})
 		})
 	}, restate.WithName("mark project deleting")); err != nil {
 		return nil, fmt.Errorf("mark project deleting: %w", err)
@@ -74,9 +76,6 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete project: %w", err)
 	}
 
-	if err := resourcecleanup.Schedule(ctx); err != nil {
-		return nil, fmt.Errorf("schedule resource cleanup: %w", err)
-	}
 	if project == nil {
 		return &hydrav1.DeleteProjectResponse{}, nil
 	}

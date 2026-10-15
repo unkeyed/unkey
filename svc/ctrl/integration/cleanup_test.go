@@ -28,15 +28,6 @@ import (
 	restatetest "github.com/restatedev/sdk-go/testing"
 )
 
-type resourceCleanupCron struct {
-	hydrav1.UnimplementedCronServiceServer
-	cleanup *resourcecleanup.Handler
-}
-
-func (c resourceCleanupCron) RunResourceCleanup(ctx restate.ObjectContext, req *hydrav1.RunResourceCleanupRequest) (*hydrav1.RunResourceCleanupResponse, error) {
-	return c.cleanup.Handle(ctx, req)
-}
-
 func startDeletionRestate(t *testing.T, h *Harness) *restatetest.TestEnvironment {
 	t.Helper()
 	auditlogsService, err := auditlogs.New(auditlogs.Config{DB: h.DB})
@@ -58,8 +49,8 @@ func startDeletionRestate(t *testing.T, h *Harness) *restatetest.TestEnvironment
 		hydrav1.NewProjectServiceServer(projSvc),
 		hydrav1.NewAppServiceServer(appSvc),
 		hydrav1.NewEnvironmentServiceServer(envSvc),
-		hydrav1.NewCronServiceServer(resourceCleanupCron{cleanup: cleanup}).
-			ConfigureHandler("RunResourceCleanup", resourcecleanup.RetryPolicy()),
+		restate.NewObject("hydra.v1.CronService").Handler("RunResourceCleanup",
+			restate.NewObjectHandler(cleanup.Handle, resourcecleanup.RetryPolicy())),
 	)
 }
 
@@ -84,8 +75,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 
 	workspaceID := h.Seed.Resources.UserWorkspace.ID
 	now := time.Now().UnixMilli()
-
-	// --- Seed a full project resource tree ---
 
 	project := h.Seed.CreateProject(ctx, seed.CreateProjectRequest{
 		ID:          uid.New("prj"),
@@ -112,7 +101,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 		Description:    "",
 		SentinelConfig: []byte("{}"),
 	})
-	// CreateEnvironment already inserts build and runtime settings.
 
 	deployment := h.Seed.CreateDeployment(ctx, seed.CreateDeploymentRequest{
 		WorkspaceID:   workspaceID,
@@ -122,7 +110,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
-	// Region (needed for topology and cilium policies)
 	regionID := uid.New(uid.RegionPrefix)
 	err := h.DB.UpsertRegion(ctx, db.UpsertRegionParams{
 		ID:       regionID,
@@ -137,7 +124,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 	})
 	require.NoError(t, err)
 
-	// Deployment topology
 	err = h.DB.InsertDeploymentTopology(ctx, db.InsertDeploymentTopologyParams{
 		WorkspaceID:                workspaceID,
 		DeploymentID:               deployment.ID,
@@ -151,7 +137,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 	})
 	require.NoError(t, err)
 
-	// Cilium network policy
 	policy, err := json.Marshal(struct {
 		APIVersion string `json:"apiVersion"`
 	}{APIVersion: "cilium.io/v2"})
@@ -171,7 +156,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 	})
 	require.NoError(t, err)
 
-	// Frontline route
 	err = h.DB.InsertFrontlineRoute(ctx, db.InsertFrontlineRouteParams{
 		ID:                       uid.New("fr"),
 		ProjectID:                project.ID,
@@ -185,7 +169,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 	})
 	require.NoError(t, err)
 
-	// GitHub repo connection
 	err = h.DB.InsertGithubRepoConnection(ctx, db.InsertGithubRepoConnectionParams{
 		WorkspaceID:        workspaceID,
 		ProjectID:          project.ID,
@@ -208,7 +191,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 	})
 	require.NoError(t, err)
 
-	// Deployment step
 	err = h.DB.InsertDeploymentStep(ctx, db.InsertDeploymentStepParams{
 		WorkspaceID:   workspaceID,
 		ProjectID:     project.ID,
@@ -220,7 +202,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 	})
 	require.NoError(t, err)
 
-	// App regional settings
 	err = h.DB.UpsertAppRegionalSettings(ctx, db.UpsertAppRegionalSettingsParams{
 		WorkspaceID:   workspaceID,
 		AppID:         app.ID,
@@ -232,7 +213,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 	})
 	require.NoError(t, err)
 
-	// App environment variable
 	err = h.DB.InsertAppEnvironmentVariable(ctx, db.InsertAppEnvironmentVariableParams{
 		ID:            uid.New("aev"),
 		WorkspaceID:   workspaceID,
@@ -324,8 +304,6 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 		{"SELECT COUNT(*) FROM openapi_specs WHERE portal_id = ?", siblingPortalID, true},
 	}
 
-	// --- Verify all rows exist before deletion ---
-
 	for _, c := range checks {
 		require.Equal(t, 1, countRows(t, ctx, h.DB, c.query, c.arg))
 	}
@@ -356,7 +334,7 @@ func testDeletionCleansUpOwnedData(t *testing.T, target string) {
 	completed := make(chan error, 1)
 	go func() { completed <- deleteResource() }()
 	require.Eventually(t, func() bool {
-		return countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM environments WHERE id = ? AND deleting_at IS NOT NULL", env.ID) == 1
+		return countRows(t, ctx, h.DB, "SELECT COUNT(*) FROM environments WHERE id = ? AND deleted_at IS NOT NULL", env.ID) == 1
 	}, 30*time.Second, 25*time.Millisecond)
 
 	require.NoError(t, h.DB.DeleteDeploymentInstances(ctx, db.DeleteDeploymentInstancesParams{

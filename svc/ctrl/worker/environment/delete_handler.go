@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 )
 
 // envDeletedMessage is written on open deployment steps when an
@@ -51,7 +50,6 @@ func (s *Service) Delete(
 
 	logger.Info("starting environment deletion", "environment_id", envID)
 
-	// Capture env metadata before the row is deleted, for the audit log.
 	env, err := restate.Run(ctx, func(runCtx restate.RunContext) (*db.Environment, error) {
 		env, err := s.db.FindEnvironmentById(runCtx, envID)
 		if db.IsNotFound(err) {
@@ -66,7 +64,7 @@ func (s *Service) Delete(
 		return db.TxRetry(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 			queries := db.NewQueries(tx)
 			now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-			if txErr := queries.MarkEnvironmentDeleting(txCtx, db.MarkEnvironmentDeletingParams{ID: envID, DeletingAt: now}); txErr != nil {
+			if txErr := queries.MarkEnvironmentDeleted(txCtx, db.MarkEnvironmentDeletedParams{ID: envID, DeletedAt: now}); txErr != nil {
 				return txErr
 			}
 			if txErr := queries.StopDeploymentsByEnvironment(txCtx, db.StopDeploymentsByEnvironmentParams{EnvironmentID: envID, UpdatedAt: now}); txErr != nil {
@@ -118,14 +116,10 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete environment: %w", err)
 	}
 
-	if err := resourcecleanup.Schedule(ctx); err != nil {
-		return nil, fmt.Errorf("schedule resource cleanup: %w", err)
-	}
 	if env == nil {
 		return &hydrav1.DeleteEnvironmentResponse{}, nil
 	}
 
-	// The environment has no display name, so its slug stands in.
 	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
 		Actor:         req.GetActor(),
 		CorrelationID: req.GetCorrelationId(),
@@ -148,18 +142,13 @@ func (s *Service) Delete(
 	return &hydrav1.DeleteEnvironmentResponse{}, nil
 }
 
-// cancelProgressingDeployments aborts every deployment in the environment whose
-// status is still progressing, through deploycancel.Cancel. The list is
-// journaled on purpose: a retry must work on the same rows, because a fresh
-// query would skip the rows Cancel already moved to cancelled and leave their
-// Restate invocations running.
 func (s *Service) cancelProgressingDeployments(
 	ctx restate.ObjectContext,
 	env *db.Environment,
 	req *hydrav1.DeleteEnvironmentRequest,
 ) error {
 	envID := restate.Key(ctx)
-	active, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListProgressingDeploymentsByEnvironmentIdRow, error) {
+	journaledDeployments, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListProgressingDeploymentsByEnvironmentIdRow, error) {
 		return s.db.ListProgressingDeploymentsByEnvironmentId(runCtx, db.ListProgressingDeploymentsByEnvironmentIdParams{
 			EnvironmentID:       envID,
 			ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
@@ -169,22 +158,22 @@ func (s *Service) cancelProgressingDeployments(
 		return fmt.Errorf("list progressing deployments: %w", err)
 	}
 
-	if len(active) == 0 {
+	if len(journaledDeployments) == 0 {
 		return nil
 	}
 
-	deployments := make([]deploycancel.Deployment, 0, len(active))
-	for _, d := range active {
+	cancellationPlan := make([]deploycancel.Deployment, 0, len(journaledDeployments))
+	for _, d := range journaledDeployments {
 		invocationID := ""
 		if d.InvocationID.Valid {
 			invocationID = d.InvocationID.String
 		}
-		deployments = append(deployments, deploycancel.Deployment{ID: d.ID, InvocationID: invocationID})
+		cancellationPlan = append(cancellationPlan, deploycancel.Deployment{ID: d.ID, InvocationID: invocationID})
 	}
 
 	logger.Info("cancelling in-flight deployments for environment deletion",
 		"environment_id", envID,
-		"count", len(deployments),
+		"count", len(cancellationPlan),
 	)
 
 	var cancelAudit *deploycancel.Audit
@@ -196,7 +185,7 @@ func (s *Service) cancelProgressingDeployments(
 	}
 	return restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return deploycancel.Cancel(runCtx, s.db, s.admin, deploycancel.Params{
-			Deployments: deployments,
+			Deployments: cancellationPlan,
 			Reason:      envDeletedMessage,
 			Status:      mysqltype.DeploymentsStatusCancelled,
 			Audit:       cancelAudit,

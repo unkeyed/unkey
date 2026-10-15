@@ -11,9 +11,20 @@ var cleanupRules = []cleanupRule{
 		name: "apps",
 		scan: "SELECT pk FROM apps WHERE pk > ? ORDER BY pk LIMIT ?",
 		remove: `DELETE FROM apps WHERE pk > ? AND pk <= ?
-			AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id)
+			AND (deleted_at < UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3) - INTERVAL 2 HOUR) * 1000
+				OR NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id)
+				OR EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id AND p.deleted_at < UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3) - INTERVAL 2 HOUR) * 1000))
 			AND NOT EXISTS (SELECT 1 FROM environments e WHERE e.app_id = apps.id)
 			AND NOT EXISTS (SELECT 1 FROM deployments d WHERE d.app_id = apps.id)`,
+	},
+	{
+		name: "projects",
+		scan: "SELECT pk FROM projects WHERE pk > ? ORDER BY pk LIMIT ?",
+		remove: `DELETE FROM projects WHERE pk > ? AND pk <= ?
+			AND deleted_at < UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3) - INTERVAL 2 HOUR) * 1000
+			AND NOT EXISTS (SELECT 1 FROM apps a WHERE a.project_id = projects.id)
+			AND NOT EXISTS (SELECT 1 FROM environments e WHERE e.project_id = projects.id)
+			AND NOT EXISTS (SELECT 1 FROM deployments d WHERE d.project_id = projects.id)`,
 	},
 	{
 		name: "github_repo_connections",
