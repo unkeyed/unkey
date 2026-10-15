@@ -25,6 +25,45 @@ func slug() string {
 	return strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 }
 
+func TestCreateAppConnectRepositoryRejectsURNPermissionOutsideScope(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+	}
+	h.Register(route)
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Payments",
+		Slug:        slug(),
+	})
+	for _, testCase := range []struct {
+		name       string
+		permission string
+	}{
+		{"wrong project", rbac.U(urn.New().Workspace(workspace.ID).Project(uid.New(uid.ProjectPrefix)).App("*"), permissions.Write).Value},
+		{"wrong workspace", rbac.U(urn.New().Workspace(uid.New(uid.WorkspacePrefix)).Project(project.ID).App("*"), permissions.Write).Value},
+		{"wrong action", rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App("*"), permissions.Read).Value},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			rootKey := h.CreateRootKey(workspace.ID, testCase.permission)
+			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {"Bearer " + rootKey},
+			}, handler.Request{
+				Project: project.ID,
+				Name:    "Payments API",
+				Slug:    slug(),
+				Git:     &openapi.AppGitCreateInput{Repository: new("unkeyed/unkey")},
+			})
+			require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
+			require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
+		})
+	}
+}
+
 func TestCreateAppConnectRepository(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)

@@ -29,12 +29,12 @@ func insertKeyspacePortal(t *testing.T, h *testutil.Harness, workspaceID, slug, 
 func countPortalSessions(t *testing.T, h *testutil.Harness, workspaceID, externalID string) int {
 	t.Helper()
 
-	var count int
-	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT COUNT(*) FROM portal_sessions WHERE workspace_id = ? AND external_id = ?",
-		workspaceID, externalID,
-	).Scan(&count))
-	return count
+	count, err := db.Query.CountPortalSessionsByExternalID(context.Background(), h.DB.RO(), db.CountPortalSessionsByExternalIDParams{
+		WorkspaceID: workspaceID,
+		ExternalID:  externalID,
+	})
+	require.NoError(t, err)
+	return int(count)
 }
 
 func countAuditEntriesMentioning(t *testing.T, h *testutil.Harness, workspaceID, needle string) int {
