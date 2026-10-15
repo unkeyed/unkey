@@ -14,7 +14,3 @@ CREATE TABLE `permissions` (
 	CONSTRAINT `unique_slug_per_project_idx` UNIQUE(`project_id`,`slug`)
 );
 
-CREATE INDEX `permissions_workspace_id_idx` ON `permissions` (`workspace_id`);
-
-CREATE INDEX `permissions_project_id_idx` ON `permissions` (`project_id`);
-
