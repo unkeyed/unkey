@@ -17,6 +17,13 @@ const (
 	dialOutcomeError   = "error"
 )
 
+// Outcome labels for upgradeSparesTotal.
+const (
+	spareOutcomeHit   = "hit"
+	spareOutcomeMiss  = "miss"
+	spareOutcomeStale = "stale"
+)
+
 var (
 	// upstreamSeconds is the wall-clock duration of the upstream call —
 	// from request send to response complete (or error). Customer-pod
@@ -68,5 +75,18 @@ var (
 			Help:      "TCP dials issued for upstream connections.",
 		},
 		[]string{"destination", "outcome"},
+	)
+
+	// upgradeSparesTotal counts cross-region protocol upgrades by whether a
+	// pre-dialed peer connection was ready. A miss pays TCP and TLS round
+	// trips to the peer region before the upgrade.
+	upgradeSparesTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "frontline",
+			Name:      "region_upgrade_spares_total",
+			Help:      "Cross-region upgrade dials by spare connection outcome.",
+		},
+		[]string{"outcome"},
 	)
 )
