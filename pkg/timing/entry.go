@@ -3,7 +3,6 @@ package timing
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -144,36 +143,33 @@ func formatDurationUnit(duration time.Duration, unit time.Duration, suffix strin
 }
 
 // Record writes a timing entry to the response headers via the [zen.Session]
-// associated with the context. If no session is present or the entry fails
-// validation, the call is silently ignored. This allows instrumentation code
+// associated with the context. If no session has debug telemetry enabled or the
+// entry fails validation, the call is silently ignored. This allows instrumentation code
 // to be added unconditionally without error handling.
 //
-// Use [Write] when you have direct access to an [http.ResponseWriter] instead
-// of a context with a session.
+// Use [Write] when the session is already available.
 func Record(ctx context.Context, entry Entry) {
-	if err := entry.Validate(); err != nil {
-		return
-	}
-
 	session, ok := zen.SessionFromContext(ctx)
 	if !ok {
 		return
 	}
 
-	session.AddHeader(HeaderName, entry.String())
+	Write(session, entry)
 }
 
-// Write adds a timing entry directly to the response headers. If the entry
-// fails validation, the call is silently ignored.
+// Write adds a timing entry to the session's response headers. If debug telemetry
+// is disabled or the entry fails validation, the call is silently ignored.
 //
-// Use [Record] when working with a context that contains a [zen.Session],
-// which is the common case in request handlers.
-func Write(w http.ResponseWriter, entry Entry) {
+// Use [Record] when the session is only available through a context.
+func Write(session *zen.Session, entry Entry) {
+	if !session.DebugTelemetryEnabled() {
+		return
+	}
 	if err := entry.Validate(); err != nil {
 		return
 	}
 
-	w.Header().Add(HeaderName, entry.String())
+	session.AddHeader(HeaderName, entry.String())
 }
 
 // ParseEntries parses a comma-separated string of timing entries. This is useful

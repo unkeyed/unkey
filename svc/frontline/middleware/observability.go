@@ -352,6 +352,12 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Title:   http.StatusText(http.StatusUnprocessableEntity),
 			Message: "The deployment configuration is invalid. Please check your config or contact support at support@unkey.com.",
 		}
+	case codes.Frontline.Internal.RatelimitNotConfigured.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnprocessableEntity,
+			Title:   http.StatusText(http.StatusUnprocessableEntity),
+			Message: "A rate limit required by the gateway policy is not configured for this key or its identity.",
+		}
 	case codes.Frontline.Internal.InternalServerError.URN():
 		return errorPageInfo{
 			Status:  http.StatusInternalServerError,

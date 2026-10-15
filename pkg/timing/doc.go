@@ -45,9 +45,12 @@
 // # Usage
 //
 // Callers record entries directly on the current request context. If a zen
-// session is present, the entry is serialized and added to the response headers.
+// session has debug telemetry enabled, the entry is added to the response headers.
 // This keeps observability wiring close to the request without exposing sessions
 // to application code.
+// Record and Write respect the session's debug telemetry opt-in, captured from
+// X-Unkey-Debug using strconv.ParseBool or restored from verified peer metadata.
+// Use Write when the session is already available.
 //
 //	 timing.Record(ctx, timing.Entry{
 //		Name:     "cache_get",

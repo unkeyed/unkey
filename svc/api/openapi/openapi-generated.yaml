@@ -6621,9 +6621,7 @@ components:
                     maxLength: 256
                 present:
                     type: boolean
-                    enum:
-                        - true
-                    description: Matches when the field is present, regardless of value.
+                    description: Matches when the field is present if true, or absent if false, regardless of value.
                 value:
                     "$ref": "#/components/schemas/StringMatch"
             additionalProperties: false
@@ -13631,7 +13629,7 @@ paths:
                                             requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
                             schema:
                                 $ref: '#/components/schemas/V2IdentitiesCreateIdentityResponseBody'
-                    description: ""
+                    description: Identity created successfully.
                 "400":
                     content:
                         application/json:
@@ -15313,7 +15311,7 @@ paths:
                                             requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: ""
+                    description: Service is in a degraded state. Some functionality may be limited.
                 "500":
                     content:
                         application/json:
@@ -16382,7 +16380,6 @@ paths:
             summary: Create portal
             tags:
                 - portal
-            x-excluded: true
             x-speakeasy-name-override: createPortal
     /v2/portal.createSession:
         post:
@@ -16493,7 +16490,6 @@ paths:
             summary: Create portal session
             tags:
                 - portal
-            x-excluded: true
             x-speakeasy-name-override: createSession
     /v2/portal.deletePortal:
         post:
@@ -16567,7 +16563,6 @@ paths:
             summary: Delete portal
             tags:
                 - portal
-            x-excluded: true
             x-speakeasy-name-override: deletePortal
     /v2/portal.exchangeCode:
         post:
@@ -16706,7 +16701,6 @@ paths:
             summary: Get portal
             tags:
                 - portal
-            x-excluded: true
             x-speakeasy-name-override: getPortal
     /v2/portal.getVerifications:
         post:
@@ -16938,7 +16932,6 @@ paths:
             summary: List portal sessions
             tags:
                 - portal
-            x-excluded: true
             x-speakeasy-name-override: listSessions
     /v2/portal.rerollKey:
         post:
@@ -17085,7 +17078,6 @@ paths:
             summary: Revoke portal sessions
             tags:
                 - portal
-            x-excluded: true
             x-speakeasy-name-override: revokeSession
     /v2/portal.updatePortal:
         post:
@@ -17171,7 +17163,6 @@ paths:
             summary: Update portal
             tags:
                 - portal
-            x-excluded: true
             x-speakeasy-name-override: updatePortal
     /v2/projects.createProject:
         post:

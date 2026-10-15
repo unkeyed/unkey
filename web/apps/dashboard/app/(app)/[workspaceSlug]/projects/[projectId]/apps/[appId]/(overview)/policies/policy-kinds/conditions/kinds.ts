@@ -32,7 +32,11 @@ const STRING_OPERATORS = [
   { value: "regex", label: "matches regex" },
 ] as const;
 
-const NAMED_OPERATORS = [...STRING_OPERATORS, { value: "present", label: "is present" }] as const;
+const NAMED_OPERATORS = [
+  ...STRING_OPERATORS,
+  { value: "present", label: "is present" },
+  { value: "absent", label: "is absent" },
+] as const;
 
 const CONDITION_KINDS: { [T in ConditionType]: ConditionKind<T> } = {
   path: {
@@ -146,7 +150,7 @@ function operatorControl(condition: MatchConditionFormValues): OperatorControl {
 }
 
 function valueField(condition: MatchConditionFormValues): ConditionValueField {
-  if (condition.operator === "present") {
+  if (condition.operator === "present" || condition.operator === "absent") {
     return { type: "none" };
   }
   const { ariaLabel, placeholder, regexPlaceholder } = CONDITION_KINDS[condition.type].value;
@@ -192,7 +196,7 @@ export function withOperator(
   if (!hasAllowedOperator(next)) {
     return condition;
   }
-  return next.operator === "present" ? { ...next, value: "" } : next;
+  return next.operator === "present" || next.operator === "absent" ? { ...next, value: "" } : next;
 }
 
 function validateRegexSyntax(pattern: string): string | undefined {

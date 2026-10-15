@@ -104,6 +104,7 @@ func TestForwardToRegion_AllowsLastHop(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, recorder.seen, 1)
 	require.Len(t, recorder.seen[0].Hops, 3)
+	require.False(t, recorder.seen[0].DebugTelemetryEnabled)
 }
 
 func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
@@ -129,12 +130,15 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "https://api.example.com/v1/items?page=2", nil)
 	req.RemoteAddr = "198.51.100.42:12345"
 	req.Header.Set("X-Forwarded-For", "203.0.113.77")
+	req.Header.Set("X-Unkey-Debug", "true")
 	firstSession := newProxySession(t, req)
+	req.Header.Del("X-Unkey-Debug")
 	ctx := WithRequestStartTime(context.Background(), now)
 	require.NoError(t, first.ForwardToRegion(ctx, firstSession, "us-west-2.aws", nil))
 	require.Len(t, recorder.seen, 1)
 	require.Equal(t, now.Add(frontlineMetadataTTL), recorder.seen[0].ExpiresAt)
 	require.Equal(t, "198.51.100.42", recorder.seen[0].ClientIP)
+	require.True(t, recorder.seen[0].DebugTelemetryEnabled)
 	require.Equal(t, []meta.Hop{
 		{
 			Region:        "aws::us-east-1",
@@ -162,10 +166,12 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 	secondReq.RemoteAddr = "10.1.2.3:443"
 	secondSession := newProxySession(t, secondReq)
 	secondSession.SetClientIP(netip.MustParseAddr(recorder.seen[0].ClientIP))
+	secondSession.SetDebugTelemetryEnabled(recorder.seen[0].DebugTelemetryEnabled)
 	ctx = WithRequestStartTime(context.Background(), secondNow)
 	require.NoError(t, second.ForwardToRegion(ctx, secondSession, "eu-west-1.aws", incomingHops))
 	require.Len(t, recorder.seen, 2)
 	require.Equal(t, "198.51.100.42", recorder.seen[1].ClientIP)
+	require.True(t, recorder.seen[1].DebugTelemetryEnabled)
 	require.Equal(t, secondNow.Add(frontlineMetadataTTL), recorder.seen[1].ExpiresAt)
 	require.Equal(t, []meta.Hop{
 		{

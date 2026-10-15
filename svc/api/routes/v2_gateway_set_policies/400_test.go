@@ -135,15 +135,16 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)
 	})
 
-	// The dashboard schema only accepts `present: true` (zod literal), so the
-	// spec's enum must keep rejecting false or stored blobs break the reader.
-	t.Run("present false is rejected by the schema", func(t *testing.T) {
+	t.Run("present false cannot be combined with a value", func(t *testing.T) {
 		res := rawPolicy(t, map[string]any{
 			"name": "m", "enabled": true,
 			"firewall": map[string]any{"action": "ACTION_DENY"},
-			"match":    []map[string]any{{"header": map[string]any{"name": "x-kebap", "present": false}}},
+			"match": []openapi.MatchExpr{{Header: &openapi.FieldMatch{
+				Name: "x-kebap", Present: new(false), Value: &openapi.StringMatch{Exact: new("value")},
+			}}},
 		})
 		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)
+		require.Contains(t, res.Body.Error.Detail, "exactly one of present or value")
 	})
 
 	// The dashboard schema requires `enabled` on every stored policy, so the

@@ -2,6 +2,7 @@ package keyauth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -115,6 +116,11 @@ func (e *Executor) Execute(
 	}
 
 	if err := verifier.Verify(ctx, verifyOpts...); err != nil {
+		if _, ok := errors.AsType[*keys.RatelimitNotConfiguredError](err); ok {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.Frontline.Internal.RatelimitNotConfigured.URN()),
+			)
+		}
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
 			fault.Internal("verification error"),

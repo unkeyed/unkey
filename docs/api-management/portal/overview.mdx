@@ -24,9 +24,9 @@ import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 The developer portal is a hosted page where your users see their API keys, roll them over, and check their usage, without you building any of it. You keep the sign-in: your backend creates a short-lived session for a user who's already signed in, and redirects them to the portal. Each user only sees their own keys.
 
 <Note>
-  You manage portals with the API or the CLI ([create-portal](/api-management/cli/portal/create-portal), [get-portal](/api-management/cli/portal/get-portal), [update-portal](/api-management/cli/portal/update-portal), [delete-portal](/api-management/cli/portal/delete-portal), [create-session](/api-management/cli/portal/create-session)), not the dashboard.
+  The developer portal is in beta.
 
-  `portal.createPortal`, `getPortal`, `updatePortal`, and `deletePortal` are unreleased and may change without notice. The session endpoints your backend calls on every sign-in (`portal.createSession` and the ones the portal uses) are stable.
+  You can manage a portal for a keyspace in the dashboard, with the API, or with the CLI ([create-portal](/api-management/cli/portal/create-portal), [get-portal](/api-management/cli/portal/get-portal), [update-portal](/api-management/cli/portal/update-portal), [delete-portal](/api-management/cli/portal/delete-portal), [create-session](/api-management/cli/portal/create-session)). A portal for a deployed app can only be managed with the API or the CLI for now.
 </Note>
 
 ## What a portal is bound to
@@ -91,7 +91,7 @@ You get the portal back with its `pc_` ID. Next, [create a session](/api-managem
 
 <Columns cols={2}>
   <Card title="Portal sessions" icon="ticket" href="/api-management/portal/sessions">
-    Mint a session, exchange the code, TTLs, and the permissions your root key needs.
+    Create a session for a signed-in user, redirect them to the portal, and set the permissions your root key needs.
   </Card>
   <Card title="What portal users can do" icon="user" href="/api-management/portal/end-user-experience">
     The keys and analytics tabs, what each scope unlocks, and the endpoints behind them.
