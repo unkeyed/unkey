@@ -1,14 +1,7 @@
 "use client";
 import type { Deployment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import {
-  InfoTooltip,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@unkey/ui";
+import { Combobox, InfoTooltip } from "@unkey/ui";
 import { format } from "date-fns";
 import { PulseIndicator } from "../../../components/status-indicator";
 import { useProjectData } from "../../data-provider";
@@ -72,75 +65,67 @@ export function DeploymentSelect({
     return "";
   };
 
-  const renderOptions = () => {
-    if (isLoading) {
-      return (
-        <SelectItem value="loading" disabled>
-          Loading...
-        </SelectItem>
-      );
-    }
-    if (deployments.length === 0) {
-      return (
-        <SelectItem value="no-deployments" disabled>
-          No deployments found
-        </SelectItem>
-      );
-    }
-    return deployments.map(({ deployment }) => {
-      const isDisabled = deployment.id === disabledDeploymentId || !deployment.hasOpenApiSpec;
-      const deployedAt = format(deployment.createdAt, "MMM d, h:mm a");
-      const isLatest = deployment.id === latestDeploymentId;
-      const isCurrent = deployment.id === currentDeploymentId;
-      const tooltipContent = getTooltipContent(deployment.id, isDisabled, isCurrent, isLatest);
+  const options = deployments.map(({ deployment }) => {
+    const isDisabled = deployment.id === disabledDeploymentId || !deployment.hasOpenApiSpec;
+    const deployedAt = format(deployment.createdAt, "MMM d, h:mm a");
+    const isLatest = deployment.id === latestDeploymentId;
+    const isCurrent = deployment.id === currentDeploymentId;
+    const tooltipContent = getTooltipContent(deployment.id, isDisabled, isCurrent, isLatest);
+    const summary = (
+      <div key={deployment.id} className="flex min-w-0 items-center gap-2.5 text-sm">
+        <span className="text-grayA-12 font-medium truncate">{shortenId(deployment.id)}</span>
+        <span className="text-grayA-9">•</span>
+        <span className="text-grayA-9 shrink-0">{deployedAt}</span>
+        <span className="text-grayA-9 truncate">{deployment.gitBranch}</span>
+        {isCurrent && <PulseIndicator />}
+        {isLatest && !isCurrent && (
+          <PulseIndicator
+            colors={["bg-gray-9", "bg-gray-7", "bg-gray-8", "bg-gray-9"]}
+            coreColor="bg-gray-9"
+          />
+        )}
+      </div>
+    );
 
-      return (
-        <SelectItem key={deployment.id} value={deployment.id} disabled={isDisabled}>
-          <InfoTooltip
-            disabled={!tooltipContent}
-            content={tooltipContent}
-            position={{
-              side: "right",
-              align: "end",
-            }}
-            asChild
-          >
-            <div className="flex items-center gap-2.5 text-sm">
-              <span className="text-grayA-12 font-medium truncate">{shortenId(deployment.id)}</span>
-              <span className="text-grayA-9">•</span>
-              <span className="text-grayA-9">{deployedAt}</span>
-              {isCurrent && <PulseIndicator />}
-              {isLatest && !isCurrent && (
-                <PulseIndicator
-                  colors={["bg-gray-9", "bg-gray-7", "bg-gray-8", "bg-gray-9"]}
-                  coreColor="bg-gray-9"
-                />
-              )}
-            </div>
-          </InfoTooltip>
-        </SelectItem>
-      );
-    });
-  };
+    return {
+      value: deployment.id,
+      disabled: isDisabled,
+      searchValue: [
+        deployment.id,
+        deployment.gitBranch,
+        deployment.gitCommitMessage ?? "",
+        deployedAt,
+      ].join(" "),
+      selectedLabel: summary,
+      label: (
+        <InfoTooltip
+          disabled={!tooltipContent}
+          content={tooltipContent}
+          position={{
+            side: "right",
+            align: "end",
+          }}
+          asChild
+        >
+          {summary}
+        </InfoTooltip>
+      ),
+    };
+  });
 
   return (
-    <Select
+    <Combobox
+      id={id}
+      className="rounded-md"
+      title={getTriggerTitle()}
+      options={options}
       value={value}
-      onValueChange={(newValue) => {
-        if (newValue !== null) {
-          onValueChange(newValue);
-        }
-      }}
+      onSelect={onValueChange}
+      placeholder={deployments.length === 0 && !isLoading ? "No deployments found" : placeholder}
+      searchPlaceholder="Search by branch, commit, or ID..."
+      emptyMessage="No matching deployments"
+      loading={isLoading}
       disabled={disabled || isLoading || deployments.length === 0}
-      items={deployments.map(({ deployment }) => ({
-        value: deployment.id,
-        label: `${shortenId(deployment.id)} • ${format(deployment.createdAt, "MMM d, h:mm a")}`,
-      }))}
-    >
-      <SelectTrigger id={id} className="rounded-md" title={getTriggerTitle()}>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>{renderOptions()}</SelectContent>
-    </Select>
+    />
   );
 }
