@@ -28,6 +28,53 @@ func appSlug() string {
 	return strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 }
 
+func TestUpdateAppGitRejectsOutOfScopeGrantsWithoutChanges(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+	}
+	h.Register(route)
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Payments",
+		Slug:        appSlug(),
+	})
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "App",
+		Slug:        appSlug(),
+	})
+	for _, grant := range []string{
+		rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(app.ID), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(uid.New(uid.AppPrefix)), permissions.Write).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(uid.New(uid.ProjectPrefix)).App(app.ID), permissions.Write).Value,
+	} {
+		t.Run(grant, func(t *testing.T) {
+			rootKey := h.CreateRootKey(workspace.ID, grant)
+			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {"Bearer " + rootKey},
+			}, handler.Request{
+				Project: project.ID,
+				App:     app.ID,
+				Name:    new("Unauthorized rename"),
+				Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey")}),
+			})
+			require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
+			stored, err := db.Query.FindAppById(t.Context(), h.DB.RO(), app.ID)
+			require.NoError(t, err)
+			require.Equal(t, app.Name, stored.Name)
+			_, err = db.Query.FindGithubRepoConnectionByAppId(t.Context(), h.DB.RO(), app.ID)
+			require.True(t, db.IsNotFound(err))
+		})
+	}
+}
+
 func TestUpdateAppConnectRepository(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
