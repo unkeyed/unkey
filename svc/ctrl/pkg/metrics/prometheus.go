@@ -97,4 +97,82 @@ var (
 		},
 		[]string{"result"},
 	)
+
+	// PrivateNetworkCatalogRefreshesTotal counts catalog refreshes. A
+	// "bootstrap" refresh reads every running deployment after a CDC copy; an
+	// "update" refresh reads only the callers that changed rows may affect.
+	PrivateNetworkCatalogRefreshesTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "private_network_catalog_refreshes_total",
+			Help:      "Private network catalog refreshes by kind.",
+		},
+		[]string{"kind"},
+	)
+
+	// PrivateNetworkCatalogRefreshedCallersTotal counts caller deployments read
+	// again by catalog refreshes, by refresh kind.
+	PrivateNetworkCatalogRefreshedCallersTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "private_network_catalog_refreshed_callers_total",
+			Help:      "Caller deployments read by private network catalog refreshes.",
+		},
+		[]string{"kind"},
+	)
+
+	// PrivateNetworkCatalogRefreshDurationSeconds measures catalog refreshes,
+	// including their database reads, by refresh kind.
+	PrivateNetworkCatalogRefreshDurationSeconds = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "private_network_catalog_refresh_duration_seconds",
+			Help:      "Duration of private network catalog refreshes.",
+			Buckets:   []float64{0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
+		},
+		[]string{"kind"},
+	)
+
+	// PrivateNetworkCatalogRestartsTotal counts ended catalog CDC streams.
+	//
+	// Labels:
+	//   - "restart": "resume" (continue from the last applied checkpoint) or
+	//     "rebuild" (copy again, because no usable checkpoint exists)
+	PrivateNetworkCatalogRestartsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "private_network_catalog_restarts_total",
+			Help:      "Ended private network catalog CDC streams by restart kind.",
+		},
+		[]string{"restart"},
+	)
+
+	// PrivateNetworkCatalogCertified is 1 when the platform's last served
+	// snapshot was certified: its CDC checkpoint committed at most ten seconds
+	// earlier. Krane defers grant deletions while snapshots are not certified.
+	PrivateNetworkCatalogCertified = lazy.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "private_network_catalog_certified",
+			Help:      "Whether the platform's last served private network snapshot was certified.",
+		},
+		[]string{"platform"},
+	)
+
+	// PrivateNetworkCatalogBuildsTotal counts how often a catalog sorted,
+	// encoded, and hashed all of its entries. It grows only when a refresh
+	// changed an entry or the topology.
+	PrivateNetworkCatalogBuildsTotal = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "private_network_catalog_builds_total",
+			Help:      "Full private network catalog snapshot builds.",
+		},
+	)
 )

@@ -133,7 +133,7 @@ func (x ReportDeploymentStatusRequest_Update_Instance_Status) Number() protorefl
 
 // Deprecated: Use ReportDeploymentStatusRequest_Update_Instance_Status.Descriptor instead.
 func (ReportDeploymentStatusRequest_Update_Instance_Status) EnumDescriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 0, 0, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8, 0, 0, 0}
 }
 
 // ClusterKey identifies an infrastructure cell on the wire. Every
@@ -436,6 +436,293 @@ func (x *GetDesiredDeploymentStateRequest) GetDeploymentId() string {
 	return ""
 }
 
+type PrivateNetworkStateChunk struct {
+	state       protoimpl.MessageState      `protogen:"open.v1"`
+	Connections []*PrivateNetworkConnection `protobuf:"bytes,1,rep,name=connections,proto3" json:"connections,omitempty"`
+	Complete    bool                        `protobuf:"varint,2,opt,name=complete,proto3" json:"complete,omitempty"`
+	// total is the number of connections in the whole snapshot, set on the complete chunk.
+	Total    uint64                  `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`
+	Topology *PrivateNetworkTopology `protobuf:"bytes,4,opt,name=topology,proto3" json:"topology,omitempty"`
+	Version  string                  `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
+	// snapshot_id names the five-second window in which the last database change
+	// Ctrl applied committed. Ctrl instances at the same position send the same
+	// snapshot_id, and different values reflect different positions. Until Ctrl
+	// applies a change with a known commit time, it is a random value.
+	SnapshotId string `protobuf:"bytes,6,opt,name=snapshot_id,json=snapshotId,proto3" json:"snapshot_id,omitempty"`
+	// unchanged is sent only in response to a matching known_version. Reuse the
+	// last complete snapshot; an empty response without it is not an empty catalog.
+	Unchanged bool `protobuf:"varint,7,opt,name=unchanged,proto3" json:"unchanged,omitempty"`
+	// certified is set on the complete chunk when the snapshot's position
+	// committed at most ten seconds ago. Krane deletes a grant only after it is
+	// absent from certified snapshots with two snapshot_id values. Ctrl never
+	// certifies snapshots of a keyspace with more than one shard.
+	Certified     bool `protobuf:"varint,8,opt,name=certified,proto3" json:"certified,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PrivateNetworkStateChunk) Reset() {
+	*x = PrivateNetworkStateChunk{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PrivateNetworkStateChunk) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PrivateNetworkStateChunk) ProtoMessage() {}
+
+func (x *PrivateNetworkStateChunk) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PrivateNetworkStateChunk.ProtoReflect.Descriptor instead.
+func (*PrivateNetworkStateChunk) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PrivateNetworkStateChunk) GetConnections() []*PrivateNetworkConnection {
+	if x != nil {
+		return x.Connections
+	}
+	return nil
+}
+
+func (x *PrivateNetworkStateChunk) GetComplete() bool {
+	if x != nil {
+		return x.Complete
+	}
+	return false
+}
+
+func (x *PrivateNetworkStateChunk) GetTotal() uint64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *PrivateNetworkStateChunk) GetTopology() *PrivateNetworkTopology {
+	if x != nil {
+		return x.Topology
+	}
+	return nil
+}
+
+func (x *PrivateNetworkStateChunk) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *PrivateNetworkStateChunk) GetSnapshotId() string {
+	if x != nil {
+		return x.SnapshotId
+	}
+	return ""
+}
+
+func (x *PrivateNetworkStateChunk) GetUnchanged() bool {
+	if x != nil {
+		return x.Unchanged
+	}
+	return false
+}
+
+func (x *PrivateNetworkStateChunk) GetCertified() bool {
+	if x != nil {
+		return x.Certified
+	}
+	return false
+}
+
+type PrivateNetworkTopology struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Version       uint32                 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	Clusters      []*ClusterKey          `protobuf:"bytes,2,rep,name=clusters,proto3" json:"clusters,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PrivateNetworkTopology) Reset() {
+	*x = PrivateNetworkTopology{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PrivateNetworkTopology) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PrivateNetworkTopology) ProtoMessage() {}
+
+func (x *PrivateNetworkTopology) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PrivateNetworkTopology.ProtoReflect.Descriptor instead.
+func (*PrivateNetworkTopology) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PrivateNetworkTopology) GetVersion() uint32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *PrivateNetworkTopology) GetClusters() []*ClusterKey {
+	if x != nil {
+		return x.Clusters
+	}
+	return nil
+}
+
+type PrivateNetworkConnection struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	WorkspaceId         string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	ProjectId           string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	TargetAppId         string                 `protobuf:"bytes,3,opt,name=target_app_id,json=targetAppId,proto3" json:"target_app_id,omitempty"`
+	TargetAppSlug       string                 `protobuf:"bytes,4,opt,name=target_app_slug,json=targetAppSlug,proto3" json:"target_app_slug,omitempty"`
+	K8SNamespace        string                 `protobuf:"bytes,5,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	TargetDeploymentId  string                 `protobuf:"bytes,6,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
+	TargetPort          int32                  `protobuf:"varint,7,opt,name=target_port,json=targetPort,proto3" json:"target_port,omitempty"`
+	TargetEnvironmentId string                 `protobuf:"bytes,8,opt,name=target_environment_id,json=targetEnvironmentId,proto3" json:"target_environment_id,omitempty"`
+	CallerDeploymentId  string                 `protobuf:"bytes,9,opt,name=caller_deployment_id,json=callerDeploymentId,proto3" json:"caller_deployment_id,omitempty"`
+	ConnectionId        string                 `protobuf:"bytes,10,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	ConnectionName      string                 `protobuf:"bytes,11,opt,name=connection_name,json=connectionName,proto3" json:"connection_name,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *PrivateNetworkConnection) Reset() {
+	*x = PrivateNetworkConnection{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PrivateNetworkConnection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PrivateNetworkConnection) ProtoMessage() {}
+
+func (x *PrivateNetworkConnection) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PrivateNetworkConnection.ProtoReflect.Descriptor instead.
+func (*PrivateNetworkConnection) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *PrivateNetworkConnection) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *PrivateNetworkConnection) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *PrivateNetworkConnection) GetTargetAppId() string {
+	if x != nil {
+		return x.TargetAppId
+	}
+	return ""
+}
+
+func (x *PrivateNetworkConnection) GetTargetAppSlug() string {
+	if x != nil {
+		return x.TargetAppSlug
+	}
+	return ""
+}
+
+func (x *PrivateNetworkConnection) GetK8SNamespace() string {
+	if x != nil {
+		return x.K8SNamespace
+	}
+	return ""
+}
+
+func (x *PrivateNetworkConnection) GetTargetDeploymentId() string {
+	if x != nil {
+		return x.TargetDeploymentId
+	}
+	return ""
+}
+
+func (x *PrivateNetworkConnection) GetTargetPort() int32 {
+	if x != nil {
+		return x.TargetPort
+	}
+	return 0
+}
+
+func (x *PrivateNetworkConnection) GetTargetEnvironmentId() string {
+	if x != nil {
+		return x.TargetEnvironmentId
+	}
+	return ""
+}
+
+func (x *PrivateNetworkConnection) GetCallerDeploymentId() string {
+	if x != nil {
+		return x.CallerDeploymentId
+	}
+	return ""
+}
+
+func (x *PrivateNetworkConnection) GetConnectionId() string {
+	if x != nil {
+		return x.ConnectionId
+	}
+	return ""
+}
+
+func (x *PrivateNetworkConnection) GetConnectionName() string {
+	if x != nil {
+		return x.ConnectionName
+	}
+	return ""
+}
+
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
 // Used by runActualStateReportLoop to inform the control plane of K8s cluster state.
 type ReportDeploymentStatusRequest struct {
@@ -452,7 +739,7 @@ type ReportDeploymentStatusRequest struct {
 
 func (x *ReportDeploymentStatusRequest) Reset() {
 	*x = ReportDeploymentStatusRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -464,7 +751,7 @@ func (x *ReportDeploymentStatusRequest) String() string {
 func (*ReportDeploymentStatusRequest) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -477,7 +764,7 @@ func (x *ReportDeploymentStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportDeploymentStatusRequest.ProtoReflect.Descriptor instead.
 func (*ReportDeploymentStatusRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ReportDeploymentStatusRequest) GetCluster() *ClusterKey {
@@ -536,7 +823,7 @@ type ReportDeploymentStatusResponse struct {
 
 func (x *ReportDeploymentStatusResponse) Reset() {
 	*x = ReportDeploymentStatusResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -548,7 +835,7 @@ func (x *ReportDeploymentStatusResponse) String() string {
 func (*ReportDeploymentStatusResponse) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -561,7 +848,7 @@ func (x *ReportDeploymentStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportDeploymentStatusResponse.ProtoReflect.Descriptor instead.
 func (*ReportDeploymentStatusResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
 }
 
 // InstanceEvent describes a single container lifecycle transition observed
@@ -622,7 +909,7 @@ type InstanceEvent struct {
 
 func (x *InstanceEvent) Reset() {
 	*x = InstanceEvent{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -634,7 +921,7 @@ func (x *InstanceEvent) String() string {
 func (*InstanceEvent) ProtoMessage() {}
 
 func (x *InstanceEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -647,7 +934,7 @@ func (x *InstanceEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstanceEvent.ProtoReflect.Descriptor instead.
 func (*InstanceEvent) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *InstanceEvent) GetPodUid() string {
@@ -817,7 +1104,7 @@ type Running struct {
 
 func (x *Running) Reset() {
 	*x = Running{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -829,7 +1116,7 @@ func (x *Running) String() string {
 func (*Running) ProtoMessage() {}
 
 func (x *Running) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -842,7 +1129,7 @@ func (x *Running) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Running.ProtoReflect.Descriptor instead.
 func (*Running) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
 }
 
 // Terminated captures kubelet's ContainerStateTerminated. The container
@@ -868,7 +1155,7 @@ type Terminated struct {
 
 func (x *Terminated) Reset() {
 	*x = Terminated{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -880,7 +1167,7 @@ func (x *Terminated) String() string {
 func (*Terminated) ProtoMessage() {}
 
 func (x *Terminated) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -893,7 +1180,7 @@ func (x *Terminated) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Terminated.ProtoReflect.Descriptor instead.
 func (*Terminated) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Terminated) GetExitCode() int32 {
@@ -939,7 +1226,7 @@ type Waiting struct {
 
 func (x *Waiting) Reset() {
 	*x = Waiting{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -951,7 +1238,7 @@ func (x *Waiting) String() string {
 func (*Waiting) ProtoMessage() {}
 
 func (x *Waiting) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -964,7 +1251,7 @@ func (x *Waiting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Waiting.ProtoReflect.Descriptor instead.
 func (*Waiting) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *Waiting) GetReason() string {
@@ -996,7 +1283,7 @@ type ReportInstanceEventsRequest struct {
 
 func (x *ReportInstanceEventsRequest) Reset() {
 	*x = ReportInstanceEventsRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1008,7 +1295,7 @@ func (x *ReportInstanceEventsRequest) String() string {
 func (*ReportInstanceEventsRequest) ProtoMessage() {}
 
 func (x *ReportInstanceEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1021,7 +1308,7 @@ func (x *ReportInstanceEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportInstanceEventsRequest.ProtoReflect.Descriptor instead.
 func (*ReportInstanceEventsRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ReportInstanceEventsRequest) GetEvents() []*InstanceEvent {
@@ -1046,7 +1333,7 @@ type ReportInstanceEventsResponse struct {
 
 func (x *ReportInstanceEventsResponse) Reset() {
 	*x = ReportInstanceEventsResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1058,7 +1345,7 @@ func (x *ReportInstanceEventsResponse) String() string {
 func (*ReportInstanceEventsResponse) ProtoMessage() {}
 
 func (x *ReportInstanceEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1071,7 +1358,7 @@ func (x *ReportInstanceEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportInstanceEventsResponse.ProtoReflect.Descriptor instead.
 func (*ReportInstanceEventsResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{15}
 }
 
 // DeploymentState represents a lifecycle event for an application deployment.
@@ -1095,7 +1382,7 @@ type DeploymentState struct {
 
 func (x *DeploymentState) Reset() {
 	*x = DeploymentState{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1107,7 +1394,7 @@ func (x *DeploymentState) String() string {
 func (*DeploymentState) ProtoMessage() {}
 
 func (x *DeploymentState) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1120,7 +1407,7 @@ func (x *DeploymentState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploymentState.ProtoReflect.Descriptor instead.
 func (*DeploymentState) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{13}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DeploymentState) GetState() isDeploymentState_State {
@@ -1245,7 +1532,7 @@ type ApplyDeployment struct {
 
 func (x *ApplyDeployment) Reset() {
 	*x = ApplyDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1257,7 +1544,7 @@ func (x *ApplyDeployment) String() string {
 func (*ApplyDeployment) ProtoMessage() {}
 
 func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1270,7 +1557,7 @@ func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyDeployment.ProtoReflect.Descriptor instead.
 func (*ApplyDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{14}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ApplyDeployment) GetK8SNamespace() string {
@@ -1468,7 +1755,7 @@ type DeploymentCapabilities struct {
 
 func (x *DeploymentCapabilities) Reset() {
 	*x = DeploymentCapabilities{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1480,7 +1767,7 @@ func (x *DeploymentCapabilities) String() string {
 func (*DeploymentCapabilities) ProtoMessage() {}
 
 func (x *DeploymentCapabilities) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1493,7 +1780,7 @@ func (x *DeploymentCapabilities) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploymentCapabilities.ProtoReflect.Descriptor instead.
 func (*DeploymentCapabilities) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{15}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *DeploymentCapabilities) GetPrivateNetworking() bool {
@@ -1523,7 +1810,7 @@ type AutoscalingPolicy struct {
 
 func (x *AutoscalingPolicy) Reset() {
 	*x = AutoscalingPolicy{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1535,7 +1822,7 @@ func (x *AutoscalingPolicy) String() string {
 func (*AutoscalingPolicy) ProtoMessage() {}
 
 func (x *AutoscalingPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1548,7 +1835,7 @@ func (x *AutoscalingPolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutoscalingPolicy.ProtoReflect.Descriptor instead.
 func (*AutoscalingPolicy) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{16}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *AutoscalingPolicy) GetMinReplicas() uint32 {
@@ -1590,7 +1877,7 @@ type DeleteDeployment struct {
 
 func (x *DeleteDeployment) Reset() {
 	*x = DeleteDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1602,7 +1889,7 @@ func (x *DeleteDeployment) String() string {
 func (*DeleteDeployment) ProtoMessage() {}
 
 func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1615,7 +1902,7 @@ func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDeployment.ProtoReflect.Descriptor instead.
 func (*DeleteDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{17}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *DeleteDeployment) GetK8SNamespace() string {
@@ -1644,7 +1931,7 @@ type HeartbeatRequest struct {
 
 func (x *HeartbeatRequest) Reset() {
 	*x = HeartbeatRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1656,7 +1943,7 @@ func (x *HeartbeatRequest) String() string {
 func (*HeartbeatRequest) ProtoMessage() {}
 
 func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1669,7 +1956,7 @@ func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{18}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *HeartbeatRequest) GetCluster() *ClusterKey {
@@ -1687,7 +1974,7 @@ type HeartbeatResponse struct {
 
 func (x *HeartbeatResponse) Reset() {
 	*x = HeartbeatResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1699,7 +1986,7 @@ func (x *HeartbeatResponse) String() string {
 func (*HeartbeatResponse) ProtoMessage() {}
 
 func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1712,7 +1999,7 @@ func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{19}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{22}
 }
 
 type ReportDeploymentStatusRequest_Update struct {
@@ -1725,7 +2012,7 @@ type ReportDeploymentStatusRequest_Update struct {
 
 func (x *ReportDeploymentStatusRequest_Update) Reset() {
 	*x = ReportDeploymentStatusRequest_Update{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1737,7 +2024,7 @@ func (x *ReportDeploymentStatusRequest_Update) String() string {
 func (*ReportDeploymentStatusRequest_Update) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Update) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1750,7 +2037,7 @@ func (x *ReportDeploymentStatusRequest_Update) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ReportDeploymentStatusRequest_Update.ProtoReflect.Descriptor instead.
 func (*ReportDeploymentStatusRequest_Update) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8, 0}
 }
 
 func (x *ReportDeploymentStatusRequest_Update) GetK8SName() string {
@@ -1776,7 +2063,7 @@ type ReportDeploymentStatusRequest_Delete struct {
 
 func (x *ReportDeploymentStatusRequest_Delete) Reset() {
 	*x = ReportDeploymentStatusRequest_Delete{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1788,7 +2075,7 @@ func (x *ReportDeploymentStatusRequest_Delete) String() string {
 func (*ReportDeploymentStatusRequest_Delete) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Delete) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1801,7 +2088,7 @@ func (x *ReportDeploymentStatusRequest_Delete) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ReportDeploymentStatusRequest_Delete.ProtoReflect.Descriptor instead.
 func (*ReportDeploymentStatusRequest_Delete) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 1}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8, 1}
 }
 
 func (x *ReportDeploymentStatusRequest_Delete) GetK8SName() string {
@@ -1824,7 +2111,7 @@ type ReportDeploymentStatusRequest_Update_Instance struct {
 
 func (x *ReportDeploymentStatusRequest_Update_Instance) Reset() {
 	*x = ReportDeploymentStatusRequest_Update_Instance{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[22]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1836,7 +2123,7 @@ func (x *ReportDeploymentStatusRequest_Update_Instance) String() string {
 func (*ReportDeploymentStatusRequest_Update_Instance) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Update_Instance) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[22]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1849,7 +2136,7 @@ func (x *ReportDeploymentStatusRequest_Update_Instance) ProtoReflect() protorefl
 
 // Deprecated: Use ReportDeploymentStatusRequest_Update_Instance.ProtoReflect.Descriptor instead.
 func (*ReportDeploymentStatusRequest_Update_Instance) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 0, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8, 0, 0}
 }
 
 func (x *ReportDeploymentStatusRequest_Update_Instance) GetK8SName() string {
@@ -1911,7 +2198,35 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x05event\"v\n" +
 	" GetDesiredDeploymentStateRequest\x12-\n" +
 	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12#\n" +
-	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"\xc7\x05\n" +
+	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"\xc5\x02\n" +
+	"\x18PrivateNetworkStateChunk\x12C\n" +
+	"\vconnections\x18\x01 \x03(\v2!.ctrl.v1.PrivateNetworkConnectionR\vconnections\x12\x1a\n" +
+	"\bcomplete\x18\x02 \x01(\bR\bcomplete\x12\x14\n" +
+	"\x05total\x18\x03 \x01(\x04R\x05total\x12;\n" +
+	"\btopology\x18\x04 \x01(\v2\x1f.ctrl.v1.PrivateNetworkTopologyR\btopology\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\tR\aversion\x12\x1f\n" +
+	"\vsnapshot_id\x18\x06 \x01(\tR\n" +
+	"snapshotId\x12\x1c\n" +
+	"\tunchanged\x18\a \x01(\bR\tunchanged\x12\x1c\n" +
+	"\tcertified\x18\b \x01(\bR\tcertified\"c\n" +
+	"\x16PrivateNetworkTopology\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\rR\aversion\x12/\n" +
+	"\bclusters\x18\x02 \x03(\v2\x13.ctrl.v1.ClusterKeyR\bclusters\"\xd4\x03\n" +
+	"\x18PrivateNetworkConnection\x12!\n" +
+	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x02 \x01(\tR\tprojectId\x12\"\n" +
+	"\rtarget_app_id\x18\x03 \x01(\tR\vtargetAppId\x12&\n" +
+	"\x0ftarget_app_slug\x18\x04 \x01(\tR\rtargetAppSlug\x12#\n" +
+	"\rk8s_namespace\x18\x05 \x01(\tR\fk8sNamespace\x120\n" +
+	"\x14target_deployment_id\x18\x06 \x01(\tR\x12targetDeploymentId\x12\x1f\n" +
+	"\vtarget_port\x18\a \x01(\x05R\n" +
+	"targetPort\x122\n" +
+	"\x15target_environment_id\x18\b \x01(\tR\x13targetEnvironmentId\x120\n" +
+	"\x14caller_deployment_id\x18\t \x01(\tR\x12callerDeploymentId\x12#\n" +
+	"\rconnection_id\x18\n" +
+	" \x01(\tR\fconnectionId\x12'\n" +
+	"\x0fconnection_name\x18\v \x01(\tR\x0econnectionName\"\xc7\x05\n" +
 	"\x1dReportDeploymentStatusRequest\x12-\n" +
 	"\acluster\x18\x03 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12G\n" +
 	"\x06update\x18\x01 \x01(\v2-.ctrl.v1.ReportDeploymentStatusRequest.UpdateH\x00R\x06update\x12G\n" +
@@ -2063,7 +2378,7 @@ func file_ctrl_v1_cluster_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(Health)(0), // 0: ctrl.v1.Health
 	(ReportDeploymentStatusRequest_Update_Instance_Status)(0), // 1: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
@@ -2072,66 +2387,72 @@ var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(*SyncDesiredStateRequest)(nil),                       // 4: ctrl.v1.SyncDesiredStateRequest
 	(*DeploymentChangeEvent)(nil),                         // 5: ctrl.v1.DeploymentChangeEvent
 	(*GetDesiredDeploymentStateRequest)(nil),              // 6: ctrl.v1.GetDesiredDeploymentStateRequest
-	(*ReportDeploymentStatusRequest)(nil),                 // 7: ctrl.v1.ReportDeploymentStatusRequest
-	(*ReportDeploymentStatusResponse)(nil),                // 8: ctrl.v1.ReportDeploymentStatusResponse
-	(*InstanceEvent)(nil),                                 // 9: ctrl.v1.InstanceEvent
-	(*Running)(nil),                                       // 10: ctrl.v1.Running
-	(*Terminated)(nil),                                    // 11: ctrl.v1.Terminated
-	(*Waiting)(nil),                                       // 12: ctrl.v1.Waiting
-	(*ReportInstanceEventsRequest)(nil),                   // 13: ctrl.v1.ReportInstanceEventsRequest
-	(*ReportInstanceEventsResponse)(nil),                  // 14: ctrl.v1.ReportInstanceEventsResponse
-	(*DeploymentState)(nil),                               // 15: ctrl.v1.DeploymentState
-	(*ApplyDeployment)(nil),                               // 16: ctrl.v1.ApplyDeployment
-	(*DeploymentCapabilities)(nil),                        // 17: ctrl.v1.DeploymentCapabilities
-	(*AutoscalingPolicy)(nil),                             // 18: ctrl.v1.AutoscalingPolicy
-	(*DeleteDeployment)(nil),                              // 19: ctrl.v1.DeleteDeployment
-	(*HeartbeatRequest)(nil),                              // 20: ctrl.v1.HeartbeatRequest
-	(*HeartbeatResponse)(nil),                             // 21: ctrl.v1.HeartbeatResponse
-	(*ReportDeploymentStatusRequest_Update)(nil),          // 22: ctrl.v1.ReportDeploymentStatusRequest.Update
-	(*ReportDeploymentStatusRequest_Delete)(nil),          // 23: ctrl.v1.ReportDeploymentStatusRequest.Delete
-	(*ReportDeploymentStatusRequest_Update_Instance)(nil), // 24: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	nil,                      // 25: ctrl.v1.InstanceEvent.AttributesEntry
-	(*EphemeralStorage)(nil), // 26: ctrl.v1.EphemeralStorage
+	(*PrivateNetworkStateChunk)(nil),                      // 7: ctrl.v1.PrivateNetworkStateChunk
+	(*PrivateNetworkTopology)(nil),                        // 8: ctrl.v1.PrivateNetworkTopology
+	(*PrivateNetworkConnection)(nil),                      // 9: ctrl.v1.PrivateNetworkConnection
+	(*ReportDeploymentStatusRequest)(nil),                 // 10: ctrl.v1.ReportDeploymentStatusRequest
+	(*ReportDeploymentStatusResponse)(nil),                // 11: ctrl.v1.ReportDeploymentStatusResponse
+	(*InstanceEvent)(nil),                                 // 12: ctrl.v1.InstanceEvent
+	(*Running)(nil),                                       // 13: ctrl.v1.Running
+	(*Terminated)(nil),                                    // 14: ctrl.v1.Terminated
+	(*Waiting)(nil),                                       // 15: ctrl.v1.Waiting
+	(*ReportInstanceEventsRequest)(nil),                   // 16: ctrl.v1.ReportInstanceEventsRequest
+	(*ReportInstanceEventsResponse)(nil),                  // 17: ctrl.v1.ReportInstanceEventsResponse
+	(*DeploymentState)(nil),                               // 18: ctrl.v1.DeploymentState
+	(*ApplyDeployment)(nil),                               // 19: ctrl.v1.ApplyDeployment
+	(*DeploymentCapabilities)(nil),                        // 20: ctrl.v1.DeploymentCapabilities
+	(*AutoscalingPolicy)(nil),                             // 21: ctrl.v1.AutoscalingPolicy
+	(*DeleteDeployment)(nil),                              // 22: ctrl.v1.DeleteDeployment
+	(*HeartbeatRequest)(nil),                              // 23: ctrl.v1.HeartbeatRequest
+	(*HeartbeatResponse)(nil),                             // 24: ctrl.v1.HeartbeatResponse
+	(*ReportDeploymentStatusRequest_Update)(nil),          // 25: ctrl.v1.ReportDeploymentStatusRequest.Update
+	(*ReportDeploymentStatusRequest_Delete)(nil),          // 26: ctrl.v1.ReportDeploymentStatusRequest.Delete
+	(*ReportDeploymentStatusRequest_Update_Instance)(nil), // 27: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	nil,                      // 28: ctrl.v1.InstanceEvent.AttributesEntry
+	(*EphemeralStorage)(nil), // 29: ctrl.v1.EphemeralStorage
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	2,  // 0: ctrl.v1.WatchDeploymentChangesRequest.cluster:type_name -> ctrl.v1.ClusterKey
 	2,  // 1: ctrl.v1.SyncDesiredStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	15, // 2: ctrl.v1.DeploymentChangeEvent.deployment:type_name -> ctrl.v1.DeploymentState
+	18, // 2: ctrl.v1.DeploymentChangeEvent.deployment:type_name -> ctrl.v1.DeploymentState
 	2,  // 3: ctrl.v1.GetDesiredDeploymentStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	2,  // 4: ctrl.v1.ReportDeploymentStatusRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	22, // 5: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
-	23, // 6: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
-	10, // 7: ctrl.v1.InstanceEvent.running:type_name -> ctrl.v1.Running
-	11, // 8: ctrl.v1.InstanceEvent.terminated:type_name -> ctrl.v1.Terminated
-	12, // 9: ctrl.v1.InstanceEvent.waiting:type_name -> ctrl.v1.Waiting
-	25, // 10: ctrl.v1.InstanceEvent.attributes:type_name -> ctrl.v1.InstanceEvent.AttributesEntry
-	9,  // 11: ctrl.v1.ReportInstanceEventsRequest.events:type_name -> ctrl.v1.InstanceEvent
-	2,  // 12: ctrl.v1.ReportInstanceEventsRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	16, // 13: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
-	19, // 14: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
-	18, // 15: ctrl.v1.ApplyDeployment.autoscaling:type_name -> ctrl.v1.AutoscalingPolicy
-	26, // 16: ctrl.v1.ApplyDeployment.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
-	17, // 17: ctrl.v1.ApplyDeployment.capabilities:type_name -> ctrl.v1.DeploymentCapabilities
-	2,  // 18: ctrl.v1.HeartbeatRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	24, // 19: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	1,  // 20: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
-	3,  // 21: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
-	4,  // 22: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
-	6,  // 23: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	7,  // 24: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
-	13, // 25: ctrl.v1.ClusterService.ReportInstanceEvents:input_type -> ctrl.v1.ReportInstanceEventsRequest
-	20, // 26: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
-	5,  // 27: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
-	5,  // 28: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
-	15, // 29: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	8,  // 30: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
-	14, // 31: ctrl.v1.ClusterService.ReportInstanceEvents:output_type -> ctrl.v1.ReportInstanceEventsResponse
-	21, // 32: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
-	27, // [27:33] is the sub-list for method output_type
-	21, // [21:27] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	9,  // 4: ctrl.v1.PrivateNetworkStateChunk.connections:type_name -> ctrl.v1.PrivateNetworkConnection
+	8,  // 5: ctrl.v1.PrivateNetworkStateChunk.topology:type_name -> ctrl.v1.PrivateNetworkTopology
+	2,  // 6: ctrl.v1.PrivateNetworkTopology.clusters:type_name -> ctrl.v1.ClusterKey
+	2,  // 7: ctrl.v1.ReportDeploymentStatusRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	25, // 8: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
+	26, // 9: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
+	13, // 10: ctrl.v1.InstanceEvent.running:type_name -> ctrl.v1.Running
+	14, // 11: ctrl.v1.InstanceEvent.terminated:type_name -> ctrl.v1.Terminated
+	15, // 12: ctrl.v1.InstanceEvent.waiting:type_name -> ctrl.v1.Waiting
+	28, // 13: ctrl.v1.InstanceEvent.attributes:type_name -> ctrl.v1.InstanceEvent.AttributesEntry
+	12, // 14: ctrl.v1.ReportInstanceEventsRequest.events:type_name -> ctrl.v1.InstanceEvent
+	2,  // 15: ctrl.v1.ReportInstanceEventsRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	19, // 16: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
+	22, // 17: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
+	21, // 18: ctrl.v1.ApplyDeployment.autoscaling:type_name -> ctrl.v1.AutoscalingPolicy
+	29, // 19: ctrl.v1.ApplyDeployment.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
+	20, // 20: ctrl.v1.ApplyDeployment.capabilities:type_name -> ctrl.v1.DeploymentCapabilities
+	2,  // 21: ctrl.v1.HeartbeatRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	27, // 22: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	1,  // 23: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
+	3,  // 24: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
+	4,  // 25: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
+	6,  // 26: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
+	10, // 27: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
+	16, // 28: ctrl.v1.ClusterService.ReportInstanceEvents:input_type -> ctrl.v1.ReportInstanceEventsRequest
+	23, // 29: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
+	5,  // 30: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
+	5,  // 31: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
+	18, // 32: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
+	11, // 33: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
+	17, // 34: ctrl.v1.ClusterService.ReportInstanceEvents:output_type -> ctrl.v1.ReportInstanceEventsResponse
+	24, // 35: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
+	30, // [30:36] is the sub-list for method output_type
+	24, // [24:30] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_cluster_proto_init() }
@@ -2143,28 +2464,28 @@ func file_ctrl_v1_cluster_proto_init() {
 	file_ctrl_v1_cluster_proto_msgTypes[3].OneofWrappers = []any{
 		(*DeploymentChangeEvent_Deployment)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[5].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[8].OneofWrappers = []any{
 		(*ReportDeploymentStatusRequest_Update_)(nil),
 		(*ReportDeploymentStatusRequest_Delete_)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[7].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[10].OneofWrappers = []any{
 		(*InstanceEvent_Running)(nil),
 		(*InstanceEvent_Terminated)(nil),
 		(*InstanceEvent_Waiting)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[13].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[16].OneofWrappers = []any{
 		(*DeploymentState_Apply)(nil),
 		(*DeploymentState_Delete)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[14].OneofWrappers = []any{}
-	file_ctrl_v1_cluster_proto_msgTypes[16].OneofWrappers = []any{}
+	file_ctrl_v1_cluster_proto_msgTypes[17].OneofWrappers = []any{}
+	file_ctrl_v1_cluster_proto_msgTypes[19].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_cluster_proto_rawDesc), len(file_ctrl_v1_cluster_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   24,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
