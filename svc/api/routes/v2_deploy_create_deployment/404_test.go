@@ -7,7 +7,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -18,7 +21,7 @@ func TestProjectNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value},
 	})
 
 	route := newRoute(h, testutil.UncalledDeployRestate(t))
@@ -54,12 +57,12 @@ func TestCrossWorkspaceProjectIsolation(t *testing.T) {
 
 	attackerSetup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		ProjectSlug: sharedSlug,
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value},
 	})
 	// Victim has a project with the exact same slug in a different workspace.
 	_ = h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		ProjectSlug: sharedSlug,
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value},
 	})
 
 	restate, creates := testutil.RecordingDeployRestate(t)
@@ -94,7 +97,7 @@ func TestCrossWorkspaceKeyspaceIsolation(t *testing.T) {
 
 	// Attacker owns a project they can deploy to.
 	attackerSetup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value},
 	})
 
 	// Victim has a keyspace in a *different* workspace.
@@ -132,7 +135,7 @@ func TestKeyspaceNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value},
 	})
 
 	route := newRoute(h, testutil.UncalledDeployRestate(t))
@@ -163,7 +166,7 @@ func TestEnvironmentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value},
 	})
 
 	route := newRoute(h, testutil.UncalledDeployRestate(t))

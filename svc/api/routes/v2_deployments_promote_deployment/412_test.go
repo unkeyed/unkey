@@ -4,11 +4,13 @@ import (
 	"net/http"
 	"testing"
 
-	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
-
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -22,7 +24,7 @@ func TestPromoteDeploymentNotReady(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*"), permissions.Write).Value},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -49,7 +51,7 @@ func TestPromoteDeploymentShuttingDown(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*"), permissions.Write).Value},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -81,7 +83,7 @@ func TestPromoteDeploymentNonProduction(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*"), permissions.Write).Value},
 	})
 
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -115,7 +117,7 @@ func TestPromoteDeploymentNoLiveDeployment(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*"), permissions.Write).Value},
 	})
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -141,7 +143,7 @@ func TestPromoteDeploymentAlreadyLive(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*"), permissions.Write).Value},
 	})
 
 	live := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -165,7 +167,7 @@ func TestPromoteDeploymentRequiresComputePlan(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*"), permissions.Write).Value},
 	})
 	h.ClearComputePlanOverride(setup.Workspace.ID)
 	live := h.CreateDeployment(seed.CreateDeploymentRequest{
