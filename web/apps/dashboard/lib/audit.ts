@@ -1,6 +1,6 @@
 import {
   AUDIT_LOG_BUCKET_UNKEY_MUTATIONS,
-  type AuditLogBucket,
+  type DashboardAuditLogBucket,
   type unkeyAuditLogEvents,
 } from "@unkey/schema/src/auditlog";
 import type { z } from "zod";
@@ -24,7 +24,7 @@ const EVENT_SOURCE_PLATFORM = "platform";
 
 export type UnkeyAuditLog = {
   workspaceId: string;
-  bucket?: AuditLogBucket;
+  bucket?: DashboardAuditLogBucket;
   event: z.infer<typeof unkeyAuditLogEvents>;
   description: string;
   actor: {

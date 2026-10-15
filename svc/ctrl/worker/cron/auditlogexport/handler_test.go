@@ -87,7 +87,7 @@ func drainOutbox(t *testing.T, ctx context.Context, database db.Database) {
 	for {
 		drained, err := drainer.exportBatch(ctx)
 		require.NoError(t, err)
-		if drained.EventsExported < batchLimit {
+		if drained.RowsProcessed < batchLimit {
 			return
 		}
 	}
@@ -128,6 +128,36 @@ func outboxDeletedAt(t *testing.T, ctx context.Context, database db.Database, ev
 	})
 	require.NoError(t, err)
 	return row.DeletedAt
+}
+
+// TestExportBatch_SkipsRowsTheEncoderRejects guarantees one bad outbox row
+// cannot stall the drain. The batch is always the oldest pending rows, so a
+// row with an unknown bucket would otherwise be reselected on every run and
+// block every workspace's audit log export behind it.
+func TestExportBatch_SkipsRowsTheEncoderRejects(t *testing.T) {
+	ctx := context.Background()
+	database := newDatabase(t, containers.MySQL(t).DSN)
+	drainOutbox(t, ctx, database)
+
+	rejected := newOutboxEvent("test.export.rejected")
+	rejected.Bucket = "audit_xyz"
+	exported := newOutboxEvent("test.export.exported")
+	require.NoError(t, seedOutboxEvent(ctx, database, rejected))
+	require.NoError(t, seedOutboxEvent(ctx, database, exported))
+
+	recording := &recordingClickHouse{ClickHouse: clickhouse.NewNoop()}
+	handler := &Handler{db: database, clickhouse: recording}
+
+	result, err := handler.exportBatch(ctx)
+	require.NoError(t, err)
+	require.Equal(t, batchResult{EventsExported: 1, RowsProcessed: 2}, result)
+	require.Equal(t, []string{exported.EventID}, recording.eventIDs())
+	require.True(t, outboxDeletedAt(t, ctx, database, rejected).Valid, "the rejected row must be soft deleted so it cannot stall later batches")
+	require.True(t, outboxDeletedAt(t, ctx, database, exported).Valid)
+
+	again, err := handler.exportBatch(ctx)
+	require.NoError(t, err)
+	require.Zero(t, again.RowsProcessed)
 }
 
 // TestExportBatch_ClickHouseFailureLeavesOutboxRowPending protects at-least-once
@@ -292,7 +322,7 @@ func TestCancelledClickHouseAcquiresDoNotBlockOutboxWrites(t *testing.T) {
 		drainer := &Handler{db: database, clickhouse: clickhouse.NewNoop()}
 		result, err := drainer.exportBatch(ctx)
 		require.NoError(t, err)
-		if result.EventsExported < batchLimit {
+		if result.RowsProcessed < batchLimit {
 			break
 		}
 	}
