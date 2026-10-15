@@ -59,6 +59,8 @@ func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 	require.Equal(t, h.environmentID, row.EnvironmentID)
 	require.Equal(t, db.DeploymentsTriggerApi, row.Trigger)
 	require.Equal(t, "root_KEBAP", row.TriggeredBy.String, "triggered_by is the actor id")
+	require.True(t, row.InvocationID.Valid, "Create must persist the Deploy invocation id before returning")
+	require.NotEmpty(t, row.InvocationID.String)
 
 	step := h.queuedStep(t, ctx, deploymentID)
 	require.False(t, step.EndedAt.Valid, "the queued step must still be open when Deploy has not run")
@@ -67,11 +69,6 @@ func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 	image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
 	require.True(t, ok, "an image source must reach Deploy as an image")
 	require.Equal(t, fixtureImage, image.OciImage.GetImage())
-
-	require.Eventually(t, func() bool {
-		current := h.deployment(t, ctx, deploymentID)
-		return current.InvocationID.Valid && current.InvocationID.String != ""
-	}, 15*time.Second, 100*time.Millisecond, "the create must record the Deploy invocation id")
 
 	require.Equal(t, 1, h.countAudits(t, ctx, auditlog.DeploymentCreateEvent, deploymentID))
 }
@@ -1019,11 +1016,12 @@ func TestCreateDedupsOnlyTheBranchTheCallerNamed(t *testing.T) {
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
 			h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false)).GetOutcome())
-		h.awaitDeploy(t, deploymentID)
 
 		require.Equal(t, "main", h.deployment(t, ctx, deploymentID).GitBranch.String,
 			"the row still records the branch the image was built from")
-		require.Equal(t, mysqltype.DeploymentsStatusPending, h.deployment(t, ctx, sibling.ID).Status)
+		require.Equal(t, mysqltype.DeploymentsStatusPending, h.deployment(t, ctx, sibling.ID).Status,
+			"Create must leave the inherited branch's sibling pending")
+		h.awaitDeploy(t, deploymentID)
 	})
 
 	t.Run("an explicit image supersedes its branch", func(t *testing.T) {
@@ -1050,8 +1048,9 @@ func TestCreateDedupsOnlyTheBranchTheCallerNamed(t *testing.T) {
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
 			h.create(t, ctx, deploymentID, req).GetOutcome())
+		require.Equal(t, mysqltype.DeploymentsStatusSuperseded, h.deployment(t, ctx, sibling.ID).Status,
+			"Create must supersede the requested branch's sibling before returning")
 		h.awaitDeploy(t, deploymentID)
-		require.Equal(t, mysqltype.DeploymentsStatusSuperseded, h.deployment(t, ctx, sibling.ID).Status)
 	})
 
 	t.Run("a git build supersedes its branch", func(t *testing.T) {
@@ -1063,8 +1062,9 @@ func TestCreateDedupsOnlyTheBranchTheCallerNamed(t *testing.T) {
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
 			h.create(t, ctx, deploymentID, h.gitRequest()).GetOutcome())
+		require.Equal(t, mysqltype.DeploymentsStatusSuperseded, h.deployment(t, ctx, sibling.ID).Status,
+			"Create must supersede the requested branch's sibling before returning")
 		h.awaitDeploy(t, deploymentID)
-		require.Equal(t, mysqltype.DeploymentsStatusSuperseded, h.deployment(t, ctx, sibling.ID).Status)
 	})
 }
 
@@ -1550,6 +1550,8 @@ func (h *createHarness) requireNoDeploy(t *testing.T, deploymentID string) {
 
 func (h *createHarness) deployment(t *testing.T, ctx context.Context, deploymentID string) db.Deployment {
 	t.Helper()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	row, err := h.database.FindDeploymentById(ctx, deploymentID)
 	require.NoError(t, err)
 	return row
