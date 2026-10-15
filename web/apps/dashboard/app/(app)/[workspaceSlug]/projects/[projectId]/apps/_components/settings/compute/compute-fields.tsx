@@ -9,6 +9,7 @@ import {
   type SizeUnlock,
   type UnitField,
   sizeOptions,
+  storageOptions,
   unitFields,
   unitOptions,
 } from "@/lib/compute/sizing";
@@ -31,25 +32,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { cn } from "cn";
 import { useState } from "react";
 import type { Replicas } from "./draft";
 import { REGION_STATES, regionChoices, regionsNote } from "./status";
 import type { ComputeForm } from "./use-compute";
 import { CUSTOM_VALUE, useSizeChoice } from "./use-size-choice";
-import { useStorageChoice } from "./use-storage-choice";
 
 type FieldProps = { compute: ComputeForm };
 
-export function ComputeFields({
-  compute,
-  className,
-  hideLockedSizes = false,
-}: FieldProps & { className?: string; hideLockedSizes?: boolean }) {
+export function ComputeFields({ compute }: FieldProps) {
   return (
-    <div className={cn("grid gap-6", className)}>
+    <div className="grid gap-6">
       <RegionsField compute={compute} />
-      <SizeField compute={compute} hideLocked={hideLockedSizes} />
+      <SizeField compute={compute} />
       <InstancesField compute={compute} />
       <StorageField compute={compute} />
     </div>
@@ -83,7 +78,7 @@ function RegionsField({ compute }: FieldProps) {
               ))}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent maxRows={5}>
             {choices.map((choice) => {
               const state = REGION_STATES[choice.state];
               return (
@@ -128,12 +123,12 @@ function unlockLabel(unlock: SizeUnlock): string {
     .exhaustive();
 }
 
-function SizeField({ compute, hideLocked }: FieldProps & { hideLocked: boolean }) {
+function SizeField({ compute }: FieldProps) {
   const { values, limits, busy } = compute;
   const size = useSizeChoice({ values, onChange: compute.change });
   const [plansOpen, setPlansOpen] = useState(false);
   const fields = unitFields(limits);
-  const options = sizeOptions(limits).filter((option) => !hideLocked || option.type !== "locked");
+  const options = sizeOptions(limits);
   const customRows = [
     { key: "cpuMillicores", field: fields.cpu },
     { key: "memoryMib", field: fields.memory },
@@ -167,7 +162,7 @@ function SizeField({ compute, hideLocked }: FieldProps & { hideLocked: boolean }
                 <PresetSpec preset={values} />
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent maxRows={5}>
               {options.map((option) => (
                 <SelectItem key={option.preset.id} value={option.preset.id}>
                   <span className="flex w-full items-center gap-3">
@@ -305,46 +300,33 @@ function InstancesField({ compute }: FieldProps) {
 
 function StorageField({ compute }: FieldProps) {
   const { values, limits, busy } = compute;
-  const storage = useStorageChoice({ values, limits, onChange: compute.change });
   return (
     <FormField label="Storage" description="Ephemeral disk per instance.">
       {({ id, describedBy }) => (
-        <div className="flex flex-col gap-3">
-          <Select
-            value={storage.selected}
-            disabled={busy}
-            onValueChange={(next) => {
-              if (typeof next === "string") {
-                storage.pick(next);
-              }
-            }}
+        <Select
+          value={String(values.storageMib)}
+          disabled={busy}
+          onValueChange={(next) => {
+            if (typeof next === "string") {
+              compute.change("storageMib", Number(next));
+            }
+          }}
+        >
+          <SelectTrigger
+            id={id}
+            aria-describedby={describedBy}
+            leftIcon={<IconHardDriveOutline18 className="size-3.5 text-gray-11" />}
           >
-            <SelectTrigger
-              id={id}
-              aria-describedby={describedBy}
-              leftIcon={<IconHardDriveOutline18 className="size-3.5 text-gray-11" />}
-            >
-              <SelectValue>{formatStorage(values.storageMib)}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {storage.options.map((mib) => (
-                <SelectItem key={mib} value={String(mib)}>
-                  {formatStorage(mib)}
-                </SelectItem>
-              ))}
-              <SelectSeparator />
-              <SelectItem value={CUSTOM_VALUE}>Custom…</SelectItem>
-            </SelectContent>
-          </Select>
-          {storage.custom ? (
-            <UnitSelect
-              field={storage.field}
-              disabled={busy}
-              value={storage.customValue}
-              onChange={(storageMib) => compute.change("storageMib", storageMib)}
-            />
-          ) : null}
-        </div>
+            <SelectValue>{formatStorage(values.storageMib)}</SelectValue>
+          </SelectTrigger>
+          <SelectContent maxRows={5}>
+            {storageOptions(limits, values.storageMib).map((mib) => (
+              <SelectItem key={mib} value={String(mib)}>
+                {formatStorage(mib)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
     </FormField>
   );

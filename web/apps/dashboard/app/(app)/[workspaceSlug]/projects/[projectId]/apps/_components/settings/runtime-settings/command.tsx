@@ -30,14 +30,14 @@ export function Command() {
     <SettingsForm {...formProps}>
       <SettingsRow>
         <SettingsRowHeader>
-          <SettingsRowTitle>Command</SettingsRowTitle>
+          <SettingsRowTitle>Start command</SettingsRowTitle>
           <SettingsRowDescription>Unkey splits arguments on whitespace.</SettingsRowDescription>
         </SettingsRowHeader>
         <SettingsRowContent>
           <FormTextarea
             data-1p-ignore
-            aria-label="Command"
-            placeholder="Image default"
+            aria-label="Start command"
+            placeholder="Leave empty to use the image default"
             className="max-w-(--setting-w) [&_textarea]:font-mono"
             variant={form.formState.errors.command ? "error" : "default"}
             {...form.register("command")}

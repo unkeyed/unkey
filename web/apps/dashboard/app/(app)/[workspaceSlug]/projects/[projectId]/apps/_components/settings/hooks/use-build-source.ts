@@ -23,7 +23,8 @@ export function useBuildSource(
     { ...options, enabled: source?.loadsGitHub ?? false },
   );
   const { data } = installations;
-  const repositoryFullName = data?.repoConnection?.repositoryFullName || null;
+  const repo = data?.repoConnection;
+  const repositoryFullName = repo?.repositoryFullName || null;
 
   return {
     projectId,
@@ -31,7 +32,16 @@ export function useBuildSource(
     app,
     installations,
     hasRepository: source?.hasRepository(repositoryFullName, data !== undefined) ?? false,
-    defaultBranch: data?.repoConnection?.defaultBranch ?? null,
+    defaultBranch: repo?.defaultBranch ?? null,
     repositoryFullName,
+    connection:
+      repo && data
+        ? {
+            repositoryId: repo.repositoryId,
+            repositoryFullName: repo.repositoryFullName,
+            installationId: repo.installationId,
+            branch: data.defaultBranch,
+          }
+        : null,
   };
 }

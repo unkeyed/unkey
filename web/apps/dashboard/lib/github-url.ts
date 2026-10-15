@@ -32,6 +32,14 @@ export const githubUrl = {
       : undefined;
   },
 
+  install(state: string): string {
+    return buildUrl({
+      base: GITHUB_BASE,
+      segments: ["apps", `${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}`, "installations", "new"],
+      query: { state: encodeURIComponent(state) },
+    });
+  },
+
   /**
    * Preferred link for a deployment's source: the PR when present, else the commit.
    * The PR lives on the base repo; a fork PR's commit lives on the fork, so commit

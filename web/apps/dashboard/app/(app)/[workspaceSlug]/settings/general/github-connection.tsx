@@ -1,5 +1,6 @@
 "use client";
 
+import { githubUrl } from "@/lib/github-url";
 import { trpc } from "@/lib/trpc/client";
 import { Github, IconArrowUpRightOutline12, IconCheckOutline12 } from "@unkey/icons";
 import { match } from "@unkey/match";
@@ -45,7 +46,7 @@ export function GithubConnection() {
   const openInstall = async () => {
     try {
       const { state } = await prepareInstall.mutateAsync();
-      window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+      window.location.href = githubUrl.install(state);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }
