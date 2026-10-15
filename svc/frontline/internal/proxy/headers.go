@@ -1,6 +1,10 @@
 package proxy
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/unkeyed/unkey/svc/frontline/internal/peer"
+)
 
 // Header constants for frontline debugging and tracing
 const (
@@ -14,7 +18,7 @@ const (
 	HeaderRequestID   = "X-Unkey-Request-Id"   // Request ID for tracing
 
 	// HeaderFrontlineMeta carries signed metadata between Frontline regions.
-	HeaderFrontlineMeta = "X-Unkey-Frontline-Meta"
+	HeaderFrontlineMeta = peer.HeaderFrontlineMeta
 )
 
 // IsUnkeyHeader reports whether a canonical HTTP header name is reserved for

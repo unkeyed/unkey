@@ -516,4 +516,10 @@ func (r *recordingProxy) ForwardToRegion(_ context.Context, sess *zen.Session, t
 	return nil
 }
 
+func (r *recordingProxy) PeerReady(string) bool { return false }
+
+func (r *recordingProxy) ForwardViaPeer(context.Context, *zen.Session, string, string, db.DeploymentsUpstreamProtocol, db.FindInstancesByDeploymentIDRow, []meta.Hop) error {
+	return fmt.Errorf("recordingProxy: ForwardViaPeer not supported")
+}
+
 var _ proxy.Service = (*recordingProxy)(nil)

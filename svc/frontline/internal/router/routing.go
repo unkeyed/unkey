@@ -51,6 +51,10 @@ var regionProximity = map[string][]string{
 // Otherwise (no local instances), the decision points at the nearest peer
 // region that has at least one running instance, and LocalInstances is
 // empty.
+//
+// Both decisions carry that region's running instances in shuffled order as
+// RemoteInstances, so the caller can pick the target itself and send it over
+// the backhaul.
 func (s *service) selectDestination(
 	route db.FindFrontlineRouteByFQDNRow,
 	instances []db.FindInstancesByDeploymentIDRow,
@@ -64,20 +68,16 @@ func (s *service) selectDestination(
 		)
 	}
 
-	var localRunning []db.FindInstancesByDeploymentIDRow
-	regionsWithInstance := make(map[string]bool)
+	running := make(map[string][]db.FindInstancesByDeploymentIDRow)
 	for _, inst := range instances {
 		if inst.Status != db.InstancesStatusRunning {
 			continue
 		}
 		key := fmt.Sprintf("%s.%s", inst.RegionName, inst.RegionPlatform)
-		regionsWithInstance[key] = true
-		if key == s.regionPlatform {
-			localRunning = append(localRunning, inst)
-		}
+		running[key] = append(running[key], inst)
 	}
 
-	if len(regionsWithInstance) == 0 {
+	if len(running) == 0 {
 		return RouteDecision{}, fault.New("no running instances",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal(fmt.Sprintf("no running instances for deployment %s", route.DeploymentID)),
@@ -85,29 +85,25 @@ func (s *service) selectDestination(
 		)
 	}
 
-	if len(localRunning) > 0 {
-		rand.Shuffle(len(localRunning), func(i int, j int) {
-			localRunning[i], localRunning[j] = localRunning[j], localRunning[i]
-		})
-		// Pick a standby peer region for the handler to fall through to
-		// if every local instance dial-fails. Empty when this is the only
-		// region with running instances — in that case there is nowhere
-		// to fall through to and the dial failures surface to the client.
+	nearestRegion := s.findNearestRegionPlatform(running)
+	remote := shuffled(running[nearestRegion])
+
+	if local := shuffled(running[s.regionPlatform]); len(local) > 0 {
 		return RouteDecision{
 			Destination:         DestinationLocalInstance,
 			DeploymentID:        route.DeploymentID,
 			EnvironmentID:       route.EnvironmentID,
-			WorkspaceID:         localRunning[0].WorkspaceID,
-			ProjectID:           localRunning[0].ProjectID,
-			AppID:               localRunning[0].AppID,
+			WorkspaceID:         local[0].WorkspaceID,
+			ProjectID:           local[0].ProjectID,
+			AppID:               local[0].AppID,
 			UpstreamProtocol:    route.UpstreamProtocol,
 			Policies:            policies,
-			LocalInstances:      localRunning,
-			RemoteRegionAddress: s.findNearestRegionPlatform(regionsWithInstance),
+			LocalInstances:      local,
+			RemoteRegionAddress: nearestRegion,
+			RemoteInstances:     remote,
 		}, nil
 	}
 
-	nearestRegion := s.findNearestRegionPlatform(regionsWithInstance)
 	if nearestRegion == "" {
 		return RouteDecision{}, fault.New("no reachable region from "+s.regionPlatform,
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
@@ -116,13 +112,26 @@ func (s *service) selectDestination(
 		)
 	}
 
-	//nolint:exhaustruct
 	return RouteDecision{
 		Destination:         DestinationRemoteRegion,
 		DeploymentID:        route.DeploymentID,
 		EnvironmentID:       route.EnvironmentID,
+		WorkspaceID:         remote[0].WorkspaceID,
+		ProjectID:           remote[0].ProjectID,
+		AppID:               remote[0].AppID,
+		UpstreamProtocol:    route.UpstreamProtocol,
+		Policies:            policies,
+		LocalInstances:      nil,
 		RemoteRegionAddress: nearestRegion,
+		RemoteInstances:     remote,
 	}, nil
+}
+
+func shuffled(instances []db.FindInstancesByDeploymentIDRow) []db.FindInstancesByDeploymentIDRow {
+	rand.Shuffle(len(instances), func(i int, j int) {
+		instances[i], instances[j] = instances[j], instances[i]
+	})
+	return instances
 }
 
 // findNearestRegionPlatform returns the peer region (other than the local
@@ -135,10 +144,10 @@ func (s *service) selectDestination(
 // e.g. us-east-1.aws does not list eu-north-1.aws), we fall back to map-
 // iteration order. Iteration order is non-deterministic but at least
 // returns *something* reachable instead of failing closed.
-func (s *service) findNearestRegionPlatform(regionsWithInstance map[string]bool) string {
+func (s *service) findNearestRegionPlatform(regionsWithInstance map[string][]db.FindInstancesByDeploymentIDRow) string {
 	if proximityList, exists := regionProximity[s.regionPlatform]; exists {
 		for _, region := range proximityList {
-			if regionsWithInstance[region] {
+			if len(regionsWithInstance[region]) > 0 {
 				return region
 			}
 		}

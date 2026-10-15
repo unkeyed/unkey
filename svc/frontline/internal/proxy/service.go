@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
+	"github.com/unkeyed/unkey/svc/frontline/internal/peer"
 )
 
 // frontlineMetadataTTL limits replay of a captured peer request. A peer
@@ -37,6 +38,7 @@ type service struct {
 	maxHops            int
 	metadata           *meta.Codec
 	errorPageRenderer  errorpage.Renderer
+	peers              *peer.Pool
 }
 
 var _ Service = (*service)(nil)
@@ -113,6 +115,7 @@ func New(cfg Config) (*service, error) {
 		maxHops:            maxHops,
 		metadata:           cfg.Metadata,
 		errorPageRenderer:  renderer,
+		peers:              cfg.Peers,
 	}, nil
 }
 
@@ -141,6 +144,62 @@ func (s *service) ForwardToInstance(ctx context.Context, sess *zen.Session, prot
 func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string, hops []meta.Hop) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
+	signedMetadata, err := s.signHop(sess, targetRegionPlatform, hops, nil)
+	if err != nil {
+		return err
+	}
+
+	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegionPlatform, s.apexDomain))
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+			fault.Internal("failed to parse NLB URL"),
+		)
+	}
+
+	return s.forward(ctx, sess, forwardConfig{
+		targetURL:    targetURL,
+		startTime:    startTime,
+		directorFunc: s.makeRegionDirector(sess, startTime, signedMetadata),
+		destination:  destinationFrontline,
+		transport:    s.transport,
+	})
+}
+
+func (s *service) PeerReady(targetRegionPlatform string) bool {
+	return s.peers != nil && s.peers.Ready(targetRegionPlatform)
+}
+
+func (s *service) ForwardViaPeer(ctx context.Context, sess *zen.Session, targetRegionPlatform string, deploymentID string, protocol db.DeploymentsUpstreamProtocol, instance db.FindInstancesByDeploymentIDRow, hops []meta.Hop) error {
+	startTime, _ := RequestStartTimeFromContext(ctx)
+
+	signedMetadata, err := s.signHop(sess, targetRegionPlatform, hops, &meta.Target{
+		DeploymentID: deploymentID,
+		InstanceID:   instance.ID,
+		Address:      instance.Address,
+		Protocol:     string(protocol),
+	})
+	if err != nil {
+		return err
+	}
+
+	instanceDirector := s.makeInstanceDirector(sess, startTime)
+	//nolint:exhaustruct
+	return s.forward(ctx, sess, forwardConfig{
+		targetURL: &url.URL{Scheme: "http", Host: instance.Address},
+		startTime: startTime,
+		directorFunc: func(req *http.Request) {
+			instanceDirector(req)
+			req.Header.Set(HeaderFrontlineMeta, signedMetadata)
+		},
+		destination: destinationPeer,
+		transport:   &peer.RoundTripper{Pool: s.peers, Region: targetRegionPlatform},
+	})
+}
+
+// signHop enforces the hop limit, appends this frontline to hops, and signs
+// the metadata for the next region.
+func (s *service) signHop(sess *zen.Session, targetRegionPlatform string, hops []meta.Hop, target *meta.Target) (string, error) {
 	srcRegion := fmt.Sprintf("%s::%s", s.platform, s.region)
 	hopCount := len(hops)
 	hopsHistogram.WithLabelValues(srcRegion, targetRegionPlatform).Observe(float64(hopCount))
@@ -151,7 +210,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 			"hostname", sess.Request().Host,
 			"requestID", sess.RequestID(),
 		)
-		return fault.New("too many frontline hops",
+		return "", fault.New("too many frontline hops",
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
 			fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hopCount)),
 			fault.Public("Request routing limit exceeded"),
@@ -174,10 +233,11 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		Hops:                  hops,
 		ClientIP:              sess.Location(),
 		DebugTelemetryEnabled: sess.DebugTelemetryEnabled(),
+		Target:                target,
 	}
 	signedMetadata, err := s.metadata.Marshal(metadata)
 	if err != nil {
-		return fault.Wrap(err,
+		return "", fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
 			fault.Internal("failed to marshal Frontline metadata"),
 			fault.Public("Service temporarily unavailable"),
@@ -191,20 +251,5 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 			"hostname", sess.Request().Host,
 		)
 	}
-
-	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegionPlatform, s.apexDomain))
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
-			fault.Internal("failed to parse NLB URL"),
-		)
-	}
-
-	return s.forward(ctx, sess, forwardConfig{
-		targetURL:    targetURL,
-		startTime:    startTime,
-		directorFunc: s.makeRegionDirector(sess, startTime, signedMetadata),
-		destination:  destinationFrontline,
-		transport:    s.transport,
-	})
+	return signedMetadata, nil
 }
