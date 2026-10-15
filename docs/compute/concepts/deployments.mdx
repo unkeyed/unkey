@@ -1,6 +1,7 @@
 ---
-title: Deployments
-description: "Create a deployment, follow it to ready, and work out why one is waiting, failed, or not serving."
+title: Deployments on Unkey
+sidebarTitle: "Deployments"
+description: "Unkey builds a deployment from GitHub, a container image, or the CLI and serves it once the status is ready."
 sources:
   - pkg/mysql/types/deployment_status.go
   - pkg/mysql/types/deployment_desired_state.go
@@ -22,6 +23,20 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/actions/deployment-action-eligibility.ts
   - svc/ctrl/worker/deploy/build_handler.go
 ---
+
+Unkey creates a deployment from a GitHub push, a container image, the dashboard, the CLI, or `deployments.createDeployment`. That deployment keeps the image, runtime settings, environment variables, and gateway policies it started with. With auto deploy on and no watch paths, the default branch becomes a production deployment and any other branch becomes a preview.
+
+## How a deployment starts
+
+The source you pass decides what gets built. For a GitHub push, auto deploy must be on. If you set watch paths, a changed file must match one of them, or Unkey records the push as `skipped`.
+
+| How you ship | What Unkey creates |
+| --- | --- |
+| Push to the connected default branch | A production deployment |
+| Push to any other branch | A preview deployment |
+| Pull request from a fork | A preview deployment that waits in `awaiting_approval` until a project member approves it |
+| Prebuilt image (`oci`) | A deployment of the tag or digest you set, or `latest` if you set neither. Later moves of that tag don't change it |
+| Dashboard, CLI, or API, with no source | A git app builds its default branch. An image app deploys its default image |
 
 A <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> is one built version of an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> in one <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. You can't change a deployment once it's created. It keeps the image, runtime settings, environment variables, and gateway policies it started with, so a change to any of them applies from the next deployment.
 

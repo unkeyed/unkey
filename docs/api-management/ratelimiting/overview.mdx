@@ -1,7 +1,7 @@
 ---
-title: Rate limiting
+title: Rate limiting with Unkey
 sidebarTitle: "Overview"
-description: "Choose between the standalone rate limit API and limits attached to keys."
+description: "Unkey rate limits your API per customer, per API key, per endpoint, or per IP, with no Redis to run."
 sources:
   - svc/api/routes/v2_ratelimit_limit/handler.go
   - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitRequestBody.yaml
@@ -9,6 +9,10 @@ sources:
   - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
   - svc/api/openapi/spec/common/KeyCreditsRefill.yaml
   - svc/frontline/internal/policies/ratelimit/headers.go
+  - svc/frontline/internal/policies/ratelimit/keyextract.go
+  - svc/api/openapi/spec/common/RemoteIpKey.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/KeysVerifyKeyRatelimit.yaml
+  - svc/api/openapi/spec/paths/v2/identities/createIdentity/V2IdentitiesCreateIdentityRequestBody.yaml
   - svc/api/internal/middleware/authentication.go
   - internal/services/ratelimit/doc.go
   - internal/services/keys/validation.go
@@ -18,6 +22,20 @@ sources:
 ---
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Unkey counts a limit per customer on an identity, so extra keys for that customer don't add budget. You can also limit per key, per endpoint with a named limit or a `cost`, and per IP by passing the address to `ratelimit.limit`. Monthly quotas stay separate from those windows, and Unkey stores them as credits on the key.
+
+## Which limit to use
+
+Use the row that matches what you want to count.
+
+| You want to limit | What Unkey uses | Read more |
+| --- | --- | --- |
+| Per customer | A rate limit on the identity, shared by every key with that `externalId` | [Shared rate limits](/api-management/identities/shared-rate-limits) |
+| Per key | A named rate limit on the key, checked during `keys.verifyKey` | [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits) |
+| Per endpoint | A named limit the route opts into, or a `cost` on that call. With no key, one namespace per route on `ratelimit.limit` | [Per-endpoint rate limits](/api-management/cookbook/endpoint-rate-limit) |
+| Per IP | The IP as the identifier on `ratelimit.limit`. On Compute, a gateway policy can count by remote IP | [ratelimit.limit](/api-management/ratelimiting/limit-and-multi-limit), [Rate limit policy](/compute/gateway/rate-limiting) |
+| Monthly quota | Credits on the key, with `credits.refill.interval` set to `monthly` | [Credits and refill](/api-management/keys/credits-and-refill) |
 
 Unkey enforces per-user and per-customer rate limits, and a monthly request quota, on an API you host yourself. You don't run Redis or any other counter store. Attach both to an API key, or call `ratelimit.limit` with a user id, a customer id, or any other stable string.
 

@@ -1,7 +1,7 @@
 ---
-title: Platform
+title: The Unkey platform
 sidebarTitle: "Overview"
-description: "Manage what both Unkey products share: your workspace, billing, root keys, and the CLI."
+description: "Unkey hosts the dashboard and API, and you can fork the AGPLv3 source to run a current build yourself."
 sources:
   - docs/docs.json
   - README.md
@@ -9,6 +9,8 @@ sources:
   - SECURITY.md
 boost: 3
 ---
+
+Hosted Unkey is the dashboard at `app.unkey.com` and the API at `api.unkey.com`. Compute and API Management share the workspace, billing, root keys, and CLI on this page, and both run on Unkey's infrastructure. You can fork the public source and run it yourself: code outside `packages` and `internal/icons` is AGPLv3, these docs have no self-hosting guide, and security fixes aren't backported, so run a current build of `main` or the latest release.
 
 Set up what Compute and API Management share: your workspace and team, billing, security, root keys, the CLI, and the HTTP API.
 
@@ -108,11 +110,19 @@ Set up what Compute and API Management share: your workspace and team, billing, 
   </Card>
 </Columns>
 
-## Self-hosting
+## Self-host Unkey
 
 These docs cover hosted Unkey: the dashboard at `app.unkey.com` and the API at `api.unkey.com`. Compute and API Management both run on Unkey's infrastructure, and there's no self-hosting guide in these docs.
 
 The [Unkey source code](https://github.com/unkeyed/unkey) is public. Code outside the `packages` and `internal/icons` directories is licensed under AGPLv3, so you can fork it and run it yourself under those terms. If you self-host, run a current build of `main` or the latest release. Unkey applies security fixes there and doesn't backport them to older tags.
+
+Hosted Unkey and a fork you run are different setups.
+
+| | Hosted Unkey | A fork you run |
+| --- | --- | --- |
+| Where it runs | Unkey's infrastructure, at `app.unkey.com` and `api.unkey.com` | A host you operate. These docs have no self-hosting guide |
+| Source you run | Unkey operates the service | The public repo. AGPLv3 outside `packages` and `internal/icons` |
+| Which build | The hosted service | A current build of `main` or the latest release. Security fixes aren't backported to older tags |
 
 ## Reference
 
