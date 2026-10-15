@@ -1,0 +1,5 @@
+apiVersion: ctlptl.dev/v1alpha1
+kind: Registry
+name: unkey-registry
+labels:
+  dev.unkey.project: unkey

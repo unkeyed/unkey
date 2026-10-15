@@ -56,7 +56,7 @@ export const setDefaultApiBytes = workspaceProcedure
           },
           event: "api.update",
           description: `Changed ${keyAuth.id} default byte size for keys from ${keyAuth.defaultBytes} to ${input.defaultBytes}`,
-          resources: [
+          targets: [
             {
               type: "keyAuth",
               id: keyAuth.id,

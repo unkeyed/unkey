@@ -123,9 +123,9 @@ func Cancel(ctx context.Context, database db.Database, admin *restateadmin.Clien
 			RemoteIP:      p.Audit.Actor.GetRemoteIp(),
 			UserAgent:     p.Audit.Actor.GetUserAgent(),
 			CorrelationID: p.Audit.CorrelationID,
-			Resources: []auditlog.AuditLogResource{
+			Targets: []auditlog.AuditLogTarget{
 				{
-					Type:        auditlog.DeploymentResourceType,
+					Type:        auditlog.DeploymentTargetType,
 					ID:          d.ID,
 					Name:        "",
 					DisplayName: d.ID,

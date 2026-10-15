@@ -11,6 +11,7 @@ type SubscriptionCheckoutInput = {
   successUrl: string;
   customText?: Stripe.Checkout.SessionCreateParams.CustomText;
   idempotencyKey?: string;
+  workosUserId?: string;
 };
 
 export type SubscriptionCheckoutDestination =
@@ -36,12 +37,15 @@ export async function createSubscriptionCheckout(
       allow_redisplay_filters: ["always", "limited", "unspecified"],
     },
     subscription_data: {
-      metadata: { unkey_product: input.product, workspace_id: input.workspaceId },
+      metadata: {
+        unkey_product: input.product,
+        workspace_id: input.workspaceId,
+        ...(input.workosUserId ? { workos_user_id: input.workosUserId } : {}),
+      },
       billing_cycle_anchor_config: { day_of_month: 1, hour: 0, minute: 0, second: 0 },
       billing_mode: { type: "classic" },
       proration_behavior: "create_prorations",
     },
-    allow_promotion_codes: true,
     ...(input.customerId ? { customer: input.customerId } : {}),
     ...(input.customText ? { custom_text: input.customText } : {}),
     success_url: input.successUrl,

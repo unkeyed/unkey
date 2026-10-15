@@ -20,8 +20,6 @@ var githubDeploymentStateToString = map[hydrav1.GitHubDeploymentState]string{
 	hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_QUEUED:      "queued",
 }
 
-// ReportStatus updates both the GitHub deployment status and the PR comment.
-// All calls are fire-and-forget — errors are logged, never propagated.
 func (s *Service) ReportStatus(ctx restate.ObjectContext, req *hydrav1.GitHubStatusReportRequest) (*hydrav1.GitHubStatusReportResponse, error) {
 	config, err := restate.Get[*hydrav1.GitHubStatusInitRequest](ctx, stateConfig)
 	if err != nil || config == nil {
@@ -38,6 +36,7 @@ func (s *Service) ReportStatus(ctx restate.ObjectContext, req *hydrav1.GitHubSta
 	}
 
 	deploymentID := restate.Key(ctx)
+	s.reportCommitStatus(ctx, config, stateStr, req.GetDescription())
 
 	// --- GitHub Deployment Status ---
 	if ghDeploymentID > 0 {
@@ -70,4 +69,27 @@ func (s *Service) ReportStatus(ctx restate.ObjectContext, req *hydrav1.GitHubSta
 	}
 
 	return &hydrav1.GitHubStatusReportResponse{}, nil
+}
+
+func (s *Service) reportCommitStatus(ctx restate.Context, config *hydrav1.GitHubStatusInitRequest, state, description string) {
+	if config.GetCommitSha() == "" {
+		return
+	}
+
+	commitState := "pending"
+	switch state {
+	case "success", "inactive":
+		commitState = "success"
+	case "failure", "error":
+		commitState = state
+	}
+
+	if err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
+		return s.github.CreateCommitStatus(
+			config.GetInstallationId(), config.GetRepo(), config.GetCommitSha(),
+			commitState, config.GetLogUrl(), description, "Unkey / "+config.GetEnvironmentLabel(),
+		)
+	}, restate.WithName("github commit status: "+commitState), restate.WithMaxRetryDuration(30*time.Second)); err != nil {
+		logger.Error("failed to report GitHub commit status", "error", err, "repo", config.GetRepo(), "sha", config.GetCommitSha(), "state", commitState)
+	}
 }

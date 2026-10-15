@@ -1,0 +1,20 @@
+type: object
+required:
+  - enabled
+  - description
+  - allowOptIn
+  - allowOptOut
+properties:
+  enabled:
+    type: boolean
+    description: Whether the feature is enabled for this workspace. A workspace-specific value overrides the flag's default.
+  description:
+    type: string
+    description: What the flag controls.
+  allowOptIn:
+    type: boolean
+    description: Whether this flag can be enabled. Updating it also requires `flags#write` permission.
+  allowOptOut:
+    type: boolean
+    description: Whether this flag can be disabled. Updating it also requires `flags#write` permission.
+additionalProperties: false

@@ -1,0 +1,21 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/RatelimitNamespace.yaml"
+additionalProperties: false
+examples:
+  success:
+    summary: Namespace renamed
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        id: rlns_1234abcd
+        name: email.outbound
+        createdAt: 1704067200000
+        updatedAt: 1704153600000

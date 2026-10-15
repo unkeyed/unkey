@@ -164,7 +164,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				bySlug[normalizedSlug] = rolePermission(permission)
 				candidate, ok := candidates[normalizedSlug]
 				if ok && candidate.PermissionID == permission.ID {
-					logs = append(logs, audit(principal, s, auditlog.PermissionCreateEvent, fmt.Sprintf("Created %s (%s)", permission.Slug, permission.ID), permissionResource(permission.ID, permission.Slug, permission.Name)))
+					logs = append(logs, audit(principal, s, auditlog.PermissionCreateEvent, fmt.Sprintf("Created %s (%s)", permission.Slug, permission.ID), permissionTarget(permission.ID, permission.Slug, permission.Name)))
 				}
 			}
 			if len(logs) > 0 {
@@ -211,7 +211,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 			for _, id := range remove {
 				p := currentByID[id]
-				logs = append(logs, audit(principal, s, auditlog.AuthDisconnectRolePermissionEvent, fmt.Sprintf("Removed permission %s from role %s", p.Name, role.Name), roleResource(role.ID, role.Name), permissionResource(p.ID, p.Slug, p.Name)))
+				logs = append(logs, audit(principal, s, auditlog.AuthDisconnectRolePermissionEvent, fmt.Sprintf("Removed permission %s from role %s", p.Name, role.Name), roleTarget(role.ID, role.Name), permissionTarget(p.ID, p.Slug, p.Name)))
 			}
 		}
 		toAdd := make([]db.InsertRolePermissionParams, 0)
@@ -220,7 +220,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				continue
 			}
 			toAdd = append(toAdd, db.InsertRolePermissionParams{RoleID: role.ID, PermissionID: permission.ID, WorkspaceID: principal.AuthorizedWorkspaceID, CreatedAtM: time.Now().UnixMilli()})
-			logs = append(logs, audit(principal, s, auditlog.AuthConnectRolePermissionEvent, fmt.Sprintf("Added permission %s to role %s", permission.Name, role.Name), roleResource(role.ID, role.Name), permissionResource(permission.ID, permission.Slug, permission.Name)))
+			logs = append(logs, audit(principal, s, auditlog.AuthConnectRolePermissionEvent, fmt.Sprintf("Added permission %s to role %s", permission.Name, role.Name), roleTarget(role.ID, role.Name), permissionTarget(permission.ID, permission.Slug, permission.Name)))
 		}
 		if err = db.BulkQuery.InsertRolePermissions(ctx, tx, toAdd); err != nil {
 			return err
@@ -241,13 +241,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	return s.JSON(http.StatusOK, Response{Meta: openapi.Meta{RequestId: s.RequestID()}, Data: data})
 }
 
-func roleResource(id, name string) auditlog.AuditLogResource {
-	return auditlog.AuditLogResource{Type: auditlog.RoleResourceType, ID: id, Name: name, DisplayName: name, Meta: map[string]any{}}
+func roleTarget(id, name string) auditlog.AuditLogTarget {
+	return auditlog.AuditLogTarget{Type: auditlog.RoleTargetType, ID: id, Name: name, DisplayName: name, Meta: map[string]any{}}
 }
-func permissionResource(id, slug, name string) auditlog.AuditLogResource {
-	return auditlog.AuditLogResource{Type: auditlog.PermissionResourceType, ID: id, Name: slug, DisplayName: name, Meta: map[string]any{}}
+func permissionTarget(id, slug, name string) auditlog.AuditLogTarget {
+	return auditlog.AuditLogTarget{Type: auditlog.PermissionTargetType, ID: id, Name: slug, DisplayName: name, Meta: map[string]any{}}
 }
 
-func audit(principal *principal.Principal, s *zen.Session, event auditlog.AuditLogEvent, display string, resources ...auditlog.AuditLogResource) auditlog.AuditLog {
-	return auditlog.AuditLog{WorkspaceID: principal.AuthorizedWorkspaceID, Event: event, ActorType: auditlog.AuditLogActor(principal.Subject.Type), ActorID: principal.Subject.ID, ActorName: principal.Subject.Name, ActorMeta: map[string]any{}, Display: display, RemoteIP: s.Location(), UserAgent: s.UserAgent(), CorrelationID: "", Resources: resources}
+func audit(principal *principal.Principal, s *zen.Session, event auditlog.AuditLogEvent, display string, targets ...auditlog.AuditLogTarget) auditlog.AuditLog {
+	return auditlog.AuditLog{WorkspaceID: principal.AuthorizedWorkspaceID, Event: event, ActorType: auditlog.AuditLogActor(principal.Subject.Type), ActorID: principal.Subject.ID, ActorName: principal.Subject.Name, ActorMeta: map[string]any{}, Display: display, RemoteIP: s.Location(), UserAgent: s.UserAgent(), CorrelationID: "", Targets: targets}
 }

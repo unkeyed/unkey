@@ -1,5 +1,9 @@
 "use client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
@@ -25,7 +29,7 @@ export type Domain = z.infer<typeof schema>;
  * IMPORTANT: All queries MUST filter by projectId:
  * .where(({ domain }) => eq(domain.projectId, projectId))
  */
-export const domains = createCollection<Domain, string>(
+export const domains = createCollection<Domain, string, QueryCollectionUtils<Domain, string>>(
   queryCollectionOptions({
     queryClient,
     syncMode: "on-demand",

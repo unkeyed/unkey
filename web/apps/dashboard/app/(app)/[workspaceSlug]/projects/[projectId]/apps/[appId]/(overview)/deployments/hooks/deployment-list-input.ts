@@ -9,7 +9,7 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import { getTimestampFromRelative } from "@/lib/duration";
 import type { DeploymentListFilterValue } from "../filters.schema";
 
-// startTime is inclusive and endTime exclusive, matching the API
+// Both time bounds are inclusive, as the time filter writes them
 export type DeploymentListFilter = {
   statuses: DeploymentStatus[];
   environmentId?: string;
@@ -100,6 +100,6 @@ export function buildDeploymentListInput(
     cannotMatch:
       (slugs.length > 0 && matched.length === 0) ||
       (statusValues.length > 0 && groups.length === 0) ||
-      (startTime !== undefined && endTime !== undefined && startTime >= endTime),
+      (startTime !== undefined && endTime !== undefined && startTime > endTime),
   };
 }

@@ -220,10 +220,10 @@ func (h *Handler) revokeBatch(
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          found.ID,
-						Type:        auditlog.PortalResourceType,
+						Type:        auditlog.PortalTargetType,
 						Name:        found.Slug,
 						DisplayName: found.Slug,
 						Meta: map[string]any{

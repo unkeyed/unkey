@@ -1,10 +1,11 @@
-import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
+import { RegionFlag } from "@/components/region-flag";
+import { regionInfo } from "@/lib/regions";
 import { trpc } from "@/lib/trpc/client";
 import { InfoTooltip } from "@unkey/ui";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
 import { NodeWrapper } from "./node-wrapper/node-wrapper";
-import { REGION_INFO, type RegionNode as RegionNodeType } from "./types";
+import type { RegionNode as RegionNodeType } from "./types";
 
 type RegionNodeProps = {
   node: RegionNodeType;
@@ -12,8 +13,7 @@ type RegionNodeProps = {
 };
 
 export function RegionNode({ node, deploymentId }: RegionNodeProps) {
-  const { flagCode, health, instances } = node.metadata;
-  const regionInfo = REGION_INFO[flagCode];
+  const { health, instances } = node.metadata;
 
   // node.label is the region's name as it appears on
   // frontline_requests_raw_v1.region, so we can filter ClickHouse by it
@@ -40,11 +40,11 @@ export function RegionNode({ node, deploymentId }: RegionNodeProps) {
         type="region"
         icon={
           <InfoTooltip
-            content={`${regionInfo.name} (${regionInfo.location})`}
+            content={regionInfo(node.label).city}
             className="z-30"
             position={{ align: "center", side: "top", sideOffset: 5 }}
           >
-            <RegionFlag flagCode={flagCode} size="md" shape="rounded" />
+            <RegionFlag region={node.label} size="md" shape="rounded" />
           </InfoTooltip>
         }
         title={node.label}
