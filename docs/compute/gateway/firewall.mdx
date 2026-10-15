@@ -13,7 +13,7 @@ sources:
 
 A firewall policy tells the [gateway](/compute/gateway/overview) to block every request that matches its match expressions. Use it to close internal paths, block a method on a route, refuse requests with a certain header, or block IP ranges, without changing your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>.
 
-To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Firewall**. You only need a name, an environment, and match conditions.
+To add one, open the app, go to **Policies**, click **Add policy**, and set **Type** to **Firewall**. You only need a name, an environment, and match conditions.
 
 ## Settings
 
@@ -57,7 +57,7 @@ The gateway uses the IP of the connection, never a header like `X-Forwarded-For`
 A firewall policy with no match expressions blocks every request to the <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. That's a quick way to take a preview environment offline.
 
 <Visibility for="agents">
-  In the dashboard this is the **Firewall** type in **Policies > Add Policy**. The form only asks for a name, an environment, and match conditions because `ACTION_DENY` is the only action. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`. The change applies to the next deployment.
+  In the dashboard this is the **Firewall** type in **Policies > Add policy**. The form only asks for a name, an environment, and match conditions because `ACTION_DENY` is the only action. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`. The change applies to the next deployment.
 </Visibility>
 
 ## What the client sees

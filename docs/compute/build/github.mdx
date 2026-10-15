@@ -30,7 +30,7 @@ Connect a GitHub repository to an <Tooltip tip="A Compute app: a deployable serv
 
 You install the Unkey GitHub App once per workspace, on a GitHub organization or personal account, and choose which repositories it can see.
 
-1. Start from any of these places in the dashboard: the **Import from GitHub** step when you create an app, the **GitHub** card in an app's settings, or [workspace settings](/platform/workspace/settings).
+1. Start from any of these places in the dashboard: the **Import from GitHub** step when you create an app, the **Repository** row on an app's **App settings** > **Build** page, or [workspace settings](/platform/workspace/settings).
 2. Approve the installation on GitHub. GitHub sends you back to Unkey.
 
 To do it with the API, call `github.installApp` with a root key that has `workspace.*.install_github`, and open the URL it returns.
@@ -39,13 +39,13 @@ You can install the app on more than one GitHub account. An installation belongs
 
 ## Connect a repository to an app
 
-Pick the repository when you create the app, or later in the app's settings. From the CLI, pass `--git` to [create-app](/compute/cli/apps/create-app) or [update-app](/compute/cli/apps/update-app).
+Pick the repository when you create the app, or later under **App settings** > **Build**. From the CLI, pass `--git` to [create-app](/compute/cli/apps/create-app) or [update-app](/compute/cli/apps/update-app).
 
 You connect a repository per app, not per project. In a monorepo, two apps can connect to the same repository and use different build settings.
 
 The app's default branch deploys to production. It starts as the repository's default branch on GitHub, and you can change it with `apps.updateApp`.
 
-To stop deploying from pushes, click **Disconnect repository** in the app's settings. The dashboard warns that "Deployments will no longer be triggered by pushes to this repository." Existing deployments keep running.
+To stop deploying from pushes, click **Disconnect repository** in the danger zone of the app's **App settings** > **General** page. The dashboard warns that "Unkey will stop building pushes to this repository. Running deployments stay live."
 
 ## What deploys when you push
 
@@ -91,8 +91,8 @@ Each deployment of a connected app reports back to GitHub:
 Check these in order:
 
 1. The Unkey GitHub App is installed on the account that owns the repository, and has access to it.
-2. The repository is connected to the app in its settings.
-3. Auto deploy is on for the environment the branch maps to.
+2. The repository is connected to the app under **App settings** > **Build**.
+3. Auto deploy is on for the environment the branch maps to (the **Auto-deploy** switch on the environment's page under **App settings** > **Environments**).
 4. The push changed a file that matches the watch paths, if any are set.
 5. The app's deployments list shows a `skipped` or `failed` row with the reason.
 

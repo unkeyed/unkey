@@ -19,6 +19,7 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/choose-source.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/deploy-image-card.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/navigations/create-deployment-button.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/oci-image.tsx
 ---
 
 An <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> deploys and serves traffic without any API key. This path is for images you build yourself, in CI or on your machine, and push to a registry. Unkey pulls the image and runs it. There's no build step, no repository connection, and no GitHub App. Choose it when you already have a build pipeline, when your source isn't on GitHub, or when you want to decide exactly when a version ships.
@@ -41,7 +42,7 @@ The image must be pullable without credentials, and your container must listen o
       <img src="/images/dashboard/compute--get-started-deploy-an-image--image.png" alt="Deploy an image step with an image reference entered and the Deploy button" />
     </Frame>
 
-    An image app has no build settings, because there's nothing to build, and its source kind is fixed: you can't later connect a repository to it. To ship a new version or reach production, open the app and choose **Create Deployment**: pick the **Environment** and enter the image reference. The dialog lists images you deployed before so you can redeploy one of them with a click.
+    An image app has no build settings, because there's nothing to build, and its source kind is fixed: you can't later connect a repository to it. Its **App settings** > **Build** page shows the image instead. To ship a new version or reach production, open the app and choose **Create Deployment**: pick the **Environment** and enter the image reference. The dialog lists images you deployed before so you can redeploy one of them with a click.
   </Step>
   <Step title="Deploy with unkey api deployments create-deployment">
     The `unkey api` commands match the public API one to one. `create-deployment` returns immediately with the deployment ID, and `get-deployment` reads its status. Both take the root key from `--root-key` or `UNKEY_ROOT_KEY` and print JSON with `--output json`.

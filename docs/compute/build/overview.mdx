@@ -58,7 +58,7 @@ Because every deployment produces its own image, promoting and rolling back neve
 Two settings stop a push from building at all:
 
 - **Watch paths** builds only when a changed file matches one of the environment's glob patterns, so a documentation-only commit doesn't start a build.
-- **Auto deploy**, turned off, stops pushes from deploying entirely, leaving you to deploy from the dashboard or the API when you choose.
+- **Auto-deploy**, turned off, stops pushes from deploying entirely, leaving you to deploy from the dashboard or the API when you choose.
 
 A push that isn't built still appears as a `skipped` deployment with the reason, so you can tell the difference between a push we ignored and one we never saw. Both settings live on [Build settings](/compute/configure/build-settings), and the order they're evaluated in is on [GitHub integration](/compute/build/github).
 

@@ -24,11 +24,11 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/choose-source.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/select-repo/index.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/configure-deployment/content.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/deploy-action.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/configure-deployment/deploy-action.tsx
 ---
 
 
-You can deploy an app straight from a GitHub repository, and Unkey deploys on every push. Connect the repository and Unkey tracks its default branch, unless you pick another one. A push to that branch creates a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>. A push to any other branch creates a preview deployment. Open the deployment in the dashboard and wait for its status to be `ready`. Then it's live on a `unkey.app` domain.
+You can deploy an app straight from a GitHub repository, and Unkey deploys on every push. Connect the repository and Unkey tracks its default branch on GitHub. A push to that branch creates a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>. A push to any other branch creates a preview deployment. Open the deployment in the dashboard and wait for its status to be `ready`. Then it's live on a `unkey.app` domain.
 
 That's the default, with auto deploy on and no watch paths. If you turn auto deploy off or set watch paths, a push can be recorded as `skipped` instead of built. A pull request from a fork waits in `awaiting_approval` until a project member approves it.
 
@@ -58,13 +58,13 @@ If you'd rather bring an image you built yourself, see [Deploy a container image
       <img src="/images/dashboard/compute--get-started-deploy-from-github--source.png" alt="Deploy your app screen offering Import from GitHub or Use a container image" />
     </Frame>
 
-    If the workspace hasn't installed the Unkey GitHub App yet, the wizard sends you to GitHub to install it on your organization or personal account and grant access to repositories. GitHub returns you to the dashboard when you're done. The installation belongs to the workspace, so you do it once. Then pick the account and the repository under **Select a repository**. The app tracks the repository's default branch on GitHub unless you change the branch later in the app's settings.
+    If the workspace hasn't installed the Unkey GitHub App yet, the wizard sends you to GitHub to install it on your organization or personal account and grant access to repositories. GitHub returns you to the dashboard when you're done. The installation belongs to the workspace, so you do it once. Then pick the account and the repository under **Select a repository**. The app tracks the repository's default branch on GitHub. Each environment's page under **App settings** > **Environments** shows the branch it tracks.
 
     <Frame>
       <img src="/images/dashboard/compute--get-started-deploy-from-github--select-repository.png" alt="Select a repository screen listing GitHub repositories, each with a branch picker and a Select button" />
     </Frame>
 
-    **Skip for now** creates the app without a repository. You can connect one later from the app's settings, or deploy an image instead.
+    **Skip for now** creates the app without a repository. You can connect one later under **App settings** > **Build**, or deploy an image instead.
   </Step>
   <Step title="Review the build settings">
     The **Configure deployment** step shows the build settings for the new app. The defaults build most repositories without changes:
@@ -77,7 +77,7 @@ If you'd rather bring an image you built yourself, see [Deploy a container image
 
     Every field is described on [Build settings](/compute/configure/build-settings).
 
-    Runtime settings aren't part of the wizard. The app's two <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip> start with the defaults, port 8080, 0.25 vCPU, 256 MiB of memory, and one replica in one region, and you change them later under **App Settings**. See [Runtime settings](/compute/configure/runtime-settings). Your container must listen on the port in the `PORT` environment variable, which Unkey sets to the configured port.
+    Runtime settings aren't part of the wizard. The app's two <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip> start with the defaults, port 8080, 0.25 vCPU, 256 MiB of memory, and one replica in one region, and you change them later under **App settings**. See [Runtime settings](/compute/configure/runtime-settings). Your container must listen on the port in the `PORT` environment variable, which Unkey sets to the configured port.
   </Step>
   <Step title="Add environment variables">
     The **Configure environment variables** step is optional. [Variables](/compute/configure/environment-variables) are scoped to an environment, so production and preview can hold different values, and you can add a variable to all environments at once. Mark secrets as sensitive to make them write-only: you can replace or delete them later but never read them back. Variables are encrypted at rest either way. You can add or change variables at any time. A change applies to the next deployment.
