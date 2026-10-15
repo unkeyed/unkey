@@ -462,6 +462,14 @@ type Querier interface {
 	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
 	//  WHERE p.id = ?
 	DeleteProjectById(ctx context.Context, id string) error
+	// Removes the given regions and their clusters. Integration tests that commit
+	// regions to the shared database call this; production never deletes a region.
+	//
+	//  DELETE r, c
+	//  FROM regions r
+	//  LEFT JOIN clusters c ON c.region_id = r.id
+	//  WHERE r.id IN (/*SLICE:ids*/?)
+	DeleteRegionsWithClusters(ctx context.Context, ids []string) error
 	// Removes the given workspaces along with everything scoped to them.
 	//
 	// Integration tests share one MySQL container across test processes and across

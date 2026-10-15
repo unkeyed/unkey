@@ -427,6 +427,9 @@ type CreateDeploymentRequest struct {
 	ImageResolved  sql.NullString
 
 	Capabilities dbtype.DeploymentCapabilities
+
+	// Port defaults to 8080.
+	Port int32
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -443,6 +446,11 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	source := req.Source
 	if source == "" {
 		source = db.DeploymentsSourceUnknown
+	}
+
+	port := req.Port
+	if port == 0 {
+		port = 8080
 	}
 
 	err := s.DB.InsertDeployment(ctx, db.InsertDeploymentParams{
@@ -469,7 +477,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		StorageMib:                    0,
 		CreatedAt:                     createdAt,
 		UpdatedAt:                     req.UpdatedAt,
-		Port:                          8080,
+		Port:                          port,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Capabilities:                  req.Capabilities,
