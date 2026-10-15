@@ -181,7 +181,7 @@ function buildQueryArgs(
 
   return {
     workspaceId: workspace.id,
-    bucketId: params.bucket,
+    buckets: [params.bucket],
     limit,
     offset,
     startTime,

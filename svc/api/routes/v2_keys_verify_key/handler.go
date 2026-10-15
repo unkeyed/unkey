@@ -7,7 +7,6 @@ import (
 
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
-	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -324,7 +323,7 @@ func (h *Handler) bufferAuditLog(
 		EventID:     uid.New(uid.AuditLogPrefix),
 		Time:        verificationTimeMillis,
 		WorkspaceID: principal.AuthorizedWorkspaceID,
-		Bucket:      auditlogs.DefaultBucket,
+		Bucket:      auditlog.BucketUnkeyMutations,
 		Source:      auditlog.EventSourcePlatform,
 		Event:       string(auditlog.KeyVerifyEvent),
 		Description: fmt.Sprintf("Verified key %s", key.Key.ID),

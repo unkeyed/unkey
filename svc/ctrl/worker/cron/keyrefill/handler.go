@@ -225,7 +225,7 @@ func buildOutboxRows(keys []db.ListKeysForRefillRow, now int64) ([]db.InsertClic
 			EventID:       uid.New(uid.AuditLogPrefix, 24),
 			Time:          now,
 			WorkspaceID:   key.WorkspaceID,
-			Bucket:        "unkey_mutations",
+			Bucket:        auditlog.BucketUnkeyMutations,
 			Source:        auditlog.EventSourcePlatform,
 			Event:         string(auditlog.KeyUpdateEvent),
 			Description:   fmt.Sprintf("Refilled key %s", displayName(key)),

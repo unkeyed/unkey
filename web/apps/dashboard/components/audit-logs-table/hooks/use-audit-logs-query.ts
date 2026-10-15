@@ -9,8 +9,12 @@ import {
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
+import {
+  AUDIT_LOG_BUCKET_UNKEY_MUTATIONS,
+  isDashboardAuditLogBucket,
+} from "@unkey/schema/src/auditlog";
 import { useMemo } from "react";
-import { type AuditLogsQueryPayload, DEFAULT_BUCKET_NAME } from "../schema/audit-logs.schema";
+import type { AuditLogsQueryPayload } from "../schema/audit-logs.schema";
 
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -35,7 +39,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
       users: { filters: [] },
       rootKeys: { filters: [] },
       since: "",
-      bucket: DEFAULT_BUCKET_NAME,
+      bucket: AUDIT_LOG_BUCKET_UNKEY_MUTATIONS,
     };
 
     for (const filter of filters) {
@@ -72,7 +76,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
           break;
         }
         case "bucket": {
-          if (typeof filter.value === "string") {
+          if (typeof filter.value === "string" && isDashboardAuditLogBucket(filter.value)) {
             params.bucket = filter.value;
           }
           break;

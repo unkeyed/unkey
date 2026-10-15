@@ -253,7 +253,7 @@ func (h *Handler) bufferAuditLog(
 		EventID:     uid.New(uid.AuditLogPrefix),
 		Time:        timeMillis,
 		WorkspaceID: p.AuthorizedWorkspaceID,
-		Bucket:      auditlogs.DefaultBucket,
+		Bucket:      auditlog.BucketUnkeyMutations,
 		Source:      auditlog.EventSourcePlatform,
 		Event:       string(auditlog.RatelimitLimitEvent),
 		Description: "Applied rate limit to namespace " + namespace.ID,
