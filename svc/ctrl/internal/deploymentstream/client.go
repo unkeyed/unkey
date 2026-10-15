@@ -28,9 +28,8 @@ func New(cfg cdc.Config) (*Client, error) {
 	return &Client{config: cfg}, nil
 }
 
-// Watch reports changes to running deployments in one region.
-// An empty token first copies the matching rows. When a row stops matching,
-// its old value still provides the deployment ID.
+// Watch reports topology changes in one region.
+// An empty token first copies regional rows.
 // Invalid regions, invalid IDs, and callback errors stop the watch.
 // The CDC watcher closes when the watch ends. Tokens follow [cdc.Watcher.Watch].
 func (c *Client) Watch(ctx context.Context, region string, token []byte, apply func(Event) error) (err error) {
@@ -40,7 +39,7 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, apply f
 	cfg := c.config
 	cfg.Rules = []cdc.Rule{{
 		Table: "deployment_topology",
-		Query: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
+		Query: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s'", region),
 	}}
 	watcher, err := cdc.New(cfg)
 	if err != nil {
@@ -49,7 +48,7 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, apply f
 	defer func() { err = errors.Join(err, watcher.Close()) }()
 	return watcher.Watch(ctx, token, func(event cdc.Event) error {
 		if event.Change == nil {
-			return apply(Event{DeploymentID: "", ResumeToken: event.ResumeToken})
+			return apply(Event{DeploymentID: "", ResumeToken: event.ResumeToken, HasBefore: false})
 		}
 		for _, rowChange := range event.Change.GetRowEvent().GetRowChanges() {
 			row := rowChange.After
@@ -59,7 +58,7 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, apply f
 			if row == nil || len(row.Lengths) != 1 || row.Lengths[0] <= 0 || row.Lengths[0] != int64(len(row.Values)) {
 				return errors.New("invalid deployment ID in VStream row")
 			}
-			if err := apply(Event{DeploymentID: string(row.Values), ResumeToken: nil}); err != nil {
+			if err := apply(Event{DeploymentID: string(row.Values), ResumeToken: nil, HasBefore: rowChange.Before != nil}); err != nil {
 				return err
 			}
 		}

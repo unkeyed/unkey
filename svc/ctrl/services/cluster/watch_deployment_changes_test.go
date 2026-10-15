@@ -24,6 +24,10 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 		name            string
 		lookupErr       error
 		streamErr       error
+		stopped         bool
+		removalRequired int64
+		statusRepair    int64
+		hasBefore       bool
 		emptyCheckpoint bool
 		authorized      bool
 		replay          bool
@@ -31,6 +35,10 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 		wantCode        connect.Code
 	}{
 		{name: "running state", authorized: true, wantState: true},
+		{name: "settled stopped copy only advances checkpoint", authorized: true, stopped: true},
+		{name: "live stop is never suppressed", authorized: true, stopped: true, hasBefore: true, wantState: true},
+		{name: "parent removal is never suppressed", authorized: true, stopped: true, removalRequired: 1, wantState: true},
+		{name: "status repair is never suppressed", authorized: true, stopped: true, statusRepair: 1, wantState: true},
 		{name: "empty checkpoint aborts stream", authorized: true, emptyCheckpoint: true, wantCode: connect.CodeInternal},
 		{name: "replay discards token", authorized: true, replay: true, wantState: true},
 		{name: "removed topology advances checkpoint", authorized: true, lookupErr: sql.ErrNoRows},
@@ -45,8 +53,15 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 			clusterCache, err := cache.New(cache.Config[clusterCacheKey, db.FindClusterRow]{Fresh: time.Minute, Stale: time.Minute, MaxSize: 1, Resource: "test_cluster", Clock: clock.New()})
 			require.NoError(t, err)
 			t.Cleanup(clusterCache.Close)
+			row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
+				ID: "deploy_test", DesiredStatus: db.DeploymentTopologyDesiredStatusRunning,
+				RemovalRequired: test.removalRequired, StatusRepairRequired: test.statusRepair,
+			}
+			if test.stopped {
+				row.DesiredStatus = db.DeploymentTopologyDesiredStatusStopped
+			}
 			svc := &Service{
-				db: &watchDatabase{lookupErr: test.lookupErr}, bearer: "test-token", clusterCache: clusterCache,
+				db: &watchDatabase{lookupErr: test.lookupErr, row: row}, bearer: "test-token", clusterCache: clusterCache,
 				deploymentStream: watchSource(func(ctx context.Context, region string, token []byte, apply func(deploymentstream.Event) error) error {
 					if region != "region_test" {
 						return errors.New("incorrect region filter")
@@ -64,7 +79,7 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 					if test.emptyCheckpoint {
 						return apply(deploymentstream.Event{})
 					}
-					if err := apply(deploymentstream.Event{DeploymentID: "deploy_test"}); err != nil {
+					if err := apply(deploymentstream.Event{DeploymentID: "deploy_test", HasBefore: test.hasBefore}); err != nil {
 						return err
 					}
 					return apply(deploymentstream.Event{ResumeToken: []byte("next")})
@@ -93,7 +108,12 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 			require.NoError(t, stream.Err())
 			if test.wantState {
 				require.Len(t, events, 2)
-				require.Equal(t, "deploy_test", events[0].GetDeployment().GetApply().GetDeploymentId())
+				if test.stopped {
+					require.Equal(t, "deploy_test", events[0].GetDeployment().GetDelete().GetDeploymentId())
+					require.Equal(t, test.removalRequired != 0, events[0].GetDeployment().GetDelete().GetPermanent())
+				} else {
+					require.Equal(t, "deploy_test", events[0].GetDeployment().GetApply().GetDeploymentId())
+				}
 				require.Empty(t, events[0].GetResumeToken())
 			} else {
 				require.Len(t, events, 1)
@@ -112,6 +132,7 @@ func (s watchSource) Watch(ctx context.Context, region string, token []byte, app
 type watchDatabase struct {
 	db.Database
 	lookupErr error
+	row       db.FindDeploymentTopologyByDeploymentAndRegionRow
 }
 
 func (s *watchDatabase) FindCluster(context.Context, db.FindClusterParams) (db.FindClusterRow, error) {
@@ -119,5 +140,5 @@ func (s *watchDatabase) FindCluster(context.Context, db.FindClusterParams) (db.F
 }
 
 func (s *watchDatabase) FindDeploymentTopologyByDeploymentAndRegion(context.Context, db.FindDeploymentTopologyByDeploymentAndRegionParams) (db.FindDeploymentTopologyByDeploymentAndRegionRow, error) {
-	return db.FindDeploymentTopologyByDeploymentAndRegionRow{ID: "deploy_test", DesiredStatus: db.DeploymentTopologyDesiredStatusRunning}, s.lookupErr
+	return s.row, s.lookupErr
 }
