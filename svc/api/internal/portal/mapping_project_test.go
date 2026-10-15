@@ -86,8 +86,8 @@ func TestResolveMappingProject(t *testing.T) {
 	})
 
 	for _, deleting := range []struct{ name, query, id string }{
-		{"deleting app", "UPDATE apps SET deleting_at = 1 WHERE id = ?", app.ID},
-		{"deleting project", "UPDATE projects SET deleting_at = 1 WHERE id = ?", project.ID},
+		{"deleting app", "UPDATE apps SET deleted_at = 1 WHERE id = ?", app.ID},
+		{"deleting project", "UPDATE projects SET deleted_at = 1 WHERE id = ?", project.ID},
 	} {
 		t.Run(deleting.name, func(t *testing.T) {
 			tx, err := h.DB.RW().Begin(ctx)
@@ -100,6 +100,13 @@ func TestResolveMappingProject(t *testing.T) {
 			})
 			require.Empty(t, got)
 			requireMappingNotFound(t, err)
+			if deleting.id == project.ID {
+				got, err = portal.ResolveMappingProject(ctx, tx, workspace.ID, portal.Mapping{
+					Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String,
+				})
+				require.Empty(t, got)
+				requireMappingNotFound(t, err)
+			}
 		})
 	}
 }

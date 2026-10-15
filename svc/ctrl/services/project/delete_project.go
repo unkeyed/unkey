@@ -2,7 +2,9 @@ package project
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -15,15 +17,8 @@ import (
 
 // DeleteProject enqueues a durable Restate workflow that cascades through
 // the project's apps and environments, cleaning up all associated resources.
-// Returns immediately after the workflow is enqueued; actual deletion
-// is eventually consistent.
-//
-// The project.delete audit log is written inside the workflow, not here: a
-// Restate enqueue can't share a transaction with a DB write, so an after-enqueue
-// insert would leave a deleting-but-unaudited window on failure. The workflow
-// owns the audit write as part of its durable unit and threads the correlation
-// ID down to every cascaded app.delete and environment.delete so the whole
-// teardown groups under one ID.
+// Returns after marking the project deleted and notifying its deployment topologies;
+// physical deletion is eventually consistent.
 func (s *Service) DeleteProject(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.DeleteProjectRequest],
@@ -38,12 +33,16 @@ func (s *Service) DeleteProject(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	_, err := s.db.FindProjectById(ctx, req.Msg.GetProjectId())
+	project, err := s.db.FindProjectById(ctx, req.Msg.GetProjectId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("project not found: %s", req.Msg.GetProjectId()))
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find project: %w", err))
+	}
+
+	if project.DeletedAt.Valid {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("project not found: %s", project.ID))
 	}
 
 	client := hydrav1.NewProjectServiceIngressClient(s.restate, req.Msg.GetProjectId())
@@ -53,6 +52,22 @@ func (s *Service) DeleteProject(
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger project deletion: %w", err))
+	}
+
+	err = db.TxRetry(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
+		queries := db.NewQueries(tx)
+		now := time.Now().UnixMilli()
+		if err := queries.MarkProjectDeleted(ctx, db.MarkProjectDeletedParams{
+			ID: project.ID, DeletedAt: sql.NullInt64{Valid: true, Int64: now},
+		}); err != nil {
+			return err
+		}
+		return queries.NotifyDeploymentTopologiesByProject(ctx, db.NotifyDeploymentTopologiesByProjectParams{
+			ProjectID: project.ID, UpdatedAt: now,
+		})
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to mark project deleted: %w", err))
 	}
 
 	return connect.NewResponse(&ctrlv1.DeleteProjectResponse{}), nil

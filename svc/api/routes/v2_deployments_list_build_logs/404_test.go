@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -72,4 +73,16 @@ func TestListBuildLogsNotFound(t *testing.T) {
 		require.Equal(t, missing.Body.Error.Type, existing.Body.Error.Type)
 		require.Equal(t, missing.Body.Error.Status, existing.Body.Error.Status)
 	})
+	for _, table := range []string{"projects", "apps", "environments"} {
+		t.Run("deleted "+table, func(t *testing.T) {
+			id := map[string]string{"projects": setup.Project.ID, "apps": setup.App.ID, "environments": setup.Environment.ID}[table]
+			_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = 1 WHERE id = ?", id)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = NULL WHERE id = ?", id)
+				require.NoError(t, err)
+			})
+			call(t, rootKey, dep.deploymentID)
+		})
+	}
 }

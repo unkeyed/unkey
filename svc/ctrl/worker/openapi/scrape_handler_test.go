@@ -56,9 +56,9 @@ func TestPersistOpenAPISpecSkipsDeletingEnvironment(t *testing.T) {
 		EnvironmentID: environment.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
-	require.NoError(t, database.MarkEnvironmentDeleting(ctx, db.MarkEnvironmentDeletingParams{
-		ID:         environment.ID,
-		DeletingAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	require.NoError(t, database.MarkEnvironmentDeleted(ctx, db.MarkEnvironmentDeletedParams{
+		ID:        environment.ID,
+		DeletedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	}))
 
 	persisted, err := New(Config{DB: database}).persistOpenAPISpec(ctx, deployment, []byte(`{"openapi":"3.0.0"}`))

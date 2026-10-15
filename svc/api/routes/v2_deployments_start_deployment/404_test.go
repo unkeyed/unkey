@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -11,6 +12,34 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_start_deployment"
 )
+
+func TestStartDeploymentDeletedAncestors(t *testing.T) {
+	for _, query := range []string{
+		"UPDATE projects SET deleted_at = 1 WHERE id = ?",
+		"UPDATE apps SET deleted_at = 1 WHERE project_id = ?",
+		"UPDATE environments SET deleted_at = 1 WHERE project_id = ?",
+	} {
+		t.Run(query, func(t *testing.T) {
+			h := testutil.NewHarness(t)
+			route := newRoute(h, newUncalledRestate(t))
+			h.Register(route)
+			setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+				Permissions: []string{"unkey:v1:{workspaceID}:projects/*/apps/*/environments/*/deployments/*#write"},
+			})
+			dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+				ID:            uid.New(uid.DeploymentPrefix),
+				WorkspaceID:   setup.Workspace.ID,
+				ProjectID:     setup.Project.ID,
+				AppID:         setup.App.ID,
+				EnvironmentID: setup.Environment.ID,
+			})
+			_, err := h.DB.RW().ExecContext(context.Background(), query, setup.Project.ID)
+			require.NoError(t, err)
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
+			require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+		})
+	}
+}
 
 func TestStartDeploymentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)

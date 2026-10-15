@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
+	"time"
 
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -113,9 +115,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Deletion cascades through the project's apps, environments, and
-	// deployments. Send returns once Restate has accepted the durable workflow;
-	// teardown remains eventually consistent.
 	_, err = hydrav1.NewProjectServiceIngressClient(h.Restate, project.ID).
 		Delete().
 		Send(ctx, &hydrav1.DeleteProjectRequest{
@@ -132,6 +131,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("failed to submit project deletion to Restate"),
 			fault.Public("Failed to delete project."),
 		)
+	}
+
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		now := time.Now().UnixMilli()
+		if err := db.Query.MarkProjectDeleted(ctx, tx, db.MarkProjectDeletedParams{
+			ID: project.ID, DeletedAt: sql.NullInt64{Valid: true, Int64: now},
+		}); err != nil {
+			return err
+		}
+		return db.Query.NotifyDeploymentTopologiesByProject(ctx, tx, db.NotifyDeploymentTopologiesByProjectParams{
+			ProjectID: project.ID, UpdatedAt: now,
+		})
+	})
+	if err != nil {
+		return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to mark project deleted"), fault.Public("Failed to delete project."))
 	}
 
 	return s.JSON(http.StatusAccepted, Response{

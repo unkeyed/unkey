@@ -189,6 +189,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		if _, err = db.Query.LockActivePortal(ctx, tx, db.LockActivePortalParams{
+			ID: found.ID, WorkspaceID: principal.AuthorizedWorkspaceID,
+		}); err != nil {
+			if db.IsNotFound(err) {
+				return empty, fault.New("portal not found",
+					fault.Code(codes.Data.Portal.NotFound.URN()),
+					fault.Public(notFoundMessage),
+				)
+			}
+			return empty, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("lock active portal"),
+				fault.Public("We're unable to update the portal."),
+			)
+		}
+
 		if repoint {
 			mappingProjectID, err := portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping)
 			if err != nil {

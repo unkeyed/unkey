@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -15,15 +17,8 @@ import (
 
 // DeleteApp enqueues a durable Restate workflow that cascades through
 // the app's environments and cleans up all associated resources.
-// Returns immediately after the workflow is enqueued; actual deletion
-// is eventually consistent.
-//
-// The app.delete audit log is written inside the workflow, not here: a
-// Restate enqueue can't share a transaction with a DB write, so writing the
-// audit log after the enqueue would leave a deleting-but-unaudited window if
-// the insert failed. The workflow owns the audit write as part of its durable,
-// retried unit. The caller's identity and a correlation ID are threaded in so
-// the workflow can attribute the event and group it with any cascade siblings.
+// Returns after marking the app deleted and notifying its deployment topologies;
+// physical deletion is eventually consistent.
 func (s *Service) DeleteApp(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.DeleteAppRequest],
@@ -38,12 +33,26 @@ func (s *Service) DeleteApp(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	_, err := s.db.FindAppById(ctx, req.Msg.GetAppId())
+	app, err := s.db.FindAppById(ctx, req.Msg.GetAppId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found: %s", req.Msg.GetAppId()))
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find app: %w", err))
+	}
+
+	if app.DeletedAt.Valid {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found: %s", app.ID))
+	}
+	project, err := s.db.FindProjectById(ctx, app.ProjectID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found: %s", app.ID))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find project: %w", err))
+	}
+	if project.DeletedAt.Valid {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found: %s", app.ID))
 	}
 
 	client := hydrav1.NewAppServiceIngressClient(s.restate, req.Msg.GetAppId())
@@ -53,6 +62,22 @@ func (s *Service) DeleteApp(
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger app deletion: %w", err))
+	}
+
+	err = db.TxRetry(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
+		queries := db.NewQueries(tx)
+		now := time.Now().UnixMilli()
+		if err := queries.MarkAppDeleted(ctx, db.MarkAppDeletedParams{
+			ID: app.ID, DeletedAt: sql.NullInt64{Valid: true, Int64: now},
+		}); err != nil {
+			return err
+		}
+		return queries.NotifyDeploymentTopologiesByApp(ctx, db.NotifyDeploymentTopologiesByAppParams{
+			AppID: app.ID, UpdatedAt: now,
+		})
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to mark app deleted: %w", err))
 	}
 
 	return connect.NewResponse(&ctrlv1.DeleteAppResponse{}), nil
