@@ -102,24 +102,33 @@ func podContainerPort(pod *corev1.Pod) int32 {
 	return 8080
 }
 
-// routablePods returns the pods frontline may route to. Terminating pods are
-// left out. Pods that cannot drain are left out as soon as at least as many
-// draining pods are ready to replace them, so frontline stops routing to them
-// before Kubernetes deletes them (see useReplacementStrategy).
+// routablePods returns the pods frontline may route to. Pods that cannot drain
+// are left out as soon as at least as many draining pods are ready to replace
+// them, so frontline stops routing to them before Kubernetes deletes them (see
+// useReplacementStrategy). A terminating pod keeps serving for
+// preStopDrainSeconds, so it stays routable while no other pod is ready, for
+// example when the only replica is evicted.
 func routablePods(pods []corev1.Pod) []corev1.Pod {
-	var draining, undrained []corev1.Pod
-	readyDraining := 0
+	var draining, undrained, terminating []corev1.Pod
+	readyDraining, readyUndrained := 0, 0
 
 	for _, pod := range pods {
+		ready := podContainersReady(&pod)
 		switch {
 		case pod.DeletionTimestamp != nil:
+			if ready && podDrainSeconds(&pod) >= preStopDrainSeconds {
+				terminating = append(terminating, pod)
+			}
 		case podDrainSeconds(&pod) >= preStopDrainSeconds:
 			draining = append(draining, pod)
-			if podContainersReady(&pod) {
+			if ready {
 				readyDraining++
 			}
 		default:
 			undrained = append(undrained, pod)
+			if ready {
+				readyUndrained++
+			}
 		}
 	}
 
@@ -127,7 +136,12 @@ func routablePods(pods []corev1.Pod) []corev1.Pod {
 		return draining
 	}
 
-	return append(draining, undrained...)
+	routable := append(draining, undrained...)
+	if readyDraining+readyUndrained == 0 {
+		return append(routable, terminating...)
+	}
+
+	return routable
 }
 
 func podContainersReady(pod *corev1.Pod) bool {

@@ -166,9 +166,21 @@ func TestRoutablePods(t *testing.T) {
 		{"single replica",
 			[]corev1.Pod{pod("old-1", false, true, false), pod("new-1", true, true, false)},
 			[]string{"new-1"}},
-		{"terminating pods are never routable",
+		{"terminating pods leave routing while another pod is ready",
 			[]corev1.Pod{pod("new-1", true, true, false), pod("new-2", true, true, true)},
 			[]string{"new-1"}},
+		{"an evicted single replica serves until its replacement is ready",
+			[]corev1.Pod{pod("evicted", true, true, true), pod("replacement", true, false, false)},
+			[]string{"replacement", "evicted"}},
+		{"an evicted single replica leaves routing once its replacement is ready",
+			[]corev1.Pod{pod("evicted", true, true, true), pod("replacement", true, true, false)},
+			[]string{"replacement"}},
+		{"terminating pods that cannot drain are never routable",
+			[]corev1.Pod{pod("evicted", false, true, true), pod("replacement", true, false, false)},
+			[]string{"replacement"}},
+		{"terminating pods that stopped being ready are not routable",
+			[]corev1.Pod{pod("evicted", true, false, true)},
+			[]string{}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			require.Equal(t, tt.want, names(routablePods(tt.pods)))
