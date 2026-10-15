@@ -2,6 +2,8 @@ package deployment
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -11,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -61,8 +65,16 @@ func (c *Controller) runActualStateResyncLoop(ctx context.Context) {
 func (c *Controller) runDesiredStateResyncLoop(ctx context.Context) {
 	c.runResyncLoop(ctx, time.Minute, func() {
 		logger.Info("running desired state resync")
+		var owners sync.Map
 		c.forEachReplicaSet(ctx, func(ctx context.Context, rs *appsv1.ReplicaSet) {
+			owners.Store(rs.Namespace+"/"+rs.Name, struct{}{})
 			c.reconcileDesiredState(ctx, rs)
+		})
+		c.forEachDeploymentPod(ctx, func(ctx context.Context, pod *corev1.Pod) {
+			if _, exists := owners.Load(pod.Namespace + "/" + owningReplicaSet(pod)); exists {
+				return
+			}
+			c.reconcileOrphanPod(ctx, pod)
 		})
 	})
 }
@@ -83,6 +95,51 @@ func (c *Controller) runResyncLoop(ctx context.Context, interval time.Duration, 
 	}
 }
 
+func (c *Controller) forEachDeploymentPod(ctx context.Context, fn func(context.Context, *corev1.Pod)) {
+	cursor := ""
+	for {
+		pods, err := c.clientSet.CoreV1().Pods("").List(ctx, metav1.ListOptions{
+			LabelSelector: labels.New().ManagedByKrane().ComponentDeployment().ToString(),
+			Limit:         500,
+			Continue:      cursor,
+		})
+		if err != nil {
+			logger.Error("unable to list deployment pods", "error", err.Error())
+			return
+		}
+		conc.ForEach(ctx, pods.Items, fn)
+		cursor = pods.Continue
+		if cursor == "" {
+			return
+		}
+	}
+}
+
+func (c *Controller) reconcileOrphanPod(ctx context.Context, pod *corev1.Pod) {
+	replicaSetName := owningReplicaSet(pod)
+	if replicaSetName != "" {
+		if _, err := c.clientSet.AppsV1().ReplicaSets(pod.Namespace).Get(ctx, replicaSetName, metav1.GetOptions{}); err == nil {
+			return
+		} else if !apierrors.IsNotFound(err) {
+			logger.Error("unable to inspect pod owner", "error", err.Error(), "pod", pod.Name, "replicaSet", replicaSetName)
+			return
+		}
+	}
+
+	deploymentID, ok := labels.GetDeploymentID(pod.Labels)
+	if !ok {
+		logger.Error("unable to get deployment ID from orphan pod", "pod", pod.Name)
+		return
+	}
+	if err := c.ReconcileDeployment(ctx, &ctrlv1.DeleteDeployment{
+		DeploymentId: deploymentID,
+		K8SNamespace: pod.Namespace,
+		K8SName:      replicaSetName,
+	}); err != nil {
+		logger.Error("unable to reconcile orphan pod", "error", err.Error(), "deployment_id", deploymentID, "pod", pod.Name)
+	}
+}
+
 // forEachReplicaSet paginates through all krane-managed deployment ReplicaSets
 // and calls fn for each one concurrently.
 func (c *Controller) forEachReplicaSet(ctx context.Context, fn func(ctx context.Context, rs *appsv1.ReplicaSet)) {
@@ -93,6 +150,7 @@ func (c *Controller) forEachReplicaSet(ctx context.Context, fn func(ctx context.
 				ManagedByKrane().
 				ComponentDeployment().
 				ToString(),
+			Limit:    500,
 			Continue: cursor,
 		})
 		if err != nil {
@@ -118,34 +176,42 @@ func (c *Controller) reconcileDesiredState(ctx context.Context, replicaSet *apps
 		return
 	}
 
+	if err := c.ReconcileDeployment(ctx, &ctrlv1.DeleteDeployment{
+		DeploymentId: deploymentID,
+		K8SNamespace: replicaSet.GetNamespace(),
+		K8SName:      replicaSet.GetName(),
+	}); err != nil {
+		logger.Error("unable to reconcile deployment", "error", err.Error(), "deployment_id", deploymentID)
+	}
+}
+
+func (c *Controller) ReconcileDeployment(ctx context.Context, hint *ctrlv1.DeleteDeployment) error {
+	if hint.GetDeploymentId() == "" {
+		return fmt.Errorf("deployment ID is required")
+	}
+
+	unlock := c.reconcileLocks.Lock(hint.GetDeploymentId())
+	defer unlock()
+
 	res, err := c.cluster.GetDesiredDeploymentState(ctx, &ctrlv1.GetDesiredDeploymentStateRequest{
 		Cluster:      c.clusterKey(),
-		DeploymentId: deploymentID,
+		DeploymentId: hint.GetDeploymentId(),
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeNotFound {
-			if err := c.DeleteDeployment(ctx, &ctrlv1.DeleteDeployment{
-				K8SNamespace: replicaSet.GetNamespace(),
-				K8SName:      replicaSet.GetName(),
-			}); err != nil {
-				logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
-			}
-
-			return
+			hint.Permanent = true
+			return c.DeleteDeployment(ctx, hint)
 		}
-
-		logger.Error("unable to get desired deployment state", "error", err.Error(), "deployment_id", deploymentID)
-		return
+		return fmt.Errorf("unable to get desired deployment state: %w", err)
 	}
 
-	switch res.GetState().(type) {
+	switch state := res.GetState().(type) {
 	case *ctrlv1.DeploymentState_Apply:
-		if err := c.ApplyDeployment(ctx, res.GetApply()); err != nil {
-			logger.Error("unable to apply deployment", "error", err.Error(), "deployment_id", deploymentID)
-		}
+		c.forgetRemoval(hint.GetDeploymentId())
+		return c.ApplyDeployment(ctx, state.Apply)
 	case *ctrlv1.DeploymentState_Delete:
-		if err := c.DeleteDeployment(ctx, res.GetDelete()); err != nil {
-			logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
-		}
+		return c.DeleteDeployment(ctx, state.Delete)
+	default:
+		return fmt.Errorf("unhandled desired deployment state type %T", state)
 	}
 }

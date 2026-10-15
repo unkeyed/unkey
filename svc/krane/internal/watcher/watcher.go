@@ -248,9 +248,13 @@ func (s *Watcher) dispatch(ctx context.Context, event *ctrlv1.DeploymentChangeEv
 		}
 		switch op := e.Deployment.GetState().(type) {
 		case *ctrlv1.DeploymentState_Apply:
-			return s.deployments.ApplyDeployment(ctx, op.Apply)
+			return s.deployments.ReconcileDeployment(ctx, &ctrlv1.DeleteDeployment{
+				DeploymentId: op.Apply.GetDeploymentId(),
+				K8SNamespace: op.Apply.GetK8SNamespace(),
+				K8SName:      op.Apply.GetK8SName(),
+			})
 		case *ctrlv1.DeploymentState_Delete:
-			return s.deployments.DeleteDeployment(ctx, op.Delete)
+			return s.deployments.ReconcileDeployment(ctx, op.Delete)
 		default:
 			return fmt.Errorf("unhandled deployment state type %T", op)
 		}
