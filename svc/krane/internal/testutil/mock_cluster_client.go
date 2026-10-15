@@ -3,6 +3,7 @@ package testutil
 
 import (
 	"context"
+	"errors"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -20,12 +21,20 @@ var _ ctrl.ClusterServiceClient = (*MockClusterClient)(nil)
 type MockClusterClient struct {
 	WatchDeploymentChangesFunc    func(context.Context, *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
 	GetDesiredDeploymentStateFunc func(context.Context, *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error)
+	StreamPrivateNetworkStateFunc func(context.Context, *ctrlv1.StreamPrivateNetworkStateRequest) (*connect.ServerStreamForClient[ctrlv1.PrivateNetworkStateChunk], error)
 	ReportDeploymentStatusFunc    func(context.Context, *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error)
 	ReportInstanceEventsFunc      func(context.Context, *ctrlv1.ReportInstanceEventsRequest) (*ctrlv1.ReportInstanceEventsResponse, error)
 	HeartbeatFunc                 func(context.Context, *ctrlv1.HeartbeatRequest) (*ctrlv1.HeartbeatResponse, error)
 	SyncDesiredStateFunc          func(context.Context, *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
 	ReportDeploymentStatusCalls   []*ctrlv1.ReportDeploymentStatusRequest
 	ReportInstanceEventsCalls     []*ctrlv1.ReportInstanceEventsRequest
+}
+
+func (m *MockClusterClient) StreamPrivateNetworkState(ctx context.Context, req *ctrlv1.StreamPrivateNetworkStateRequest) (*connect.ServerStreamForClient[ctrlv1.PrivateNetworkStateChunk], error) {
+	if m.StreamPrivateNetworkStateFunc != nil {
+		return m.StreamPrivateNetworkStateFunc(ctx, req)
+	}
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("StreamPrivateNetworkState is not configured"))
 }
 
 func (m *MockClusterClient) WatchDeploymentChanges(ctx context.Context, req *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
