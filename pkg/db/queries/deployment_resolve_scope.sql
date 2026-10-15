@@ -12,19 +12,21 @@ SELECT
 FROM (
     SELECT p1.id, p1.workspace_id
     FROM projects p1
-    WHERE p1.workspace_id = sqlc.arg(workspace_id) AND p1.id = sqlc.arg(project)
+    WHERE p1.workspace_id = sqlc.arg(workspace_id) AND p1.id = sqlc.arg(project) AND p1.deleted_at IS NULL
     UNION ALL
     SELECT p2.id, p2.workspace_id
     FROM projects p2
-    WHERE p2.workspace_id = sqlc.arg(workspace_id) AND p2.slug = sqlc.arg(project)
+    WHERE p2.workspace_id = sqlc.arg(workspace_id) AND p2.slug = sqlc.arg(project) AND p2.deleted_at IS NULL
     LIMIT 1
 ) p
 LEFT JOIN apps a
     ON a.project_id = p.id
+    AND a.deleted_at IS NULL
     AND a.workspace_id = p.workspace_id
     AND (a.id = sqlc.arg(app) OR a.slug = sqlc.arg(app))
 LEFT JOIN environments e
     ON e.app_id = a.id
+    AND e.deleted_at IS NULL
     AND e.workspace_id = a.workspace_id
     AND (e.id = sqlc.arg(environment) OR e.slug = sqlc.arg(environment))
 LIMIT 1;

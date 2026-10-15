@@ -47,6 +47,8 @@ CREATE INDEX `workspace_created_at_idx` ON `deployments` (`workspace_id`,`create
 
 CREATE INDEX `project_created_at_idx` ON `deployments` (`project_id`,`created_at`);
 
+CREATE INDEX `environment_idx` ON `deployments` (`environment_id`);
+
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 
 CREATE INDEX `app_created_at_idx` ON `deployments` (`app_id`,`created_at`);

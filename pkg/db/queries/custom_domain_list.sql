@@ -20,6 +20,11 @@ SELECT
     cd.updated_at
 FROM custom_domains cd
 WHERE cd.workspace_id = sqlc.arg(workspace_id)
+  AND (cd.workspace_id = 'unkey_internal' OR (
+    EXISTS (SELECT 1 FROM projects p WHERE p.id = cd.project_id AND p.deleted_at IS NULL)
+    AND EXISTS (SELECT 1 FROM apps a WHERE a.id = cd.app_id AND a.deleted_at IS NULL)
+    AND EXISTS (SELECT 1 FROM environments e WHERE e.id = cd.environment_id AND e.deleted_at IS NULL)
+  ))
   AND (
     sqlc.arg(scope) = ''
     OR (sqlc.arg(scope) = 'project' AND cd.project_id IN (sqlc.slice(project_ids)))

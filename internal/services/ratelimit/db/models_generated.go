@@ -1150,6 +1150,7 @@ type App struct {
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
 	CreatedAt           int64          `db:"created_at"`
 	UpdatedAt           sql.NullInt64  `db:"updated_at"`
+	DeletedAt           sql.NullInt64  `db:"deleted_at"`
 }
 
 type AppBuildSetting struct {
@@ -1415,6 +1416,7 @@ type Environment struct {
 	DeleteProtection sql.NullBool     `db:"delete_protection"`
 	CreatedAt        int64            `db:"created_at"`
 	UpdatedAt        sql.NullInt64    `db:"updated_at"`
+	DeletedAt        sql.NullInt64    `db:"deleted_at"`
 }
 
 type Flag struct {
@@ -1682,6 +1684,7 @@ type Project struct {
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	DeletedAt        sql.NullInt64  `db:"deleted_at"`
 }
 
 type Ratelimit struct {

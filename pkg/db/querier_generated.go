@@ -312,7 +312,7 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, db DBTX, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
@@ -328,16 +328,20 @@ type Querier interface {
 	// an app id alone would otherwise need a second read to say anything about the
 	// app it just proved it owns.
 	//
-	//  SELECT id, project_id FROM apps
-	//  WHERE id = ?
-	//    AND workspace_id = ?
+	//  SELECT apps.id, apps.project_id FROM apps
+	//  WHERE apps.id = ?
+	//    AND apps.deleted_at IS NULL
+	//    AND EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id AND p.deleted_at IS NULL)
+	//    AND apps.workspace_id = ?
 	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error)
 	//FindAppByProjectAndIdOrSlug
 	//
-	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at, a.deleted_at
 	//  FROM apps a
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 	//  WHERE a.workspace_id = ?
+	//    AND a.deleted_at IS NULL
+	//    AND p.deleted_at IS NULL
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
 	//  LIMIT 1
@@ -360,6 +364,8 @@ type Querier interface {
 	//  FROM apps a
 	//  INNER JOIN projects p ON a.project_id = p.id
 	//  WHERE p.workspace_id = ?
+	//    AND p.deleted_at IS NULL
+	//    AND a.deleted_at IS NULL
 	//    AND p.slug = ?
 	//    AND a.slug = ?
 	FindAppByWorkspaceAndSlugs(ctx context.Context, db DBTX, arg FindAppByWorkspaceAndSlugsParams) (FindAppByWorkspaceAndSlugsRow, error)
@@ -483,6 +489,11 @@ type Querier interface {
 	//      cd_by_id.updated_at
 	//  FROM custom_domains cd_by_id
 	//  WHERE cd_by_id.id = ? AND cd_by_id.workspace_id = ?
+	//    AND (cd_by_id.workspace_id = 'unkey_internal' OR (
+	//      EXISTS (SELECT 1 FROM projects p WHERE p.id = cd_by_id.project_id AND p.deleted_at IS NULL)
+	//      AND EXISTS (SELECT 1 FROM apps a WHERE a.id = cd_by_id.app_id AND a.deleted_at IS NULL)
+	//      AND EXISTS (SELECT 1 FROM environments e WHERE e.id = cd_by_id.environment_id AND e.deleted_at IS NULL)
+	//    ))
 	//  LIMIT 1)
 	//  UNION ALL
 	//  (SELECT
@@ -504,6 +515,11 @@ type Querier interface {
 	//      cd_by_name.updated_at
 	//  FROM custom_domains cd_by_name
 	//  WHERE cd_by_name.workspace_id = ? AND cd_by_name.domain = LOWER(?)
+	//    AND (cd_by_name.workspace_id = 'unkey_internal' OR (
+	//      EXISTS (SELECT 1 FROM projects p WHERE p.id = cd_by_name.project_id AND p.deleted_at IS NULL)
+	//      AND EXISTS (SELECT 1 FROM apps a WHERE a.id = cd_by_name.app_id AND a.deleted_at IS NULL)
+	//      AND EXISTS (SELECT 1 FROM environments e WHERE e.id = cd_by_name.environment_id AND e.deleted_at IS NULL)
+	//    ))
 	//  LIMIT 1)
 	//  LIMIT 1
 	FindCustomDomainByIdentifier(ctx context.Context, db DBTX, arg FindCustomDomainByIdentifierParams) (FindCustomDomainByIdentifierRow, error)
@@ -526,20 +542,33 @@ type Querier interface {
 	FindDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error)
 	//FindDeploymentById
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at
+	//  FROM deployments
+	//  WHERE deployments.id = ?
+	//    AND EXISTS (SELECT 1 FROM projects p WHERE p.id = deployments.project_id AND p.deleted_at IS NULL)
+	//    AND EXISTS (SELECT 1 FROM apps a WHERE a.id = deployments.app_id AND a.deleted_at IS NULL)
+	//    AND EXISTS (SELECT 1 FROM environments e WHERE e.id = deployments.environment_id AND e.deleted_at IS NULL)
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	// Selects the same columns as ListDeployments, so a row converts to
 	// ListDeploymentsRow for the shared response mapper
 	//
 	//  SELECT d.id, d.project_id, d.app_id, d.environment_id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.`trigger`, d.triggered_by, d.created_at, d.updated_at FROM `deployments` d
 	//  WHERE d.id = ? AND d.workspace_id = ?
+	//    AND EXISTS (SELECT 1 FROM projects p WHERE p.id = d.project_id AND p.deleted_at IS NULL)
+	//    AND EXISTS (SELECT 1 FROM apps a WHERE a.id = d.app_id AND a.deleted_at IS NULL)
+	//    AND EXISTS (SELECT 1 FROM environments e WHERE e.id = d.environment_id AND e.deleted_at IS NULL)
 	FindDeploymentByIdAndWorkspace(ctx context.Context, db DBTX, arg FindDeploymentByIdAndWorkspaceParams) (FindDeploymentByIdAndWorkspaceRow, error)
 	//FindDeploymentWithEnvironment
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind
 	//  FROM deployments d
 	//  JOIN environments e ON d.environment_id = e.id
+	//  JOIN apps a ON a.id = d.app_id
+	//  JOIN projects p ON p.id = d.project_id
 	//  WHERE d.id = ?
+	//    AND e.deleted_at IS NULL
+	//    AND a.deleted_at IS NULL
+	//    AND p.deleted_at IS NULL
 	FindDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
@@ -551,17 +580,20 @@ type Querier interface {
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
 	//FindEnvironmentByIdentifiers
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 	//  FROM environments
 	//  JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 	//  WHERE environments.workspace_id = ?
+	//    AND environments.deleted_at IS NULL
+	//    AND a.deleted_at IS NULL
+	//    AND p.deleted_at IS NULL
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
 	//    AND (environments.id = ? OR environments.slug = ?)
@@ -1227,7 +1259,7 @@ type Querier interface {
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
 	//FindProjectById
 	//
-	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
+	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleted_at
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
@@ -1251,11 +1283,12 @@ type Querier interface {
 	//      FROM projects p2
 	//      WHERE p2.slug = ? AND p2.workspace_id = ?
 	//  ) AS project_lookup ON project_lookup.id = p.id
+	//  WHERE p.deleted_at IS NULL
 	//  LIMIT 1
 	FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error)
 	//FindProjectBySlug
 	//
-	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
+	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleted_at
 	//  FROM projects
 	//  WHERE slug = ?
 	//  LIMIT 1
@@ -2388,6 +2421,8 @@ type Querier interface {
 	//  LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 	//  LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
 	//  WHERE apps.project_id = ?
+	//    AND apps.deleted_at IS NULL
+	//    AND EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id AND p.deleted_at IS NULL)
 	//    AND apps.id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//    AND (? IS NULL OR LOWER(apps.id) LIKE LOWER(?) OR LOWER(apps.name) LIKE LOWER(?) OR LOWER(apps.slug) LIKE LOWER(?))
@@ -2426,6 +2461,11 @@ type Querier interface {
 	//      cd.updated_at
 	//  FROM custom_domains cd
 	//  WHERE cd.workspace_id = ?
+	//    AND (cd.workspace_id = 'unkey_internal' OR (
+	//      EXISTS (SELECT 1 FROM projects p WHERE p.id = cd.project_id AND p.deleted_at IS NULL)
+	//      AND EXISTS (SELECT 1 FROM apps a WHERE a.id = cd.app_id AND a.deleted_at IS NULL)
+	//      AND EXISTS (SELECT 1 FROM environments e WHERE e.id = cd.environment_id AND e.deleted_at IS NULL)
+	//    ))
 	//    AND (
 	//      ? = ''
 	//      OR (? = 'project' AND cd.project_id IN (/*SLICE:project_ids*/?))
@@ -2488,6 +2528,9 @@ type Querier interface {
 	//
 	//  SELECT d.id, d.project_id, d.app_id, d.environment_id, d.source, d.image_requested, d.image_resolved, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.status, d.`trigger`, d.triggered_by, d.created_at, d.updated_at FROM `deployments` d
 	//  WHERE d.workspace_id = ?
+	//    AND EXISTS (SELECT 1 FROM projects p WHERE p.id = d.project_id AND p.deleted_at IS NULL)
+	//    AND EXISTS (SELECT 1 FROM apps a WHERE a.id = d.app_id AND a.deleted_at IS NULL)
+	//    AND EXISTS (SELECT 1 FROM environments e WHERE e.id = d.environment_id AND e.deleted_at IS NULL)
 	//    AND (? = '' OR d.project_id = ?)
 	//    AND (? = '' OR d.app_id = ?)
 	//    AND (? = '' OR d.environment_id = ?)
@@ -2531,9 +2574,14 @@ type Querier interface {
 	// An app has only a handful of environments, so this returns all of them
 	// without pagination.
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 	//  FROM environments
 	//  WHERE app_id = ?
+	//    AND environments.deleted_at IS NULL
+	//    AND EXISTS (
+	//      SELECT 1 FROM apps a JOIN projects p ON p.id = a.project_id
+	//      WHERE a.id = environments.app_id AND a.deleted_at IS NULL AND p.deleted_at IS NULL
+	//    )
 	//  ORDER BY id ASC
 	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
 	// ListFlags includes definitions without overrides. Callers resolve NULL override
@@ -2881,6 +2929,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM projects
 	//  WHERE workspace_id = ?
+	//    AND deleted_at IS NULL
 	//    -- The default project is an internal ownership container, not a user-visible project.
 	//    AND BINARY slug != 'default'
 	//    AND id >= ?
@@ -3091,6 +3140,31 @@ type Querier interface {
 	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	ListWorkspacesForDeployBillingByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error)
+	//LockActiveApp
+	//
+	//  SELECT a.id FROM apps a
+	//  JOIN projects p ON p.id = a.project_id
+	//  WHERE a.id = ? AND a.deleted_at IS NULL AND p.deleted_at IS NULL
+	//  LOCK IN SHARE MODE
+	LockActiveApp(ctx context.Context, db DBTX, id string) (string, error)
+	//LockActivePortal
+	//
+	//  SELECT p.id
+	//  FROM portals p
+	//  JOIN projects project ON project.id = p.project_id
+	//  LEFT JOIN apps a ON a.id = p.app_id
+	//  WHERE p.id = ?
+	//      AND p.workspace_id = ?
+	//      AND project.deleted_at IS NULL
+	//      AND (p.app_id IS NULL OR (a.id IS NOT NULL AND a.deleted_at IS NULL))
+	//  LOCK IN SHARE MODE
+	LockActivePortal(ctx context.Context, db DBTX, arg LockActivePortalParams) (string, error)
+	//LockActiveProject
+	//
+	//  SELECT id FROM projects
+	//  WHERE id = ? AND deleted_at IS NULL
+	//  LOCK IN SHARE MODE
+	LockActiveProject(ctx context.Context, db DBTX, id string) (string, error)
 	// LockDefaultProjectByWorkspaceID uses a current read so a transaction can
 	// observe a default project created after its repeatable-read snapshot.
 	//
@@ -3101,11 +3175,15 @@ type Querier interface {
 	//  LIMIT 1
 	//  FOR UPDATE
 	LockDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error)
-	// Acquires an exclusive lock on the environment row to prevent concurrent modifications.
-	// This serializes region reconciliation, which reads the current set then replaces it.
+	//LockEnvironmentForUpdate
 	//
-	//  SELECT id FROM environments
-	//  WHERE id = ?
+	//  SELECT e.id FROM environments e
+	//  JOIN apps a ON a.id = e.app_id
+	//  JOIN projects p ON p.id = e.project_id
+	//  WHERE e.id = ?
+	//    AND e.deleted_at IS NULL
+	//    AND a.deleted_at IS NULL
+	//    AND p.deleted_at IS NULL
 	//  FOR UPDATE
 	LockEnvironmentForUpdate(ctx context.Context, db DBTX, id string) (string, error)
 	// Acquires an exclusive lock on the identity row to prevent concurrent modifications.
@@ -3208,6 +3286,16 @@ type Querier interface {
 	//  ORDER BY lookup_priority
 	//  LIMIT 1
 	LockRoleByIdOrName(ctx context.Context, db DBTX, arg LockRoleByIdOrNameParams) (LockRoleByIdOrNameRow, error)
+	//MarkAppDeleted
+	//
+	//  UPDATE apps SET deleted_at = COALESCE(deleted_at, ?)
+	//  WHERE id = ?
+	MarkAppDeleted(ctx context.Context, db DBTX, arg MarkAppDeletedParams) error
+	//MarkProjectDeleted
+	//
+	//  UPDATE projects SET deleted_at = COALESCE(deleted_at, ?)
+	//  WHERE id = ?
+	MarkProjectDeleted(ctx context.Context, db DBTX, arg MarkProjectDeletedParams) error
 	// Returns the highest pk among one end user's sessions on a portal, or 0 when
 	// there are none. Read on the primary before revoking in batches, it bounds the
 	// revoke to sessions that already exist: pk is assigned at insert, so a session
@@ -3218,6 +3306,22 @@ type Querier interface {
 	//    AND portal_id = ?
 	//    AND external_id = ?
 	MaxPortalSessionPkByExternalID(ctx context.Context, db DBTX, arg MaxPortalSessionPkByExternalIDParams) (int64, error)
+	//NotifyDeploymentTopologiesByApp
+	//
+	//  UPDATE deployment_topology dt
+	//  JOIN deployments d ON d.id = dt.deployment_id
+	//  SET dt.desired_status = 'stopped',
+	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
+	//  WHERE d.app_id = ?
+	NotifyDeploymentTopologiesByApp(ctx context.Context, db DBTX, arg NotifyDeploymentTopologiesByAppParams) error
+	//NotifyDeploymentTopologiesByProject
+	//
+	//  UPDATE deployment_topology dt
+	//  JOIN deployments d ON d.id = dt.deployment_id
+	//  SET dt.desired_status = 'stopped',
+	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
+	//  WHERE d.project_id = ?
+	NotifyDeploymentTopologiesByProject(ctx context.Context, db DBTX, arg NotifyDeploymentTopologiesByProjectParams) error
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
@@ -3250,6 +3354,7 @@ type Querier interface {
 	//  FROM apps a
 	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 	//  WHERE a.workspace_id = ?
+	//    AND a.deleted_at IS NULL AND p.deleted_at IS NULL
 	//    AND a.id = ?
 	//    AND (? = '' OR p.id = ? OR p.slug = ?)
 	//  UNION ALL
@@ -3257,6 +3362,7 @@ type Querier interface {
 	//  FROM apps a
 	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 	//  WHERE a.workspace_id = ?
+	//    AND a.deleted_at IS NULL AND p.deleted_at IS NULL
 	//    AND a.slug = ?
 	//    AND a.id <> ?
 	//    AND (? = '' OR p.id = ? OR p.slug = ?)
@@ -3280,6 +3386,7 @@ type Querier interface {
 	//  JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 	//  WHERE e.workspace_id = ?
+	//    AND e.deleted_at IS NULL AND a.deleted_at IS NULL AND p.deleted_at IS NULL
 	//    AND e.id = ?
 	//    AND (? = '' OR p.id = ? OR p.slug = ?)
 	//    AND (? = '' OR a.id = ? OR a.slug = ?)
@@ -3289,6 +3396,7 @@ type Querier interface {
 	//  JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 	//  WHERE e.workspace_id = ?
+	//    AND e.deleted_at IS NULL AND a.deleted_at IS NULL AND p.deleted_at IS NULL
 	//    AND e.slug = ?
 	//    AND e.id <> ?
 	//    AND (? = '' OR p.id = ? OR p.slug = ?)
@@ -3307,6 +3415,7 @@ type Querier interface {
 	//  SELECT p.id
 	//  FROM projects p
 	//  WHERE p.workspace_id = ?
+	//    AND p.deleted_at IS NULL
 	//    AND (p.id = ? OR p.slug = ?)
 	ResolveCustomDomainProjects(ctx context.Context, db DBTX, arg ResolveCustomDomainProjectsParams) ([]string, error)
 	// Resolves a project (required) + optional app/environment, each an id or slug, to
@@ -3323,19 +3432,21 @@ type Querier interface {
 	//  FROM (
 	//      SELECT p1.id, p1.workspace_id
 	//      FROM projects p1
-	//      WHERE p1.workspace_id = ? AND p1.id = ?
+	//      WHERE p1.workspace_id = ? AND p1.id = ? AND p1.deleted_at IS NULL
 	//      UNION ALL
 	//      SELECT p2.id, p2.workspace_id
 	//      FROM projects p2
-	//      WHERE p2.workspace_id = ? AND p2.slug = ?
+	//      WHERE p2.workspace_id = ? AND p2.slug = ? AND p2.deleted_at IS NULL
 	//      LIMIT 1
 	//  ) p
 	//  LEFT JOIN apps a
 	//      ON a.project_id = p.id
+	//      AND a.deleted_at IS NULL
 	//      AND a.workspace_id = p.workspace_id
 	//      AND (a.id = ? OR a.slug = ?)
 	//  LEFT JOIN environments e
 	//      ON e.app_id = a.id
+	//      AND e.deleted_at IS NULL
 	//      AND e.workspace_id = a.workspace_id
 	//      AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
