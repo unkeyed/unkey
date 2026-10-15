@@ -122,9 +122,9 @@ func TestCreateSessionRejectsDeletingParent(t *testing.T) {
 			active := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, http.StatusOK, active.Status, "%s", active.RawBody)
 
-			query, id := "UPDATE apps SET deleting_at = 1 WHERE id = ?", app.AppID
+			query, id := "UPDATE apps SET deleted_at = 1 WHERE id = ?", app.AppID
 			if parent == "project" {
-				query, id = "UPDATE projects SET deleting_at = 1 WHERE id = ?", app.ProjectID
+				query, id = "UPDATE projects SET deleted_at = 1 WHERE id = ?", app.ProjectID
 			}
 			_, err := h.DB.RW().ExecContext(t.Context(), query, id)
 			require.NoError(t, err)

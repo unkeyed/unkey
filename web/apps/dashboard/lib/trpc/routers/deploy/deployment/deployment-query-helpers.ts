@@ -1,7 +1,13 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { ne } from "@/lib/db";
+import { and, db, inArray, isNull, ne } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
-import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
+import {
+  type ContainerStatus,
+  apps,
+  deployments,
+  environments,
+  projects,
+} from "@unkey/db/src/schema";
 
 // A skipped row records a push the platform declined to build at all (watch
 // paths didn't match, auto-deploy off). Nothing was ever deployed, so the
@@ -9,6 +15,20 @@ import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 // so their detail page keeps working.
 export function excludeSkipped() {
   return ne(deployments.status, "skipped");
+}
+
+export function activeDeploymentParents() {
+  return and(
+    inArray(
+      deployments.projectId,
+      db.select({ id: projects.id }).from(projects).where(isNull(projects.deletedAt)),
+    ),
+    inArray(deployments.appId, db.select({ id: apps.id }).from(apps).where(isNull(apps.deletedAt))),
+    inArray(
+      deployments.environmentId,
+      db.select({ id: environments.id }).from(environments).where(isNull(environments.deletedAt)),
+    ),
+  );
 }
 
 export function mapInstanceRow(row: {

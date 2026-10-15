@@ -313,9 +313,9 @@ func TestUpdateOciImageSourceRejectsDeletingParents(t *testing.T) {
 			require.NoError(t, err)
 			appID := created.Msg.GetId()
 			if parent == "app" {
-				require.NoError(t, database.MarkAppDeleting(ctx, db.MarkAppDeletingParams{ID: appID, DeletingAt: sql.NullInt64{Int64: 1, Valid: true}}))
+				require.NoError(t, database.MarkAppDeleted(ctx, db.MarkAppDeletedParams{ID: appID, DeletedAt: sql.NullInt64{Int64: 1, Valid: true}}))
 			} else {
-				require.NoError(t, database.MarkProjectDeleting(ctx, db.MarkProjectDeletingParams{ID: project.ID, DeletingAt: sql.NullInt64{Int64: 1, Valid: true}}))
+				require.NoError(t, database.MarkProjectDeleted(ctx, db.MarkProjectDeletedParams{ID: project.ID, DeletedAt: sql.NullInt64{Int64: 1, Valid: true}}))
 			}
 
 			update := connect.NewRequest(&ctrlv1.UpdateOciImageSourceRequest{

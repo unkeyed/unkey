@@ -261,7 +261,8 @@ func TestHandlePushSurvivesARejectedCreate(t *testing.T) {
 	// a create possible at all. Without one, Create rejects with
 	// ENVIRONMENT_NOT_DEPLOYABLE.
 	for _, environmentID := range []string{app.productionEnvID, app.previewEnvID} {
-		require.NoError(t, h.database.DeleteAppRegionalSettingsByEnvironmentId(ctx, environmentID))
+		_, err := h.database.RW().ExecContext(ctx, "DELETE FROM app_regional_settings WHERE environment_id = ?", environmentID)
+		require.NoError(t, err)
 	}
 
 	// require.NoError inside push is the assertion that matters: a rejected

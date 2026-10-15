@@ -81,8 +81,8 @@ func TestReserveTopologies(t *testing.T) {
 	t.Run("deletion prevents topology recreation", func(t *testing.T) {
 		workspaceID := workspaceWithMemoryQuota(t, ctx, seeder, 256)
 		req := reservationFor(ctx, seeder, workspaceID)
-		require.NoError(t, database.MarkEnvironmentDeleting(ctx, db.MarkEnvironmentDeletingParams{
-			ID: req.Deployment.EnvironmentID, DeletingAt: sql.NullInt64{Int64: 1, Valid: true},
+		require.NoError(t, database.MarkEnvironmentDeleted(ctx, db.MarkEnvironmentDeletedParams{
+			ID: req.Deployment.EnvironmentID, DeletedAt: sql.NullInt64{Int64: 1, Valid: true},
 		}))
 		_, err := w.reserveTopologies(ctx, req)
 		require.Error(t, err)

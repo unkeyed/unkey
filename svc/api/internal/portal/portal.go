@@ -320,6 +320,16 @@ func ResolveMappingProject(ctx context.Context, tx db.DBTX, workspaceID string, 
 			return "", mappingNotFound(fmt.Sprintf("keyspace %s is not in workspace %s", m.ID, workspaceID))
 		}
 		projectID = rows[0].ProjectID
+		if _, err := db.Query.LockActiveProject(ctx, tx, projectID); err != nil {
+			if db.IsNotFound(err) {
+				return "", mappingNotFound("keyspace project is not active")
+			}
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("lock portal keyspace project"),
+				fault.Public("Failed to look up the keyspace."),
+			)
+		}
 
 	default:
 		return "", ErrUnknownMappingType(m.Type)
