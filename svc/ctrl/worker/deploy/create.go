@@ -463,9 +463,9 @@ func createAuditLogs(
 		RemoteIP:      a.GetRemoteIp(),
 		UserAgent:     a.GetUserAgent(),
 		CorrelationID: "",
-		Resources: []auditlog.AuditLogResource{
+		Targets: []auditlog.AuditLogTarget{
 			{
-				Type:        auditlog.DeploymentResourceType,
+				Type:        auditlog.DeploymentTargetType,
 				ID:          deploymentID,
 				Name:        "",
 				DisplayName: deploymentID,
@@ -487,16 +487,16 @@ func createAuditLogs(
 	if payload.TriggerReason != "" {
 		entry.Display = fmt.Sprintf("%s (reason: %s)", entry.Display, payload.TriggerReason)
 	}
-	entry.Resources[0].Meta["role"] = "new"
-	entry.Resources = append([]auditlog.AuditLogResource{
+	entry.Targets[0].Meta["role"] = "new"
+	entry.Targets = append([]auditlog.AuditLogTarget{
 		{
-			Type:        auditlog.DeploymentResourceType,
+			Type:        auditlog.DeploymentTargetType,
 			ID:          payload.RebuildSourceID,
 			Name:        "",
 			DisplayName: payload.RebuildSourceID,
 			Meta:        map[string]any{"role": "source"},
 		},
-	}, entry.Resources...)
+	}, entry.Targets...)
 
 	return []auditlog.AuditLog{entry}
 }
@@ -570,9 +570,7 @@ func (w *Workflow) postAwaitingApprovalStatus(
 		return
 	}
 
-	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s",
-		w.dashboardURL, payload.Target.WorkspaceSlug, req.GetProjectId(), deploymentID,
-	)
+	logURL := w.deploymentURL(payload.Target.WorkspaceSlug, req.GetProjectId(), req.GetAppId(), deploymentID)
 
 	err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
 		return w.github.CreateCommitStatus(

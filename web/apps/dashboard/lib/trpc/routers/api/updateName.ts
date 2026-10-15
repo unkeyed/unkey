@@ -65,7 +65,7 @@ export const updateApiName = workspaceProcedure
           },
           event: "api.update",
           description: `Changed ${api.id} name from ${api.name} to ${input.name}`,
-          resources: [
+          targets: [
             {
               type: "api",
               id: api.id,

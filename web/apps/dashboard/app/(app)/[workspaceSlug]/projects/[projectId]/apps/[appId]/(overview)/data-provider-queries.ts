@@ -12,7 +12,7 @@ import {
   eq,
   gte,
   inArray,
-  lt,
+  lte,
 } from "@tanstack/react-db";
 import type { DeploymentListFilter } from "./deployments/hooks/deployment-list-input";
 import { buildDeploymentListInput } from "./deployments/hooks/deployment-list-input";
@@ -27,6 +27,26 @@ export const domainsQueryFor =
           : eq(domain.projectId, projectId),
       )
       .orderBy(({ domain }) => domain.createdAt, "desc");
+
+export const deploymentQueryFor =
+  (projectId: string, deploymentId: string) => (q: InitialQueryBuilder) =>
+    q
+      .from({ deployment: collection.deployments })
+      .where(({ deployment }) =>
+        and(eq(deployment.projectId, projectId), eq(deployment.id, deploymentId)),
+      );
+
+export const appDeploymentQueryFor =
+  (projectId: string, appId: string, deploymentId: string) => (q: InitialQueryBuilder) =>
+    q
+      .from({ deployment: collection.deployments })
+      .where(({ deployment }) =>
+        and(
+          eq(deployment.projectId, projectId),
+          eq(deployment.appId, appId),
+          eq(deployment.id, deploymentId),
+        ),
+      );
 
 export const customDomainsQueryFor =
   (projectId: string, appId: string | undefined) => (q: InitialQueryBuilder) =>
@@ -88,7 +108,7 @@ export const deploymentsTableQueryFor =
       query = query.where(({ deployment }) => gte(deployment.createdAt, startTime));
     }
     if (endTime !== undefined) {
-      query = query.where(({ deployment }) => lt(deployment.createdAt, endTime));
+      query = query.where(({ deployment }) => lte(deployment.createdAt, endTime));
     }
     return query.orderBy(({ deployment }) => deployment.createdAt, "desc");
   };
@@ -113,10 +133,15 @@ export function warmDeploymentsTable(projectId: string, appId: string) {
 }
 
 export function warmAppPage(projectId: string, appId: string) {
+  warmDeploymentsTable(projectId, appId);
+  const currentDeploymentId = collection.apps.get(appId)?.currentDeploymentId;
   warmQueries(`app/${projectId}/${appId}`, () => [
     createLiveQueryCollection(recentDeploymentsQueryFor(projectId, appId)),
     createLiveQueryCollection(domainsQueryFor(projectId, appId)),
     createLiveQueryCollection(customDomainsQueryFor(projectId, appId)),
     createLiveQueryCollection(environmentsQueryFor(projectId, [appId])),
+    ...(currentDeploymentId
+      ? [createLiveQueryCollection(appDeploymentQueryFor(projectId, appId, currentDeploymentId))]
+      : []),
   ]);
 }

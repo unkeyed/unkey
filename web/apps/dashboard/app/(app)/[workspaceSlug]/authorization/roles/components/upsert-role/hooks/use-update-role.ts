@@ -1,55 +1,79 @@
 import { useInvalidateRbacQueries } from "@/hooks/use-invalidate-rbac-queries";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
+import type { FormValues } from "../upsert-role.schema";
+
+type UpdateRoleInput = FormValues & {
+  roleId: string;
+  initialKeyIds: string[];
+  initialPermissionIds: string[];
+};
 
 export const useUpdateRole = (onSuccess: () => void) => {
   const invalidateRbacQueries = useInvalidateRbacQueries();
-
-  const role = trpc.authorization.roles.update.useMutation({
-    onSuccess(data) {
-      invalidateRbacQueries();
-
-      // Show success toast
-      toast.success("Role Updated", {
-        description: data.message,
+  return useMutation({
+    mutationFn: async ({
+      roleId,
+      roleName,
+      roleDescription,
+      keyIds,
+      permissionIds,
+      initialKeyIds,
+      initialPermissionIds,
+    }: UpdateRoleInput) => {
+      const unkey = getUnkeyClient();
+      await unkey.permissions.updateRole({
+        role: roleId,
+        name: roleName,
+        description: roleDescription,
       });
 
+      const permissionSet = new Set(permissionIds ?? initialPermissionIds);
+      const permissionsChanged =
+        permissionSet.symmetricDifference(new Set(initialPermissionIds)).size > 0;
+      if (permissionsChanged) {
+        const permissions = await Promise.all(
+          Array.from(permissionSet, async (permission) => {
+            const { data } = await unkey.permissions.getPermission({ permission });
+            return data.slug;
+          }),
+        );
+        await unkey.permissions.setRolePermissions({ role: roleId, permissions });
+      }
+
+      const keySet = new Set(keyIds ?? initialKeyIds);
+      const initialKeySet = new Set(initialKeyIds);
+      const results = await Promise.allSettled([
+        ...Array.from(keySet.difference(initialKeySet), (keyId) =>
+          unkey.keys.addRoles({ keyId, roles: [roleName] }),
+        ),
+        ...Array.from(initialKeySet.difference(keySet), (keyId) =>
+          unkey.keys.removeRoles({ keyId, roles: [roleName] }),
+        ),
+      ]);
+      const failures = results
+        .filter((result) => result.status === "rejected")
+        .map((result) => result.reason);
+      return { keyCount: results.length, failures };
+    },
+    onSuccess({ keyCount, failures }) {
+      invalidateRbacQueries();
       onSuccess();
+
+      if (failures.length === 0) {
+        toast.success("Role Updated", { description: "Role updated successfully" });
+        return;
+      }
+
+      const { description } = getErrorToast(failures[0], "Failed to Update Keys");
+      toast.error(`Role Updated, ${failures.length} of ${keyCount} Keys Not Updated`, {
+        description,
+      });
     },
     onError(err) {
-      if (err.data?.code === "CONFLICT") {
-        toast.error("Role Already Exists", {
-          description: err.message || "A role with this name already exists in your workspace.",
-        });
-      } else if (err.data?.code === "NOT_FOUND") {
-        toast.error("Role Not Found", {
-          description:
-            "The role you're trying to update no longer exists or you don't have access to it.",
-        });
-      } else if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid Role Configuration", {
-          description: `Please check your role settings. ${err.message || ""}`,
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We encountered an issue while saving your role. Please try again later or contact support.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      } else {
-        toast.error("Failed to Save Role", {
-          description: err.message || "An unexpected error occurred. Please try again later.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
+      const { message, description } = getErrorToast(err, "Failed to Save Role");
+      toast.error(message, { description });
     },
   });
-
-  return role;
 };

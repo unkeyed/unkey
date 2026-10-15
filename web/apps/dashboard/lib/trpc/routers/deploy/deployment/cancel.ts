@@ -62,7 +62,7 @@ export const cancelDeployment = workspaceProcedure
         actor: { type: "user", id: ctx.user.id },
         event: "deployment.cancel",
         description: `Cancelled deployment ${input.deploymentId} for ${deployment.project.name}`,
-        resources: [
+        targets: [
           {
             type: "deployment",
             id: deployment.id,

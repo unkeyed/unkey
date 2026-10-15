@@ -91,7 +91,7 @@ export async function upsertPermissions(
       actor: { type: "user", id: userId },
       event: "permission.create",
       description: `Created ${permission.id}`,
-      resources: [
+      targets: [
         {
           type: "permission",
           id: permission.id,

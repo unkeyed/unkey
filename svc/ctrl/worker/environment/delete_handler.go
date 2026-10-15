@@ -124,13 +124,13 @@ func (s *Service) Delete(
 		WorkspaceID:   env.WorkspaceID,
 		Event:         auditlog.EnvironmentDeleteEvent,
 		Display:       fmt.Sprintf("Deleted environment %s", env.Slug),
-		Resource: auditlog.AuditLogResource{
+		Targets: []auditlog.AuditLogTarget{{
 			ID:          env.ID,
-			Type:        auditlog.EnvironmentResourceType,
+			Type:        auditlog.EnvironmentTargetType,
 			Meta:        map[string]any{"slug": env.Slug, "appId": env.AppID, "projectId": env.ProjectID},
 			Name:        env.Slug,
 			DisplayName: env.Slug,
-		},
+		}},
 	}); err != nil {
 		return nil, fmt.Errorf("insert audit log: %w", err)
 	}

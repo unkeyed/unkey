@@ -10,6 +10,7 @@ type Options<T> = {
 export type AwaitTarget<T> = {
   start: (target: T) => void;
   waiting: boolean;
+  target: T | null;
 };
 
 // Promote, rollback, stop and wake return before the backend has written the
@@ -38,5 +39,5 @@ export function useAwaitTarget<T>({ isReached, onSettled }: Options<T>): AwaitTa
     return () => clearTimeout(id);
   }, [target, reached, settle]);
 
-  return { start: setTarget, waiting: target !== null };
+  return { start: setTarget, waiting: target !== null, target };
 }

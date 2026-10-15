@@ -168,10 +168,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:   found.ID,
-						Type: auditlog.PortalResourceType,
+						Type: auditlog.PortalTargetType,
 						// The whole deleted state, because the row is gone: an incident
 						// reviewer cannot recover which app or keyspace this portal served,
 						// nor how many end users lost access, from anywhere else.
