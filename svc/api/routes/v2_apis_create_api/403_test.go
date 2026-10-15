@@ -50,11 +50,20 @@ func TestCreateApi_Forbidden(t *testing.T) {
 
 	// This test validates permission combinations for API creation.
 	t.Run("permission combinations", func(t *testing.T) {
+		project := urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*")
+		write := rbac.U(project.Keyspace("*"), permissions.Write).Value
+		read := rbac.U(project.Keyspace("*"), permissions.Read).Value
+		unrelated := rbac.U(project.Identity("*"), permissions.Write).Value
 		testCases := []struct {
 			name        string
 			permissions []string
 			shouldPass  bool
-		}{}
+		}{
+			{name: "keyspace write", permissions: []string{write}, shouldPass: true},
+			{name: "write among unrelated grants", permissions: []string{unrelated, write, read}, shouldPass: true},
+			{name: "read does not allow create", permissions: []string{read}, shouldPass: false},
+			{name: "unrelated resource", permissions: []string{unrelated}, shouldPass: false},
+		}
 
 		// Each test case validates a specific permission scenario to ensure
 		// proper RBAC enforcement across different permission combinations.

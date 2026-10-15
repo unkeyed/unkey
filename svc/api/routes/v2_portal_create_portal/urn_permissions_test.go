@@ -135,6 +135,7 @@ func TestCreatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 			}
 
 			before := countPortals(t, h, workspace.ID)
+			auditBefore := countAuditEntriesMentioning(t, h, workspace.ID, "portal.create")
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Slug:        fmt.Sprintf("urn-grants-%d", i),
 				DisplayName: "Acme",
@@ -159,6 +160,7 @@ func TestCreatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 				"a denial must name the grant the caller lacks")
 			require.Equal(t, before, countPortals(t, h, workspace.ID),
 				"a denied request must not write a portal")
+			require.Equal(t, auditBefore, countAuditEntriesMentioning(t, h, workspace.ID, "portal.create"))
 		})
 	}
 }

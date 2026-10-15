@@ -108,6 +108,7 @@ func TestUpdatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 			req := baseRequest(stored.Slug)
 			req.DisplayName = new(displayName)
 
+			auditBefore := countAuditEntriesMentioning(t, h, workspace.ID, "portal.update")
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), req)
 
 			if tc.shouldPass {
@@ -123,6 +124,7 @@ func TestUpdatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 				"a denial must not disclose the project id")
 			require.NotEqual(t, displayName, fetchPortal(t, h, workspace.ID, stored.ID).DisplayName,
 				"a denied request must not write")
+			require.Equal(t, auditBefore, countAuditEntriesMentioning(t, h, workspace.ID, "portal.update"))
 		})
 	}
 }
