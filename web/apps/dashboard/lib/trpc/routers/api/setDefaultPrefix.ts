@@ -62,7 +62,7 @@ export const setDefaultApiPrefix = workspaceProcedure
           },
           event: "api.update",
           description: `Changed ${keyAuth.id} default prefix from ${keyAuth.defaultPrefix} to ${input.defaultPrefix}`,
-          resources: [
+          targets: [
             {
               type: "keyAuth",
               id: keyAuth.id,

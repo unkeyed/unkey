@@ -361,10 +361,10 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principa
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          id,
-						Type:        auditlog.RatelimitNamespaceResourceType,
+						Type:        auditlog.RatelimitNamespaceTargetType,
 						Meta:        nil,
 						Name:        name,
 						DisplayName: name,

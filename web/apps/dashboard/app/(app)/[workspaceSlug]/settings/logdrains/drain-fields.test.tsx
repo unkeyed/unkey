@@ -62,13 +62,15 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-query")>()),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
+vi.mock("@/lib/queries/ratelimit-namespaces", () => ({
+  useEveryNamespace: () => ({
+    data: [{ id: "ns", name: "Payments" }],
+    isLoading: false,
+    isError: false,
+  }),
+}));
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
-    ratelimit: {
-      namespace: {
-        list: { useQuery: () => ({ data: [{ id: "ns", name: "Payments" }], isLoading: false }) },
-      },
-    },
     useUtils: () => ({ logdrain: { list: { invalidate: vi.fn() } } }),
     logdrain: { create: { useMutation: () => ({ mutate: createDrain, isLoading: false }) } },
     deploy: {

@@ -4,7 +4,6 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import {
   AlertBanner,
@@ -19,23 +18,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useAppId, useProjectData } from "../../data-provider";
+import { useApp } from "../../../../_components/settings/hooks/use-app";
 
 export function DeleteApp() {
-  const { projectId } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId, app } = useApp();
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const appsQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
-  );
-  const appName = appsQuery.data?.[0]?.name ?? "";
+  const appName = app?.name ?? "";
 
   const formSchema = z.object({
     name: z.string().refine((v) => v === appName, "Please confirm the app name"),
@@ -68,7 +58,7 @@ export function DeleteApp() {
     <>
       <SettingsZoneRow
         title="Delete this app"
-        description="Once you delete an app, there is no going back. Please be certain."
+        description="This cannot be undone."
         action={{
           label: "Delete this app",
           onClick: () => setIsDialogOpen(true),
@@ -77,7 +67,6 @@ export function DeleteApp() {
 
       <DialogContainer
         isOpen={isDialogOpen}
-        subTitle="Permanently remove this app and all associated data"
         onOpenChange={setIsDialogOpen}
         title="Delete app"
         footer={
@@ -94,19 +83,14 @@ export function DeleteApp() {
             >
               Delete app
             </Button>
-            <div className="text-gray-9 text-xs">
-              This action cannot be undone – proceed with caution
-            </div>
           </div>
         }
       >
         <AlertBanner variant="error">
           <IconTriangleWarningOutline12 aria-hidden="true" />
           <AlertBannerDescription>
-            <span className="font-medium">Warning:</span> deleting{" "}
-            <span className="font-medium">{appName}</span> will remove all deployments,
-            environments, custom domains, and associated data. This action cannot be undone. Any
-            monitoring, logs, and historical data tied to this app will be permanently lost.
+            Deleting <span className="font-medium">{appName}</span> removes its deployments,
+            environments, custom domains, logs and history. This cannot be undone.
           </AlertBannerDescription>
         </AlertBanner>
         <form id="delete-app-form" onSubmit={handleSubmit(onSubmit)}>
@@ -114,7 +98,7 @@ export function DeleteApp() {
             <p className="text-gray-11 text-sm">
               Type <span className="text-gray-12 font-medium">{appName}</span> to confirm
             </p>
-            <Input {...register("name")} placeholder={`Enter "${appName}" to confirm`} />
+            <Input {...register("name")} />
           </div>
         </form>
       </DialogContainer>

@@ -336,7 +336,7 @@ export const updateLogdrain = workspaceProcedure
           actor: { type: "user", id: ctx.user.id },
           event: "logdrain.update",
           description: `Updated log drain ${input.id}`,
-          resources: [{ type: "logdrain", id: drain.id, name: input.name ?? drain.name }],
+          targets: [{ type: "logdrain", id: drain.id, name: input.name ?? drain.name }],
           context: {
             location: ctx.audit.location,
             userAgent: ctx.audit.userAgent,

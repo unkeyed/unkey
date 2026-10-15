@@ -97,7 +97,7 @@ function InputGroupInput({ className, ref, ...props }: InputGroupInputProps) {
     <input
       ref={ref}
       className={cn(
-        "flex h-full w-full min-w-0 flex-1 bg-transparent px-2 text-sm leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed",
+        "flex h-full w-full min-w-0 flex-1 bg-transparent px-2 text-sm leading-5 text-grayA-12 placeholder:text-grayA-8 focus:outline-hidden disabled:cursor-not-allowed [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [&[type=number]]:[appearance:textfield]",
         className,
       )}
       {...props}

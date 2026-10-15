@@ -1,44 +1,29 @@
 "use client";
 
-import { IconPlusOutline18 } from "@unkey/icons";
 import {
-  Button,
   PageBody,
   PageContainer,
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
-  PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
-import { useState } from "react";
-import { EnvVarsBody } from "./deployment-env-vars";
+import { AddEnvVarsButton } from "../../../_components/env-vars/add/add-env-vars-button";
+import { EnvVarsSection } from "../../../_components/env-vars/env-vars-section";
 
 export default function EnvVarsPage() {
-  const [isAddOpen, setIsAddOpen] = useState(false);
-
   return (
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Environment Variables</PageHeaderTitle>
-          <PageHeaderDescription>
-            Store API keys, tokens, and config securely. Changes apply on next deploy.
-          </PageHeaderDescription>
+          <PageHeaderTitle>Environment variables</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <Button
-            size="md"
-            onClick={() => setIsAddOpen((prev) => !prev)}
-            variant={isAddOpen ? "outline" : "primary"}
-          >
-            <IconPlusOutline18 />
-            Add environment variable
-          </Button>
+          <AddEnvVarsButton />
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <EnvVarsBody isAddOpen={isAddOpen} onCloseAdd={() => setIsAddOpen(false)} />
+        <EnvVarsSection />
       </PageBody>
     </PageContainer>
   );

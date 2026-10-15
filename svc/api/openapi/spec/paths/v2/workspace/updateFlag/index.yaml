@@ -1,0 +1,66 @@
+post:
+  tags:
+    - workspace
+  summary: Update a workspace flag
+  description: |
+    Enable or disable a flag for your workspace. Use `workspace.getFlags` to
+    find flag slugs and check whether they can be enabled or disabled.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `unkey:v1:<workspace_id>:flags#write`
+  operationId: workspace.updateFlag
+  x-speakeasy-name-override: updateFlag
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "./V2WorkspaceUpdateFlagRequestBody.yaml"
+  responses:
+    "200":
+      description: Flag updated successfully. The data object is empty.
+      content:
+        application/json:
+          schema:
+            $ref: "./V2WorkspaceUpdateFlagResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Missing write permission, or the flag cannot be enabled or disabled as requested.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: No flag exists with the supplied slug.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
