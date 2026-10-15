@@ -232,6 +232,60 @@ func TestCreateAndUpdateOciAppSource(t *testing.T) {
 	require.Equal(t, "index.docker.io/library/nginx:1.28", updatedSource.ImageReference)
 }
 
+func TestCreateAppDuplicateSlugReturnsAlreadyExists(t *testing.T) {
+	ctx := context.Background()
+	mysqlCfg := containers.MySQL(t)
+	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, database.Close())
+	})
+
+	seeder := seed.New(t, database, nil)
+	seeder.Seed(ctx)
+	workspaceID := seeder.Resources.UserWorkspace.ID
+	project := seeder.CreateProject(ctx, seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspaceID,
+		Name:        "Duplicate App",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("project"), "_", "-")),
+	})
+	auditlogsService, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+
+	const bearer = "test-token"
+	svc := New(Config{
+		Database:  database,
+		Restate:   nil,
+		Auditlogs: auditlogsService,
+		Bearer:    bearer,
+	})
+	slug := strings.ToLower(strings.ReplaceAll(uid.New("app"), "_", "-"))
+	createApp := func() error {
+		req := connect.NewRequest(&ctrlv1.CreateAppRequest{
+			WorkspaceId: workspaceID,
+			ProjectId:   project.ID,
+			Name:        "Duplicate App",
+			Slug:        slug,
+			Actor: &ctrlv1.ActorInfo{
+				Id:   "user_test",
+				Name: "Test User",
+				Type: ctrlv1.ActorType_ACTOR_TYPE_USER,
+			},
+			Source: &ctrlv1.CreateAppRequest_Oci{
+				Oci: &ctrlv1.OciSource{ImageReference: "nginx:1.27"},
+			},
+		})
+		req.Header().Set("Authorization", "Bearer "+bearer)
+		_, createErr := svc.CreateApp(ctx, req)
+		return createErr
+	}
+
+	require.NoError(t, createApp())
+	err = createApp()
+	require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err), "got: %v", err)
+}
+
 func TestPickDefaultRegion(t *testing.T) {
 	region := func(id, name string, canSchedule bool) db.ListRegionsRow {
 		return db.ListRegionsRow{ID: id, Name: name, Platform: "aws", CanSchedule: canSchedule}
