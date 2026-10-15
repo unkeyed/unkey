@@ -1,0 +1,75 @@
+post:
+  tags:
+    - workspace
+  summary: Get workspace flags
+  description: |
+    Get feature flags for the workspace associated with your credentials.
+
+    Each flag is keyed by its slug and includes its current value, description,
+    and whether it can be enabled or disabled. A workspace-specific value takes
+    precedence over the flag's default. If no flags are available, `data` is an
+    empty object.
+
+    This endpoint takes no request body.
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `unkey:v1:<workspace_id>:flags#read`
+  operationId: workspace.getFlags
+  x-speakeasy-name-override: getFlags
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  responses:
+    "200":
+      description: Workspace flags keyed by slug, or an empty object when no flags are available.
+      content:
+        application/json:
+          schema:
+            $ref: "./V2WorkspaceGetFlagsResponseBody.yaml"
+          examples:
+            flags:
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  projects_nav:
+                    enabled: true
+                    description: Preview project navigation.
+                    allowOptIn: true
+                    allowOptOut: false
+            empty:
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request, including a missing Authorization header.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Requires `unkey:v1:<workspace_id>:flags#read`.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

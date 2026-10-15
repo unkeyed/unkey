@@ -3,6 +3,16 @@ import type { TimeUnit } from "../components/date-time/date-time";
 
 export const isBrowser = typeof window !== "undefined";
 
+export function findScrollParent(element: HTMLElement): HTMLElement | null {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const { overflowY } = getComputedStyle(node);
+    if (overflowY === "auto" || overflowY === "scroll") {
+      return node;
+    }
+  }
+  return null;
+}
+
 export function debounce<T extends (...args: unknown[]) => unknown>(func: T, delay: number) {
   let timeoutId: ReturnType<typeof setTimeout>;
 

@@ -46,7 +46,7 @@ export const changeWorkspaceName = workspaceProcedure
           actor: { type: "user", id: ctx.user.id },
           event: "workspace.update",
           description: `Changed name from ${ctx.workspace.name} to ${input.name}`,
-          resources: [
+          targets: [
             {
               type: "workspace",
               id: ctx.workspace.id,

@@ -102,7 +102,7 @@ mise run generate       # SQL, protobuf, Go generators, fmt
 mise run generate-bpf   # heimdall eBPF bindings
 mise run dev            # local Kubernetes/Tilt dev environment
 mise run dashboard      # dashboard-focused local setup
-mise run down           # stop Tilt and delete minikube cluster
+mise run down           # stop minikube, preserve data (exit Tilt first)
 mise run tunnel         # port-forward 80/443 for *.unkey.local
 mise run unkey -- ...   # run the Unkey CLI
 ```

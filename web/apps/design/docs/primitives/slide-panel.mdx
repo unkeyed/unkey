@@ -1,0 +1,25 @@
+---
+title: Slide panel
+description: A panel that slides in from the edge for a focused create or edit task.
+---
+
+<Component path="slide-panel/dirty" />
+
+## Unsaved changes
+
+Pass `dirty` when the panel holds edits. Escape, the backdrop and the close button then open a "Discard unsaved changes?" dialog before `onClose` runs.
+
+Forms inside the panel can report on their own instead. Any child that calls `useReportUnsavedChanges(dirty)` arms the same dialog. `SettingsGroupContent` and `SettingsGroupCollapsible` already report.
+
+The panel reports outward as well, so a page guard above it knows the panel holds changes.
+
+## Unsaved-changes registry
+
+- `useUnsavedChanges()` returns `{ isDirty, report }` for the component that owns a scope.
+- `UnsavedChangesScope` passes `report` to its children.
+- `useReportUnsavedChanges(dirty)` reports from a child. It does nothing outside a scope.
+- `DiscardChangesDialog` is the shared confirm dialog. Use it only when you build a new guard.
+
+## Closing from a footer
+
+`SlidePanelClose` renders the Base UI close part. Give it a `render` prop for a Cancel button, and it goes through the same discard check.
