@@ -125,7 +125,8 @@ func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID 
 	// state of the deployment that is currently serving the app.
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			deployment, err := db.NewQueries(tx).FindDeploymentWithApp(txCtx, deploymentID)
+			queries := db.NewQueries(tx)
+			deployment, err := queries.FindDeploymentWithApp(txCtx, deploymentID)
 			if err != nil {
 				if db.IsNotFound(err) {
 					return restate.ToTerminalError(fmt.Errorf("deployment not found"), restate.WithErrorCode(404))
@@ -137,7 +138,7 @@ func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID 
 				return restate.TerminalErrorf("not allowed to modify the current deployment")
 			}
 
-			return db.NewQueries(tx).UpdateDeploymentDesiredState(txCtx, db.UpdateDeploymentDesiredStateParams{
+			return queries.UpdateDeploymentDesiredState(txCtx, db.UpdateDeploymentDesiredStateParams{
 				ID:           deploymentID,
 				DesiredState: desiredState,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -157,10 +158,19 @@ func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID 
 // Use ChangeDesiredState when the update needs that check.
 func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deploymentID string, desiredState mysqltype.DeploymentsDesiredState, topologyStatus db.DeploymentTopologyDesiredStatus) error {
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return database.UpdateDeploymentDesiredState(runCtx, db.UpdateDeploymentDesiredStateParams{
-			ID:           deploymentID,
-			DesiredState: desiredState,
-			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		return db.TxRetry(runCtx, database.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			queries := db.NewQueries(tx)
+			if _, err := queries.FindDeploymentWithApp(txCtx, deploymentID); err != nil {
+				if db.IsNotFound(err) {
+					return restate.ToTerminalError(fmt.Errorf("deployment not found"), restate.WithErrorCode(404))
+				}
+				return err
+			}
+			return queries.UpdateDeploymentDesiredState(txCtx, db.UpdateDeploymentDesiredStateParams{
+				ID:           deploymentID,
+				DesiredState: desiredState,
+				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			})
 		})
 	}, restate.WithName("updating desired state"))
 	if err != nil {
@@ -181,11 +191,20 @@ func applyTopologyDesiredStatus(ctx restate.ObjectContext, database db.Database,
 
 	for _, region := range regions {
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return database.UpdateDeploymentTopologyDesiredStatus(runCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
-				DesiredStatus: topologyStatus,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				DeploymentID:  deploymentID,
-				RegionID:      region.ID,
+			return db.TxRetry(runCtx, database.RW(), func(txCtx context.Context, tx db.DBTX) error {
+				queries := db.NewQueries(tx)
+				if _, err := queries.FindDeploymentWithApp(txCtx, deploymentID); err != nil {
+					if db.IsNotFound(err) {
+						return restate.ToTerminalError(fmt.Errorf("deployment not found"), restate.WithErrorCode(404))
+					}
+					return err
+				}
+				return queries.UpdateDeploymentTopologyDesiredStatus(txCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
+					DesiredStatus: topologyStatus,
+					UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					DeploymentID:  deploymentID,
+					RegionID:      region.ID,
+				})
 			})
 		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region.ID)))
 		if err != nil {

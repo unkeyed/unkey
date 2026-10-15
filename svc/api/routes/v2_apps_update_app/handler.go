@@ -157,6 +157,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
+		if _, err := db.Query.LockActiveApp(ctx, tx, app.ID); err != nil {
+			if db.IsNotFound(err) {
+				return openapi.App{}, fault.New("app not found",
+					fault.Code(codes.Data.App.NotFound.URN()),
+					fault.Public("The requested app does not exist."),
+				)
+			}
+			return openapi.App{}, fault.Wrap(err, fault.Internal("lock active app"))
+		}
+
 		updatedAt := time.Now().UnixMilli()
 		update := db.UpdateAppParams{
 			WorkspaceID:               principal.AuthorizedWorkspaceID,

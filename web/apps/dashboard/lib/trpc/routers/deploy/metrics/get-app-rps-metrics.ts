@@ -1,5 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
+import { db, inArray, isNull, schema } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -24,11 +24,23 @@ export const getAppRpsMetrics = workspaceProcedure
   .query(async ({ ctx, input }) => {
     const app = await db.query.apps.findFirst({
       where: (table, { eq, and }) =>
-        and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
+        and(
+          eq(table.id, input.appId),
+          eq(table.workspaceId, ctx.workspace.id),
+          isNull(table.deletedAt),
+          inArray(
+            table.projectId,
+            db
+              .select({ id: schema.projects.id })
+              .from(schema.projects)
+              .where(isNull(schema.projects.deletedAt)),
+          ),
+        ),
       columns: { projectId: true, createdAt: true },
       with: {
         environments: {
-          where: (table, { eq }) => eq(table.kind, "production"),
+          where: (table, { eq, and, isNull }) =>
+            and(eq(table.kind, "production"), isNull(table.deletedAt)),
           columns: { id: true },
         },
       },

@@ -350,16 +350,25 @@ func (s *Service) onVerificationSuccess(
 	// Create a placeholder ACME challenge record. Token and Authorization are empty
 	// because they're provided by the ACME server during the challenge flow, not by us.
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, s.db.InsertAcmeChallenge(stepCtx, db.InsertAcmeChallengeParams{
-			DomainID:      dom.ID,
-			WorkspaceID:   dom.WorkspaceID,
-			Token:         "",
-			ChallengeType: db.AcmeChallengesChallengeTypeHTTP01,
-			Authorization: "",
-			Status:        db.AcmeChallengesStatusWaiting,
-			ExpiresAt:     time.Now().Add(30 * 24 * time.Hour).UnixMilli(),
-			CreatedAt:     now,
-			UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+		return restate.Void{}, db.TxRetry(stepCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			q := db.NewQueries(tx)
+			if _, err := q.LockCustomDomain(txCtx, dom.ID); err != nil {
+				if db.IsNotFound(err) {
+					return restate.ToTerminalError(err, restate.WithErrorCode(410))
+				}
+				return err
+			}
+			return q.InsertAcmeChallenge(txCtx, db.InsertAcmeChallengeParams{
+				DomainID:      dom.ID,
+				WorkspaceID:   dom.WorkspaceID,
+				Token:         "",
+				ChallengeType: db.AcmeChallengesChallengeTypeHTTP01,
+				Authorization: "",
+				Status:        db.AcmeChallengesStatusWaiting,
+				ExpiresAt:     time.Now().Add(30 * 24 * time.Hour).UnixMilli(),
+				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+			})
 		})
 	}, restate.WithName("create acme challenge"))
 	if err != nil {
@@ -423,26 +432,33 @@ func (s *Service) onVerificationSuccess(
 	// Create frontline route for traffic routing. If no deployment exists yet,
 	// the route will be assigned when the first deployment happens.
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		app, appErr := s.db.FindAppById(stepCtx, dom.AppID)
-		if appErr != nil {
-			return restate.Void{}, fault.Wrap(appErr, fault.Internal("failed to find app for frontline route"))
-		}
-
-		deploymentID := ""
-		if app.CurrentDeploymentID.Valid {
-			deploymentID = app.CurrentDeploymentID.String
-		}
-
-		return restate.Void{}, s.db.InsertFrontlineRoute(stepCtx, db.InsertFrontlineRouteParams{
-			ID:                       uid.New(uid.FrontlineRoutePrefix),
-			ProjectID:                dom.ProjectID,
-			AppID:                    dom.AppID,
-			DeploymentID:             deploymentID,
-			EnvironmentID:            dom.EnvironmentID,
-			FullyQualifiedDomainName: dom.Domain,
-			Sticky:                   db.FrontlineRoutesStickyLive,
-			CreatedAt:                now,
-			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
+		return restate.Void{}, db.TxRetry(stepCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			queries := db.NewQueries(tx)
+			if _, lockErr := queries.LockActiveEnvironment(txCtx, dom.EnvironmentID); lockErr != nil {
+				if db.IsNotFound(lockErr) {
+					return restate.ToTerminalError(fmt.Errorf("environment is not active: %w", lockErr), restate.WithErrorCode(409))
+				}
+				return lockErr
+			}
+			app, appErr := queries.FindAppById(txCtx, dom.AppID)
+			if appErr != nil {
+				return fault.Wrap(appErr, fault.Internal("failed to find app for frontline route"))
+			}
+			deploymentID := ""
+			if app.CurrentDeploymentID.Valid {
+				deploymentID = app.CurrentDeploymentID.String
+			}
+			return queries.InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
+				ID:                       uid.New(uid.FrontlineRoutePrefix),
+				ProjectID:                dom.ProjectID,
+				AppID:                    dom.AppID,
+				DeploymentID:             deploymentID,
+				EnvironmentID:            dom.EnvironmentID,
+				FullyQualifiedDomainName: dom.Domain,
+				Sticky:                   db.FrontlineRoutesStickyLive,
+				CreatedAt:                now,
+				UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
+			})
 		})
 	}, restate.WithName("create frontline route"))
 	if err != nil {

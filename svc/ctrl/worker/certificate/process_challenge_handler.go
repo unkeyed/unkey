@@ -315,28 +315,33 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 // persistCertificate stores the certificate and reuses the existing ID on renewals.
 func (s *Service) persistCertificate(ctx context.Context, dom db.CustomDomain, domain string, cert EncryptedCertificate) (string, error) {
 	now := time.Now().UnixMilli()
-
-	// Check if certificate already exists for this hostname (renewal case)
-	// If it does, we keep the existing ID; otherwise use the new ID
 	certID := cert.CertificateID
-	existingCert, err := s.db.FindCertificateByHostname(ctx, domain)
-	if err != nil && !db.IsNotFound(err) {
-		return "", fmt.Errorf("failed to check for existing certificate: %w", err)
-	}
-	if err == nil {
-		// Renewal: keep the existing certificate ID
-		certID = existingCert.ID
-	}
+	err := db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		q := db.NewQueries(tx)
+		if _, err := q.LockCustomDomain(txCtx, dom.ID); err != nil {
+			if db.IsNotFound(err) {
+				return restate.ToTerminalError(err, restate.WithErrorCode(410))
+			}
+			return err
+		}
 
-	// InsertCertificate uses ON DUPLICATE KEY UPDATE, so this handles both insert and renewal
-	err = s.db.InsertCertificate(ctx, db.InsertCertificateParams{
-		ID:                  certID,
-		WorkspaceID:         dom.WorkspaceID,
-		Hostname:            domain,
-		Certificate:         cert.Certificate,
-		EncryptedPrivateKey: cert.EncryptedPrivateKey,
-		CreatedAt:           now,
-		UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
+		existingCert, err := q.FindCertificateByHostname(txCtx, domain)
+		if err != nil && !db.IsNotFound(err) {
+			return fmt.Errorf("check for existing certificate: %w", err)
+		}
+		certID = cert.CertificateID
+		if err == nil {
+			certID = existingCert.ID
+		}
+		return q.InsertCertificate(txCtx, db.InsertCertificateParams{
+			ID:                  certID,
+			WorkspaceID:         dom.WorkspaceID,
+			Hostname:            domain,
+			Certificate:         cert.Certificate,
+			EncryptedPrivateKey: cert.EncryptedPrivateKey,
+			CreatedAt:           now,
+			UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
+		})
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to persist certificate: %w", err)

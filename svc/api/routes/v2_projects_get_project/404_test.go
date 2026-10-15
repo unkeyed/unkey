@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,6 +14,24 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_get_project"
 )
+
+func TestGetDeletedProject(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"unkey:v1:{workspaceID}:projects/*#read"},
+	})
+	headers := http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + setup.RootKey}}
+	live := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: setup.Project.ID})
+	require.Equal(t, http.StatusOK, live.Status, "%s", live.RawBody)
+	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE projects SET deleted_at = 1 WHERE id = ?", setup.Project.ID)
+	require.NoError(t, err)
+	for _, identifier := range []string{setup.Project.ID, setup.Project.Slug} {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: identifier})
+		require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+	}
+}
 
 func TestGetProjectNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)

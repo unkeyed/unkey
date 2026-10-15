@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -15,6 +16,38 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_get_deployment"
 )
+
+func TestGetDeploymentDeletedAncestors(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"unkey:v1:{workspaceID}:projects/*/apps/*/environments/*/deployments/*#read"},
+	})
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	for _, table := range []string{"projects", "apps", "environments"} {
+		t.Run(table, func(t *testing.T) {
+			req := handler.Request{DeploymentId: dep.ID}
+			live := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+			require.Equal(t, http.StatusOK, live.Status, "%s", live.RawBody)
+			id := map[string]string{"projects": setup.Project.ID, "apps": setup.App.ID, "environments": setup.Environment.ID}[table]
+			_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = 1 WHERE id = ?", id)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = NULL WHERE id = ?", id)
+				require.NoError(t, err)
+			})
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+			require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+		})
+	}
+}
 
 // TestDeploymentURNPermissions guarantees that exact and wildcard read permissions
 // allow access. For example, a permission for another deployment returns 404.

@@ -1,6 +1,6 @@
-import { and, db, eq, sql } from "@/lib/db";
+import { and, db, eq, isNull, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { customDomains, environments, frontlineRoutes, projects } from "@unkey/db/src/schema";
+import { apps, customDomains, environments, frontlineRoutes, projects } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 export const listDisplayDomains = workspaceProcedure
@@ -18,9 +18,18 @@ export const listDisplayDomains = workspaceProcedure
         ),
       })
       .from(frontlineRoutes)
+      .innerJoin(apps, and(eq(apps.id, frontlineRoutes.appId), isNull(apps.deletedAt)))
+      .innerJoin(
+        environments,
+        and(eq(environments.id, frontlineRoutes.environmentId), isNull(environments.deletedAt)),
+      )
       .innerJoin(
         projects,
-        and(eq(projects.id, frontlineRoutes.projectId), eq(projects.workspaceId, workspaceId)),
+        and(
+          eq(projects.id, frontlineRoutes.projectId),
+          eq(projects.workspaceId, workspaceId),
+          isNull(projects.deletedAt),
+        ),
       )
       .where(eq(frontlineRoutes.projectId, input.projectId))
       .as("ranked_routes");
@@ -34,6 +43,11 @@ export const listDisplayDomains = workspaceProcedure
         ),
       })
       .from(customDomains)
+      .innerJoin(
+        projects,
+        and(eq(projects.id, customDomains.projectId), isNull(projects.deletedAt)),
+      )
+      .innerJoin(apps, and(eq(apps.id, customDomains.appId), isNull(apps.deletedAt)))
       .leftJoin(
         frontlineRoutes,
         and(
@@ -48,6 +62,7 @@ export const listDisplayDomains = workspaceProcedure
           eq(environments.id, customDomains.environmentId),
           eq(environments.workspaceId, workspaceId),
           eq(environments.kind, "production"),
+          isNull(environments.deletedAt),
         ),
       )
       .where(

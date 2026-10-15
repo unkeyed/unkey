@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -69,6 +70,13 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 		})
 		seeded[env.ID] = envSlug
 	}
+
+	deleted := h.CreateEnvironment(seed.CreateEnvironmentRequest{
+		ID: uid.New(uid.EnvironmentPrefix), WorkspaceID: workspace.ID,
+		ProjectID: project.ID, AppID: app.ID, Slug: slug(t),
+	})
+	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE environments SET deleted_at = 1 WHERE id = ?", deleted.ID)
+	require.NoError(t, err)
 
 	t.Run("lists seeded environments by ids", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID, App: app.ID})

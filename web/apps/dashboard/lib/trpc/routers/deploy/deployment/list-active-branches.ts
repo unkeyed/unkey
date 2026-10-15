@@ -2,7 +2,7 @@ import { and, db, desc, eq, isNotNull, lt, ne, or, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { deployments, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { excludeSkipped } from "./deployment-query-helpers";
+import { activeDeploymentParents, excludeSkipped } from "./deployment-query-helpers";
 
 const MAX_LIMIT = 100;
 
@@ -28,6 +28,7 @@ export const listActiveBranches = workspaceProcedure
       .where(
         and(
           eq(deployments.workspaceId, ctx.workspace.id),
+          activeDeploymentParents(),
           eq(deployments.projectId, input.projectId),
           eq(deployments.appId, input.appId),
           ne(deployments.source, "oci"),

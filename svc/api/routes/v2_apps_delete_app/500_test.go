@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -58,4 +59,7 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 	})
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
 	require.Equal(t, "Failed to delete app.", res.Body.Error.Detail)
+	var deletedAt sql.NullInt64
+	require.NoError(t, h.DB.RW().QueryRowContext(t.Context(), "SELECT deleted_at FROM apps WHERE id = ?", app.ID).Scan(&deletedAt))
+	require.False(t, deletedAt.Valid)
 }

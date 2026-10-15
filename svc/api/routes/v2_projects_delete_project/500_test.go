@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -51,4 +52,7 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, headers, handler.Request{Project: project.ID})
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
 	require.Equal(t, "Failed to delete project.", res.Body.Error.Detail)
+	var deletedAt sql.NullInt64
+	require.NoError(t, h.DB.RW().QueryRowContext(t.Context(), "SELECT deleted_at FROM projects WHERE id = ?", project.ID).Scan(&deletedAt))
+	require.False(t, deletedAt.Valid)
 }

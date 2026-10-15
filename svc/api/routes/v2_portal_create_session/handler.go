@@ -353,11 +353,17 @@ func (h *Handler) mintSession(
 			ID:          req.Portal.ID,
 			WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
+		if txErr == nil {
+			_, txErr = db.Query.LockActivePortal(txCtx, tx, db.LockActivePortalParams{
+				WorkspaceID: principal.AuthorizedWorkspaceID,
+				ID:          req.Portal.ID,
+			})
+		}
 		if txErr != nil {
 			if db.IsNotFound(txErr) {
 				return fault.New("portal not found",
 					fault.Code(codes.Data.Portal.NotFound.URN()),
-					fault.Internal(fmt.Sprintf("portal %s was deleted after the replica read", req.Portal.ID)),
+					fault.Internal(fmt.Sprintf("portal %s or its parent is deleting or missing", req.Portal.ID)),
 					fault.Public("Portal not found."),
 				)
 			}

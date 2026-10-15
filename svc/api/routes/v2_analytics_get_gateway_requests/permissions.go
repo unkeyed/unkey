@@ -106,35 +106,41 @@ func parseGatewayScope(workspaceID, permission string) (gatewayScope, bool) {
 // the authorized workspace and by each preceding ancestor in the permission path.
 func (h *Handler) validateGatewayScope(ctx context.Context, workspaceID string, scope gatewayScope) (bool, error) {
 	if scope.environmentID != "*" {
-		environment, err := db.Query.FindEnvironmentById(ctx, h.DB.RO(), scope.environmentID)
+		environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
+			WorkspaceID: workspaceID, Project: scope.projectID, App: scope.appID, Environment: scope.environmentID,
+		})
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
 		if err != nil {
 			return false, fault.Wrap(err, fault.Internal("failed to resolve gateway log environment"))
 		}
-		return environment.WorkspaceID == workspaceID && environment.ProjectID == scope.projectID && environment.AppID == scope.appID, nil
+		return environment.ID == scope.environmentID && environment.WorkspaceID == workspaceID && environment.ProjectID == scope.projectID && environment.AppID == scope.appID, nil
 	}
 
 	if scope.appID != "*" {
-		app, err := db.Query.FindAppById(ctx, h.DB.RO(), scope.appID)
+		app, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, h.DB.RO(), db.FindAppByProjectAndIdOrSlugParams{
+			WorkspaceID: workspaceID, Project: scope.projectID, App: scope.appID,
+		})
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
 		if err != nil {
 			return false, fault.Wrap(err, fault.Internal("failed to resolve gateway log app"))
 		}
-		return app.WorkspaceID == workspaceID && app.ProjectID == scope.projectID, nil
+		return app.ID == scope.appID && app.WorkspaceID == workspaceID && app.ProjectID == scope.projectID, nil
 	}
 
-	project, err := db.Query.FindProjectById(ctx, h.DB.RO(), scope.projectID)
+	project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
+		WorkspaceID: workspaceID, Project: scope.projectID,
+	})
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
 	if err != nil {
 		return false, fault.Wrap(err, fault.Internal("failed to resolve gateway log project"))
 	}
-	return project.WorkspaceID == workspaceID, nil
+	return project.WorkspaceID == workspaceID && project.ID == scope.projectID, nil
 }
 
 // gatewayLogsURN builds one concrete gateway log resource for authorization.

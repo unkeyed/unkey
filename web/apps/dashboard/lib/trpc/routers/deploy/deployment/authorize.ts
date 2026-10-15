@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { activeDeploymentParents } from "./deployment-query-helpers";
 
 export const authorizeDeployment = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
@@ -18,7 +19,11 @@ export const authorizeDeployment = workspaceProcedure
   .mutation(async ({ input, ctx }) => {
     const deployment = await db.query.deployments.findFirst({
       where: (table, { eq, and }) =>
-        and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+        and(
+          eq(table.id, input.deploymentId),
+          eq(table.workspaceId, ctx.workspace.id),
+          activeDeploymentParents(),
+        ),
       columns: {
         id: true,
         projectId: true,

@@ -17,6 +17,27 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_verify_domain"
 )
 
+func TestVerifyDomainDeletedAncestors(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctrlClient := &testutil.MockCustomDomainClient{}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	h.Register(route)
+	for _, table := range []string{"projects", "apps", "environments"} {
+		t.Run(table, func(t *testing.T) {
+			seeded := seedDomain(t, h, nil)
+			id := map[string]string{"projects": seeded.projectID, "apps": seeded.appID, "environments": seeded.environmentID}[table]
+			_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = 1 WHERE id = ?", id)
+			require.NoError(t, err)
+			rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.verify_domain")
+			for _, identifier := range []string{seeded.domainID, seeded.domain} {
+				res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(rootKey), handler.Request{Domain: identifier})
+				require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+			}
+		})
+	}
+	require.Empty(t, ctrlClient.RetryVerificationCalls)
+}
+
 func TestVerifyDomainNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctrlClient := &testutil.MockCustomDomainClient{}

@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"net/http"
 	"slices"
 	"strings"
@@ -18,6 +19,37 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_list_domains"
 )
+
+func TestListDomainsExcludesDeletedAncestors(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+	env := seedEnvironment(t, h)
+	domain := attachDomain(t, h, env, nil)
+	headers := authHeaders(h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Read).Value))
+	for _, table := range []string{"projects", "apps", "environments"} {
+		t.Run(table, func(t *testing.T) {
+			live := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{})
+			require.Equal(t, http.StatusOK, live.Status, "%s", live.RawBody)
+			require.Len(t, live.Body.Data, 1)
+			require.Equal(t, domain.ID, live.Body.Data[0].Id)
+			id := map[string]string{"projects": env.projectID, "apps": env.appID, "environments": env.environmentID}[table]
+			_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = 1 WHERE id = ?", id)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = NULL WHERE id = ?", id)
+				require.NoError(t, err)
+			})
+			for _, req := range []handler.Request{
+				{}, {Project: new(env.projectSlug)}, {App: new(env.appSlug)}, {Environment: new("production")},
+			} {
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+				require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+				require.Empty(t, res.Body.Data)
+			}
+		})
+	}
+}
 
 // TestListDomainsRefillsAuthorizedPages guarantees denied rows do not consume
 // the public page limit or leak through pagination cursors.
