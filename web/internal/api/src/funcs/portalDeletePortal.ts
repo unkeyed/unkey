@@ -41,6 +41,8 @@ import { Result } from "../types/fp.js";
  * The app or keyspace it served is untouched, and its slug becomes free for a
  * new portal.
  *
+ * A portal with custom domains cannot be deleted. Delete its domains first.
+ *
  * **Required Permissions**
  *
  * Your root key must have one of:
@@ -61,6 +63,7 @@ export function portalDeletePortal(
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -91,6 +94,7 @@ async function $do(
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.NotFoundErrorResponse
+      | errors.PreconditionFailedErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | UnkeyError
@@ -189,6 +193,7 @@ async function $do(
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -204,6 +209,7 @@ async function $do(
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
+    M.jsonErr(412, errors.PreconditionFailedErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),

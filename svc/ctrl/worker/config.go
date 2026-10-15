@@ -46,8 +46,12 @@ type AcmeConfig struct {
 
 	// EmailDomain is the domain used for ACME account emails.
 	// Used for Let's Encrypt account registration and recovery.
-	// Example: "unkey.com" creates "admin@unkey.com" for ACME account.
+	// All certificates share one account, registered as "acme@{EmailDomain}".
 	EmailDomain string `toml:"email_domain" config:"default=unkey.com"`
+
+	// DirectoryURL is the ACME directory. Non-production environments use Let's
+	// Encrypt staging so iterating on issuance cannot exhaust production rate limits.
+	DirectoryURL string `toml:"directory_url" config:"default=https://acme-v02.api.letsencrypt.org/directory"`
 
 	// Route53 configures DNS-01 challenges through AWS Route53 API.
 	// Enables wildcard certificates for domains hosted on Route53.
@@ -277,6 +281,13 @@ type EmailConfig struct {
 	ResendAPIKey string `toml:"resend_api_key"`
 }
 
+// PortalConfig locates the portal app that every tenant's portal domain routes to.
+type PortalConfig struct {
+	// EnvironmentID is the portal app's production environment. Verified
+	// portal domains get a route to it.
+	EnvironmentID string `toml:"environment_id"`
+}
+
 // Config holds the complete configuration for the Restate worker service.
 // It is designed to be loaded from a TOML file using [config.Load]:
 //
@@ -319,6 +330,9 @@ type Config struct {
 
 	// Database is the MySQL DSN used for all control plane reads and writes.
 	Database string `toml:"database" config:"required,nonempty"`
+
+	// Portal configures portal domain routing. See [PortalConfig].
+	Portal PortalConfig `toml:"portal"`
 
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`

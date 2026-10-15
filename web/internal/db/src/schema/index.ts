@@ -48,3 +48,4 @@ export * from "./horizontal_autoscaling_policies";
 // Portal tables
 export * from "./portals";
 export * from "./portal_sessions";
+export * from "./portal_domains";

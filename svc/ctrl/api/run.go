@@ -45,6 +45,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ops"
+	"github.com/unkeyed/unkey/svc/ctrl/services/portaldomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -196,7 +197,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize caches for ACME service (needed for certificate verification endpoint)
-	domainCache, err := cache.New(cache.Config[string, db.CustomDomain]{
+	domainCache, err := cache.New(cache.Config[string, db.FindVerifiedDomainByHostnameRow]{
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
 		MaxSize:  10000,
@@ -292,6 +293,15 @@ func Run(ctx context.Context, cfg Config) error {
 		CnameDomain:                cfg.CnameDomain,
 		DomainConnectPrivateKeyPEM: dcPrivateKeyPEM,
 		Bearer:                     cfg.AuthToken,
+	})))
+	mux.Handle(ctrlv1connect.NewPortalDomainServiceHandler(portaldomain.New(portaldomain.Config{
+		Database:      database,
+		Restate:       restateClient,
+		RestateAdmin:  restateAdminClient,
+		Auditlogs:     auditlogSvc,
+		CnameDomain:   cfg.PortalCnameDomain,
+		EnvironmentID: cfg.Portal.EnvironmentID,
+		Bearer:        cfg.AuthToken,
 	})))
 	appSvc := app.New(app.Config{
 		Database:  database,

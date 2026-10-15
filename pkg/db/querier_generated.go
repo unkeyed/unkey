@@ -61,6 +61,14 @@ type Querier interface {
 	//  FROM permissions
 	//  WHERE workspace_id = ?
 	CountPermissionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// Counts a portal's domains so deletePortal can refuse while any remain, since
+	// a deleted portal would otherwise leave them routed and unmanageable.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portal_domains
+	//  WHERE portal_id = ?
+	//    AND workspace_id = ?
+	CountPortalDomainsByPortal(ctx context.Context, db DBTX, arg CountPortalDomainsByPortalParams) (int64, error)
 	// CountPortalSessionsByExternalID counts every session minted for one end user
 	// in a workspace, in any state. Intended for tests.
 	//
@@ -225,8 +233,8 @@ type Querier interface {
 	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
 	// Deletes a portal, scoped to the workspace so one workspace can never delete
 	// another's. Returns the row count so a concurrent delete that already removed
-	// the row is reported as not-found rather than as a second success. Branding lives on the portal row, so there is no side table to
-	// clean up.
+	// the row is reported as not-found rather than as a second success. Callers
+	// must reject the delete while the portal still has domains.
 	//
 	//  DELETE FROM portals
 	//  WHERE id = ?
@@ -1186,6 +1194,31 @@ type Querier interface {
 	//    AND workspace_id = ?
 	//  LIMIT 1
 	FindPortalByKeyspace(ctx context.Context, db DBTX, arg FindPortalByKeyspaceParams) (Portal, error)
+	// Scoped to workspace and portal so a caller cannot read a domain attached to
+	// another tenant's portal by guessing its id.
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      portal_id,
+	//      domain,
+	//      verification_status,
+	//      verification_token,
+	//      ownership_verified,
+	//      cname_verified,
+	//      target_cname,
+	//      verification_error,
+	//      domain_connect_provider,
+	//      domain_connect_url,
+	//      last_checked_at,
+	//      created_at,
+	//      updated_at
+	//  FROM portal_domains
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	//    AND portal_id = ?
+	//  LIMIT 1
+	FindPortalDomainById(ctx context.Context, db DBTX, arg FindPortalDomainByIdParams) (FindPortalDomainByIdRow, error)
 	// Reports whether any portal already claims this app, across every workspace.
 	//
 	// Deliberately unscoped, unlike portal_find_by_app.sql: `idx_app_id` is unique
@@ -2103,6 +2136,29 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertPortal(ctx context.Context, db DBTX, arg InsertPortalParams) error
+	// Production portal domains are created by ctrl; this exists so API tests can
+	// seed rows through sqlc instead of hand-written SQL.
+	//
+	//  INSERT INTO portal_domains (
+	//      id,
+	//      workspace_id,
+	//      portal_id,
+	//      domain,
+	//      verification_status,
+	//      verification_token,
+	//      target_cname,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertPortalDomain(ctx context.Context, db DBTX, arg InsertPortalDomainParams) error
 	// Creates a session in the `pending` state: an exchange code was minted, no
 	// access token has been issued yet. Only the code's hash is stored; the code
 	// itself is returned to the caller once and never persisted.
@@ -2869,6 +2925,30 @@ type Querier interface {
 	//      SELECT permission_slug FROM role_permissions
 	//  ) all_permissions
 	ListPermissionsByKeyID(ctx context.Context, db DBTX, arg ListPermissionsByKeyIDParams) ([]string, error)
+	// Lists every domain attached to a portal, verified or not, in id order.
+	// Workspace-scoped so a portal id from another tenant returns nothing.
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      portal_id,
+	//      domain,
+	//      verification_status,
+	//      verification_token,
+	//      ownership_verified,
+	//      cname_verified,
+	//      target_cname,
+	//      verification_error,
+	//      domain_connect_provider,
+	//      domain_connect_url,
+	//      last_checked_at,
+	//      created_at,
+	//      updated_at
+	//  FROM portal_domains
+	//  WHERE portal_id = ?
+	//    AND workspace_id = ?
+	//  ORDER BY id ASC
+	ListPortalDomainsByPortal(ctx context.Context, db DBTX, arg ListPortalDomainsByPortalParams) ([]ListPortalDomainsByPortalRow, error)
 	//ListProjectsByWorkspaceId
 	//
 	//  SELECT

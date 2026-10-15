@@ -51,11 +51,13 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/domainverify"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
+	workerportaldomain "github.com/unkeyed/unkey/svc/ctrl/worker/portaldomain"
 
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -449,6 +451,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
 		DB:          database,
+		Resolver:    domainverify.SystemResolver{},
 		CnameDomain: cfg.CnameDomain,
 	}),
 		// Retry every 1 minute for up to 24 hours (1440 attempts). Pause (not
@@ -463,12 +466,27 @@ func Run(ctx context.Context, cfg Config) error {
 		),
 	))
 
+	restateSrv.Bind(hydrav1.NewPortalDomainServiceServer(workerportaldomain.New(workerportaldomain.Config{
+		DB:            database,
+		Resolver:      domainverify.SystemResolver{},
+		EnvironmentID: cfg.Portal.EnvironmentID,
+	}),
+		// Same cadence and exhaustion behavior as custom domain verification.
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(1*time.Minute),
+			restate.WithRetryIntervalFactor(1.0),
+			restate.WithMaxRetryInterval(1*time.Minute),
+			restate.WithMaxRetryAttempts(1440),
+			restate.PauseOnMaxAttempts(),
+		),
+	))
+
 	// Initialize domain cache for ACME providers
 	clk := cfg.Clock
 	if clk == nil {
 		clk = clock.New()
 	}
-	domainCache, domainCacheErr := cache.New(cache.Config[string, db.CustomDomain]{
+	domainCache, domainCacheErr := cache.New(cache.Config[string, db.FindVerifiedDomainByHostnameRow]{
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
 		MaxSize:  10000,
@@ -523,6 +541,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:           database,
 		Vault:        vaultClient,
 		EmailDomain:  cfg.Acme.EmailDomain,
+		DirectoryURL: cfg.Acme.DirectoryURL,
 		DNSProvider:  dnsProvider,
 		HTTPProvider: httpProvider,
 		Heartbeat:    certHeartbeat,

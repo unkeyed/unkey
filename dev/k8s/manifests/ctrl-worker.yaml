@@ -22,6 +22,10 @@ data:
 
     database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
+    # Must match ctrl-api's [portal] environment_id.
+    [portal]
+    environment_id = ""
+
     [vault]
     url = "http://vault:8060"
     token = "${UNKEY_VAULT_TOKEN}"
@@ -47,6 +51,8 @@ data:
 
     [acme]
     enabled = false
+    # Staging avoids production rate limits; its certificates are untrusted.
+    directory_url = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
     [clickhouse]
     url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"

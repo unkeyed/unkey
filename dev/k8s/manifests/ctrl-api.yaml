@@ -14,12 +14,18 @@ data:
     auth_token = "your-local-dev-key"
     default_domain = "unkey.local"
     cname_domain = "unkey.local"
+    portal_cname_domain = "portal.unkey.local"
     database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
     [vstream]
     address = "mysql:33575"
     keyspace = "unkey"
     insecure = true
+
+    # The portal app's production environment. No local portal app is seeded,
+    # so portal domains cannot be added until this names one.
+    [portal]
+    environment_id = ""
 
     [restate]
     url = "http://restate:8080"
