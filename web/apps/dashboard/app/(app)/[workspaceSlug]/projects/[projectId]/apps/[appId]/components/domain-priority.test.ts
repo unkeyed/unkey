@@ -239,6 +239,23 @@ describe("getDomainPriority", () => {
     expect(result.primary?.id).toBe("d-a");
   });
 
+  test("route of an unverified custom domain is not shown as a platform alias", () => {
+    const result = getDomainPriority({
+      ...baseCtx,
+      domains: [
+        makeDomain({
+          id: "d-custom-route",
+          fullyQualifiedDomainName: "custom.example.com",
+          sticky: "live",
+        }),
+        makeDomain({ id: "d-a", fullyQualifiedDomainName: "a.example.com" }),
+      ],
+      customDomains: [makeCustomDomain({ id: "cd-1", verificationStatus: "failed" })],
+    });
+
+    expect(result.all.map((domain) => domain.id)).toEqual(["d-a"]);
+  });
+
   test("custom domains hidden when viewing non-current deployment", () => {
     const result = getDomainPriority({
       ...baseCtx,

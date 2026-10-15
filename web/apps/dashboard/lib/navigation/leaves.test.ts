@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildApiLinks, buildNamespaceLinks } from "./leaves";
+import { buildApiLinks, buildAppLinks, buildNamespaceLinks } from "./leaves";
 import type { ResolvedNavLink } from "./types";
 
 const ws = "acme";
@@ -177,5 +177,21 @@ describe("namespace links inside a project", () => {
       "overrides",
     ]);
     expect(links.filter((link) => link.isActive).map((link) => link.key)).toEqual(["overrides"]);
+  });
+});
+
+describe("buildAppLinks", () => {
+  const appId = "app_456";
+
+  it("keeps App settings active on its sub-pages", () => {
+    const links = buildAppLinks(ws, projectId, appId, [
+      "projects",
+      projectId,
+      "apps",
+      appId,
+      "settings",
+      "environments",
+    ]);
+    expect(links.filter((link) => link.isActive).map((link) => link.key)).toEqual(["settings"]);
   });
 });

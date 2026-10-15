@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=ctlptl.schema.json
 apiVersion: ctlptl.dev/v1alpha1
 kind: Cluster
+name: unkey
 product: minikube
 minikube:
   startFlags:
@@ -9,8 +10,11 @@ minikube:
     - "--memory=no-limit"
     - "--container-runtime=containerd"
     - "--docker-opt=containerd=/var/run/containerd/containerd.sock"
-    - "--cni=cilium"
+    - "--extra-config=kubelet.serialize-image-pulls=false"
+    - "--cni=false"
+    - "--network-plugin=cni"
+    - "--force"
     - "--addons=metrics-server"
-    - "--wait=all"
-registry: ctlptl-registry
-kubernetesVersion: v1.34.0
+    - "--wait=apiserver,kubelet"
+registry: unkey-registry
+kubernetesVersion: v1.37.0

@@ -82,6 +82,11 @@ const (
 	// UnkeyDataErrors
 	// ----------------
 
+	// Flag
+
+	// NotFound indicates the requested flag definition was not found.
+	UnkeyDataErrorsFlagNotFound URN = "err:unkey:data:flag_not_found"
+
 	// Key
 
 	// NotFound indicates the requested key was not found.
@@ -168,6 +173,8 @@ const (
 	UnkeyDataErrorsRatelimitNamespaceNotFound URN = "err:unkey:data:ratelimit_namespace_not_found"
 	// Gone indicates the requested rate limit namespace was deleted and is no longer available.
 	UnkeyDataErrorsRatelimitNamespaceGone URN = "err:unkey:data:ratelimit_namespace_gone"
+	// Duplicate indicates a rate limit namespace with this name already exists, deleted or not.
+	UnkeyDataErrorsRatelimitNamespaceDuplicate URN = "err:unkey:data:ratelimit_namespace_already_exists"
 
 	// RatelimitOverride
 

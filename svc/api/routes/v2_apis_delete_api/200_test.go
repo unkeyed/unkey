@@ -253,9 +253,9 @@ func TestDeleteApiCascadesToKeyspaceAndKeys(t *testing.T) {
 	for _, target := range events[0].Targets {
 		targets[target.Type] = target
 	}
-	require.Contains(t, targets, string(auditlog.KeySpaceResourceType), "keyspace must be a target")
-	require.Equal(t, keySpaceID, targets[string(auditlog.KeySpaceResourceType)].ID)
-	require.EqualValues(t, len(keyIDs), targets[string(auditlog.APIResourceType)].Meta["keysDeleted"])
+	require.Contains(t, targets, string(auditlog.KeySpaceTargetType), "keyspace must be a target")
+	require.Equal(t, keySpaceID, targets[string(auditlog.KeySpaceTargetType)].ID)
+	require.EqualValues(t, len(keyIDs), targets[string(auditlog.APITargetType)].Meta["keysDeleted"])
 }
 
 // TestDeleteApiCountsOnlyLiveKeys pins what the batch loop reports. Seeding
@@ -307,7 +307,7 @@ func TestDeleteApiCountsOnlyLiveKeys(t *testing.T) {
 	require.Len(t, events, 1)
 	var apiTarget auditlog.EventTarget
 	for _, target := range events[0].Targets {
-		if target.Type == string(auditlog.APIResourceType) {
+		if target.Type == string(auditlog.APITargetType) {
 			apiTarget = target
 		}
 	}

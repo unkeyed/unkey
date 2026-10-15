@@ -64,9 +64,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Keep the namespace lookup inside the transaction for transactional read consistency.
 	result, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (setOverrideResult, error) {
 		var zero setOverrideResult
-		nsRow, txErr := db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
+		nsRow, txErr := db.Query.LockRatelimitNamespaceByIdOrName(ctx, tx, db.LockRatelimitNamespaceByIdOrNameParams{
 			WorkspaceID: principal.AuthorizedWorkspaceID,
-			Namespace:   req.Namespace,
+			Search:      req.Namespace,
 		})
 		if txErr != nil {
 			if db.IsNotFound(txErr) {
@@ -76,13 +76,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 			return zero, txErr
-		}
-
-		if nsRow.DeletedAtM.Valid {
-			return zero, fault.New("namespace was deleted",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Public("This namespace does not exist."),
-			)
 		}
 
 		override, txErr := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
@@ -156,9 +149,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				UserAgent:     s.UserAgent(),
 				Display:       fmt.Sprintf("Set ratelimit override for %s and %s", nsRow.ID, req.Identifier),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
-						Type:        auditlog.RatelimitOverrideResourceType,
+						Type:        auditlog.RatelimitOverrideTargetType,
 						ID:          ovrID,
 						Name:        req.Identifier,
 						DisplayName: req.Identifier,

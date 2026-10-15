@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 #MISE description="Compile the heimdall eBPF program and regenerate Go bindings"
+#MISE depends=["docker-builder"]
 set -euo pipefail
 
-docker buildx build --load --platform=linux/amd64 -q -t unkey-bpf-gen -f svc/heimdall/internal/network/bpf/Dockerfile.gen . >/dev/null
-docker run --rm --platform=linux/amd64 -v "$PWD:/work" -w /work \
+docker buildx build --builder unkey --label dev.unkey.image=true --load --platform=linux/amd64 -q -t unkey-bpf-gen -f svc/heimdall/internal/network/bpf/Dockerfile.gen . >/dev/null
+docker run --rm --label dev.unkey.project=unkey --platform=linux/amd64 -v "$PWD:/work" -w /work \
   -v "${XDG_CACHE_HOME:-$HOME/.cache}/unkey-bpf:/root/.cache" \
   -e GOMODCACHE=/root/.cache/go-mod unkey-bpf-gen \
   go generate -tags bpf_generate ./svc/heimdall/internal/network/...

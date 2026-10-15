@@ -172,10 +172,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:          identityRow.ID,
-						Type:        auditlog.IdentityResourceType,
+						Type:        auditlog.IdentityTargetType,
 						Name:        identityRow.ExternalID,
 						DisplayName: identityRow.ExternalID,
 						Meta:        nil,
@@ -239,17 +239,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					RemoteIP:      s.Location(),
 					UserAgent:     s.UserAgent(),
 					CorrelationID: "",
-					Resources: []auditlog.AuditLogResource{
+					Targets: []auditlog.AuditLogTarget{
 						{
 							ID:          identityRow.ID,
-							Type:        auditlog.IdentityResourceType,
+							Type:        auditlog.IdentityTargetType,
 							DisplayName: identityRow.ExternalID,
 							Name:        identityRow.ExternalID,
 							Meta:        nil,
 						},
 						{
 							ID:          existingRL.ID,
-							Type:        auditlog.RatelimitResourceType,
+							Type:        auditlog.RatelimitTargetType,
 							DisplayName: existingRL.Name,
 							Name:        existingRL.Name,
 							Meta:        nil,
@@ -307,17 +307,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						RemoteIP:      s.Location(),
 						UserAgent:     s.UserAgent(),
 						CorrelationID: "",
-						Resources: []auditlog.AuditLogResource{
+						Targets: []auditlog.AuditLogTarget{
 							{
 								ID:          identityRow.ID,
-								Type:        auditlog.IdentityResourceType,
+								Type:        auditlog.IdentityTargetType,
 								Name:        identityRow.ExternalID,
 								DisplayName: identityRow.ExternalID,
 								Meta:        nil,
 							},
 							{
 								ID:          existingRL.ID,
-								Type:        auditlog.RatelimitResourceType,
+								Type:        auditlog.RatelimitTargetType,
 								Name:        newRL.Name,
 								DisplayName: newRL.Name,
 								Meta:        nil,
@@ -350,17 +350,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						RemoteIP:      s.Location(),
 						UserAgent:     s.UserAgent(),
 						CorrelationID: "",
-						Resources: []auditlog.AuditLogResource{
+						Targets: []auditlog.AuditLogTarget{
 							{
 								ID:          identityRow.ID,
-								Type:        auditlog.IdentityResourceType,
+								Type:        auditlog.IdentityTargetType,
 								DisplayName: identityRow.ExternalID,
 								Name:        identityRow.ExternalID,
 								Meta:        nil,
 							},
 							{
 								ID:          ratelimitID,
-								Type:        auditlog.RatelimitResourceType,
+								Type:        auditlog.RatelimitTargetType,
 								DisplayName: newRL.Name,
 								Name:        newRL.Name,
 								Meta:        nil,

@@ -5,7 +5,7 @@ import { FormField } from "./form-field";
 import type { Requirement } from "./form-helpers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 
-export type FormSelectOption = { value: string; label: React.ReactNode };
+export type FormSelectOption<T extends string = string> = { value: T; label: React.ReactNode };
 
 // Hack to populate fumadocs' AutoTypeTable
 type DocumentedFormSelectProps = {
@@ -16,36 +16,50 @@ type DocumentedFormSelectProps = {
   descriptionPosition?: "inline" | "label";
 };
 
-type FormSelectProps = DocumentedFormSelectProps & {
-  options: FormSelectOption[];
-  value: string;
-  onValueChange: (value: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-  id?: string;
-  className?: string;
-  triggerClassName?: string;
-  contentClassName?: string;
-  rightIcon?: React.ReactNode;
-};
+type FormSelectValueProps<T extends string> =
+  | { multiple?: false; value: T; onValueChange: (value: NoInfer<T>) => void }
+  | { multiple: true; value: T[]; onValueChange: (value: NoInfer<T>[]) => void };
 
-function FormSelect({
-  label,
-  description,
-  error,
-  requirement,
-  id,
-  className,
-  triggerClassName,
-  contentClassName,
-  descriptionPosition = "inline",
-  options,
-  value,
-  onValueChange,
-  placeholder,
-  disabled,
-  rightIcon,
-}: FormSelectProps) {
+type FormSelectProps<T extends string = string> = DocumentedFormSelectProps &
+  FormSelectValueProps<T> & {
+    options: readonly FormSelectOption<T>[];
+    placeholder?: string;
+    disabled?: boolean;
+    id?: string;
+    size?: "md" | "sm";
+    "aria-label"?: string;
+    "aria-invalid"?: boolean;
+    className?: string;
+    triggerClassName?: string;
+    valueClassName?: string;
+    contentClassName?: string;
+    itemClassName?: string;
+    rightIcon?: React.ReactNode;
+  };
+
+function FormSelect<T extends string>(props: FormSelectProps<T>) {
+  const {
+    label,
+    description,
+    error,
+    requirement,
+    id,
+    className,
+    triggerClassName,
+    valueClassName,
+    contentClassName,
+    itemClassName,
+    descriptionPosition = "inline",
+    options,
+    placeholder,
+    disabled,
+    size,
+    rightIcon,
+  } = props;
+  // Base UI's Select.Value renders the raw value unless Root gets an items
+  // map — without this, triggers show e.g. "basic_member" instead of "Member".
+  const items = options.map((opt) => ({ value: opt.value, label: opt.label }));
+
   return (
     <FormField
       label={label}
@@ -56,42 +70,61 @@ function FormSelect({
       className={className}
       descriptionPosition={descriptionPosition}
     >
-      {(control) => (
-        <Select
-          // Base UI's Select.Value renders the raw value unless Root gets an
-          // items map — without this, triggers show e.g. "basic_member" instead
-          // of "Member".
-          items={options.map((opt) => ({ value: opt.value, label: opt.label }))}
-          value={value}
-          onValueChange={(newValue) => {
-            if (newValue !== null) {
-              onValueChange(newValue);
-            }
-          }}
-          disabled={disabled}
-        >
-          <SelectTrigger
-            id={control.id}
-            variant={control.variant}
-            className={triggerClassName}
-            aria-describedby={control.describedBy}
-            aria-invalid={control.invalid}
-            aria-required={requirement === "required"}
-            rightIcon={
-              rightIcon ?? <IconChevronDownOutline18 className="size-3.5 absolute right-2" />
-            }
+      {(control) => {
+        const parts = (
+          <>
+            <SelectTrigger
+              id={control.id}
+              size={size}
+              variant={control.variant}
+              className={triggerClassName}
+              aria-label={props["aria-label"]}
+              aria-describedby={control.describedBy}
+              aria-invalid={props["aria-invalid"] ?? control.invalid}
+              aria-required={requirement === "required"}
+              rightIcon={
+                rightIcon ??
+                (size === "sm" ? undefined : (
+                  <IconChevronDownOutline18 className="size-3.5 absolute right-2" />
+                ))
+              }
+            >
+              <SelectValue placeholder={placeholder} className={valueClassName} />
+            </SelectTrigger>
+            <SelectContent className={contentClassName}>
+              {options.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} className={itemClassName}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </>
+        );
+        return props.multiple ? (
+          <Select
+            multiple
+            items={items}
+            value={props.value}
+            onValueChange={props.onValueChange}
+            disabled={disabled}
           >
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
-          <SelectContent className={contentClassName}>
-            {options.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+            {parts}
+          </Select>
+        ) : (
+          <Select
+            items={items}
+            value={props.value}
+            onValueChange={(next) => {
+              if (next !== null) {
+                props.onValueChange(next);
+              }
+            }}
+            disabled={disabled}
+          >
+            {parts}
+          </Select>
+        );
+      }}
     </FormField>
   );
 }

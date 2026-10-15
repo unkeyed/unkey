@@ -1,4 +1,7 @@
-import { apiKeysQueryPayload as keysQueryListPayload } from "@/components/api-keys-table/schema/api-keys.schema";
+import {
+  apiKeysCursor,
+  apiKeysQueryPayload as keysQueryListPayload,
+} from "@/components/api-keys-table/schema/api-keys.schema";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { getAllKeys } from "./get-all-keys";
@@ -6,7 +9,7 @@ import { keyDetailsResponseSchema } from "./schema";
 
 const KeysListResponse = z.object({
   keys: z.array(keyDetailsResponseSchema),
-  totalCount: z.number(),
+  nextCursor: apiKeysCursor.nullable(),
 });
 
 export const queryKeysList = workspaceProcedure
@@ -14,7 +17,7 @@ export const queryKeysList = workspaceProcedure
   .input(keysQueryListPayload)
   .output(KeysListResponse)
   .query(async ({ ctx, input }) => {
-    const { keys, totalCount } = await getAllKeys({
+    return getAllKeys({
       keyspaceId: input.keyAuthId,
       workspaceId: ctx.workspace.id,
       filters: {
@@ -24,10 +27,8 @@ export const queryKeysList = workspaceProcedure
         tags: input.tags,
       },
       limit: input.limit,
-      page: input.page,
+      cursor: input.cursor,
       sortBy: input.sortBy,
       sortOrder: input.sortOrder,
     });
-
-    return { keys, totalCount };
   });

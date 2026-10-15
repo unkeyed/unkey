@@ -4,6 +4,7 @@ export type PaywallReason =
   | "team"
   | "deploy"
   | "custom-domains"
+  | "compute-size"
   | "api-limit"
   | "compute-plan"
   | "api-plan"
@@ -43,6 +44,14 @@ export function paywallCopy(reason: PaywallReason): PaywallCopy {
       return {
         title: "Add more custom domains",
         description: "Upgrade your plan to add more custom domains.",
+        products: ["compute"],
+        computePlans: DEPLOY_PLANS,
+        manage: false,
+      };
+    case "compute-size":
+      return {
+        title: "Run larger instances",
+        description: "Upgrade your plan to use bigger CPU and memory sizes.",
         products: ["compute"],
         computePlans: DEPLOY_PLANS,
         manage: false,

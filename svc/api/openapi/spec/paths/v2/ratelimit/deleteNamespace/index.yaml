@@ -1,0 +1,111 @@
+post:
+  tags:
+    - ratelimit
+  summary: Delete ratelimit namespace
+  description: |
+    Delete a rate limit namespace and all of its overrides, identified by the namespace ID or name.
+
+    **Important**: A deleted name cannot be reused. `ratelimit.limit` and `ratelimit.multiLimit` return 410 for it instead of creating a new namespace, so a deleted namespace does not turn into unlimited traffic. Other API nodes can take up to a minute to see the deletion.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `unkey:v1:<workspace_id>:projects/*/ratelimits/namespaces/*#delete` (to delete any namespace)
+    - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#delete` (to delete a specific namespace)
+  operationId: ratelimit.deleteNamespace
+  x-speakeasy-name-override: deleteNamespace
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitDeleteNamespaceRequestBody.yaml"
+        examples:
+          byId:
+            summary: Delete a namespace by ID
+            value:
+              namespace: rlns_1234abcd
+          byName:
+            summary: Delete a namespace by name
+            value:
+              namespace: email.outbound
+  responses:
+    "200":
+      description: Namespace and its overrides deleted.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitDeleteNamespaceResponseBody.yaml"
+          examples:
+            deleted:
+              summary: Namespace deleted
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            emptyNamespace:
+              summary: Empty namespace
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: POST request body for '/v2/ratelimit.deleteNamespace' failed to validate schema
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                  errors:
+                    - location: /properties/namespace/minLength
+                      message: "minLength: got 0, want 1"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: |
+        Not Found - The namespace does not exist in your workspace, was already deleted, or your root key lacks delete access to it.
+        All cases return the same response, so a root key cannot learn which namespaces exist.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            namespaceNotFound:
+              summary: Namespace not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested namespace does not exist.
+                  status: 404
+                  type: https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

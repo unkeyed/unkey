@@ -1,0 +1,122 @@
+post:
+  tags:
+    - ratelimit
+  summary: Create ratelimit namespace
+  description: |
+    Create a rate limit namespace before you rate limit against it.
+
+    `ratelimit.limit` also creates a namespace the first time you use its name, when your root key can create namespaces. Use this endpoint when you want the namespace to exist up front, for example to set overrides before the first request.
+
+    **Important**: Names are unique within your workspace, deleted namespaces included. A name that is in use or was deleted returns 409.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `unkey:v1:<workspace_id>:projects/*/ratelimits/namespaces/*#write`
+  operationId: ratelimit.createNamespace
+  x-speakeasy-name-override: createNamespace
+  x-unkey-idempotency: conditionally-idempotent
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitCreateNamespaceRequestBody.yaml"
+        examples:
+          basic:
+            summary: Create a namespace
+            description: Create a namespace for outbound email rate limits
+            value:
+              name: email.outbound
+  responses:
+    "200":
+      description: Namespace created successfully.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitCreateNamespaceResponseBody.yaml"
+          examples:
+            success:
+              summary: Namespace created
+              description: The created namespace
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: rlns_1234abcd
+                  name: email.outbound
+                  createdAt: 1704067200000
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            emptyName:
+              summary: Empty name
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: POST request body for '/v2/ratelimit.createNamespace' failed to validate schema
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                  errors:
+                    - location: /properties/name/minLength
+                      message: "minLength: got 0, want 1"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Insufficient Permissions
+                  detail: "Missing permission: 'unkey:v1:ws_1234abcd:projects/proj_1234abcd/ratelimits/namespaces/*#write'"
+                  status: 403
+                  type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+    "409":
+      description: Conflict - The name is in use or was deleted
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+          examples:
+            nameTaken:
+              summary: Name taken
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Conflicting Resource
+                  detail: A namespace named 'email.outbound' already exists or was deleted in this workspace. Choose a different name.
+                  status: 409
+                  type: https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_already_exists
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
