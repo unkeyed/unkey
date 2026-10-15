@@ -1,6 +1,13 @@
 package deployment_test
 
 import (
+	"bytes"
+	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -8,6 +15,7 @@ import (
 	"github.com/restatedev/sdk-go/ingress"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -54,21 +62,57 @@ func seedDesiredStateDeployment(t *testing.T, h *harness.Harness) db.Deployment 
 	})
 }
 
+func awaitScheduledStateChange(t *testing.T, h *harness.Harness, deploymentID string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(h.Ctx, 10*time.Second)
+	defer cancel()
+	payload, err := json.Marshal(map[string]string{
+		"query": fmt.Sprintf("SELECT status, completion_result FROM sys_invocation WHERE target_service_name = 'hydra.v1.DeploymentService' AND target_handler_name = 'ChangeDesiredState' AND target_service_key = '%s'", strings.ReplaceAll(deploymentID, "'", "''")),
+	})
+	require.NoError(t, err)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.RestateAdmin+"/query", bytes.NewReader(payload))
+		require.NoError(c, err)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		require.NoError(c, err)
+		defer func() { require.NoError(c, res.Body.Close()) }()
+		require.Equal(c, http.StatusOK, res.StatusCode)
+		var result struct {
+			Rows []struct {
+				Status           string `json:"status"`
+				CompletionResult string `json:"completion_result"`
+			} `json:"rows"`
+		}
+		require.NoError(c, json.NewDecoder(res.Body).Decode(&result))
+		require.Len(c, result.Rows, 1)
+		require.Equal(c, "completed", result.Rows[0].Status)
+		require.Equal(c, "success", result.Rows[0].CompletionResult)
+	}, 10*time.Second, 25*time.Millisecond, "the scheduled state change must complete before its effects are checked")
+}
+
 func TestChangeDesiredState_NoOpsWhenDeploymentDeleted(t *testing.T) {
 	h := harness.New(t)
 	dep := seedDesiredStateDeployment(t, h)
 	client := hydrav1.NewDeploymentServiceIngressClient(h.Restate, dep.ID)
-	_, err := client.ScheduleDesiredStateChange().Request(h.Ctx, &hydrav1.ScheduleDesiredStateChangeRequest{
-		DelayMillis: 500,
-		State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
-		Overwrite:   true,
+	err := db.Tx(h.Ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		queries := db.NewQueries(tx)
+		if err := queries.DeleteDeploymentTopologiesByEnvironmentId(ctx, dep.EnvironmentID); err != nil {
+			return err
+		}
+		if err := queries.DeleteDeploymentsByEnvironmentId(ctx, dep.EnvironmentID); err != nil {
+			return err
+		}
+		_, err := client.ScheduleDesiredStateChange().Request(ctx, &hydrav1.ScheduleDesiredStateChangeRequest{
+			DelayMillis: 500,
+			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+			Overwrite:   true,
+		})
+		return err
 	})
 	require.NoError(t, err)
-
-	require.NoError(t, h.DB.DeleteDeploymentTopologiesByEnvironmentId(h.Ctx, dep.EnvironmentID))
-	require.NoError(t, h.DB.DeleteDeploymentsByEnvironmentId(h.Ctx, dep.EnvironmentID))
-
-	time.Sleep(time.Second)
+	awaitScheduledStateChange(t, h, dep.ID)
 
 	_, err = h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.Error(t, err)
@@ -109,16 +153,33 @@ func TestQueuedDesiredStateFencesMarkedAncestorsAndClearsTransition(t *testing.T
 				AutoscalingReplicasMin: 1, AutoscalingReplicasMax: 1,
 			}))
 			client := hydrav1.NewDeploymentServiceIngressClient(h.Restate, dep.ID)
-			_, err = client.ScheduleDesiredStateChange().Request(h.Ctx, &hydrav1.ScheduleDesiredStateChangeRequest{
-				DelayMillis: 500, State: hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED, Overwrite: true,
+			err = db.Tx(h.Ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+				queries := db.NewQueries(tx)
+				deletedAt := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+				switch ancestor {
+				case "environments":
+					if err := queries.MarkEnvironmentDeleted(ctx, db.MarkEnvironmentDeletedParams{ID: dep.EnvironmentID, DeletedAt: deletedAt}); err != nil {
+						return err
+					}
+				case "apps":
+					if err := queries.MarkAppDeleted(ctx, db.MarkAppDeletedParams{ID: dep.AppID, DeletedAt: deletedAt}); err != nil {
+						return err
+					}
+				case "projects":
+					if err := queries.MarkProjectDeleted(ctx, db.MarkProjectDeletedParams{ID: dep.ProjectID, DeletedAt: deletedAt}); err != nil {
+						return err
+					}
+				}
+				_, err := client.ScheduleDesiredStateChange().Request(ctx, &hydrav1.ScheduleDesiredStateChangeRequest{
+					DelayMillis: 500,
+					State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+					Overwrite:   true,
+				})
+				return err
 			})
 			require.NoError(t, err)
 			ancestorID := map[string]string{"environments": dep.EnvironmentID, "apps": dep.AppID, "projects": dep.ProjectID}[ancestor]
-			if ancestor != "live" {
-				_, err = h.DB.RW().ExecContext(h.Ctx, "UPDATE "+ancestor+" SET deleted_at = ? WHERE id = ?", time.Now().UnixMilli(), ancestorID)
-				require.NoError(t, err)
-			}
-			time.Sleep(time.Second)
+			awaitScheduledStateChange(t, h, dep.ID)
 			var desiredState, topologyStatus string
 			require.NoError(t, h.DB.RW().QueryRowContext(h.Ctx, "SELECT desired_state FROM deployments WHERE id = ?", dep.ID).Scan(&desiredState))
 			require.NoError(t, h.DB.RW().QueryRowContext(h.Ctx, "SELECT desired_status FROM deployment_topology WHERE deployment_id = ? AND region_id = ?", dep.ID, region.ID).Scan(&topologyStatus))
