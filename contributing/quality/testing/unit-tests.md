@@ -60,6 +60,11 @@ func TestAuthorizeRejectsCrossWorkspaceAccess(t *testing.T) {
 
 Use `t.Parallel()` only when tests do not share mutable state or external resources.
 
+Do not add parallelism to satisfy a lint rule. Use fresh package runs with
+recorded shuffle seeds to expose ordering dependencies, and race checks for
+changed concurrent behavior. Repeated runs must preserve failures rather than
+retry until a pass. See [test evidence](./index.md#fresh-reliability-and-named-witnesses).
+
 ## Helpers and cleanup
 
 Helpers that assert must call `t.Helper()`. Use `t.Cleanup()` for resource cleanup so subtests complete before cleanup runs.

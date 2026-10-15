@@ -12,6 +12,28 @@ linters:
   settings:
     errcheck:
       check-type-assertions: false
+    testifylint:
+      disable-all: true
+      enable:
+        - go-require
+        - useless-assert
+        - require-error
+    thelper:
+      test:
+        first: false
+        name: false
+      benchmark:
+        first: false
+        name: false
+      tb:
+        first: false
+        name: false
+      fuzz:
+        first: false
+        name: false
+    nolintlint:
+      require-explanation: true
+      require-specific: true
     exhaustive:
       check:
         - switch

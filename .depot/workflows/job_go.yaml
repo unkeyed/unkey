@@ -18,6 +18,8 @@ jobs:
       RASK_REMOTE_CACHE_SECRET_ACCESS_KEY: ${{ secrets.RASK_REMOTE_CACHE_SECRET_ACCESS_KEY }}
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0
       # - name: Mount Rask cache disk
       #   uses: depot/cache-mount@v1
       #   with:
@@ -27,7 +29,15 @@ jobs:
       - uses: ./.depot/actions/setup-mise
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check new Go test code
+        run: mise run lint-test-go "$TEST_BASE"
+        env:
+          TEST_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || 'HEAD^' }}
       - name: Build
         run: mise run build
       - name: Run tests
         run: mise run test
+      - name: Fresh tests in changed Go packages
+        run: mise run test-evidence -- --base="$TEST_BASE" --seeds=1,2
+        env:
+          TEST_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || 'HEAD^' }}

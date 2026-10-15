@@ -62,14 +62,31 @@ redisURL := containers.Redis(t)
 
 ## Test harness
 
-Use `pkg/testutil` when you need a full service graph and seeded data:
+API route tests use `svc/api/internal/testutil` for a service graph and seeded
+data. This is an API-internal package, not a shared harness in `pkg/testutil`.
+Tests outside `svc/api` must use their service's test setup and the shared
+`pkg/testutil/containers` helpers rather than importing an API-internal package.
 
 ```go
 h := testutil.NewHarness(t)
 workspace := h.CreateWorkspace()
 ```
 
+The default harness shares MySQL. Fixture rows live until the suite's container
+teardown, not until the test ends. For database-wide queries or exact global
+lists, use `testutil.NewHarness(t, testutil.HarnessConfig{IsolatedMySQL: true})`.
+Unique IDs prevent collisions but do not hide sibling tests' rows.
+
+For a project, app, environment, and their default settings, use
+`h.CreateEnvironmentTopology(workspace.ID, mysqltype.EnvironmentKindProduction)`.
+Pass the workspace and environment kind explicitly. This fixture creates no
+credentials or billing entitlements; keep permission grants in the test.
+
 Keep harness setup explicit when it affects the guarantee. Do not hide permissions, feature flags, tenants, or seeded records behind generic helpers unless the helper name or docstring explains the resulting system state.
+
+Use fresh [test evidence](./index.md#fresh-reliability-and-named-witnesses) when
+the result depends on external state. A cached package pass cannot establish
+that a database migration, service version, or persisted state still works.
 
 ## Suite cost
 
