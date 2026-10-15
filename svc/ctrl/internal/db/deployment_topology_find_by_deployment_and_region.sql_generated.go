@@ -40,6 +40,9 @@ SELECT
     d.healthcheck,
     w.k8s_namespace,
     e.slug AS environment_slug,
+    e.kind AS environment_kind,
+    COALESCE(a.slug, '') AS app_slug,
+    d.capabilities,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
@@ -47,6 +50,7 @@ INNER JOIN ` + "`" + `deployments` + "`" + ` d ON d.id = dt.deployment_id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON w.id = d.workspace_id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON r.id = dt.region_id
 INNER JOIN ` + "`" + `environments` + "`" + ` e ON e.id = d.environment_id
+LEFT JOIN ` + "`" + `apps` + "`" + ` a ON a.id = d.app_id
 LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON grc.app_id = d.app_id
 WHERE dt.deployment_id = ? AND dt.region_id = ?
 LIMIT 1
@@ -58,34 +62,37 @@ type FindDeploymentTopologyByDeploymentAndRegionParams struct {
 }
 
 type FindDeploymentTopologyByDeploymentAndRegionRow struct {
-	DesiredStatus                 DeploymentTopologyDesiredStatus `db:"desired_status"`
-	AutoscalingReplicasMin        uint32                          `db:"autoscaling_replicas_min"`
-	AutoscalingReplicasMax        uint32                          `db:"autoscaling_replicas_max"`
-	AutoscalingThresholdCpu       sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
-	AutoscalingThresholdMemory    sql.NullInt16                   `db:"autoscaling_threshold_memory"`
-	ID                            string                          `db:"id"`
-	K8sName                       string                          `db:"k8s_name"`
-	WorkspaceID                   string                          `db:"workspace_id"`
-	ProjectID                     string                          `db:"project_id"`
-	EnvironmentID                 string                          `db:"environment_id"`
-	AppID                         string                          `db:"app_id"`
-	ImageResolved                 sql.NullString                  `db:"image_resolved"`
-	BuildID                       sql.NullString                  `db:"build_id"`
-	GitCommitSha                  sql.NullString                  `db:"git_commit_sha"`
-	GitBranch                     sql.NullString                  `db:"git_branch"`
-	GitCommitMessage              sql.NullString                  `db:"git_commit_message"`
-	CpuMillicores                 int32                           `db:"cpu_millicores"`
-	MemoryMib                     int32                           `db:"memory_mib"`
-	StorageMib                    uint32                          `db:"storage_mib"`
-	EncryptedEnvironmentVariables []byte                          `db:"encrypted_environment_variables"`
-	Command                       mysqltype.StringSlice           `db:"command"`
-	Port                          int32                           `db:"port"`
-	ShutdownSignal                DeploymentsShutdownSignal       `db:"shutdown_signal"`
-	Healthcheck                   mysqltype.NullHealthcheck       `db:"healthcheck"`
-	K8sNamespace                  string                          `db:"k8s_namespace"`
-	EnvironmentSlug               string                          `db:"environment_slug"`
-	RegionName                    string                          `db:"region_name"`
-	GitRepo                       sql.NullString                  `db:"git_repo"`
+	DesiredStatus                 DeploymentTopologyDesiredStatus  `db:"desired_status"`
+	AutoscalingReplicasMin        uint32                           `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax        uint32                           `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu       sql.NullInt16                    `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory    sql.NullInt16                    `db:"autoscaling_threshold_memory"`
+	ID                            string                           `db:"id"`
+	K8sName                       string                           `db:"k8s_name"`
+	WorkspaceID                   string                           `db:"workspace_id"`
+	ProjectID                     string                           `db:"project_id"`
+	EnvironmentID                 string                           `db:"environment_id"`
+	AppID                         string                           `db:"app_id"`
+	ImageResolved                 sql.NullString                   `db:"image_resolved"`
+	BuildID                       sql.NullString                   `db:"build_id"`
+	GitCommitSha                  sql.NullString                   `db:"git_commit_sha"`
+	GitBranch                     sql.NullString                   `db:"git_branch"`
+	GitCommitMessage              sql.NullString                   `db:"git_commit_message"`
+	CpuMillicores                 int32                            `db:"cpu_millicores"`
+	MemoryMib                     int32                            `db:"memory_mib"`
+	StorageMib                    uint32                           `db:"storage_mib"`
+	EncryptedEnvironmentVariables []byte                           `db:"encrypted_environment_variables"`
+	Command                       mysqltype.StringSlice            `db:"command"`
+	Port                          int32                            `db:"port"`
+	ShutdownSignal                DeploymentsShutdownSignal        `db:"shutdown_signal"`
+	Healthcheck                   mysqltype.NullHealthcheck        `db:"healthcheck"`
+	K8sNamespace                  string                           `db:"k8s_namespace"`
+	EnvironmentSlug               string                           `db:"environment_slug"`
+	EnvironmentKind               mysqltype.EnvironmentKind        `db:"environment_kind"`
+	AppSlug                       string                           `db:"app_slug"`
+	Capabilities                  mysqltype.DeploymentCapabilities `db:"capabilities"`
+	RegionName                    string                           `db:"region_name"`
+	GitRepo                       sql.NullString                   `db:"git_repo"`
 }
 
 // FindDeploymentTopologyByDeploymentAndRegion returns a single deployment topology with all
@@ -118,6 +125,9 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //	    d.healthcheck,
 //	    w.k8s_namespace,
 //	    e.slug AS environment_slug,
+//	    e.kind AS environment_kind,
+//	    COALESCE(a.slug, '') AS app_slug,
+//	    d.capabilities,
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt
@@ -125,6 +135,7 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //	INNER JOIN `workspaces` w ON w.id = d.workspace_id
 //	INNER JOIN `regions` r ON r.id = dt.region_id
 //	INNER JOIN `environments` e ON e.id = d.environment_id
+//	LEFT JOIN `apps` a ON a.id = d.app_id
 //	LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 //	WHERE dt.deployment_id = ? AND dt.region_id = ?
 //	LIMIT 1
@@ -158,6 +169,9 @@ func (q *Queries) FindDeploymentTopologyByDeploymentAndRegion(ctx context.Contex
 		&i.Healthcheck,
 		&i.K8sNamespace,
 		&i.EnvironmentSlug,
+		&i.EnvironmentKind,
+		&i.AppSlug,
+		&i.Capabilities,
 		&i.RegionName,
 		&i.GitRepo,
 	)
