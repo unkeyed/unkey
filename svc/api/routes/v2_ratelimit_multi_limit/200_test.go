@@ -13,7 +13,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_multi_limit"
@@ -41,7 +44,8 @@ func TestLimitSuccessfully(t *testing.T) {
 		namespaceName3 := uid.New("nonexistent")
 		rootKey := h.CreateRootKey(
 			h.Resources().UserWorkspace.ID,
-			fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID),
+			rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").RatelimitNamespace("*"), permissions.Write).Value,
+			rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").RatelimitNamespace("*"), permissions.Limit).Value,
 		)
 
 		headers := http.Header{

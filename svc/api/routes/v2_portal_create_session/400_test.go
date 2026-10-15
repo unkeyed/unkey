@@ -43,7 +43,9 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	// Granted so validation failures are isolated from authorization: a 400 case
 	// must fail on the request body, not on a missing permission.
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:**#*", workspaceID))
+	rootKey := h.CreateRootKey(workspaceID,
+		append([]string{sessionWriteGrant(workspaceID, api.ProjectID, portalID)},
+			canonicalReadGrants(workspaceID, api.ProjectID, api.KeyAuthID.String)...)...)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -224,7 +226,12 @@ func TestCreateSessionRejectsRemovedScopes(t *testing.T) {
 	})
 	insertKeyspacePortal(t, h, workspaceID, "removed-scope-portal", api.KeyAuthID.String)
 
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:**#*", workspaceID))
+	rootKey := h.CreateRootKey(workspaceID,
+		append([]string{
+			sessionWriteGrant(workspaceID, api.ProjectID, "*"),
+			canonicalRerollGrant(workspaceID, api.ProjectID, api.KeyAuthID.String),
+			canonicalAnalyticsGrant(workspaceID, api.ProjectID, api.KeyAuthID.String),
+		}, canonicalReadGrants(workspaceID, api.ProjectID, api.KeyAuthID.String)...)...)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -332,7 +339,9 @@ func TestCreateSessionRejectsUnsafeReturnUrl(t *testing.T) {
 	})
 	insertKeyspacePortal(t, h, workspaceID, "return-url-portal", api.KeyAuthID.String)
 
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:**#*", workspaceID))
+	rootKey := h.CreateRootKey(workspaceID,
+		append([]string{sessionWriteGrant(workspaceID, api.ProjectID, "*")},
+			canonicalReadGrants(workspaceID, api.ProjectID, api.KeyAuthID.String)...)...)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

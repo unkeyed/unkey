@@ -2,13 +2,15 @@ package handler_test
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -23,7 +25,7 @@ import (
 // would be a permanent global claim the victim could never clear.
 func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, portalWriteGrant(h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	other := h.CreateWorkspace()
@@ -94,7 +96,8 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	// squat had been allowed.
 	// The same registered route, called with the other workspace's key: the
 	// principal comes from the key, so one registration serves both callers.
-	victimKey := h.CreateRootKey(other.ID, fmt.Sprintf("unkey:v1:%s:**#*", other.ID))
+	victimKey := h.CreateRootKey(other.ID, portalWriteGrant(other.ID),
+		rbac.U(urn.New().Workspace(other.ID).Project(otherApi.ProjectID).Keyspace(otherApi.KeyAuthID.String), permissions.Read).Value)
 	victimHeaders := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {"Bearer " + victimKey},
