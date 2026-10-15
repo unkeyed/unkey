@@ -3,11 +3,15 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -30,6 +34,26 @@ func TestDeleteIdentityMasksInsufficientPermissions(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		ExternalID:  externalID,
 	})
+
+	for _, testCase := range []struct {
+		name       string
+		identityID string
+	}{
+		{"partial identity ID", identity.ID[:len(identity.ID)-1]},
+		{"identity ID case differs", strings.ToUpper(identity.ID)},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			rootKey := h.CreateRootKey(identity.WorkspaceID, rbac.U(urn.New().Workspace(identity.WorkspaceID).Project(identity.ProjectID).Identity(testCase.identityID), permissions.Delete).Value)
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {"Bearer " + rootKey},
+			}, handler.Request{Identity: externalID})
+			require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+			require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+			require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+			require.Equal(t, "Not Found", res.Body.Error.Title)
+		})
+	}
 
 	t.Run("insufficient permissions - no permissions", func(t *testing.T) {
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID) // No permissions
