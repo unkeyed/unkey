@@ -215,7 +215,7 @@ func (h *Handler) bufferAuditLog(
 
 	targets := []auditlog.EventTarget{
 		{
-			Type: string(auditlog.RatelimitNamespaceResourceType),
+			Type: string(auditlog.RatelimitNamespaceTargetType),
 			ID:   namespace.ID,
 			Name: namespace.Name,
 			Meta: nil,
@@ -223,7 +223,7 @@ func (h *Handler) bufferAuditLog(
 	}
 	if override.ID != "" {
 		targets = append(targets, auditlog.EventTarget{
-			Type: string(auditlog.RatelimitOverrideResourceType),
+			Type: string(auditlog.RatelimitOverrideTargetType),
 			ID:   override.ID,
 			Name: override.Identifier,
 			Meta: nil,
@@ -333,10 +333,10 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 					RemoteIP:      s.Location(),
 					UserAgent:     s.UserAgent(),
 					CorrelationID: "",
-					Resources: []auditlog.AuditLogResource{
+					Targets: []auditlog.AuditLogTarget{
 						{
 							ID:          id,
-							Type:        auditlog.RatelimitNamespaceResourceType,
+							Type:        auditlog.RatelimitNamespaceTargetType,
 							Meta:        nil,
 							Name:        name,
 							DisplayName: name,

@@ -1,3 +1,5 @@
+import { formatPeriod } from "@/lib/fmt";
+
 export type UsagePeriod = "current" | "previous";
 
 export type UsagePeriodOption = {
@@ -32,4 +34,22 @@ export function usagePeriodMonth(period: UsagePeriod, now: Date): { year: number
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (period === "previous" ? 1 : 0), 1),
   );
   return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1 };
+}
+
+export type UsagePeriodRange = {
+  label: string;
+  daysLeft: number | null;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function usagePeriodRange(period: UsagePeriod, now: Date): UsagePeriodRange {
+  const { year, month } = usagePeriodMonth(period, now);
+  const start = Date.UTC(year, month - 1, 1);
+  const reset = Date.UTC(year, month, 1);
+
+  return {
+    label: formatPeriod(start, reset - DAY_MS),
+    daysLeft: period === "current" ? Math.ceil((reset - now.getTime()) / DAY_MS) : null,
+  };
 }

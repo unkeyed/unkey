@@ -1,14 +1,14 @@
 import { ResourceListHeader } from "@unkey/ui";
 import { BranchSelect } from "./components/branch-select";
 import { DeploymentListDatetime } from "./components/deployment-list-datetime";
-import { EnvironmentSelect } from "./components/environment-select";
+import { EnvironmentFilter } from "./components/environment-filter";
 import { StatusSelect } from "./components/status-select";
 
 export function DeploymentsListControls() {
   return (
     <ResourceListHeader>
       <div className="w-full md:flex-1">
-        <EnvironmentSelect />
+        <EnvironmentFilter />
       </div>
       <div className="w-full md:flex-1">
         <StatusSelect />

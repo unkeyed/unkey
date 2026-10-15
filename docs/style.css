@@ -417,6 +417,17 @@ html[data-current-path^="/errors/"]:not([data-current-path="/errors/overview"]) 
   background-color: var(--unkey-bg-subtle);
 }
 
+/* Mintlify fills the sidebar footer and the assistant bar mask with
+   background.color.dark (#040406). Those surfaces sit on the lighter
+   sidebar and page, so the bottoms read as solid black bars. */
+.dark #sidebar > ul {
+  background-color: var(--unkey-bg-subtle);
+}
+
+.dark .chat-assistant-floating-input::before {
+  background-color: var(--unkey-bg) !important;
+}
+
 #sidebar .sidebar-group-header {
   color: var(--unkey-text-faint);
   letter-spacing: 0.025em;

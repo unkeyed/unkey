@@ -1,10 +1,17 @@
 name: unkey-dashboard-dev
+x-unkey-labels: &unkey-labels
+  dev.unkey.project: unkey
+x-unkey-image-labels: &unkey-image-labels
+  dev.unkey.image: "true"
+
 services:
   mysql:
+    labels: *unkey-labels
     networks:
       - default
     container_name: mysql
     build:
+      labels: *unkey-image-labels
       context: ../../../..
       dockerfile: dev/Dockerfile.mysql
     restart: always
@@ -26,9 +33,11 @@ services:
       start_period: 10s
 
   clickhouse:
+    labels: *unkey-labels
     networks:
       - default
     build:
+      labels: *unkey-image-labels
       context: ../../../..
       dockerfile: dev/Dockerfile.clickhouse
     container_name: clickhouse
@@ -55,6 +64,7 @@ services:
       start_period: 10s
 
   redis:
+    labels: *unkey-labels
     networks:
       - default
     container_name: redis
@@ -69,11 +79,13 @@ services:
       start_period: 5s
 
   vault:
+    labels: *unkey-labels
     networks:
       - default
     container_name: vault
     image: unkey/vault:dev
     build:
+      labels: *unkey-image-labels
       context: ../../../..
       dockerfile: dev/Dockerfile
       target: vault
@@ -85,6 +97,7 @@ services:
       - vault-data:/var/lib/unkey/vault
 
   restate:
+    labels: *unkey-labels
     networks:
       - default
     container_name: restate
@@ -97,10 +110,12 @@ services:
       - "9070:9070"
 
   ctrl-api:
+    labels: *unkey-labels
     networks:
       - default
     image: unkey/control-api:dev
     build:
+      labels: *unkey-image-labels
       context: ../../../..
       dockerfile: dev/Dockerfile
       target: control-api
@@ -119,10 +134,12 @@ services:
       - ./ctrl-api.toml:/etc/unkey/ctrl-api.toml:ro
 
   ctrl-worker:
+    labels: *unkey-labels
     networks:
       - default
     image: unkey/control-worker:dev
     build:
+      labels: *unkey-image-labels
       context: ../../../..
       dockerfile: dev/Dockerfile
       target: control-worker
@@ -144,11 +161,13 @@ services:
       - ./ctrl-worker.toml:/etc/unkey/ctrl-worker.toml:ro
 
   api:
+    labels: *unkey-labels
     networks:
       - default
     container_name: api
     image: unkey/api:dev
     build:
+      labels: *unkey-image-labels
       context: ../../../..
       dockerfile: dev/Dockerfile
       target: api
@@ -171,8 +190,12 @@ services:
 
 volumes:
   mysql:
+    labels: *unkey-labels
   clickhouse:
+    labels: *unkey-labels
   vault-data:
+    labels: *unkey-labels
 
 networks:
   default:
+    labels: *unkey-labels
