@@ -348,10 +348,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
+				Targets: []auditlog.AuditLogTarget{
 					{
 						ID:   found.ID,
-						Type: auditlog.PortalResourceType,
+						Type: auditlog.PortalTargetType,
 						// Before and after both, because the mapping decides which
 						// keyspaces every session minted from this portal can reach and
 						// an incident reviewer cannot recover the previous value from the

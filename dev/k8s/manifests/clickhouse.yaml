@@ -34,7 +34,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: clickhouse
-          image: unkey/clickhouse:local
+          image: clickhouse/clickhouse-server:26.2.1.1139@sha256:f57ed23ab5c4ee0e9a05c2e811bb3580ead222cea30421b3e66234c32e272bce
           ports:
             - containerPort: 8123
               name: http
@@ -50,6 +50,12 @@ spec:
           volumeMounts:
             - name: clickhouse-storage
               mountPath: /var/lib/clickhouse
+            - name: clickhouse-schema
+              mountPath: /opt/clickhouse-schemas
+              readOnly: true
+            - name: clickhouse-init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
           lifecycle:
             preStop:
               exec:
@@ -58,19 +64,10 @@ spec:
                   - -c
                   - clickhouse-client --user default --password password --query "SYSTEM SHUTDOWN" || sleep 30
           readinessProbe:
-            exec:
-              command:
-                - clickhouse-client
-                - --host
-                - localhost
-                - --user
-                - default
-                - --password
-                - password
-                - --query
-                - "SELECT 1"
-            initialDelaySeconds: 30
-            periodSeconds: 10
+            httpGet:
+              path: /ping
+              port: http
+            periodSeconds: 2
             timeoutSeconds: 5
           livenessProbe:
             exec:
@@ -91,6 +88,13 @@ spec:
         - name: clickhouse-storage
           persistentVolumeClaim:
             claimName: clickhouse-pvc
+        - name: clickhouse-schema
+          configMap:
+            name: clickhouse-schema
+        - name: clickhouse-init
+          configMap:
+            name: clickhouse-init
+            defaultMode: 0555
 
 ---
 apiVersion: v1

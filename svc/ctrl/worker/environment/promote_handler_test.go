@@ -23,6 +23,11 @@ func TestPromoteDeploymentSwapsLiveRoutes(t *testing.T) {
 	f.requireDesiredStateAfterStopDelay(t, f.candidate.ID, mysqltype.DeploymentsDesiredStateRunning)
 	f.requireDesiredStateAfterStopDelay(t, f.other.ID, mysqltype.DeploymentsDesiredStateStopped)
 	require.Equal(t, 1, countAudits(t, f.ctx, f.db, f.workspaceID, auditlog.DeploymentPromoteEvent, f.candidate.ID, f.actorID))
+	f.requireAuditTargets(t, auditlog.DeploymentPromoteEvent, map[string]string{
+		f.candidate.ID: "deployment",
+		f.app.ID:       "app",
+		f.live.ID:      "deployment",
+	})
 }
 
 func TestPromoteDeploymentConfirmsRollback(t *testing.T) {
@@ -35,6 +40,11 @@ func TestPromoteDeploymentConfirmsRollback(t *testing.T) {
 	f.requireLive(t, f.candidate.ID, false)
 	f.requireRoutes(t, f.candidate.ID, f.live.ID)
 	require.Equal(t, 1, countAudits(t, f.ctx, f.db, f.workspaceID, auditlog.DeploymentPromoteEvent, f.candidate.ID, f.actorID))
+	f.requireAuditTargets(t, auditlog.DeploymentPromoteEvent, map[string]string{
+		f.candidate.ID: "deployment",
+		f.app.ID:       "app",
+		f.other.ID:     "deployment",
+	})
 }
 
 func TestPromoteDeploymentRejectsForeignEnvironment(t *testing.T) {

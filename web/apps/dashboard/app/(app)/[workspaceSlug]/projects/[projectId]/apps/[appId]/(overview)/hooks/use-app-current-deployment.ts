@@ -1,6 +1,7 @@
 import { collection } from "@/lib/collections";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useAppId, useProjectData } from "../data-provider";
+import { appDeploymentQueryFor } from "../data-provider-queries";
 
 // The current deployment can be older than the newest-100 window the provider
 // holds, so it is resolved by id. The collection loads a single-id subset on
@@ -21,17 +22,7 @@ export function useAppCurrentDeployment() {
 
   const currentDeploymentQuery = useLiveQuery(
     (q) =>
-      currentDeploymentId
-        ? q
-            .from({ deployment: collection.deployments })
-            .where(({ deployment }) =>
-              and(
-                eq(deployment.projectId, projectId),
-                eq(deployment.appId, appId),
-                eq(deployment.id, currentDeploymentId),
-              ),
-            )
-        : null,
+      currentDeploymentId ? appDeploymentQueryFor(projectId, appId, currentDeploymentId)(q) : null,
     [projectId, appId, currentDeploymentId],
   );
 

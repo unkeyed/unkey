@@ -3,6 +3,7 @@ package environment_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -243,6 +245,34 @@ func (f *fixture) requireLive(t *testing.T, deploymentID string, rolledBack bool
 	require.NoError(t, err)
 	require.Equal(t, deploymentID, app.CurrentDeploymentID.String, "app current_deployment_id")
 	require.Equal(t, rolledBack, app.IsRolledBack, "app is_rolled_back")
+}
+
+// requireAuditTargets verifies that the handler persisted one correlated audit
+// event for the fixture's actor with exactly the affected targets, without
+// missing targets, duplicates, or unchanged parent targets.
+func (f *fixture) requireAuditTargets(t *testing.T, event auditlog.AuditLogEvent, want map[string]string) {
+	t.Helper()
+	rows, err := f.db.ListClickhouseOutboxByWorkspace(f.ctx, f.workspaceID)
+	require.NoError(t, err)
+	var matches []auditlog.Event
+	for _, row := range rows {
+		if row.Version != auditlog.OutboxVersionV1 {
+			continue
+		}
+		var entry auditlog.Event
+		require.NoError(t, json.Unmarshal(row.Payload, &entry))
+		if entry.Event == string(event) && entry.Actor.ID == f.actorID {
+			matches = append(matches, entry)
+		}
+	}
+	require.Len(t, matches, 1)
+	require.NotEmpty(t, matches[0].CorrelationID)
+	require.Len(t, matches[0].Targets, len(want))
+	got := make(map[string]string, len(matches[0].Targets))
+	for _, target := range matches[0].Targets {
+		got[target.ID] = target.Type
+	}
+	require.Equal(t, want, got)
 }
 
 // routeOwners maps each route kind in the environment to the deployment it

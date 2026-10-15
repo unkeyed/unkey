@@ -1,0 +1,43 @@
+---
+title: "ratelimit_namespace_already_exists"
+sidebarTitle: "ratelimit_namespace_already_exists"
+description: "A rate limit namespace with that name already exists or was deleted in the workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_ratelimit_create_namespace/handler.go
+  - web/internal/db/src/schema/ratelimit.ts
+---
+
+<Danger>`err:unkey:data:ratelimit_namespace_already_exists`</Danger>
+
+`ratelimit.createNamespace` named a namespace that already exists or was deleted in your workspace, so it didn't create one. You get HTTP 409.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "A namespace named 'email.outbound' already exists or was deleted in this workspace. Choose a different name.",
+    "status": 409,
+    "title": "Conflicting Resource",
+    "type": "/errors/unkey/data/ratelimit_namespace_already_exists"
+  }
+}
+```
+
+## Likely causes
+
+- You already created this namespace, or `ratelimit.limit` created it the first time a root key that can create namespaces used the name.
+- A namespace with this name was deleted. A deleted name can't be reused.
+
+## How to fix
+
+1. Reuse the existing namespace. Find it with `ratelimit.listNamespaces`.
+2. Or choose another name. Names are case-sensitive, so `Email` and `email` are different namespaces.
+
+## Related errors
+
+- [`err:unkey:data:ratelimit_namespace_gone`](/errors/unkey/data/ratelimit_namespace_gone): the namespace was deleted.
+- [`err:unkey:data:ratelimit_namespace_not_found`](/errors/unkey/data/ratelimit_namespace_not_found): the namespace doesn't exist.

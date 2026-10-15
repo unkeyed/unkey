@@ -221,7 +221,7 @@ function ComboboxItem({
     <ComboboxPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex w-full cursor-pointer select-none items-center overflow-hidden rounded-sm px-2 py-1.5 text-sm outline-hidden",
+        "relative flex w-full cursor-pointer select-none items-center gap-2 overflow-hidden rounded-sm px-2 py-1.5 text-sm outline-hidden",
         "text-gray-12 data-highlighted:bg-grayA-3 data-disabled:cursor-not-allowed data-disabled:opacity-50",
         className,
       )}

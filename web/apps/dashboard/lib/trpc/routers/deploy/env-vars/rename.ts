@@ -1,8 +1,15 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
+import {
+  envVarAuditLogs,
+  keyTakenError,
+  lockAndFindTakenKeys,
+  toEnvVarWriteError,
+} from "./env-var-write";
 
 // Renames a variable across environments in one statement.
 //
@@ -11,6 +18,7 @@ import { workspaceProcedure } from "../../../trpc";
 // API never returns for a writeonly variable. It also cannot refuse a rename
 // onto a key that is in use. This changes only the key column.
 export const renameEnvVars = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .input(
     z.object({
       appId: z.string().min(1),
@@ -35,56 +43,57 @@ export const renameEnvVars = workspaceProcedure
           inArray(schema.appEnvironmentVariables.environmentId, environmentIds),
         ),
         columns: { id: true },
+        with: { environment: { columns: { id: true, slug: true } } },
       });
 
       if (targets.length === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Environment variable(s) not found",
+          message: "Environment variable not found",
         });
       }
 
-      // Another variable can already hold the new key in one of these
-      // environments. Fail the rename instead of replacing it.
-      const conflicts = await db.query.appEnvironmentVariables.findMany({
-        where: and(
-          eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
-          eq(schema.appEnvironmentVariables.appId, input.appId),
-          eq(schema.appEnvironmentVariables.key, input.newKey),
-          inArray(schema.appEnvironmentVariables.environmentId, environmentIds),
-        ),
-        columns: { id: true },
-      });
-
-      if (conflicts.length > 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: `A variable named "${input.newKey}" already exists in one of these environments`,
+      return await db.transaction(async (tx) => {
+        const taken = await lockAndFindTakenKeys(tx, {
+          appId: input.appId,
+          environmentIds: targets.map((t) => t.environment.id),
+          keys: [input.newKey],
         });
-      }
+        if (taken.length > 0) {
+          throw keyTakenError(input.newKey);
+        }
 
-      const result = await db
-        .update(schema.appEnvironmentVariables)
-        .set({ key: input.newKey })
-        .where(
-          and(
-            inArray(
-              schema.appEnvironmentVariables.id,
-              targets.map((t) => t.id),
+        const result = await tx
+          .update(schema.appEnvironmentVariables)
+          .set({ key: input.newKey })
+          .where(
+            and(
+              inArray(
+                schema.appEnvironmentVariables.id,
+                targets.map((t) => t.id),
+              ),
+              eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
             ),
-            eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
-          ),
+          );
+
+        await insertAuditLogs(
+          tx,
+          envVarAuditLogs({
+            workspaceId: ctx.workspace.id,
+            userId: ctx.user.id,
+            context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+            changes: targets.map(({ environment }) => ({
+              action: "rename" as const,
+              environment,
+              key: input.newKey,
+              previousKey: input.key,
+            })),
+          }),
         );
 
-      return { updated: result[0].affectedRows };
-    } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to rename environment variable(s)",
+        return { updated: result[0].affectedRows };
       });
+    } catch (error) {
+      throw toEnvVarWriteError(error, "Failed to rename environment variable");
     }
   });

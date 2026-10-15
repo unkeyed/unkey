@@ -1,242 +1,147 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
-import { type PolicyRow, replacePolicyLists, rowKey } from "@/lib/collections/deploy/policies";
 import {
-  POLICY_LIMITS,
-  type Policy,
-  policyMatchKey,
-} from "@/lib/collections/deploy/policies.schema";
+  type PolicyListToast,
+  type PolicyRow,
+  persistPolicyMutations,
+  policies,
+  policyList,
+  rowKey,
+} from "@/lib/collections/deploy/policies";
+import { POLICY_ERRORS, type PolicyInput } from "@/lib/collections/deploy/policies.schema";
+import {
+  type QueueStrategy,
+  type Transaction,
+  queueStrategy,
+  usePacedMutations,
+} from "@tanstack/react-db";
+import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
-import { useCallback } from "react";
-import { type Env, type MergedPolicy, policyInEnv } from "../components/list/merge";
+import { useState } from "react";
+import {
+  type PolicyEdit,
+  type PolicyOp,
+  insertPolicy,
+  removePolicy,
+  reorderPolicies,
+  replacesList,
+  setEnabled,
+  updatePolicy,
+} from "../model/edits";
+import type { Env, PolicyEnvs } from "../model/merge";
 
-const AT_CAPACITY = `An environment holds at most ${POLICY_LIMITS.maxPolicies} policies.`;
-
-type Args = {
-  productionId: string;
-  previewId: string;
-  projectId: string;
-  appId: string;
-  merged: MergedPolicy[];
-  rowsByEnv: Record<Env, PolicyRow[]>;
-};
+type Args = { envs: PolicyEnvs; projectId: string; appId: string };
 
 export type PolicyActions = {
-  toggleEnv: (key: string, env: Env) => void;
-  addToEnv: (key: string, env: Env) => void;
-  reorder: (envs: Env[], rowsByEnv: Partial<Record<Env, PolicyRow[]>>) => void;
-  save: (prodPolicy: Policy | null, previewPolicy: Policy | null, editing?: MergedPolicy) => void;
-  delete: (key: string) => void;
+  replacingList: boolean;
+  setEnabled: (key: string, env: Env, enabled: boolean) => Promise<boolean>;
+  reorder: (fromKey: string, toKey: string) => Promise<boolean>;
+  save: (policy: PolicyInput, envs: readonly Env[]) => Promise<boolean>;
+  update: (key: string, policy: PolicyInput) => Promise<boolean>;
+  delete: (key: string) => Promise<boolean>;
 };
 
-/**
- * An edit goes through the collection, which has `gateway.updatePolicy` behind
- * it. Insert, delete and reorder have no endpoint of their own, so they replace
- * an environment's whole list.
- *
- * That replace is last write wins, and neither endpoint takes a version: a
- * policy another tab added since this page loaded is dropped by it.
- */
-export function usePolicyActions({
-  productionId,
-  previewId,
-  projectId,
-  appId,
-  merged,
-  rowsByEnv,
-}: Args): PolicyActions {
-  const envIdFor = useCallback(
-    (env: Env) => (env === "production" ? productionId : previewId),
-    [productionId, previewId],
-  );
+const TOASTS = {
+  add: { loading: "Adding policy...", success: "Policy added", error: "Failed to add policy" },
+  update: {
+    loading: "Updating policy...",
+    success: "Policy updated",
+    error: "Failed to update policy",
+  },
+  delete: {
+    loading: "Deleting policy...",
+    success: "Policy deleted",
+    error: "Failed to delete policy",
+  },
+  reorder: {
+    loading: "Reordering policies...",
+    success: "Policies reordered",
+    error: "Failed to reorder policies",
+  },
+} satisfies Record<string, PolicyListToast>;
 
-  const toggleEnv = useCallback(
-    (key: string, env: Env) => {
-      const policy = policyInEnv(merged, key, env);
-      if (!policy) {
-        return;
-      }
-      const rowId = rowKey(envIdFor(env), policy.id);
-      if (!collection.policies.get(rowId)) {
-        return;
-      }
-      collection.policies.update(rowId, (draft) => {
-        draft.enabled = !draft.enabled;
-      });
-    },
-    [envIdFor, merged],
-  );
-
-  const addToEnv = useCallback(
-    (key: string, env: Env) => {
-      const targetEnvId = envIdFor(env);
-      if (!targetEnvId) {
-        return;
-      }
-      const source = policyInEnv(merged, key, env === "production" ? "preview" : "production");
-      if (!source) {
-        return;
-      }
-      const current = rowsByEnv[env];
-      if (current.length >= POLICY_LIMITS.maxPolicies) {
-        toast.error(AT_CAPACITY);
-        return;
-      }
-      replacePolicyLists(
-        [
-          {
-            environmentId: targetEnvId,
-            projectId,
-            appId,
-            policies: [
-              ...current,
-              { ...source, environmentId: targetEnvId, projectId, appId, enabled: false },
-            ],
-          },
-        ],
-        {
-          loading: "Adding policy...",
-          success: "Policy added",
-          error: "Failed to add policy",
-        },
-      );
-    },
-    [envIdFor, projectId, appId, merged, rowsByEnv],
-  );
-
-  const reorder = useCallback(
-    (envs: Env[], reordered: Partial<Record<Env, PolicyRow[]>>) => {
-      replacePolicyLists(
-        envs
-          .map((env) => ({
-            environmentId: envIdFor(env),
-            projectId,
-            appId,
-            policies: reordered[env] ?? [],
-          }))
-          .filter((r) => r.environmentId !== "" && r.policies.length > 0),
-        {
-          loading: "Reordering policies...",
-          success: "Policies reordered",
-          error: "Failed to reorder policies",
-        },
-      );
-    },
-    [envIdFor, projectId, appId],
-  );
-
-  /**
-   * `editing` carries the row the panel opened, so an edit resolves its target
-   * by id. Looking it up by the submitted name would miss on a rename and
-   * append a second copy.
-   */
-  const save = useCallback(
-    (prodPolicy: Policy | null, previewPolicy: Policy | null, editing?: MergedPolicy) => {
-      const submitted = prodPolicy ?? previewPolicy;
-      if (!submitted) {
-        return;
-      }
-      const submittedMatchKey = policyMatchKey(submitted.type, submitted.name);
-      const targets = [
-        {
-          env: "production" as const,
-          envId: productionId,
-          policy: prodPolicy,
-          existing: editing?.production,
-        },
-        {
-          env: "preview" as const,
-          envId: previewId,
-          policy: previewPolicy,
-          existing: editing?.preview,
-        },
-      ].filter((t) => t.envId);
-
-      const updates: { key: string; enabled: boolean }[] = [];
-      const appends: Parameters<typeof replacePolicyLists>[0] = [];
-
-      for (const target of targets) {
-        const existingRow = editing
-          ? target.existing
-          : rowsByEnv[target.env].find((r) => policyMatchKey(r.type, r.name) === submittedMatchKey);
-        if (existingRow) {
-          updates.push({
-            key: rowKey(target.envId, existingRow.id),
-            enabled: target.policy !== null,
-          });
-        } else if (target.policy) {
-          appends.push({
-            environmentId: target.envId,
-            projectId,
-            appId,
-            policies: [
-              ...rowsByEnv[target.env],
-              { ...target.policy, environmentId: target.envId, projectId, appId },
-            ],
-          });
-        }
-      }
-
-      if (appends.some((a) => a.policies.length > POLICY_LIMITS.maxPolicies)) {
-        toast.error(AT_CAPACITY);
-        return;
-      }
-
-      if (updates.length > 0) {
-        // The form id can belong to the copy in the other environment. Each row
-        // keeps the server id it has.
-        const { id: _formId, ...fields } = submitted;
-        collection.policies.update(
-          updates.map((u) => u.key),
-          (drafts) => {
-            for (let i = 0; i < drafts.length; i++) {
-              // A merged row is one policy: the rule and the name reach every
-              // environment it exists in, and only `enabled` follows the panel's
-              // choice. Renaming the selected copy alone would unpair the row.
-              Object.assign(drafts[i], fields, { enabled: updates[i].enabled });
-            }
-          },
-        );
-      }
-
-      replacePolicyLists(appends, {
-        loading: "Adding policy...",
-        success: "Policy added",
-        error: "Failed to add policy",
-      });
-    },
-    [productionId, previewId, projectId, appId, rowsByEnv],
-  );
-
-  const remove = useCallback(
-    (key: string) => {
-      replacePolicyLists(
-        ENVIRONMENT_KINDS.flatMap((env) => {
-          const policy = policyInEnv(merged, key, env);
-          const envId = envIdFor(env);
-          if (!policy || !envId) {
-            return [];
-          }
-          return [
-            {
-              environmentId: envId,
-              projectId,
-              appId,
-              policies: rowsByEnv[env].filter((r) => r.id !== policy.id),
-            },
-          ];
+function applyOps(ops: PolicyOp[]) {
+  for (const op of ops) {
+    const key = rowKey(op.row.environmentId, op.row.id);
+    match(op)
+      .with({ type: "insert" }, ({ row }) => policies.insert(row))
+      .with({ type: "update" }, ({ patch }) =>
+        policies.update(key, (draft) => {
+          Object.assign(draft, patch);
         }),
-        {
-          loading: "Deleting policy...",
-          success: "Policy deleted",
-          error: "Failed to delete policy",
-        },
-      );
-    },
-    [envIdFor, projectId, appId, merged, rowsByEnv],
-  );
+      )
+      .with({ type: "delete" }, () => policies.delete(key))
+      .exhaustive();
+  }
+}
 
-  return { toggleEnv, addToEnv, reorder, save, delete: remove };
+function usePolicyWrite(strategy: QueueStrategy, labels: PolicyListToast) {
+  return usePacedMutations<PolicyOp[], PolicyRow>({
+    strategy,
+    onMutate: applyOps,
+    mutationFn: ({ transaction }) => persistPolicyMutations(transaction.mutations, labels),
+  });
+}
+
+export function usePolicyActions({ envs, projectId, appId }: Args): PolicyActions {
+  const [strategy] = useState(() => queueStrategy());
+  const add = usePolicyWrite(strategy, TOASTS.add);
+  const update = usePolicyWrite(strategy, TOASTS.update);
+  const remove = usePolicyWrite(strategy, TOASTS.delete);
+  const reorder = usePolicyWrite(strategy, TOASTS.reorder);
+  const [replacing, setReplacing] = useState<ReadonlySet<Transaction<PolicyRow>>>(new Set());
+
+  const trackReplace = (tx: Transaction<PolicyRow>) => {
+    setReplacing((prev) => new Set(prev).add(tx));
+    void tx.isPersisted.promise
+      .catch(() => undefined)
+      .finally(() =>
+        setReplacing((prev) => new Set([...prev].filter((pending) => pending !== tx))),
+      );
+  };
+
+  const run = async (
+    write: ReturnType<typeof usePolicyWrite>,
+    edit: PolicyEdit,
+  ): Promise<boolean> => {
+    const production = envs.production.id;
+    const preview = envs.preview.id;
+    if (production === null || preview === null) {
+      toast.error(POLICY_ERRORS.environmentMissing);
+      return false;
+    }
+    const result = edit(
+      { production: policyList(production), preview: policyList(preview) },
+      { projectId, appId, environments: { production, preview } },
+    );
+    if (result.type === "reject") {
+      toast.error(result.message);
+      return false;
+    }
+    if (result.ops.length === 0) {
+      return true;
+    }
+    const replaces = replacesList(result.ops);
+    // An in-place write queued behind a list replace targets ids the replace retires.
+    if (!replaces && replacing.size > 0) {
+      return false;
+    }
+    const tx = write(result.ops);
+    if (replaces) {
+      trackReplace(tx);
+    }
+    return tx.isPersisted.promise.then(
+      () => true,
+      () => false,
+    );
+  };
+
+  return {
+    replacingList: replacing.size > 0,
+    setEnabled: (key, env, enabled) => run(update, setEnabled(key, env, enabled)),
+    reorder: (fromKey, toKey) => run(reorder, reorderPolicies(fromKey, toKey)),
+    save: (policy, targets) => run(add, insertPolicy(policy, targets)),
+    update: (key, policy) => run(update, updatePolicy(key, policy)),
+    delete: (key) => run(remove, removePolicy(key)),
+  };
 }
