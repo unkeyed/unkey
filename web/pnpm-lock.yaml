@@ -21,6 +21,7 @@ catalogs:
 
 overrides:
   zod: 4.3.5
+  drizzle-kit>zod: 3.24.4
   '@tanstack/router-generator>zod': 4.5.4
   '@tanstack/start-plugin-core>zod': 4.5.4
   '@tanstack/router-plugin>zod': 4.5.4
@@ -32,7 +33,7 @@ overrides:
   blume>react: 19.2.3
   blume>react-dom: 19.2.3
 
-packageExtensionsChecksum: sha256-7EyWhva5Lcamo6pe18OzfUc27A7xbWt39+G/ofluF9k=
+packageExtensionsChecksum: sha256-9MwknFM5jaFd9xmSqQtUVeLag2shWg7PvIVm6Ng27i8=
 
 importers:
 
@@ -10923,6 +10924,9 @@ packages:
     peerDependencies:
       zod: 4.3.5
 
+  zod@3.24.4:
+    resolution: {integrity: sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==}
+
   zod@4.3.5:
     resolution: {integrity: sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==}
 
@@ -16927,6 +16931,7 @@ snapshots:
       '@esbuild-kit/esm-loader': 2.6.5
       esbuild: 0.25.12
       esbuild-register: 3.6.0(esbuild@0.25.12)(supports-color@10.2.2)
+      zod: 3.24.4
     transitivePeerDependencies:
       - supports-color
 
@@ -21292,6 +21297,8 @@ snapshots:
   zod-to-json-schema@3.25.2(zod@4.3.5):
     dependencies:
       zod: 4.3.5
+
+  zod@3.24.4: {}
 
   zod@4.3.5: {}
 

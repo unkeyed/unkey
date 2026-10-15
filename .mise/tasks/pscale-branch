@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Create PlanetScale branch and run drizzle migration (BRANCH=name [FROM=staging])"
+#MISE description="Apply only this Git branch's schema changes (BRANCH=name [FROM=staging] [BASE_REF=origin/main])"
 #MISE depends=["install-web"]
 set -euo pipefail
 
@@ -8,20 +8,42 @@ if [ -z "${BRANCH:-}" ]; then
   exit 1
 fi
 
-if [ "$BRANCH" = "main" ]; then
-  echo "Error: BRANCH must not be 'main'; this task migrates whichever branch it targets."
+FROM="${FROM:-staging}"
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "staging" ] || [ "$BRANCH" = "$FROM" ]; then
+  echo "Error: BRANCH must be a development branch, not main, staging, or FROM."
   exit 1
 fi
 
-FROM="${FROM:-staging}"
+BASE="$(git merge-base "${BASE_REF:-origin/main}" HEAD)"
+TEMP="$(mktemp -d "$PWD/web/internal/db/.pscale-XXXXXX")"
+PASSWORD_ID=""
+cleanup() {
+  if [ -n "$PASSWORD_ID" ]; then
+    pscale password delete unkey "$BRANCH" "$PASSWORD_ID" --org unkey --force >/dev/null 2>&1 \
+      || echo "Warning: temporary password cleanup failed; it expires after one hour." >&2
+  fi
+  rm -rf "$TEMP"
+}
+trap cleanup EXIT
+
+git archive "$BASE" web/internal/db/src | tar -x -C "$TEMP"
+echo "Planning schema changes since Git merge-base $BASE."
+pnpm --dir=web/internal/db exec drizzle-kit generate --dialect=mysql \
+  --schema="$TEMP/web/internal/db/src/schema/index.ts" --out="$TEMP/base" >/dev/null
+pnpm --dir=web/internal/db exec drizzle-kit generate --dialect=mysql \
+  --schema=./src/schema/index.ts --out="$TEMP/head" >/dev/null
+node web/internal/db/scripts/pscale-branch.mts \
+  "$TEMP/base/meta/0000_snapshot.json" "$TEMP/head/meta/0000_snapshot.json" --check
+
 pscale branch create unkey "$BRANCH" --org unkey --from "$FROM" --wait \
   || pscale branch show unkey "$BRANCH" --org unkey >/dev/null
-# drizzle-kit push needs DDL, so this one-shot credential must be admin; it is
-# deleted when the task ends so ephemeral branches do not accumulate credentials.
 PW="$(pscale password create unkey "$BRANCH" "local-$(date +%s)" --org unkey --role admin --ttl 1h --format json)"
 PASSWORD_ID="$(echo "$PW" | jq -r '.id')"
 USER="$(echo "$PW" | jq -r '.username | @uri')"
 PASS="$(echo "$PW" | jq -r '.plain_text | @uri')"
 HOST="$(echo "$PW" | jq -r '.access_host_url | @uri')"
-trap 'pscale password delete unkey "$BRANCH" "$PASSWORD_ID" --org unkey --force >/dev/null 2>&1 || true' EXIT
-DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/unkey?ssl={}" pnpm --dir=web/internal/db run migrate
+export DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/unkey?ssl={}"
+pnpm --dir=web/internal/db exec drizzle-kit pull --out="$TEMP/live" >/dev/null
+node web/internal/db/scripts/pscale-branch.mts \
+  "$TEMP/base/meta/0000_snapshot.json" "$TEMP/head/meta/0000_snapshot.json" \
+  "$TEMP/live/meta/0000_snapshot.json"
