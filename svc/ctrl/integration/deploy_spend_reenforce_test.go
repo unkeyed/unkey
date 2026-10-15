@@ -210,7 +210,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 
 	// 4) Resume with the budget raised above spend. The merged record restores
 	//    BOTH apps; a replace bug would have dropped app1.
-	r, err = client.CheckWorkspaceSpend().Request(ctx, &hydrav1.CheckWorkspaceSpendRequest{
+	raisedBudget := &hydrav1.CheckWorkspaceSpendRequest{
 		Period:             period,
 		BudgetCents:        1_000_000,
 		Stop:               true,
@@ -219,9 +219,13 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 		WorkspaceSlug:      "test",
 		SpendMicroCents:    200 * deploybilling.MicroCentsPerCent,
 		CurrentlySuspended: true,
-	})
+	}
+	r, err = client.CheckWorkspaceSpend().Request(ctx, raisedBudget)
 	require.NoError(t, err)
-	require.False(t, r.GetSuspended(), "budget raised above spend should resume")
+	require.True(t, r.GetSuspended(), "one under-budget check must not resume compute")
+	r, err = client.CheckWorkspaceSpend().Request(ctx, raisedBudget)
+	require.NoError(t, err)
+	require.False(t, r.GetSuspended(), "two consecutive under-budget checks should resume compute")
 	require.Eventually(t, func() bool {
 		a1, e1 := h.DB.FindAppById(ctx, dep1.AppID)
 		a2, e2 := h.DB.FindAppById(ctx, dep2.AppID)
