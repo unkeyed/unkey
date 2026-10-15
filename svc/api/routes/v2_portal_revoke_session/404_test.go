@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -16,7 +15,7 @@ import (
 // An unknown portal and another workspace's portal get the same 404.
 func TestRevokeSessionUnknownPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, workspaceAdminPermission(h))
+	route, headers := newRoute(t, h, sessionWritePermission(h))
 
 	other := h.CreateWorkspace()
 	theirs, mapping := seedPortal(t, h, other.ID, "revoke-theirs")

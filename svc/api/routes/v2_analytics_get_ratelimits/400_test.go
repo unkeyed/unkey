@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -25,7 +28,7 @@ func Test400_NoAuthHeaderFailsValidation(t *testing.T) {
 // Test400_InvalidQueries guarantees malformed SQL and physical tables fail.
 func Test400_InvalidQueries(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").RatelimitNamespace("*").Logs(), permissions.Read).Value)
 	id := createNamespace(t, h, workspaceID)
 	tests := []string{
 		"", "SELECT FROM",
@@ -45,7 +48,7 @@ func TestAuthorizeAllowsManyUniqueNamespaces(t *testing.T) {
 	for i := range ids {
 		ids[i] = createNamespace(t, h, workspaceID)
 	}
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").RatelimitNamespace("*").Logs(), permissions.Read).Value)
 	quoted := make([]string, len(ids))
 	for i, id := range ids {
 		quoted[i] = "'" + id + "'"
