@@ -67,6 +67,18 @@ func TestAuthorizationErrors(t *testing.T) {
 	// exists, so read-authorization failures are masked as 404 rather than 403.
 	// See TestUnauthorizedDoesNotLeakExistence for the existence-oracle guard.
 
+	t.Run("read grants must cover the same keyspace", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspace.ID,
+			keyspaceGrant(workspace.ID, projectID, keySpaceID, "read"),
+			keyGrant(workspace.ID, projectID, uid.New(uid.KeySpacePrefix), "read"),
+		)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer " + rootKey},
+		}, handler.Request{ApiId: apiID})
+		require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+	})
+
 	// Test case for insufficient permissions - missing read_key
 	t.Run("missing read_key permission", func(t *testing.T) {
 		// Create a root key with only read_api but no read_key permission
