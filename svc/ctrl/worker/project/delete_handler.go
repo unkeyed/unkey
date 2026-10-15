@@ -1,7 +1,10 @@
 package project
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -11,17 +14,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Delete removes a project by delegating all resource cleanup to each
-// app's virtual object, then deleting the project record itself. In-flight
-// deployments are cancelled inside the environment delete handler (the
-// closest owner of deployment rows), which the app -> environment cascade
-// fans out to.
-//
-// The project.delete audit log is written here as a durable step rather than
-// on the enqueueing RPC, so the audit record is tied to the retried unit. The
-// actor and correlation ID are forwarded to each app delete (and on to each
-// environment delete) so the whole teardown groups under one correlation ID.
-//
 // Key: project_id
 func (s *Service) Delete(
 	ctx restate.ObjectContext,
@@ -31,12 +23,32 @@ func (s *Service) Delete(
 
 	logger.Info("starting project deletion", "project_id", projectID)
 
-	// Capture project metadata before the row is deleted, for the audit log.
-	project, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Project, error) {
-		return s.db.FindProjectById(runCtx, projectID)
+	project, err := restate.Run(ctx, func(runCtx restate.RunContext) (*db.Project, error) {
+		project, err := s.db.FindProjectById(runCtx, projectID)
+		if db.IsNotFound(err) {
+			return nil, nil
+		}
+		return &project, err
 	}, restate.WithName("find project"))
 	if err != nil {
 		return nil, fmt.Errorf("find project: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.TxRetry(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			queries := db.NewQueries(tx)
+			now := time.Now().UnixMilli()
+			if err := queries.MarkProjectDeleted(txCtx, db.MarkProjectDeletedParams{
+				ID: projectID, DeletedAt: sql.NullInt64{Valid: true, Int64: now},
+			}); err != nil {
+				return err
+			}
+			return queries.NotifyDeploymentTopologiesByProject(txCtx, db.NotifyDeploymentTopologiesByProjectParams{
+				ProjectID: projectID, UpdatedAt: now,
+			})
+		})
+	}, restate.WithName("mark project deleting")); err != nil {
+		return nil, fmt.Errorf("mark project deleting: %w", err)
 	}
 
 	apps, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
@@ -50,16 +62,22 @@ func (s *Service) Delete(
 		logger.Info("deleting app", "project_id", projectID, "app_id", appID)
 
 		appClient := hydrav1.NewAppServiceClient(ctx, appID)
-		appClient.Delete().Send(&hydrav1.DeleteAppRequest{
+		if _, err := appClient.Delete().Request(&hydrav1.DeleteAppRequest{
 			Actor:         req.GetActor(),
 			CorrelationId: req.GetCorrelationId(),
-		})
+		}); err != nil {
+			return nil, fmt.Errorf("delete app %s: %w", appID, err)
+		}
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteProjectById(runCtx, projectID)
 	}, restate.WithName("delete project")); err != nil {
 		return nil, fmt.Errorf("delete project: %w", err)
+	}
+
+	if project == nil {
+		return &hydrav1.DeleteProjectResponse{}, nil
 	}
 
 	if err := audit.Insert(ctx, s.auditlogs, audit.Event{

@@ -40,6 +40,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	ctrlmetrics "github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -47,6 +48,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
@@ -158,6 +160,26 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	r.Defer(database.Close)
+
+	r.Go(func(ctx context.Context) error {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			startedAt, queryErr := database.FindOldestEnvironmentDeletion(queryCtx)
+			cancel()
+			if queryErr != nil {
+				logger.Error("unable to measure environment deletion age", "error", queryErr)
+			} else {
+				ctrlmetrics.ObserveEnvironmentDeletion(startedAt)
+			}
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-ticker.C:
+			}
+		}
+	})
 
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
@@ -590,6 +612,7 @@ func Run(ctx context.Context, cfg Config) error {
 			AuditLogExport:     cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
 			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
 			RatelimitCleanup:   cronHeartbeat(cfg.Heartbeat.RatelimitGlobalCountersCleanupURL),
+			ResourceCleanup:    cronHeartbeat(cfg.Heartbeat.ResourceCleanupURL),
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
@@ -735,6 +758,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
+		ConfigureHandler("RunResourceCleanup", resourcecleanup.RetryPolicy()).
 		// 1h journal retention keeps debugging headroom for an oncall to
 		// inspect a recent failure without bloating the journal store with
 		// ~1440 dead invocations/day.

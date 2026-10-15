@@ -1618,7 +1618,8 @@ func (h *createHarness) auditPayload(t *testing.T, ctx context.Context, event au
 
 func (h *createHarness) clearRegions(t *testing.T, ctx context.Context) {
 	t.Helper()
-	require.NoError(t, h.database.DeleteAppRegionalSettingsByEnvironmentId(ctx, h.environmentID))
+	_, err := h.database.RW().ExecContext(ctx, "DELETE FROM app_regional_settings WHERE environment_id = ?", h.environmentID)
+	require.NoError(t, err)
 }
 
 func (h *createHarness) setRuntimeBounds(t *testing.T, ctx context.Context, port, cpuMillicores, memoryMib int32) {
@@ -1786,5 +1787,6 @@ func (h *createHarness) seedOciSource(t *testing.T, ctx context.Context, image s
 // gets no build settings row.
 func (h *createHarness) dropBuildSettings(t *testing.T, ctx context.Context) {
 	t.Helper()
-	require.NoError(t, h.database.DeleteAppBuildSettingsByEnvironmentId(ctx, h.environmentID))
+	_, err := h.database.RW().ExecContext(ctx, "DELETE FROM app_build_settings WHERE environment_id = ?", h.environmentID)
+	require.NoError(t, err)
 }

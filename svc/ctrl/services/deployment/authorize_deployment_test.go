@@ -222,9 +222,10 @@ func TestAuthorizeDeploymentRevertsWhenCreateRefuses(t *testing.T) {
 	deployment := f.seedGitAwaitingApproval(ctx)
 
 	// Nowhere left to schedule. The pre-CAS gate does not look at regions
-	require.NoError(t, f.database.DeleteAppRegionalSettingsByEnvironmentId(ctx, f.environmentID))
+	_, err := f.database.RW().ExecContext(ctx, "DELETE FROM app_regional_settings WHERE environment_id = ?", f.environmentID)
+	require.NoError(t, err)
 
-	_, err := f.svc.AuthorizeDeployment(ctx, f.request(deployment.ID))
+	_, err = f.svc.AuthorizeDeployment(ctx, f.request(deployment.ID))
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	f.requireNoDeploy(t, deployment.ID)
 	f.requireStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusAwaitingApproval)

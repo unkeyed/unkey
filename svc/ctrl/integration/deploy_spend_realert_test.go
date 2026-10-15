@@ -146,9 +146,10 @@ func TestDeploySpendCheck_ReAlertAfterBudgetChange(t *testing.T) {
 	tick(budgetLow, 10_000, true) // 100% of $100 -> stopped email #1, suspend
 	require.True(t, suspended, "spend at budget with stop set should suspend")
 
-	// Raise the budget to $200: spend ($100) is now under it, so compute resumes.
-	tick(budgetHigh, 10_000, true) // 50% of $200 -> resume, no email
-	require.False(t, suspended, "raising the budget above spend should resume")
+	tick(budgetHigh, 10_000, true)
+	require.True(t, suspended, "one under-budget check must not resume compute")
+	tick(budgetHigh, 10_000, true)
+	require.False(t, suspended, "two consecutive under-budget checks should resume compute")
 
 	// Spend climbs into the raised budget's thresholds.
 	tick(budgetHigh, 15_000, true) // 75% of $200 -> 75% warning at the NEW budget
