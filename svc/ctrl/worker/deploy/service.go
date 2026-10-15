@@ -5,6 +5,7 @@ import (
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -85,6 +86,7 @@ type Workflow struct {
 	hydrav1.UnimplementedDeployWorkflowServer
 	db        db.Database
 	auditlogs auditlogs.AuditLogService
+	flags     flags.Service
 
 	defaultDomain string
 	vault         vault.VaultServiceClient
@@ -114,6 +116,10 @@ type Config struct {
 	DB db.Database
 	// Auditlogs writes lifecycle events as durable workflow steps.
 	Auditlogs auditlogs.AuditLogService
+
+	// Flags decides whether a new deployment joins private networking. Existing
+	// deployments keep the decision saved when they were created.
+	Flags flags.Service
 
 	// DefaultDomain is the apex domain for generated deployment URLs (e.g., "unkey.app").
 	DefaultDomain string
@@ -166,7 +172,10 @@ type Config struct {
 
 // New creates a new deployment workflow instance.
 func New(cfg Config) (*Workflow, error) {
-	if err := assert.NotNil(cfg.Auditlogs, "Auditlogs must not be nil"); err != nil {
+	if err := assert.All(
+		assert.NotNil(cfg.Auditlogs, "Auditlogs must not be nil"),
+		assert.NotNil(cfg.Flags, "Flags must not be nil"),
+	); err != nil {
 		return nil, err
 	}
 	if cfg.Build.Backend == BuildBackendKubernetes {
@@ -183,6 +192,7 @@ func New(cfg Config) (*Workflow, error) {
 		UnimplementedDeployWorkflowServer: hydrav1.UnimplementedDeployWorkflowServer{},
 		db:                                cfg.DB,
 		auditlogs:                         cfg.Auditlogs,
+		flags:                             cfg.Flags,
 		defaultDomain:                     cfg.DefaultDomain,
 		vault:                             cfg.Vault,
 

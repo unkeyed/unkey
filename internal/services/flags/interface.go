@@ -21,4 +21,9 @@ type Service interface {
 	// Invalidate evicts the workspace's flags from this service's local cache.
 	// Call it only after a mutation commits.
 	Invalidate(ctx context.Context, workspaceID string)
+
+	// IsPrivateNetworkingEnabled reports whether new deployments in the
+	// workspace join private networking. It is false unless the database
+	// enables it.
+	IsPrivateNetworkingEnabled(ctx context.Context, workspaceID string) bool
 }
