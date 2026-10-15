@@ -11,11 +11,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -188,7 +190,7 @@ func request(target string) handler.Request {
 // callers relied on it.
 func TestDeletePortalByID(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Delete).Value)
 	workspace := h.Resources().UserWorkspace
 
 	stored := h.SeedPortal(t, workspace.ID, "acme-portal", "acme-portal", keyspaceMapping(t, h, workspace.ID), nil, nil)
@@ -250,7 +252,7 @@ func TestDeletePortalRevokesItsSessions(t *testing.T) {
 // would cut every end user of every portal the workspace runs.
 func TestDeletePortalLeavesOtherPortalsSessionsAlone(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Delete).Value)
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -276,7 +278,7 @@ func TestDeletePortalLeavesOtherPortalsSessionsAlone(t *testing.T) {
 // API depend on.
 func TestDeletePortalDoesNotCascadeToItsMapping(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Delete).Value)
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -296,7 +298,7 @@ func TestDeletePortalDoesNotCascadeToItsMapping(t *testing.T) {
 // and the old session belongs to neither it nor anything else.
 func TestDeletePortalThenRecreateSameSlug(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Delete).Value)
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -328,7 +330,7 @@ func TestDeletePortalThenRecreateSameSlug(t *testing.T) {
 // the documented behaviour rather than a bug.
 func TestDeletePortalStopsTheEndUserOnceTheCacheTurnsOver(t *testing.T) {
 	h := testutil.NewHarness(t)
-	deleteRoute, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	deleteRoute, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Delete).Value)
 	workspace := h.Resources().UserWorkspace
 
 	endUserRoute := listKeys.New(h.DB)
@@ -364,7 +366,7 @@ func TestDeletePortalStopsTheEndUserOnceTheCacheTurnsOver(t *testing.T) {
 // access.
 func TestDeletePortalWritesOneAuditEntry(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Delete).Value)
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
@@ -392,7 +394,7 @@ func TestDeletePortalWritesOneAuditEntry(t *testing.T) {
 // way out.
 func TestDeletePortalWithInvalidMapping(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	route, headers := newRoute(t, h, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Delete).Value)
 	workspace := h.Resources().UserWorkspace
 
 	keyspace := keyspaceMapping(t, h, workspace.ID)

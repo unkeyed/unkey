@@ -9,7 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
@@ -27,7 +30,7 @@ func Test200_InaccessibleKeySpacesReturnNoData(t *testing.T) {
 		allowedAPI.ProjectID,
 		allowedAPI.KeyAuthID.String,
 	))
-	wildcardRootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	wildcardRootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 	h.KeyVerifications.Buffer(schema.KeyVerification{
 		RequestID:   uid.New(uid.RequestPrefix),
 		Time:        time.Now().UnixMilli(),
@@ -103,7 +106,7 @@ func Test200_Success(t *testing.T) {
 		WorkspaceID: workspace.ID,
 	})
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	now := time.Now().UnixMilli()
 
@@ -155,7 +158,7 @@ func Test200_QueriesGatewayAppID(t *testing.T) {
 	workspace := h.CreateWorkspace()
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 	appID := uid.New("app")
 
 	h.KeyVerifications.Buffer(schema.KeyVerification{
@@ -371,7 +374,7 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 		WorkspaceID: workspace.ID,
 	})
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	now := time.Now().UnixMilli()
 
@@ -417,7 +420,7 @@ func Test200_QueryAtExact30DayRetentionLimit(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -446,7 +449,7 @@ func Test200_QueryWithCustomRetention90Days(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID, testutil.WithRetentionDays(90)) // 90-day retention
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -488,7 +491,7 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 	h.SetupAnalytics(workspace1.ID)
 	h.SetupAnalytics(workspace2.ID)
 
-	rootKey1 := h.CreateRootKey(workspace1.ID, "unkey:v1:"+(workspace1.ID)+":**#*")
+	rootKey1 := h.CreateRootKey(workspace1.ID, rbac.U(urn.New().Workspace(workspace1.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	// Use actual current time for analytics data since ClickHouse's now() uses real time, not mock clock
 	now := time.Now().UnixMilli()
@@ -558,7 +561,7 @@ func Test200_QueryWithoutTimeFilter_AutoAddsFilter(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	route := &Handler{
 		DB:                         h.DB,

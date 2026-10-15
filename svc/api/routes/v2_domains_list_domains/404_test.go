@@ -5,7 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_list_domains"
@@ -20,7 +23,7 @@ func TestListDomainsIDSlugCollisionsMatchBoth(t *testing.T) {
 
 	base := seedEnvironment(t, h)
 	baseDomain := attachDomain(t, h, base, nil)
-	headers := authHeaders(h.CreateRootKey(base.workspaceID, "unkey:v1:"+base.workspaceID+":**#read"))
+	headers := authHeaders(h.CreateRootKey(base.workspaceID, rbac.U(urn.New().Workspace(base.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value))
 
 	projectBySlug := h.CreateProject(seed.CreateProjectRequest{
 		ID: uid.New(uid.ProjectPrefix), WorkspaceID: base.workspaceID, Name: "Project slug collision", Slug: base.projectID,
@@ -90,7 +93,7 @@ func TestListDomainsMissingAndMismatchedFiltersReturnEmpty(t *testing.T) {
 	env := seedEnvironment(t, h)
 	domain := attachDomain(t, h, env, nil)
 	other := seedEnvironment(t, h)
-	headers := authHeaders(h.CreateRootKey(env.workspaceID, "unkey:v1:"+env.workspaceID+":**#read"))
+	headers := authHeaders(h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value))
 	testCases := []struct {
 		name string
 		req  handler.Request
@@ -138,7 +141,7 @@ func TestListDomainsCrossWorkspaceFiltersReturnEmpty(t *testing.T) {
 	otherDomain := attachDomain(t, h, seededEnv{
 		workspaceID: otherWorkspace.ID, projectID: otherProject.ID, appID: otherApp.ID, environmentID: otherEnvironment.ID,
 	}, nil)
-	headers := authHeaders(h.CreateRootKey(env.workspaceID, "unkey:v1:"+env.workspaceID+":**#read"))
+	headers := authHeaders(h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value))
 
 	requests := []handler.Request{
 		{Project: new(otherProject.ID)},
