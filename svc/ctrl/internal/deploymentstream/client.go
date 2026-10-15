@@ -48,6 +48,9 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, apply f
 	}
 	defer func() { err = errors.Join(err, watcher.Close()) }()
 	return watcher.Watch(ctx, token, func(event cdc.Event) error {
+		if event.CopyCompleted || event.Heartbeat {
+			return nil
+		}
 		if event.Change == nil {
 			return apply(Event{DeploymentID: "", ResumeToken: event.ResumeToken})
 		}
