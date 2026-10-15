@@ -249,10 +249,6 @@ type Querier interface {
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
 	DeleteAcmeChallengeByDomainID(ctx context.Context, domainID string) error
-	//DeleteAppBuildSettingsByEnvironmentId
-	//
-	//  DELETE FROM app_build_settings WHERE environment_id = ?
-	DeleteAppBuildSettingsByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteAppById
 	//
 	//  DELETE a, b, t
@@ -268,34 +264,6 @@ type Querier interface {
 	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
 	//  WHERE b.id = ?
 	DeleteAppConnectionById(ctx context.Context, id string) (int64, error)
-	//DeleteAppEnvVarsByEnvironmentId
-	//
-	//  DELETE FROM app_environment_variables WHERE environment_id = ?
-	DeleteAppEnvVarsByEnvironmentId(ctx context.Context, environmentID string) error
-	//DeleteAppRegionalSettingsByEnvironmentId
-	//
-	//  DELETE s, p
-	//  FROM app_regional_settings s
-	//  LEFT JOIN app_regional_settings other
-	//      ON other.horizontal_autoscaling_policy_id = s.horizontal_autoscaling_policy_id
-	//      AND other.environment_id <> s.environment_id
-	//  LEFT JOIN horizontal_autoscaling_policies p
-	//      ON p.id = s.horizontal_autoscaling_policy_id AND other.pk IS NULL
-	//  WHERE s.environment_id = ?
-	DeleteAppRegionalSettingsByEnvironmentId(ctx context.Context, environmentID string) error
-	//DeleteAppRuntimeSettingsByEnvironmentId
-	//
-	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
-	DeleteAppRuntimeSettingsByEnvironmentId(ctx context.Context, environmentID string) error
-	//DeleteAppSourceOciByAppId
-	//
-	//  DELETE FROM app_source_oci
-	//  WHERE app_id = ?
-	DeleteAppSourceOciByAppId(ctx context.Context, appID string) error
-	//DeleteCiliumNetworkPoliciesByEnvironmentId
-	//
-	//  DELETE FROM cilium_network_policies WHERE environment_id = ?
-	DeleteCiliumNetworkPoliciesByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteConnectionAppTargetByConnectionId
 	//
 	//  DELETE FROM connection_app_targets WHERE connection_id = ?
@@ -316,14 +284,6 @@ type Querier interface {
 	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
 	//  WHERE d.app_id = ?
 	DeleteCustomDomainsByAppId(ctx context.Context, appID string) error
-	//DeleteCustomDomainsByEnvironmentId
-	//
-	//  DELETE d, c, cert
-	//  FROM custom_domains d
-	//  LEFT JOIN acme_challenges c ON c.domain_id = d.id
-	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
-	//  WHERE d.environment_id = ?
-	DeleteCustomDomainsByEnvironmentId(ctx context.Context, environmentID string) error
 	// DeleteDeploymentConnectionsByEnvironmentId deletes the connections saved by
 	// the environment's deployments. app_id is the environment's app; filtering on
 	// it lets the delete use deployment_connections_app_env_idx.
@@ -351,12 +311,6 @@ type Querier interface {
 	//  DELETE FROM instances
 	//  WHERE deployment_id = ? AND region_id = ?
 	DeleteDeploymentInstances(ctx context.Context, arg DeleteDeploymentInstancesParams) error
-	//DeleteDeploymentStepsByEnvironmentId
-	//
-	//  DELETE ds FROM deployment_steps ds
-	//  JOIN deployments d ON d.id = ds.deployment_id
-	//  WHERE d.environment_id = ?
-	DeleteDeploymentStepsByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteDeploymentTopologiesByEnvironmentId
 	//
 	//  DELETE dt FROM deployment_topology dt
@@ -416,19 +370,11 @@ type Querier interface {
 	//
 	//  DELETE FROM frontline_routes WHERE app_id = ?
 	DeleteFrontlineRoutesByAppId(ctx context.Context, appID string) error
-	//DeleteFrontlineRoutesByEnvironmentId
-	//
-	//  DELETE FROM frontline_routes WHERE environment_id = ?
-	DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, environmentID string) error
 	// Removes every workspace binding when GitHub deletes an installation.
 	// Safe to repeat if webhook processing retries after the deletion commits.
 	//
 	//  DELETE FROM github_app_installations WHERE installation_id = ?
 	DeleteGithubAppInstallationsByInstallationId(ctx context.Context, installationID int64) error
-	//DeleteGithubRepoConnectionsByAppId
-	//
-	//  DELETE FROM github_repo_connections WHERE app_id = ?
-	DeleteGithubRepoConnectionsByAppId(ctx context.Context, appID string) error
 	// Disconnects apps across all workspaces when their GitHub installation is deleted.
 	// Safe to repeat, including when no repository connections remain.
 	//
@@ -438,44 +384,16 @@ type Querier interface {
 	//
 	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?
 	DeleteInstance(ctx context.Context, arg DeleteInstanceParams) error
-	//DeleteInstancesByEnvironment
-	//
-	//  DELETE i FROM instances i
-	//  JOIN deployments d ON d.id = i.deployment_id
-	//  WHERE d.environment_id = ?
-	DeleteInstancesByEnvironment(ctx context.Context, environmentID string) error
 	// DeleteLimitsByWorkspaceId removes a workspace's limits row, so a test can
 	// exercise the state before billing has written it. Only tests use this query.
 	//
 	//  DELETE FROM `limits`
 	//  WHERE workspace_id = ?
 	DeleteLimitsByWorkspaceId(ctx context.Context, workspaceID string) error
-	//DeleteOpenApiSpecsByEnvironmentId
-	//
-	//  DELETE oas FROM openapi_specs oas
-	//  JOIN deployments d ON d.id = oas.deployment_id
-	//  WHERE d.environment_id = ?
-	DeleteOpenApiSpecsByEnvironmentId(ctx context.Context, environmentID string) error
 	// Unscoped by workspace: callers resolve ownership before deleting.
 	//
 	//  DELETE FROM portal_domains WHERE id = ?
 	DeletePortalDomainByID(ctx context.Context, id string) error
-	//DeletePortalsByAppID
-	//
-	//  DELETE p, s, o
-	//  FROM portals p
-	//  LEFT JOIN portal_sessions s ON s.portal_id = p.id
-	//  LEFT JOIN openapi_specs o ON o.portal_id = p.id
-	//  WHERE p.app_id = ?
-	DeletePortalsByAppID(ctx context.Context, appID sql.NullString) error
-	//DeletePortalsByProjectID
-	//
-	//  DELETE p, s, o
-	//  FROM portals p
-	//  LEFT JOIN portal_sessions s ON s.portal_id = p.id
-	//  LEFT JOIN openapi_specs o ON o.portal_id = p.id
-	//  WHERE p.project_id = ?
-	DeletePortalsByProjectID(ctx context.Context, projectID string) error
 	//DeleteProjectById
 	//
 	//  DELETE p, b, t

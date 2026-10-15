@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -11,16 +12,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/resourcecleanup"
 )
 
-// The app.delete audit log is written here as a durable step rather than on the
-// RPC that enqueued this workflow: a Restate enqueue can't share a transaction
-// with the audit insert, so writing it on the RPC path risked a
-// deleting-but-unaudited window. The actor and correlation ID are threaded in
-// via the request and forwarded to each environment delete so the whole teardown
-// groups under one correlation ID.
-//
 // Key: app_id
 func (s *Service) Delete(
 	ctx restate.ObjectContext,
@@ -42,9 +35,17 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.MarkAppDeleting(runCtx, db.MarkAppDeletingParams{
-			ID:         appID,
-			DeletingAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		return db.TxRetry(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			queries := db.NewQueries(tx)
+			now := time.Now().UnixMilli()
+			if err := queries.MarkAppDeleted(txCtx, db.MarkAppDeletedParams{
+				ID: appID, DeletedAt: sql.NullInt64{Valid: true, Int64: now},
+			}); err != nil {
+				return err
+			}
+			return queries.NotifyDeploymentTopologiesByApp(txCtx, db.NotifyDeploymentTopologiesByAppParams{
+				AppID: appID, UpdatedAt: now,
+			})
 		})
 	}, restate.WithName("mark app deleting")); err != nil {
 		return nil, fmt.Errorf("mark app deleting: %w", err)
@@ -87,9 +88,6 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete app: %w", err)
 	}
 
-	if err := resourcecleanup.Schedule(ctx); err != nil {
-		return nil, fmt.Errorf("schedule resource cleanup: %w", err)
-	}
 	if app == nil {
 		return &hydrav1.DeleteAppResponse{}, nil
 	}

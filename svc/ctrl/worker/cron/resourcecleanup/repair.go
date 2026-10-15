@@ -33,8 +33,8 @@ func (h *Handler) repair(ctx restate.ObjectContext, name string, scan func(conte
 			return fmt.Errorf("scan %s: %w", name, err)
 		}
 		for _, id := range page.EnvironmentIDs {
-			hydrav1.NewEnvironmentServiceClient(ctx, id).Delete().Send(&hydrav1.DeleteEnvironmentRequest{},
-				restate.WithIdempotencyKey("orphan-environment-"+id))
+			hydrav1.NewEnvironmentServiceClient(ctx, id).Delete().Send(
+				&hydrav1.DeleteEnvironmentRequest{}, restate.WithIdempotencyKey("orphan-environment-"+id))
 		}
 		cursor = page.AfterPK
 		if page.Scanned < batchSize {

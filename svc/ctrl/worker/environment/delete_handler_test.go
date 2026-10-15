@@ -26,10 +26,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 )
 
-// TestDeleteCancelsProgressingDeploymentsAndAuditsThem pins that the cascade
-// drops every deployment row and saved deployment connection, while only a
-// progressing deployment gets a deployment.cancel audit entry carrying the
-// deletion's actor.
 func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 	ctx := context.Background()
 
