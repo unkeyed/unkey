@@ -40,6 +40,74 @@ const (
 	deleteTestRSName       = "rs_test"
 )
 
+func TestPermanentDeleteWithoutNamespaceRemovesOnlyDeploymentResources(t *testing.T) {
+	ctx := t.Context()
+	client := fake.NewSimpleClientset()
+	for _, namespace := range []string{"workspace-one", "workspace-two"} {
+		for _, deploymentID := range []string{deleteTestDeploymentID, "unrelated"} {
+			metadata := metav1.ObjectMeta{
+				Name:      deploymentID,
+				Namespace: namespace,
+				Labels:    map[string]string{labels.LabelKeyDeploymentID: deploymentID},
+			}
+			_, err := client.AppsV1().ReplicaSets(namespace).Create(ctx, &appsv1.ReplicaSet{ObjectMeta: metadata}, metav1.CreateOptions{})
+			require.NoError(t, err)
+			_, err = client.CoreV1().Pods(namespace).Create(ctx, &corev1.Pod{ObjectMeta: metadata}, metav1.CreateOptions{})
+			require.NoError(t, err)
+		}
+	}
+	cluster := &testutil.MockClusterClient{}
+	controller := newDeleteTestController(client, cluster)
+	req := &ctrlv1.DeleteDeployment{DeploymentId: deleteTestDeploymentID, Permanent: true}
+
+	require.NoError(t, controller.DeleteDeployment(ctx, req))
+	require.Empty(t, cluster.ReportDeploymentStatusCalls)
+	for _, namespace := range []string{"workspace-one", "workspace-two"} {
+		_, err := client.AppsV1().ReplicaSets(namespace).Get(ctx, deleteTestDeploymentID, metav1.GetOptions{})
+		require.True(t, apierrors.IsNotFound(err), "target ReplicaSet must be removed from %s", namespace)
+		_, err = client.CoreV1().Pods(namespace).Get(ctx, deleteTestDeploymentID, metav1.GetOptions{})
+		require.True(t, apierrors.IsNotFound(err), "target pod must be removed from %s", namespace)
+		_, err = client.AppsV1().ReplicaSets(namespace).Get(ctx, "unrelated", metav1.GetOptions{})
+		require.NoError(t, err)
+		_, err = client.CoreV1().Pods(namespace).Get(ctx, "unrelated", metav1.GetOptions{})
+		require.NoError(t, err)
+	}
+	require.NoError(t, controller.DeleteDeployment(ctx, req))
+	require.Len(t, cluster.ReportDeploymentStatusCalls, 1)
+	require.True(t, cluster.ReportDeploymentStatusCalls[0].GetDelete().GetRemovalConfirmed())
+}
+
+func TestOrphanPodInventoryRemovesStoppedDeploymentPods(t *testing.T) {
+	for _, owner := range []string{"", deleteTestRSName} {
+		t.Run("owner="+owner, func(t *testing.T) {
+			pod := deploymentPod("stopped-orphan")
+			if owner != "" {
+				pod.OwnerReferences = []metav1.OwnerReference{{Kind: "ReplicaSet", Name: owner, Controller: new(true)}}
+			}
+			unrelated := deploymentPod("unrelated")
+			unrelated.Labels[labels.LabelKeyDeploymentID] = "unrelated"
+			client := fake.NewSimpleClientset(pod, unrelated)
+			cluster := &testutil.MockClusterClient{GetDesiredDeploymentStateFunc: func(context.Context, *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error) {
+				return &ctrlv1.DeploymentState{State: &ctrlv1.DeploymentState_Delete{Delete: &ctrlv1.DeleteDeployment{
+					DeploymentId: deleteTestDeploymentID,
+					K8SNamespace: deleteTestNamespace,
+					K8SName:      deleteTestRSName,
+				}}}, nil
+			}}
+			controller := newDeleteTestController(client, cluster)
+
+			controller.reconcileOrphanPod(t.Context(), pod)
+
+			_, err := client.CoreV1().Pods(pod.Namespace).Get(t.Context(), pod.Name, metav1.GetOptions{})
+			require.True(t, apierrors.IsNotFound(err), "stopped deployment must not leave its orphan pod running")
+			_, err = client.CoreV1().Pods(unrelated.Namespace).Get(t.Context(), unrelated.Name, metav1.GetOptions{})
+			require.NoError(t, err)
+			require.Len(t, cluster.ReportDeploymentStatusCalls, 1)
+			require.False(t, cluster.ReportDeploymentStatusCalls[0].GetDelete().GetRemovalConfirmed())
+		})
+	}
+}
+
 func TestPermanentDeleteWaitsForPods(t *testing.T) {
 	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{
 		Name:      "pod_pending",

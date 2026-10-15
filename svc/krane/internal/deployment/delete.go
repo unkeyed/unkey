@@ -47,9 +47,9 @@ func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDep
 		c.fingerprints.Remove(ctx, req.GetK8SName())
 	}
 
-	if req.GetPermanent() {
-		removed, err := c.removePermanentDeployment(ctx, req)
-		if err != nil || !removed {
+	if req.GetDeploymentId() != "" {
+		removed, err := c.removeDeploymentResources(ctx, req)
+		if err != nil || (req.GetPermanent() && !removed) {
 			return err
 		}
 	}
@@ -71,14 +71,14 @@ func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDep
 	return nil
 }
 
-func (c *Controller) removePermanentDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) (bool, error) {
+func (c *Controller) removeDeploymentResources(ctx context.Context, req *ctrlv1.DeleteDeployment) (bool, error) {
 	selector := labels.New().DeploymentID(req.GetDeploymentId()).ToString()
 	replicaSets, err := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace()).List(ctx, metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return false, fmt.Errorf("failed to list deployment replicasets: %w", err)
 	}
 	for i := range replicaSets.Items {
-		if err := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace()).Delete(ctx, replicaSets.Items[i].Name, metav1.DeleteOptions{
+		if err := c.clientSet.AppsV1().ReplicaSets(replicaSets.Items[i].Namespace).Delete(ctx, replicaSets.Items[i].Name, metav1.DeleteOptions{
 			PropagationPolicy: new(metav1.DeletePropagationForeground),
 		}); err != nil && !apierrors.IsNotFound(err) {
 			return false, fmt.Errorf("failed to delete deployment replicaset: %w", err)
@@ -89,11 +89,11 @@ func (c *Controller) removePermanentDeployment(ctx context.Context, req *ctrlv1.
 		return false, fmt.Errorf("failed to list deployment pods: %w", err)
 	}
 	for i := range pods.Items {
-		if err := c.clientSet.CoreV1().Pods(req.GetK8SNamespace()).Delete(ctx, pods.Items[i].Name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+		if err := c.clientSet.CoreV1().Pods(pods.Items[i].Namespace).Delete(ctx, pods.Items[i].Name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 			return false, fmt.Errorf("failed to delete deployment pod %q: %w", pods.Items[i].Name, err)
 		}
 	}
-	if len(pods.Items) > 0 || len(replicaSets.Items) > 0 {
+	if !req.GetPermanent() || len(pods.Items) > 0 || len(replicaSets.Items) > 0 {
 		return false, nil
 	}
 
