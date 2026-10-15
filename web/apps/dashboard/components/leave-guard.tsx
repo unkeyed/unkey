@@ -1,7 +1,13 @@
 "use client";
 
+import type { GuardMode } from "@/hooks/prevent-leave-model";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
-import { DiscardChangesDialog, UnsavedChangesScope, useUnsavedChanges } from "@unkey/ui";
+import {
+  type DiscardChangesCopy,
+  DiscardChangesDialog,
+  UnsavedChangesScope,
+  useUnsavedChanges,
+} from "@unkey/ui";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { type PropsWithChildren, createContext, use } from "react";
@@ -13,13 +19,36 @@ type LeaveGuardActions = {
 
 const LeaveGuardContext = createContext<LeaveGuardActions | null>(null);
 
-export function LeaveGuard({ fallbackHref, children }: PropsWithChildren<{ fallbackHref: Route }>) {
+export type LeaveConfirm = {
+  copy: DiscardChangesCopy;
+  loading: boolean;
+  beforeLeave: () => Promise<void>;
+};
+
+export function LeaveGuard({
+  fallbackHref,
+  mode = "off",
+  confirm,
+  children,
+}: PropsWithChildren<{ fallbackHref: Route; mode?: GuardMode; confirm?: LeaveConfirm }>) {
   const { isDirty, report } = useUnsavedChanges();
-  const { prompt, navigate, bypass } = usePreventLeave(isDirty, fallbackHref);
+  const { prompt, navigate, bypass } = usePreventLeave(
+    isDirty && mode === "off" ? "confirm" : mode,
+    isDirty,
+    fallbackHref,
+  );
+  const onDiscard = confirm
+    ? () => confirm.beforeLeave().then(prompt.onDiscard, noop)
+    : prompt.onDiscard;
   return (
     <UnsavedChangesScope report={report}>
       <LeaveGuardContext value={{ navigate, bypass }}>{children}</LeaveGuardContext>
-      <DiscardChangesDialog {...prompt} />
+      <DiscardChangesDialog
+        {...prompt}
+        onDiscard={onDiscard}
+        copy={confirm?.copy}
+        loading={confirm?.loading}
+      />
     </UnsavedChangesScope>
   );
 }

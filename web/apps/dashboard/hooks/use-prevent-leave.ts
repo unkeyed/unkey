@@ -5,6 +5,7 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
+  type GuardMode,
   type LeaveEvent,
   type LeavePhase,
   SENTINEL_STATE,
@@ -27,7 +28,8 @@ function pushSentinel() {
 }
 
 export function usePreventLeave(
-  enabled: boolean,
+  mode: GuardMode,
+  dirty: boolean,
   fallbackHref: Route,
 ): {
   bypass: () => void;
@@ -75,25 +77,31 @@ export function usePreventLeave(
     }
   };
   const sendFromListener = useEffectEvent(send);
+  const popState = useEffectEvent((event: PopStateEvent) =>
+    send({ type: "popstate", sentinel: isLeaveSentinel(event.state), mode }),
+  );
+  const beforeUnload = useEffectEvent((event: BeforeUnloadEvent) =>
+    send({ type: "beforeunload", dirty }, event),
+  );
+  const leaveByLink = useEffectEvent((event: MouseEvent) => {
+    const href = mode === "confirm" ? leavingLinkHref(event) : null;
+    if (href === null) {
+      return;
+    }
+    event.preventDefault();
+    setPending({ kind: "link", href });
+  });
+  const enabled = mode !== "off";
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Biome 1.9 does not know useEffectEvent, whose result must stay out of the deps
   useEffect(() => {
     if (!enabled) {
       return;
     }
-    const onBeforeUnload = (event: BeforeUnloadEvent) =>
-      sendFromListener({ type: "beforeunload" }, event);
-    const onPopState = (event: PopStateEvent) =>
-      sendFromListener({ type: "popstate", sentinel: isLeaveSentinel(event.state) });
+    const onBeforeUnload = (event: BeforeUnloadEvent) => beforeUnload(event);
+    const onPopState = (event: PopStateEvent) => popState(event);
     const onPageHide = () => sendFromListener({ type: "pagehide" });
-    const onClick = (event: MouseEvent) => {
-      const href = leavingLinkHref(event);
-      if (href === null) {
-        return;
-      }
-      event.preventDefault();
-      setPending({ kind: "link", href });
-    };
+    const onClick = (event: MouseEvent) => leaveByLink(event);
 
     sendFromListener({ type: "guardOn", sentinelOnTop: sentinelOnTop() });
     window.addEventListener("beforeunload", onBeforeUnload);
@@ -128,7 +136,7 @@ export function usePreventLeave(
   return {
     bypass: () => send({ type: "leave" }),
     navigate: (href) => {
-      if (enabled) {
+      if (mode === "confirm") {
         setPending({ kind: "link", href: new URL(href, window.location.href).href });
       } else {
         router.push(href);
