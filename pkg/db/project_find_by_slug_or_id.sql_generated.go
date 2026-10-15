@@ -29,6 +29,7 @@ JOIN (
     FROM projects p2
     WHERE p2.slug = ? AND p2.workspace_id = ?
 ) AS project_lookup ON project_lookup.id = p.id
+WHERE p.deleted_at IS NULL
 LIMIT 1
 `
 
@@ -67,6 +68,7 @@ type FindProjectByIdOrSlugRow struct {
 //	    FROM projects p2
 //	    WHERE p2.slug = ? AND p2.workspace_id = ?
 //	) AS project_lookup ON project_lookup.id = p.id
+//	WHERE p.deleted_at IS NULL
 //	LIMIT 1
 func (q *Queries) FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error) {
 	row := db.QueryRowContext(ctx, findProjectByIdOrSlug,

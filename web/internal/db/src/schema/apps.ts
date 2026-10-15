@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import {
-  bigint,
   boolean,
   index,
   mysqlEnum,
@@ -12,7 +11,7 @@ import { appSourceOci } from "./app_source_oci";
 import { environments } from "./environments";
 import { githubRepoConnections } from "./github_app";
 import { deleteProtection } from "./util/delete_protection";
-import { lifecycleDates } from "./util/lifecycle_dates";
+import { lifecycleDates, softDelete } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
@@ -35,7 +34,7 @@ export const apps = mysqlTable(
 
     ...deleteProtection,
     ...lifecycleDates,
-    deletingAt: bigint("deleting_at", { mode: "number" }),
+    ...softDelete,
   },
   (table) => [
     uniqueIndex("apps_project_slug_idx").on(table.projectId, table.slug),

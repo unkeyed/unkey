@@ -16,8 +16,8 @@ JOIN projects project ON project.id = p.project_id
 LEFT JOIN apps a ON a.id = p.app_id
 WHERE p.id = ?
     AND p.workspace_id = ?
-    AND project.deleting_at IS NULL
-    AND (p.app_id IS NULL OR (a.id IS NOT NULL AND a.deleting_at IS NULL))
+    AND project.deleted_at IS NULL
+    AND (p.app_id IS NULL OR (a.id IS NOT NULL AND a.deleted_at IS NULL))
 LOCK IN SHARE MODE
 `
 
@@ -34,8 +34,8 @@ type LockActivePortalParams struct {
 //	LEFT JOIN apps a ON a.id = p.app_id
 //	WHERE p.id = ?
 //	    AND p.workspace_id = ?
-//	    AND project.deleting_at IS NULL
-//	    AND (p.app_id IS NULL OR (a.id IS NOT NULL AND a.deleting_at IS NULL))
+//	    AND project.deleted_at IS NULL
+//	    AND (p.app_id IS NULL OR (a.id IS NOT NULL AND a.deleted_at IS NULL))
 //	LOCK IN SHARE MODE
 func (q *Queries) LockActivePortal(ctx context.Context, db DBTX, arg LockActivePortalParams) (string, error) {
 	row := db.QueryRowContext(ctx, lockActivePortal, arg.ID, arg.WorkspaceID)

@@ -14,9 +14,9 @@ SELECT e.id FROM environments e
 JOIN apps a ON a.id = e.app_id
 JOIN projects p ON p.id = e.project_id
 WHERE e.id = ?
-  AND e.deleting_at IS NULL
-  AND a.deleting_at IS NULL
-  AND p.deleting_at IS NULL
+  AND e.deleted_at IS NULL
+  AND a.deleted_at IS NULL
+  AND p.deleted_at IS NULL
 FOR UPDATE
 `
 
@@ -26,9 +26,9 @@ FOR UPDATE
 //	JOIN apps a ON a.id = e.app_id
 //	JOIN projects p ON p.id = e.project_id
 //	WHERE e.id = ?
-//	  AND e.deleting_at IS NULL
-//	  AND a.deleting_at IS NULL
-//	  AND p.deleting_at IS NULL
+//	  AND e.deleted_at IS NULL
+//	  AND a.deleted_at IS NULL
+//	  AND p.deleted_at IS NULL
 //	FOR UPDATE
 func (q *Queries) LockEnvironmentForUpdate(ctx context.Context, db DBTX, id string) (string, error) {
 	row := db.QueryRowContext(ctx, lockEnvironmentForUpdate, id)

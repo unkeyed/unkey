@@ -30,6 +30,11 @@ const findCustomDomainByIdentifier = `-- name: FindCustomDomainByIdentifier :one
     cd_by_id.updated_at
 FROM custom_domains cd_by_id
 WHERE cd_by_id.id = ? AND cd_by_id.workspace_id = ?
+  AND (cd_by_id.workspace_id = 'unkey_internal' OR (
+    EXISTS (SELECT 1 FROM projects p WHERE p.id = cd_by_id.project_id AND p.deleted_at IS NULL)
+    AND EXISTS (SELECT 1 FROM apps a WHERE a.id = cd_by_id.app_id AND a.deleted_at IS NULL)
+    AND EXISTS (SELECT 1 FROM environments e WHERE e.id = cd_by_id.environment_id AND e.deleted_at IS NULL)
+  ))
 LIMIT 1)
 UNION ALL
 (SELECT
@@ -51,6 +56,11 @@ UNION ALL
     cd_by_name.updated_at
 FROM custom_domains cd_by_name
 WHERE cd_by_name.workspace_id = ? AND cd_by_name.domain = LOWER(?)
+  AND (cd_by_name.workspace_id = 'unkey_internal' OR (
+    EXISTS (SELECT 1 FROM projects p WHERE p.id = cd_by_name.project_id AND p.deleted_at IS NULL)
+    AND EXISTS (SELECT 1 FROM apps a WHERE a.id = cd_by_name.app_id AND a.deleted_at IS NULL)
+    AND EXISTS (SELECT 1 FROM environments e WHERE e.id = cd_by_name.environment_id AND e.deleted_at IS NULL)
+  ))
 LIMIT 1)
 LIMIT 1
 `
@@ -104,6 +114,11 @@ type FindCustomDomainByIdentifierRow struct {
 //	    cd_by_id.updated_at
 //	FROM custom_domains cd_by_id
 //	WHERE cd_by_id.id = ? AND cd_by_id.workspace_id = ?
+//	  AND (cd_by_id.workspace_id = 'unkey_internal' OR (
+//	    EXISTS (SELECT 1 FROM projects p WHERE p.id = cd_by_id.project_id AND p.deleted_at IS NULL)
+//	    AND EXISTS (SELECT 1 FROM apps a WHERE a.id = cd_by_id.app_id AND a.deleted_at IS NULL)
+//	    AND EXISTS (SELECT 1 FROM environments e WHERE e.id = cd_by_id.environment_id AND e.deleted_at IS NULL)
+//	  ))
 //	LIMIT 1)
 //	UNION ALL
 //	(SELECT
@@ -125,6 +140,11 @@ type FindCustomDomainByIdentifierRow struct {
 //	    cd_by_name.updated_at
 //	FROM custom_domains cd_by_name
 //	WHERE cd_by_name.workspace_id = ? AND cd_by_name.domain = LOWER(?)
+//	  AND (cd_by_name.workspace_id = 'unkey_internal' OR (
+//	    EXISTS (SELECT 1 FROM projects p WHERE p.id = cd_by_name.project_id AND p.deleted_at IS NULL)
+//	    AND EXISTS (SELECT 1 FROM apps a WHERE a.id = cd_by_name.app_id AND a.deleted_at IS NULL)
+//	    AND EXISTS (SELECT 1 FROM environments e WHERE e.id = cd_by_name.environment_id AND e.deleted_at IS NULL)
+//	  ))
 //	LIMIT 1)
 //	LIMIT 1
 func (q *Queries) FindCustomDomainByIdentifier(ctx context.Context, db DBTX, arg FindCustomDomainByIdentifierParams) (FindCustomDomainByIdentifierRow, error) {

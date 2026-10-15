@@ -57,7 +57,7 @@ type Querier interface {
 	//  WHERE dt.deployment_id = ?
 	//    AND dt.region_id = ?
 	//    AND (d.id IS NULL OR p.id IS NULL OR a.id IS NULL OR e.id IS NULL
-	//      OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL)
+	//      OR p.deleted_at IS NOT NULL OR a.deleted_at IS NOT NULL OR e.deleted_at IS NOT NULL)
 	ConfirmDeploymentTopologyRemoval(ctx context.Context, arg ConfirmDeploymentTopologyRemovalParams) (int64, error)
 	// Counts how many of the given deployments still have live compute to drain.
 	// Teardown polls this until it returns 0. A deployment is draining only while it
@@ -440,7 +440,7 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleting_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, id string) (App, error)
@@ -779,15 +779,18 @@ type Querier interface {
 	//  FROM deployment_topology
 	//  WHERE deployment_id = ?
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
-	// FindDeploymentWithApp returns what the desired-state guard needs: the
-	// deployment and its app's current deployment pointer. It joins only apps, so a
-	// deployment whose environment row is already gone still resolves and a pending
-	// transition can still be applied to it.
+	//FindDeploymentWithApp
 	//
 	//  SELECT d.id, d.app_id, a.current_deployment_id
 	//  FROM deployments d
 	//  JOIN apps a ON a.id = d.app_id
+	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN projects p ON p.id = d.project_id
 	//  WHERE d.id = ?
+	//    AND e.deleted_at IS NULL
+	//    AND a.deleted_at IS NULL
+	//    AND p.deleted_at IS NULL
+	//  LOCK IN SHARE MODE
 	FindDeploymentWithApp(ctx context.Context, id string) (FindDeploymentWithAppRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
@@ -807,7 +810,7 @@ type Querier interface {
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleting_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, id string) (Environment, error)
@@ -924,7 +927,7 @@ type Querier interface {
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
 	//FindOldestEnvironmentDeletion
 	//
-	//  SELECT CAST(COALESCE(MIN(deleting_at), 0) AS SIGNED) AS started_at
+	//  SELECT CAST(COALESCE(MIN(deleted_at), 0) AS SIGNED) AS started_at
 	//  FROM environments
 	FindOldestEnvironmentDeletion(ctx context.Context) (int64, error)
 	//FindOpenApiSpecByDeploymentID
@@ -941,7 +944,7 @@ type Querier interface {
 	FindPermissionByNameAndWorkspaceID(ctx context.Context, arg FindPermissionByNameAndWorkspaceIDParams) (Permission, error)
 	//FindProjectById
 	//
-	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleting_at
+	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleted_at
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, id string) (Project, error)
@@ -1962,7 +1965,7 @@ type Querier interface {
 	ListOrphanedDeploymentTopologiesByRegion(ctx context.Context, arg ListOrphanedDeploymentTopologiesByRegionParams) ([]ListOrphanedDeploymentTopologiesByRegionRow, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleting_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 	//  FROM environments
 	//  WHERE kind = 'preview'
 	//  AND pk > ?
@@ -2096,8 +2099,8 @@ type Querier interface {
 	//  SELECT a.id FROM apps a
 	//  JOIN projects p ON p.id = a.project_id
 	//  WHERE a.id = ?
-	//    AND a.deleting_at IS NULL
-	//    AND p.deleting_at IS NULL
+	//    AND a.deleted_at IS NULL
+	//    AND p.deleted_at IS NULL
 	//  LOCK IN SHARE MODE
 	LockActiveApp(ctx context.Context, id string) (string, error)
 	//LockActiveEnvironment
@@ -2106,15 +2109,15 @@ type Querier interface {
 	//  JOIN apps a ON a.id = e.app_id
 	//  JOIN projects p ON p.id = e.project_id
 	//  WHERE e.id = ?
-	//    AND e.deleting_at IS NULL
-	//    AND a.deleting_at IS NULL
-	//    AND p.deleting_at IS NULL
+	//    AND e.deleted_at IS NULL
+	//    AND a.deleted_at IS NULL
+	//    AND p.deleted_at IS NULL
 	//  LOCK IN SHARE MODE
 	LockActiveEnvironment(ctx context.Context, id string) (string, error)
 	//LockActiveProject
 	//
 	//  SELECT id FROM projects
-	//  WHERE id = ? AND deleting_at IS NULL
+	//  WHERE id = ? AND deleted_at IS NULL
 	//  LOCK IN SHARE MODE
 	LockActiveProject(ctx context.Context, id string) (string, error)
 	//LockCustomDomain
@@ -2130,11 +2133,11 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  FOR UPDATE
 	LockLimitsByWorkspaceID(ctx context.Context, workspaceID string) (LockLimitsByWorkspaceIDRow, error)
-	//MarkAppDeleting
+	//MarkAppDeleted
 	//
-	//  UPDATE apps SET deleting_at = COALESCE(deleting_at, ?)
+	//  UPDATE apps SET deleted_at = COALESCE(deleted_at, ?)
 	//  WHERE id = ?
-	MarkAppDeleting(ctx context.Context, arg MarkAppDeletingParams) error
+	MarkAppDeleted(ctx context.Context, arg MarkAppDeletedParams) error
 	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
 	// insert is confirmed. It runs as its own short autocommit statement, not in
 	// the transaction that selected the rows, so no MySQL lock spans the
@@ -2157,16 +2160,32 @@ type Querier interface {
 	//  WHERE pk IN (/*SLICE:pks*/?)
 	//    AND deleted_at IS NULL
 	MarkClickhouseOutboxBatchDeleted(ctx context.Context, arg MarkClickhouseOutboxBatchDeletedParams) error
-	//MarkEnvironmentDeleting
+	//MarkEnvironmentDeleted
 	//
-	//  UPDATE environments SET deleting_at = COALESCE(deleting_at, ?)
+	//  UPDATE environments SET deleted_at = COALESCE(deleted_at, ?)
 	//  WHERE id = ?
-	MarkEnvironmentDeleting(ctx context.Context, arg MarkEnvironmentDeletingParams) error
-	//MarkProjectDeleting
+	MarkEnvironmentDeleted(ctx context.Context, arg MarkEnvironmentDeletedParams) error
+	//MarkProjectDeleted
 	//
-	//  UPDATE projects SET deleting_at = COALESCE(deleting_at, ?)
+	//  UPDATE projects SET deleted_at = COALESCE(deleted_at, ?)
 	//  WHERE id = ?
-	MarkProjectDeleting(ctx context.Context, arg MarkProjectDeletingParams) error
+	MarkProjectDeleted(ctx context.Context, arg MarkProjectDeletedParams) error
+	//NotifyDeploymentTopologiesByApp
+	//
+	//  UPDATE deployment_topology dt
+	//  JOIN deployments d ON d.id = dt.deployment_id
+	//  SET dt.desired_status = 'stopped',
+	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
+	//  WHERE d.app_id = ?
+	NotifyDeploymentTopologiesByApp(ctx context.Context, arg NotifyDeploymentTopologiesByAppParams) error
+	//NotifyDeploymentTopologiesByProject
+	//
+	//  UPDATE deployment_topology dt
+	//  JOIN deployments d ON d.id = dt.deployment_id
+	//  SET dt.desired_status = 'stopped',
+	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
+	//  WHERE d.project_id = ?
+	NotifyDeploymentTopologiesByProject(ctx context.Context, arg NotifyDeploymentTopologiesByProjectParams) error
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes
@@ -2286,9 +2305,12 @@ type Querier interface {
 	ScanDeploymentsForCleanup(ctx context.Context, arg ScanDeploymentsForCleanupParams) ([]ScanDeploymentsForCleanupRow, error)
 	//ScanEnvironmentsForCleanup
 	//
-	//  SELECT e.pk, e.id, CAST((a.id IS NULL OR p.id IS NULL) AS SIGNED) AS orphaned
+	//  SELECT e.pk, e.id, CAST(COALESCE((a.id IS NULL OR p.id IS NULL
+	//      OR e.deleted_at < UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3) - INTERVAL 2 HOUR) * 1000
+	//      OR a.deleted_at < UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3) - INTERVAL 2 HOUR) * 1000
+	//      OR p.deleted_at < UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3) - INTERVAL 2 HOUR) * 1000), FALSE) AS SIGNED) AS orphaned
 	//  FROM (
-	//      SELECT environments.pk, environments.id, environments.app_id, environments.project_id FROM environments
+	//      SELECT environments.pk, environments.id, environments.app_id, environments.project_id, environments.deleted_at FROM environments
 	//      WHERE environments.pk > ?
 	//      ORDER BY environments.pk LIMIT ?
 	//  ) e

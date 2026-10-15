@@ -10,9 +10,11 @@ import (
 )
 
 const findAppByIdAndWorkspace = `-- name: FindAppByIdAndWorkspace :one
-SELECT id, project_id FROM apps
-WHERE id = ?
-  AND workspace_id = ?
+SELECT apps.id, apps.project_id FROM apps
+WHERE apps.id = ?
+  AND apps.deleted_at IS NULL
+  AND EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id AND p.deleted_at IS NULL)
+  AND apps.workspace_id = ?
 `
 
 type FindAppByIdAndWorkspaceParams struct {
@@ -37,9 +39,11 @@ type FindAppByIdAndWorkspaceRow struct {
 // an app id alone would otherwise need a second read to say anything about the
 // app it just proved it owns.
 //
-//	SELECT id, project_id FROM apps
-//	WHERE id = ?
-//	  AND workspace_id = ?
+//	SELECT apps.id, apps.project_id FROM apps
+//	WHERE apps.id = ?
+//	  AND apps.deleted_at IS NULL
+//	  AND EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id AND p.deleted_at IS NULL)
+//	  AND apps.workspace_id = ?
 func (q *Queries) FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error) {
 	row := db.QueryRowContext(ctx, findAppByIdAndWorkspace, arg.ID, arg.WorkspaceID)
 	var i FindAppByIdAndWorkspaceRow

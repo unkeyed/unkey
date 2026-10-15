@@ -18,7 +18,7 @@ LEFT JOIN environments e ON e.id = d.environment_id
 WHERE dt.deployment_id = ?
   AND dt.region_id = ?
   AND (d.id IS NULL OR p.id IS NULL OR a.id IS NULL OR e.id IS NULL
-    OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL)
+    OR p.deleted_at IS NOT NULL OR a.deleted_at IS NOT NULL OR e.deleted_at IS NOT NULL)
 `
 
 type ConfirmDeploymentTopologyRemovalParams struct {
@@ -36,7 +36,7 @@ type ConfirmDeploymentTopologyRemovalParams struct {
 //	WHERE dt.deployment_id = ?
 //	  AND dt.region_id = ?
 //	  AND (d.id IS NULL OR p.id IS NULL OR a.id IS NULL OR e.id IS NULL
-//	    OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL)
+//	    OR p.deleted_at IS NOT NULL OR a.deleted_at IS NOT NULL OR e.deleted_at IS NOT NULL)
 func (q *Queries) ConfirmDeploymentTopologyRemoval(ctx context.Context, arg ConfirmDeploymentTopologyRemovalParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, confirmDeploymentTopologyRemoval, arg.DeploymentID, arg.RegionID)
 	if err != nil {

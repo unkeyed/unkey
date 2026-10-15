@@ -11,14 +11,14 @@ import (
 
 const lockActiveProject = `-- name: LockActiveProject :one
 SELECT id FROM projects
-WHERE id = ? AND deleting_at IS NULL
+WHERE id = ? AND deleted_at IS NULL
 LOCK IN SHARE MODE
 `
 
 // LockActiveProject
 //
 //	SELECT id FROM projects
-//	WHERE id = ? AND deleting_at IS NULL
+//	WHERE id = ? AND deleted_at IS NULL
 //	LOCK IN SHARE MODE
 func (q *Queries) LockActiveProject(ctx context.Context, id string) (string, error) {
 	row := q.db.QueryRowContext(ctx, lockActiveProject, id)
