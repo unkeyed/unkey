@@ -1233,8 +1233,19 @@ type ApplyDeployment struct {
 	// The volume is created when the pod starts and deleted when the pod terminates.
 	// When absent, no ephemeral volume is attached.
 	EphemeralStorage *EphemeralStorage `protobuf:"bytes,29,opt,name=ephemeral_storage,json=ephemeralStorage,proto3,oneof" json:"ephemeral_storage,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// environment_kind is "production" or "preview". Krane labels Pods with it so
+	// the private resolver can identify callers.
+	EnvironmentKind string `protobuf:"bytes,30,opt,name=environment_kind,json=environmentKind,proto3" json:"environment_kind,omitempty"`
+	// private_networking enrolls the deployment's Pods in private networking:
+	// private DNS through the region's resolver and connectivity between its own
+	// replicas. Ctrl sets it only for deployments created with private networking
+	// whose app slug yields a replica host.
+	PrivateNetworking bool `protobuf:"varint,31,opt,name=private_networking,json=privateNetworking,proto3" json:"private_networking,omitempty"`
+	// private_network_replica_host is the private DNS name of this deployment's
+	// own replicas. It is set exactly when private_networking is true.
+	PrivateNetworkReplicaHost string `protobuf:"bytes,32,opt,name=private_network_replica_host,json=privateNetworkReplicaHost,proto3" json:"private_network_replica_host,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ApplyDeployment) Reset() {
@@ -1433,6 +1444,27 @@ func (x *ApplyDeployment) GetEphemeralStorage() *EphemeralStorage {
 		return x.EphemeralStorage
 	}
 	return nil
+}
+
+func (x *ApplyDeployment) GetEnvironmentKind() string {
+	if x != nil {
+		return x.EnvironmentKind
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetPrivateNetworking() bool {
+	if x != nil {
+		return x.PrivateNetworking
+	}
+	return false
+}
+
+func (x *ApplyDeployment) GetPrivateNetworkReplicaHost() string {
+	if x != nil {
+		return x.PrivateNetworkReplicaHost
+	}
+	return ""
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
@@ -1912,7 +1944,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0fDeploymentState\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
-	"\x05state\"\xcb\b\n" +
+	"\x05state\"\xe6\t\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1941,7 +1973,10 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\bgit_repo\x18\x19 \x01(\tH\x06R\agitRepo\x88\x01\x01\x121\n" +
 	"\x12git_commit_message\x18\x1a \x01(\tH\aR\x10gitCommitMessage\x88\x01\x01\x12<\n" +
 	"\vautoscaling\x18\x1b \x01(\v2\x1a.ctrl.v1.AutoscalingPolicyR\vautoscaling\x12K\n" +
-	"\x11ephemeral_storage\x18\x1d \x01(\v2\x19.ctrl.v1.EphemeralStorageH\bR\x10ephemeralStorage\x88\x01\x01B\v\n" +
+	"\x11ephemeral_storage\x18\x1d \x01(\v2\x19.ctrl.v1.EphemeralStorageH\bR\x10ephemeralStorage\x88\x01\x01\x12)\n" +
+	"\x10environment_kind\x18\x1e \x01(\tR\x0fenvironmentKind\x12-\n" +
+	"\x12private_networking\x18\x1f \x01(\bR\x11privateNetworking\x12?\n" +
+	"\x1cprivate_network_replica_host\x18  \x01(\tR\x19privateNetworkReplicaHostB\v\n" +
 	"\t_build_idB\x0e\n" +
 	"\f_healthcheckB\x13\n" +
 	"\x11_environment_slugB\t\n" +

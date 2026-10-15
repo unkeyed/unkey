@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -15,83 +16,94 @@ import (
 // Every proto field must have an entry; the coverage test fails otherwise, so a
 // field cannot be added or dropped on the producer side without a test. This
 // mirrors the krane render-side guard in apply_test.go.
-var producerFieldAssertions = map[string]func(t *testing.T, a *ctrlv1.ApplyDeployment){
-	"k8s_namespace": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "ns-sentinel", a.GetK8SNamespace())
-	},
-	"k8s_name": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "k8s-name-sentinel", a.GetK8SName())
-	},
-	"workspace_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "ws_sentinel", a.GetWorkspaceId())
-	},
-	"project_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "prj_sentinel", a.GetProjectId())
-	},
-	"environment_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "env_sentinel", a.GetEnvironmentId())
-	},
-	"deployment_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "deploy_sentinel", a.GetDeploymentId())
-	},
-	"image": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "registry.io/sentinel:v1", a.GetImage())
-	},
-	"cpu_millicores": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, int64(250), a.GetCpuMillicores())
-	},
-	"memory_mib": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, int64(256), a.GetMemoryMib())
-	},
-	"build_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "build_sentinel", a.GetBuildId())
-	},
-	"encrypted_environment_variables": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.NotEmpty(t, a.GetEncryptedEnvironmentVariables())
-	},
-	"command": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, []string{"/sentinel-app", "serve"}, a.GetCommand(),
-			"command must be carried from the DB row")
-	},
-	"port": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, int32(8080), a.GetPort())
-	},
-	"shutdown_signal": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.NotEmpty(t, a.GetShutdownSignal())
-	},
-	"healthcheck": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.NotEmpty(t, a.GetHealthcheck())
-	},
-	"app_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "app_sentinel", a.GetAppId())
-	},
-	"environment_slug": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "production", a.GetEnvironmentSlug())
-	},
-	"region": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "us-east-1", a.GetRegion())
-	},
-	"git_commit_sha": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "abc123sha", a.GetGitCommitSha())
-	},
-	"git_branch": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "main-sentinel", a.GetGitBranch())
-	},
-	"git_repo": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "github.com/test/sentinel", a.GetGitRepo())
-	},
-	"git_commit_message": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "sentinel commit", a.GetGitCommitMessage())
-	},
-	"autoscaling": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.NotNil(t, a.GetAutoscaling())
-		require.Equal(t, uint32(2), a.GetAutoscaling().GetMinReplicas())
-		require.Equal(t, uint32(5), a.GetAutoscaling().GetMaxReplicas())
-	},
-	"ephemeral_storage": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.NotNil(t, a.GetEphemeralStorage())
-		require.Equal(t, int64(2048), a.GetEphemeralStorage().GetSizeMib())
-	},
+func producerFieldAssertions(row db.FindDeploymentTopologyByDeploymentAndRegionRow) map[string]func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+	return map[string]func(t *testing.T, a *ctrlv1.ApplyDeployment){
+		"k8s_namespace": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "ns-sentinel", a.GetK8SNamespace())
+		},
+		"k8s_name": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "k8s-name-sentinel", a.GetK8SName())
+		},
+		"workspace_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, row.WorkspaceID, a.GetWorkspaceId())
+		},
+		"project_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, row.ProjectID, a.GetProjectId())
+		},
+		"environment_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, row.EnvironmentID, a.GetEnvironmentId())
+		},
+		"deployment_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, row.ID, a.GetDeploymentId())
+		},
+		"image": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "registry.io/sentinel:v1", a.GetImage())
+		},
+		"cpu_millicores": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, int64(250), a.GetCpuMillicores())
+		},
+		"memory_mib": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, int64(256), a.GetMemoryMib())
+		},
+		"build_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, row.BuildID.String, a.GetBuildId())
+		},
+		"encrypted_environment_variables": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.NotEmpty(t, a.GetEncryptedEnvironmentVariables())
+		},
+		"command": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, []string{"/sentinel-app", "serve"}, a.GetCommand(),
+				"command must be carried from the DB row")
+		},
+		"port": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, int32(8080), a.GetPort())
+		},
+		"shutdown_signal": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.NotEmpty(t, a.GetShutdownSignal())
+		},
+		"healthcheck": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.NotEmpty(t, a.GetHealthcheck())
+		},
+		"app_id": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, row.AppID, a.GetAppId())
+		},
+		"environment_slug": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "preview", a.GetEnvironmentSlug())
+		},
+		"environment_kind": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "preview", a.GetEnvironmentKind())
+		},
+		"private_networking": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.True(t, a.GetPrivateNetworking())
+		},
+		"private_network_replica_host": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "api.unkey.internal", a.GetPrivateNetworkReplicaHost())
+		},
+		"region": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "us-east-1", a.GetRegion())
+		},
+		"git_commit_sha": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "abc123sha", a.GetGitCommitSha())
+		},
+		"git_branch": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "main-sentinel", a.GetGitBranch())
+		},
+		"git_repo": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "github.com/test/sentinel", a.GetGitRepo())
+		},
+		"git_commit_message": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.Equal(t, "sentinel commit", a.GetGitCommitMessage())
+		},
+		"autoscaling": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.NotNil(t, a.GetAutoscaling())
+			require.Equal(t, uint32(2), a.GetAutoscaling().GetMinReplicas())
+			require.Equal(t, uint32(5), a.GetAutoscaling().GetMaxReplicas())
+		},
+		"ephemeral_storage": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.NotNil(t, a.GetEphemeralStorage())
+			require.Equal(t, int64(2048), a.GetEphemeralStorage().GetSizeMib())
+		},
+	}
 }
 
 // TestDeploymentRowToState_PopulatesProtoFields converts a fully-populated row
@@ -103,18 +115,18 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 		AutoscalingReplicasMax:        5,
 		AutoscalingThresholdCpu:       sql.NullInt16{Valid: true, Int16: 80},
 		AutoscalingThresholdMemory:    sql.NullInt16{Valid: true, Int16: 75},
-		ID:                            "deploy_sentinel",
+		ID:                            uid.New(uid.DeploymentPrefix),
 		K8sName:                       "k8s-name-sentinel",
-		WorkspaceID:                   "ws_sentinel",
-		ProjectID:                     "prj_sentinel",
-		EnvironmentID:                 "env_sentinel",
-		AppID:                         "app_sentinel",
+		WorkspaceID:                   uid.New(uid.WorkspacePrefix),
+		ProjectID:                     uid.New(uid.ProjectPrefix),
+		EnvironmentID:                 uid.New(uid.EnvironmentPrefix),
+		AppID:                         uid.New(uid.AppPrefix),
 		ImageResolved:                 sql.NullString{Valid: true, String: "registry.io/sentinel:v1"},
 		CpuMillicores:                 250,
 		MemoryMib:                     256,
 		StorageMib:                    2048,
 		EncryptedEnvironmentVariables: []byte("ciphertext-sentinel"),
-		BuildID:                       sql.NullString{Valid: true, String: "build_sentinel"},
+		BuildID:                       sql.NullString{Valid: true, String: uid.New(uid.TestPrefix)},
 		Command:                       dbtype.StringSlice{"/sentinel-app", "serve"},
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
@@ -126,7 +138,10 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 			Healthcheck: &dbtype.Healthcheck{Method: "GET", Path: "/sentinel-healthz"},
 		},
 		K8sNamespace:    "ns-sentinel",
-		EnvironmentSlug: "production",
+		EnvironmentSlug: "preview",
+		EnvironmentKind: dbtype.EnvironmentKindPreview,
+		AppSlug:         "api",
+		Capabilities:    dbtype.DeploymentCapabilities{PrivateNetworking: true},
 		RegionName:      "us-east-1",
 		GitRepo:         sql.NullString{Valid: true, String: "github.com/test/sentinel"},
 	}
@@ -137,7 +152,7 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 	apply := state.GetApply()
 	require.NotNil(t, apply)
 
-	for field, assert := range producerFieldAssertions {
+	for field, assert := range producerFieldAssertions(row) {
 		t.Run(field, func(t *testing.T) {
 			assert(t, apply)
 		})
@@ -150,10 +165,11 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 // mapping in deploymentRowToState without a failing test naming it.
 func TestApplyDeploymentProducerFieldCoverage(t *testing.T) {
 	fields := (&ctrlv1.ApplyDeployment{}).ProtoReflect().Descriptor().Fields()
+	assertions := producerFieldAssertions(db.FindDeploymentTopologyByDeploymentAndRegionRow{})
 
 	for i := 0; i < fields.Len(); i++ {
 		name := string(fields.Get(i).Name())
-		_, ok := producerFieldAssertions[name]
+		_, ok := assertions[name]
 		require.Truef(t, ok,
 			"ApplyDeployment proto field %q is not covered by a producer test. Map it "+
 				"from the deployment row in deploymentRowToState and add an entry to "+

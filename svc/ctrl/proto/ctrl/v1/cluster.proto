@@ -332,6 +332,20 @@ message ApplyDeployment {
   // The volume is created when the pod starts and deleted when the pod terminates.
   // When absent, no ephemeral volume is attached.
   optional EphemeralStorage ephemeral_storage = 29;
+
+  // environment_kind is "production" or "preview". Krane labels Pods with it so
+  // the private resolver can identify callers.
+  string environment_kind = 30;
+
+  // private_networking enrolls the deployment's Pods in private networking:
+  // private DNS through the region's resolver and connectivity between its own
+  // replicas. Ctrl sets it only for deployments created with private networking
+  // whose app slug yields a replica host.
+  bool private_networking = 31;
+
+  // private_network_replica_host is the private DNS name of this deployment's
+  // own replicas. It is set exactly when private_networking is true.
+  string private_network_replica_host = 32;
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
