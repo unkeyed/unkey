@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Check high-confidence Go test rules on new lines since a base revision"
+set -euo pipefail
+
+base="${1:?Provide a base revision}"
+golangci-lint run --enable-only=testifylint,thelper,nolintlint --new-from-rev="$base" ./...
