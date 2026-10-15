@@ -15,7 +15,7 @@ const ITEMS = [
   { segment: "general", label: "General", getHref: routes.settings.general },
   {
     segment: "platform-features",
-    label: "Platform preview",
+    label: "Feature previews",
     getHref: routes.settings.platformFeatures,
   },
   { segment: "team", label: "Team", getHref: routes.settings.team },
