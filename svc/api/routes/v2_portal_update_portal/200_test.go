@@ -50,11 +50,6 @@ func newRoute(t *testing.T, h *testutil.Harness, grants ...string) (*handler.Han
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	grants = append([]string{}, grants...)
-	grants = append(grants,
-		rbac.U(urn.New().Workspace(workspaceID).Project("*").Keyspace("*"), permissions.Read).Value,
-		rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*"), permissions.Read).Value,
-	)
 	rootKey := h.CreateRootKey(workspaceID, grants...)
 	return route, headersFor(rootKey)
 }
@@ -410,10 +405,11 @@ func TestUpdatePortalClearingAllBrandingOmitsTheObject(t *testing.T) {
 // portal's live sessions, and only that portal's.
 func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, portalWriteGrant(h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	project, app, keyspace := mappingsInOneProject(t, h, workspace.ID, "payments")
+	route, headers := newRoute(t, h, portalWriteGrant(workspace.ID),
+		rbac.U(urn.New().Workspace(workspace.ID).Project(project).Keyspace(keyspace.ID), permissions.Read).Value)
 	stored := h.SeedPortal(t, workspace.ID, "repointed", "repointed", app, nil, nil)
 
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
@@ -475,7 +471,13 @@ func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 			before := h.CountLivePortalSessions(t, stored.ID, "")
 			require.Positive(t, before, "the fixture must have a live session to lose")
 
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, mutate(baseRequest(stored.ID)))
+			req := mutate(baseRequest(stored.ID))
+			requestHeaders := headers
+			if req.KeyspaceId != nil {
+				requestHeaders = headersFor(h.CreateRootKey(workspace.ID, portalWriteGrant(workspace.ID),
+					rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Keyspace(mapping.ID), permissions.Read).Value))
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, requestHeaders, req)
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 			require.Equal(t, before, h.CountLivePortalSessions(t, stored.ID, ""),
 				"sessions must survive an update that leaves the mapping alone")
@@ -564,10 +566,11 @@ func TestUpdatePortalAddressedBySlug(t *testing.T) {
 // holds it.
 func TestUpdatePortalWritesOneAuditEntry(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, portalWriteGrant(h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
-	_, app, keyspace := mappingsInOneProject(t, h, workspace.ID, "audited")
+	project, app, keyspace := mappingsInOneProject(t, h, workspace.ID, "audited")
+	route, headers := newRoute(t, h, portalWriteGrant(workspace.ID),
+		rbac.U(urn.New().Workspace(workspace.ID).Project(project).Keyspace(keyspace.ID), permissions.Read).Value)
 	stored := h.SeedPortal(t, workspace.ID, "audited-portal", "audited-portal", app, nil, nil)
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
 
