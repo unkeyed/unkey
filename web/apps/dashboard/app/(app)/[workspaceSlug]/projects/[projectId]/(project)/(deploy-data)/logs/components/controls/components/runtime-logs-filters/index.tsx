@@ -7,8 +7,10 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-recent-deployments";
 import {
   type FilterItemConfig,
+  type FilterOptionItemParams,
   type FilterSearchItem,
   FiltersPopover,
+  createFilterOptionItem,
 } from "@/components/logs/checkbox/filters-popover";
 import type {
   RuntimeLogsFilterField,
@@ -18,15 +20,15 @@ import { trpc } from "@/lib/trpc/client";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { RuntimeLogsDeploymentFilter } from "./runtime-logs-deployment-filter";
 import { RuntimeLogsInstanceFilter } from "./runtime-logs-instance-filter";
 import { RuntimeLogsRegionFilter } from "./runtime-logs-region-filter";
 import { RuntimeLogsSeverityFilter, severityOptions } from "./runtime-logs-severity-filter";
 import { RuntimeLogsTextFilter } from "./runtime-logs-text-filter";
 
-const createAppFilter = (
-  field: "appId" | "environmentId",
+const createRuntimeLogsFilter = (
+  field: RuntimeLogsFilterField,
   value: string,
 ): RuntimeLogsFilterValue => ({
   id: crypto.randomUUID(),
@@ -41,7 +43,7 @@ function RuntimeLogsAppFilter() {
     <AppEnvironmentFilter
       filters={filters}
       updateFilters={updateFilters}
-      createFilter={createAppFilter}
+      createFilter={createRuntimeLogsFilter}
     />
   );
 }
@@ -116,77 +118,60 @@ export function RuntimeLogsFilters() {
   const appItems = useAppEnvironmentSearchItems({
     filters,
     updateFilters,
-    createFilter: createAppFilter,
+    createFilter: createRuntimeLogsFilter,
   });
 
-  const toggleFilter = useCallback(
-    (field: RuntimeLogsFilterField, value: string) => {
-      const isSelected = filters.some(
-        (filter) => filter.field === field && String(filter.value) === value,
-      );
-      updateFilters(
-        isSelected
-          ? filters.filter((filter) => filter.field !== field || String(filter.value) !== value)
-          : [
-              ...filters,
-              {
-                id: crypto.randomUUID(),
-                field,
-                operator: "is",
-                value,
-              },
-            ],
-      );
-    },
-    [filters, updateFilters],
-  );
-
   const searchItems = useMemo<FilterSearchItem[]>(() => {
-    const isFilterSelected = (field: RuntimeLogsFilterField, value: string) =>
-      filters.some((filter) => filter.field === field && String(filter.value) === value);
+    const option = (
+      params: Omit<
+        FilterOptionItemParams<RuntimeLogsFilterValue>,
+        "filters" | "updateFilters" | "createFilter"
+      >,
+    ) =>
+      createFilterOptionItem({
+        filters,
+        updateFilters,
+        createFilter: createRuntimeLogsFilter,
+        ...params,
+      });
 
-    const severityItems: FilterSearchItem[] = severityOptions.map((option) => ({
-      kind: "option",
-      id: `severity:${option.severity}`,
-      label: option.label,
-      path: ["Severity"],
-      checked: isFilterSelected("severity", option.severity),
-      onSelect: () => toggleFilter("severity", option.severity),
-    }));
+    const severityItems = severityOptions.map((severity) =>
+      option({
+        field: "severity",
+        value: severity.severity,
+        label: severity.label,
+        path: ["Severity"],
+      }),
+    );
 
-    const deploymentItems: FilterSearchItem[] = deployments.map((deployment) => ({
-      kind: "option",
-      id: `deployment:${deployment.id}`,
-      label: deployment.gitBranch ?? deployment.id,
-      path: ["Deployment"],
-      description: deployment.gitBranch ? deployment.id : undefined,
-      keywords: [deployment.id, deployment.gitBranch ?? ""],
-      checked: isFilterSelected("deploymentId", deployment.id),
-      onSelect: () => toggleFilter("deploymentId", deployment.id),
-    }));
+    const deploymentItems = deployments.map((deployment) =>
+      option({
+        field: "deploymentId",
+        value: deployment.id,
+        label: deployment.gitBranch ?? deployment.id,
+        path: ["Deployment"],
+        description: deployment.gitBranch ? deployment.id : undefined,
+        keywords: [deployment.id, deployment.gitBranch ?? ""],
+      }),
+    );
 
-    const regionItems: FilterSearchItem[] = (availableRegions ?? []).map((region) => ({
-      kind: "option",
-      id: `region:${region.name}`,
-      label: region.name,
-      path: ["Region"],
-      checked: isFilterSelected("region", region.name),
-      onSelect: () => toggleFilter("region", region.name),
-    }));
+    const regionItems = (availableRegions ?? []).map((region) =>
+      option({ field: "region", value: region.name, label: region.name, path: ["Region"] }),
+    );
 
-    const instanceItems: FilterSearchItem[] = (instances ?? []).map((instance) => ({
-      kind: "option",
-      id: `instance:${instance.id}`,
-      label: instance.id,
-      path: ["Instance"],
-      description: instance.region.name,
-      keywords: [instance.region.name],
-      checked: isFilterSelected("instanceId", instance.id),
-      onSelect: () => toggleFilter("instanceId", instance.id),
-    }));
+    const instanceItems = (instances ?? []).map((instance) =>
+      option({
+        field: "instanceId",
+        value: instance.id,
+        label: instance.id,
+        path: ["Instance"],
+        description: instance.region.name,
+        keywords: [instance.region.name],
+      }),
+    );
 
     return [...appItems, ...severityItems, ...deploymentItems, ...regionItems, ...instanceItems];
-  }, [appItems, availableRegions, deployments, filters, instances, toggleFilter]);
+  }, [appItems, availableRegions, deployments, filters, instances, updateFilters]);
 
   const filterCount = filters.filter(
     (f) =>

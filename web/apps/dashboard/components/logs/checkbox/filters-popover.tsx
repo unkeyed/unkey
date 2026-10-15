@@ -46,6 +46,44 @@ export type FilterSearchItem = FilterSearchItemBase &
       }
   );
 
+export type FilterOptionItemParams<TFilter extends FilterValue> = Pick<
+  FilterSearchItemBase,
+  "label" | "path" | "keywords" | "description" | "icon"
+> & {
+  filters: TFilter[];
+  updateFilters: (filters: TFilter[]) => void;
+  createFilter: (field: TFilter["field"], value: string) => TFilter;
+  field: TFilter["field"];
+  value: string;
+  single?: boolean;
+};
+
+export function createFilterOptionItem<TFilter extends FilterValue>({
+  filters,
+  updateFilters,
+  createFilter,
+  field,
+  value,
+  single = false,
+  ...item
+}: FilterOptionItemParams<TFilter>): FilterSearchItem {
+  const isMatch = (filter: TFilter) => filter.field === field && String(filter.value) === value;
+  const checked = filters.some(isMatch);
+
+  return {
+    ...item,
+    kind: "option",
+    id: `${field}:${value}`,
+    checked,
+    onSelect: () => {
+      const otherFilters = filters.filter(
+        (filter) => filter.field !== field || (!single && !isMatch(filter)),
+      );
+      updateFilters(checked ? otherFilters : [...otherFilters, createFilter(field, value)]);
+    },
+  };
+}
+
 type FiltersPopoverProps = {
   items: FilterItemConfig[];
   activeFilters: FilterValue[];

@@ -3,14 +3,20 @@ import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useState } from "react";
 import type { WorkspaceProps } from "../../../logs-client";
 import { BucketFilter } from "./components/bucket-filter";
 import { EventsFilter } from "./components/events-filter";
 import { RootKeysFilter } from "./components/root-keys-filter";
 import { UsersFilter } from "./components/users-filter";
+import { useAuditSearchItems } from "./use-audit-search-items";
 
 export const LogsFilters = (props: WorkspaceProps) => {
   const { filters } = useFilters();
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
+  const searchItems = useAuditSearchItems(props, isPopoverOpen);
+
   return (
     <FiltersPopover
       items={[
@@ -39,7 +45,11 @@ export const LogsFilters = (props: WorkspaceProps) => {
           component: <BucketFilter buckets={props.buckets} />,
         },
       ]}
+      searchItems={searchItems}
+      searchPlaceholder="Search events, users, root keys..."
       activeFilters={filters}
+      open={isPopoverOpen}
+      onOpenChange={setIsPopoverOpen}
     >
       <div className="group">
         <Button
