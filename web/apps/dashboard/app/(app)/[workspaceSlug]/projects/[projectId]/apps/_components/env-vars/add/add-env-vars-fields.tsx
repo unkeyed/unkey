@@ -1,8 +1,8 @@
 import {
   MAX_VARIABLES,
   PartialAddError,
-  addVariables,
   envVarErrorToast,
+  saveVariables,
 } from "@/lib/collections/deploy/env-vars";
 import { plural } from "@/lib/fmt";
 import { useMutation } from "@tanstack/react-query";
@@ -12,37 +12,55 @@ import { useAppId, useProjectData } from "../../../[appId]/(overview)/data-provi
 import { environmentName } from "../../environment-label";
 import { ALL_ENVIRONMENTS, targetEnvironmentIds } from "../../environment-scope";
 import { EnvironmentSelect } from "../../environment-select";
+import { useAppEnvVars } from "../use-app-env-vars";
 import { useVariableRows } from "../variables-table/use-variable-rows";
-import { conflictErrors, isBlankRow, parseVariableRows } from "../variables-table/variable-rows";
+import {
+  type SavedRow,
+  conflictErrors,
+  isChangedRow,
+  savedVariableChanges,
+  savedVariableRows,
+  splitVariableRows,
+} from "../variables-table/variable-rows";
 import { VariablesTable } from "../variables-table/variables-table";
 
-export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
+const NO_SAVED: readonly SavedRow[] = [];
+
+export function useAddEnvVarsForm({
+  onSaved,
+  showSaved = false,
+}: { onSaved?: () => void; showSaved?: boolean } = {}) {
   const appId = useAppId();
   const { projectId, environments } = useProjectData();
-  const draft = useVariableRows();
   const [environmentId, setEnvironmentId] = useState(ALL_ENVIRONMENTS);
   const targetIds = targetEnvironmentIds(
     environmentId,
     environments.map((e) => e.id),
   );
+  const envVars = useAppEnvVars(projectId, appId);
+  const saved =
+    showSaved && envVars.status === "ready" ? savedVariableRows(envVars.data, targetIds) : NO_SAVED;
+  const draft = useVariableRows(saved);
 
-  const canSubmit = targetIds.length > 0;
-  const isDirty = draft.rows.some((row) => !isBlankRow(row));
+  const canSubmit = targetIds.length > 0 && (!showSaved || envVars.status === "ready");
+  const isDirty = draft.rows.some(isChangedRow) || draft.removed.length > 0;
   const reset = () => {
     draft.reset();
     setEnvironmentId(ALL_ENVIRONMENTS);
   };
 
   const add = useMutation({
-    mutationFn: addVariables,
+    mutationFn: saveVariables,
     onSuccess: (result) => {
       if (result.status === "taken") {
         draft.showErrors(conflictErrors(draft.rows, new Set(result.keys)));
         return;
       }
-      toast.success(`Added ${plural(result.count, "variable")}`);
+      toast.success(
+        result.count > 0 ? `Added ${plural(result.count, "variable")}` : "Variables saved",
+      );
       reset();
-      onAdded?.();
+      onSaved?.();
     },
     onError: (err) => {
       if (err instanceof PartialAddError) {
@@ -69,12 +87,15 @@ export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
-    const parsed = parseVariableRows(draft.rows);
-    if (!parsed.ok) {
+    const parsed = splitVariableRows(draft.rows);
+    if (parsed.errors.size > 0) {
       draft.showErrors(parsed.errors);
       return;
     }
-    if (parsed.variables.length === 0 || !canSubmit || add.isLoading) {
+    const changes = savedVariableChanges(draft.rows, draft.removed);
+    const unchanged =
+      parsed.variables.length === 0 && changes.edited.length === 0 && changes.removed.length === 0;
+    if (unchanged || !canSubmit || add.isLoading) {
       return;
     }
     if (parsed.variables.length > MAX_VARIABLES) {
@@ -88,13 +109,17 @@ export function useAddEnvVarsForm({ onAdded }: { onAdded?: () => void } = {}) {
       appId,
       environmentIds: [...targetIds],
       variables: parsed.variables,
+      ...changes,
     });
   };
 
   return {
     draft,
     environmentId,
-    setEnvironmentId,
+    setEnvironmentId: (id: string) => {
+      draft.clearEdits();
+      setEnvironmentId(id);
+    },
     canSubmit,
     isDirty,
     isPending: add.isLoading,
@@ -108,13 +133,11 @@ type AddEnvVarsForm = ReturnType<typeof useAddEnvVarsForm>;
 export function AddEnvVarsFields({
   form,
 }: {
-  form: Pick<AddEnvVarsForm, "draft" | "environmentId" | "setEnvironmentId"> & {
-    onTableFocusChange?: (focused: boolean) => void;
-  };
+  form: Pick<AddEnvVarsForm, "draft" | "environmentId" | "setEnvironmentId">;
 }) {
   return (
     <>
-      <VariablesTable draft={form.draft} onFocusChange={form.onTableFocusChange} />
+      <VariablesTable draft={form.draft} />
       <FormField label="Environment">
         {({ id }) => (
           <EnvironmentSelect
