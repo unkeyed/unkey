@@ -309,7 +309,7 @@ func TestMapMatchExprFromProto(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, got.Header)
 		require.Equal(t, "X-Debug", got.Header.Name)
-		require.Equal(t, new(openapi.FieldMatchPresent(true)), got.Header.Present)
+		require.Equal(t, new(true), got.Header.Present)
 		require.Nil(t, got.Header.Value)
 	})
 
@@ -357,26 +357,25 @@ func TestMapMatchExprFromProto(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	// The gateway can match on absence (present=false) but the response
-	// schema only admits `present: true`, so such a policy must error
-	// instead of emitting a schema-violating response.
-	t.Run("header absent-match is unmappable", func(t *testing.T) {
-		_, err := mapMatchExprFromProto(&frontlinev1.MatchExpr{
+	t.Run("header absent-match", func(t *testing.T) {
+		got, err := mapMatchExprFromProto(&frontlinev1.MatchExpr{
 			Expr: &frontlinev1.MatchExpr_Header{Header: &frontlinev1.HeaderMatch{
 				Name:  "X-Debug",
 				Match: &frontlinev1.HeaderMatch_Present{Present: false},
 			}},
 		})
-		require.Error(t, err)
+		require.NoError(t, err)
+		require.Equal(t, &openapi.FieldMatch{Name: "X-Debug", Present: new(false)}, got.Header)
 	})
 
-	t.Run("queryParam absent-match is unmappable", func(t *testing.T) {
-		_, err := mapMatchExprFromProto(&frontlinev1.MatchExpr{
+	t.Run("queryParam absent-match", func(t *testing.T) {
+		got, err := mapMatchExprFromProto(&frontlinev1.MatchExpr{
 			Expr: &frontlinev1.MatchExpr_QueryParam{QueryParam: &frontlinev1.QueryParamMatch{
 				Name:  "debug",
 				Match: &frontlinev1.QueryParamMatch_Present{Present: false},
 			}},
 		})
-		require.Error(t, err)
+		require.NoError(t, err)
+		require.Equal(t, &openapi.FieldMatch{Name: "debug", Present: new(false)}, got.QueryParam)
 	})
 }

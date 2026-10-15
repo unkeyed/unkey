@@ -86,18 +86,14 @@ export const matchExprSchema = z.union([
     .object({
       header: z
         .object({ name: z.string().min(1) })
-        .and(
-          z.union([z.object({ present: z.literal(true) }), z.object({ value: stringMatchSchema })]),
-        ),
+        .and(z.union([z.object({ present: z.boolean() }), z.object({ value: stringMatchSchema })])),
     })
     .strict(),
   z
     .object({
       queryParam: z
         .object({ name: z.string().min(1) })
-        .and(
-          z.union([z.object({ present: z.literal(true) }), z.object({ value: stringMatchSchema })]),
-        ),
+        .and(z.union([z.object({ present: z.boolean() }), z.object({ value: stringMatchSchema })])),
     })
     .strict(),
   z

@@ -10,7 +10,7 @@ import {
 import { P, match } from "@unkey/match";
 import { z } from "zod";
 
-const namedOperatorSchema = z.enum([...stringMatchModeSchema.options, "present"]);
+const namedOperatorSchema = z.enum([...stringMatchModeSchema.options, "present", "absent"]);
 
 const ignoreCase = z.boolean().optional();
 
@@ -79,7 +79,7 @@ export const matchConditionSchema = z
         ctx.addIssue({ code: "custom", message, path: ["value"] });
       }
     }
-    if ("name" in c && c.operator !== "present" && !c.value) {
+    if ("name" in c && c.operator !== "present" && c.operator !== "absent" && !c.value) {
       ctx.addIssue({ code: "custom", message: "Value is required", path: ["value"] });
     }
   });
@@ -107,13 +107,13 @@ export function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
     .with({ type: "path" }, (c) => ({ path: { path: toStringMatch(c) } }))
     .with({ type: "method" }, (c) => ({ method: { methods: c.methods } }))
     .with({ type: "header" }, (c) =>
-      c.operator === "present"
-        ? { header: { name: c.name, present: true } }
+      c.operator === "present" || c.operator === "absent"
+        ? { header: { name: c.name, present: c.operator === "present" } }
         : { header: { name: c.name, value: toStringMatch({ ...c, operator: c.operator }) } },
     )
     .with({ type: "queryParam" }, (c) =>
-      c.operator === "present"
-        ? { queryParam: { name: c.name, present: true } }
+      c.operator === "present" || c.operator === "absent"
+        ? { queryParam: { name: c.name, present: c.operator === "present" } }
         : { queryParam: { name: c.name, value: toStringMatch({ ...c, operator: c.operator }) } },
     )
     .with({ type: "remoteIp" }, (c) =>
@@ -135,6 +135,7 @@ function fromStringMatch(sm: StringMatch): StringMatchFields {
 }
 
 const PRESENT = { operator: "present", value: "" } as const;
+const ABSENT = { operator: "absent", value: "" } as const;
 
 export function fromMatchExpr(expr: MatchExpr): MatchConditionFormValues {
   return match(expr)
@@ -148,12 +149,20 @@ export function fromMatchExpr(expr: MatchExpr): MatchConditionFormValues {
     .with({ header: P._ }, (e) => ({
       type: "header",
       name: e.header.name,
-      ...("present" in e.header ? PRESENT : fromStringMatch(e.header.value)),
+      ...("present" in e.header
+        ? e.header.present
+          ? PRESENT
+          : ABSENT
+        : fromStringMatch(e.header.value)),
     }))
     .with({ queryParam: P._ }, (e) => ({
       type: "queryParam",
       name: e.queryParam.name,
-      ...("present" in e.queryParam ? PRESENT : fromStringMatch(e.queryParam.value)),
+      ...("present" in e.queryParam
+        ? e.queryParam.present
+          ? PRESENT
+          : ABSENT
+        : fromStringMatch(e.queryParam.value)),
     }))
     .with({ remoteIp: P._ }, (e) =>
       "in" in e.remoteIp
