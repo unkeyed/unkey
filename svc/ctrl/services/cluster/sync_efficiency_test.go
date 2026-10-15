@@ -33,8 +33,8 @@ func TestFullSyncSelectsOnlyOutstandingDeploymentWork(t *testing.T) {
 	t.Run("stopped topology with deleting parent", func(t *testing.T) {
 		f := newDeletionFixture(t, 1)
 		stopDeploymentForSyncTest(t, f, true)
-		require.NoError(t, f.database.MarkEnvironmentDeleting(t.Context(), db.MarkEnvironmentDeletingParams{
-			ID: f.environmentID, DeletingAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		require.NoError(t, f.database.MarkEnvironmentDeleted(t.Context(), db.MarkEnvironmentDeletedParams{
+			ID: f.environmentID, DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 		}))
 		rows := listSyncRows(t, f)
 		require.Len(t, rows, 1)
@@ -102,8 +102,8 @@ func TestActiveParentGuardsShareLocksAndBlockDeletion(t *testing.T) {
 
 	deleteCtx, cancelDelete := context.WithTimeout(t.Context(), 200*time.Millisecond)
 	defer cancelDelete()
-	err = f.database.MarkEnvironmentDeleting(deleteCtx, db.MarkEnvironmentDeletingParams{
-		ID: f.environmentID, DeletingAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+	err = f.database.MarkEnvironmentDeleted(deleteCtx, db.MarkEnvironmentDeletedParams{
+		ID: f.environmentID, DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 	})
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 	require.NoError(t, second.Commit())

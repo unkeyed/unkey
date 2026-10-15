@@ -852,7 +852,7 @@ type Querier interface {
 	//  SELECT
 	//      dt.desired_status,
 	//      CAST((p.id IS NULL OR a.id IS NULL OR e.id IS NULL
-	//        OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL) AS SIGNED) AS removal_required,
+	//        OR p.deleted_at IS NOT NULL OR a.deleted_at IS NOT NULL OR e.deleted_at IS NOT NULL) AS SIGNED) AS removal_required,
 	//      CAST((dt.desired_status = 'stopped' AND (
 	//        (d.desired_state = 'stopped' AND d.status <> 'stopped')
 	//        OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = dt.deployment_id AND i.region_id = dt.region_id)
@@ -1985,7 +1985,7 @@ type Querier interface {
 	//  SELECT
 	//      dt.pk AS topology_pk,
 	//      CAST((p.id IS NULL OR a.id IS NULL OR e.id IS NULL
-	//        OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL) AS SIGNED) AS removal_required,
+	//        OR p.deleted_at IS NOT NULL OR a.deleted_at IS NOT NULL OR e.deleted_at IS NOT NULL) AS SIGNED) AS removal_required,
 	//      dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
 	//      dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
 	//      dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
@@ -2027,7 +2027,7 @@ type Querier interface {
 	//    AND (
 	//      dt.desired_status = 'running'
 	//      OR p.id IS NULL OR a.id IS NULL OR e.id IS NULL
-	//      OR p.deleting_at IS NOT NULL OR a.deleting_at IS NOT NULL OR e.deleting_at IS NOT NULL
+	//      OR p.deleted_at IS NOT NULL OR a.deleted_at IS NOT NULL OR e.deleted_at IS NOT NULL
 	//      OR (d.desired_state = 'stopped' AND d.status <> 'stopped')
 	//      OR EXISTS (
 	//        SELECT 1 FROM `instances` i
