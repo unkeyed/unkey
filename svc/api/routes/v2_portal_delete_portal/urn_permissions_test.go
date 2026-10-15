@@ -114,6 +114,8 @@ func TestDeletePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:%s#%s",
 				workspace.ID, tc.resource(projectID, stored.ID), tc.action))
 
+			h.CreatePortalSessionForPortal(stored.ID, workspace.ID, uid.New(uid.TestPrefix), []string{mapping.ID}, []string{"keys.read"})
+			auditBefore := countAuditEntriesMentioning(t, h, workspace.ID, "portal.delete")
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), request(stored.Slug))
 
 			if tc.shouldPass {
@@ -129,6 +131,8 @@ func TestDeletePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 				"a denial must not disclose the project id")
 			require.True(t, portalExists(t, h, workspace.ID, stored.ID),
 				"a denied request must not delete")
+			require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""))
+			require.Equal(t, auditBefore, countAuditEntriesMentioning(t, h, workspace.ID, "portal.delete"))
 		})
 	}
 }

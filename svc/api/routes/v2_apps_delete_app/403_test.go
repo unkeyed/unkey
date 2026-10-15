@@ -8,7 +8,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_delete_app"
@@ -30,7 +33,42 @@ func TestDeleteAppForbidden(t *testing.T) {
 		name        string
 		permissions func(projectID, appID string) []string
 		shouldPass  bool
-	}{}
+	}{
+		{name: "wildcard app permission", permissions: func(_, _ string) []string {
+			return []string{rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Delete).Value}
+		}, shouldPass: true},
+		{name: "specific app permission", permissions: func(p, a string) []string {
+			return []string{rbac.U(urn.New().Workspace(workspace.ID).Project(p).App(a), permissions.Delete).Value}
+		}, shouldPass: true},
+		{name: "wildcard and more", permissions: func(_, _ string) []string {
+			return []string{
+				rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*"), permissions.Read).Value,
+				rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Delete).Value,
+			}
+		}, shouldPass: true},
+		{name: "project delete does not delete app", permissions: func(p, _ string) []string {
+			return []string{rbac.U(urn.New().Workspace(workspace.ID).Project(p), permissions.Delete).Value}
+		}, shouldPass: false},
+		{name: "read does not match delete", permissions: func(p, a string) []string {
+			return []string{rbac.U(urn.New().Workspace(workspace.ID).Project(p).App(a), permissions.Read).Value}
+		}, shouldPass: false},
+		{name: "write does not match delete", permissions: func(p, a string) []string {
+			return []string{rbac.U(urn.New().Workspace(workspace.ID).Project(p).App(a), permissions.Write).Value}
+		}, shouldPass: false},
+		{name: "unrelated resource", permissions: func(p, _ string) []string {
+			return []string{rbac.U(urn.New().Workspace(workspace.ID).Project(p).Keyspace("*"), permissions.Delete).Value}
+		}, shouldPass: false},
+		{name: "no grants", permissions: func(_, _ string) []string { return nil }, shouldPass: false},
+		{name: "other app", permissions: func(p, _ string) []string {
+			return []string{rbac.U(urn.New().Workspace(workspace.ID).Project(p).App(uid.New(uid.AppPrefix)), permissions.Delete).Value}
+		}, shouldPass: false},
+		{name: "other project", permissions: func(_, a string) []string {
+			return []string{rbac.U(urn.New().Workspace(workspace.ID).Project(uid.New(uid.ProjectPrefix)).App(a), permissions.Delete).Value}
+		}, shouldPass: false},
+		{name: "other workspace", permissions: func(p, a string) []string {
+			return []string{rbac.U(urn.New().Workspace(uid.New(uid.WorkspacePrefix)).Project(p).App(a), permissions.Delete).Value}
+		}, shouldPass: false},
+	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
