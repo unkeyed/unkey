@@ -23,7 +23,7 @@ export function usePlatformPreviews() {
   }, [features.data, features.error]);
   const previews = platformPreviews.flatMap((preview) => {
     const state = features.data?.[preview.flag.slug];
-    if (!state) {
+    if (!state?.allowOptIn || !state.allowOptOut) {
       return [];
     }
     return [
@@ -32,24 +32,20 @@ export function usePlatformPreviews() {
         title: preview.title,
         description: preview.description,
         enabled: state.enabled,
-        allowOptIn: state.allowOptIn,
-        allowOptOut: state.allowOptOut,
       },
     ];
   });
   const update = useMutation({
-    onMutate: () => features.cancel(),
+    onMutate: (input: { slug: string; enabled: boolean }) => features.setCachedFlagValue(input),
     mutationFn: async (input: { slug: string; enabled: boolean }) => {
       await getUnkeyClient().workspace.updateFlag(input);
     },
-    async onSuccess(_data, input) {
-      await Promise.all([
-        features.setCachedFlagValue(input),
-        utils.workspace.getCurrent.invalidate(),
-      ]);
+    async onSuccess() {
+      await utils.workspace.getCurrent.invalidate();
       toast.success("Preview feature updated");
     },
-    onError(error) {
+    async onError(error, input) {
+      await features.setCachedFlagValue({ slug: input.slug, enabled: !input.enabled });
       toast.error("We couldn't update the preview feature", {
         description: getErrorMessage(error),
       });

@@ -12,7 +12,6 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  InfoTooltip,
   PageContainer,
   PageHeader,
   PageHeaderContent,
@@ -67,52 +66,22 @@ export default function PlatformFeaturesPage() {
                 </EmptyStateHeader>
               </EmptyState>
             ) : (
-              previews.map((feature) => {
-                const blockedReason =
-                  feature.enabled && !feature.allowOptOut
-                    ? "Unenrollment is not available for this feature."
-                    : !feature.enabled && !feature.allowOptIn
-                      ? "Enrollment is not available for this feature."
-                      : undefined;
-                const pendingEnabled =
-                  update.isLoading && update.variables?.slug === feature.slug
-                    ? update.variables.enabled
-                    : undefined;
-                return (
-                  <SettingCard
-                    key={feature.slug}
-                    contentWidth="w-full @2xl:w-auto shrink-0 justify-end"
-                    title={feature.title}
-                    description={
-                      <div id={`${feature.slug}-description`}>{feature.description}</div>
-                    }
-                  >
-                    <InfoTooltip
-                      content={<span id={`${feature.slug}-blocked-reason`}>{blockedReason}</span>}
-                      disabled={!blockedReason}
-                      asChild
-                      position={{ side: "top" }}
-                    >
-                      <span
-                        tabIndex={blockedReason ? 0 : undefined}
-                        aria-describedby={
-                          blockedReason ? `${feature.slug}-blocked-reason` : undefined
-                        }
-                      >
-                        <Switch
-                          checked={pendingEnabled ?? feature.enabled}
-                          onCheckedChange={(enabled) =>
-                            update.mutate({ slug: feature.slug, enabled })
-                          }
-                          aria-label={feature.title}
-                          aria-describedby={`${feature.slug}-description`}
-                          disabled={!canEnroll || Boolean(blockedReason) || update.isLoading}
-                        />
-                      </span>
-                    </InfoTooltip>
-                  </SettingCard>
-                );
-              })
+              previews.map((feature) => (
+                <SettingCard
+                  key={feature.slug}
+                  contentWidth="w-full @2xl:w-auto shrink-0 justify-end"
+                  title={feature.title}
+                  description={<div id={`${feature.slug}-description`}>{feature.description}</div>}
+                >
+                  <Switch
+                    checked={feature.enabled}
+                    onCheckedChange={(enabled) => update.mutate({ slug: feature.slug, enabled })}
+                    aria-label={feature.title}
+                    aria-describedby={`${feature.slug}-description`}
+                    disabled={!canEnroll || update.isLoading}
+                  />
+                </SettingCard>
+              ))
             )}
           </SettingCardGroup>
         </SettingsGroup>
