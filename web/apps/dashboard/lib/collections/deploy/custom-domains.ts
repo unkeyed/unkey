@@ -1,10 +1,19 @@
 "use client";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
+import {
+  type QueryCollectionUtils,
+  parseLoadSubsetOptions,
+  queryCollectionOptions,
+} from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
-import type { Domain as ApiDomain, DnsRecord } from "@unkey/api/models/components";
-import { ConflictErrorResponse, ForbiddenErrorResponse } from "@unkey/api/models/errors";
+import type { Domain as ApiDomain } from "@unkey/api/models/components";
+import {
+  BadRequestErrorResponse,
+  ConflictErrorResponse,
+  ForbiddenErrorResponse,
+} from "@unkey/api/models/errors";
+import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient } from "../client";
@@ -17,9 +26,7 @@ const dnsRecordSchema = z.object({
   type: z.enum(["CNAME", "ALIAS", "TXT"]),
   name: z.string(),
   value: z.string(),
-  ttl: z.number(),
   verified: z.boolean(),
-  note: z.string().nullable(),
 });
 
 const schema = z.object({
@@ -49,7 +56,11 @@ export type VerificationStatus = z.infer<typeof verificationStatusSchema>;
  * IMPORTANT: All queries MUST filter by projectId:
  * .where(({ customDomain }) => eq(customDomain.projectId, projectId))
  */
-export const customDomains = createCollection<CustomDomain, string>(
+export const customDomains = createCollection<
+  CustomDomain,
+  string,
+  QueryCollectionUtils<CustomDomain, string>
+>(
   queryCollectionOptions({
     queryClient,
     syncMode: "on-demand",
@@ -92,18 +103,12 @@ export const customDomains = createCollection<CustomDomain, string>(
 
       toast.promise(mutation, {
         loading: "Adding domain...",
-        success: (data) => ({
-          message: "Domain added",
-          description: dnsSetupHint(data.data.dnsRecords),
-          duration: 10_000,
-        }),
-        error: (err) => {
-          // The banner in the card shows the details and the actions.
-          if (isCustomDomainLimitError(err)) {
-            return { message: "Custom domain limit reached" };
-          }
-          if (isDomainConflictError(err)) {
-            return {
+        success: "Domain added",
+        error: (err) =>
+          match(customDomainErrorKind(err))
+            .with("limit", () => ({ message: "Custom domain limit reached" }))
+            .with("invalid", () => ({ message: "Invalid domain" }))
+            .with("conflict", () => ({
               message: "Domain already in use",
               description: getErrorMessage(err),
               ...(insertMeta.success && {
@@ -120,14 +125,12 @@ export const customDomains = createCollection<CustomDomain, string>(
                   },
                 },
               }),
-            };
-          }
-          return getErrorToast(err, "Failed to add domain");
-        },
+            }))
+            .with("unknown", () => getErrorToast(err, "Failed to add domain"))
+            .exhaustive(),
       });
 
       await mutation;
-      await customDomains.utils.refetch();
     },
     onDelete: async ({ transaction }) => {
       const original = transaction.mutations[0].original;
@@ -146,11 +149,20 @@ export const customDomains = createCollection<CustomDomain, string>(
   }),
 );
 
-export function isCustomDomainLimitError(error: unknown): boolean {
-  return (
-    error instanceof ForbiddenErrorResponse &&
-    error.error.type.endsWith("/custom_domain_limit_exceeded")
+export type CustomDomainErrorKind = "limit" | "invalid" | "conflict" | "unknown";
+
+const ERROR_KINDS = [
+  ["limit", ForbiddenErrorResponse, "custom_domain_limit_exceeded"],
+  // The server's hostname rule also rejects public suffixes, which the client cannot know.
+  ["invalid", BadRequestErrorResponse, "invalid_input"],
+  ["conflict", ConflictErrorResponse, "domain_already_exists"],
+] as const;
+
+export function customDomainErrorKind(error: unknown): CustomDomainErrorKind {
+  const rule = ERROR_KINDS.find(
+    ([, ErrorClass, code]) => error instanceof ErrorClass && error.error.type.endsWith(`/${code}`),
   );
+  return rule?.[0] ?? "unknown";
 }
 
 export async function retryDomainVerification({ domain }: { domain: string }): Promise<void> {
@@ -166,12 +178,6 @@ export async function retryDomainVerification({ domain }: { domain: string }): P
   await customDomains.utils.refetch();
 }
 
-function isDomainConflictError(error: unknown): boolean {
-  return (
-    error instanceof ConflictErrorResponse && error.error.type.endsWith("/domain_already_exists")
-  );
-}
-
 // getDomain resolves any domain in the workspace and 404s for the rest, so a
 // rejection is the "not ours to link to" case.
 async function openOwningApp(domain: string, workspaceSlug: string): Promise<string | null> {
@@ -183,18 +189,11 @@ async function openOwningApp(domain: string, workspaceSlug: string): Promise<str
     return null;
   }
 
-  return routes.projects.apps.settings({
+  return routes.projects.apps.domains({
     workspaceSlug,
     projectId: owner.data.projectId,
     appId: owner.data.appId,
   });
-}
-
-function dnsSetupHint(records: DnsRecord[]): string {
-  const routing = records.find((record) => record.type !== "TXT");
-  return routing
-    ? `Add a ${routing.type} record pointing to ${routing.value}`
-    : "Add the DNS records shown below";
 }
 
 async function listAllDomains(projectId: string): Promise<ApiDomain[]> {
@@ -225,9 +224,7 @@ function toCustomDomain(domain: ApiDomain): CustomDomain {
       type: record.type,
       name: record.name,
       value: record.value,
-      ttl: record.ttl,
       verified: record.verified,
-      note: record.note ?? null,
     })),
     verificationError: domain.verificationError ?? null,
     domainConnectProvider: domain.domainConnect?.provider ?? null,

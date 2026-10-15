@@ -13,7 +13,7 @@ describe("projects-first workspace sections", () => {
       { key: "projects", label: "Projects", href: "/acme/projects", isActive: true },
       { key: "root-keys", label: "Root Keys", href: "/acme/root-keys", isActive: false },
       { key: "logs", label: "Logs", href: "/acme/logs", isActive: false },
-      { key: "audit", label: "Audit Log", href: "/acme/audit", isActive: false },
+      { key: "audit", label: "Audit log", href: "/acme/audit", isActive: false },
       {
         key: "settings",
         label: "Workspace Settings",
@@ -27,7 +27,7 @@ describe("projects-first workspace sections", () => {
     expect(rows(buildWorkspaceSections(ws, ["projects"], false))).toEqual([
       { key: "projects", label: "Projects", href: "/acme/projects", isActive: true },
       { key: "logs", label: "Logs", href: "/acme/logs", isActive: false },
-      { key: "audit", label: "Audit Log", href: "/acme/audit", isActive: false },
+      { key: "audit", label: "Audit log", href: "/acme/audit", isActive: false },
       {
         key: "settings",
         label: "Workspace Settings",
@@ -89,7 +89,7 @@ describe("projects-first project links", () => {
       },
       {
         key: "settings",
-        label: "Project Settings",
+        label: "Project settings",
         href: "/acme/projects/proj_123/settings",
         isActive: false,
       },
