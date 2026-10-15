@@ -54,6 +54,12 @@ service ClusterService {
   // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
 
+  // StreamPrivateNetworkState sends the private network catalog that Ctrl
+  // keeps in memory from CDC for the caller's platform, in pages followed by a
+  // final complete chunk. A stream that ends without that chunk is partial and
+  // must not be reconciled, because omission authorizes deletion.
+  rpc StreamPrivateNetworkState(StreamPrivateNetworkStateRequest) returns (stream PrivateNetworkStateChunk);
+
   // ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
   // Called when K8s watch events indicate ReplicaSet changes.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
@@ -97,6 +103,11 @@ message DeploymentChangeEvent {
 message GetDesiredDeploymentStateRequest {
   ClusterKey cluster = 1;
   string deployment_id = 2;
+}
+
+message StreamPrivateNetworkStateRequest {
+  ClusterKey cluster = 1;
+  string known_version = 2;
 }
 
 message PrivateNetworkStateChunk {
