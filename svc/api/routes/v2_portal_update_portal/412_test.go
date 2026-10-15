@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -18,14 +21,16 @@ import (
 // project while apps take a caller-named one.
 func TestUpdatePortalRejectsMappingInAnotherProject(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, portalWriteGrant(h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	homeProject, _, homeKeyspace := mappingsInOneProject(t, h, workspace.ID, "home")
 	stored := h.SeedPortal(t, workspace.ID, "homebound", "homebound", homeKeyspace, nil, nil)
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{homeKeyspace.ID}, []string{"keys.read"})
 
-	_, elsewhereApp, elsewhereKeyspace := mappingsInOneProject(t, h, workspace.ID, "elsewhere")
+	elsewhereProject, elsewhereApp, elsewhereKeyspace := mappingsInOneProject(t, h, workspace.ID, "elsewhere")
+	route, headers := newRoute(t, h, portalWriteGrant(workspace.ID),
+		rbac.U(urn.New().Workspace(workspace.ID).Project(elsewhereProject).Keyspace(elsewhereKeyspace.ID), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(elsewhereProject).App(elsewhereApp.ID), permissions.Read).Value)
 
 	testCases := map[string]portal.Mapping{
 		"keyspace in another project": elsewhereKeyspace,

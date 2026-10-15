@@ -6,6 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
@@ -40,6 +43,8 @@ func TestUpdatePortalConflicts(t *testing.T) {
 	})
 
 	t.Run("mapping held by a sibling", func(t *testing.T) {
+		headers := headersFor(h.CreateRootKey(workspace.ID, portalWriteGrant(workspace.ID),
+			rbac.U(urn.New().Workspace(workspace.ID).Project(sibling.ProjectID).Keyspace(siblingMapping.ID), permissions.Read).Value))
 		req := baseRequest(mine.ID)
 		req.KeyspaceId = ksOf(siblingMapping)
 		req.AppId = appOf(siblingMapping)
@@ -60,10 +65,11 @@ func TestUpdatePortalConflicts(t *testing.T) {
 func TestUpdatePortalAcceptsItsOwnCurrentValues(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
-	route, headers := newRoute(t, h, portalWriteGrant(h.Resources().UserWorkspace.ID))
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "idempotent", "idempotent", mapping, nil, nil)
+	route, headers := newRoute(t, h, portalWriteGrant(workspace.ID),
+		rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Keyspace(mapping.ID), permissions.Read).Value)
 
 	req := baseRequest(stored.ID)
 	req.Slug = new(stored.Slug)
