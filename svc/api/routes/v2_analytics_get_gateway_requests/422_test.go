@@ -8,6 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
@@ -36,7 +39,7 @@ func (resourceLimitManager) GetConnection(context.Context, string) (clickhouse.C
 func Test422_ExceedsMaxMemory(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":**#read")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*").Environment("*").Gateway().Logs(), permissions.Read).Value)
 
 	route := &Handler{AnalyticsConnectionManager: resourceLimitManager{}}
 	h.Register(route)

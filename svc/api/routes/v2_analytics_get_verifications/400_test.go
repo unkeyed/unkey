@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -15,7 +18,7 @@ func Test400_EmptyQuery(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -45,7 +48,7 @@ func Test400_InvalidSQLSyntax(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -77,7 +80,7 @@ func Test400_QueryLengthIsBoundedBeforeParsing(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager, Caches: h.Caches}
 	h.Register(route)
 
@@ -95,7 +98,7 @@ func Test400_UnknownColumn(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -125,7 +128,7 @@ func Test400_InvalidTable(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -157,7 +160,7 @@ func Test400_PhysicalVerificationTables(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 	route := &Handler{
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
@@ -188,7 +191,7 @@ func Test400_NonSelectQuery(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -218,7 +221,7 @@ func Test400_QueryBeyond30Days(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -249,7 +252,7 @@ func Test400_QueryBeyondCustomRetention90Days(t *testing.T) {
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID, testutil.WithRetentionDays(90)) // 90-day retention
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	route := &Handler{
 		DB:                         h.DB,

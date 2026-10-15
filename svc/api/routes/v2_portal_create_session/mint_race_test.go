@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,7 +14,10 @@ import (
 	portalservice "github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -65,7 +67,8 @@ func TestMintLockMakesDisableRevokeTheNewSession(t *testing.T) {
 
 	update := &updateportal.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(update)
-	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(api.ProjectID).Portal(portalID), permissions.Write).Value))
 
 	mint, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)
@@ -111,7 +114,9 @@ func TestDisableLockMakesMintRefuse(t *testing.T) {
 
 	create := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, PortalBaseURL: "https://portal.unkey.com", Clock: h.Clock}
 	h.Register(create)
-	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID,
+		append([]string{sessionWriteGrant(workspace.ID, api.ProjectID, portalID)},
+			canonicalReadGrants(workspace.ID, api.ProjectID, api.KeyAuthID.String)...)...))
 
 	// Stands in for updatePortal's disable: write the portal row, then revoke.
 	disable, err := h.DB.RW().Begin(ctx)
@@ -162,7 +167,9 @@ func TestRepointLockMakesMintRefuse(t *testing.T) {
 
 	create := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, PortalBaseURL: "https://portal.unkey.com", Clock: h.Clock}
 	h.Register(create)
-	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID,
+		append([]string{sessionWriteGrant(workspace.ID, oldKeyspace.ProjectID, portalID)},
+			canonicalReadGrants(workspace.ID, oldKeyspace.ProjectID, oldKeyspace.KeyAuthID.String)...)...))
 
 	// Stands in for updatePortal's re-point: write the portal row, then revoke.
 	repoint, err := h.DB.RW().Begin(ctx)
@@ -213,7 +220,9 @@ func TestMintLockMakesRepointRevokeTheNewSession(t *testing.T) {
 	update := &updateportal.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(update)
 	// Re-pointing also needs read access to the new keyspace.
-	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID), fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID)))
+	headers := testutil.RootKeyHeaders(h.CreateRootKey(workspace.ID,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(oldKeyspace.ProjectID).Portal(portalID), permissions.Write).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(newKeyspace.ProjectID).Keyspace(newKeyspace.KeyAuthID.String), permissions.Read).Value))
 
 	mint, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)
