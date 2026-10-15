@@ -33,6 +33,39 @@ type RedisConfig struct {
 	URL string `toml:"url"`
 }
 
+// PeerConfig configures the cross-region backhaul. The entry frontline keeps
+// warm HTTP/2 connections to relays in other regions and sends each request
+// for a remote instance as a stream on one of them. Over ClusterMesh the
+// relays are found through EndpointSlices of a global headless Service, and
+// the connections ride the mesh's encrypted pod network.
+type PeerConfig struct {
+	// Enabled turns on the relay listener and the backhaul pool.
+	Enabled bool `toml:"enabled"`
+
+	// Port is the relay listener's TCP port. It serves h2c only and must be
+	// reachable only by other frontline pods.
+	Port int `toml:"port" config:"default=7444,min=1,max=65535"`
+
+	// Namespace and Service name the global headless Service whose
+	// ClusterMesh-synced EndpointSlices list the relays in other clusters.
+	Namespace string `toml:"namespace" config:"default=frontline"`
+	Service   string `toml:"service" config:"default=frontline-peer"`
+
+	// Clusters maps a ClusterMesh cluster name to the region it serves, in
+	// the router's "region.platform" form, e.g. "us-east-1.aws".
+	Clusters map[string]string `toml:"clusters"`
+
+	// StaticPeers maps a region to fixed relay addresses (host:port). When
+	// set, it replaces EndpointSlice discovery. For environments without
+	// Kubernetes.
+	StaticPeers map[string][]string `toml:"static_peers"`
+
+	// TargetCIDRs, when set, replaces the pod informer: the relay dials any
+	// target inside these prefixes without checking its deployment. For
+	// environments without Kubernetes.
+	TargetCIDRs []string `toml:"target_cidrs"`
+}
+
 // Config holds the complete configuration for the frontline server. It is
 // designed to be loaded from a TOML file using [config.Load]:
 //
@@ -113,6 +146,9 @@ type Config struct {
 
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
+
+	// Peer configures the cross-region backhaul. See [PeerConfig].
+	Peer PeerConfig `toml:"peer"`
 
 	// Pprof configures Go pprof profiling endpoints at /_unkey/internal/pprof/*.
 	// When nil or credentials are empty, pprof is disabled.

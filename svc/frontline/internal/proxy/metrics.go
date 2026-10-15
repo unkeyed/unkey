@@ -9,6 +9,7 @@ import (
 const (
 	destinationInstance  = "instance"  // local h2c forward to a deployment pod
 	destinationFrontline = "frontline" // cross-region HTTPS forward to peer frontline
+	destinationPeer      = "peer"      // cross-region backhaul stream to an instance
 )
 
 // Outcome labels for upstreamDialsTotal.

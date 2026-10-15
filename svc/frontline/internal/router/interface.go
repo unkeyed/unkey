@@ -28,8 +28,12 @@ const (
 // region for the caller to fall through to once every local instance has
 // dial-failed; empty when this is the only region with running instances.
 //
-// For DestinationRemoteRegion: only RemoteRegionAddress is populated.
-// LocalInstances is empty.
+// For DestinationRemoteRegion: LocalInstances is empty and
+// RemoteRegionAddress names the nearest region with running instances.
+//
+// In both cases RemoteInstances holds the running instances of
+// RemoteRegionAddress in shuffled order, so the caller can pick the target
+// itself and send it over the backhaul.
 type RouteDecision struct {
 	Destination         Destination
 	DeploymentID        string
@@ -39,6 +43,7 @@ type RouteDecision struct {
 	AppID               string
 	LocalInstances      []db.FindInstancesByDeploymentIDRow
 	RemoteRegionAddress string
+	RemoteInstances     []db.FindInstancesByDeploymentIDRow
 	UpstreamProtocol    db.DeploymentsUpstreamProtocol
 	Policies            []*frontlinev1.Policy
 }

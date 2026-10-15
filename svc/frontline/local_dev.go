@@ -103,6 +103,7 @@ func ServeLocalDev(ctx context.Context, listener net.Listener, cfg LocalDevConfi
 		Transport:           nil,
 		UpstreamTransports:  transports,
 		ErrorPageRenderer:   renderer,
+		Peers:               nil,
 	})
 	if err != nil {
 		return err

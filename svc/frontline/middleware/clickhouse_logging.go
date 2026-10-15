@@ -18,8 +18,9 @@ import (
 // WithClickHouseLogging buffers a per-request record for ClickHouse on the
 // local-instance path. The proxy package populates the tracking struct
 // during proxy execution; this middleware reads it back and emits the row
-// after next() returns. Cross-region requests do not populate tracking and
-// are skipped — the peer frontline writes its own row.
+// after next() returns. Legacy cross-region forwards do not populate tracking
+// and are skipped — the peer frontline writes its own row. Backhaul requests
+// populate tracking here; the relay writes no row.
 func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], clk clock.Clock, frontlineID, region, platform string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {

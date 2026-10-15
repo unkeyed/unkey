@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"slices"
 	"time"
 
 	"connectrpc.com/connect"
@@ -47,11 +48,14 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
+	"github.com/unkeyed/unkey/svc/frontline/internal/peer"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // Run starts the frontline server.
@@ -292,6 +296,14 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create Frontline metadata codec: %w", err)
 	}
 
+	var peers *peer.Pool
+	if cfg.Peer.Enabled {
+		peers, err = startPeer(ctx, r, cfg, metadata, upstreamTransports, clk)
+		if err != nil {
+			return fmt.Errorf("unable to start backhaul: %w", err)
+		}
+	}
+
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
 		InstanceID:         cfg.InstanceID,
@@ -302,6 +314,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxHops:            cfg.MaxHops,
 		Metadata:           metadata,
 		UpstreamTransports: upstreamTransports,
+		Peers:              peers,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create proxy service: %w", err)
@@ -539,4 +552,97 @@ func buildEngine(
 		return nil, fmt.Errorf("failed to initialize policy engine: %w", err)
 	}
 	return eng, nil
+}
+
+// startPeer starts the backhaul relay listener and the pool of connections
+// to relays in other regions.
+func startPeer(ctx context.Context, r *runner.Runner, cfg Config, metadata *meta.Codec, transports *proxy.TransportRegistry, clk clock.Clock) (*peer.Pool, error) {
+	local := fmt.Sprintf("%s.%s", cfg.Region, cfg.Platform)
+
+	var client kubernetes.Interface
+	if len(cfg.Peer.StaticPeers) == 0 || len(cfg.Peer.TargetCIDRs) == 0 {
+		k8sCfg, err := rest.InClusterConfig()
+		if err != nil {
+			return nil, fmt.Errorf("load in-cluster kubernetes config: %w", err)
+		}
+		client, err = kubernetes.NewForConfig(k8sCfg)
+		if err != nil {
+			return nil, fmt.Errorf("create kubernetes client: %w", err)
+		}
+	}
+
+	var targets peer.TargetValidator
+	if len(cfg.Peer.TargetCIDRs) > 0 {
+		cidrs, err := peer.ParseCIDRTargets(cfg.Peer.TargetCIDRs)
+		if err != nil {
+			return nil, err
+		}
+		targets = cidrs
+	} else {
+		pods, err := peer.NewPodTargets(ctx, client)
+		if err != nil {
+			return nil, err
+		}
+		targets = pods
+	}
+
+	var discovery peer.Discovery
+	var regions []string
+	if len(cfg.Peer.StaticPeers) > 0 {
+		discovery = peer.StaticDiscovery(cfg.Peer.StaticPeers)
+		for region := range cfg.Peer.StaticPeers {
+			regions = append(regions, region)
+		}
+	} else {
+		endpointSlices, err := peer.NewEndpointSliceDiscovery(ctx, client, cfg.Peer.Namespace, cfg.Peer.Service, cfg.Peer.Port, cfg.Peer.Clusters)
+		if err != nil {
+			return nil, err
+		}
+		discovery = endpointSlices
+		for _, region := range cfg.Peer.Clusters {
+			regions = append(regions, region)
+		}
+	}
+	regions = slices.DeleteFunc(slices.Compact(slices.Sorted(slices.Values(regions))), func(region string) bool {
+		return region == local
+	})
+
+	relay := &peer.Relay{
+		Metadata: metadata,
+		Targets:  targets,
+		Transport: func(protocol string) http.RoundTripper {
+			return transports.Get(db.DeploymentsUpstreamProtocol(protocol))
+		},
+		Clock: clk,
+	}
+	relaySrv := relay.Server()
+	relayListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Peer.Port))
+	if err != nil {
+		return nil, fmt.Errorf("unable to listen on backhaul port %d: %w", cfg.Peer.Port, err)
+	}
+	r.DeferCtx(relaySrv.Shutdown)
+	r.Go(func(ctx context.Context) error {
+		logger.Info("backhaul relay started", "addr", relayListener.Addr().String())
+		serveErr := relaySrv.Serve(relayListener)
+		if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			return fmt.Errorf("backhaul relay error: %w", serveErr)
+		}
+		return nil
+	})
+
+	//nolint:exhaustruct
+	pool := peer.NewPool(peer.PoolConfig{
+		Regions:   regions,
+		Discovery: discovery,
+	})
+	pool.Start()
+	r.Defer(func() error { pool.Close(); return nil })
+
+	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	pool.WaitReady(waitCtx)
+	for _, region := range regions {
+		logger.Info("backhaul region", "region", region, "ready", pool.Ready(region))
+	}
+	return pool, nil
 }

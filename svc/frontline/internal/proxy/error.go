@@ -10,12 +10,13 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/svc/frontline/internal/peer"
 )
 
 // IsDialError reports whether err is a dial-phase failure — i.e. the proxy
-// never established a TCP connection to the upstream. In that case the
-// request body has not been read and the request can safely be replayed
-// against a different instance.
+// never established a TCP connection to the upstream, or a backhaul relay
+// reports it never reached the instance. In that case the request can safely
+// be replayed against a different instance.
 //
 // Mid-stream failures (ECONNRESET on a connection that was already writing,
 // response timeouts, context cancellation) are NOT dial errors: the upstream
@@ -31,7 +32,7 @@ func IsDialError(err error) bool {
 	if _, ok := errors.AsType[*net.DNSError](err); ok {
 		return true
 	}
-	return false
+	return peer.IsNotDelivered(err)
 }
 
 // categorizeProxyError maps a raw upstream / dial error into a stable
@@ -48,6 +49,11 @@ func categorizeProxyError(err error, target string) (codes.URN, string) {
 	if errors.Is(err, context.Canceled) {
 		return codes.User.BadRequest.ClientClosedRequest.URN(),
 			"The client closed the connection before the request completed."
+	}
+
+	if peer.IsNotDelivered(err) {
+		return codes.Frontline.Proxy.ServiceUnavailable.URN(),
+			fmt.Sprintf("The %s is unavailable. Please try again in a few seconds.", target)
 	}
 
 	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {

@@ -26,12 +26,23 @@ type Hop struct {
 	TimeUnixMilli int64  `json:"time"`
 }
 
+// Target names the instance a backhaul relay must dial. The entry frontline
+// chooses it; the relay only checks that it is a live local pod of the
+// deployment.
+type Target struct {
+	DeploymentID string `json:"deployment_id"`
+	InstanceID   string `json:"instance_id"`
+	Address      string `json:"address"`
+	Protocol     string `json:"protocol"`
+}
+
 // Metadata is the trusted data sent between Frontline regions.
 type Metadata struct {
 	paseto.Claims
-	Hops                  []Hop  `json:"hops"`
-	ClientIP              string `json:"client_ip,omitempty"`
-	DebugTelemetryEnabled bool   `json:"debug_telemetry_enabled,omitempty"`
+	Hops                  []Hop   `json:"hops"`
+	ClientIP              string  `json:"client_ip,omitempty"`
+	DebugTelemetryEnabled bool    `json:"debug_telemetry_enabled,omitempty"`
+	Target                *Target `json:"target,omitempty"`
 }
 
 // New creates a metadata codec from a hex-encoded Ed25519 seed.
