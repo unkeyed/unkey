@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_get_domain"
@@ -22,7 +25,7 @@ func TestGetDomainBadRequest(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 	headers := authHeaders(rootKey)
 
 	testCases := []struct {

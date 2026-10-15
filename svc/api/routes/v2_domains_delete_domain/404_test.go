@@ -10,7 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -24,7 +27,7 @@ func TestDeleteDomainNotFound(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Delete).Value)
 	headers := authHeaders(rootKey)
 
 	testCases := []struct {
@@ -70,7 +73,7 @@ func TestDeleteDomainCrossWorkspace(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Delete).Value)
 	headers := authHeaders(rootKey)
 
 	otherWorkspace := h.CreateWorkspace()
@@ -153,7 +156,7 @@ func TestDeleteDomainCtrlNotFoundIsMasked(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Delete).Value)
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
