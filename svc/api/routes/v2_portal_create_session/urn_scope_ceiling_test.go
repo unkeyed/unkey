@@ -6,7 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -17,21 +20,21 @@ import (
 // one keyspace, mirroring the list-keys route: key read and keyspace read.
 func canonicalReadGrants(workspaceID, projectID, keyspaceID string) []string {
 	return []string{
-		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", workspaceID, projectID, keyspaceID),
-		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspaceID, projectID, keyspaceID),
+		rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID).Key("*"), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID), permissions.Read).Value,
 	}
 }
 
 // canonicalRerollGrant is the canonical grant the keys:reroll ceiling requires on
 // one keyspace. The key segment is a wildcard because mint time has no key id.
 func canonicalRerollGrant(workspaceID, projectID, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write", workspaceID, projectID, keyspaceID)
+	return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID).Key("*"), permissions.Write).Value
 }
 
 // canonicalAnalyticsGrant is the canonical grant the analytics:read ceiling
 // requires on one keyspace: read on the keyspace's log resource.
 func canonicalAnalyticsGrant(workspaceID, projectID, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/logs#read", workspaceID, projectID, keyspaceID)
+	return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID).Logs(), permissions.Read).Value
 }
 
 // TestCreateSessionCeilingAcceptsCanonicalGrants guarantees the mint-time

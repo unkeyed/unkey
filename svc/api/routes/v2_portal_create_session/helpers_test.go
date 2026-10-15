@@ -8,9 +8,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
+
+func sessionWriteGrant(workspaceID, projectID, portalID string) string {
+	return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Portal(portalID).Session("*"), permissions.Write).Value
+}
 
 func insertKeyspacePortal(t *testing.T, h *testutil.Harness, workspaceID, slug, keyspaceID string) string {
 	t.Helper()

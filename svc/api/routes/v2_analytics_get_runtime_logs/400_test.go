@@ -5,12 +5,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
 func Test400_RejectedQueries(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*").Logs(), permissions.Read).Value)
 
 	queries := map[string]string{
 		"empty query":            "",
@@ -39,7 +42,7 @@ func Test400_RejectedQueries(t *testing.T) {
 
 func Test400_InternalColumnsAreUnreachable(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*").Logs(), permissions.Read).Value)
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "kebap served"})
 
 	for _, column := range []string{"platform", "k8s_pod_name", "attributes", "expires_at"} {
@@ -61,7 +64,7 @@ func Test400_InternalColumnsAreUnreachable(t *testing.T) {
 
 func Test400_ErrorsDoNotDiscloseInternals(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*").Logs(), permissions.Read).Value)
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
 		Query: "SELECT platform FROM runtime_logs_v1",

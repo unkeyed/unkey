@@ -33,7 +33,7 @@ func TestSuccess(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*"), permissions.Delete).Value)
 
 	// Set up request headers
 	headers := http.Header{
@@ -199,7 +199,7 @@ func TestDeleteApiCascadesToKeyspaceAndKeys(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*"))},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").Keyspace("*"), permissions.Delete).Value))},
 	}
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
@@ -276,7 +276,7 @@ func TestDeleteApiCountsOnlyLiveKeys(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*"))},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").Keyspace("*"), permissions.Delete).Value))},
 	}
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})

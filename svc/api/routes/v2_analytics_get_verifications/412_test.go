@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
@@ -16,7 +19,7 @@ func Test412_AnalyticsNotConfigured(t *testing.T) {
 	_ = h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
-	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs(), permissions.Read).Value)
 
 	// Do NOT set up ClickHouse workspace settings
 	// This will cause GetConnection to fail
