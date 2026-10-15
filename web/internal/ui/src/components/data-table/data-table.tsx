@@ -32,12 +32,9 @@ export type DataTableRef = {
 function StickyHeaderUnderline({ colSpan, hasPadding }: { colSpan: number; hasPadding: boolean }) {
   return (
     <tr>
-      <th colSpan={colSpan} className="p-0">
+      <th colSpan={colSpan} className="relative p-0">
         <div
-          className={cn(
-            "absolute inset-y-0 -z-10 border-b bg-table-header",
-            hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-          )}
+          className={cn("absolute bottom-0 border-b", hasPadding ? "inset-x-[-8px]" : "inset-x-0")}
         />
       </th>
     </tr>
@@ -207,6 +204,8 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                   key={header.id}
                   className={cn(
                     "text-sm font-medium text-gray-12 py-1 text-left",
+                    hasPadding &&
+                      "first:shadow-[-8px_0_0_var(--background-color-table-header)] last:shadow-[8px_0_0_var(--background-color-table-header)]",
                     header.column.columnDef.meta?.headerClassName,
                     header.column.columnDef.meta?.cellClassName,
                   )}
@@ -253,6 +252,8 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                     key={header.id}
                     className={cn(
                       "text-sm font-medium text-gray-12 py-1 text-left relative",
+                      hasPadding &&
+                        "first:shadow-[-8px_0_0_var(--background-color-table-header)] last:shadow-[8px_0_0_var(--background-color-table-header)]",
                       header.column.columnDef.meta?.headerClassName,
                       header.column.columnDef.meta?.cellClassName,
                     )}
