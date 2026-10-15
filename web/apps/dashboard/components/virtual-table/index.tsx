@@ -108,7 +108,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       setInternalExpandedIds(newExpanded);
     };
 
-    const hasPadding = config.containerPadding !== "px-0";
     const hasHeaders = columns.some((col) => col.header);
 
     const calculatedHeight = useTableHeight(containerRef);
@@ -195,7 +194,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     <th
                       key={column.key}
                       className={cn(
-                        "text-sm font-medium text-gray-12 py-1 text-left",
+                        "text-sm font-medium text-gray-12 py-1 text-left bg-table-header border-b",
                         column.headerClassName,
                         column.cellClassName,
                       )}
@@ -203,16 +202,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       <div className="truncate text-gray-12">{column.header}</div>
                     </th>
                   ))}
-                </tr>
-                <tr>
-                  <th colSpan={columns.length} className="p-0">
-                    <div
-                      className={cn(
-                        "absolute inset-y-0 -z-10 bg-table-header border-b",
-                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                      )}
-                    />
-                  </th>
                 </tr>
               </thead>
             )}
@@ -244,7 +233,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     <th
                       key={column.key}
                       className={cn(
-                        "text-sm font-medium text-gray-12 py-1 text-left relative",
+                        "text-sm font-medium text-gray-12 py-1 text-left relative bg-table-header border-b",
                         column.headerClassName,
                         column.cellClassName,
                       )}
@@ -252,16 +241,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       <HeaderCell column={column} />
                     </th>
                   ))}
-                </tr>
-                <tr>
-                  <th colSpan={columns.length} className="p-0">
-                    <div
-                      className={cn(
-                        "absolute inset-y-0 -z-10 bg-table-header border-b",
-                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                      )}
-                    />
-                  </th>
                 </tr>
               </thead>
             )}
