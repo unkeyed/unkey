@@ -4,6 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
@@ -11,7 +14,7 @@ import (
 // analytics is not configured for the workspace.
 func Test412_UnconfiguredAnalytics(t *testing.T) {
 	h, route, workspaceID := newRoute(t, false)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").RatelimitNamespace("*").Logs(), permissions.Read).Value)
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: "SELECT * FROM ratelimits_v1 WHERE namespace_id = 'rlns_missing'"})
 	require.Equal(t, 412, res.Status)
 }
