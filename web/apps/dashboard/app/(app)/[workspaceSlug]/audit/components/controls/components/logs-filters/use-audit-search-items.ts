@@ -4,9 +4,8 @@ import type {
 } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
 import {
-  type FilterOptionItemParams,
   type FilterSearchItem,
-  createFilterOptionItem,
+  createFilterOptionBuilder,
 } from "@/components/logs/checkbox/filters-popover";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
@@ -29,18 +28,11 @@ export function useAuditSearchItems(
   const { data: users } = trpc.audit.members.useQuery(undefined, { enabled: isPopoverOpen });
 
   return useMemo(() => {
-    const option = (
-      params: Omit<
-        FilterOptionItemParams<AuditLogsFilterValue>,
-        "filters" | "updateFilters" | "createFilter"
-      >,
-    ) =>
-      createFilterOptionItem({
-        filters,
-        updateFilters,
-        createFilter: createAuditFilter,
-        ...params,
-      });
+    const option = createFilterOptionBuilder({
+      filters,
+      updateFilters,
+      createFilter: createAuditFilter,
+    });
 
     return [
       ...eventGroups.flatMap((group) =>

@@ -1,15 +1,39 @@
-import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
+import {
+  FiltersPopover,
+  createFilterOptionBuilder,
+} from "@/components/logs/checkbox/filters-popover";
 
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { ratelimitOverviewFilterFieldConfig } from "../../../../filters.schema";
+import { useMemo } from "react";
+import {
+  type RatelimitOverviewFilterField,
+  type RatelimitOverviewFilterValue,
+  ratelimitOverviewFilterFieldConfig,
+} from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
-import { StatusFilter } from "./components/status-filter";
+import { StatusFilter, statusOptions } from "./components/status-filter";
+
+const createFilter = (
+  field: RatelimitOverviewFilterField,
+  value: string,
+): RatelimitOverviewFilterValue => ({
+  id: crypto.randomUUID(),
+  field,
+  operator: "is",
+  value,
+});
 
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
+  const searchItems = useMemo(() => {
+    const option = createFilterOptionBuilder({ filters, updateFilters, createFilter });
+    return statusOptions.map((status) =>
+      option({ field: "status", value: status.status, label: status.label, path: ["Status"] }),
+    );
+  }, [filters, updateFilters]);
 
   const identifierOperators = ratelimitOverviewFilterFieldConfig.identifiers.operators;
   const options = identifierOperators.map((op) => ({
@@ -55,6 +79,7 @@ export const LogsFilters = () => {
           ),
         },
       ]}
+      searchItems={searchItems}
       activeFilters={filters}
     >
       <div className="group">

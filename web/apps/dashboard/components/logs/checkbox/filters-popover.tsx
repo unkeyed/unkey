@@ -46,41 +46,45 @@ export type FilterSearchItem = FilterSearchItemBase &
       }
   );
 
-export type FilterOptionItemParams<TFilter extends FilterValue> = Pick<
+export type FilterOptionParams<TFilter extends FilterValue> = Pick<
   FilterSearchItemBase,
   "label" | "path" | "keywords" | "description" | "icon"
 > & {
-  filters: TFilter[];
-  updateFilters: (filters: TFilter[]) => void;
-  createFilter: (field: TFilter["field"], value: string) => TFilter;
   field: TFilter["field"];
   value: string;
   single?: boolean;
 };
 
-export function createFilterOptionItem<TFilter extends FilterValue>({
+export function createFilterOptionBuilder<TFilter extends FilterValue>({
   filters,
   updateFilters,
   createFilter,
-  field,
-  value,
-  single = false,
-  ...item
-}: FilterOptionItemParams<TFilter>): FilterSearchItem {
-  const isMatch = (filter: TFilter) => filter.field === field && String(filter.value) === value;
-  const checked = filters.some(isMatch);
+}: {
+  filters: TFilter[];
+  updateFilters: (filters: TFilter[]) => void;
+  createFilter: (field: TFilter["field"], value: string) => TFilter;
+}) {
+  return ({
+    field,
+    value,
+    single = false,
+    ...item
+  }: FilterOptionParams<TFilter>): FilterSearchItem => {
+    const isMatch = (filter: TFilter) => filter.field === field && String(filter.value) === value;
+    const checked = filters.some(isMatch);
 
-  return {
-    ...item,
-    kind: "option",
-    id: `${field}:${value}`,
-    checked,
-    onSelect: () => {
-      const otherFilters = filters.filter(
-        (filter) => filter.field !== field || (!single && !isMatch(filter)),
-      );
-      updateFilters(checked ? otherFilters : [...otherFilters, createFilter(field, value)]);
-    },
+    return {
+      ...item,
+      kind: "option",
+      id: `${field}:${value}`,
+      checked,
+      onSelect: () => {
+        const otherFilters = filters.filter(
+          (filter) => filter.field !== field || (!single && !isMatch(filter)),
+        );
+        updateFilters(checked ? otherFilters : [...otherFilters, createFilter(field, value)]);
+      },
+    };
   };
 }
 
@@ -153,7 +157,7 @@ export const FiltersPopover = ({
 
   const matchingSearchItems = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
-    if (!query || !searchItems) {
+    if (!query) {
       return [];
     }
 
@@ -164,7 +168,7 @@ export const FiltersPopover = ({
           .some((value) => value.toLocaleLowerCase().includes(query)),
       )
       .slice(0, 50);
-  }, [search, searchItems, searchableItems]);
+  }, [search, searchableItems]);
 
   // Handle local state if external state isn't provided
   const [internalOpen, setInternalOpen] = useState(false);
@@ -329,70 +333,66 @@ export const FiltersPopover = ({
       </Drover.Trigger>
 
       <Drover.Content
-        className={cn("min-w-60 bg-raised rounded-lg", searchItems ? "w-80 p-0" : "p-2")}
+        className="w-80 min-w-60 rounded-lg bg-raised p-0"
         align="start"
         onKeyDown={handleKeyDown}
       >
         <div className="flex w-full flex-col">
-          {searchItems ? (
-            <div className="border-b p-2">
-              <InputGroup variant="ghost" className="h-8">
-                <InputGroupAddon className="pointer-events-none">
-                  <IconMagnifierOutline18 className="size-3.5 text-gray-9" />
-                </InputGroupAddon>
-                <InputGroupInput
-                  autoFocus
-                  value={search}
-                  onChange={(event) => {
-                    setSearch(event.target.value);
-                    setFocusedSearchIndex(0);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") {
-                      return;
-                    }
-                    // With no query the main filter list owns navigation keys;
-                    // with a query the search results own them.
-                    if (!search.trim()) {
-                      return;
-                    }
-                    event.stopPropagation();
+          <div className="border-b p-2">
+            <InputGroup variant="ghost" className="h-8">
+              <InputGroupAddon className="pointer-events-none">
+                <IconMagnifierOutline18 className="size-3.5 text-gray-9" />
+              </InputGroupAddon>
+              <InputGroupInput
+                autoFocus
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setFocusedSearchIndex(0);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    return;
+                  }
+                  // With no query the main filter list owns navigation keys;
+                  // with a query the search results own them.
+                  if (!search.trim()) {
+                    return;
+                  }
+                  event.stopPropagation();
 
-                    if (activeSearchIndex === null) {
-                      return;
+                  if (activeSearchIndex === null) {
+                    return;
+                  }
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setFocusedSearchIndex((activeSearchIndex + 1) % matchingSearchItems.length);
+                  } else if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setFocusedSearchIndex(
+                      (activeSearchIndex - 1 + matchingSearchItems.length) %
+                        matchingSearchItems.length,
+                    );
+                  } else if (event.key === "Enter") {
+                    event.preventDefault();
+                    const item = matchingSearchItems[activeSearchIndex];
+                    if (item) {
+                      activateSearchItem(item);
                     }
-                    if (event.key === "ArrowDown") {
-                      event.preventDefault();
-                      setFocusedSearchIndex((activeSearchIndex + 1) % matchingSearchItems.length);
-                    } else if (event.key === "ArrowUp") {
-                      event.preventDefault();
-                      setFocusedSearchIndex(
-                        (activeSearchIndex - 1 + matchingSearchItems.length) %
-                          matchingSearchItems.length,
-                      );
-                    } else if (event.key === "Enter") {
-                      event.preventDefault();
-                      const item = matchingSearchItems[activeSearchIndex];
-                      if (item) {
-                        activateSearchItem(item);
-                      }
-                    }
-                  }}
-                  placeholder={searchPlaceholder}
-                  aria-label="Search filters and values"
-                  className="h-8 text-xs"
-                />
-                <InputGroupAddon align="inline-end">
-                  <KeyboardButton shortcut="F" />
-                </InputGroupAddon>
-              </InputGroup>
-            </div>
-          ) : (
-            <PopoverHeader />
-          )}
+                  }
+                }}
+                placeholder={searchPlaceholder}
+                aria-label="Search filters and values"
+                className="h-8 text-xs"
+              />
+              <InputGroupAddon align="inline-end">
+                <KeyboardButton shortcut="F" />
+              </InputGroupAddon>
+            </InputGroup>
+          </div>
 
-          <div className={cn("w-full p-2", searchItems ? "max-h-80 overflow-y-auto" : "")}>
-            {search.trim() && searchItems ? (
+          <div className="max-h-80 w-full overflow-y-auto p-2">
+            {search.trim() ? (
               matchingSearchItems.length > 0 ? (
                 <div className="flex flex-col gap-1">
                   {matchingSearchItems.map((item, index) => (
@@ -469,10 +469,3 @@ export const FiltersPopover = ({
     </Drover.Root>
   );
 };
-
-const PopoverHeader = () => (
-  <div className="flex w-full justify-between items-center px-2 py-1">
-    <span className="text-gray-9 text-sm">Filters...</span>
-    <KeyboardButton shortcut="F" />
-  </div>
-);

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FilterValue } from "../validation/filter.types";
-import { createFilterOptionItem } from "./filters-popover";
+import { createFilterOptionBuilder } from "./filters-popover";
 
 type TestFilter = FilterValue<"status" | "bucket" | "region", "is">;
 
@@ -18,10 +18,7 @@ const select = (
   single?: boolean,
 ) => {
   const updateFilters = vi.fn<(filters: TestFilter[]) => void>();
-  const item = createFilterOptionItem({
-    filters,
-    updateFilters,
-    createFilter: filter,
+  const item = createFilterOptionBuilder({ filters, updateFilters, createFilter: filter })({
     field,
     value,
     single,
@@ -37,7 +34,7 @@ const select = (
 
 const values = (filters: TestFilter[]) => filters.map((f) => `${f.field}=${f.value}`).sort();
 
-describe("createFilterOptionItem", () => {
+describe("createFilterOptionBuilder", () => {
   const current = [filter("status", "200"), filter("status", "404"), filter("region", "eu")];
 
   it("adds an unselected value and keeps other values of the same field", () => {

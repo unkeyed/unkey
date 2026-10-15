@@ -7,10 +7,9 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-recent-deployments";
 import {
   type FilterItemConfig,
-  type FilterOptionItemParams,
   type FilterSearchItem,
   FiltersPopover,
-  createFilterOptionItem,
+  createFilterOptionBuilder,
 } from "@/components/logs/checkbox/filters-popover";
 import type {
   RuntimeLogsFilterField,
@@ -122,18 +121,11 @@ export function RuntimeLogsFilters() {
   });
 
   const searchItems = useMemo<FilterSearchItem[]>(() => {
-    const option = (
-      params: Omit<
-        FilterOptionItemParams<RuntimeLogsFilterValue>,
-        "filters" | "updateFilters" | "createFilter"
-      >,
-    ) =>
-      createFilterOptionItem({
-        filters,
-        updateFilters,
-        createFilter: createRuntimeLogsFilter,
-        ...params,
-      });
+    const option = createFilterOptionBuilder({
+      filters,
+      updateFilters,
+      createFilter: createRuntimeLogsFilter,
+    });
 
     const severityItems = severityOptions.map((severity) =>
       option({

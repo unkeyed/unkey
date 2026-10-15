@@ -1,16 +1,42 @@
-import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
+import {
+  FiltersPopover,
+  createFilterOptionBuilder,
+} from "@/components/logs/checkbox/filters-popover";
 
+import { getOutcomeOptions } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/utils";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useState } from "react";
-import { keyDetailsFilterFieldConfig } from "../../../../filters.schema";
+import { useMemo, useState } from "react";
+import {
+  type KeyDetailsFilterField,
+  type KeyDetailsFilterValue,
+  keyDetailsFilterFieldConfig,
+} from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import { OutcomesFilter } from "./outcome-filter";
 
+const createFilter = (field: KeyDetailsFilterField, value: string): KeyDetailsFilterValue => ({
+  id: crypto.randomUUID(),
+  field,
+  operator: "is",
+  value,
+});
+
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
+  const searchItems = useMemo(() => {
+    const option = createFilterOptionBuilder({ filters, updateFilters, createFilter });
+    return getOutcomeOptions().map((outcome) =>
+      option({
+        field: "outcomes",
+        value: outcome.outcome,
+        label: outcome.label,
+        path: ["Outcomes"],
+      }),
+    );
+  }, [filters, updateFilters]);
   const [open, setOpen] = useState(false);
 
   const activeTagsFilter = filters.find((f) => f.field === "tags");
@@ -57,6 +83,7 @@ export const LogsFilters = () => {
           component: <OutcomesFilter onDrawerClose={() => setOpen(false)} />,
         },
       ]}
+      searchItems={searchItems}
       activeFilters={filters}
     >
       <div className="group">
