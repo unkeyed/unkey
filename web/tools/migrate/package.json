@@ -2,6 +2,7 @@
   "name": "@unkey/migrate",
   "version": "1.0.0",
   "scripts": {
+    "deployment-first-ready-at": "tsx ./deployment-first-ready-at.ts",
     "environment-kind": "tsx ./environment-kind.ts",
     "key-prefix": "tsx ./key-prefix.ts",
     "logging-policy": "tsx ./logging-policy.ts",

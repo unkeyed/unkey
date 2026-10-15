@@ -139,6 +139,47 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
+type AppConnectionsResourceType string
+
+const (
+	AppConnectionsResourceTypeApp AppConnectionsResourceType = "app"
+)
+
+func (e *AppConnectionsResourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AppConnectionsResourceType(s)
+	case string:
+		*e = AppConnectionsResourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AppConnectionsResourceType: %T", src)
+	}
+	return nil
+}
+
+type NullAppConnectionsResourceType struct {
+	AppConnectionsResourceType AppConnectionsResourceType
+	Valid                      bool // Valid is true if AppConnectionsResourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAppConnectionsResourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AppConnectionsResourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AppConnectionsResourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAppConnectionsResourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AppConnectionsResourceType), nil
+}
+
 type AppEnvironmentVariablesType string
 
 const (
@@ -352,6 +393,49 @@ func (ns NullBillingSubscriptionsProduct) Value() (driver.Value, error) {
 	return string(ns.BillingSubscriptionsProduct), nil
 }
 
+type ConnectionAppTargetsSelectionMode string
+
+const (
+	ConnectionAppTargetsSelectionModeAutomatic   ConnectionAppTargetsSelectionMode = "automatic"
+	ConnectionAppTargetsSelectionModeEnvironment ConnectionAppTargetsSelectionMode = "environment"
+	ConnectionAppTargetsSelectionModeDeployment  ConnectionAppTargetsSelectionMode = "deployment"
+)
+
+func (e *ConnectionAppTargetsSelectionMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ConnectionAppTargetsSelectionMode(s)
+	case string:
+		*e = ConnectionAppTargetsSelectionMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ConnectionAppTargetsSelectionMode: %T", src)
+	}
+	return nil
+}
+
+type NullConnectionAppTargetsSelectionMode struct {
+	ConnectionAppTargetsSelectionMode ConnectionAppTargetsSelectionMode
+	Valid                             bool // Valid is true if ConnectionAppTargetsSelectionMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullConnectionAppTargetsSelectionMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.ConnectionAppTargetsSelectionMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ConnectionAppTargetsSelectionMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullConnectionAppTargetsSelectionMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ConnectionAppTargetsSelectionMode), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -436,6 +520,90 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.CustomDomainsVerificationStatus), nil
+}
+
+type DeploymentConnectionAppTargetsSelectionMode string
+
+const (
+	DeploymentConnectionAppTargetsSelectionModeAutomatic   DeploymentConnectionAppTargetsSelectionMode = "automatic"
+	DeploymentConnectionAppTargetsSelectionModeEnvironment DeploymentConnectionAppTargetsSelectionMode = "environment"
+	DeploymentConnectionAppTargetsSelectionModeDeployment  DeploymentConnectionAppTargetsSelectionMode = "deployment"
+)
+
+func (e *DeploymentConnectionAppTargetsSelectionMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentConnectionAppTargetsSelectionMode(s)
+	case string:
+		*e = DeploymentConnectionAppTargetsSelectionMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentConnectionAppTargetsSelectionMode: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentConnectionAppTargetsSelectionMode struct {
+	DeploymentConnectionAppTargetsSelectionMode DeploymentConnectionAppTargetsSelectionMode
+	Valid                                       bool // Valid is true if DeploymentConnectionAppTargetsSelectionMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentConnectionAppTargetsSelectionMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentConnectionAppTargetsSelectionMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentConnectionAppTargetsSelectionMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentConnectionAppTargetsSelectionMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentConnectionAppTargetsSelectionMode), nil
+}
+
+type DeploymentConnectionsResourceType string
+
+const (
+	DeploymentConnectionsResourceTypeApp DeploymentConnectionsResourceType = "app"
+)
+
+func (e *DeploymentConnectionsResourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentConnectionsResourceType(s)
+	case string:
+		*e = DeploymentConnectionsResourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentConnectionsResourceType: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentConnectionsResourceType struct {
+	DeploymentConnectionsResourceType DeploymentConnectionsResourceType
+	Valid                             bool // Valid is true if DeploymentConnectionsResourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentConnectionsResourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentConnectionsResourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentConnectionsResourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentConnectionsResourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentConnectionsResourceType), nil
 }
 
 type DeploymentStepsStep string
@@ -1167,6 +1335,20 @@ type AppBuildSetting struct {
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
 
+type AppConnection struct {
+	Pk            uint64                     `db:"pk"`
+	ID            string                     `db:"id"`
+	WorkspaceID   string                     `db:"workspace_id"`
+	ProjectID     string                     `db:"project_id"`
+	AppID         string                     `db:"app_id"`
+	EnvironmentID string                     `db:"environment_id"`
+	ResourceType  AppConnectionsResourceType `db:"resource_type"`
+	ResourceID    string                     `db:"resource_id"`
+	Name          string                     `db:"name"`
+	CreatedAt     int64                      `db:"created_at"`
+	UpdatedAt     sql.NullInt64              `db:"updated_at"`
+}
+
 type AppEnvironmentVariable struct {
 	Pk               uint64                      `db:"pk"`
 	ID               string                      `db:"id"`
@@ -1302,6 +1484,14 @@ type ComputeSignupCreditClaim struct {
 	CreatedAt                  int64          `db:"created_at"`
 }
 
+type ConnectionAppTarget struct {
+	Pk                  uint64                            `db:"pk"`
+	ConnectionID        string                            `db:"connection_id"`
+	SelectionMode       ConnectionAppTargetsSelectionMode `db:"selection_mode"`
+	TargetEnvironmentID sql.NullString                    `db:"target_environment_id"`
+	TargetDeploymentID  sql.NullString                    `db:"target_deployment_id"`
+}
+
 type CustomDomain struct {
 	Pk                    uint64                          `db:"pk"`
 	ID                    string                          `db:"id"`
@@ -1354,17 +1544,42 @@ type Deployment struct {
 	Port                          int32                       `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal   `db:"shutdown_signal"`
 	UpstreamProtocol              DeploymentsUpstreamProtocol `db:"upstream_protocol"`
+	Capabilities                  json.RawMessage             `db:"capabilities"`
 	Healthcheck                   json.RawMessage             `db:"healthcheck"`
 	PrNumber                      sql.NullInt64               `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
 	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`
 	InvocationID                  sql.NullString              `db:"invocation_id"`
 	Status                        DeploymentsStatus           `db:"status"`
+	FirstReadyAt                  sql.NullInt64               `db:"first_ready_at"`
 	Trigger                       DeploymentsTrigger          `db:"trigger"`
 	TriggeredBy                   sql.NullString              `db:"triggered_by"`
 	TriggerReason                 sql.NullString              `db:"trigger_reason"`
 	CreatedAt                     int64                       `db:"created_at"`
 	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
+}
+
+type DeploymentConnection struct {
+	Pk            uint64                            `db:"pk"`
+	DeploymentID  string                            `db:"deployment_id"`
+	ConnectionID  string                            `db:"connection_id"`
+	WorkspaceID   string                            `db:"workspace_id"`
+	ProjectID     string                            `db:"project_id"`
+	AppID         string                            `db:"app_id"`
+	EnvironmentID string                            `db:"environment_id"`
+	ResourceType  DeploymentConnectionsResourceType `db:"resource_type"`
+	ResourceID    string                            `db:"resource_id"`
+	Name          string                            `db:"name"`
+	CreatedAt     int64                             `db:"created_at"`
+}
+
+type DeploymentConnectionAppTarget struct {
+	Pk                  uint64                                      `db:"pk"`
+	DeploymentID        string                                      `db:"deployment_id"`
+	ConnectionID        string                                      `db:"connection_id"`
+	SelectionMode       DeploymentConnectionAppTargetsSelectionMode `db:"selection_mode"`
+	TargetEnvironmentID sql.NullString                              `db:"target_environment_id"`
+	TargetDeploymentID  sql.NullString                              `db:"target_deployment_id"`
 }
 
 type DeploymentStep struct {
