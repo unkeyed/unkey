@@ -189,13 +189,15 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               ))}
             </colgroup>
             {hasHeaders && (
-              <thead className={cn("sticky top-0 z-10", config.className)}>
+              <thead className={cn("sticky top-0 z-10 bg-table-header", config.className)}>
                 <tr>
                   {columns.map((column) => (
                     <th
                       key={column.key}
                       className={cn(
                         "text-sm font-medium text-gray-12 py-1 text-left",
+                        hasPadding &&
+                          "first:shadow-[-8px_0_0_var(--background-color-table-header)] last:shadow-[8px_0_0_var(--background-color-table-header)]",
                         column.headerClassName,
                         column.cellClassName,
                       )}
@@ -205,10 +207,10 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   ))}
                 </tr>
                 <tr>
-                  <th colSpan={columns.length} className="p-0">
+                  <th colSpan={columns.length} className="relative p-0">
                     <div
                       className={cn(
-                        "absolute inset-y-0 -z-10 bg-table-header border-b",
+                        "absolute bottom-0 border-b",
                         hasPadding ? "inset-x-[-8px]" : "inset-x-0",
                       )}
                     />
@@ -238,13 +240,15 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               ))}
             </colgroup>
             {hasHeaders && (
-              <thead className={cn("sticky top-0 z-10", config.className)}>
+              <thead className={cn("sticky top-0 z-10 bg-table-header", config.className)}>
                 <tr>
                   {columns.map((column) => (
                     <th
                       key={column.key}
                       className={cn(
                         "text-sm font-medium text-gray-12 py-1 text-left relative",
+                        hasPadding &&
+                          "first:shadow-[-8px_0_0_var(--background-color-table-header)] last:shadow-[8px_0_0_var(--background-color-table-header)]",
                         column.headerClassName,
                         column.cellClassName,
                       )}
@@ -254,10 +258,10 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   ))}
                 </tr>
                 <tr>
-                  <th colSpan={columns.length} className="p-0">
+                  <th colSpan={columns.length} className="relative p-0">
                     <div
                       className={cn(
-                        "absolute inset-y-0 -z-10 bg-table-header border-b",
+                        "absolute bottom-0 border-b",
                         hasPadding ? "inset-x-[-8px]" : "inset-x-0",
                       )}
                     />
