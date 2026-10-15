@@ -101,6 +101,7 @@ export * from "./icons/eye-outline-18";
 export * from "./icons/eye-slash-outline-18";
 export * from "./icons/file-settings-outline-18";
 export * from "./icons/fingerprint-outline-18";
+export * from "./icons/flask-outline-18";
 export * from "./icons/focus-outline-18";
 export * from "./icons/folder-cloud-outline-18";
 export * from "./icons/folder-link-outline-18";
