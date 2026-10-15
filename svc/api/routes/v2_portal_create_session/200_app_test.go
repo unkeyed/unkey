@@ -170,9 +170,8 @@ func TestCreateSessionAppMapped(t *testing.T) {
 	h.SeedPortal(t, workspaceID, "app-portal", "app-portal", appMapping(appID), nil, nil)
 
 	rootKey := h.CreateRootKey(workspaceID,
-		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
-		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
-		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		append([]string{sessionWriteGrant(workspaceID, "*", "*")},
+			canonicalReadGrants(workspaceID, "*", "*")...)...,
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -250,9 +249,8 @@ func TestCreateSessionAppMappedIgnoresAppCustomDomain(t *testing.T) {
 	h.SeedPortal(t, workspaceID, "branded-portal", "branded-portal", appMapping(app.AppID), nil, nil)
 
 	rootKey := h.CreateRootKey(workspaceID,
-		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
-		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
-		fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
+		append([]string{sessionWriteGrant(workspaceID, "*", "*")},
+			canonicalReadGrants(workspaceID, "*", "*")...)...,
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

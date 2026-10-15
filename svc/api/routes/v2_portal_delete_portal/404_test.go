@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
 )
@@ -82,7 +84,7 @@ func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 	require.Equal(t, 0, countAuditEntriesMentioning(t, h, workspace.ID, "portal.delete"),
 		"a denied delete must not write an audit entry")
 
-	allowedKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
+	allowedKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*"), permissions.Delete).Value)
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey),
 		request(uid.New(uid.PortalPrefix)))
 	require.Equal(t, http.StatusNotFound, absent.Status,

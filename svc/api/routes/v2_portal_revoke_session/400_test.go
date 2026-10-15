@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
@@ -14,7 +13,7 @@ import (
 
 func TestRevokeSessionRejectsInvalidBody(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, workspaceAdminPermission(h))
+	route, headers := newRoute(t, h, sessionWritePermission(h))
 	workspace := h.Resources().UserWorkspace
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-invalid")

@@ -7,6 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_verify_domain"
@@ -22,7 +25,7 @@ func TestVerifyDomainByName(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Write).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -49,7 +52,7 @@ func TestVerifyDomainById(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Write).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domainID,
@@ -77,7 +80,7 @@ func TestVerifyDomainByUnicodeName(t *testing.T) {
 	seeded := seedDomain(t, h, func(req *seed.CreateCustomDomainRequest) {
 		req.Domain = canonical
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Write).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: "münchen." + parent,
@@ -102,7 +105,7 @@ func TestVerifyDomainPendingIsRetryable(t *testing.T) {
 		req.VerificationStatus = db.CustomDomainsVerificationStatusPending
 		req.VerificationError = ""
 	})
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Write).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
@@ -118,7 +121,7 @@ func TestVerifyDomainWithSpecificEnvironmentPermission(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project(seeded.projectID).App(seeded.appID).Environment(seeded.environmentID).Domain("*"), permissions.Write).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,

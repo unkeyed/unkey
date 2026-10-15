@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
@@ -13,7 +16,7 @@ import (
 // errors rather than as a 500.
 func Test400_RejectedQueries(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#read")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Gateway().Logs(), permissions.Read).Value)
 
 	queries := map[string]string{
 		"empty query":            "",
@@ -47,7 +50,7 @@ func Test400_RejectedQueries(t *testing.T) {
 // column allow-list, so this is the only control that stops these reads.
 func Test400_InternalColumnsAreUnreachable(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#read")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Gateway().Logs(), permissions.Read).Value)
 
 	for _, column := range []string{"instance_address", "frontline_id", "platform"} {
 		t.Run(column, func(t *testing.T) {
@@ -71,7 +74,7 @@ func Test400_InternalColumnsAreUnreachable(t *testing.T) {
 // which includes the columns outside the grant.
 func Test400_MessagesNameTheFix(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#read")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Gateway().Logs(), permissions.Read).Value)
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
 		Query: "SELECT * FROM gateway_requests_v1",
@@ -84,7 +87,7 @@ func Test400_MessagesNameTheFix(t *testing.T) {
 // rewritten SQL, the physical table names, or the injected workspace filter.
 func Test400_ErrorsDoNotDiscloseInternals(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#read")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Gateway().Logs(), permissions.Read).Value)
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
 		Query: "SELECT instance_address FROM gateway_requests_v1",

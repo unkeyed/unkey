@@ -7,7 +7,10 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -29,7 +32,7 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 	route := newRoute(h, restate)
 	h.Register(route)
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"unkey:v1:{workspaceID}:**#write"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*"), permissions.Write).Value},
 	})
 	previous := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID: uid.New(uid.DeploymentPrefix), WorkspaceID: setup.Workspace.ID, ProjectID: setup.Project.ID,
