@@ -171,7 +171,7 @@ function BlockRow({
       disabled={onClick === undefined}
       data-flash={flashed}
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-lg border border-grayA-4 bg-raised px-3 py-3 text-left transition-colors duration-500 enabled:cursor-pointer enabled:hover:bg-grayA-2 focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-gray-5 data-[flash=true]:border-success-7 data-[flash=true]:bg-success-2"
+      className="flex w-full items-center gap-3 rounded-lg border border-grayA-4 bg-raised px-3 py-3 text-left transition-colors duration-500 enabled:cursor-pointer enabled:hover:bg-grayA-2 focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-gray-5 data-[flash=true]:border-grayA-6 data-[flash=true]:bg-grayA-2"
     >
       <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-grayA-3 text-gray-11">
         <Icon className="size-4" />
