@@ -82,7 +82,7 @@ type Config struct {
 	WriteTimeout time.Duration
 
 	// IdleTimeout is the maximum duration to wait for the next request on a
-	// keep-alive connection. If 0, defaults to 120 seconds. If negative, disabled.
+	// keep-alive connection. If 0, net/http uses ReadTimeout.
 	IdleTimeout time.Duration
 }
 
@@ -102,7 +102,6 @@ func fallback(configured, defaultValue time.Duration) time.Duration {
 // The HTTP server is configured with reasonable defaults for production use:
 // - ReadTimeout: 10 seconds
 // - WriteTimeout: 20 seconds
-// - IdleTimeout: 120 seconds
 //
 // Example:
 //
@@ -145,10 +144,7 @@ func New(config Config) (*Server, error) {
 		// negative values to disable server-level timeouts.
 		ReadTimeout:  fallback(config.ReadTimeout, 10*time.Second),
 		WriteTimeout: fallback(config.WriteTimeout, 20*time.Second),
-		// The idle timeout must exceed the ALB idle timeout (60s by default), or the
-		// ALB can reuse a connection the server has already closed and return a 502.
-		// https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html
-		IdleTimeout: fallback(config.IdleTimeout, 120*time.Second),
+		IdleTimeout:  config.IdleTimeout,
 	}
 
 	flags := Flags{
