@@ -99,8 +99,8 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 				}
 
 				// Reuse the existing row id for instances that are already known so the
-				// upsert collides on the id unique key and updates in place, instead of
-				// allocating a fresh auto-increment pk (and its gap lock) on every report.
+				// update matches the primary key instead of allocating a fresh
+				// auto-increment pk (and its gap lock) on every report.
 				existingInstanceIDs := make(map[string]string, len(staleInstances))
 				for _, staleInstance := range staleInstances {
 					existingInstanceIDs[staleInstance.K8sName] = staleInstance.ID
@@ -118,13 +118,32 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					}
 				}
 
+				// Update known instances in place and insert only truly new rows.
+				// UPDATE by id locks the target row alone, while the INSERT ... ON
+				// DUPLICATE KEY UPDATE it replaces deadlocks under concurrent
+				// reports: every insert attempt probes the id and
+				// (k8s_name, region_id) unique indexes and allocates an
+				// auto-increment value, so the transactions contend on those gaps.
 				for _, instance := range msg.Update.GetInstances() {
-					instanceID := existingInstanceIDs[instance.GetK8SName()]
-					if instanceID == "" {
-						instanceID = uid.New(uid.InstancePrefix)
+					instanceID, exists := existingInstanceIDs[instance.GetK8SName()]
+					if exists {
+						err = db.NewQueries(tx).UpdateInstance(ctx, db.UpdateInstanceParams{
+							ID:            instanceID,
+							Address:       instance.GetAddress(),
+							CpuMillicores: int32(instance.GetCpuMillicores()),
+							MemoryMib:     int32(instance.GetMemoryMib()),
+							Status:        ctrlDeploymentStatusToDbStatus(instance.GetStatus()),
+						})
+						if err != nil {
+							return err
+						}
+						continue
 					}
+
+					// A new k8s_name can race with a concurrent report, so keep the
+					// upsert here to absorb the duplicate key.
 					err = db.NewQueries(tx).UpsertInstance(ctx, db.UpsertInstanceParams{
-						ID:            instanceID,
+						ID:            uid.New(uid.InstancePrefix),
 						DeploymentID:  deployment.ID,
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
