@@ -12,6 +12,7 @@ import {
   EmptyStateHeader,
   EmptyStateTitle,
   InfoTooltip,
+  QueryView,
   ResourceListBody,
   ResourceListContent,
   ResourceListItem,
@@ -89,58 +90,57 @@ export function LogdrainsList({
   const workspace = useWorkspaceNavigation();
   const query = trpc.logdrain.list.useQuery();
 
-  if (query.isLoading) {
-    return <DrainListSkeleton />;
-  }
-
-  if (query.isError) {
-    return (
-      <ResourceListContent>
-        <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-          <span role="alert" className="text-sm text-gray-11">
-            We couldn't load log drains.
-          </span>
-          <Button variant="outline" onClick={() => query.refetch()}>
-            Retry
-          </Button>
-        </div>
-      </ResourceListContent>
-    );
-  }
-
-  if (!query.data?.length) {
-    return (
-      <EmptyState>
-        <EmptyStateHeader>
-          <EmptyStateTitle>
-            {needsEnablement ? "Log drains" : "Create your first log drain"}
-          </EmptyStateTitle>
-          <EmptyStateDescription>
-            {needsEnablement
-              ? "Contact support to enable log drains for this workspace."
-              : "Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS endpoint or an Axiom dataset."}
-          </EmptyStateDescription>
-        </EmptyStateHeader>
-        <EmptyStateActions>
-          {needsEnablement ? (
-            <Button variant="outline" render={<Link href={SUPPORT_MAILTO} />}>
-              Contact support
-            </Button>
-          ) : (
-            <CreateLogdrainButton onClick={onCreate} disabled={!canCreate} />
-          )}
-        </EmptyStateActions>
-      </EmptyState>
-    );
-  }
-
   return (
-    <ResourceListContent aria-live="polite">
-      <ResourceListBody aria-label="Log drains">
-        {query.data.map((drain) => (
-          <DrainRow key={drain.id} drain={drain} workspaceSlug={workspace.slug} />
-        ))}
-      </ResourceListBody>
-    </ResourceListContent>
+    <QueryView
+      isLoading={query.isLoading}
+      isError={query.isError}
+      data={query.data}
+      loading={<DrainListSkeleton />}
+      error={
+        <ResourceListContent>
+          <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
+            <span role="alert" className="text-sm text-gray-11">
+              We couldn't load log drains.
+            </span>
+            <Button variant="outline" onClick={() => query.refetch()}>
+              Retry
+            </Button>
+          </div>
+        </ResourceListContent>
+      }
+      empty={
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>
+              {needsEnablement ? "Log drains" : "Create your first log drain"}
+            </EmptyStateTitle>
+            <EmptyStateDescription>
+              {needsEnablement
+                ? "Contact support to enable log drains for this workspace."
+                : "Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS endpoint or an Axiom dataset."}
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+          <EmptyStateActions>
+            {needsEnablement ? (
+              <Button variant="outline" render={<Link href={SUPPORT_MAILTO} />}>
+                Contact support
+              </Button>
+            ) : (
+              <CreateLogdrainButton onClick={onCreate} disabled={!canCreate} />
+            )}
+          </EmptyStateActions>
+        </EmptyState>
+      }
+    >
+      {(drains) => (
+        <ResourceListContent aria-live="polite">
+          <ResourceListBody aria-label="Log drains">
+            {drains.map((drain) => (
+              <DrainRow key={drain.id} drain={drain} workspaceSlug={workspace.slug} />
+            ))}
+          </ResourceListBody>
+        </ResourceListContent>
+      )}
+    </QueryView>
   );
 }

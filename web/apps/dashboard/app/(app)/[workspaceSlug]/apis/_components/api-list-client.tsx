@@ -11,6 +11,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
+  QueryView,
   ResourceListContent,
 } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -75,59 +76,66 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
         <ApiListControls apiList={allApis} onApiListChange={setApiList} onSearch={setIsSearching} />
       )}
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
-          {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: It's okay to use index
-            <StatsListCardSkeleton key={i} subtitle />
-          ))}
-        </div>
-      ) : hasNoKeyspaces ? (
-        <EmptyKeyspaces workspaceSlug={workspaceSlug} isNewApi={isNewApi} />
-      ) : apiList.length > 0 ? (
-        <>
+      <QueryView
+        isLoading={isLoading}
+        data={allApis}
+        loading={
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
-            {apiList.map((api) => (
-              <ApiListCard api={api} key={api.id} />
+            {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: It's okay to use index
+              <StatsListCardSkeleton key={i} subtitle />
             ))}
           </div>
-
-          {!isSearching && hasNextPage && (
-            <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
-              <div className="text-center text-sm text-gray-11">
-                Showing {apiList.length} of {apisData?.pages[0]?.total || 0} keyspaces
+        }
+        empty={<EmptyKeyspaces workspaceSlug={workspaceSlug} isNewApi={isNewApi} />}
+      >
+        {() =>
+          apiList.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
+                {apiList.map((api) => (
+                  <ApiListCard api={api} key={api.id} />
+                ))}
               </div>
 
-              <Button onClick={loadMore} disabled={isFetchingNextPage} size="md">
-                {isFetchingNextPage ? (
-                  <div className="flex flex-row items-center gap-2">
-                    <div className="animate-spin h-4 w-4 border-2 border-gray-7 border-t-transparent rounded-full" />
-                    <span>Loading...</span>
+              {!isSearching && hasNextPage && (
+                <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
+                  <div className="text-center text-sm text-gray-11">
+                    Showing {apiList.length} of {apisData?.pages[0]?.total || 0} keyspaces
                   </div>
-                ) : (
-                  <div className="flex flex-row items-center gap-2">
-                    <span>Load more</span>
-                  </div>
-                )}
-              </Button>
-            </div>
-          )}
-        </>
-      ) : (
-        <ResourceListContent>
-          <EmptyState frame="none">
-            <EmptyStateIcon>
-              <IconNodesOutline18 />
-            </EmptyStateIcon>
-            <EmptyStateHeader>
-              <EmptyStateTitle>No keyspaces found</EmptyStateTitle>
-              <EmptyStateDescription>
-                No keyspaces match your search criteria. Try a different search term.
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-          </EmptyState>
-        </ResourceListContent>
-      )}
+
+                  <Button onClick={loadMore} disabled={isFetchingNextPage} size="md">
+                    {isFetchingNextPage ? (
+                      <div className="flex flex-row items-center gap-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-gray-7 border-t-transparent rounded-full" />
+                        <span>Loading...</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-row items-center gap-2">
+                        <span>Load more</span>
+                      </div>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <ResourceListContent>
+              <EmptyState frame="none">
+                <EmptyStateIcon>
+                  <IconNodesOutline18 />
+                </EmptyStateIcon>
+                <EmptyStateHeader>
+                  <EmptyStateTitle>No keyspaces found</EmptyStateTitle>
+                  <EmptyStateDescription>
+                    No keyspaces match your search criteria. Try a different search term.
+                  </EmptyStateDescription>
+                </EmptyStateHeader>
+              </EmptyState>
+            </ResourceListContent>
+          )
+        }
+      </QueryView>
     </div>
   );
 };

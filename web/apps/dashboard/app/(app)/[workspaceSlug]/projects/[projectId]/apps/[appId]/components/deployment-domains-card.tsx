@@ -17,6 +17,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  QueryView,
   SettingCard,
   SettingCardGroup,
   SettingsGroup,
@@ -58,105 +59,106 @@ export function DeploymentDomainsCard({
     currentDeploymentId: project?.currentDeploymentId ?? null,
   });
 
-  const isLoading = isDomainsLoading || isCustomDomainsLoading;
-
-  if (!isLoading && primaryDomain === null) {
-    return (
-      <DomainsGroup>
-        <EmptyState>
-          <EmptyStateHeader>
-            <EmptyStateTitle>No domains yet</EmptyStateTitle>
-            <EmptyStateDescription>
-              Add a domain to make this deployment reachable.
-            </EmptyStateDescription>
-          </EmptyStateHeader>
-        </EmptyState>
-      </DomainsGroup>
-    );
-  }
-
   return (
     <DomainsGroup>
-      <SettingCardGroup>
-        {isLoading || primaryDomain === null ? (
-          <SettingCard
-            icon={
-              <div className="w-full h-full rounded-xl flex items-center justify-center shrink-0">
-                <IconEarthOutline18 />
-              </div>
-            }
-            title={<Skeleton className="h-4 w-36 rounded" />}
-            description="Loading domains..."
-          />
-        ) : (
-          <SettingCard
-            iconClassName={glow ? "bg-transparent shadow-none dark:ring-0" : undefined}
-            icon={<GlowIcon icon={<IconCubeOutline18 />} glow={glow} className="w-full h-full" />}
-            title={project?.name}
-            description={
-              <div className="flex items-center justify-center gap-2 ">
-                <a
-                  href={primaryDomain.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-10 text-xs hover:underline decoration-dashed underline-offset-2 transition-all"
-                >
-                  {primaryDomain.hostname}
-                </a>
-                {primaryDomain.source === "custom" && <TagBadge variant="custom" text="Custom" />}
-                {additionalDomains.length > 0 && (
-                  <button
-                    type="button"
-                    className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-4.5 font-mono tabular-nums hover:bg-grayA-4 transition-colors cursor-pointer"
-                    onClick={() => setUrlsOpen(true)}
+      <QueryView
+        isLoading={isDomainsLoading || isCustomDomainsLoading}
+        data={primaryDomain}
+        loading={
+          <SettingCardGroup>
+            <SettingCard
+              icon={
+                <div className="w-full h-full rounded-xl flex items-center justify-center shrink-0">
+                  <IconEarthOutline18 />
+                </div>
+              }
+              title={<Skeleton className="h-4 w-36 rounded" />}
+              description="Loading domains..."
+            />
+          </SettingCardGroup>
+        }
+        empty={
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No domains yet</EmptyStateTitle>
+              <EmptyStateDescription>
+                Add a domain to make this deployment reachable.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        }
+      >
+        {(primaryDomain) => (
+          <SettingCardGroup>
+            <SettingCard
+              iconClassName={glow ? "bg-transparent shadow-none dark:ring-0" : undefined}
+              icon={<GlowIcon icon={<IconCubeOutline18 />} glow={glow} className="w-full h-full" />}
+              title={project?.name}
+              description={
+                <div className="flex items-center justify-center gap-2 ">
+                  <a
+                    href={primaryDomain.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-10 text-xs hover:underline decoration-dashed underline-offset-2 transition-all"
                   >
-                    +{additionalDomains.length}
-                  </button>
+                    {primaryDomain.hostname}
+                  </a>
+                  {primaryDomain.source === "custom" && <TagBadge variant="custom" text="Custom" />}
+                  {additionalDomains.length > 0 && (
+                    <button
+                      type="button"
+                      className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-4.5 font-mono tabular-nums hover:bg-grayA-4 transition-colors cursor-pointer"
+                      onClick={() => setUrlsOpen(true)}
+                    >
+                      +{additionalDomains.length}
+                    </button>
+                  )}
+                </div>
+              }
+              contentWidth="w-fit"
+            >
+              <div className="flex items-center gap-2">
+                {additionalDomains.length > 0 && (
+                  <Popover open={urlsOpen} onOpenChange={setUrlsOpen}>
+                    <PopoverTrigger
+                      render={
+                        <Button
+                          className="text-gray-12 font-medium bg-grayA-2 rounded-lg"
+                          variant="outline"
+                        >
+                          Show URLs
+                          <IconChevronDownOutline18 className="text-gray-9 !" />
+                        </Button>
+                      }
+                    />
+                    <PopoverContent side="bottom" align="end" className="p-0 max-w-[300px]">
+                      {allDomains.map((d) => (
+                        <div
+                          key={d.id}
+                          className="flex items-center justify-start w-full h-10 border-b px-3 py-[14px] gap-2"
+                        >
+                          <IconLink4Outline12 className="text-gray-9 ! shrink-0" />
+                          <a
+                            href={d.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="transition-all hover:underline decoration-dashed underline-offset-2 w-[250px] max-w-[250px] truncate font-medium text-xs"
+                          >
+                            {d.hostname}
+                          </a>
+                          {d.source === "custom" && <TagBadge variant="custom" text="Custom" />}
+                          <CopyButton value={d.url} variant="ghost" toastMessage={d.hostname} />
+                        </div>
+                      ))}
+                    </PopoverContent>
+                  </Popover>
                 )}
               </div>
-            }
-            contentWidth="w-fit"
-          >
-            <div className="flex items-center gap-2">
-              {additionalDomains.length > 0 && (
-                <Popover open={urlsOpen} onOpenChange={setUrlsOpen}>
-                  <PopoverTrigger
-                    render={
-                      <Button
-                        className="text-gray-12 font-medium bg-grayA-2 rounded-lg"
-                        variant="outline"
-                      >
-                        Show URLs
-                        <IconChevronDownOutline18 className="text-gray-9 !" />
-                      </Button>
-                    }
-                  />
-                  <PopoverContent side="bottom" align="end" className="p-0 max-w-[300px]">
-                    {allDomains.map((d) => (
-                      <div
-                        key={d.id}
-                        className="flex items-center justify-start w-full h-10 border-b px-3 py-[14px] gap-2"
-                      >
-                        <IconLink4Outline12 className="text-gray-9 ! shrink-0" />
-                        <a
-                          href={d.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="transition-all hover:underline decoration-dashed underline-offset-2 w-[250px] max-w-[250px] truncate font-medium text-xs"
-                        >
-                          {d.hostname}
-                        </a>
-                        {d.source === "custom" && <TagBadge variant="custom" text="Custom" />}
-                        <CopyButton value={d.url} variant="ghost" toastMessage={d.hostname} />
-                      </div>
-                    ))}
-                  </PopoverContent>
-                </Popover>
-              )}
-            </div>
-          </SettingCard>
+            </SettingCard>
+          </SettingCardGroup>
         )}
-      </SettingCardGroup>
+      </QueryView>
     </DomainsGroup>
   );
 }

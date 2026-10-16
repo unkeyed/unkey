@@ -25,6 +25,7 @@ import {
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateTitle,
+  QueryView,
   ResourceList,
   ResourceListBody,
   ResourceListContent,
@@ -142,79 +143,82 @@ function SessionsBody({
   onOpen: (group: SessionGroup) => void;
   onRevoke: (group: SessionGroup) => void;
 }) {
-  if (query.isLoading || (query.isPreviousData && query.groups.length === 0)) {
-    return <SessionsTableSkeleton />;
-  }
-
-  if (query.isError && query.groups.length === 0) {
-    return (
-      <ResourceListContent>
-        <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-          <span role="alert" className="text-sm text-gray-11">
-            {getErrorMessage(query.error, "We couldn't load sessions.")}
-          </span>
-          <Button variant="outline" onClick={() => query.refetch()}>
-            Retry
-          </Button>
-        </div>
-      </ResourceListContent>
-    );
-  }
-
-  // Groups can lapse between the API's two reads, so a page can come back empty
-  // while more remain.
-  if (query.groups.length === 0 && !query.hasNextPage) {
-    return (
-      <EmptyState>
-        <EmptyStateHeader>
-          <EmptyStateTitle>{search ? "No matching users" : "No active sessions"}</EmptyStateTitle>
-          <EmptyStateDescription>
-            {search
-              ? `No user with an active session has an external ID starting with "${search}".`
-              : "Users appear here once your app creates a portal session for them."}
-          </EmptyStateDescription>
-        </EmptyStateHeader>
-      </EmptyState>
-    );
-  }
-
   return (
-    <ResourceListContent aria-live="polite" className={cn(query.isPreviousData && "opacity-60")}>
-      <div className="overflow-x-auto">
-        <div className="min-w-[640px]">
-          <SessionsTableHeader />
-          <ResourceListBody aria-label="Portal sessions">
-            {query.groups.map((group) => (
-              <SessionGroupRow
-                key={group.externalId}
-                group={group}
-                selected={group.externalId === selectedId}
-                canRevoke={canRevoke}
-                onOpen={() => onOpen(group)}
-                onRevoke={() => onRevoke(group)}
-              />
-            ))}
-          </ResourceListBody>
-        </div>
-      </div>
-      {query.hasNextPage || (query.isError && query.groups.length > 0) ? (
-        <ResourceListFooter className="justify-center gap-3">
-          {query.isError ? (
+    <QueryView
+      isLoading={query.isLoading || (query.isPreviousData && query.groups.length === 0)}
+      isError={query.isError && query.groups.length === 0}
+      data={query.groups}
+      // Groups can lapse between the API's two reads, so a page can come back empty
+      // while more remain.
+      isEmpty={(groups) => groups.length === 0 && !query.hasNextPage}
+      loading={<SessionsTableSkeleton />}
+      error={
+        <ResourceListContent>
+          <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
             <span role="alert" className="text-sm text-gray-11">
-              We couldn't load sessions.
+              {getErrorMessage(query.error, "We couldn't load sessions.")}
             </span>
+            <Button variant="outline" onClick={() => query.refetch()}>
+              Retry
+            </Button>
+          </div>
+        </ResourceListContent>
+      }
+      empty={
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>{search ? "No matching users" : "No active sessions"}</EmptyStateTitle>
+            <EmptyStateDescription>
+              {search
+                ? `No user with an active session has an external ID starting with "${search}".`
+                : "Users appear here once your app creates a portal session for them."}
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
+      }
+    >
+      {(groups) => (
+        <ResourceListContent
+          aria-live="polite"
+          className={cn(query.isPreviousData && "opacity-60")}
+        >
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              <SessionsTableHeader />
+              <ResourceListBody aria-label="Portal sessions">
+                {groups.map((group) => (
+                  <SessionGroupRow
+                    key={group.externalId}
+                    group={group}
+                    selected={group.externalId === selectedId}
+                    canRevoke={canRevoke}
+                    onOpen={() => onOpen(group)}
+                    onRevoke={() => onRevoke(group)}
+                  />
+                ))}
+              </ResourceListBody>
+            </div>
+          </div>
+          {query.hasNextPage || (query.isError && groups.length > 0) ? (
+            <ResourceListFooter className="justify-center gap-3">
+              {query.isError ? (
+                <span role="alert" className="text-sm text-gray-11">
+                  We couldn't load sessions.
+                </span>
+              ) : null}
+              <Button
+                variant="outline"
+                loading={query.isFetchingNextPage}
+                disabled={query.isFetchingNextPage}
+                onClick={() => (query.hasNextPage ? query.fetchNextPage() : query.refetch())}
+              >
+                {query.isError ? "Retry" : "Load more"}
+              </Button>
+            </ResourceListFooter>
           ) : null}
-          <Button
-            variant="outline"
-            loading={query.isFetchingNextPage}
-            disabled={query.isFetchingNextPage}
-            onClick={() => (query.hasNextPage ? query.fetchNextPage() : query.refetch())}
-          >
-            {query.isError ? "Retry" : "Load more"}
-          </Button>
-        </ResourceListFooter>
-      ) : null}
-    </ResourceListContent>
+        </ResourceListContent>
+      )}
+    </QueryView>
   );
 }
 

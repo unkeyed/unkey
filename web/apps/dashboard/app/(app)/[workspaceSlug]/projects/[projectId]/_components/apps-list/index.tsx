@@ -16,6 +16,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
+  QueryView,
   ResourceList,
 } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
@@ -132,29 +133,34 @@ function AppsListBody({
   view: AppsView;
   projectId: string;
 }) {
-  if (isLoading && view === "list") {
-    return <AppsTableSkeleton />;
-  }
-  if (isLoading) {
-    return (
-      <div aria-busy="true" className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {SKELETON_KEYS.map((key) => (
-          <AppCardSkeleton key={key} />
-        ))}
-      </div>
-    );
-  }
-  if (rows.length === 0) {
-    return <p className="py-12 text-center text-sm text-gray-9">No apps match "{search}"</p>;
-  }
-  if (view === "list") {
-    return <AppsTable rows={rows} projectId={projectId} />;
-  }
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {rows.map((row) => (
-        <AppCard key={row.app.id} row={row} projectId={projectId} />
-      ))}
-    </div>
+    <QueryView
+      isLoading={isLoading}
+      data={rows}
+      loading={
+        view === "list" ? (
+          <AppsTableSkeleton />
+        ) : (
+          <div aria-busy="true" className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {SKELETON_KEYS.map((key) => (
+              <AppCardSkeleton key={key} />
+            ))}
+          </div>
+        )
+      }
+      empty={<p className="py-12 text-center text-sm text-gray-9">No apps match "{search}"</p>}
+    >
+      {(rows) =>
+        view === "list" ? (
+          <AppsTable rows={rows} projectId={projectId} />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {rows.map((row) => (
+              <AppCard key={row.app.id} row={row} projectId={projectId} />
+            ))}
+          </div>
+        )
+      }
+    </QueryView>
   );
 }

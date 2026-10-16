@@ -12,6 +12,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
+  QueryView,
   ResourceListBody,
   ResourceListContent,
   ResourceListFooter,
@@ -78,97 +79,96 @@ function DeploymentsCardListResults({
         )?.id
       : undefined;
 
-  if (isLoading) {
-    return <DeploymentsSkeleton />;
-  }
-
-  if (isError && rows.length === 0) {
-    return (
-      <ResourceListContent>
-        <div className="flex w-full items-center justify-center gap-3 px-4 py-16">
-          <span role="alert" className="text-error-11 text-sm">
-            We couldn't load deployments.
-          </span>
-          <Button size="md" variant="outline" onClick={() => refetchDeployments()}>
-            Retry
-          </Button>
-        </div>
-      </ResourceListContent>
-    );
-  }
-
-  if (rows.length === 0) {
-    return (
-      <ResourceListContent>
-        {isFiltered ? (
-          <NoMatchingDeployments onClear={onClearFilters} />
-        ) : (
-          <EmptyState frame="none">
-            <EmptyStateIcon>
-              <IconSquareBulletListOutline18 />
-            </EmptyStateIcon>
-            <EmptyStateHeader>
-              <EmptyStateTitle>No Active Deployments</EmptyStateTitle>
-              <EmptyStateDescription>
-                {app?.sourceType === "oci"
-                  ? "Deploy the configured image or enter another image reference."
-                  : "Push to your connected repository or trigger a manual deployment."}
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-            <EmptyStateActions>
-              <a
-                href="https://www.unkey.com/docs/build-and-deploy/deployments"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline" size="md">
-                  <IconBookBookmarkOutline18 />
-                  Learn about Deployments
-                </Button>
-              </a>
-            </EmptyStateActions>
-          </EmptyState>
-        )}
-      </ResourceListContent>
-    );
-  }
-
   return (
-    <ResourceListContent>
-      <ResourceListBody>
-        {rows.map(({ deployment, environment }) => (
-          <DeploymentRow
-            key={deployment.id}
-            deployment={deployment}
-            environment={environment}
-            repoFullName={app?.repositoryFullName ?? null}
-            currentDeployment={currentDeployment}
-            isRolledBack={isRolledBack}
-            isRolledBackFrom={deployment.id === rolledBackFromId}
-            liveSince={app?.updatedAt ?? null}
-            href={routes.projects.apps.deployment({
-              workspaceSlug: workspace.slug,
-              projectId,
-              appId: deployment.appId,
-              deploymentId: deployment.id,
-            })}
-          />
-        ))}
-      </ResourceListBody>
-      {hasNextPage && (
-        <ResourceListFooter>
-          <Button
-            size="md"
-            variant="outline"
-            disabled={isFetchingNextPage}
-            loading={isFetchingNextPage}
-            onClick={() => fetchNextPage()}
-          >
-            Load more
-          </Button>
-        </ResourceListFooter>
+    <QueryView
+      isLoading={isLoading}
+      isError={isError && rows.length === 0}
+      data={rows}
+      loading={<DeploymentsSkeleton />}
+      error={
+        <ResourceListContent>
+          <div className="flex w-full items-center justify-center gap-3 px-4 py-16">
+            <span role="alert" className="text-error-11 text-sm">
+              We couldn't load deployments.
+            </span>
+            <Button size="md" variant="outline" onClick={() => refetchDeployments()}>
+              Retry
+            </Button>
+          </div>
+        </ResourceListContent>
+      }
+      empty={
+        <ResourceListContent>
+          {isFiltered ? (
+            <NoMatchingDeployments onClear={onClearFilters} />
+          ) : (
+            <EmptyState frame="none">
+              <EmptyStateIcon>
+                <IconSquareBulletListOutline18 />
+              </EmptyStateIcon>
+              <EmptyStateHeader>
+                <EmptyStateTitle>No Active Deployments</EmptyStateTitle>
+                <EmptyStateDescription>
+                  {app?.sourceType === "oci"
+                    ? "Deploy the configured image or enter another image reference."
+                    : "Push to your connected repository or trigger a manual deployment."}
+                </EmptyStateDescription>
+              </EmptyStateHeader>
+              <EmptyStateActions>
+                <a
+                  href="https://www.unkey.com/docs/build-and-deploy/deployments"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" size="md">
+                    <IconBookBookmarkOutline18 />
+                    Learn about Deployments
+                  </Button>
+                </a>
+              </EmptyStateActions>
+            </EmptyState>
+          )}
+        </ResourceListContent>
+      }
+    >
+      {(rows) => (
+        <ResourceListContent>
+          <ResourceListBody>
+            {rows.map(({ deployment, environment }) => (
+              <DeploymentRow
+                key={deployment.id}
+                deployment={deployment}
+                environment={environment}
+                repoFullName={app?.repositoryFullName ?? null}
+                currentDeployment={currentDeployment}
+                isRolledBack={isRolledBack}
+                isRolledBackFrom={deployment.id === rolledBackFromId}
+                liveSince={app?.updatedAt ?? null}
+                href={routes.projects.apps.deployment({
+                  workspaceSlug: workspace.slug,
+                  projectId,
+                  appId: deployment.appId,
+                  deploymentId: deployment.id,
+                })}
+              />
+            ))}
+          </ResourceListBody>
+          {hasNextPage && (
+            <ResourceListFooter>
+              <Button
+                size="md"
+                variant="outline"
+                disabled={isFetchingNextPage}
+                loading={isFetchingNextPage}
+                onClick={() => fetchNextPage()}
+              >
+                Load more
+              </Button>
+            </ResourceListFooter>
+          )}
+        </ResourceListContent>
       )}
-    </ResourceListContent>
+    </QueryView>
   );
 }
 

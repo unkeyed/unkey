@@ -10,6 +10,7 @@ import {
   EmptyStateHeader,
   EmptyStateTitle,
   PaginationFooter,
+  QueryView,
   ResourceListBody,
   ResourceListContent,
   ResourceListItem,
@@ -83,79 +84,81 @@ export function RootKeysDataTable({
 function RootKeysTableBody({ selectedKeyId, onEditKey, onCreate, list }: RootKeysDataTableProps) {
   const { rootKeys, isInitialLoading, isError, retry, search, clearFilters } = list;
 
-  if (isInitialLoading) {
-    return <RootKeysTableSkeleton />;
-  }
-
-  if (isError && rootKeys.length === 0) {
-    return (
-      <ResourceListContent>
-        <div className="flex w-full items-center justify-center gap-3 px-4 py-16">
-          <span role="alert" className="text-sm text-error-11">
-            Unable to load Root Keys. Check your connection and try again.
-          </span>
-          <Button size="sm" variant="outline" className="rounded-md px-3" onClick={retry}>
-            Retry
-          </Button>
-        </div>
-      </ResourceListContent>
-    );
-  }
-
-  if (rootKeys.length === 0 && search !== "") {
-    return (
-      <EmptyState>
-        <EmptyStateHeader>
-          <EmptyStateTitle className="max-w-md break-words">
-            No Root Keys match “{search}”
-          </EmptyStateTitle>
-        </EmptyStateHeader>
-        <EmptyStateActions>
-          <Button size="sm" variant="outline" className="rounded-md px-3" onClick={clearFilters}>
-            Clear search
-          </Button>
-        </EmptyStateActions>
-      </EmptyState>
-    );
-  }
-
-  if (rootKeys.length === 0) {
-    return (
-      <EmptyState>
-        <EmptyStateHeader>
-          <EmptyStateTitle>No Root Keys yet</EmptyStateTitle>
-          <EmptyStateDescription>
-            Root Keys give your services access to the Unkey API.
-          </EmptyStateDescription>
-        </EmptyStateHeader>
-        <EmptyStateActions>
-          <Button size="sm" variant="primary" className="rounded-md px-3" onClick={onCreate}>
-            <IconPlusOutline18 />
-            New Root Key
-          </Button>
-        </EmptyStateActions>
-      </EmptyState>
-    );
-  }
-
   return (
-    <ResourceListContent>
-      <div className="overflow-x-auto">
-        <div className="min-w-[960px]">
-          <RootKeysTableHeader />
-          <ResourceListBody aria-label="Root Keys">
-            {rootKeys.map((rootKey) => (
-              <RootKeyRow
-                key={rootKey.id}
-                rootKey={rootKey}
-                selected={rootKey.id === selectedKeyId}
-                onEditKey={onEditKey}
-              />
-            ))}
-          </ResourceListBody>
-        </div>
-      </div>
-    </ResourceListContent>
+    <QueryView
+      isLoading={isInitialLoading}
+      isError={isError && rootKeys.length === 0}
+      data={rootKeys}
+      loading={<RootKeysTableSkeleton />}
+      error={
+        <ResourceListContent>
+          <div className="flex w-full items-center justify-center gap-3 px-4 py-16">
+            <span role="alert" className="text-sm text-error-11">
+              Unable to load Root Keys. Check your connection and try again.
+            </span>
+            <Button size="sm" variant="outline" className="rounded-md px-3" onClick={retry}>
+              Retry
+            </Button>
+          </div>
+        </ResourceListContent>
+      }
+      empty={
+        search !== "" ? (
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle className="max-w-md break-words">
+                No Root Keys match “{search}”
+              </EmptyStateTitle>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-md px-3"
+                onClick={clearFilters}
+              >
+                Clear search
+              </Button>
+            </EmptyStateActions>
+          </EmptyState>
+        ) : (
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No Root Keys yet</EmptyStateTitle>
+              <EmptyStateDescription>
+                Root Keys give your services access to the Unkey API.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <Button size="sm" variant="primary" className="rounded-md px-3" onClick={onCreate}>
+                <IconPlusOutline18 />
+                New Root Key
+              </Button>
+            </EmptyStateActions>
+          </EmptyState>
+        )
+      }
+    >
+      {(rootKeys) => (
+        <ResourceListContent>
+          <div className="overflow-x-auto">
+            <div className="min-w-[960px]">
+              <RootKeysTableHeader />
+              <ResourceListBody aria-label="Root Keys">
+                {rootKeys.map((rootKey) => (
+                  <RootKeyRow
+                    key={rootKey.id}
+                    rootKey={rootKey}
+                    selected={rootKey.id === selectedKeyId}
+                    onEditKey={onEditKey}
+                  />
+                ))}
+              </ResourceListBody>
+            </div>
+          </div>
+        </ResourceListContent>
+      )}
+    </QueryView>
   );
 }
 

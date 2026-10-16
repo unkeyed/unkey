@@ -10,6 +10,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
+  QueryView,
   ResourceListBody,
   ResourceListContent,
   ResourceListItem,
@@ -88,38 +89,42 @@ export function EnvVarsList({
     );
   }, [envVarData, environments, searchQuery, environmentFilter, sortBy]);
 
-  if (envVars.status === "failed") {
-    return <LoadError title="Could not load environment variables" onRetry={envVars.retry} />;
-  }
-
-  if (envVars.status === "loading") {
-    return <EnvVarsSkeleton />;
-  }
-
-  if (rows.length === 0) {
-    const copy = EMPTY_COPY[emptyReason(searchQuery, environmentFilter)];
-    return (
-      <EmptyState>
-        <EmptyStateIcon>
-          <IconTableCodeOutline18 />
-        </EmptyStateIcon>
-        <EmptyStateHeader>
-          <EmptyStateTitle>{copy.title}</EmptyStateTitle>
-          <EmptyStateDescription>{copy.description(searchQuery)}</EmptyStateDescription>
-        </EmptyStateHeader>
-      </EmptyState>
-    );
-  }
+  const copy = EMPTY_COPY[emptyReason(searchQuery, environmentFilter)];
 
   return (
-    <EnvVarRows
-      key={`${searchQuery}|${environmentFilter}`}
-      rows={rows}
-      searchQuery={searchQuery}
-      editingId={editingId}
-      onEdit={setEditingId}
-      onCloseEdit={closeEdit}
-    />
+    <QueryView
+      isLoading={envVars.status === "loading"}
+      isError={envVars.status === "failed"}
+      data={rows}
+      loading={<EnvVarsSkeleton />}
+      error={
+        envVars.status === "failed" ? (
+          <LoadError title="Could not load environment variables" onRetry={envVars.retry} />
+        ) : null
+      }
+      empty={
+        <EmptyState>
+          <EmptyStateIcon>
+            <IconTableCodeOutline18 />
+          </EmptyStateIcon>
+          <EmptyStateHeader>
+            <EmptyStateTitle>{copy.title}</EmptyStateTitle>
+            <EmptyStateDescription>{copy.description(searchQuery)}</EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
+      }
+    >
+      {(rows) => (
+        <EnvVarRows
+          key={`${searchQuery}|${environmentFilter}`}
+          rows={rows}
+          searchQuery={searchQuery}
+          editingId={editingId}
+          onEdit={setEditingId}
+          onCloseEdit={closeEdit}
+        />
+      )}
+    </QueryView>
   );
 }
 

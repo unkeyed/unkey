@@ -4,6 +4,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import {
   Button,
+  QueryView,
   ResourceList,
   ResourceListBody,
   ResourceListContent,
@@ -40,6 +41,19 @@ export function ActiveBranches() {
   }
 
   const environmentById = new Map(environments.map((e) => [e.id, e]));
+  const footer = hasNextPage && (
+    <ResourceListFooter>
+      <Button
+        size="md"
+        variant="outline"
+        disabled={isFetchingNextPage}
+        loading={isFetchingNextPage}
+        onClick={() => fetchNextPage()}
+      >
+        Load more
+      </Button>
+    </ResourceListFooter>
+  );
 
   return (
     <ResourceList>
@@ -56,11 +70,13 @@ export function ActiveBranches() {
           View all deployments
         </Link>
       </ResourceListHeader>
-      {loading ? (
-        <DeploymentsSkeleton rows={4} />
-      ) : (
-        <ResourceListContent>
-          {isError ? (
+      <QueryView
+        isLoading={loading}
+        isError={isError}
+        data={branches}
+        loading={<DeploymentsSkeleton rows={4} />}
+        error={
+          <ResourceListContent>
             <div className="flex items-center justify-center gap-3 px-4 py-10">
               <span role="alert" className="text-error-11 text-sm">
                 We couldn't load active branches.
@@ -69,11 +85,20 @@ export function ActiveBranches() {
                 Retry
               </Button>
             </div>
-          ) : branches.length === 0 ? (
+            {footer}
+          </ResourceListContent>
+        }
+        empty={
+          <ResourceListContent>
             <div className="px-4 py-10 text-center text-sm text-gray-9">
               No branch deployments yet.
             </div>
-          ) : (
+            {footer}
+          </ResourceListContent>
+        }
+      >
+        {(branches) => (
+          <ResourceListContent>
             <ResourceListBody>
               {branches.map((deployment) => (
                 <ActiveBranchRow
@@ -93,22 +118,10 @@ export function ActiveBranches() {
                 />
               ))}
             </ResourceListBody>
-          )}
-          {hasNextPage && (
-            <ResourceListFooter>
-              <Button
-                size="md"
-                variant="outline"
-                disabled={isFetchingNextPage}
-                loading={isFetchingNextPage}
-                onClick={() => fetchNextPage()}
-              >
-                Load more
-              </Button>
-            </ResourceListFooter>
-          )}
-        </ResourceListContent>
-      )}
+            {footer}
+          </ResourceListContent>
+        )}
+      </QueryView>
     </ResourceList>
   );
 }

@@ -18,7 +18,12 @@ export function detailText(delivery: Delivery): string {
 
 export function useDeliveries(drainId: string) {
   const query = trpc.logdrain.recentDeliveries.useQuery({ drainId });
-  return { deliveries: query.data, isError: query.isError, retry: () => query.refetch() };
+  return {
+    deliveries: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    retry: () => query.refetch(),
+  };
 }
 
 type DeliveryTotals = {

@@ -1,3 +1,4 @@
+import { QueryView } from "@unkey/ui";
 import { cn } from "cn";
 import { useMemo } from "react";
 import { UsageColumnSkeleton } from "../skeletons";
@@ -30,11 +31,6 @@ export const VerificationBarChart = ({
   maxBars = 30,
 }: VerificationBarChartProps) => {
   const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(keyAuthId, keyId);
-
-  const isEmpty = useMemo(
-    () => timeseries.reduce((acc, crr) => acc + crr.total, 0) === 0,
-    [timeseries],
-  );
 
   const bars = useMemo((): BarData[] => {
     if (isLoading || isError || timeseries.length === 0) {
@@ -86,69 +82,48 @@ export const VerificationBarChart = ({
     return result;
   }, [bars, maxBars]);
 
-  // Loading state - animated pulse effect for bars with grid layout
-  if (isLoading) {
-    return <UsageColumnSkeleton />;
-  }
+  const frameClassName = cn(
+    "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
+    selected ? "border-grayA-3 rounded-md" : "",
+  );
 
-  // Error state with grid layout
-  if (isError) {
-    return (
-      <div
-        className={cn(
-          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
-          selected ? "border-grayA-3 rounded-md" : "",
-        )}
-        style={{
-          gridTemplateColumns: "1fr",
-        }}
-      >
-        <div className="flex items-center justify-center w-full h-full text-xs text-error-9 px-2">
-          Error loading data
-        </div>
-      </div>
-    );
-  }
-
-  // Empty state with grid layout
-  if (isEmpty) {
-    return (
-      <div
-        className={cn(
-          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
-          selected ? "border-grayA-3 rounded-md" : "",
-        )}
-        style={{
-          gridTemplateColumns: "1fr",
-        }}
-      >
-        <div className="flex items-center justify-center w-full h-full text-xs text-grayA-9 px-2">
-          No data available
-        </div>
-      </div>
-    );
-  }
-
-  // Data display with grid layout
   return (
-    <OutcomeExplainer timeseries={timeseries} title={activityTitle}>
-      <div
-        className={cn(
-          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
-          selected ? "border-grayA-3 rounded-md" : "",
-        )}
-        style={{
-          gridTemplateColumns: `repeat(${maxBars}, 3px)`,
-          gap: "2px",
-        }}
-      >
-        {displayBars.map((bar) => (
-          <div key={bar.id} className="flex flex-col">
-            <div className="w-[3px] bg-error-9" style={{ height: `${bar.topHeight}px` }} />
-            <div className="w-[3px] bg-grayA-5" style={{ height: `${bar.bottomHeight}px` }} />
+    <QueryView
+      isLoading={isLoading}
+      isError={isError}
+      data={timeseries}
+      isEmpty={(timeseries) => timeseries.reduce((acc, crr) => acc + crr.total, 0) === 0}
+      loading={<UsageColumnSkeleton />}
+      error={
+        <div className={frameClassName} style={{ gridTemplateColumns: "1fr" }}>
+          <div className="flex items-center justify-center w-full h-full text-xs text-error-9 px-2">
+            Error loading data
           </div>
-        ))}
-      </div>
-    </OutcomeExplainer>
+        </div>
+      }
+      empty={
+        <div className={frameClassName} style={{ gridTemplateColumns: "1fr" }}>
+          <div className="flex items-center justify-center w-full h-full text-xs text-grayA-9 px-2">
+            No data available
+          </div>
+        </div>
+      }
+    >
+      {(timeseries) => (
+        <OutcomeExplainer timeseries={timeseries} title={activityTitle}>
+          <div
+            className={frameClassName}
+            style={{ gridTemplateColumns: `repeat(${maxBars}, 3px)`, gap: "2px" }}
+          >
+            {displayBars.map((bar) => (
+              <div key={bar.id} className="flex flex-col">
+                <div className="w-[3px] bg-error-9" style={{ height: `${bar.topHeight}px` }} />
+                <div className="w-[3px] bg-grayA-5" style={{ height: `${bar.bottomHeight}px` }} />
+              </div>
+            ))}
+          </div>
+        </OutcomeExplainer>
+      )}
+    </QueryView>
   );
 };

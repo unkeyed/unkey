@@ -10,7 +10,7 @@ import {
   EmptyStateHeader,
   EmptyStateTitle,
 } from "@unkey/ui";
-import { Button, ConfirmPopover, EmptyState, Loading, toast } from "@unkey/ui";
+import { Button, ConfirmPopover, EmptyState, Loading, QueryView, toast } from "@unkey/ui";
 import { memo, useMemo, useState } from "react";
 import { RoleSwitcher } from "./role-switcher";
 
@@ -42,14 +42,6 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
     },
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loading />
-      </div>
-    );
-  }
-
   const handleDeleteButtonClick = (
     membership: Membership,
     event: React.MouseEvent<HTMLButtonElement>,
@@ -59,98 +51,109 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
     setIsConfirmPopoverOpen(true);
   };
 
-  if (!memberships || memberships.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-0">
-          <EmptyState frame="none">
-            <EmptyStateHeader>
-              <EmptyStateTitle>No team members</EmptyStateTitle>
-              <EmptyStateDescription>Invite members using the form above</EmptyStateDescription>
-            </EmptyStateHeader>
-          </EmptyState>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <>
-      {currentMembership && anchorEl ? (
-        <ConfirmPopover
-          isOpen={isConfirmPopoverOpen}
-          onOpenChange={setIsConfirmPopoverOpen}
-          triggerRef={anchorRef}
-          description={`Are you sure you want to remove ${currentMembership.user.email}?`}
-          confirmButtonText="Delete Member"
-          cancelButtonText="Cancel"
-          variant="danger"
-          title="Remove member"
-          onConfirm={async () => {
-            try {
-              await removeMember.mutateAsync({
-                orgId: organization.id,
-                membershipId: currentMembership.id,
-              });
-            } catch (error) {
-              console.error("Error removing member:", error);
-            }
-          }}
-        />
-      ) : null}
+    <QueryView
+      isLoading={isLoading}
+      data={memberships}
+      loading={
+        <div className="flex items-center justify-center py-12">
+          <Loading />
+        </div>
+      }
+      empty={
+        <Card>
+          <CardContent className="p-0">
+            <EmptyState frame="none">
+              <EmptyStateHeader>
+                <EmptyStateTitle>No team members</EmptyStateTitle>
+                <EmptyStateDescription>Invite members using the form above</EmptyStateDescription>
+              </EmptyStateHeader>
+            </EmptyState>
+          </CardContent>
+        </Card>
+      }
+    >
+      {(memberships) => (
+        <>
+          {currentMembership && anchorEl ? (
+            <ConfirmPopover
+              isOpen={isConfirmPopoverOpen}
+              onOpenChange={setIsConfirmPopoverOpen}
+              triggerRef={anchorRef}
+              description={`Are you sure you want to remove ${currentMembership.user.email}?`}
+              confirmButtonText="Delete Member"
+              cancelButtonText="Cancel"
+              variant="danger"
+              title="Remove member"
+              onConfirm={async () => {
+                try {
+                  await removeMember.mutateAsync({
+                    orgId: organization.id,
+                    membershipId: currentMembership.id,
+                  });
+                } catch (error) {
+                  console.error("Error removing member:", error);
+                }
+              }}
+            />
+          ) : null}
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="divide-y divide-grayA-4">
-            {memberships.map((membership) => {
-              const { id, role, user: member } = membership;
-              const isCurrentUser = member.id === user.id;
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y divide-grayA-4">
+                {memberships.map((membership) => {
+                  const { id, role, user: member } = membership;
+                  const isCurrentUser = member.id === user.id;
 
-              return (
-                <div key={id} className="flex items-center justify-between px-4 py-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Avatar className="h-8 w-8">
-                      {member.avatarUrl && <AvatarImage src={member.avatarUrl} />}
-                      <AvatarFallback name={member.email} />
-                    </Avatar>
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-12 truncate secret">
-                          {member.firstName
-                            ? `${member.firstName}${member.lastName ? ` ${member.lastName}` : ""}`
-                            : member.email}
-                        </span>
+                  return (
+                    <div key={id} className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Avatar className="h-8 w-8">
+                          {member.avatarUrl && <AvatarImage src={member.avatarUrl} />}
+                          <AvatarFallback name={member.email} />
+                        </Avatar>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-12 truncate secret">
+                              {member.firstName
+                                ? `${member.firstName}${member.lastName ? ` ${member.lastName}` : ""}`
+                                : member.email}
+                            </span>
+                          </div>
+                          {member.firstName && (
+                            <span className="text-sm text-gray-11 truncate secret">
+                              {member.email}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {member.firstName && (
-                        <span className="text-sm text-gray-11 truncate secret">{member.email}</span>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-3 ml-4">
-                    <RoleSwitcher
-                      member={{ id, role, userId: member.id }}
-                      organization={organization}
-                      user={user}
-                      userMembership={userMembership}
-                    />
-                    {isAdmin && !isCurrentUser && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(event) => handleDeleteButtonClick(membership, event)}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-    </>
+                      <div className="flex items-center gap-3 ml-4">
+                        <RoleSwitcher
+                          member={{ id, role, userId: member.id }}
+                          organization={organization}
+                          user={user}
+                          userMembership={userMembership}
+                        />
+                        {isAdmin && !isCurrentUser && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(event) => handleDeleteButtonClick(membership, event)}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </QueryView>
   );
 });
 

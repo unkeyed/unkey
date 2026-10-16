@@ -10,7 +10,7 @@ import {
   EmptyStateHeader,
   EmptyStateTitle,
 } from "@unkey/ui";
-import { Button, EmptyState, Loading, toast } from "@unkey/ui";
+import { Button, EmptyState, Loading, QueryView, toast } from "@unkey/ui";
 import { memo, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
@@ -36,77 +36,80 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
     },
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loading />
-      </div>
-    );
-  }
-
-  if (!invitations || invitations.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-0">
-          <EmptyState frame="none">
-            <EmptyStateHeader>
-              <EmptyStateTitle>No pending invitations</EmptyStateTitle>
-              <EmptyStateDescription>Invite members using the form above</EmptyStateDescription>
-            </EmptyStateHeader>
-          </EmptyState>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardContent className="p-0">
-        <div className="divide-y divide-grayA-4">
-          {invitations.map((invitation) => (
-            <div key={invitation.id} className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <Avatar className="w-8 h-8 rounded-full shrink-0">
-                  <AvatarFallback name={invitation.email} />
-                </Avatar>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-sm text-gray-12 truncate secret">{invitation.email}</span>
-                  <div className="flex items-center">
-                    <StatusBadge status={invitation.state} />
+    <QueryView
+      isLoading={isLoading}
+      data={invitations}
+      loading={
+        <div className="flex items-center justify-center py-12">
+          <Loading />
+        </div>
+      }
+      empty={
+        <Card>
+          <CardContent className="p-0">
+            <EmptyState frame="none">
+              <EmptyStateHeader>
+                <EmptyStateTitle>No pending invitations</EmptyStateTitle>
+                <EmptyStateDescription>Invite members using the form above</EmptyStateDescription>
+              </EmptyStateHeader>
+            </EmptyState>
+          </CardContent>
+        </Card>
+      }
+    >
+      {(invitations) => (
+        <Card>
+          <CardContent className="p-0">
+            <div className="divide-y divide-grayA-4">
+              {invitations.map((invitation) => (
+                <div key={invitation.id} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar className="w-8 h-8 rounded-full shrink-0">
+                      <AvatarFallback name={invitation.email} />
+                    </Avatar>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-sm text-gray-12 truncate secret">
+                        {invitation.email}
+                      </span>
+                      <div className="flex items-center">
+                        <StatusBadge status={invitation.state} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="ml-4">
+                    {invitation.state === "pending" && isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={revokingInvitationId === invitation.id}
+                        loading={revokingInvitationId === invitation.id}
+                        onClick={async () => {
+                          setRevokingInvitationId(invitation.id);
+                          try {
+                            await revokeInvitation.mutateAsync({
+                              orgId: organization.id,
+                              invitationId: invitation.id,
+                            });
+                          } catch (error) {
+                            console.error("Error revoking invitation:", error);
+                          } finally {
+                            setRevokingInvitationId(null);
+                          }
+                        }}
+                      >
+                        Revoke
+                      </Button>
+                    )}
                   </div>
                 </div>
-              </div>
-
-              <div className="ml-4">
-                {invitation.state === "pending" && isAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={revokingInvitationId === invitation.id}
-                    loading={revokingInvitationId === invitation.id}
-                    onClick={async () => {
-                      setRevokingInvitationId(invitation.id);
-                      try {
-                        await revokeInvitation.mutateAsync({
-                          orgId: organization.id,
-                          invitationId: invitation.id,
-                        });
-                      } catch (error) {
-                        console.error("Error revoking invitation:", error);
-                      } finally {
-                        setRevokingInvitationId(null);
-                      }
-                    }}
-                  >
-                    Revoke
-                  </Button>
-                )}
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      )}
+    </QueryView>
   );
 });
 

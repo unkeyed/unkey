@@ -3,7 +3,7 @@
 import { formatPrice } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Button, InfoTooltip, Skeleton, toast } from "@unkey/ui";
+import { Button, InfoTooltip, QueryView, Skeleton, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
@@ -124,32 +124,36 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
         </InfoTooltip>
       </div>
 
-      {isLoading ? (
-        <Skeleton className="h-5 w-40 rounded" />
-      ) : rows.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          {rows.map((row) => (
-            <div key={row.label} className="flex items-baseline justify-between gap-4">
-              <div className="flex items-baseline gap-3">
-                <span className="w-16 font-medium text-gray-12 text-sm">{row.label}</span>
-                <span className="text-sm text-gray-10 tabular-nums">
-                  {formatPeriodDate(row.half.periodStart)} – {formatPeriodDate(row.half.periodEnd)}
-                </span>
-              </div>
-              <p className="font-medium text-gray-12 text-sm leading-5 tabular-nums">
-                {formatPrice(row.half.total)}
-                {row.showUsage ? (
-                  <span className="ml-1.5 font-normal text-gray-9 text-xs">
-                    + usage until the period ends
+      <QueryView
+        isLoading={isLoading}
+        data={rows}
+        loading={<Skeleton className="h-5 w-40 rounded" />}
+        empty={<p className="font-medium text-gray-12 text-sm">&mdash;</p>}
+      >
+        {(rows) => (
+          <div className="flex flex-col gap-2">
+            {rows.map((row) => (
+              <div key={row.label} className="flex items-baseline justify-between gap-4">
+                <div className="flex items-baseline gap-3">
+                  <span className="w-16 font-medium text-gray-12 text-sm">{row.label}</span>
+                  <span className="text-sm text-gray-10 tabular-nums">
+                    {formatPeriodDate(row.half.periodStart)} –{" "}
+                    {formatPeriodDate(row.half.periodEnd)}
                   </span>
-                ) : null}
-              </p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="font-medium text-gray-12 text-sm">—</p>
-      )}
+                </div>
+                <p className="font-medium text-gray-12 text-sm leading-5 tabular-nums">
+                  {formatPrice(row.half.total)}
+                  {row.showUsage ? (
+                    <span className="ml-1.5 font-normal text-gray-9 text-xs">
+                      + usage until the period ends
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </QueryView>
     </div>
   );
 };
