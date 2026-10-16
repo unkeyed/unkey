@@ -401,6 +401,13 @@ func (c *cache[K, V]) load(
 		}
 	}
 
+	// A read may have written the key and left loads since the caller's cache
+	// lookup. Only a fresh entry counts: background refreshes load stale keys.
+	if e, ok := c.otter.Get(key); ok && c.clock.Now().Before(e.Fresh) {
+		c.loadsMu.Unlock()
+		return e.Value, e.Hit, nil
+	}
+
 	// The first caller's cancellation must not fail the callers waiting for
 	// it, so it cancels the read only through leaveLoad. Its deadline still
 	// bounds the read.

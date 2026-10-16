@@ -73,6 +73,33 @@ func TestSWRConcurrentMissesShareOneOriginRead(t *testing.T) {
 	}
 }
 
+// TestLoadUsesEntryWrittenSinceLookup guarantees that a caller whose cache
+// lookup missed just before a shared read wrote the key uses that entry
+// instead of reading the origin again, while a stale entry is still read from
+// the origin so background refreshes keep working.
+func TestLoadUsesEntryWrittenSinceLookup(t *testing.T) {
+	c, clk := newPausedRefreshCache(t)
+	op := func(error) Op { return WriteValue }
+	var calls atomic.Int32
+	origin := func(context.Context) (string, error) {
+		calls.Add(1)
+		return "origin", nil
+	}
+
+	c.Set(t.Context(), "key", "written")
+	c.SetNull(t.Context(), "missing")
+	value, hit, err := c.load(t.Context(), "key", origin, op)
+	require.Equal(t, swrCallResult{"written", Hit, nil}, swrCallResult{value, hit, err})
+	value, hit, err = c.load(t.Context(), "missing", origin, op)
+	require.Equal(t, swrCallResult{"", Null, nil}, swrCallResult{value, hit, err})
+	require.Zero(t, calls.Load())
+
+	clk.Tick(2 * time.Minute)
+	value, hit, err = c.load(t.Context(), "key", origin, op)
+	require.Equal(t, swrCallResult{"origin", Hit, nil}, swrCallResult{value, hit, err})
+	require.Equal(t, int32(1), calls.Load(), "a stale entry must still be read from the origin")
+}
+
 // TestSWRSharedReadFollowsCallerCancellation guarantees that a first caller
 // that goes away, such as a disconnected client, does not fail the callers
 // waiting for its origin read, while its deadline still bounds the read. A
