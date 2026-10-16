@@ -1,13 +1,16 @@
 "use client";
 
+import { ListPager } from "@/components/list-pager";
+import { LoadError } from "@/components/load-error";
 import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useIdentities } from "@/lib/identities-query";
+import { useInfiniteList } from "@/lib/loadable/list";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
-import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
 import { IconBookBookmarkOutline18, IconFingerprintOutline18 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Button,
   EmptyState,
@@ -18,14 +21,12 @@ import {
   EmptyStateTitle,
   ResourceListBody,
   ResourceListContent,
-  ResourceListFooter,
   ResourceListItem,
   Skeleton,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
-import { useState } from "react";
 
 const SKELETON_ROWS = 8;
 
@@ -124,143 +125,77 @@ export function IdentitiesList() {
 function IdentityResults({ search }: { search: string }) {
   const workspace = useWorkspaceNavigation();
   const scope = useProjectScope();
-  const [nextPageError, setNextPageError] = useState<unknown>();
-  const {
-    identities: identityRows,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isError,
-    error,
-    refetch,
-  } = useIdentities({ search });
-  const retry = () => {
-    refetch().catch((error: unknown) => {
-      console.error("Failed to retry identities query", error);
-    });
-  };
-  const loadMore = async () => {
-    try {
-      await fetchNextPage({ throwOnError: true });
-      setNextPageError(undefined);
-    } catch (error) {
-      setNextPageError(error);
-    }
-  };
+  const view = useInfiniteList(useIdentities({ search }), (page) => page.identities);
 
-  if (isLoading && identityRows.length === 0) {
-    return <IdentitiesSkeleton />;
-  }
-
-  if (isError && identityRows.length === 0) {
-    return (
+  return match(view)
+    .with({ status: "loading" }, () => <IdentitiesSkeleton />)
+    .with({ status: "failed" }, ({ error, retry, retrying }) => (
       <ResourceListContent>
-        <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-          <span role="alert" className="text-gray-11 text-sm">
-            {getErrorMessage(error, "We couldn't load identities.")}
-          </span>
-          <Button variant="outline" onClick={retry}>
-            Retry
-          </Button>
-        </div>
+        <LoadError
+          title="Could not load identities"
+          error={error}
+          frame="none"
+          onRetry={retry}
+          retrying={retrying}
+        />
       </ResourceListContent>
-    );
-  }
-
-  if (identityRows.length === 0) {
-    return (
+    ))
+    .with({ status: "empty" }, () => <IdentitiesEmpty search={search} />)
+    .with({ status: "ready" }, ({ rows, footer }) => (
       <ResourceListContent>
-        <EmptyState frame="none">
-          <EmptyStateIcon>
-            <IconFingerprintOutline18 />
-          </EmptyStateIcon>
-          <EmptyStateHeader>
-            <EmptyStateTitle>No Identities Found</EmptyStateTitle>
-            <EmptyStateDescription>
-              {search
-                ? "Try adjusting your search query"
-                : "There are no identities yet. Create your first identity to get started."}
-            </EmptyStateDescription>
-          </EmptyStateHeader>
-          {!search && (
-            <EmptyStateActions>
-              <Button
-                size="md"
-                variant="outline"
-                render={
-                  <Link
-                    href="https://www.unkey.com/docs/platform/identities/overview"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  />
-                }
-              >
-                <IconBookBookmarkOutline18 />
-                Learn about Identities
-              </Button>
-            </EmptyStateActions>
-          )}
-        </EmptyState>
+        <ResourceListBody aria-label="Identities">
+          {rows.map((identity) => (
+            <IdentityRow
+              key={identity.id}
+              identity={identity}
+              href={routes.identities.detail({
+                workspaceSlug: workspace.slug,
+                ...scope,
+                identityId: identity.id,
+              })}
+            />
+          ))}
+        </ResourceListBody>
+        <ListPager state={footer} noun="identities" />
       </ResourceListContent>
-    );
-  }
+    ))
+    .exhaustive();
+}
 
+function IdentitiesEmpty({ search }: { search: string }) {
   return (
     <ResourceListContent>
-      <ResourceListBody aria-label="Identities">
-        {identityRows.map((identity) => (
-          <IdentityRow
-            key={identity.id}
-            identity={identity}
-            href={routes.identities.detail({
-              workspaceSlug: workspace.slug,
-              ...scope,
-              identityId: identity.id,
-            })}
-          />
-        ))}
-      </ResourceListBody>
-      {nextPageError ? (
-        <ResourceListFooter>
-          <div className="flex items-center gap-3">
-            <span role="alert" className="text-error-11 text-sm">
-              {getErrorMessage(nextPageError, "We couldn't load more identities.")}
-            </span>
+      <EmptyState frame="none">
+        <EmptyStateIcon>
+          <IconFingerprintOutline18 />
+        </EmptyStateIcon>
+        <EmptyStateHeader>
+          <EmptyStateTitle>No Identities Found</EmptyStateTitle>
+          <EmptyStateDescription>
+            {search
+              ? "Try adjusting your search query"
+              : "There are no identities yet. Create your first identity to get started."}
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+        {!search && (
+          <EmptyStateActions>
             <Button
+              size="md"
               variant="outline"
-              disabled={isFetchingNextPage}
-              loading={isFetchingNextPage}
-              onClick={loadMore}
+              render={
+                <Link
+                  href="https://www.unkey.com/docs/platform/identities/overview"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
             >
-              Retry
+              <IconBookBookmarkOutline18 />
+              Learn about Identities
             </Button>
-          </div>
-        </ResourceListFooter>
-      ) : isError ? (
-        <ResourceListFooter>
-          <div className="flex items-center gap-3">
-            <span role="alert" className="text-error-11 text-sm">
-              {getErrorMessage(error, "We couldn't refresh identities.")}
-            </span>
-            <Button variant="outline" onClick={retry}>
-              Retry
-            </Button>
-          </div>
-        </ResourceListFooter>
-      ) : hasNextPage ? (
-        <ResourceListFooter className="py-6">
-          <Button
-            size="md"
-            variant="outline"
-            disabled={isFetchingNextPage}
-            loading={isFetchingNextPage}
-            onClick={loadMore}
-          >
-            Load more
-          </Button>
-        </ResourceListFooter>
-      ) : null}
+          </EmptyStateActions>
+        )}
+      </EmptyState>
     </ResourceListContent>
   );
 }
