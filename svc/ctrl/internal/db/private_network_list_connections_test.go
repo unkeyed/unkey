@@ -25,7 +25,7 @@ type catalogIDs struct {
 	unscheduledCaller1, unscheduledCaller2 string
 	productionConnection, selfProdConnection, crossWorkspaceConnection, otherProjectConnection, canaryConnection, canaryAutoConnection string
 	selfCanaryToProdConnection, previewConnection, selfPreviewConnection, manualConnection, reservedPrefixConnection, pinnedConnection string
-	reservedOwnSlugConnection, explicitProdConnection, stagingAutoConnection, unscheduledConnection string
+	reservedSelfConnection, explicitProdConnection, stagingAutoConnection, unscheduledConnection string
 }
 
 func newCatalogIDs() catalogIDs {
@@ -43,7 +43,7 @@ func newCatalogIDs() catalogIDs {
 		unscheduledCaller1: uid.New(uid.DeploymentPrefix), unscheduledCaller2: uid.New(uid.DeploymentPrefix),
 		productionConnection: uid.New(uid.ConnectionPrefix), selfProdConnection: uid.New(uid.ConnectionPrefix), crossWorkspaceConnection: uid.New(uid.ConnectionPrefix), otherProjectConnection: uid.New(uid.ConnectionPrefix), canaryConnection: uid.New(uid.ConnectionPrefix), canaryAutoConnection: uid.New(uid.ConnectionPrefix),
 		selfCanaryToProdConnection: uid.New(uid.ConnectionPrefix), previewConnection: uid.New(uid.ConnectionPrefix), selfPreviewConnection: uid.New(uid.ConnectionPrefix), manualConnection: uid.New(uid.ConnectionPrefix), reservedPrefixConnection: uid.New(uid.ConnectionPrefix), pinnedConnection: uid.New(uid.ConnectionPrefix),
-		reservedOwnSlugConnection: uid.New(uid.ConnectionPrefix), explicitProdConnection: uid.New(uid.ConnectionPrefix), stagingAutoConnection: uid.New(uid.ConnectionPrefix), unscheduledConnection: uid.New(uid.ConnectionPrefix),
+		reservedSelfConnection: uid.New(uid.ConnectionPrefix), explicitProdConnection: uid.New(uid.ConnectionPrefix), stagingAutoConnection: uid.New(uid.ConnectionPrefix), unscheduledConnection: uid.New(uid.ConnectionPrefix),
 	}
 }
 
@@ -205,9 +205,9 @@ func (ids catalogIDs) seedCatalogConnections(t *testing.T, q *Queries) {
 		connection(ids.manualConnection, "target", ids.callerManual, ids.target, "environment", ids.targetManual, ""),
 		connection(ids.reservedPrefixConnection, "unkey-internal", ids.callerManual, ids.otherTarget, "automatic", "", ""),
 		connection(ids.pinnedConnection, "target", ids.callerPin, ids.target, "deployment", "", ids.targetPinnedStopped),
-		connection(ids.reservedOwnSlugConnection, "caller", ids.callerPin, ids.otherTarget, "automatic", "", ""),
+		connection(ids.reservedSelfConnection, "self", ids.callerPin, ids.otherTarget, "automatic", "", ""),
 		connection(ids.explicitProdConnection, "target", ids.callerRollback, ids.target, "environment", ids.targetProd, ""),
-		connection(ids.stagingAutoConnection, "target", ids.callerStaging, ids.target, "automatic", "", ""),
+		connection(ids.stagingAutoConnection, "caller", ids.callerStaging, ids.target, "automatic", "", ""),
 	} {
 		for _, caller := range callers[c.EnvironmentID] {
 			insertTestSavedConnection(t, q, caller, c)
@@ -421,7 +421,7 @@ func TestListPrivateNetworkConnections(t *testing.T) {
 			q.crossWorkspaceConnection+"/"+q.callerProdLive, q.otherProjectConnection+"/"+q.callerProdLive,
 			q.previewConnection+"/"+q.callerUnapproved, q.previewConnection+"/"+q.callerWrongPlatform,
 			q.selfPreviewConnection+"/"+q.callerUnapproved, q.selfPreviewConnection+"/"+q.callerWrongPlatform,
-			q.reservedOwnSlugConnection+"/"+q.callerPinDep, q.reservedPrefixConnection+"/"+q.callerManualDep,
+			q.reservedSelfConnection+"/"+q.callerPinDep, q.reservedPrefixConnection+"/"+q.callerManualDep,
 			q.productionConnection+"/"+q.callerProdDisabled,
 		} {
 			require.NotContains(t, selected, excluded)
