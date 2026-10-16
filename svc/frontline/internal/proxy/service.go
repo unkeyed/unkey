@@ -61,7 +61,6 @@ func New(cfg Config) (*service, error) {
 		transport = cfg.Transport
 		upgradeTransport = cfg.Transport
 	} else {
-		upgradeTransport = newUpgradeTransport(newSparePool(newUpgradeDialer(), upgradeSparesPerPeer, upgradeSpareIdle))
 		//nolint:exhaustruct
 		transport = &http.Transport{
 			Proxy:             http.ProxyFromEnvironment,
@@ -94,6 +93,13 @@ func New(cfg Config) (*service, error) {
 		if cfg.TLSHandshakeTimeout > 0 {
 			transport.TLSHandshakeTimeout = cfg.TLSHandshakeTimeout
 		}
+
+		pool := newSparePool(newUpgradeDialer(transport.TLSHandshakeTimeout), cfg.Clock, upgradeSparesPerPeer, upgradeSpareIdle)
+		upgradeTransport = newUpgradeTransport(pool, upgradeTransportConfig{
+			maxIdleConns:         transport.MaxIdleConns,
+			idleConnTimeout:      transport.IdleConnTimeout,
+			spareResponseTimeout: upgradeSpareResponseTimeout,
+		})
 	}
 
 	upstreamTransports := cfg.UpstreamTransports

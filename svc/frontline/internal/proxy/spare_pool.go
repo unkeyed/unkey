@@ -8,13 +8,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 const (
 	upgradeSparesPerPeer = 4
 	upgradeSpareIdle     = 5 * time.Minute
-	upgradeSpareDialTime = 10 * time.Second
+	// A spare that the peer closes sooner than this is replaced only by the
+	// next upgrade, so a peer that closes every connection right after the
+	// handshake cannot cause a redial loop.
+	upgradeSpareMinLife = 5 * time.Second
 )
 
 // sparePool keeps TLS connections to peer frontlines open before an upgrade
@@ -23,6 +27,7 @@ const (
 // idleAfter.
 type sparePool struct {
 	dialer    *tls.Dialer
+	clock     clock.Clock
 	size      int
 	idleAfter time.Duration
 
@@ -34,17 +39,19 @@ type sparePeer struct {
 	spares   []*spareConn
 	dialing  int
 	lastUsed time.Time
-	expiry   *time.Timer
 }
 
-func newSparePool(dialer *tls.Dialer, size int, idleAfter time.Duration) *sparePool {
-	return &sparePool{
+func newSparePool(dialer *tls.Dialer, clk clock.Clock, size int, idleAfter time.Duration) *sparePool {
+	p := &sparePool{
 		dialer:    dialer,
+		clock:     clk,
 		size:      size,
 		idleAfter: idleAfter,
 		mu:        sync.Mutex{},
 		peers:     make(map[string]*sparePeer),
 	}
+	go p.expireIdle(clk.NewTicker(idleAfter / 2))
+	return p
 }
 
 // dial is an http.Transport DialTLSContext. It returns a live spare when one
@@ -52,19 +59,17 @@ func newSparePool(dialer *tls.Dialer, size int, idleAfter time.Duration) *spareP
 func (p *sparePool) dial(ctx context.Context, network, addr string) (net.Conn, error) {
 	defer p.refill(addr)
 
-	for spare := p.take(addr); spare != nil; spare = p.take(addr) {
+	for spare := p.touchAndTake(addr); spare != nil; spare = p.touchAndTake(addr) {
 		if spare.claim() {
-			upgradeSparesTotal.WithLabelValues(spareOutcomeHit).Inc()
 			return spare, nil
 		}
 	}
-
-	upgradeSparesTotal.WithLabelValues(spareOutcomeMiss).Inc()
 	return p.dialer.DialContext(ctx, network, addr)
 }
 
-// take marks addr as used and removes one of its spares, if any.
-func (p *sparePool) take(addr string) *spareConn {
+// touchAndTake marks addr as used, starting to track it if needed, and
+// removes one of its spares, if any.
+func (p *sparePool) touchAndTake(addr string) *spareConn {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -72,10 +77,9 @@ func (p *sparePool) take(addr string) *spareConn {
 	if !ok {
 		//nolint:exhaustruct
 		peer = &sparePeer{}
-		peer.expiry = time.AfterFunc(p.idleAfter, func() { p.expire(addr) })
 		p.peers[addr] = peer
 	}
-	peer.lastUsed = time.Now()
+	peer.lastUsed = p.clock.Now()
 
 	n := len(peer.spares)
 	if n == 0 {
@@ -95,68 +99,65 @@ func (p *sparePool) refill(addr string) {
 		return
 	}
 	for ; len(peer.spares)+peer.dialing < p.size; peer.dialing++ {
-		go p.dialSpare(addr)
+		go p.dialSpare(addr, peer)
 	}
 }
 
-func (p *sparePool) dialSpare(addr string) {
-	ctx, cancel := context.WithTimeout(context.Background(), upgradeSpareDialTime)
-	conn, err := p.dialer.DialContext(ctx, "tcp", addr)
-	cancel()
+func (p *sparePool) dialSpare(addr string, peer *sparePeer) {
+	conn, err := p.dialer.DialContext(context.Background(), "tcp", addr)
+	if err != nil {
+		upstreamDialsTotal.WithLabelValues(destinationFrontline, dialOutcomeError).Inc()
+	} else {
+		upstreamDialsTotal.WithLabelValues(destinationFrontline, dialOutcomeSuccess).Inc()
+	}
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	peer, ok := p.peers[addr]
-	if ok {
-		peer.dialing--
-	}
+	peer.dialing--
 	if err != nil {
 		logger.Debug("unable to dial spare peer connection", "addr", addr, "error", err.Error())
 		return
 	}
 	tlsConn, isTLS := conn.(*tls.Conn)
-	if !ok || !isTLS {
+	if !isTLS || p.peers[addr] != peer {
 		_ = conn.Close()
 		return
 	}
 
-	spare := newSpareConn(tlsConn)
+	spare := newSpareConn(tlsConn, p.clock.Now())
 	peer.spares = append(peer.spares, spare)
-	go spare.watch(func() { p.drop(addr, spare) })
+	go spare.watch(func() { p.drop(addr, peer, spare) })
 }
 
 // drop removes a spare the peer closed and dials a replacement.
-func (p *sparePool) drop(addr string, spare *spareConn) {
+func (p *sparePool) drop(addr string, peer *sparePeer, spare *spareConn) {
 	_ = spare.Close()
 
 	p.mu.Lock()
-	peer, ok := p.peers[addr]
-	if ok {
-		peer.spares = slices.DeleteFunc(peer.spares, func(c *spareConn) bool { return c == spare })
-	}
+	peer.spares = slices.DeleteFunc(peer.spares, func(c *spareConn) bool { return c == spare })
+	current := p.peers[addr] == peer
 	p.mu.Unlock()
 
-	if ok {
+	if current && p.clock.Now().Sub(spare.born) >= upgradeSpareMinLife {
 		p.refill(addr)
 	}
 }
 
-// expire closes a peer's spares once it has gone idleAfter without an upgrade.
-func (p *sparePool) expire(addr string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	peer, ok := p.peers[addr]
-	if !ok {
-		return
-	}
-	if idle := time.Since(peer.lastUsed); idle < p.idleAfter {
-		peer.expiry.Reset(p.idleAfter - idle)
-		return
-	}
-	delete(p.peers, addr)
-	for _, spare := range peer.spares {
-		_ = spare.Close()
+// expireIdle closes the spares of peers that went idleAfter without an upgrade.
+func (p *sparePool) expireIdle(ticker clock.Ticker) {
+	for range ticker.C() {
+		now := p.clock.Now()
+		p.mu.Lock()
+		for addr, peer := range p.peers {
+			if now.Sub(peer.lastUsed) < p.idleAfter {
+				continue
+			}
+			delete(p.peers, addr)
+			for _, spare := range peer.spares {
+				_ = spare.Close()
+			}
+		}
+		p.mu.Unlock()
 	}
 }

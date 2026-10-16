@@ -12,44 +12,59 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
+// upgradeSpareResponseTimeout bounds the wait for a response on a spare. A
+// peer pod that is gone without a FIN or RST leaves a spare that accepts the
+// request but never answers.
+const upgradeSpareResponseTimeout = 10 * time.Second
+
 // upgradeTransport sends cross-region protocol upgrades over HTTP/1.1. An
 // upgrade takes over its connection for the whole session, so it cannot use
 // the pooled HTTP/2 connection to the peer frontline.
 //
-// An upgrade without a body uses a spare connection when one is ready. The
-// peer can close a spare while its FIN is still in flight, and http.Transport
-// retries only on reused connections, so such an upgrade is retried once on a
-// fresh dial. An upgrade with a body cannot be replayed, so it always uses a
-// fresh dial.
+// A GET upgrade without a body uses a spare connection when one is ready. If
+// the spare fails before a response arrives, for example because the peer
+// closed it while its FIN was still in flight, the upgrade is retried once on
+// a fresh dial. Other upgrades always use a fresh dial.
 type upgradeTransport struct {
 	spares *http.Transport
 	fresh  *http.Transport
 }
 
-func newUpgradeTransport(pool *sparePool) *upgradeTransport {
+type upgradeTransportConfig struct {
+	maxIdleConns         int
+	idleConnTimeout      time.Duration
+	spareResponseTimeout time.Duration
+}
+
+func newUpgradeTransport(pool *sparePool, cfg upgradeTransportConfig) *upgradeTransport {
+	spares := newHTTP1Transport(pool.dial, cfg)
+	spares.ResponseHeaderTimeout = cfg.spareResponseTimeout
 	return &upgradeTransport{
-		spares: newHTTP1Transport(pool.dial),
-		fresh:  newHTTP1Transport(pool.dialer.DialContext),
+		spares: spares,
+		fresh:  newHTTP1Transport(pool.dialer.DialContext, cfg),
 	}
 }
 
-func newHTTP1Transport(dial func(ctx context.Context, network, addr string) (net.Conn, error)) *http.Transport {
+func newHTTP1Transport(dial func(ctx context.Context, network, addr string) (net.Conn, error), cfg upgradeTransportConfig) *http.Transport {
 	//nolint:exhaustruct
 	return &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		DialTLSContext:        dial,
 		TLSNextProto:          map[string]func(string, *tls.Conn) http.RoundTripper{},
+		MaxIdleConns:          cfg.maxIdleConns,
 		MaxIdleConnsPerHost:   upgradeSparesPerPeer,
-		IdleConnTimeout:       90 * time.Second,
+		IdleConnTimeout:       cfg.idleConnTimeout,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 }
 
-func newUpgradeDialer() *tls.Dialer {
+// newUpgradeDialer returns the dialer for peer upgrade connections. Its
+// timeout covers the TCP connect and the TLS handshake together.
+func newUpgradeDialer(tlsHandshakeTimeout time.Duration) *tls.Dialer {
 	//nolint:exhaustruct
 	return &tls.Dialer{
 		NetDialer: &net.Dialer{
-			Timeout:   upgradeSpareDialTime,
+			Timeout:   10*time.Second + tlsHandshakeTimeout,
 			KeepAlive: 30 * time.Second,
 		},
 		Config: &tls.Config{
@@ -60,24 +75,41 @@ func newUpgradeDialer() *tls.Dialer {
 }
 
 func (t *upgradeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if req.ContentLength != 0 {
+	if req.Method != http.MethodGet || req.ContentLength != 0 {
+		upgradeSparesTotal.WithLabelValues(spareOutcomeSkipped).Inc()
 		return t.fresh.RoundTrip(req)
 	}
 
-	usedSpare := false
+	var conn httptrace.GotConnInfo
 	//nolint:exhaustruct
 	trace := &httptrace.ClientTrace{
-		GotConn: func(info httptrace.GotConnInfo) {
-			_, usedSpare = info.Conn.(*spareConn)
-		},
+		GotConn: func(info httptrace.GotConnInfo) { conn = info },
 	}
 	resp, err := t.spares.RoundTrip(req.WithContext(httptrace.WithClientTrace(req.Context(), trace)))
-	if err == nil || !usedSpare || req.Context().Err() != nil {
+	_, usedSpare := conn.Conn.(*spareConn)
+
+	switch {
+	case conn.Reused:
+		upgradeSparesTotal.WithLabelValues(spareOutcomeReused).Inc()
+		return resp, err
+	case !usedSpare:
+		upgradeSparesTotal.WithLabelValues(spareOutcomeMiss).Inc()
+		return resp, err
+	case err == nil:
+		upgradeSparesTotal.WithLabelValues(spareOutcomeHit).Inc()
 		return resp, err
 	}
 
-	logger.Warn("upgrade failed on a spare peer connection, retrying on a fresh dial", "target", req.URL.Host, "error", err.Error())
 	upgradeSparesTotal.WithLabelValues(spareOutcomeStale).Inc()
+	if req.Context().Err() != nil {
+		return resp, err
+	}
+
+	// This retry is a deliberate exception to the rule that proxy retries
+	// happen only on dial failures. The request was written, but it is a GET
+	// without a body and no response arrived, so a replay can at most repeat
+	// an upstream handshake that the client never saw.
+	logger.Warn("upgrade failed on a spare peer connection, retrying on a fresh dial", "target", req.URL.Host, "error", err.Error())
 	return t.fresh.RoundTrip(req)
 }
 

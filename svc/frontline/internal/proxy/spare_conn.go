@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"os"
-	"sync/atomic"
 	"time"
 )
 
@@ -12,12 +11,15 @@ import (
 // claimed, a watcher reads from it to notice when the peer closes it.
 type spareConn struct {
 	*tls.Conn
+	born    time.Time
 	watched chan struct{}
-	dead    atomic.Bool
+	// dead is written by the watcher before it closes watched and read only
+	// after watched is closed.
+	dead bool
 }
 
-func newSpareConn(conn *tls.Conn) *spareConn {
-	return &spareConn{Conn: conn, watched: make(chan struct{}), dead: atomic.Bool{}}
+func newSpareConn(conn *tls.Conn, born time.Time) *spareConn {
+	return &spareConn{Conn: conn, born: born, watched: make(chan struct{}), dead: false}
 }
 
 // watch blocks in Read until the peer closes the connection or claim
@@ -31,7 +33,7 @@ func (c *spareConn) watch(onDead func()) {
 	if errors.Is(err, os.ErrDeadlineExceeded) {
 		return
 	}
-	c.dead.Store(true)
+	c.dead = true
 	onDead()
 }
 
@@ -40,9 +42,12 @@ func (c *spareConn) watch(onDead func()) {
 func (c *spareConn) claim() bool {
 	_ = c.SetReadDeadline(time.Unix(1, 0))
 	<-c.watched
-	if c.dead.Load() {
+	if c.dead {
 		return false
 	}
-	_ = c.SetReadDeadline(time.Time{})
+	if err := c.SetReadDeadline(time.Time{}); err != nil {
+		_ = c.Close()
+		return false
+	}
 	return true
 }
