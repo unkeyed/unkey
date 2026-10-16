@@ -7,7 +7,7 @@ import { RatelimitOverviewLogsTable } from "./components/table/logs-table";
 
 export const LogsClient = ({ namespaceId }: { namespaceId: string }) => {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col md:flex-1 md:min-h-0">
       <RatelimitOverviewLogsControls />
       <RatelimitOverviewLogsControlCloud />
       <RatelimitOverviewLogsCharts namespaceId={namespaceId} />
