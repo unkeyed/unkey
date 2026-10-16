@@ -413,10 +413,11 @@ func TestSWRMany(t *testing.T) {
 	})
 
 	t.Run("error handling", func(t *testing.T) {
-		keys := []string{"err1", "err2"}
+		c.Set(ctx, "cached-before-error", "cached")
+		keys := []string{"err1", "err2", "cached-before-error"}
 		expectedErr := fmt.Errorf("fetch error")
 
-		_, hits, err := c.SWRMany(ctx, keys, func(ctx context.Context, keysToFetch []string) (map[string]string, error) {
+		values, hits, err := c.SWRMany(ctx, keys, func(ctx context.Context, keysToFetch []string) (map[string]string, error) {
 			return nil, expectedErr
 		}, func(err error) cache.Op {
 			return cache.Noop
@@ -425,10 +426,8 @@ func TestSWRMany(t *testing.T) {
 		require.Error(t, err)
 		require.Equal(t, expectedErr, err)
 
-		// Keys should be miss on error
-		for _, key := range keys {
-			require.Equal(t, cache.Miss, hits[key])
-		}
+		require.Equal(t, map[string]cache.CacheHit{"err1": cache.Miss, "err2": cache.Miss, "cached-before-error": cache.Hit}, hits)
+		require.Equal(t, map[string]string{"cached-before-error": "cached"}, values, "cached keys must still be returned with the error")
 	})
 
 	t.Run("empty keys slice", func(t *testing.T) {
@@ -469,6 +468,20 @@ func TestSWRMany(t *testing.T) {
 		require.Len(t, values, 2)
 		require.Equal(t, "cached_value", values["cached"])
 		require.Equal(t, "new_value", values["new"])
+	})
+
+	t.Run("partial results - cache NULL for a single missing key", func(t *testing.T) {
+		values, hits, err := c.SWRMany(ctx, []string{"single-exists", "single-missing"}, func(ctx context.Context, keysToFetch []string) (map[string]string, error) {
+			return map[string]string{"single-exists": "value"}, nil
+		}, func(err error) cache.Op {
+			return cache.WriteValue
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, map[string]string{"single-exists": "value"}, values)
+		require.Equal(t, map[string]cache.CacheHit{"single-exists": cache.Hit, "single-missing": cache.Null}, hits)
+		_, hit := c.Get(ctx, "single-missing")
+		require.Equal(t, cache.Null, hit)
 	})
 
 	t.Run("partial results - cache NULL for missing keys", func(t *testing.T) {

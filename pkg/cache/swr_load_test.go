@@ -20,12 +20,14 @@ type swrCallResult struct {
 // same key at the same time cause one origin read, so a cold or expired hot key
 // cannot stampede the origin, while a miss on another key is not held up.
 func TestSWRConcurrentMissesShareOneOriginRead(t *testing.T) {
+	t.Parallel()
 	for _, expired := range []bool{false, true} {
 		name := "cold"
 		if expired {
 			name = "expired"
 		}
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			c, clk := newPausedRefreshCache(t)
 			if expired {
 				c.Set(t.Context(), "key", "old")
@@ -60,7 +62,7 @@ func TestSWRConcurrentMissesShareOneOriginRead(t *testing.T) {
 
 			close(release)
 			for range callers {
-				require.Equal(t, swrCallResult{"new", Hit, nil}, <-results)
+				require.Equal(t, swrCallResult{"new", Hit, nil}, receive(t, results))
 			}
 			require.Equal(t, int32(1), calls.Load())
 
@@ -79,6 +81,7 @@ func TestSWRConcurrentMissesShareOneOriginRead(t *testing.T) {
 // waiting caller that goes away stops waiting at once, and a caller that is
 // already gone does not start a read at all.
 func TestSWRSharedReadFollowsCallerCancellation(t *testing.T) {
+	t.Parallel()
 	c, _ := newPausedRefreshCache(t)
 	op := func(err error) Op {
 		if err != nil {
@@ -106,7 +109,7 @@ func TestSWRSharedReadFollowsCallerCancellation(t *testing.T) {
 		value, hit, err := c.SWR(firstCtx, "key", origin, op)
 		results <- swrCallResult{value, hit, err}
 	}()
-	readCtx := <-originCtx
+	readCtx := receive(t, originCtx)
 	go func() {
 		value, hit, err := c.SWR(context.Background(), "key", origin, op)
 		results <- swrCallResult{value, hit, err}
@@ -138,7 +141,7 @@ func TestSWRSharedReadFollowsCallerCancellation(t *testing.T) {
 
 	close(release)
 	for range 2 {
-		require.Equal(t, swrCallResult{"value", Hit, nil}, <-results)
+		require.Equal(t, swrCallResult{"value", Hit, nil}, receive(t, results))
 	}
 
 	_, hit, err := c.SWR(firstCtx, "gone", func(context.Context) (string, error) {
@@ -155,6 +158,7 @@ func TestSWRSharedReadFollowsCallerCancellation(t *testing.T) {
 // read, and that the abandoned read finishing late does not detach callers
 // from the fresh one.
 func TestSWRAbandonedReadIsReplaced(t *testing.T) {
+	t.Parallel()
 	c, _ := newPausedRefreshCache(t)
 	op := func(err error) Op {
 		if err != nil {
@@ -182,7 +186,7 @@ func TestSWRAbandonedReadIsReplaced(t *testing.T) {
 		value, hit, err := c.SWR(ctx, "key", origin, op)
 		first <- swrCallResult{value, hit, err}
 	}()
-	readCtx := <-abandonedCtx
+	readCtx := receive(t, abandonedCtx)
 	abandon()
 	select {
 	case <-readCtx.Done():
@@ -199,7 +203,7 @@ func TestSWRAbandonedReadIsReplaced(t *testing.T) {
 		"a caller after an abandoned read must start a fresh one")
 
 	close(releaseAbandoned)
-	got := <-first
+	got := receive(t, first)
 	require.ErrorIs(t, got.err, context.Canceled)
 	require.Equal(t, Miss, got.hit)
 
@@ -210,7 +214,7 @@ func TestSWRAbandonedReadIsReplaced(t *testing.T) {
 	waitForWaiters(t, c, "key", 2)
 	close(releaseFresh)
 	for range 2 {
-		require.Equal(t, swrCallResult{"fresh", Hit, nil}, <-fresh)
+		require.Equal(t, swrCallResult{"fresh", Hit, nil}, receive(t, fresh))
 	}
 	require.Equal(t, int32(2), calls.Load())
 }
@@ -219,6 +223,7 @@ func TestSWRAbandonedReadIsReplaced(t *testing.T) {
 // entry expired while a background refresh for the key is running waits for
 // that refresh instead of reading the origin a second time.
 func TestSWRExpiredReadJoinsRunningRefresh(t *testing.T) {
+	t.Parallel()
 	c, clk := newPausedRefreshCache(t)
 	c.Set(t.Context(), "key", "stale")
 	clk.Tick(2 * time.Minute)
@@ -230,18 +235,20 @@ func TestSWRExpiredReadJoinsRunningRefresh(t *testing.T) {
 	t.Cleanup(releaseRefresh)
 	value, _, err := c.SWR(t.Context(), "key", func(context.Context) (string, error) {
 		close(started)
-		<-release
+		if err := waitForRelease(release); err != nil {
+			return "", err
+		}
 		return "refreshed", nil
 	}, op)
 	require.NoError(t, err)
 	require.Equal(t, "stale", value)
-	refresh := <-c.revalidateC
+	refresh := queuedRefresh(t, c)
 	refreshDone := make(chan struct{})
 	go func() {
 		defer close(refreshDone)
 		refresh()
 	}()
-	<-started
+	receive(t, started)
 
 	clk.Tick(time.Hour)
 	var expiredReadCalls atomic.Int32
@@ -256,9 +263,9 @@ func TestSWRExpiredReadJoinsRunningRefresh(t *testing.T) {
 	waitForWaiters(t, c, "key", 2)
 
 	releaseRefresh()
-	require.Equal(t, swrCallResult{"refreshed", Hit, nil}, <-expired)
+	require.Equal(t, swrCallResult{"refreshed", Hit, nil}, receive(t, expired))
 	require.Zero(t, expiredReadCalls.Load())
-	<-refreshDone
+	receive(t, refreshDone)
 }
 
 // TestSWRSharedReadPanicDoesNotStrandWaiters guarantees that a panic in a
@@ -266,6 +273,7 @@ func TestSWRExpiredReadJoinsRunningRefresh(t *testing.T) {
 // recovery can handle it, while the waiting callers get an error instead of
 // blocking forever, and later callers can read the key again.
 func TestSWRSharedReadPanicDoesNotStrandWaiters(t *testing.T) {
+	t.Parallel()
 	c, _ := newPausedRefreshCache(t)
 	op := func(error) Op { return WriteValue }
 	release := make(chan struct{})
@@ -294,7 +302,7 @@ func TestSWRSharedReadPanicDoesNotStrandWaiters(t *testing.T) {
 
 	panics := 0
 	for range callers {
-		got := <-outcomes
+		got := receive(t, outcomes)
 		if got.recovered != nil {
 			panics++
 			require.Equal(t, "origin exploded", got.recovered)

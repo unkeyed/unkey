@@ -152,3 +152,86 @@ func TestSWR_CacheHit(t *testing.T) {
 		require.Equal(t, cache.Miss, hit)
 	})
 }
+
+func newFallbackCache(t *testing.T) (cache.Cache[string, string], *clock.TestClock) {
+	t.Helper()
+	clk := clock.NewTestClock()
+	c, err := cache.New(cache.Config[string, string]{
+		Fresh:    time.Minute,
+		Stale:    time.Hour,
+		MaxSize:  100,
+		Resource: "test",
+		Clock:    clk,
+	})
+	require.NoError(t, err)
+	t.Cleanup(c.Close)
+	return c, clk
+}
+
+// TestSWRWithFallbackServesFirstLiveCandidate guarantees that candidates are
+// checked in order and that missing or expired candidates are skipped, so a
+// wildcard entry still serves a host whose exact entry is gone.
+func TestSWRWithFallbackServesFirstLiveCandidate(t *testing.T) {
+	c, clk := newFallbackCache(t)
+	c.Set(t.Context(), "expired", "expired-value")
+	clk.Tick(2 * time.Hour)
+	c.Set(t.Context(), "live", "live-value")
+	c.Set(t.Context(), "later", "later-value")
+
+	value, hit, err := c.SWRWithFallback(t.Context(), []string{"missing", "expired", "live", "later"}, func(context.Context) (string, string, error) {
+		t.Error("a live candidate must be served without reading the origin")
+		return "", "", nil
+	}, func(error) cache.Op { return cache.WriteValue })
+	require.NoError(t, err)
+	require.Equal(t, cache.Hit, hit)
+	require.Equal(t, "live-value", value)
+}
+
+// TestSWRWithFallbackCachesUnderCanonicalKey guarantees that a miss on every
+// candidate returns the origin value and stores it under the key the origin
+// names, as op decides, and that Noop reports a miss rather than a cached null.
+func TestSWRWithFallbackCachesUnderCanonicalKey(t *testing.T) {
+	tests := []struct {
+		name      string
+		op        cache.Op
+		wantHit   cache.CacheHit
+		cachedHit cache.CacheHit
+	}{
+		{name: "write value", op: cache.WriteValue, wantHit: cache.Hit, cachedHit: cache.Hit},
+		{name: "write null", op: cache.WriteNull, wantHit: cache.Null, cachedHit: cache.Null},
+		{name: "noop", op: cache.Noop, wantHit: cache.Miss, cachedHit: cache.Miss},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, _ := newFallbackCache(t)
+
+			value, hit, err := c.SWRWithFallback(t.Context(), []string{"exact", "wildcard"}, func(context.Context) (string, string, error) {
+				return "origin-value", "canonical", nil
+			}, func(error) cache.Op { return tt.op })
+			require.NoError(t, err)
+			require.Equal(t, tt.wantHit, hit)
+			require.Equal(t, "origin-value", value)
+
+			_, hits := c.GetMany(t.Context(), []string{"exact", "wildcard", "canonical"})
+			require.Equal(t, map[string]cache.CacheHit{"exact": cache.Miss, "wildcard": cache.Miss, "canonical": tt.cachedHit}, hits)
+		})
+	}
+}
+
+// TestSWRWithFallbackOriginErrorCachesNothing guarantees that a failed origin
+// read returns its error and writes nothing, even when op asks for a write, so
+// a partial result is never cached.
+func TestSWRWithFallbackOriginErrorCachesNothing(t *testing.T) {
+	c, _ := newFallbackCache(t)
+	originErr := errors.New("origin unavailable")
+
+	value, hit, err := c.SWRWithFallback(t.Context(), []string{"exact"}, func(context.Context) (string, string, error) {
+		return "partial", "canonical", originErr
+	}, func(error) cache.Op { return cache.WriteValue })
+	require.ErrorIs(t, err, originErr)
+	require.Equal(t, cache.Miss, hit)
+	require.Empty(t, value)
+
+	_, cached := c.Get(t.Context(), "canonical")
+	require.Equal(t, cache.Miss, cached)
+}
