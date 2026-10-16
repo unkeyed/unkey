@@ -1,3 +1,4 @@
+import { addDays } from "@/lib/dates";
 import { BaseAuthProvider } from "./base-provider";
 import { getCookie } from "./cookies";
 import {
@@ -81,8 +82,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     if (newOrgId !== LOCAL_ORG_ID) {
       throw new Error(`Organization ${newOrgId} not found`);
     }
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const expiresAt = addDays(new Date(), 7);
     return {
       newToken: currentToken,
       expiresAt,
@@ -163,8 +163,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
 
   async inviteMember(params: OrgInviteParams): Promise<Invitation> {
     const now = new Date();
-    const expiresAt = new Date(now);
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const expiresAt = addDays(now, 7);
     return {
       id: `inv_local_${now.getTime()}`,
       email: params.email,

@@ -10,7 +10,7 @@ import {
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Loading } from "@unkey/ui";
+import { Loading, formatTimestamp } from "@unkey/ui";
 import { cn } from "cn";
 import { type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useDeployment } from "../../layout-provider";
@@ -322,13 +322,6 @@ export function DeploymentBuildLogs({
   );
 }
 
-const LOG_TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  fractionalSecondDigits: 3,
-  hourCycle: "h23",
-});
 const GUTTER_WIDTH_CLASS = "w-[12ch] shrink-0";
 
 const ENTRY_TONE_CLASSES: Record<Tone, { row: string; text: string }> = {
@@ -401,7 +394,7 @@ function BuildLogLineRow({
           title={new Date(entry.time).toLocaleString()}
           className={cn(GUTTER_WIDTH_CLASS, "tabular-nums text-grayA-10")}
         >
-          {LOG_TIME_FORMAT.format(entry.time)}
+          {formatTimestamp(entry.time, "timeWithMillis")}
         </time>
         <span
           className={cn("min-w-0 whitespace-pre-wrap break-all", ENTRY_TONE_CLASSES[tone].text)}

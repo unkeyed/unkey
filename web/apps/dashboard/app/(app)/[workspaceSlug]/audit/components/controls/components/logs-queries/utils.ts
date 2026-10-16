@@ -1,7 +1,7 @@
 import type { QuerySearchParams } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { iconsPerField } from "@/components/logs/queries/utils";
 import { IconChartActivity2Outline18 } from "@unkey/icons";
-import { format } from "date-fns";
+import { formatTimestamp } from "@unkey/ui";
 import React, { type JSX } from "react";
 
 export function formatFilterValues(
@@ -28,7 +28,7 @@ export function formatFilterValues(
         return { value: value.toUpperCase(), color: null };
       case "startTime":
       case "endTime":
-        return { value: format(Number(value), "MMM d HH:mm:ss"), color: null };
+        return { value: formatTimestamp(Number(value), "full"), color: null };
       case "since":
         return { value: value, color: null };
       case "host":

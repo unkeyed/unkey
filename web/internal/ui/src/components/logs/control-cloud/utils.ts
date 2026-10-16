@@ -1,8 +1,8 @@
-import { format } from "date-fns";
+import { formatTimestamp } from "../../../lib/time";
 
 export const defaultFormatValue = (value: string | number, field: string): string => {
   if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
-    return format(value, "MMM d, yyyy HH:mm:ss");
+    return formatTimestamp(value, "full");
   }
   return String(value);
 };

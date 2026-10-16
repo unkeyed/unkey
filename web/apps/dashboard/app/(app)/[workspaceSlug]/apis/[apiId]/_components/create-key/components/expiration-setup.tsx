@@ -1,9 +1,10 @@
 "use client";
 import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
+import { addDays } from "@/lib/dates";
+import { MINUTE_IN_MS } from "@/lib/trpc/routers/utils/constants";
 import { IconClockOutline12 } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
-import { addDays, addMinutes, format } from "date-fns";
+import { FormInput, formatTimestamp } from "@unkey/ui";
 import { useState } from "react";
 import { Controller, useController, useFormContext, useWatch } from "react-hook-form";
 import type { ExpirationFormValues } from "../create-key.schema";
@@ -75,7 +76,7 @@ export const ExpirationSetup = ({
   };
 
   // Calculate minimum valid date (10 minutes from now)
-  const minValidDate = addMinutes(new Date(), 10);
+  const minValidDate = new Date(Date.now() + 10 * MINUTE_IN_MS);
 
   // Handle date and time selection from DatetimePopover
   const handleDateTimeChange = (startTime?: number, _?: number, since?: string) => {
@@ -109,11 +110,11 @@ export const ExpirationSetup = ({
   };
 
   // Format date for display
-  const formatExpiryDate = (date?: Date) => {
+  const formatExpiryDate = (date?: Date | string) => {
     if (!date) {
       return "Select expiration date";
     }
-    return format(date, "MMM d, yyyy 'at' h:mm a");
+    return formatTimestamp(new Date(date), "dateTimeWithYear");
   };
 
   const getInitialTimeValues = () => {
@@ -178,7 +179,7 @@ export const ExpirationSetup = ({
               description={getExpiryDescription()}
               readOnly
               disabled={!expirationEnabled}
-              value={formatExpiryDate(field.value as Date | undefined)}
+              value={formatExpiryDate(field.value as Date | string | undefined)}
               className="cursor-pointer w-full"
               variant={expirationEnabled && isExpiringVerySoon ? "warning" : undefined}
               error={

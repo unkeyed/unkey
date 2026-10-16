@@ -57,3 +57,4 @@ export * from "./components/data-table";
 
 /* Lib Export */
 export * from "./lib/utils";
+export { formatTimestamp, isSameDay, type TimestampStyle } from "./lib/time";

@@ -1,5 +1,4 @@
-const TIME_FMT: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
-const DATE_FMT: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+import { formatTimestamp, isSameDay } from "@unkey/ui";
 
 // formatBucketInterval renders a compact label for a chart bucket, e.g.
 // "4:14 – 4:15 AM" — about a third as wide as "Apr 17, 4:14 AM - Apr 17,
@@ -12,18 +11,13 @@ export function formatBucketInterval(
   nextTs: number | undefined,
   withDate?: boolean,
 ): string {
-  const start = new Date(startTs);
-  const end = typeof nextTs === "number" ? new Date(nextTs) : null;
-  const startStr = withDate
-    ? `${start.toLocaleDateString(undefined, DATE_FMT)}, ${start.toLocaleTimeString(undefined, TIME_FMT)}`
-    : start.toLocaleTimeString(undefined, TIME_FMT);
-  if (!end) {
+  const startStr = formatTimestamp(startTs, withDate ? "dateTime" : "time");
+  if (typeof nextTs !== "number") {
     return startStr;
   }
-  const sameDay = start.toDateString() === end.toDateString();
-  const endStr =
-    withDate && !sameDay
-      ? `${end.toLocaleDateString(undefined, DATE_FMT)}, ${end.toLocaleTimeString(undefined, TIME_FMT)}`
-      : end.toLocaleTimeString(undefined, TIME_FMT);
+  const endStr = formatTimestamp(
+    nextTs,
+    withDate && !isSameDay(startTs, nextTs) ? "dateTime" : "time",
+  );
   return `${startStr} – ${endStr}`;
 }

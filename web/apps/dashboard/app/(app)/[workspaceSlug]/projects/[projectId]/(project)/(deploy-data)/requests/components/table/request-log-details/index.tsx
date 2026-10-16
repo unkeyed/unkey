@@ -24,7 +24,7 @@ import {
   IconUserOutline12,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, CopyButton } from "@unkey/ui";
+import { Badge, CopyButton, formatTimestamp } from "@unkey/ui";
 import { cn } from "cn";
 import type React from "react";
 
@@ -414,14 +414,7 @@ const formatDeploymentInfo = (
 // Format meta information
 const formatMetaInfo = (log: RequestLogsResponse): React.ReactNode => {
   const timestamp = new Date(log.time);
-  const formattedTime = timestamp.toLocaleString("en-US", {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  const formattedTime = formatTimestamp(timestamp, "dateTime24h");
 
   // Format query params if present
   const queryParamsEntries = Object.entries(log.query_params);

@@ -29,9 +29,8 @@ export function formatPrice(price: number) {
   }).format(price / 100);
 }
 
-// Formatted in UTC instead of with date-fns, because billing periods are cut at
-// UTC midnight while date-fns formats in the reader's own timezone, which prints
-// the previous day for anyone west of UTC.
+// Formatted in UTC because billing periods are cut at UTC midnight; the reader's
+// own timezone would print the previous day for anyone west of UTC.
 export function formatDate(millis: number): string {
   return new Date(millis).toLocaleDateString("en-US", {
     timeZone: "UTC",

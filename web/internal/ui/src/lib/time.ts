@@ -68,3 +68,74 @@ export function relativeTime(
   const count = Math.floor(distance / size);
   return formatter(style).format(isPast ? -count : count, unit);
 }
+
+export type TimestampStyle = keyof typeof TIMESTAMP_STYLES;
+
+/**
+ * Timestamp in the reader's timezone, or in UTC. Browsers put a narrow no-break
+ * space between "3:04" and "PM"; it is replaced with a plain space so the label
+ * copies and compares like ordinary text.
+ */
+export function formatTimestamp(
+  value: Date | number,
+  style: TimestampStyle,
+  timeZone?: "UTC",
+): string {
+  return timestampFormatter(style, timeZone).format(value).replace(/ /, " ");
+}
+
+export function isSameDay(a: Date | number, b: Date | number): boolean {
+  return new Date(a).toDateString() === new Date(b).toDateString();
+}
+
+const TIMESTAMP_STYLES = {
+  time: { hour: "numeric", minute: "2-digit" },
+  timeWithMillis: {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    fractionalSecondDigits: 3,
+    hourCycle: "h23",
+  },
+  monthDay: { month: "short", day: "numeric" },
+  monthYear: { month: "short", year: "numeric" },
+  monthYearLong: { month: "long", year: "numeric" },
+  dateTime: { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },
+  dateTimeWithYear: {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  },
+  dateTime24h: {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  },
+  full: {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  },
+} satisfies Record<string, Intl.DateTimeFormatOptions>;
+
+const timestampFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function timestampFormatter(style: TimestampStyle, timeZone?: "UTC"): Intl.DateTimeFormat {
+  const key = `${style}/${timeZone ?? "local"}`;
+  const cached = timestampFormatters.get(key);
+  if (cached) {
+    return cached;
+  }
+  const made = new Intl.DateTimeFormat("en-US", { ...TIMESTAMP_STYLES[style], timeZone });
+  timestampFormatters.set(key, made);
+  return made;
+}
