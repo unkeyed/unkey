@@ -34,7 +34,7 @@ Edit them under **App settings** in the dashboard, with `environments.updateSett
 
 In the dashboard, the settings are in three places:
 
-- **Runtime** holds the port, command, and health check.
+- **Runtime** holds the port, start command, and health check.
 - **Advanced** holds the OpenAPI spec path and upstream protocol.
 - **Environments** opens a page for each environment. Click **Configure** on its **Compute** card to set regions, size (CPU and memory), instances, and storage.
 
@@ -63,7 +63,7 @@ Your plan caps CPU, memory, and disk per instance. Going over returns `400` with
 </ParamField>
 
 <ParamField body="storageMib" type="integer" default="0">
-  Temporary disk per instance in MiB, in steps of 512, up to your plan's limit. `0` means none. When set, each instance gets its own disk at `/data`, and `UNKEY_EPHEMERAL_DISK_PATH` is set to `/data`. Nothing on it survives a restart or a new deployment. Without it, the container can write at most 128 MiB. The dashboard's **Storage** field offers None, 512 MiB, and 1, 2, 5, 10, 20, and 50 GiB, up to what your plan allows, plus **Custom…** for other steps of 512 MiB.
+  Temporary disk per instance in MiB, in steps of 512, up to your plan's limit. `0` means none. When set, each instance gets its own disk at `/data`, and `UNKEY_EPHEMERAL_DISK_PATH` is set to `/data`. Nothing on it survives a restart or a new deployment. Without it, the container can write at most 128 MiB. The dashboard's **Storage** field offers None, 512 MiB, and 1, 2, 5, 10, 20, and 50 GiB, up to what your plan allows. A value set through the API that isn't a preset shows as an extra option.
 </ParamField>
 
 <ParamField body="command" type="string[]" default="[]">
@@ -96,7 +96,7 @@ Your plan caps CPU, memory, and disk per instance. Going over returns `400` with
   - `min` is at least 1. `max` is at least `min` and at most your plan's replicas-per-region limit.
   - Every region must use the same bounds, or you get "All regions must specify the same replica bounds; per-region autoscaling is not supported yet."
 
-  A new app starts in one region, `ap-southeast-1` (Singapore), with `min` and `max` both 1, so autoscaling is off until you raise `max`. Pick your regions before you go live. See [Regions](/compute/concepts/regions).
+  A new app created with the API starts in one region, `ap-southeast-1` (Singapore), with `min` and `max` both 1, so autoscaling is off until you raise `max`. In the dashboard, a new app starts in every region available to the workspace. Pick your regions before you go live. See [Regions](/compute/concepts/regions).
 </ParamField>
 
 ## Raise resources and add a region

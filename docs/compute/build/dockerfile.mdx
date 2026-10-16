@@ -42,7 +42,7 @@ The root directory must be a relative path like `services/api`. It can't start w
 - **Exit cleanly on the shutdown signal**, `SIGTERM` unless you change it, so instances can drain when they're replaced.
 - **Keep local writes under 128 MiB.** That's the cap on the container's own filesystem. Use the optional disk at `/data` for anything larger.
 
-If your image's default command isn't what you want, set the **command** in [runtime settings](/compute/configure/runtime-settings) instead of keeping a second Dockerfile.
+If your image's default command isn't what you want, set the **Start command** in [runtime settings](/compute/configure/runtime-settings) instead of keeping a second Dockerfile.
 
 ## Why your Dockerfile build failed
 
