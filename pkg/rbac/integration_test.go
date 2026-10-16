@@ -11,22 +11,22 @@ func TestParseQuery_Integration(t *testing.T) {
 
 	// Test parsing and evaluation together
 	t.Run("Parse and evaluate simple query", func(t *testing.T) {
-		query, err := ParseQuery("api.key1.read_key")
+		query, err := ParseQuery("documents.read")
 		require.NoError(t, err)
 
-		userPermissions := []string{"api.key1.read_key", "api.key1.update_key"}
+		userPermissions := []string{"documents.read", "documents.write"}
 		result, err := rbac.EvaluatePermissions(query, userPermissions)
 		require.NoError(t, err)
 		require.True(t, result.Valid)
 	})
 
 	t.Run("Parse and evaluate complex query", func(t *testing.T) {
-		query, err := ParseQuery("api.key1.read_key AND (ratelimit.ns1.limit OR ratelimit.ns2.limit)")
+		query, err := ParseQuery("documents.read AND (billing.admin OR reports.export)")
 		require.NoError(t, err)
 
 		userPermissions := []string{
-			"api.key1.read_key",
-			"ratelimit.ns1.limit",
+			"documents.read",
+			"billing.admin",
 		}
 		result, err := rbac.EvaluatePermissions(query, userPermissions)
 		require.NoError(t, err)
@@ -34,33 +34,33 @@ func TestParseQuery_Integration(t *testing.T) {
 	})
 
 	t.Run("Parse and evaluate failing query", func(t *testing.T) {
-		query, err := ParseQuery("api.key1.read_key AND api.key1.delete_key")
+		query, err := ParseQuery("documents.read AND documents.delete")
 		require.NoError(t, err)
 
-		userPermissions := []string{"api.key1.read_key"}
+		userPermissions := []string{"documents.read"}
 		result, err := rbac.EvaluatePermissions(query, userPermissions)
 		require.NoError(t, err)
 		require.False(t, result.Valid)
-		require.Contains(t, result.Message, "Missing permission: 'api.key1.delete_key'")
+		require.Contains(t, result.Message, "Missing permission: 'documents.delete'")
 	})
 
 	t.Run("Parse and evaluate OR query", func(t *testing.T) {
-		query, err := ParseQuery("api.key1.read_key OR api.key1.update_key")
+		query, err := ParseQuery("documents.read OR documents.write")
 		require.NoError(t, err)
 
-		userPermissions := []string{"api.key1.update_key"}
+		userPermissions := []string{"documents.write"}
 		result, err := rbac.EvaluatePermissions(query, userPermissions)
 		require.NoError(t, err)
 		require.True(t, result.Valid)
 	})
 
 	t.Run("Parse and evaluate portal query", func(t *testing.T) {
-		query, err := ParseQuery("portal.pc_abc.read_portal AND portal.pc_abc.create_portal_session")
+		query, err := ParseQuery("portal.session.read AND portal.session.create")
 		require.NoError(t, err)
 
 		userPermissions := []string{
-			"portal.pc_abc.read_portal",
-			"portal.pc_abc.create_portal_session",
+			"portal.session.read",
+			"portal.session.create",
 		}
 		result, err := rbac.EvaluatePermissions(query, userPermissions)
 		require.NoError(t, err)
@@ -68,15 +68,15 @@ func TestParseQuery_Integration(t *testing.T) {
 	})
 
 	t.Run("Parse and evaluate failing portal query", func(t *testing.T) {
-		query, err := ParseQuery("portal.pc_abc.create_portal_session")
+		query, err := ParseQuery("portal.session.create")
 		require.NoError(t, err)
 
 		// Portal management does not imply session minting.
-		userPermissions := []string{"portal.pc_abc.read_portal"}
+		userPermissions := []string{"portal.session.read"}
 		result, err := rbac.EvaluatePermissions(query, userPermissions)
 		require.NoError(t, err)
 		require.False(t, result.Valid)
-		require.Contains(t, result.Message, "Missing permission: 'portal.pc_abc.create_portal_session'")
+		require.Contains(t, result.Message, "Missing permission: 'portal.session.create'")
 	})
 
 	t.Run("Parse and evaluate precedence", func(t *testing.T) {

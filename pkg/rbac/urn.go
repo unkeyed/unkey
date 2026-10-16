@@ -44,7 +44,7 @@ func U(resource fmt.Stringer, action permissions.Action) PermissionQuery {
 }
 
 // HasPermissionIn reports whether a permission can authorize any member of a
-// valid fixed-depth collection such as projects/*/apps/*. It ignores legacy
+// valid fixed-depth collection such as projects/*/apps/*. It ignores non-URN
 // permissions and does not check whether resources exist. Callers must still
 // authorize each row before returning it.
 func HasPermissionIn(resource urn.V1, action permissions.Action, callerPermissions []string) bool {
@@ -90,8 +90,8 @@ func resourcePatternsOverlap(collection string, permission string) bool {
 }
 
 // isUnkeyPermission reports whether a granted string is a canonical Unkey
-// permission URN, so the evaluator never applies wildcard semantics to legacy
-// or customer-defined permission strings.
+// permission URN, so the evaluator never applies wildcard semantics to
+// customer-defined permission strings.
 func isUnkeyPermission(value string) bool {
 	_, err := parseUrnPermission(value)
 	return err == nil
@@ -99,8 +99,8 @@ func isUnkeyPermission(value string) bool {
 
 // evaluateUnkeyPermission evaluates Unkey resource permission URNs only.
 //
-// The required permission is already parsed by the leaf evaluator. Legacy tuple
-// permissions and customer-defined permission strings never reach this path, so
+// The required permission is already parsed by the leaf evaluator. Customer-defined
+// permission strings never reach this path, so
 // wildcard characters only expand scope for canonical Unkey permission URNs.
 func evaluateUnkeyPermission(required UnkeyPermission, granted []string) bool {
 	for _, permission := range granted {
@@ -132,7 +132,7 @@ func evaluateUnkeyPermission(required UnkeyPermission, granted []string) bool {
 //	unkey:v1:ws_1:keyspaces/ks_1                 missing "#action"
 //	unkey:v1:ws_1:keyspaces/ks_1#read#key        more than one "#"
 //	unkey:v1:ws_1:keyspaces/ks_1#*               action wildcard off the global resource
-//	api.api_1.read_api                           legacy tuple, not a URN permission
+//	not-a-urn                                    customer permission, not a URN permission
 func parseUrnPermission(value string) (UnkeyPermission, error) {
 	var zero UnkeyPermission
 
