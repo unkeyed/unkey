@@ -41,7 +41,6 @@ SELECT
     w.k8s_namespace,
     e.slug AS environment_slug,
     e.kind AS environment_kind,
-    COALESCE(a.slug, '') AS app_slug,
     d.capabilities,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
@@ -50,7 +49,6 @@ INNER JOIN ` + "`" + `deployments` + "`" + ` d ON d.id = dt.deployment_id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON w.id = d.workspace_id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON r.id = dt.region_id
 INNER JOIN ` + "`" + `environments` + "`" + ` e ON e.id = d.environment_id
-LEFT JOIN ` + "`" + `apps` + "`" + ` a ON a.id = d.app_id
 LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON grc.app_id = d.app_id
 WHERE dt.deployment_id = ? AND dt.region_id = ?
 LIMIT 1
@@ -89,7 +87,6 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 	K8sNamespace                  string                           `db:"k8s_namespace"`
 	EnvironmentSlug               string                           `db:"environment_slug"`
 	EnvironmentKind               mysqltype.EnvironmentKind        `db:"environment_kind"`
-	AppSlug                       string                           `db:"app_slug"`
 	Capabilities                  mysqltype.DeploymentCapabilities `db:"capabilities"`
 	RegionName                    string                           `db:"region_name"`
 	GitRepo                       sql.NullString                   `db:"git_repo"`
@@ -126,7 +123,6 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //	    w.k8s_namespace,
 //	    e.slug AS environment_slug,
 //	    e.kind AS environment_kind,
-//	    COALESCE(a.slug, '') AS app_slug,
 //	    d.capabilities,
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
@@ -135,7 +131,6 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //	INNER JOIN `workspaces` w ON w.id = d.workspace_id
 //	INNER JOIN `regions` r ON r.id = dt.region_id
 //	INNER JOIN `environments` e ON e.id = d.environment_id
-//	LEFT JOIN `apps` a ON a.id = d.app_id
 //	LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 //	WHERE dt.deployment_id = ? AND dt.region_id = ?
 //	LIMIT 1
@@ -170,7 +165,6 @@ func (q *Queries) FindDeploymentTopologyByDeploymentAndRegion(ctx context.Contex
 		&i.K8sNamespace,
 		&i.EnvironmentSlug,
 		&i.EnvironmentKind,
-		&i.AppSlug,
 		&i.Capabilities,
 		&i.RegionName,
 		&i.GitRepo,
