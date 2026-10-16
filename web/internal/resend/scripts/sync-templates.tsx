@@ -15,6 +15,7 @@ import type React from "react";
 import { Resend } from "resend";
 import ComputeBudgetAlert from "../emails/compute_budget_alert";
 import ComputeBudgetStopped from "../emails/compute_budget_stopped";
+import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";
 
 type TemplateSync = {
   // alias is how svc/ctrl refers to the template; it must not change once a
@@ -23,11 +24,25 @@ type TemplateSync = {
   name: string;
   subject: string;
   from: string;
+  replyTo?: string;
   element: React.ReactElement;
   variables: { key: string; fallbackValue: string }[];
 };
 
 const templates: TemplateSync[] = [
+  {
+    alias: "secret-scanning-key-detected",
+    name: "Leaked root key",
+    subject: "Unkey root key exposed in public Github repository",
+    from: "James from Unkey <james@updates.unkey.com>",
+    replyTo: "support@unkey.com",
+    element: <SecretScanningKeyDetected date="{{{DATE}}}" source="{{{SOURCE}}}" url="{{{URL}}}" />,
+    variables: [
+      { key: "DATE", fallbackValue: "" },
+      { key: "SOURCE", fallbackValue: "GitHub" },
+      { key: "URL", fallbackValue: "https://app.unkey.com" },
+    ],
+  },
   {
     alias: "compute-budget-alert",
     name: "Compute budget alert",
@@ -91,6 +106,7 @@ async function main(): Promise<void> {
       name: template.name,
       subject: template.subject,
       from: template.from,
+      replyTo: template.replyTo,
       html,
       text,
       variables: template.variables.map((v) => ({

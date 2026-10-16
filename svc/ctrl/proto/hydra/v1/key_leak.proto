@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+service KeyLeakService {
+  option (dev.restate.sdk.go.service_type) = SERVICE;
+
+  rpc Notify(KeyLeakNotification) returns (KeyLeakResponse) {}
+  rpc NotifyEmail(KeyLeakEmailRequest) returns (KeyLeakResponse) {}
+  rpc NotifySlack(KeyLeakNotification) returns (KeyLeakResponse) {}
+}
+
+message KeyLeakNotification {
+  string key_id = 1;
+  string org_id = 2;
+  string workspace_name = 3;
+  string source = 4;
+  string url = 5;
+  string type = 6;
+  string date = 7;
+}
+
+message KeyLeakEmailRequest {
+  KeyLeakNotification leak = 1;
+  string email = 2;
+}
+
+message KeyLeakResponse {}

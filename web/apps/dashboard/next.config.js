@@ -105,6 +105,17 @@ const nextConfig = {
     return config;
   },
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/error", "@unkey/id"],
+  async rewrites() {
+    if (!process.env.CTRL_URL) {
+      return [];
+    }
+    return [
+      {
+        source: "/api/v1/github/verify",
+        destination: new URL("/webhooks/github/key-leaks", process.env.CTRL_URL).toString(),
+      },
+    ];
+  },
   async redirects() {
     return [
       {

@@ -38,7 +38,7 @@
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
         "WORKOS_API_HOSTNAME",
         "SENTRY_AUTH_TOKEN",
-        "GITHUB_KEYS_URI"
+        "CTRL_URL"
       ],
       "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
     },
@@ -81,7 +81,7 @@
         "SENTRY_UPLOAD_SOURCEMAPS",
         "VERCEL_ENV",
         "VERCEL_GIT_COMMIT_SHA",
-        "GITHUB_KEYS_URI"
+        "CTRL_URL"
       ]
     },
     "@unkey/nuxt#dev:prepare": {

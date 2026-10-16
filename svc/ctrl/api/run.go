@@ -33,10 +33,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
+	keyleakwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/keyleak"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/githubsignature"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -313,6 +315,9 @@ func Run(ctx context.Context, cfg Config) error {
 	} else {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
 	}
+
+	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(database, restateClient,
+		githubsignature.New("https://api.github.com/meta/public_keys/secret_scanning", clock.New()), clock.New()))
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
 		mux.Handle("POST /webhooks/stripe", stripewebhook.New(
