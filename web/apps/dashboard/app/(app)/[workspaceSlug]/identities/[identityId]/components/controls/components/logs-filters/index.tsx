@@ -1,41 +1,19 @@
 import { getOutcomeOptions } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/utils";
-import {
-  FiltersPopover,
-  createFilterOptionBuilder,
-} from "@/components/logs/checkbox/filters-popover";
+import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
-  type IdentityDetailsFilterValue,
   identityDetailsFilterFieldConfig,
   identityDetailsFilterValue,
 } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import { OutcomesFilter } from "./outcome-filter";
 
-const createFilter = (
-  field: IdentityDetailsFilterValue["field"],
-  value: string,
-): IdentityDetailsFilterValue =>
-  identityDetailsFilterValue.parse({ id: crypto.randomUUID(), field, operator: "is", value });
-
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
-  const searchItems = useMemo(() => {
-    const option = createFilterOptionBuilder({ filters, updateFilters, createFilter });
-    return getOutcomeOptions().map((outcome) =>
-      option({
-        field: "outcomes",
-        value: outcome.outcome,
-        label: outcome.label,
-        path: ["Outcomes"],
-        single: true,
-      }),
-    );
-  }, [filters, updateFilters]);
   const [open, setOpen] = useState(false);
 
   const activeTagsFilter = filters.find((f) => f.field === "tags");
@@ -80,10 +58,17 @@ export const LogsFilters = () => {
           label: "Outcomes",
           shortcut: "o",
           component: <OutcomesFilter onDrawerClose={() => setOpen(false)} />,
+          single: true,
+          options: getOutcomeOptions().map((outcome) => ({
+            value: outcome.outcome,
+            label: outcome.label,
+          })),
         },
       ]}
-      searchItems={searchItems}
       activeFilters={filters}
+      updateFilters={(next) =>
+        updateFilters(next.map((filter) => identityDetailsFilterValue.parse(filter)))
+      }
     >
       <div className="group">
         <Button

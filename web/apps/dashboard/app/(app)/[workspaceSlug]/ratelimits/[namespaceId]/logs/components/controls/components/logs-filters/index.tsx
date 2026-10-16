@@ -1,23 +1,19 @@
-import {
-  type FilterItemConfig,
-  FiltersPopover,
-  createFilterOptionBuilder,
-} from "@/components/logs/checkbox/filters-popover";
+import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useMemo } from "react";
-import type { RatelimitFilterField, RatelimitFilterValue } from "../../../../filters.schema";
+import type { RatelimitFilterField } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import { IdentifiersFilter } from "./components/identifiers-filter";
 import { StatusFilter, statusOptions } from "./components/status-filter";
 
-const FILTER_ITEMS: FilterItemConfig[] = [
+const FILTER_ITEMS: FilterItemConfig<RatelimitFilterField>[] = [
   {
     id: "status",
     label: "Status",
     shortcut: "e",
     component: <StatusFilter />,
+    options: statusOptions.map((status) => ({ value: status.status, label: status.label })),
   },
   {
     id: "identifiers",
@@ -27,23 +23,10 @@ const FILTER_ITEMS: FilterItemConfig[] = [
   },
 ];
 
-const createFilter = (field: RatelimitFilterField, value: string): RatelimitFilterValue => ({
-  id: crypto.randomUUID(),
-  field,
-  operator: "is",
-  value,
-});
-
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
-  const searchItems = useMemo(() => {
-    const option = createFilterOptionBuilder({ filters, updateFilters, createFilter });
-    return statusOptions.map((status) =>
-      option({ field: "status", value: status.status, label: status.label, path: ["Status"] }),
-    );
-  }, [filters, updateFilters]);
   return (
-    <FiltersPopover items={FILTER_ITEMS} searchItems={searchItems} activeFilters={filters}>
+    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters} updateFilters={updateFilters}>
       <div className="group">
         <Button
           size="md"

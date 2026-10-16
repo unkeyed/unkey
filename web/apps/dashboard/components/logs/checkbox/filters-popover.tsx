@@ -16,12 +16,26 @@ import React, {
 import type { FilterValue } from "../validation/filter.types";
 import { FilterItem } from "./filter-item";
 
-export type FilterItemConfig = {
-  id: string;
+export type FilterItemOption<TValue extends string | number = string | number> = {
+  value: TValue;
+  label: string;
+  path?: string[];
+  keywords?: string[];
+  description?: string;
+  icon?: React.ReactNode;
+};
+
+export type FilterItemConfig<
+  TField extends string = string,
+  TValue extends string | number = string | number,
+> = {
+  id: TField;
   label: string;
   shortcut?: string;
   shortcutLabel?: string;
   component: React.ReactNode;
+  options?: FilterItemOption<TValue>[];
+  single?: boolean;
 };
 
 type FilterSearchItemBase = {
@@ -46,51 +60,46 @@ export type FilterSearchItem = FilterSearchItemBase &
       }
   );
 
-export type FilterOptionParams<TFilter extends FilterValue> = Pick<
-  FilterSearchItemBase,
-  "label" | "path" | "keywords" | "description" | "icon"
-> & {
-  field: TFilter["field"];
-  value: string;
-  single?: boolean;
-};
+type FilterUpdate<TFilter extends FilterValue> =
+  | TFilter
+  | FilterValue<TFilter["field"], "is", TFilter["value"]>;
 
-export function createFilterOptionBuilder<TFilter extends FilterValue>({
-  filters,
-  updateFilters,
-  createFilter,
-}: {
-  filters: TFilter[];
-  updateFilters: (filters: TFilter[]) => void;
-  createFilter: (field: TFilter["field"], value: string) => TFilter;
-}) {
-  return ({
-    field,
-    value,
-    single = false,
-    ...item
-  }: FilterOptionParams<TFilter>): FilterSearchItem => {
-    const isMatch = (filter: TFilter) => filter.field === field && String(filter.value) === value;
-    const checked = filters.some(isMatch);
+export function createOptionSearchItems<TFilter extends FilterValue>(
+  items: FilterItemConfig<TFilter["field"], TFilter["value"]>[],
+  filters: TFilter[],
+  updateFilters: (filters: FilterUpdate<TFilter>[]) => void,
+): FilterSearchItem[] {
+  return items.flatMap(({ id: field, label, single = false, options = [] }) =>
+    options.map(({ value, path = [label], ...option }): FilterSearchItem => {
+      const isMatch = (filter: TFilter) =>
+        filter.field === field && String(filter.value) === String(value);
+      const checked = filters.some(isMatch);
 
-    return {
-      ...item,
-      kind: "option",
-      id: `${field}:${value}`,
-      checked,
-      onSelect: () => {
-        const otherFilters = filters.filter(
-          (filter) => filter.field !== field || (!single && !isMatch(filter)),
-        );
-        updateFilters(checked ? otherFilters : [...otherFilters, createFilter(field, value)]);
-      },
-    };
-  };
+      return {
+        ...option,
+        kind: "option",
+        id: `${field}:${value}`,
+        path,
+        checked,
+        onSelect: () => {
+          const otherFilters = filters.filter(
+            (filter) => filter.field !== field || (!single && !isMatch(filter)),
+          );
+          updateFilters(
+            checked
+              ? otherFilters
+              : [...otherFilters, { id: crypto.randomUUID(), field, operator: "is", value }],
+          );
+        },
+      };
+    }),
+  );
 }
 
-type FiltersPopoverProps = {
-  items: FilterItemConfig[];
-  activeFilters: FilterValue[];
+type FiltersPopoverProps<TFilter extends FilterValue> = {
+  items: FilterItemConfig<TFilter["field"], TFilter["value"]>[];
+  activeFilters: TFilter[];
+  updateFilters?: (filters: FilterUpdate<TFilter>[]) => void;
   searchItems?: FilterSearchItem[];
   searchPlaceholder?: string;
   getFilterCount?: (field: string) => number;
@@ -122,16 +131,17 @@ const ShortcutActivator = React.memo(
 );
 ShortcutActivator.displayName = "ShortcutActivator";
 
-export const FiltersPopover = ({
+export const FiltersPopover = <TFilter extends FilterValue>({
   children,
   items = [],
   activeFilters = [],
+  updateFilters,
   searchItems,
   searchPlaceholder = "Search filters and values...",
   open,
   onOpenChange,
   getFilterCount = (field) => activeFilters.filter((f) => f?.field === field).length,
-}: PropsWithChildren<FiltersPopoverProps>) => {
+}: PropsWithChildren<FiltersPopoverProps<TFilter>>) => {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [lastFocusedIndex, setLastFocusedIndex] = useState<number | null>(null);
@@ -150,9 +160,10 @@ export const FiltersPopover = ({
           path: [],
         }),
       ),
+      ...(updateFilters ? createOptionSearchItems(items, activeFilters, updateFilters) : []),
       ...(searchItems ?? []),
     ],
-    [items, searchItems],
+    [items, activeFilters, updateFilters, searchItems],
   );
 
   const matchingSearchItems = useMemo(() => {

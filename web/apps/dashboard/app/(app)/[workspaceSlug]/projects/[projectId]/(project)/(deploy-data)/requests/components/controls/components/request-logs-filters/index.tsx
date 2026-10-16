@@ -26,7 +26,7 @@ const createAppFilter = (
   value,
 });
 
-const FILTER_ITEMS: FilterItemConfig[] = [
+const FILTER_ITEMS: FilterItemConfig<RequestLogsFilterValue["field"]>[] = [
   {
     id: "status",
     label: "Status",

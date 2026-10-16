@@ -7,9 +7,8 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-recent-deployments";
 import {
   type FilterItemConfig,
-  type FilterSearchItem,
+  type FilterItemOption,
   FiltersPopover,
-  createFilterOptionBuilder,
 } from "@/components/logs/checkbox/filters-popover";
 import type {
   RuntimeLogsFilterField,
@@ -47,13 +46,17 @@ function RuntimeLogsAppFilter() {
   );
 }
 
-const FILTER_ITEMS: FilterItemConfig[] = [
+const FILTER_ITEMS: FilterItemConfig<RuntimeLogsFilterField>[] = [
   {
     id: "severity",
     label: "Severity",
     shortcut: "S",
     shortcutLabel: "S",
     component: <RuntimeLogsSeverityFilter />,
+    options: severityOptions.map((severity) => ({
+      value: severity.severity,
+      label: severity.label,
+    })),
   },
   {
     id: "message",
@@ -120,50 +123,30 @@ export function RuntimeLogsFilters() {
     createFilter: createRuntimeLogsFilter,
   });
 
-  const searchItems = useMemo<FilterSearchItem[]>(() => {
-    const option = createFilterOptionBuilder({
-      filters,
-      updateFilters,
-      createFilter: createRuntimeLogsFilter,
-    });
-
-    const severityItems = severityOptions.map((severity) =>
-      option({
-        field: "severity",
-        value: severity.severity,
-        label: severity.label,
-        path: ["Severity"],
-      }),
-    );
-
-    const deploymentItems = deployments.map((deployment) =>
-      option({
-        field: "deploymentId",
+  const items = useMemo(() => {
+    const queriedOptions: Partial<Record<RuntimeLogsFilterField, FilterItemOption<string>[]>> = {
+      deploymentId: deployments.map((deployment) => ({
         value: deployment.id,
         label: deployment.gitBranch ?? deployment.id,
-        path: ["Deployment"],
         description: deployment.gitBranch ? deployment.id : undefined,
         keywords: [deployment.id, deployment.gitBranch ?? ""],
-      }),
-    );
-
-    const regionItems = (availableRegions ?? []).map((region) =>
-      option({ field: "region", value: region.name, label: region.name, path: ["Region"] }),
-    );
-
-    const instanceItems = (instances ?? []).map((instance) =>
-      option({
-        field: "instanceId",
+      })),
+      region: (availableRegions ?? []).map((region) => ({
+        value: region.name,
+        label: region.name,
+      })),
+      instanceId: (instances ?? []).map((instance) => ({
         value: instance.id,
         label: instance.id,
-        path: ["Instance"],
         description: instance.region.name,
         keywords: [instance.region.name],
-      }),
-    );
-
-    return [...appItems, ...severityItems, ...deploymentItems, ...regionItems, ...instanceItems];
-  }, [appItems, availableRegions, deployments, filters, instances, updateFilters]);
+      })),
+    };
+    return FILTER_ITEMS.map((item) => ({
+      ...item,
+      options: item.options ?? queriedOptions[item.id],
+    }));
+  }, [availableRegions, deployments, instances]);
 
   const filterCount = filters.filter(
     (f) =>
@@ -179,9 +162,10 @@ export function RuntimeLogsFilters() {
 
   return (
     <FiltersPopover
-      items={FILTER_ITEMS}
-      searchItems={searchItems}
+      items={items}
+      searchItems={appItems}
       activeFilters={filters}
+      updateFilters={updateFilters}
       open={isPopoverOpen}
       onOpenChange={setIsPopoverOpen}
       getFilterCount={(field) =>

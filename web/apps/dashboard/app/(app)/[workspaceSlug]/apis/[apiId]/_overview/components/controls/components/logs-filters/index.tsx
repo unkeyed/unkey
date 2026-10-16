@@ -1,42 +1,17 @@
-import {
-  FiltersPopover,
-  createFilterOptionBuilder,
-} from "@/components/logs/checkbox/filters-popover";
+import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 
 import { getOutcomeOptions } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/utils";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useMemo, useState } from "react";
-import {
-  type KeysOverviewFilterField,
-  type KeysOverviewFilterValue,
-  keysOverviewFilterFieldConfig,
-} from "../../../../filters.schema";
+import { useState } from "react";
+import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import { OutcomesFilter } from "./outcome-filter";
 
-const createFilter = (field: KeysOverviewFilterField, value: string): KeysOverviewFilterValue => ({
-  id: crypto.randomUUID(),
-  field,
-  operator: "is",
-  value,
-});
-
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
-  const searchItems = useMemo(() => {
-    const option = createFilterOptionBuilder({ filters, updateFilters, createFilter });
-    return getOutcomeOptions().map((outcome) =>
-      option({
-        field: "outcomes",
-        value: outcome.outcome,
-        label: outcome.label,
-        path: ["Outcomes"],
-      }),
-    );
-  }, [filters, updateFilters]);
   const [open, setOpen] = useState(false);
 
   const options = keysOverviewFilterFieldConfig.names.operators.map((op) => ({
@@ -113,7 +88,7 @@ export const LogsFilters = () => {
           ),
         },
         {
-          id: "keyids",
+          id: "keyIds",
           label: "Key ID",
           shortcut: "k",
           component: (
@@ -169,10 +144,14 @@ export const LogsFilters = () => {
           label: "Outcomes",
           shortcut: "o",
           component: <OutcomesFilter onDrawerClose={() => setOpen(false)} />,
+          options: getOutcomeOptions().map((outcome) => ({
+            value: outcome.outcome,
+            label: outcome.label,
+          })),
         },
       ]}
-      searchItems={searchItems}
       activeFilters={filters}
+      updateFilters={updateFilters}
     >
       <div className="group">
         <Button

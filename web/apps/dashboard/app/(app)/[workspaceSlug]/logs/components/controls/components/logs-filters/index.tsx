@@ -1,25 +1,25 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/logs/hooks/use-filters";
-import {
-  type FilterItemConfig,
-  FiltersPopover,
-  createFilterOptionBuilder,
-} from "@/components/logs/checkbox/filters-popover";
-import type { LogsFilterField, LogsFilterValue } from "@/lib/schemas/logs.filter.schema";
+import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
+import type { LogsFilterField } from "@/lib/schemas/logs.filter.schema";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useMemo } from "react";
 import { MethodsFilter, methodOptions } from "./components/methods-filter";
 import { PathsFilter } from "./components/paths-filter";
 import { StatusFilter, statusOptions } from "./components/status-filter";
 
-const FILTER_ITEMS: FilterItemConfig[] = [
+const FILTER_ITEMS: FilterItemConfig<LogsFilterField>[] = [
   {
     id: "status",
     label: "Status",
     shortcut: "E",
     shortcutLabel: "E",
     component: <StatusFilter />,
+    options: statusOptions.map((status) => ({
+      value: status.status,
+      label: status.label,
+      description: status.display,
+    })),
   },
   {
     id: "methods",
@@ -27,6 +27,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     shortcut: "M",
     shortcutLabel: "M",
     component: <MethodsFilter />,
+    options: methodOptions.map((method) => ({ value: method.method, label: method.method })),
   },
   {
     id: "paths",
@@ -37,34 +38,10 @@ const FILTER_ITEMS: FilterItemConfig[] = [
   },
 ];
 
-const createFilter = (field: LogsFilterField, value: string): LogsFilterValue => ({
-  id: crypto.randomUUID(),
-  field,
-  operator: "is",
-  value: field === "status" ? Number(value) : value,
-});
-
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
-  const searchItems = useMemo(() => {
-    const option = createFilterOptionBuilder({ filters, updateFilters, createFilter });
-    return [
-      ...statusOptions.map((status) =>
-        option({
-          field: "status",
-          value: String(status.status),
-          label: status.label,
-          path: ["Status"],
-          description: status.display,
-        }),
-      ),
-      ...methodOptions.map((method) =>
-        option({ field: "methods", value: method.method, label: method.method, path: ["Method"] }),
-      ),
-    ];
-  }, [filters, updateFilters]);
   return (
-    <FiltersPopover items={FILTER_ITEMS} searchItems={searchItems} activeFilters={filters}>
+    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters} updateFilters={updateFilters}>
       <div className="group">
         <Button
           variant="ghost"
