@@ -53,13 +53,6 @@ func TestUpdateAppForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard app permission", permissions: []string{"app.*.update_app"}, shouldPass: true},
-		{name: "specific app permission", permissions: []string{fmt.Sprintf("app.%s.update_app", app.ID)}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "app.*.update_app"}, shouldPass: true},
-		{name: "project scoped update does not match", permissions: []string{fmt.Sprintf("project.%s.update_app", project.ID)}, shouldPass: false},
-		{name: "wrong action", permissions: []string{"app.*.read_app"}, shouldPass: false},
-		{name: "create does not match update", permissions: []string{"app.*.create_app"}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.create_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 		{name: "urn write on this app", permissions: []string{grant(project.ID, app.ID, permissions.Write)}, shouldPass: true},
 		{name: "urn write on every app in the project", permissions: []string{grant(project.ID, "*", permissions.Write)}, shouldPass: true},

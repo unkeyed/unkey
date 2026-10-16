@@ -8,6 +8,9 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
@@ -137,7 +140,7 @@ func TestWorkerRejections(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			h := testutil.NewHarness(t)
 			setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-				Permissions: []string{"environment.*.create_deployment"},
+				Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value},
 			})
 			route := &handler.Handler{DB: h.DB, Restate: testutil.RejectingDeployRestate(t, tc.outcome, tc.detail)}
 			h.Register(route)

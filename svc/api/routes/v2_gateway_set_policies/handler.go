@@ -77,16 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	policyURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy("*")
 	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   "*",
-			Action:       rbac.SetPolicies,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   env.ID,
-			Action:       rbac.SetPolicies,
-		}),
+
 		rbac.And(
 			rbac.U(policyURN, permissions.Write),
 			rbac.U(policyURN, permissions.Delete),

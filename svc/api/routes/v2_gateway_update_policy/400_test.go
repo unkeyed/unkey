@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -19,7 +20,7 @@ func TestUpdatePolicyBadRequest(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.update_policy")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/policies/*#write", workspace.ID))
 	headers := authHeaders(rootKey)
 	env := seedEnvironment(t, h)
 	ids := seedFirewallPolicies(t, h, env, 1)
