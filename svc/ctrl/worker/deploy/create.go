@@ -278,6 +278,11 @@ func (w *Workflow) validateAndBuildPayload(
 			case err == nil:
 				capabilities = existing.Capabilities
 				secrets = existing.EncryptedEnvironmentVariables
+				logger.Info(
+					"deployment create reused the saved snapshot",
+					"deployment_id", deploymentID,
+					"private_networking", capabilities.PrivateNetworking,
+				)
 			case db.IsNotFound(err):
 				capabilities.PrivateNetworking = w.flags.IsPrivateNetworkingEnabled(runCtx, target.WorkspaceID)
 				if secrets, connections, err = w.loadSecrets(runCtx, *target, capabilities.PrivateNetworking); err != nil {
