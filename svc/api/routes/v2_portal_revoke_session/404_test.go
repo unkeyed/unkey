@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -16,7 +15,7 @@ import (
 // An unknown portal and another workspace's portal get the same 404.
 func TestRevokeSessionUnknownPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h, sessionWritePermission(h))
 
 	other := h.CreateWorkspace()
 	theirs, mapping := seedPortal(t, h, other.ID, "revoke-theirs")
@@ -52,9 +51,11 @@ func TestRevokeSessionWithoutPermission(t *testing.T) {
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 
 	testCases := map[string][]string{
-		"no permissions":      nil,
-		"portal admin only":   {"portal.*.create_portal", "portal.*.update_portal", "portal.*.delete_portal", "portal.*.read_portal"},
-		"another portal only": {fmt.Sprintf("portal.%s.create_portal_session", uid.New(uid.PortalPrefix))},
+		"no permissions": nil,
+		"portal resource only": {fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#write",
+			workspace.ID, stored.ProjectID, stored.ID)},
+		"another portal only": {fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#write",
+			workspace.ID, stored.ProjectID, uid.New(uid.PortalPrefix))},
 	}
 
 	for name, permissions := range testCases {

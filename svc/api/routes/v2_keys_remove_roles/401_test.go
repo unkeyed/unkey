@@ -288,7 +288,7 @@ func TestAuthenticationErrors(t *testing.T) {
 	t.Run("root key from different workspace", func(t *testing.T) {
 		// Create a second workspace
 		workspace2 := h.CreateWorkspace()
-		rootKeyFromDifferentWorkspace := h.CreateRootKey(workspace2.ID, "api.*.update_key")
+		rootKeyFromDifferentWorkspace := h.CreateRootKey(workspace2.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace2.ID))
 
 		// Create API and key in original workspace using testutil helpers
 		defaultPrefix := "test"

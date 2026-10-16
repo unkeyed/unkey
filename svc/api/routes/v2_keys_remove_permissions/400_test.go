@@ -30,7 +30,7 @@ func TestValidationErrors(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -157,11 +157,12 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("key not found", func(t *testing.T) {
 		// Create a permission that exists
 		permissionID := uid.New(uid.TestPrefix)
+		permissionSlug := uid.New("documents.read.remove.keynotfound")
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.remove.keynotfound",
-			Slug:         "documents.read.remove.keynotfound",
+			Name:         permissionSlug,
+			Slug:         permissionSlug,
 			Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 		})
 		require.NoError(t, err)

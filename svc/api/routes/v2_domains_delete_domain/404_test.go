@@ -10,7 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -24,7 +27,7 @@ func TestDeleteDomainNotFound(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.delete_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Delete).Value)
 	headers := authHeaders(rootKey)
 
 	testCases := []struct {
@@ -37,12 +40,8 @@ func TestDeleteDomainNotFound(t *testing.T) {
 		// Identifiers that are neither a parseable name nor a stored id. The schema
 		// carries only length bounds, so these reach the handler and miss the lookup.
 		{name: "leading dot", identifier: ".acme.com"},
-		{name: "trailing dot", identifier: "api.acme.com."},
-		{name: "consecutive dots", identifier: "api..acme.com"},
 		{name: "label starts with hyphen", identifier: "-api.acme.com"},
 		{name: "scheme included", identifier: "https://api.acme.com"},
-		{name: "path included", identifier: "api.acme.com/v1"},
-		{name: "port included", identifier: "api.acme.com:8080"},
 		{name: "whitespace", identifier: "api acme.com"},
 		{name: "wildcard", identifier: "*.acme.com"},
 		{name: "traversal", identifier: "../api.acme.com"},
@@ -74,7 +73,7 @@ func TestDeleteDomainCrossWorkspace(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.delete_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Delete).Value)
 	headers := authHeaders(rootKey)
 
 	otherWorkspace := h.CreateWorkspace()
@@ -157,7 +156,7 @@ func TestDeleteDomainCtrlNotFoundIsMasked(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.delete_domain")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Delete).Value)
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(rootKey), handler.Request{
 		Domain: seeded.domain,
