@@ -210,6 +210,7 @@ describe("catalogue grammar", () => {
       "limits",
       "usage",
       "flags",
+      "logs/requests",
     ]);
   });
 });

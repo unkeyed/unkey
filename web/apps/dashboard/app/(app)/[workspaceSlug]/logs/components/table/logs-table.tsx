@@ -2,7 +2,7 @@
 
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
-import type { Log } from "@unkey/clickhouse/src/logs";
+import type { Log } from "@/lib/api-request-logs";
 import {
   IconBookBookmarkOutline18,
   IconCircleXmarkOutline18,
@@ -116,7 +116,6 @@ const additionalColumns: Column<Log>[] = [
   "request_headers",
   "response_headers",
   "request_id",
-  "workspace_id",
   "host",
 ].map((key) => ({
   key,
@@ -141,11 +140,8 @@ const additionalColumns: Column<Log>[] = [
 
 export const LogsTable = () => {
   const { displayProperties, setSelectedLog, selectedLog, isLive } = useLogsContext();
-  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, total } =
-    useLogsQuery({
-      startPolling: isLive,
-      pollIntervalMs: 2000,
-    });
+  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore } =
+    useLogsQuery({ isLive });
 
   const getRowClassName = (log: Log) => {
     const style = getStatusStyle(log.response_status);
@@ -282,8 +278,6 @@ export const LogsTable = () => {
             <span className="text-gray-12">
               {new Intl.NumberFormat().format(historicalLogs.length)}
             </span>
-            <span>of</span>
-            {new Intl.NumberFormat().format(total)}
             <span>requests</span>
           </div>
         ),
