@@ -164,7 +164,7 @@ WHERE b.deployment_id IN (/*SLICE:caller_deployment_ids*/?)
     AND b.resource_type = 'app'
     AND b.resource_id <> b.app_id
     AND b.name NOT LIKE 'unkey%'
-    AND b.name <> caller_app.slug COLLATE utf8mb4_0900_as_cs
+    AND b.name <> 'self'
 ORDER BY b.deployment_id, b.connection_id
 LIMIT ?
 `
@@ -201,7 +201,7 @@ type ListPrivateNetworkConnectionSelectionsRow struct {
 // the caller and live deployment facts that ListPrivateNetworkConnections
 // needs to resolve it. LiveEnvironmentID is the environment of the target
 // app's live deployment, empty when there is none. Names starting with unkey
-// and the caller app's own slug are reserved. Callers must come from
+// and the name self are reserved. Callers must come from
 // ListPrivateNetworkReplicas in the same transaction, which decides which
 // deployments are active callers. Rows are paged by (caller deployment,
 // connection).
@@ -249,7 +249,7 @@ type ListPrivateNetworkConnectionSelectionsRow struct {
 //	    AND b.resource_type = 'app'
 //	    AND b.resource_id <> b.app_id
 //	    AND b.name NOT LIKE 'unkey%'
-//	    AND b.name <> caller_app.slug COLLATE utf8mb4_0900_as_cs
+//	    AND b.name <> 'self'
 //	ORDER BY b.deployment_id, b.connection_id
 //	LIMIT ?
 func (q *Queries) ListPrivateNetworkConnectionSelections(ctx context.Context, arg ListPrivateNetworkConnectionSelectionsParams) ([]ListPrivateNetworkConnectionSelectionsRow, error) {
