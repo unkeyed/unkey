@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/http/httptrace"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -94,9 +95,7 @@ func newTestSparePool(t *testing.T, peer *peerFrontline, size int, idleAfter tim
 		NetDialer: &net.Dialer{Timeout: time.Second},
 		Config:    &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12},
 	}
-	pool := newSparePool(dialer, size, idleAfter)
-	t.Cleanup(pool.close)
-	return pool
+	return newSparePool(dialer, size, idleAfter)
 }
 
 func requireSpares(t *testing.T, pool *sparePool, n int) {
@@ -105,7 +104,7 @@ func requireSpares(t *testing.T, pool *sparePool, n int) {
 		pool.mu.Lock()
 		defer pool.mu.Unlock()
 		for _, peer := range pool.peers {
-			return len(peer.conns) == n
+			return len(peer.spares) == n
 		}
 		return false
 	}, 5*time.Second, 10*time.Millisecond)
@@ -192,6 +191,37 @@ func TestUpgradeTransport_RetriesOnFreshConnectionWhenSpareFails(t *testing.T) {
 
 	used := upgrade(t, transport, peer.server.URL)
 	require.False(t, spares[used], "upgrade should succeed on a fresh connection")
+}
+
+func TestUpgradeTransport_UpgradeWithBodySkipsSpares(t *testing.T) {
+	t.Parallel()
+
+	peer := newPeerFrontline(t)
+	pool := newTestSparePool(t, peer, 2, time.Minute)
+	transport := newUpgradeTransport(pool)
+
+	upgrade(t, transport, peer.server.URL)
+	requireSpares(t, pool, 2)
+	spares := peer.openedAddrs()
+	peer.mu.Lock()
+	peer.abort = spares
+	peer.mu.Unlock()
+
+	var used string
+	//nolint:exhaustruct
+	trace := &httptrace.ClientTrace{
+		GotConn: func(info httptrace.GotConnInfo) { used = info.Conn.LocalAddr().String() },
+	}
+	req, err := http.NewRequestWithContext(httptrace.WithClientTrace(t.Context(), trace), http.MethodPost, peer.server.URL, strings.NewReader("body"))
+	require.NoError(t, err)
+	req.Header.Set("Connection", "Upgrade")
+	req.Header.Set("Upgrade", "websocket")
+
+	resp, err := transport.RoundTrip(req)
+	require.NoError(t, err, "an upgrade with a body cannot be retried, so it must not use a spare that may be stale")
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
+	require.False(t, spares[used])
 }
 
 func TestSparePool_ClosesSparesAfterIdle(t *testing.T) {
