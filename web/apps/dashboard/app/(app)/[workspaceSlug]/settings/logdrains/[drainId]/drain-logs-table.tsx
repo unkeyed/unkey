@@ -8,7 +8,7 @@ import { type Delivery, detailText, isFailure, useDeliveries } from "./use-deliv
 const SKELETON_ROWS = 5;
 
 export function DrainLogsTable({ drainId }: { drainId: string }) {
-  const { deliveries, isLoading, isError, retry } = useDeliveries(drainId);
+  const { query, retry } = useDeliveries(drainId);
 
   return (
     <Card className="overflow-hidden">
@@ -17,9 +17,7 @@ export function DrainLogsTable({ drainId }: { drainId: string }) {
       </div>
       <div className="overflow-x-auto">
         <QueryView
-          isLoading={isLoading}
-          isError={isError}
-          data={deliveries}
+          state={query}
           loading={
             <div aria-busy="true" aria-live="polite" className="divide-y divide-gray-4">
               <output className="sr-only">Loading delivery attempts…</output>

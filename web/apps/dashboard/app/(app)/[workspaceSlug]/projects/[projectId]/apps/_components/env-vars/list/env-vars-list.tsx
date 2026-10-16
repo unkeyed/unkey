@@ -14,6 +14,7 @@ import {
   ResourceListBody,
   ResourceListContent,
   ResourceListItem,
+  queryState,
 } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 import { ALL_ENVIRONMENTS } from "../../environment-scope";
@@ -93,9 +94,11 @@ export function EnvVarsList({
 
   return (
     <QueryView
-      isLoading={envVars.status === "loading"}
-      isError={envVars.status === "failed"}
-      data={rows}
+      state={queryState({
+        isLoading: envVars.status === "loading",
+        isError: envVars.status === "failed",
+        data: rows,
+      })}
       loading={<EnvVarsSkeleton />}
       error={
         envVars.status === "failed" ? (

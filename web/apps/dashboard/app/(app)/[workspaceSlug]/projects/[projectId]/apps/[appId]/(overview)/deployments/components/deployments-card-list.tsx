@@ -16,6 +16,7 @@ import {
   ResourceListBody,
   ResourceListContent,
   ResourceListFooter,
+  queryState,
 } from "@unkey/ui";
 import { useMemo } from "react";
 import { useProjectData } from "../../data-provider";
@@ -81,9 +82,7 @@ function DeploymentsCardListResults({
 
   return (
     <QueryView
-      isLoading={isLoading}
-      isError={isError && rows.length === 0}
-      data={rows}
+      state={queryState({ isLoading, isError: isError && rows.length === 0, data: rows })}
       loading={<DeploymentsSkeleton />}
       error={
         <ResourceListContent>

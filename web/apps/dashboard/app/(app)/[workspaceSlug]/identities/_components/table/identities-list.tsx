@@ -22,6 +22,7 @@ import {
   ResourceListFooter,
   ResourceListItem,
   Skeleton,
+  queryState,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -152,9 +153,11 @@ function IdentityResults({ search }: { search: string }) {
 
   return (
     <QueryView
-      isLoading={isLoading && identityRows.length === 0}
-      isError={isError && identityRows.length === 0}
-      data={identityRows}
+      state={queryState({
+        isLoading: isLoading && identityRows.length === 0,
+        isError: isError && identityRows.length === 0,
+        data: identityRows,
+      })}
       loading={<IdentitiesSkeleton />}
       error={
         <ResourceListContent>

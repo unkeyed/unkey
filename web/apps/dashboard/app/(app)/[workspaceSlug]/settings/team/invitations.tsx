@@ -20,8 +20,9 @@ type InvitationsProps = {
 };
 
 export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) => {
-  const { data: invitationsList, isLoading } = trpc.org.invitations.list.useQuery(organization.id);
-  const invitations = invitationsList?.data;
+  const invitations = trpc.org.invitations.list.useQuery(organization.id, {
+    select: (res) => res.data,
+  });
   const utils = trpc.useUtils();
   const [revokingInvitationId, setRevokingInvitationId] = useState<string | null>(null);
 
@@ -38,8 +39,7 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
 
   return (
     <QueryView
-      isLoading={isLoading}
-      data={invitations}
+      state={invitations}
       loading={
         <div className="flex items-center justify-center py-12">
           <Loading />

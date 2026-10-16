@@ -2,7 +2,7 @@
 
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { IconCloudOutline18, IconEyeOutline18 } from "@unkey/icons";
-import { Checkbox, QueryView, Skeleton } from "@unkey/ui";
+import { Checkbox, QueryView, Skeleton, queryState } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useId, useMemo } from "react";
 import {
@@ -54,8 +54,7 @@ export function AppEnvironmentList({
   return (
     <div className="max-h-72 min-h-40 overflow-y-auto p-2 [scrollbar-width:thin]">
       <QueryView
-        isLoading={isLoading ?? false}
-        data={visibleApps}
+        state={queryState({ isLoading: isLoading ?? false, data: visibleApps })}
         loading={
           <div className="flex flex-col gap-1">
             {LOADING_APP_IDS.map((id) => (

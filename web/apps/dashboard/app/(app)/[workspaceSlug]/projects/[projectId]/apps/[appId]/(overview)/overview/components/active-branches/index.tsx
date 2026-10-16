@@ -10,6 +10,7 @@ import {
   ResourceListContent,
   ResourceListFooter,
   ResourceListHeader,
+  queryState,
 } from "@unkey/ui";
 import Link from "next/link";
 import { useAppId, useProjectData } from "../../../data-provider";
@@ -71,9 +72,7 @@ export function ActiveBranches() {
         </Link>
       </ResourceListHeader>
       <QueryView
-        isLoading={loading}
-        isError={isError}
-        data={branches}
+        state={queryState({ isLoading: loading, isError, data: branches })}
         loading={<DeploymentsSkeleton rows={4} />}
         error={
           <ResourceListContent>

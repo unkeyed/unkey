@@ -1,4 +1,4 @@
-import { QueryView } from "@unkey/ui";
+import { QueryView, queryState } from "@unkey/ui";
 import { cn } from "cn";
 import { useMemo } from "react";
 import { UsageColumnSkeleton } from "../skeletons";
@@ -89,9 +89,7 @@ export const VerificationBarChart = ({
 
   return (
     <QueryView
-      isLoading={isLoading}
-      isError={isError}
-      data={timeseries}
+      state={queryState({ isLoading, isError, data: timeseries })}
       isEmpty={(timeseries) => timeseries.reduce((acc, crr) => acc + crr.total, 0) === 0}
       loading={<UsageColumnSkeleton />}
       error={

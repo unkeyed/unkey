@@ -18,6 +18,7 @@ import {
   EmptyStateTitle,
   QueryView,
   ResourceList,
+  queryState,
 } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
@@ -135,8 +136,7 @@ function AppsListBody({
 }) {
   return (
     <QueryView
-      isLoading={isLoading}
-      data={rows}
+      state={queryState({ isLoading, data: rows })}
       loading={
         view === "list" ? (
           <AppsTableSkeleton />

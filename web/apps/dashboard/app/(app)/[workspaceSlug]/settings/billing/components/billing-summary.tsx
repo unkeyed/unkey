@@ -3,7 +3,7 @@
 import { formatPrice } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Button, InfoTooltip, QueryView, Skeleton, toast } from "@unkey/ui";
+import { Button, InfoTooltip, QueryView, Skeleton, queryState, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
@@ -125,8 +125,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
       </div>
 
       <QueryView
-        isLoading={isLoading}
-        data={rows}
+        state={queryState({ isLoading, data: rows })}
         loading={<Skeleton className="h-5 w-40 rounded" />}
         empty={<p className="font-medium text-gray-12 text-sm">&mdash;</p>}
       >

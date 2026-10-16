@@ -23,6 +23,7 @@ import {
   SettingsGroup,
   SettingsGroupTitle,
   Skeleton,
+  queryState,
 } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
 import { useProjectData } from "../(overview)/data-provider";
@@ -62,8 +63,10 @@ export function DeploymentDomainsCard({
   return (
     <DomainsGroup>
       <QueryView
-        isLoading={isDomainsLoading || isCustomDomainsLoading}
-        data={primaryDomain}
+        state={queryState({
+          isLoading: isDomainsLoading || isCustomDomainsLoading,
+          data: primaryDomain,
+        })}
         loading={
           <SettingCardGroup>
             <SettingCard

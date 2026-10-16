@@ -41,6 +41,7 @@ import {
   SlidePanelHeader,
   SlidePanelTitle,
   TimestampInfo,
+  queryState,
 } from "@unkey/ui";
 import { cn } from "cn";
 import { type ComponentType, useEffect, useState } from "react";
@@ -145,9 +146,11 @@ function SessionsBody({
 }) {
   return (
     <QueryView
-      isLoading={query.isLoading || (query.isPreviousData && query.groups.length === 0)}
-      isError={query.isError && query.groups.length === 0}
-      data={query.groups}
+      state={queryState({
+        isLoading: query.isLoading || (query.isPreviousData && query.groups.length === 0),
+        isError: query.isError && query.groups.length === 0,
+        data: query.groups,
+      })}
       // Groups can lapse between the API's two reads, so a page can come back empty
       // while more remain.
       isEmpty={(groups) => groups.length === 0 && !query.hasNextPage}

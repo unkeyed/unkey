@@ -13,6 +13,7 @@ import {
   EmptyStateTitle,
   QueryView,
   ResourceListContent,
+  queryState,
 } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -77,8 +78,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
       )}
 
       <QueryView
-        isLoading={isLoading}
-        data={allApis}
+        state={queryState({ isLoading, data: allApis })}
         loading={
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
             {Array.from({ length: SKELETON_COUNT }).map((_, i) => (

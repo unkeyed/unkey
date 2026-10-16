@@ -11,6 +11,7 @@ import {
   InfoTooltip,
   QueryView,
   Skeleton,
+  queryState,
 } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -72,8 +73,7 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
       </div>
 
       <QueryView
-        isLoading={isLoading}
-        data={apps}
+        state={queryState({ isLoading, data: apps })}
         loading={
           <div className="flex flex-col gap-1.5">
             <div className="flex h-6 items-center justify-between gap-2">

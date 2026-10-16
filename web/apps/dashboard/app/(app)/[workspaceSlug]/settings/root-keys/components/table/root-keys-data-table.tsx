@@ -16,6 +16,7 @@ import {
   ResourceListItem,
   Skeleton,
   TimestampInfo,
+  queryState,
 } from "@unkey/ui";
 import { cn } from "cn";
 import dynamic from "next/dynamic";
@@ -86,9 +87,11 @@ function RootKeysTableBody({ selectedKeyId, onEditKey, onCreate, list }: RootKey
 
   return (
     <QueryView
-      isLoading={isInitialLoading}
-      isError={isError && rootKeys.length === 0}
-      data={rootKeys}
+      state={queryState({
+        isLoading: isInitialLoading,
+        isError: isError && rootKeys.length === 0,
+        data: rootKeys,
+      })}
       loading={<RootKeysTableSkeleton />}
       error={
         <ResourceListContent>

@@ -92,9 +92,7 @@ export function LogdrainsList({
 
   return (
     <QueryView
-      isLoading={query.isLoading}
-      isError={query.isError}
-      data={query.data}
+      state={query}
       loading={<DrainListSkeleton />}
       error={
         <ResourceListContent>

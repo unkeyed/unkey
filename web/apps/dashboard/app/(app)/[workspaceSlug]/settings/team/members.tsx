@@ -24,8 +24,9 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const [currentMembership, setCurrentMembership] = useState<Membership | null>(null);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const { data: orgMemberships, isLoading } = trpc.org.members.list.useQuery(organization?.id);
-  const memberships = orgMemberships?.data;
+  const memberships = trpc.org.members.list.useQuery(organization?.id, {
+    select: (res) => res.data,
+  });
   const isAdmin = userMembership?.role === "admin";
   const utils = trpc.useUtils();
 
@@ -53,8 +54,7 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
 
   return (
     <QueryView
-      isLoading={isLoading}
-      data={memberships}
+      state={memberships}
       loading={
         <div className="flex items-center justify-center py-12">
           <Loading />
