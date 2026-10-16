@@ -9,33 +9,19 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	"github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/hash"
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/webhook"
 	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 const bodyBytesMax = 4 << 20
 
 type handler struct {
-	db      db.Database
 	restate *ingress.Client
-	clock   clock.Clock
 }
 
-func New(
-	database db.Database,
-	client *ingress.Client,
-	verifier webhook.Verifier,
-	clock clock.Clock,
-) http.Handler {
-	h := &handler{
-		db:      database,
-		restate: client,
-		clock:   clock,
-	}
+func New(client *ingress.Client, verifier webhook.Verifier) http.Handler {
+	h := &handler{restate: client}
 
 	receiver := webhook.New("github_secret_scanning", verifier, webhook.WithMaxBodySize(bodyBytesMax)).
 		OnResponse([]string{githubsecrets.EventType}, webhook.TypedResponse(http.StatusCreated, h.report))
@@ -63,7 +49,7 @@ type result struct {
 	Label     string `json:"label"`
 }
 
-func (h *handler) report(ctx context.Context, _ webhook.Event, tokens []reportedToken) ([]result, error) {
+func (h *handler) report(ctx context.Context, event webhook.Event, tokens []reportedToken) ([]result, error) {
 	if tokens == nil {
 		return nil, webhook.ErrBadRequest
 	}
@@ -73,43 +59,38 @@ func (h *handler) report(ctx context.Context, _ webhook.Event, tokens []reported
 		}
 	}
 
-	results, err := h.classifyAndEnqueue(ctx, tokens)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", webhook.ErrUnavailable, err)
-	}
-	return results, nil
-}
-
-func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken) ([]result, error) {
 	results := make([]result, 0, len(tokens))
 	if len(tokens) == 0 {
 		return results, nil
 	}
 
-	hashes := make([]string, 0, len(tokens))
-	seen := make(map[string]bool, len(tokens))
+	report := &hydrav1.KeyLeakReport{Tokens: make([]*hydrav1.KeyLeakToken, 0, len(tokens))}
 	for _, token := range tokens {
-		hashed := hash.Sha256(token.Token)
-		if !seen[hashed] {
-			seen[hashed] = true
-			hashes = append(hashes, hashed)
-		}
+		report.Tokens = append(report.Tokens, &hydrav1.KeyLeakToken{
+			Hash:   hash.Sha256(token.Token),
+			Type:   token.Type,
+			Url:    token.URL,
+			Source: token.Source,
+		})
 	}
 
-	keys, err := h.db.FindLeakedKeysByHashes(ctx, hashes)
+	invocation, err := hydrav1.NewKeyLeakServiceIngressClient(h.restate).Process().Send(ctx, report,
+		restate.WithIdempotencyKey(hash.Sha256(string(event.Payload))))
 	if err != nil {
-		return nil, fmt.Errorf("find leaked keys: %w", err)
+		return nil, fmt.Errorf("%w: persist key leak report: %w", webhook.ErrUnavailable, err)
 	}
-	byHash := make(map[string]db.FindLeakedKeysByHashesRow, len(keys))
-	for _, key := range keys {
-		byHash[key.Hash] = key
+	classified, err := invocation.Attach(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%w: classify key leak report: %w", webhook.ErrUnavailable, err)
 	}
 
-	enqueued := make(map[string]bool, len(keys))
-	for _, token := range tokens {
-		hashed := hash.Sha256(token.Token)
-		key, found := byHash[hashed]
-		if !found {
+	matched := make(map[string]bool, len(classified.GetMatchedHashes()))
+	for _, hashed := range classified.GetMatchedHashes() {
+		matched[hashed] = true
+	}
+	for i, token := range tokens {
+		hashed := report.GetTokens()[i].GetHash()
+		if !matched[hashed] {
 			results = append(results, result{
 				TokenRaw:  "",
 				TokenHash: hashed,
@@ -117,22 +98,6 @@ func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken
 				Label:     "false_positive",
 			})
 			continue
-		}
-
-		if !enqueued[key.ID] {
-			_, err := hydrav1.NewKeyLeakServiceIngressClient(h.restate).Notify().Send(ctx, &hydrav1.KeyLeakNotification{
-				KeyId:         key.ID,
-				OrgId:         key.OrgID,
-				WorkspaceName: key.WorkspaceName,
-				Source:        token.Source,
-				Url:           token.URL,
-				Type:          token.Type,
-				Date:          h.clock.Now().UTC().Format("Mon Jan 02 2006"),
-			}, restate.WithIdempotencyKey("leaked-key:"+key.ID))
-			if err != nil {
-				return nil, fmt.Errorf("enqueue key leak notification: %w", err)
-			}
-			enqueued[key.ID] = true
 		}
 
 		results = append(results, result{
@@ -143,6 +108,5 @@ func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken
 		})
 	}
 
-	logger.Info("Accepted key leak report", "reported", len(tokens), "matched", len(keys))
 	return results, nil
 }

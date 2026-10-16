@@ -15,6 +15,7 @@ import (
 
 // KeyLeakServiceClient is the client API for hydra.v1.KeyLeakService service.
 type KeyLeakServiceClient interface {
+	Process(opts ...sdk_go.ClientOption) sdk_go.Client[*KeyLeakReport, *KeyLeakReportResult]
 	Notify(opts ...sdk_go.ClientOption) sdk_go.Client[*KeyLeakNotification, *KeyLeakResponse]
 	NotifyEmail(opts ...sdk_go.ClientOption) sdk_go.Client[*KeyLeakEmailRequest, *KeyLeakResponse]
 	NotifySlack(opts ...sdk_go.ClientOption) sdk_go.Client[*KeyLeakNotification, *KeyLeakResponse]
@@ -32,6 +33,14 @@ func NewKeyLeakServiceClient(ctx sdk_go.Context, opts ...sdk_go.ClientOption) Ke
 		cOpts,
 	}
 }
+func (c *keyLeakServiceClient) Process(opts ...sdk_go.ClientOption) sdk_go.Client[*KeyLeakReport, *KeyLeakReportResult] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*KeyLeakReport](sdk_go.Service[*KeyLeakReportResult](c.ctx, "hydra.v1.KeyLeakService", "Process", cOpts...))
+}
+
 func (c *keyLeakServiceClient) Notify(opts ...sdk_go.ClientOption) sdk_go.Client[*KeyLeakNotification, *KeyLeakResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -60,6 +69,7 @@ func (c *keyLeakServiceClient) NotifySlack(opts ...sdk_go.ClientOption) sdk_go.C
 //
 // This client is used to call the service from outside of a Restate context.
 type KeyLeakServiceIngressClient interface {
+	Process() ingress.Requester[*KeyLeakReport, *KeyLeakReportResult]
 	Notify() ingress.Requester[*KeyLeakNotification, *KeyLeakResponse]
 	NotifyEmail() ingress.Requester[*KeyLeakEmailRequest, *KeyLeakResponse]
 	NotifySlack() ingress.Requester[*KeyLeakNotification, *KeyLeakResponse]
@@ -75,6 +85,11 @@ func NewKeyLeakServiceIngressClient(client *ingress.Client) KeyLeakServiceIngres
 		client,
 		"hydra.v1.KeyLeakService",
 	}
+}
+
+func (c *keyLeakServiceIngressClient) Process() ingress.Requester[*KeyLeakReport, *KeyLeakReportResult] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*KeyLeakReport, *KeyLeakReportResult](c.client, c.serviceName, "Process", nil, &codec)
 }
 
 func (c *keyLeakServiceIngressClient) Notify() ingress.Requester[*KeyLeakNotification, *KeyLeakResponse] {
@@ -96,6 +111,7 @@ func (c *keyLeakServiceIngressClient) NotifySlack() ingress.Requester[*KeyLeakNo
 // All implementations should embed UnimplementedKeyLeakServiceServer
 // for forward compatibility.
 type KeyLeakServiceServer interface {
+	Process(ctx sdk_go.Context, req *KeyLeakReport) (*KeyLeakReportResult, error)
 	Notify(ctx sdk_go.Context, req *KeyLeakNotification) (*KeyLeakResponse, error)
 	NotifyEmail(ctx sdk_go.Context, req *KeyLeakEmailRequest) (*KeyLeakResponse, error)
 	NotifySlack(ctx sdk_go.Context, req *KeyLeakNotification) (*KeyLeakResponse, error)
@@ -108,6 +124,9 @@ type KeyLeakServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedKeyLeakServiceServer struct{}
 
+func (UnimplementedKeyLeakServiceServer) Process(ctx sdk_go.Context, req *KeyLeakReport) (*KeyLeakReportResult, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Process not implemented"), sdk_go.WithErrorCode(501))
+}
 func (UnimplementedKeyLeakServiceServer) Notify(ctx sdk_go.Context, req *KeyLeakNotification) (*KeyLeakResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Notify not implemented"), sdk_go.WithErrorCode(501))
 }
@@ -136,6 +155,7 @@ func NewKeyLeakServiceServer(srv KeyLeakServiceServer, opts ...sdk_go.ServiceDef
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewService("hydra.v1.KeyLeakService", sOpts...)
+	router = router.Handler("Process", sdk_go.NewServiceHandler(srv.Process))
 	router = router.Handler("Notify", sdk_go.NewServiceHandler(srv.Notify))
 	router = router.Handler("NotifyEmail", sdk_go.NewServiceHandler(srv.NotifyEmail))
 	router = router.Handler("NotifySlack", sdk_go.NewServiceHandler(srv.NotifySlack))

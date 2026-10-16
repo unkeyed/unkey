@@ -92,7 +92,7 @@ import (
 // fails, or during server startup. Context cancellation results in
 // clean shutdown with nil error.
 func Run(ctx context.Context, cfg Config) error {
-	if cfg.Slack.KeyLeakWebhookURL != "" && (cfg.Email.ResendAPIKey == "" || cfg.WorkOSAPIKey == "") {
+	if cfg.Email.ResendAPIKey == "" || cfg.WorkOSAPIKey == "" {
 		return errors.New("key leak notifications require email.resend_api_key and workos_api_key")
 	}
 	if cfg.InstanceID == "" {
@@ -419,16 +419,24 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
-	if cfg.Slack.KeyLeakWebhookURL != "" {
-		restateSrv.Bind(hydrav1.NewKeyLeakServiceServer(keyleak.New(keyleak.Config{
-			Members:         workos.New(cfg.WorkOSAPIKey),
-			Email:           email.NewResend(cfg.Email.ResendAPIKey, ""),
-			SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
-		})).ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
-			ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
-	} else {
-		logger.Info("Key leak notifications not registered, no Slack webhook configured")
-	}
+	restateSrv.Bind(hydrav1.NewKeyLeakServiceServer(keyleak.New(keyleak.Config{
+		DB:              database,
+		Members:         workos.New(cfg.WorkOSAPIKey),
+		Email:           email.NewResend(cfg.Email.ResendAPIKey, ""),
+		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
+	}),
+		restate.WithJournalRetention(time.Hour),
+		restate.WithIdempotencyRetention(24*time.Hour),
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(time.Second),
+			restate.WithMaxRetryInterval(time.Minute),
+			restate.WithRetryIntervalFactor(2),
+			restate.WithMaxRetryAttempts(360),
+			restate.KillOnMaxAttempts(),
+		),
+	).ConfigureHandler("Notify", restate.WithIngressPrivate(true)).
+		ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
+		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
 
 	projectSvc, err := workerproject.New(workerproject.Config{
 		DB:        database,

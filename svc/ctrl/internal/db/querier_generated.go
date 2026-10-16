@@ -922,13 +922,20 @@ type Querier interface {
 	//FindLeakedKeysByHashes
 	//
 	//  SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+	//  FROM unkey_root_keys k
+	//  JOIN workspaces w ON w.id = k.workspace_id
+	//  WHERE k.hash IN (/*SLICE:hashes*/?)
+	//    AND k.deleted_at IS NULL
+	//    AND w.deleted_at_m IS NULL
+	//  UNION ALL
+	//  SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
 	//  FROM `keys` k
-	//  JOIN workspaces w ON w.id = k.for_workspace_id
+	//  JOIN workspaces w ON w.id = COALESCE(k.for_workspace_id, k.workspace_id)
 	//  WHERE k.hash IN (/*SLICE:hashes*/?)
 	//    AND k.deleted_at_m IS NULL
 	//    AND w.deleted_at_m IS NULL
-	//    AND w.org_id <> ''
-	FindLeakedKeysByHashes(ctx context.Context, hashes []string) ([]FindLeakedKeysByHashesRow, error)
+	//    AND NOT EXISTS (SELECT 1 FROM unkey_root_keys r WHERE r.hash = k.hash)
+	FindLeakedKeysByHashes(ctx context.Context, arg FindLeakedKeysByHashesParams) ([]FindLeakedKeysByHashesRow, error)
 	//FindLimitsByWorkspaceID
 	//
 	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max

@@ -22,6 +22,162 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type KeyLeakReport struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tokens        []*KeyLeakToken        `protobuf:"bytes,1,rep,name=tokens,proto3" json:"tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeyLeakReport) Reset() {
+	*x = KeyLeakReport{}
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeyLeakReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeyLeakReport) ProtoMessage() {}
+
+func (x *KeyLeakReport) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeyLeakReport.ProtoReflect.Descriptor instead.
+func (*KeyLeakReport) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *KeyLeakReport) GetTokens() []*KeyLeakToken {
+	if x != nil {
+		return x.Tokens
+	}
+	return nil
+}
+
+type KeyLeakToken struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Hash          string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Url           string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	Source        string                 `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeyLeakToken) Reset() {
+	*x = KeyLeakToken{}
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeyLeakToken) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeyLeakToken) ProtoMessage() {}
+
+func (x *KeyLeakToken) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeyLeakToken.ProtoReflect.Descriptor instead.
+func (*KeyLeakToken) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *KeyLeakToken) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+func (x *KeyLeakToken) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *KeyLeakToken) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *KeyLeakToken) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+type KeyLeakReportResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MatchedHashes []string               `protobuf:"bytes,1,rep,name=matched_hashes,json=matchedHashes,proto3" json:"matched_hashes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeyLeakReportResult) Reset() {
+	*x = KeyLeakReportResult{}
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeyLeakReportResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeyLeakReportResult) ProtoMessage() {}
+
+func (x *KeyLeakReportResult) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeyLeakReportResult.ProtoReflect.Descriptor instead.
+func (*KeyLeakReportResult) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *KeyLeakReportResult) GetMatchedHashes() []string {
+	if x != nil {
+		return x.MatchedHashes
+	}
+	return nil
+}
+
 type KeyLeakNotification struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	KeyId         string                 `protobuf:"bytes,1,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
@@ -37,7 +193,7 @@ type KeyLeakNotification struct {
 
 func (x *KeyLeakNotification) Reset() {
 	*x = KeyLeakNotification{}
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[0]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +205,7 @@ func (x *KeyLeakNotification) String() string {
 func (*KeyLeakNotification) ProtoMessage() {}
 
 func (x *KeyLeakNotification) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[0]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +218,7 @@ func (x *KeyLeakNotification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyLeakNotification.ProtoReflect.Descriptor instead.
 func (*KeyLeakNotification) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{0}
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *KeyLeakNotification) GetKeyId() string {
@@ -124,7 +280,7 @@ type KeyLeakEmailRequest struct {
 
 func (x *KeyLeakEmailRequest) Reset() {
 	*x = KeyLeakEmailRequest{}
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[1]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -136,7 +292,7 @@ func (x *KeyLeakEmailRequest) String() string {
 func (*KeyLeakEmailRequest) ProtoMessage() {}
 
 func (x *KeyLeakEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[1]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -149,7 +305,7 @@ func (x *KeyLeakEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyLeakEmailRequest.ProtoReflect.Descriptor instead.
 func (*KeyLeakEmailRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{1}
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *KeyLeakEmailRequest) GetLeak() *KeyLeakNotification {
@@ -174,7 +330,7 @@ type KeyLeakResponse struct {
 
 func (x *KeyLeakResponse) Reset() {
 	*x = KeyLeakResponse{}
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[2]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -186,7 +342,7 @@ func (x *KeyLeakResponse) String() string {
 func (*KeyLeakResponse) ProtoMessage() {}
 
 func (x *KeyLeakResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[2]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -199,14 +355,23 @@ func (x *KeyLeakResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyLeakResponse.ProtoReflect.Descriptor instead.
 func (*KeyLeakResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{2}
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{5}
 }
 
 var File_hydra_v1_key_leak_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_key_leak_proto_rawDesc = "" +
 	"\n" +
-	"\x17hydra/v1/key_leak.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xbc\x01\n" +
+	"\x17hydra/v1/key_leak.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"?\n" +
+	"\rKeyLeakReport\x12.\n" +
+	"\x06tokens\x18\x01 \x03(\v2\x16.hydra.v1.KeyLeakTokenR\x06tokens\"`\n" +
+	"\fKeyLeakToken\x12\x12\n" +
+	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x12\n" +
+	"\x04type\x18\x02 \x01(\tR\x04type\x12\x10\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\x12\x16\n" +
+	"\x06source\x18\x04 \x01(\tR\x06source\"<\n" +
+	"\x13KeyLeakReportResult\x12%\n" +
+	"\x0ematched_hashes\x18\x01 \x03(\tR\rmatchedHashes\"\xbc\x01\n" +
 	"\x13KeyLeakNotification\x12\x15\n" +
 	"\x06key_id\x18\x01 \x01(\tR\x05keyId\x12\x15\n" +
 	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12%\n" +
@@ -218,8 +383,9 @@ const file_hydra_v1_key_leak_proto_rawDesc = "" +
 	"\x13KeyLeakEmailRequest\x121\n" +
 	"\x04leak\x18\x01 \x01(\v2\x1d.hydra.v1.KeyLeakNotificationR\x04leak\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\"\x11\n" +
-	"\x0fKeyLeakResponse2\xf2\x01\n" +
-	"\x0eKeyLeakService\x12D\n" +
+	"\x0fKeyLeakResponse2\xb7\x02\n" +
+	"\x0eKeyLeakService\x12C\n" +
+	"\aProcess\x12\x17.hydra.v1.KeyLeakReport\x1a\x1d.hydra.v1.KeyLeakReportResult\"\x00\x12D\n" +
 	"\x06Notify\x12\x1d.hydra.v1.KeyLeakNotification\x1a\x19.hydra.v1.KeyLeakResponse\"\x00\x12I\n" +
 	"\vNotifyEmail\x12\x1d.hydra.v1.KeyLeakEmailRequest\x1a\x19.hydra.v1.KeyLeakResponse\"\x00\x12I\n" +
 	"\vNotifySlack\x12\x1d.hydra.v1.KeyLeakNotification\x1a\x19.hydra.v1.KeyLeakResponse\"\x00\x1a\x04\x98\x80\x01\x00B\x92\x01\n" +
@@ -237,25 +403,31 @@ func file_hydra_v1_key_leak_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_key_leak_proto_rawDescData
 }
 
-var file_hydra_v1_key_leak_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_hydra_v1_key_leak_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_key_leak_proto_goTypes = []any{
-	(*KeyLeakNotification)(nil), // 0: hydra.v1.KeyLeakNotification
-	(*KeyLeakEmailRequest)(nil), // 1: hydra.v1.KeyLeakEmailRequest
-	(*KeyLeakResponse)(nil),     // 2: hydra.v1.KeyLeakResponse
+	(*KeyLeakReport)(nil),       // 0: hydra.v1.KeyLeakReport
+	(*KeyLeakToken)(nil),        // 1: hydra.v1.KeyLeakToken
+	(*KeyLeakReportResult)(nil), // 2: hydra.v1.KeyLeakReportResult
+	(*KeyLeakNotification)(nil), // 3: hydra.v1.KeyLeakNotification
+	(*KeyLeakEmailRequest)(nil), // 4: hydra.v1.KeyLeakEmailRequest
+	(*KeyLeakResponse)(nil),     // 5: hydra.v1.KeyLeakResponse
 }
 var file_hydra_v1_key_leak_proto_depIdxs = []int32{
-	0, // 0: hydra.v1.KeyLeakEmailRequest.leak:type_name -> hydra.v1.KeyLeakNotification
-	0, // 1: hydra.v1.KeyLeakService.Notify:input_type -> hydra.v1.KeyLeakNotification
-	1, // 2: hydra.v1.KeyLeakService.NotifyEmail:input_type -> hydra.v1.KeyLeakEmailRequest
-	0, // 3: hydra.v1.KeyLeakService.NotifySlack:input_type -> hydra.v1.KeyLeakNotification
-	2, // 4: hydra.v1.KeyLeakService.Notify:output_type -> hydra.v1.KeyLeakResponse
-	2, // 5: hydra.v1.KeyLeakService.NotifyEmail:output_type -> hydra.v1.KeyLeakResponse
-	2, // 6: hydra.v1.KeyLeakService.NotifySlack:output_type -> hydra.v1.KeyLeakResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	1, // 0: hydra.v1.KeyLeakReport.tokens:type_name -> hydra.v1.KeyLeakToken
+	3, // 1: hydra.v1.KeyLeakEmailRequest.leak:type_name -> hydra.v1.KeyLeakNotification
+	0, // 2: hydra.v1.KeyLeakService.Process:input_type -> hydra.v1.KeyLeakReport
+	3, // 3: hydra.v1.KeyLeakService.Notify:input_type -> hydra.v1.KeyLeakNotification
+	4, // 4: hydra.v1.KeyLeakService.NotifyEmail:input_type -> hydra.v1.KeyLeakEmailRequest
+	3, // 5: hydra.v1.KeyLeakService.NotifySlack:input_type -> hydra.v1.KeyLeakNotification
+	2, // 6: hydra.v1.KeyLeakService.Process:output_type -> hydra.v1.KeyLeakReportResult
+	5, // 7: hydra.v1.KeyLeakService.Notify:output_type -> hydra.v1.KeyLeakResponse
+	5, // 8: hydra.v1.KeyLeakService.NotifyEmail:output_type -> hydra.v1.KeyLeakResponse
+	5, // 9: hydra.v1.KeyLeakService.NotifySlack:output_type -> hydra.v1.KeyLeakResponse
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_key_leak_proto_init() }
@@ -269,7 +441,7 @@ func file_hydra_v1_key_leak_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_key_leak_proto_rawDesc), len(file_hydra_v1_key_leak_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

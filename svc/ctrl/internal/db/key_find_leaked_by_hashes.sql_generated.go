@@ -12,13 +12,24 @@ import (
 
 const findLeakedKeysByHashes = `-- name: FindLeakedKeysByHashes :many
 SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+FROM unkey_root_keys k
+JOIN workspaces w ON w.id = k.workspace_id
+WHERE k.hash IN (/*SLICE:hashes*/?)
+  AND k.deleted_at IS NULL
+  AND w.deleted_at_m IS NULL
+UNION ALL
+SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
 FROM ` + "`" + `keys` + "`" + ` k
-JOIN workspaces w ON w.id = k.for_workspace_id
+JOIN workspaces w ON w.id = COALESCE(k.for_workspace_id, k.workspace_id)
 WHERE k.hash IN (/*SLICE:hashes*/?)
   AND k.deleted_at_m IS NULL
   AND w.deleted_at_m IS NULL
-  AND w.org_id <> ''
+  AND NOT EXISTS (SELECT 1 FROM unkey_root_keys r WHERE r.hash = k.hash)
 `
+
+type FindLeakedKeysByHashesParams struct {
+	Hashes []string `db:"hashes"`
+}
 
 type FindLeakedKeysByHashesRow struct {
 	ID            string `db:"id"`
@@ -30,20 +41,35 @@ type FindLeakedKeysByHashesRow struct {
 // FindLeakedKeysByHashes
 //
 //	SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+//	FROM unkey_root_keys k
+//	JOIN workspaces w ON w.id = k.workspace_id
+//	WHERE k.hash IN (/*SLICE:hashes*/?)
+//	  AND k.deleted_at IS NULL
+//	  AND w.deleted_at_m IS NULL
+//	UNION ALL
+//	SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
 //	FROM `keys` k
-//	JOIN workspaces w ON w.id = k.for_workspace_id
+//	JOIN workspaces w ON w.id = COALESCE(k.for_workspace_id, k.workspace_id)
 //	WHERE k.hash IN (/*SLICE:hashes*/?)
 //	  AND k.deleted_at_m IS NULL
 //	  AND w.deleted_at_m IS NULL
-//	  AND w.org_id <> ''
-func (q *Queries) FindLeakedKeysByHashes(ctx context.Context, hashes []string) ([]FindLeakedKeysByHashesRow, error) {
+//	  AND NOT EXISTS (SELECT 1 FROM unkey_root_keys r WHERE r.hash = k.hash)
+func (q *Queries) FindLeakedKeysByHashes(ctx context.Context, arg FindLeakedKeysByHashesParams) ([]FindLeakedKeysByHashesRow, error) {
 	query := findLeakedKeysByHashes
 	var queryParams []interface{}
-	if len(hashes) > 0 {
-		for _, v := range hashes {
+	if len(arg.Hashes) > 0 {
+		for _, v := range arg.Hashes {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:hashes*/?", strings.Repeat(",?", len(hashes))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:hashes*/?", strings.Repeat(",?", len(arg.Hashes))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:hashes*/?", "NULL", 1)
+	}
+	if len(arg.Hashes) > 0 {
+		for _, v := range arg.Hashes {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:hashes*/?", strings.Repeat(",?", len(arg.Hashes))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:hashes*/?", "NULL", 1)
 	}

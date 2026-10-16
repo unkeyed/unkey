@@ -266,7 +266,7 @@ type SlackConfig struct {
 	// When set, Slack notifications are sent when workspaces exceed their quota.
 	// Optional - if empty, no Slack notifications are sent.
 	QuotaCheckWebhookURL string `toml:"quota_check_webhook_url"`
-	// KeyLeakWebhookURL enables durable key leak notifications. Requires Resend and WorkOS credentials.
+	// KeyLeakWebhookURL adds Slack alerts alongside customer email. Optional.
 	KeyLeakWebhookURL string `toml:"key_leak_webhook_url"`
 }
 

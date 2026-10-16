@@ -316,8 +316,8 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
 	}
 
-	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(database, restateClient,
-		githubsecrets.New("https://api.github.com/meta/public_keys/secret_scanning", clock.New()), clock.New()))
+	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(restateClient,
+		githubsecrets.New("https://api.github.com/meta/public_keys/secret_scanning", clock.New())))
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
 		mux.Handle("POST /webhooks/stripe", stripewebhook.New(
