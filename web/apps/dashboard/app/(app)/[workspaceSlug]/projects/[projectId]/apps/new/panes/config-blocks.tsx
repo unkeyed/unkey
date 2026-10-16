@@ -232,7 +232,7 @@ function ScalingPanel({ source: _, ...panel }: PanelProps) {
       title="Scaling"
       description="Where your app runs and how far it scales."
     >
-      <ComputeForm />
+      <ComputeForm hideLockedSizes />
     </SettingsPanel>
   );
 }
