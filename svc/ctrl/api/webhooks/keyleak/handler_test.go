@@ -29,9 +29,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/githubsignature"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	worker "github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
 )
@@ -183,12 +183,15 @@ func TestKeyLeakRejectsInvalidReports(t *testing.T) {
 			require.Equal(t, http.StatusBadRequest, res.Code)
 		})
 	}
-	for _, body := range [][]byte{[]byte("["), nil, []byte(strings.Repeat("x", bodyBytesMax+1))} {
+	for _, body := range [][]byte{[]byte("["), nil} {
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, sign(body))
 		require.Equal(t, http.StatusBadRequest, res.Code)
 	}
 	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, sign([]byte(strings.Repeat("x", bodyBytesMax+1))))
+	require.Equal(t, http.StatusRequestEntityTooLarge, res.Code)
+	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/", strings.NewReader("[]")))
 	require.Equal(t, http.StatusBadRequest, res.Code)
 	req := sign([]byte("[]"))
@@ -236,7 +239,7 @@ func (s *recordingSender) Send(_ context.Context, message email.Email) error {
 	return nil
 }
 
-func newSigningFixture(t *testing.T) (*githubsignature.Verifier, func([]byte) *http.Request) {
+func newSigningFixture(t *testing.T) (*githubsecrets.Verifier, func([]byte) *http.Request) {
 	t.Helper()
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	require.NoError(t, err)
@@ -259,7 +262,7 @@ func newSigningFixture(t *testing.T) (*githubsignature.Verifier, func([]byte) *h
 		}
 	}))
 	t.Cleanup(server.Close)
-	return githubsignature.New(server.URL, clock.New()), func(body []byte) *http.Request {
+	return githubsecrets.New(server.URL, clock.New()), func(body []byte) *http.Request {
 		t.Helper()
 		digest := sha256.Sum256(body)
 		signature, err := ecdsa.SignASN1(rand.Reader, privateKey, digest[:])

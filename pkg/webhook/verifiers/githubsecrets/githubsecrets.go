@@ -1,4 +1,4 @@
-package githubsignature
+package githubsecrets
 
 import (
 	"context"
@@ -10,13 +10,18 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/webhook"
 )
+
+// EventType identifies secret-scanning reports, which carry no event-type header.
+const EventType = "secret_scanning"
 
 const (
 	keysTTL          = time.Hour
@@ -36,6 +41,8 @@ type Verifier struct {
 	refreshErr  error
 }
 
+var _ webhook.Verifier = (*Verifier)(nil)
+
 // New caches signing keys for one hour and limits failed refreshes to once per
 // minute. The supplied clock must be non-nil.
 func New(keysURL string, clock clock.Clock) *Verifier {
@@ -51,23 +58,35 @@ func New(keysURL string, clock clock.Clock) *Verifier {
 	}
 }
 
-// Verify authenticates exact payload bytes. Invalid signatures and unknown keys
-// return false without an error; retrieval failures use stale keys when available.
-func (v *Verifier) Verify(ctx context.Context, payload []byte, signature, keyID string) (bool, error) {
-	signatureBytes, err := base64.StdEncoding.DecodeString(signature)
-	if err != nil || len(signatureBytes) == 0 || keyID == "" {
-		return false, nil
+// Verify authenticates the raw body with GitHub's public key. Key retrieval
+// failures use stale keys when available, or return webhook.ErrUnavailable.
+func (v *Verifier) Verify(r *http.Request) (webhook.Event, error) {
+	signature := r.Header.Get("Github-Public-Key-Signature")
+	keyID := r.Header.Get("Github-Public-Key-Identifier")
+	if signature == "" || keyID == "" {
+		return webhook.Event{}, fmt.Errorf("%w: missing signing headers", webhook.ErrBadRequest)
 	}
-	keys, err := v.publicKeys(ctx)
+	payload, err := io.ReadAll(r.Body)
 	if err != nil {
-		return false, err
+		return webhook.Event{}, err
+	}
+	signatureBytes, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil || len(signatureBytes) == 0 {
+		return webhook.Event{}, errors.New("invalid github signature encoding")
+	}
+	keys, err := v.publicKeys(r.Context())
+	if err != nil {
+		return webhook.Event{}, fmt.Errorf("%w: %w", webhook.ErrUnavailable, err)
 	}
 	key, ok := keys[keyID]
 	if !ok {
-		return false, nil
+		return webhook.Event{}, errors.New("unknown github signing key")
 	}
 	digest := sha256.Sum256(payload)
-	return ecdsa.VerifyASN1(key, digest[:], signatureBytes), nil
+	if !ecdsa.VerifyASN1(key, digest[:], signatureBytes) {
+		return webhook.Event{}, errors.New("github signature mismatch")
+	}
+	return webhook.Event{ID: "", Type: EventType, Payload: payload}, nil
 }
 
 func (v *Verifier) publicKeys(ctx context.Context) (map[string]*ecdsa.PublicKey, error) {

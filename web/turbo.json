@@ -37,8 +37,7 @@
         "WORKOS_CLIENT_ID",
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
         "WORKOS_API_HOSTNAME",
-        "SENTRY_AUTH_TOKEN",
-        "CTRL_URL"
+        "SENTRY_AUTH_TOKEN"
       ],
       "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
     },
@@ -80,8 +79,7 @@
         "SENTRY_RELEASE",
         "SENTRY_UPLOAD_SOURCEMAPS",
         "VERCEL_ENV",
-        "VERCEL_GIT_COMMIT_SHA",
-        "CTRL_URL"
+        "VERCEL_GIT_COMMIT_SHA"
       ]
     },
     "@unkey/nuxt#dev:prepare": {

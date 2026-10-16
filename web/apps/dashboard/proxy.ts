@@ -11,7 +11,6 @@ const PUBLIC_PATHS = [
   "/favicon.ico",
   "/api/webhooks/stripe",
   "/api/webhooks/workos",
-  "/api/v1/github/verify",
   "/success",
   "/share",
   "/_next/*",
@@ -23,7 +22,6 @@ const PUBLIC_ROUTE_HANDLER_PATHS = [
   "/join",
   "/api/webhooks/stripe",
   "/api/webhooks/workos",
-  "/api/v1/github/verify",
 ] as const;
 
 function isPublicPath(path: string): boolean {

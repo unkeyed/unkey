@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -14,21 +13,29 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/webhook"
+	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/githubsignature"
 )
 
 const bodyBytesMax = 4 << 20
 
 type handler struct {
-	db       db.Database
-	restate  *ingress.Client
-	verifier *githubsignature.Verifier
-	clock    clock.Clock
+	db      db.Database
+	restate *ingress.Client
+	clock   clock.Clock
 }
 
-func New(database db.Database, client *ingress.Client, verifier *githubsignature.Verifier, clock clock.Clock) http.Handler {
-	return &handler{db: database, restate: client, verifier: verifier, clock: clock}
+func New(database db.Database, client *ingress.Client, verifier webhook.Verifier, clock clock.Clock) http.Handler {
+	h := &handler{db: database, restate: client, clock: clock}
+	receiver := webhook.New("github_secret_scanning", verifier, webhook.WithMaxBodySize(bodyBytesMax)).
+		OnResponse([]string{githubsecrets.EventType}, h.report)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+		defer cancel()
+		w.Header().Set("Cache-Control", "no-store")
+		receiver.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 type reportedToken struct {
@@ -45,53 +52,25 @@ type result struct {
 	Label     string `json:"label"`
 }
 
-func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
-	defer cancel()
-	w.Header().Set("Cache-Control", "no-store")
-	signature := r.Header.Get("Github-Public-Key-Signature")
-	keyID := r.Header.Get("Github-Public-Key-Identifier")
-	if signature == "" || keyID == "" {
-		http.Error(w, "Invalid webhook request", http.StatusBadRequest)
-		return
-	}
-	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, bodyBytesMax))
-	if err != nil || len(body) == 0 {
-		http.Error(w, "Invalid webhook request", http.StatusBadRequest)
-		return
-	}
-	verified, err := h.verifier.Verify(ctx, body, signature, keyID)
-	if err != nil {
-		logger.Error("GitHub signing keys unavailable", "error", err)
-		http.Error(w, "Verification unavailable", http.StatusServiceUnavailable)
-		return
-	}
-	if !verified {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+func (h *handler) report(ctx context.Context, event webhook.Event) (webhook.Response, error) {
 	var tokens []reportedToken
-	if err := json.Unmarshal(body, &tokens); err != nil || tokens == nil {
-		http.Error(w, "Invalid webhook request", http.StatusBadRequest)
-		return
+	if err := json.Unmarshal(event.Payload, &tokens); err != nil || tokens == nil {
+		return webhook.Response{}, webhook.ErrBadRequest
 	}
 	for _, token := range tokens {
 		if token.Token == "" || token.Type == "" || token.Source == "" {
-			http.Error(w, "Invalid webhook request", http.StatusBadRequest)
-			return
+			return webhook.Response{}, webhook.ErrBadRequest
 		}
 	}
 	results, err := h.classifyAndEnqueue(ctx, tokens)
 	if err != nil {
-		logger.Error("Failed to accept key leak report", "error", err)
-		http.Error(w, "Unable to accept report", http.StatusServiceUnavailable)
-		return
+		return webhook.Response{}, fmt.Errorf("%w: %w", webhook.ErrUnavailable, err)
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(results); err != nil {
-		logger.Error("Failed to write key leak response", "error", err)
+	body, err := json.Marshal(results)
+	if err != nil {
+		return webhook.Response{}, err
 	}
+	return webhook.Response{StatusCode: http.StatusCreated, ContentType: "application/json", Body: body}, nil
 }
 
 func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken) ([]result, error) {
