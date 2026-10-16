@@ -634,49 +634,12 @@ func (w *Workflow) configureRouting(
 
 	for _, domain := range allDomains {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			existing, findErr := w.db.FindFrontlineRouteByFQDN(runCtx, domain.domain)
-			if findErr == nil {
-				return existing.ID, nil
-			}
-			if !db.IsNotFound(findErr) {
-				return "", findErr
-			}
-
-			routeID := uid.New(uid.FrontlineRoutePrefix)
-			insertErr := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-				return db.NewQueries(tx).InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
-					ID:                       routeID,
-					ProjectID:                deployment.ProjectID,
-					AppID:                    deployment.AppID,
-					DeploymentID:             deployment.ID,
-					EnvironmentID:            deployment.EnvironmentID,
-					FullyQualifiedDomainName: domain.domain,
-					Sticky:                   domain.sticky,
-					CreatedAt:                time.Now().UnixMilli(),
-					UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
-				})
-			})
-			if insertErr != nil {
-				return "", insertErr
-			}
-
-			// The insert keeps a row that a concurrent deployment created for this
-			// domain. Read the row back in its own transaction, whose snapshot is
-			// newer than the insert's: a row inserted here needs no reassignment,
-			// while an existing row is reassigned to this deployment below.
-			route, findErr := w.db.FindFrontlineRouteByFQDN(runCtx, domain.domain)
-			if findErr != nil {
-				return "", findErr
-			}
-			if route.ID == routeID {
-				return "", nil
-			}
-			return route.ID, nil
+			return w.createFrontlineRoute(runCtx, deployment, domain)
 		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if getFrontlineRouteErr != nil {
 			return nil, false, fault.Wrap(getFrontlineRouteErr, fault.Public("Route records could not be created."))
 		}
-		if frontlineRouteID != "" {
+		if frontlineRouteID != "" && domain.sticky != db.FrontlineRoutesStickyLive {
 			existingRouteIDs = append(existingRouteIDs, frontlineRouteID)
 		}
 	}
@@ -750,6 +713,49 @@ func (w *Workflow) configureRouting(
 	}
 
 	return nil, false, nil
+}
+
+func (w *Workflow) createFrontlineRoute(ctx context.Context, deployment db.FindDeploymentForDeployRow, domain newDomain) (string, error) {
+	return db.TxWithResultRetry(ctx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
+		queries := db.NewQueries(tx)
+		app, err := queries.LockAppByID(txCtx, deployment.AppID)
+		if err != nil {
+			return "", err
+		}
+		route, err := queries.FindFrontlineRouteByFQDN(txCtx, domain.domain)
+		if err == nil {
+			if route.ProjectID != deployment.ProjectID || route.AppID != deployment.AppID ||
+				route.EnvironmentID != deployment.EnvironmentID || route.Sticky != domain.sticky {
+				return "", restate.ToTerminalError(fmt.Errorf("frontline route %q belongs to another app, environment, or routing policy", domain.domain))
+			}
+			return route.ID, nil
+		}
+		if !db.IsNotFound(err) {
+			return "", err
+		}
+
+		deploymentID := deployment.ID
+		if deployment.EnvironmentKind.IsProduction() && app.CurrentDeploymentID.Valid {
+			switch domain.sticky {
+			case db.FrontlineRoutesStickyLive, db.FrontlineRoutesStickyEnvironment:
+				deploymentID = app.CurrentDeploymentID.String
+			case db.FrontlineRoutesStickyNone, db.FrontlineRoutesStickyDeployment, db.FrontlineRoutesStickyBranch:
+			}
+		}
+		routeID := uid.New(uid.FrontlineRoutePrefix)
+		err = queries.InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
+			ID:                       routeID,
+			ProjectID:                deployment.ProjectID,
+			AppID:                    deployment.AppID,
+			DeploymentID:             deploymentID,
+			EnvironmentID:            deployment.EnvironmentID,
+			FullyQualifiedDomainName: domain.domain,
+			Sticky:                   domain.sticky,
+			CreatedAt:                time.Now().UnixMilli(),
+			UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
+		})
+		return routeID, err
+	})
 }
 
 func (w *Workflow) spinDownPreviousDeployments(

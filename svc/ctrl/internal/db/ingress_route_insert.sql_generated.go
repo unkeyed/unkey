@@ -33,8 +33,6 @@ VALUES (
     ?,
     ?
 )
-ON DUPLICATE KEY UPDATE
-    id = id
 `
 
 type InsertFrontlineRouteParams struct {
@@ -49,9 +47,7 @@ type InsertFrontlineRouteParams struct {
 	UpdatedAt                sql.NullInt64         `db:"updated_at"`
 }
 
-// Keeps an existing row for the domain instead of failing the unique
-// fully-qualified-domain-name key, so two deployments of the same domain
-// converge on the row that was created first.
+// InsertFrontlineRoute
 //
 //	INSERT INTO frontline_routes (
 //	    id,
@@ -75,8 +71,6 @@ type InsertFrontlineRouteParams struct {
 //	    ?,
 //	    ?
 //	)
-//	ON DUPLICATE KEY UPDATE
-//	    id = id
 func (q *Queries) InsertFrontlineRoute(ctx context.Context, arg InsertFrontlineRouteParams) error {
 	_, err := q.db.ExecContext(ctx, insertFrontlineRoute,
 		arg.ID,

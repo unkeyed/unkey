@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,7 +13,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -139,60 +142,79 @@ func mockStartedAt(mockCtx *mocks.MockContext, startedAt time.Time) {
 		Return(nil)
 }
 
-// frontlineRouteTable models frontline_routes as an in-memory table that holds
-// one row per fully qualified domain name, so an insert for a name that still
-// has a row fails the way MySQL rejects a duplicate key.
-type frontlineRouteTable struct {
-	db.Database
-	routes map[string]db.InsertFrontlineRouteParams
-	calls  []string
-}
-
-func (f *frontlineRouteTable) FindAppById(_ context.Context, _ string) (db.App, error) {
-	return db.App{ID: "app_1", CurrentDeploymentID: sql.NullString{Valid: true, String: "d_1"}}, nil
-}
-
-func (f *frontlineRouteTable) DeleteFrontlineRouteByFQDN(_ context.Context, fqdn string) error {
-	f.calls = append(f.calls, "delete "+fqdn)
-	delete(f.routes, fqdn)
-	return nil
-}
-
-func (f *frontlineRouteTable) InsertFrontlineRoute(_ context.Context, arg db.InsertFrontlineRouteParams) error {
-	f.calls = append(f.calls, "insert "+arg.FullyQualifiedDomainName)
-	if _, ok := f.routes[arg.FullyQualifiedDomainName]; ok {
-		return fmt.Errorf("Duplicate entry '%s' for key 'frontline_routes.frontline_routes_fully_qualified_domain_name_unique' (errno 1062)", arg.FullyQualifiedDomainName)
-	}
-	f.routes[arg.FullyQualifiedDomainName] = arg
-	return nil
-}
-
-// A route row for the verified name is the state a replayed step meets: the
-// verify workflow retries the step for up to 24 hours, so the step must
-// replace the row and land the route on its own app instead of colliding on
-// the unique FQDN key on every attempt.
 func TestCreateFrontlineRouteReplacesRowHoldingTheName(t *testing.T) {
-	table := &frontlineRouteTable{routes: map[string]db.InsertFrontlineRouteParams{
-		"app.example.com": {
-			ID:                       "fr_previous",
-			ProjectID:                "p_1",
-			AppID:                    "app_1",
-			FullyQualifiedDomainName: "app.example.com",
-		},
-	}}
-	svc := New(Config{DB: table, CnameDomain: "cname.unkey.local"})
+	ctx := t.Context()
+	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	seeder := seed.New(t, database, nil)
+	app := seeder.CreateApp(ctx, seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: uid.New(uid.WorkspacePrefix),
+		ProjectID:   uid.New(uid.ProjectPrefix),
+		Name:        "verified",
+		Slug:        "verified",
+	})
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	now := time.Now().UnixMilli()
+	require.NoError(t, database.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{
+		AppID:               app.ID,
+		CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
+		UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
+	}))
+	dom := db.CustomDomain{
+		ID:            uid.New(uid.DomainPrefix),
+		WorkspaceID:   app.WorkspaceID,
+		ProjectID:     app.ProjectID,
+		AppID:         app.ID,
+		EnvironmentID: uid.New(uid.EnvironmentPrefix),
+		Domain:        uid.DNS1035() + ".example.com",
+	}
+	previous := db.InsertFrontlineRouteParams{
+		ID:                       uid.New(uid.FrontlineRoutePrefix),
+		ProjectID:                uid.New(uid.ProjectPrefix),
+		AppID:                    uid.New(uid.AppPrefix),
+		DeploymentID:             uid.New(uid.DeploymentPrefix),
+		EnvironmentID:            uid.New(uid.EnvironmentPrefix),
+		FullyQualifiedDomainName: dom.Domain,
+		Sticky:                   db.FrontlineRoutesStickyEnvironment,
+		CreatedAt:                now - 1,
+	}
+	require.NoError(t, database.InsertFrontlineRoute(ctx, previous))
+	svc := New(Config{DB: database, CnameDomain: "cname.unkey.local"})
 
-	require.NoError(t, svc.createFrontlineRoute(context.Background(), db.CustomDomain{
-		ID:            "dom_1",
-		WorkspaceID:   "ws_1",
-		ProjectID:     "p_1",
-		AppID:         "app_1",
-		EnvironmentID: "env_1",
-		Domain:        "app.example.com",
-	}, time.Now().UnixMilli()))
+	t.Run("failed replacement preserves the previous route", func(t *testing.T) {
+		before, err := database.FindFrontlineRouteByFQDN(ctx, dom.Domain)
+		require.NoError(t, err)
+		invalid := dom
+		invalid.EnvironmentID = strings.Repeat("x", 49)
+		require.Error(t, svc.createFrontlineRoute(ctx, invalid, now))
+		after, err := database.FindFrontlineRouteByFQDN(ctx, dom.Domain)
+		require.NoError(t, err)
+		require.Equal(t, before, after)
+	})
 
-	require.Equal(t, []string{"delete app.example.com", "insert app.example.com"}, table.calls)
-	require.Len(t, table.routes, 1)
-	require.Equal(t, "d_1", table.routes["app.example.com"].DeploymentID)
-	require.Equal(t, db.FrontlineRoutesStickyLive, table.routes["app.example.com"].Sticky)
+	require.NoError(t, svc.createFrontlineRoute(ctx, dom, now))
+	route, err := database.FindFrontlineRouteByFQDN(ctx, dom.Domain)
+	require.NoError(t, err)
+	require.NotEqual(t, previous.ID, route.ID)
+	require.Equal(t, dom.ProjectID, route.ProjectID)
+	require.Equal(t, dom.AppID, route.AppID)
+	require.Equal(t, dom.EnvironmentID, route.EnvironmentID)
+	require.Equal(t, deploymentID, route.DeploymentID)
+	require.Equal(t, db.FrontlineRoutesStickyLive, route.Sticky)
+
+	require.NoError(t, svc.createFrontlineRoute(ctx, dom, now))
+	replayed, err := database.FindFrontlineRouteByFQDN(ctx, dom.Domain)
+	require.NoError(t, err)
+	require.Equal(t, route, replayed)
+
+	require.NoError(t, database.ReassignFrontlineRoute(ctx, db.ReassignFrontlineRouteParams{
+		ID:           previous.ID,
+		DeploymentID: previous.DeploymentID,
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: now + 1},
+	}))
+	afterOldOwnerWrite, err := database.FindFrontlineRouteByFQDN(ctx, dom.Domain)
+	require.NoError(t, err)
+	require.Equal(t, route, afterOldOwnerWrite)
 }

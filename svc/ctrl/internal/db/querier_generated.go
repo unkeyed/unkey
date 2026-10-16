@@ -1334,9 +1334,7 @@ type Querier interface {
 	//      ?, ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, arg InsertEnvironmentParams) error
-	// Keeps an existing row for the domain instead of failing the unique
-	// fully-qualified-domain-name key, so two deployments of the same domain
-	// converge on the row that was created first.
+	//InsertFrontlineRoute
 	//
 	//  INSERT INTO frontline_routes (
 	//      id,
@@ -1360,8 +1358,6 @@ type Querier interface {
 	//      ?,
 	//      ?
 	//  )
-	//  ON DUPLICATE KEY UPDATE
-	//      id = id
 	InsertFrontlineRoute(ctx context.Context, arg InsertFrontlineRouteParams) error
 	//InsertGithubRepoConnection
 	//
@@ -1993,6 +1989,13 @@ type Querier interface {
 	//    AND w.enabled = true
 	//    AND w.deleted_at_m IS NULL
 	ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error)
+	//LockAppByID
+	//
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  FROM apps
+	//  WHERE id = ?
+	//  FOR UPDATE
+	LockAppByID(ctx context.Context, id string) (App, error)
 	// Must be the first statement of its transaction: the quota sum that follows
 	// relies on the read view opening after this lock is held
 	//

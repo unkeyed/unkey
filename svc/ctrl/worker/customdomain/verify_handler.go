@@ -404,11 +404,6 @@ func (s *Service) onVerificationSuccess(
 			return updateErr
 		}
 
-		// Delete old frontline route
-		if deleteErr := s.db.DeleteFrontlineRouteByFQDN(stepCtx, dom.Domain); deleteErr != nil && !db.IsNotFound(deleteErr) {
-			return deleteErr
-		}
-
 		// Delete old ACME challenge
 		if deleteErr := s.db.DeleteAcmeChallengeByDomainID(stepCtx, oldDom.ID); deleteErr != nil && !db.IsNotFound(deleteErr) {
 			return deleteErr
@@ -436,37 +431,46 @@ func (s *Service) onVerificationSuccess(
 	return &hydrav1.VerifyDomainResponse{}, nil
 }
 
-// createFrontlineRoute makes the verified domain routable.
-//
-// The table holds one row per fully qualified domain name, so this step clears
-// any route already holding the name before it inserts. A re-execution of the
-// step then converges on the same end state instead of failing on the unique
-// key and retrying forever.
 func (s *Service) createFrontlineRoute(ctx context.Context, dom db.CustomDomain, now int64) error {
-	app, err := s.db.FindAppById(ctx, dom.AppID)
-	if err != nil {
-		return fault.Wrap(err, fault.Internal("failed to find app for frontline route"))
-	}
+	return db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		queries := db.NewQueries(tx)
+		app, err := queries.LockAppByID(txCtx, dom.AppID)
+		if err != nil {
+			return fault.Wrap(err, fault.Internal("failed to find app for frontline route"))
+		}
+		deploymentID := ""
+		if app.CurrentDeploymentID.Valid {
+			deploymentID = app.CurrentDeploymentID.String
+		}
 
-	deploymentID := ""
-	if app.CurrentDeploymentID.Valid {
-		deploymentID = app.CurrentDeploymentID.String
-	}
-
-	if err := s.db.DeleteFrontlineRouteByFQDN(ctx, dom.Domain); err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(err, fault.Internal("failed to replace existing frontline route"))
-	}
-
-	return s.db.InsertFrontlineRoute(ctx, db.InsertFrontlineRouteParams{
-		ID:                       uid.New(uid.FrontlineRoutePrefix),
-		ProjectID:                dom.ProjectID,
-		AppID:                    dom.AppID,
-		DeploymentID:             deploymentID,
-		EnvironmentID:            dom.EnvironmentID,
-		FullyQualifiedDomainName: dom.Domain,
-		Sticky:                   db.FrontlineRoutesStickyLive,
-		CreatedAt:                now,
-		UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
+		route, err := queries.FindFrontlineRouteByFQDN(txCtx, dom.Domain)
+		if err != nil && !db.IsNotFound(err) {
+			return err
+		}
+		if err == nil {
+			if route.ProjectID == dom.ProjectID && route.AppID == dom.AppID &&
+				route.EnvironmentID == dom.EnvironmentID && route.Sticky == db.FrontlineRoutesStickyLive {
+				return queries.ReassignFrontlineRoute(txCtx, db.ReassignFrontlineRouteParams{
+					ID:           route.ID,
+					DeploymentID: deploymentID,
+					UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+				})
+			}
+			if err := queries.DeleteFrontlineRouteByFQDN(txCtx, dom.Domain); err != nil {
+				return err
+			}
+		}
+		return queries.InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
+			ID:                       uid.New(uid.FrontlineRoutePrefix),
+			ProjectID:                dom.ProjectID,
+			AppID:                    dom.AppID,
+			DeploymentID:             deploymentID,
+			EnvironmentID:            dom.EnvironmentID,
+			FullyQualifiedDomainName: dom.Domain,
+			Sticky:                   db.FrontlineRoutesStickyLive,
+			CreatedAt:                now,
+			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
+		})
 	})
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -96,13 +97,13 @@ type swapLiveDeploymentResult struct {
 
 func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveDeploymentRequest, previousDeploymentID string) (swapLiveDeploymentResult, error) {
 	deploymentID := req.GetDeploymentId()
-	return db.TxWithResult(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (swapLiveDeploymentResult, error) {
+	deployment, err := s.db.FindDeploymentById(ctx, deploymentID)
+	if err != nil {
+		return swapLiveDeploymentResult{}, fmt.Errorf("find target deployment: %w", err)
+	}
+	return db.TxWithResultRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (swapLiveDeploymentResult, error) {
 		queries := db.NewQueries(tx)
-		deployment, findErr := queries.FindDeploymentById(txCtx, deploymentID)
-		if findErr != nil {
-			return swapLiveDeploymentResult{}, fmt.Errorf("find target deployment: %w", findErr)
-		}
-		currentApp, findErr := queries.FindAppById(txCtx, deployment.AppID)
+		currentApp, findErr := queries.LockAppByID(txCtx, deployment.AppID)
 		if findErr != nil {
 			return swapLiveDeploymentResult{}, fmt.Errorf("find app: %w", findErr)
 		}
@@ -152,8 +153,21 @@ func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveD
 			}
 		}
 
+		routes, err := queries.FindFrontlineRoutesByEnvironmentAndSticky(txCtx, db.FindFrontlineRoutesByEnvironmentAndStickyParams{
+			EnvironmentID: deployment.EnvironmentID,
+			Sticky:        []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment, db.FrontlineRoutesStickyLive},
+		})
+		if err != nil {
+			return swapLiveDeploymentResult{}, fmt.Errorf("find sticky routes: %w", err)
+		}
+		routeIDs := slices.Clone(req.GetFrontlineRouteIds())
+		for _, route := range routes {
+			routeIDs = append(routeIDs, route.ID)
+		}
+		slices.Sort(routeIDs)
+
 		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-		for _, frontlineRouteID := range req.GetFrontlineRouteIds() {
+		for _, frontlineRouteID := range slices.Compact(routeIDs) {
 			if reassignErr := queries.ReassignFrontlineRoute(txCtx, db.ReassignFrontlineRouteParams{
 				ID:           frontlineRouteID,
 				DeploymentID: deploymentID,
