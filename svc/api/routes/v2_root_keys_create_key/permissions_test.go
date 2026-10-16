@@ -73,6 +73,9 @@ func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
 	for _, permission := range []string{
+		"*",
+		"api.*.create_key",
+		"workspace.*.create_key",
 		base + "rootKeys/*#decrypt",
 		base + "limits#write",
 		base + "usage#write",
