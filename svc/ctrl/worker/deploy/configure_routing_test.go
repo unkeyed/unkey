@@ -125,7 +125,7 @@ type RoutingProbeResult struct {
 	ShouldAutoPromote bool     `json:"shouldAutoPromote"`
 }
 
-// RoutingProbe hosts configureRouting behind a Restate workflow so the test can
+// RoutingProbe hosts ConfigureRouting behind a Restate workflow so the test can
 // hand it a real WorkflowContext.
 type RoutingProbe struct {
 	workflow *deploy.Workflow

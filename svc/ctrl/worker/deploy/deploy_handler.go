@@ -73,7 +73,7 @@ const (
 //     per workspace, or resolve a pre-built image without taking a slot
 //  2. [Workflow.createTopologies]: provision deployment topologies across regions
 //  3. [Workflow.waitForDeployments]: block until enough regions are healthy
-//  4. [Workflow.configureRouting]: assign domain routes to the deployment
+//  4. [Workflow.ConfigureRouting]: assign domain routes to the deployment
 //  5. [Workflow.swapLiveDeployment]: promote to live (production only)
 //
 // Network policies are not provisioned by the control plane any more —
@@ -244,7 +244,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	// --- Network ---
 	err = DeploymentStep(w, ctx, db.DeploymentStepsStepNetwork, deployment.ID, func(stepCtx restate.WorkflowContext) error {
 		var err error
-		reassignRouteIDs, shouldAutoPromote, err = w.configureRouting(stepCtx, deployment)
+		reassignRouteIDs, shouldAutoPromote, err = w.ConfigureRouting(stepCtx, deployment)
 		return err
 	})
 	if err != nil {
@@ -592,12 +592,12 @@ func (w *Workflow) reserveTopologies(ctx context.Context, req reserveTopologiesR
 	})
 }
 
-// configureRouting sets up domain-based routing for a deployment. It generates
+// ConfigureRouting sets up domain-based routing for a deployment. It generates
 // domain names via [buildDomains] (per-commit, per-branch, and per-environment
 // URLs), upserts a frontline route record for each domain, and then collects
 // the routes that follow a new deployment: the environment route, the live
 // route unless the app is rolled back, and this deployment's branch route.
-func (w *Workflow) configureRouting(
+func (w *Workflow) ConfigureRouting(
 	ctx restate.ObjectContext,
 	deployment db.FindDeploymentForDeployRow,
 ) ([]string, bool, error) {
