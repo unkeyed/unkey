@@ -27,7 +27,11 @@ export async function loadFlags() {
       timeoutMs: 10_000,
       retryConfig: { strategy: "none" },
     });
-    const response = await client.workspace.getFlags({ cache: "no-store", redirect: "error" });
+    const response = await client.workspace.getFlags({
+      cache: "no-store",
+      redirect: "error",
+      headers: { "x-unkey-client": "unkey-dashboard" },
+    });
     return response.data;
   } catch (error) {
     console.error("Failed to load initial workspace flags; using defaults", { error });
