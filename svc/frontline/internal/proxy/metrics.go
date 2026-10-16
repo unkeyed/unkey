@@ -17,6 +17,15 @@ const (
 	dialOutcomeError   = "error"
 )
 
+// Outcome labels for upgradeSparesTotal.
+const (
+	spareOutcomeHit     = "hit"     // a spare carried the upgrade
+	spareOutcomeMiss    = "miss"    // no spare was ready, so the upgrade dialed
+	spareOutcomeStale   = "stale"   // a spare failed, so the upgrade was retried on a fresh dial
+	spareOutcomeReused  = "reused"  // an idle connection from a previous non-upgrade response was reused
+	spareOutcomeSkipped = "skipped" // the upgrade is not a GET without a body, so it never uses spares
+)
+
 var (
 	// upstreamSeconds is the wall-clock duration of the upstream call —
 	// from request send to response complete (or error). Customer-pod
@@ -68,5 +77,18 @@ var (
 			Help:      "TCP dials issued for upstream connections.",
 		},
 		[]string{"destination", "outcome"},
+	)
+
+	// upgradeSparesTotal counts cross-region protocol upgrades by how they got
+	// a peer connection. A miss, stale or skipped upgrade pays TCP and TLS
+	// round trips to the peer region before the upgrade.
+	upgradeSparesTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "frontline",
+			Name:      "region_upgrade_spares_total",
+			Help:      "Cross-region upgrades by spare connection outcome.",
+		},
+		[]string{"outcome"},
 	)
 )

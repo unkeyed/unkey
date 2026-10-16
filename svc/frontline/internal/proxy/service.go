@@ -33,6 +33,7 @@ type service struct {
 	apexDomain         string
 	clock              clock.Clock
 	transport          *http.Transport
+	upgradeTransport   http.RoundTripper
 	upstreamTransports *TransportRegistry
 	maxHops            int
 	metadata           *meta.Codec
@@ -55,8 +56,10 @@ func New(cfg Config) (*service, error) {
 	}
 
 	var transport *http.Transport
+	var upgradeTransport http.RoundTripper
 	if cfg.Transport != nil {
 		transport = cfg.Transport
+		upgradeTransport = cfg.Transport
 	} else {
 		//nolint:exhaustruct
 		transport = &http.Transport{
@@ -90,6 +93,13 @@ func New(cfg Config) (*service, error) {
 		if cfg.TLSHandshakeTimeout > 0 {
 			transport.TLSHandshakeTimeout = cfg.TLSHandshakeTimeout
 		}
+
+		pool := newSparePool(newUpgradeDialer(transport.TLSHandshakeTimeout), cfg.Clock, upgradeSparesPerPeer, upgradeSpareIdle)
+		upgradeTransport = newUpgradeTransport(pool, upgradeTransportConfig{
+			maxIdleConns:         transport.MaxIdleConns,
+			idleConnTimeout:      transport.IdleConnTimeout,
+			spareResponseTimeout: upgradeSpareResponseTimeout,
+		})
 	}
 
 	upstreamTransports := cfg.UpstreamTransports
@@ -109,6 +119,7 @@ func New(cfg Config) (*service, error) {
 		apexDomain:         cfg.ApexDomain,
 		clock:              cfg.Clock,
 		transport:          transport,
+		upgradeTransport:   upgradeTransport,
 		upstreamTransports: upstreamTransports,
 		maxHops:            maxHops,
 		metadata:           cfg.Metadata,
@@ -200,11 +211,16 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		)
 	}
 
+	var transport http.RoundTripper = s.transport
+	if isUpgradeRequest(sess.Request()) {
+		transport = s.upgradeTransport
+	}
+
 	return s.forward(ctx, sess, forwardConfig{
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeRegionDirector(sess, startTime, signedMetadata),
 		destination:  destinationFrontline,
-		transport:    s.transport,
+		transport:    transport,
 	})
 }
