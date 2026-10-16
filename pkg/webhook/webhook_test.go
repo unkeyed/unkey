@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -304,5 +305,72 @@ func TestTyped(t *testing.T) {
 			}),
 		)
 		require.Equal(t, http.StatusBadRequest, post(t, rec, "").Code)
+	})
+}
+
+func TestTypedResponse(t *testing.T) {
+	eventID := uid.New(uid.TestPrefix)
+	newReceiver := func(payload []byte) *Receiver {
+		return New("test", staticVerifier{
+			event: Event{ID: eventID, Type: "thing.created", Payload: payload},
+		})
+	}
+	type request struct {
+		Name string `json:"name"`
+	}
+	type response struct {
+		Message string `json:"message"`
+	}
+	payload, err := json.Marshal(request{Name: "box"})
+	require.NoError(t, err)
+
+	t.Run("typed request and JSON acknowledgment", func(t *testing.T) {
+		rec := newReceiver(payload).OnResponse(
+			[]string{"thing.created"},
+			TypedResponse(http.StatusCreated, func(ctx context.Context, event Event, input request) (response, error) {
+				require.Equal(t, eventID, event.ID)
+				return response{Message: "created " + input.Name}, nil
+			}),
+		)
+		got := post(t, rec, "")
+		require.Equal(t, http.StatusCreated, got.Code)
+		require.Equal(t, "application/json", got.Header().Get("Content-Type"))
+		var body response
+		require.NoError(t, json.Unmarshal(got.Body.Bytes(), &body))
+		require.Equal(t, response{Message: "created box"}, body)
+	})
+
+	t.Run("malformed request returns 400", func(t *testing.T) {
+		rec := newReceiver([]byte("not json")).OnResponse(
+			[]string{"thing.created"},
+			TypedResponse(http.StatusCreated, func(ctx context.Context, event Event, input request) (response, error) {
+				t.Fatal("handler must not run for unparseable payloads")
+				return response{}, nil
+			}),
+		)
+		require.Equal(t, http.StatusBadRequest, post(t, rec, "").Code)
+	})
+
+	t.Run("handler error discards response", func(t *testing.T) {
+		rec := newReceiver(payload).OnResponse(
+			[]string{"thing.created"},
+			TypedResponse(http.StatusCreated, func(ctx context.Context, event Event, input request) (response, error) {
+				return response{Message: "must not be sent"}, fmt.Errorf("private detail: %w", ErrUnavailable)
+			}),
+		)
+		got := post(t, rec, "")
+		require.Equal(t, http.StatusServiceUnavailable, got.Code)
+		require.NotContains(t, got.Body.String(), "must not be sent")
+		require.NotContains(t, got.Body.String(), "private detail")
+	})
+
+	t.Run("encoding error returns 500 instead of success", func(t *testing.T) {
+		rec := newReceiver(payload).OnResponse(
+			[]string{"thing.created"},
+			TypedResponse(http.StatusCreated, func(ctx context.Context, event Event, input request) (float64, error) {
+				return math.Inf(1), nil
+			}),
+		)
+		require.Equal(t, http.StatusInternalServerError, post(t, rec, "").Code)
 	})
 }

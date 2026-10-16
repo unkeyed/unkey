@@ -2,7 +2,6 @@ package keyleak
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -26,13 +25,25 @@ type handler struct {
 	clock   clock.Clock
 }
 
-func New(database db.Database, client *ingress.Client, verifier webhook.Verifier, clock clock.Clock) http.Handler {
-	h := &handler{db: database, restate: client, clock: clock}
+func New(
+	database db.Database,
+	client *ingress.Client,
+	verifier webhook.Verifier,
+	clock clock.Clock,
+) http.Handler {
+	h := &handler{
+		db:      database,
+		restate: client,
+		clock:   clock,
+	}
+
 	receiver := webhook.New("github_secret_scanning", verifier, webhook.WithMaxBodySize(bodyBytesMax)).
-		OnResponse([]string{githubsecrets.EventType}, h.report)
+		OnResponse([]string{githubsecrets.EventType}, webhook.TypedResponse(http.StatusCreated, h.report))
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
 		defer cancel()
+
 		w.Header().Set("Cache-Control", "no-store")
 		receiver.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -52,25 +63,21 @@ type result struct {
 	Label     string `json:"label"`
 }
 
-func (h *handler) report(ctx context.Context, event webhook.Event) (webhook.Response, error) {
-	var tokens []reportedToken
-	if err := json.Unmarshal(event.Payload, &tokens); err != nil || tokens == nil {
-		return webhook.Response{}, webhook.ErrBadRequest
+func (h *handler) report(ctx context.Context, _ webhook.Event, tokens []reportedToken) ([]result, error) {
+	if tokens == nil {
+		return nil, webhook.ErrBadRequest
 	}
 	for _, token := range tokens {
 		if token.Token == "" || token.Type == "" || token.Source == "" {
-			return webhook.Response{}, webhook.ErrBadRequest
+			return nil, webhook.ErrBadRequest
 		}
 	}
+
 	results, err := h.classifyAndEnqueue(ctx, tokens)
 	if err != nil {
-		return webhook.Response{}, fmt.Errorf("%w: %w", webhook.ErrUnavailable, err)
+		return nil, fmt.Errorf("%w: %w", webhook.ErrUnavailable, err)
 	}
-	body, err := json.Marshal(results)
-	if err != nil {
-		return webhook.Response{}, err
-	}
-	return webhook.Response{StatusCode: http.StatusCreated, ContentType: "application/json", Body: body}, nil
+	return results, nil
 }
 
 func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken) ([]result, error) {
@@ -78,6 +85,7 @@ func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken
 	if len(tokens) == 0 {
 		return results, nil
 	}
+
 	hashes := make([]string, 0, len(tokens))
 	seen := make(map[string]bool, len(tokens))
 	for _, token := range tokens {
@@ -87,6 +95,7 @@ func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken
 			hashes = append(hashes, hashed)
 		}
 	}
+
 	keys, err := h.db.FindLeakedKeysByHashes(ctx, hashes)
 	if err != nil {
 		return nil, fmt.Errorf("find leaked keys: %w", err)
@@ -95,6 +104,7 @@ func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken
 	for _, key := range keys {
 		byHash[key.Hash] = key
 	}
+
 	enqueued := make(map[string]bool, len(keys))
 	for _, token := range tokens {
 		hashed := hash.Sha256(token.Token)
@@ -108,6 +118,7 @@ func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken
 			})
 			continue
 		}
+
 		if !enqueued[key.ID] {
 			_, err := hydrav1.NewKeyLeakServiceIngressClient(h.restate).Notify().Send(ctx, &hydrav1.KeyLeakNotification{
 				KeyId:         key.ID,
@@ -123,6 +134,7 @@ func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken
 			}
 			enqueued[key.ID] = true
 		}
+
 		results = append(results, result{
 			TokenRaw:  token.Token,
 			TokenHash: "",
@@ -130,6 +142,7 @@ func (h *handler) classifyAndEnqueue(ctx context.Context, tokens []reportedToken
 			Label:     "true_positive",
 		})
 	}
+
 	logger.Info("Accepted key leak report", "reported", len(tokens), "matched", len(keys))
 	return results, nil
 }
