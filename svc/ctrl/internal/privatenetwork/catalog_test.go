@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"maps"
-	"os"
 	"slices"
 	"sync"
 	"testing"
@@ -15,23 +14,15 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/proto"
 	binlog "vitess.io/vitess/go/vt/proto/binlogdata"
 	"vitess.io/vitess/go/vt/proto/query"
 )
 
-var metricsRegistry = prometheus.NewRegistry()
-
-func TestMain(m *testing.M) {
-	lazy.SetRegistry(metricsRegistry)
-	os.Exit(m.Run())
-}
-
 func builds(t *testing.T) float64 {
 	t.Helper()
-	families, err := metricsRegistry.Gather()
+	families, err := prometheus.DefaultGatherer.Gather()
 	require.NoError(t, err)
 	for _, family := range families {
 		if family.GetName() == "unkey_control_private_network_catalog_builds_total" {
