@@ -1233,19 +1233,11 @@ type ApplyDeployment struct {
 	// The volume is created when the pod starts and deleted when the pod terminates.
 	// When absent, no ephemeral volume is attached.
 	EphemeralStorage *EphemeralStorage `protobuf:"bytes,29,opt,name=ephemeral_storage,json=ephemeralStorage,proto3,oneof" json:"ephemeral_storage,omitempty"`
-	// environment_kind is "production" or "preview". Krane labels Pods with it so
-	// the private resolver can identify callers.
-	EnvironmentKind string `protobuf:"bytes,30,opt,name=environment_kind,json=environmentKind,proto3" json:"environment_kind,omitempty"`
-	// private_networking enrolls the deployment's Pods in private networking:
-	// private DNS through the region's resolver and connectivity between its own
-	// replicas. Ctrl sets it only for deployments created with private networking
-	// whose app slug yields a replica host.
-	PrivateNetworking bool `protobuf:"varint,31,opt,name=private_networking,json=privateNetworking,proto3" json:"private_networking,omitempty"`
-	// private_network_replica_host is the private DNS name of this deployment's
-	// own replicas. It is set exactly when private_networking is true.
-	PrivateNetworkReplicaHost string `protobuf:"bytes,32,opt,name=private_network_replica_host,json=privateNetworkReplicaHost,proto3" json:"private_network_replica_host,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	// capabilities are the features the deployment saved when it was created.
+	// A missing message enables none of them.
+	Capabilities  *DeploymentCapabilities `protobuf:"bytes,33,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApplyDeployment) Reset() {
@@ -1446,25 +1438,11 @@ func (x *ApplyDeployment) GetEphemeralStorage() *EphemeralStorage {
 	return nil
 }
 
-func (x *ApplyDeployment) GetEnvironmentKind() string {
+func (x *ApplyDeployment) GetCapabilities() *DeploymentCapabilities {
 	if x != nil {
-		return x.EnvironmentKind
+		return x.Capabilities
 	}
-	return ""
-}
-
-func (x *ApplyDeployment) GetPrivateNetworking() bool {
-	if x != nil {
-		return x.PrivateNetworking
-	}
-	return false
-}
-
-func (x *ApplyDeployment) GetPrivateNetworkReplicaHost() string {
-	if x != nil {
-		return x.PrivateNetworkReplicaHost
-	}
-	return ""
+	return nil
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
@@ -1855,7 +1833,7 @@ var File_ctrl_v1_cluster_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
-	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\x1a\x18ctrl/v1/deployment.proto\"Y\n" +
+	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\x1a\x18ctrl/v1/deployment.proto\x1a%ctrl/v1/deployment_capabilities.proto\"Y\n" +
 	"\n" +
 	"ClusterKey\x12\x1a\n" +
 	"\bplatform\x18\x01 \x01(\tR\bplatform\x12\x16\n" +
@@ -1944,7 +1922,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0fDeploymentState\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
-	"\x05state\"\xe6\t\n" +
+	"\x05state\"\x90\t\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1973,10 +1951,8 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\bgit_repo\x18\x19 \x01(\tH\x06R\agitRepo\x88\x01\x01\x121\n" +
 	"\x12git_commit_message\x18\x1a \x01(\tH\aR\x10gitCommitMessage\x88\x01\x01\x12<\n" +
 	"\vautoscaling\x18\x1b \x01(\v2\x1a.ctrl.v1.AutoscalingPolicyR\vautoscaling\x12K\n" +
-	"\x11ephemeral_storage\x18\x1d \x01(\v2\x19.ctrl.v1.EphemeralStorageH\bR\x10ephemeralStorage\x88\x01\x01\x12)\n" +
-	"\x10environment_kind\x18\x1e \x01(\tR\x0fenvironmentKind\x12-\n" +
-	"\x12private_networking\x18\x1f \x01(\bR\x11privateNetworking\x12?\n" +
-	"\x1cprivate_network_replica_host\x18  \x01(\tR\x19privateNetworkReplicaHostB\v\n" +
+	"\x11ephemeral_storage\x18\x1d \x01(\v2\x19.ctrl.v1.EphemeralStorageH\bR\x10ephemeralStorage\x88\x01\x01\x12C\n" +
+	"\fcapabilities\x18! \x01(\v2\x1f.ctrl.v1.DeploymentCapabilitiesR\fcapabilitiesB\v\n" +
 	"\t_build_idB\x0e\n" +
 	"\f_healthcheckB\x13\n" +
 	"\x11_environment_slugB\t\n" +
@@ -2052,8 +2028,9 @@ var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(*ReportDeploymentStatusRequest_Update)(nil),          // 21: ctrl.v1.ReportDeploymentStatusRequest.Update
 	(*ReportDeploymentStatusRequest_Delete)(nil),          // 22: ctrl.v1.ReportDeploymentStatusRequest.Delete
 	(*ReportDeploymentStatusRequest_Update_Instance)(nil), // 23: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	nil,                      // 24: ctrl.v1.InstanceEvent.AttributesEntry
-	(*EphemeralStorage)(nil), // 25: ctrl.v1.EphemeralStorage
+	nil,                            // 24: ctrl.v1.InstanceEvent.AttributesEntry
+	(*EphemeralStorage)(nil),       // 25: ctrl.v1.EphemeralStorage
+	(*DeploymentCapabilities)(nil), // 26: ctrl.v1.DeploymentCapabilities
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	2,  // 0: ctrl.v1.WatchDeploymentChangesRequest.cluster:type_name -> ctrl.v1.ClusterKey
@@ -2073,26 +2050,27 @@ var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	18, // 14: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
 	17, // 15: ctrl.v1.ApplyDeployment.autoscaling:type_name -> ctrl.v1.AutoscalingPolicy
 	25, // 16: ctrl.v1.ApplyDeployment.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
-	2,  // 17: ctrl.v1.HeartbeatRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	23, // 18: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	1,  // 19: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
-	3,  // 20: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
-	4,  // 21: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
-	6,  // 22: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	7,  // 23: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
-	13, // 24: ctrl.v1.ClusterService.ReportInstanceEvents:input_type -> ctrl.v1.ReportInstanceEventsRequest
-	19, // 25: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
-	5,  // 26: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
-	5,  // 27: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
-	15, // 28: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	8,  // 29: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
-	14, // 30: ctrl.v1.ClusterService.ReportInstanceEvents:output_type -> ctrl.v1.ReportInstanceEventsResponse
-	20, // 31: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
-	26, // [26:32] is the sub-list for method output_type
-	20, // [20:26] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	26, // 17: ctrl.v1.ApplyDeployment.capabilities:type_name -> ctrl.v1.DeploymentCapabilities
+	2,  // 18: ctrl.v1.HeartbeatRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	23, // 19: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	1,  // 20: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
+	3,  // 21: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
+	4,  // 22: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
+	6,  // 23: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
+	7,  // 24: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
+	13, // 25: ctrl.v1.ClusterService.ReportInstanceEvents:input_type -> ctrl.v1.ReportInstanceEventsRequest
+	19, // 26: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
+	5,  // 27: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
+	5,  // 28: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
+	15, // 29: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
+	8,  // 30: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
+	14, // 31: ctrl.v1.ClusterService.ReportInstanceEvents:output_type -> ctrl.v1.ReportInstanceEventsResponse
+	20, // 32: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
+	27, // [27:33] is the sub-list for method output_type
+	21, // [21:27] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_cluster_proto_init() }
@@ -2101,6 +2079,7 @@ func file_ctrl_v1_cluster_proto_init() {
 		return
 	}
 	file_ctrl_v1_deployment_proto_init()
+	file_ctrl_v1_deployment_capabilities_proto_init()
 	file_ctrl_v1_cluster_proto_msgTypes[3].OneofWrappers = []any{
 		(*DeploymentChangeEvent_Deployment)(nil),
 	}

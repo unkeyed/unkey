@@ -71,7 +71,7 @@ type Controller struct {
 	disableGvisor bool
 
 	maxConcurrentRollouts    int
-	privateNetworkResolverIP string
+	privateNetworkingEnabled bool
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -134,9 +134,7 @@ type Config struct {
 	// an existing workload.
 	MaxConcurrentRollouts int
 
-	// PrivateNetworkResolverIP is the regional undns Service IP used by enrolled
-	// deployments. Empty disables private DNS on deployment Pods.
-	PrivateNetworkResolverIP string
+	PrivateNetworkEnabled bool
 }
 
 // New creates a [Controller] ready to be run with [Controller.Run].
@@ -169,7 +167,7 @@ func New(cfg Config) *Controller {
 		disableGvisor:    cfg.DisableGvisor,
 
 		maxConcurrentRollouts:    cfg.MaxConcurrentRollouts,
-		privateNetworkResolverIP: cfg.PrivateNetworkResolverIP,
+		privateNetworkingEnabled: cfg.PrivateNetworkEnabled,
 	}
 }
 

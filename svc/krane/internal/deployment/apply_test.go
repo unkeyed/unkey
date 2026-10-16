@@ -2,17 +2,14 @@ package deployment
 
 import (
 	"encoding/json"
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
-	ktesting "k8s.io/client-go/testing"
 )
 
 // Sentinel values for every ApplyDeployment field. Each is distinctive so the
@@ -31,8 +28,7 @@ const (
 	testPort             = int32(8080)
 	testShutdownSignal   = "SIGINT"
 	testAppID            = "app_sentinel"
-	testEnvironmentSlug  = "preview"
-	testEnvironmentKind  = "preview"
+	testEnvironmentSlug  = "production"
 	testRegion           = "us-east-1"
 	testGitCommitSha     = "abc123sha"
 	testGitBranch        = "main-sentinel"
@@ -78,7 +74,6 @@ func fullApplyRequest(t *testing.T) *ctrlv1.ApplyDeployment {
 		Healthcheck:                   hc,
 		AppId:                         testAppID,
 		EnvironmentSlug:               new(testEnvironmentSlug),
-		EnvironmentKind:               testEnvironmentKind,
 		Region:                        new(testRegion),
 		GitCommitSha:                  new(testGitCommitSha),
 		GitBranch:                     new(testGitBranch),
@@ -200,9 +195,6 @@ var fieldAssertions = map[string]func(t *testing.T, dep *appsv1.Deployment){
 		require.True(t, ok)
 		require.Equal(t, testEnvironmentSlug, v)
 	},
-	"environment_kind": func(t *testing.T, dep *appsv1.Deployment) {
-		require.Equal(t, testEnvironmentKind, dep.Labels["unkey.com/environment.kind"])
-	},
 	"region": func(t *testing.T, dep *appsv1.Deployment) {
 		v, ok := envValue(mainContainer(t, dep), "UNKEY_REGION")
 		require.True(t, ok)
@@ -246,7 +238,6 @@ var fieldAssertions = map[string]func(t *testing.T, dep *appsv1.Deployment){
 					"unkey.com/project.id":         testProjectID,
 					"unkey.com/app.id":             testAppID,
 					"unkey.com/environment.id":     testEnvironmentID,
-					"unkey.com/environment.kind":   testEnvironmentKind,
 					"unkey.com/deployment.id":      testDeploymentID,
 					"unkey.com/build.id":           testBuildID,
 					"unkey.com/platform":           "test-platform",
@@ -267,8 +258,7 @@ var fieldAssertions = map[string]func(t *testing.T, dep *appsv1.Deployment){
 }
 
 var fieldsRenderedElsewhere = map[string]string{
-	"private_networking":           "rendered only with a regional resolver; asserted by TestBuildDeployment_PrivateNetworkDNS",
-	"private_network_replica_host": "rendered only with a regional resolver; asserted by TestBuildDeployment_PrivateNetworkDNS",
+	"capabilities": "requires cluster enrollment; asserted by TestBuildDeployment_PrivateNetworkDNS",
 }
 
 // labelDeploymentIDKey returns the label key used for the deployment id by
@@ -476,83 +466,49 @@ func TestPodDrainSeconds(t *testing.T) {
 }
 
 func TestBuildDeployment_PrivateNetworkDNS(t *testing.T) {
+	enabled := &ctrlv1.DeploymentCapabilities{PrivateNetworking: true}
 	for _, tt := range []struct {
-		name       string
-		private    bool
-		resolverIP string
-		kind       string
-		wantDNS    bool
+		name           string
+		capabilities   *ctrlv1.DeploymentCapabilities
+		clusterEnabled bool
+		wantDomain     bool
 	}{
-		{name: "production", private: true, resolverIP: "10.0.0.53", kind: "production", wantDNS: true},
-		{name: "preview", private: true, resolverIP: "10.0.0.53", kind: "preview", wantDNS: true},
-		{name: "not_enrolled", resolverIP: "10.0.0.53", kind: "preview", wantDNS: false},
-		{name: "no_resolver", private: true, kind: "preview", wantDNS: false},
+		{name: "enrolled", capabilities: enabled, clusterEnabled: true, wantDomain: true},
+		{name: "not_enrolled", capabilities: &ctrlv1.DeploymentCapabilities{PrivateNetworking: false}, clusterEnabled: true},
+		{name: "missing_capabilities", clusterEnabled: true},
+		{name: "cluster_disabled", capabilities: enabled},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			controller := testController()
-			controller.privateNetworkResolverIP = tt.resolverIP
+			controller.privateNetworkingEnabled = tt.clusterEnabled
 			req := fullApplyRequest(t)
-			req.PrivateNetworking = tt.private
-			req.PrivateNetworkReplicaHost = "api.unkey.internal"
-			req.EnvironmentKind = tt.kind
+			req.Capabilities = tt.capabilities
 
 			dep := controller.buildDeployment(req, false)
+			require.Empty(t, dep.Spec.Template.Spec.DNSPolicy)
+			require.Nil(t, dep.Spec.Template.Spec.DNSConfig)
 			host, exists := envValue(mainContainer(t, dep), "UNKEY_PRIVATE_DOMAIN")
-			require.Equal(t, tt.wantDNS, exists)
-			if !tt.wantDNS {
-				require.NotEqual(t, corev1.DNSNone, dep.Spec.Template.Spec.DNSPolicy)
-				require.Nil(t, dep.Spec.Template.Spec.DNSConfig)
-				return
+			require.Equal(t, tt.wantDomain, exists)
+			if tt.wantDomain {
+				require.Equal(t, "unkey-connection-4274bb18f26b961b84db17a83974f205.test-ns.unkey.internal", host)
 			}
-			require.Equal(t, "api.unkey.internal", host)
-			require.Equal(t, corev1.DNSNone, dep.Spec.Template.Spec.DNSPolicy)
-			require.Equal(t, []string{tt.resolverIP}, dep.Spec.Template.Spec.DNSConfig.Nameservers)
-			require.Equal(t, []corev1.PodDNSConfigOption{
-				{Name: "ndots", Value: new("1")},
-				{Name: "timeout", Value: new("1")},
-				{Name: "attempts", Value: new("2")},
-			}, dep.Spec.Template.Spec.DNSConfig.Options)
 		})
 	}
 }
 
-func TestApplyDeploymentValidatesPrivateNetworkingBeforeKubernetes(t *testing.T) {
-	for _, test := range []struct {
-		name, kind, host, wantErr string
-		private                   bool
-	}{
-		{name: "production private", private: true, kind: "production", host: "api.unkey.internal"},
-		{name: "preview private", private: true, kind: "preview", host: "api.unkey.internal"},
-		{name: "not enrolled", kind: "production"},
-		{name: "private missing kind", private: true, host: "api.unkey.internal", wantErr: "Private networking requires a production or preview environment kind"},
-		{name: "private invalid kind", private: true, kind: "staging", host: "api.unkey.internal", wantErr: "Private networking requires a production or preview environment kind"},
-		{name: "private missing host", private: true, kind: "preview", wantErr: "Private networking requires a replica host"},
-	} {
-		for _, resolver := range []string{"", "10.0.0.53"} {
-			t.Run(test.name+"/"+resolver, func(t *testing.T) {
-				unavailable := errors.New("namespace unavailable")
-				client := fake.NewClientset()
-				client.PrependReactor("create", "namespaces", func(ktesting.Action) (bool, runtime.Object, error) {
-					return true, nil, unavailable
-				})
-				controller := testController()
-				controller.clientSet = client
-				controller.privateNetworkResolverIP = resolver
-				req := fullApplyRequest(t)
-				req.EnvironmentKind = test.kind
-				req.PrivateNetworking = test.private
-				req.PrivateNetworkReplicaHost = test.host
-
-				err := controller.ApplyDeployment(t.Context(), req)
-				if test.wantErr == "" {
-					require.ErrorIs(t, err, unavailable)
-					require.Len(t, client.Actions(), 1)
-					return
-				}
-
-				require.ErrorContains(t, err, test.wantErr)
-				require.Empty(t, client.Actions())
-			})
-		}
+func TestBuildDeployment_PrivateNetworkSelfHostBelongsToDeployment(t *testing.T) {
+	controller := testController()
+	controller.privateNetworkingEnabled = true
+	selfHost := func(deploymentID string) string {
+		req := fullApplyRequest(t)
+		req.Capabilities = &ctrlv1.DeploymentCapabilities{PrivateNetworking: true}
+		req.DeploymentId = deploymentID
+		host, ok := envValue(mainContainer(t, controller.buildDeployment(req, false)), "UNKEY_PRIVATE_DOMAIN")
+		require.True(t, ok)
+		return host
 	}
+
+	first, second := uid.New(uid.DeploymentPrefix), uid.New(uid.DeploymentPrefix)
+	require.Equal(t, selfHost(first), selfHost(first))
+	require.NotEqual(t, selfHost(first), selfHost(second))
 }
