@@ -2243,7 +2243,7 @@ type Querier interface {
 	// the caller and live deployment facts that ListPrivateNetworkConnections
 	// needs to resolve it. LiveEnvironmentID is the environment of the target
 	// app's live deployment, empty when there is none. Names starting with unkey
-	// and the caller app's own slug are reserved. Callers must come from
+	// and the name self are reserved. Callers must come from
 	// ListPrivateNetworkReplicas in the same transaction, which decides which
 	// deployments are active callers. Rows are paged by (caller deployment,
 	// connection).
@@ -2291,13 +2291,13 @@ type Querier interface {
 	//      AND b.resource_type = 'app'
 	//      AND b.resource_id <> b.app_id
 	//      AND b.name NOT LIKE 'unkey%'
-	//      AND b.name <> caller_app.slug COLLATE utf8mb4_0900_as_cs
+	//      AND b.name <> 'self'
 	//  ORDER BY b.deployment_id, b.connection_id
 	//  LIMIT ?
 	ListPrivateNetworkConnectionSelections(ctx context.Context, arg ListPrivateNetworkConnectionSelectionsParams) ([]ListPrivateNetworkConnectionSelectionsRow, error)
 	// ListPrivateNetworkReplicas returns the given deployments that are active,
 	// were created with private networking, and run on the platform. Each one
-	// resolves its own replicas under its app's slug and is a caller for
+	// resolves its own replicas under the self name and is a caller for
 	// ListPrivateNetworkConnections.
 	// NO_SEMIJOIN keeps the topology check per deployment; as a semijoin MySQL may
 	// read every running topology row first.
