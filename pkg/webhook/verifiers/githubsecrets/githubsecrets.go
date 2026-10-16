@@ -13,11 +13,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/webhook"
+	"golang.org/x/sync/semaphore"
 )
 
 // EventType identifies secret-scanning reports, which carry no event-type header.
@@ -31,14 +31,14 @@ const (
 
 // Verifier is safe for concurrent use and must be constructed with New.
 type Verifier struct {
-	keysURL     string
-	clock       clock.Clock
-	client      *http.Client
-	mu          sync.Mutex
-	keys        map[string]*ecdsa.PublicKey
-	refreshAt   time.Time
-	refreshDone chan struct{}
-	refreshErr  error
+	keysURL string
+	clock   clock.Clock
+	client  *http.Client
+
+	cacheLock  *semaphore.Weighted
+	keys       map[string]*ecdsa.PublicKey
+	refreshAt  time.Time
+	refreshErr error
 }
 
 var _ webhook.Verifier = (*Verifier)(nil)
@@ -47,14 +47,13 @@ var _ webhook.Verifier = (*Verifier)(nil)
 // minute. The supplied clock must be non-nil.
 func New(keysURL string, clock clock.Clock) *Verifier {
 	return &Verifier{
-		keysURL:     keysURL,
-		clock:       clock,
-		client:      &http.Client{Timeout: 10 * time.Second},
-		mu:          sync.Mutex{},
-		keys:        nil,
-		refreshAt:   time.Time{},
-		refreshDone: nil,
-		refreshErr:  nil,
+		keysURL:    keysURL,
+		clock:      clock,
+		client:     &http.Client{Timeout: 10 * time.Second},
+		cacheLock:  semaphore.NewWeighted(1),
+		keys:       nil,
+		refreshAt:  time.Time{},
+		refreshErr: nil,
 	}
 }
 
@@ -74,6 +73,7 @@ func (v *Verifier) Verify(r *http.Request) (webhook.Event, error) {
 	if err != nil || len(signatureBytes) == 0 {
 		return webhook.Event{}, errors.New("invalid github signature encoding")
 	}
+
 	keys, err := v.publicKeys(r.Context())
 	if err != nil {
 		return webhook.Event{}, fmt.Errorf("%w: %w", webhook.ErrUnavailable, err)
@@ -82,6 +82,7 @@ func (v *Verifier) Verify(r *http.Request) (webhook.Event, error) {
 	if !ok {
 		return webhook.Event{}, errors.New("unknown github signing key")
 	}
+
 	digest := sha256.Sum256(payload)
 	if !ecdsa.VerifyASN1(key, digest[:], signatureBytes) {
 		return webhook.Event{}, errors.New("github signature mismatch")
@@ -90,60 +91,52 @@ func (v *Verifier) Verify(r *http.Request) (webhook.Event, error) {
 }
 
 func (v *Verifier) publicKeys(ctx context.Context) (map[string]*ecdsa.PublicKey, error) {
-	for {
-		v.mu.Lock()
-		if v.clock.Now().Before(v.refreshAt) {
-			keys, err := v.keys, v.refreshErr
-			v.mu.Unlock()
-			if keys != nil {
-				return keys, nil
-			}
-			return nil, err
-		}
-		if done := v.refreshDone; done != nil {
-			v.mu.Unlock()
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			case <-done:
-				continue
-			}
-		}
-		v.refreshDone = make(chan struct{})
-		v.mu.Unlock()
+	if err := v.cacheLock.Acquire(ctx, 1); err != nil {
+		return nil, err
+	}
+	defer v.cacheLock.Release(1)
 
+	if !v.clock.Now().Before(v.refreshAt) {
 		keys, err := v.fetchKeys(ctx)
-		v.mu.Lock()
 		v.refreshErr = err
 		v.refreshAt = v.clock.Now().Add(retryDelay)
 		if err == nil {
 			v.keys = keys
 			v.refreshAt = v.clock.Now().Add(keysTTL)
 		}
-		close(v.refreshDone)
-		v.refreshDone = nil
-		v.mu.Unlock()
 	}
+	if v.keys != nil {
+		return v.keys, nil
+	}
+	return nil, v.refreshErr
 }
 
 func (v *Verifier) fetchKeys(ctx context.Context) (map[string]*ecdsa.PublicKey, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, v.keysURL, nil)
 	if err != nil {
-		return nil, errors.New("invalid github keys URL")
+		return nil, fmt.Errorf("create github signing keys request: %w", err)
 	}
 	req.Header.Set("User-Agent", "unkey-secret-scanning")
 	res, err := v.client.Do(req)
 	if err != nil {
-		return nil, errors.New("github signing keys unavailable")
+		return nil, fmt.Errorf("fetch github signing keys: %w", err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New("github signing keys returned unsuccessful status")
+		return nil, fmt.Errorf("github signing keys returned HTTP %d", res.StatusCode)
 	}
+
 	body, err := io.ReadAll(io.LimitReader(res.Body, responseBytesMax+1))
-	if err != nil || len(body) > responseBytesMax {
-		return nil, errors.New("cannot read github signing keys response")
+	if err != nil {
+		return nil, fmt.Errorf("read github signing keys response: %w", err)
 	}
+	if len(body) > responseBytesMax {
+		return nil, errors.New("github signing keys response exceeds size limit")
+	}
+	return parseKeys(body)
+}
+
+func parseKeys(body []byte) (map[string]*ecdsa.PublicKey, error) {
 	var response struct {
 		PublicKeys []struct {
 			KeyIdentifier string `json:"key_identifier"`
@@ -151,8 +144,9 @@ func (v *Verifier) fetchKeys(ctx context.Context) (map[string]*ecdsa.PublicKey, 
 		} `json:"public_keys"`
 	}
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, errors.New("invalid github signing keys response")
+		return nil, fmt.Errorf("decode github signing keys: %w", err)
 	}
+
 	keys := make(map[string]*ecdsa.PublicKey)
 	for _, entry := range response.PublicKeys {
 		block, _ := pem.Decode([]byte(entry.Key))
@@ -164,9 +158,10 @@ func (v *Verifier) fetchKeys(ctx context.Context) (map[string]*ecdsa.PublicKey, 
 			continue
 		}
 		key, ok := parsed.(*ecdsa.PublicKey)
-		if ok && key.Curve == elliptic.P256() {
-			keys[entry.KeyIdentifier] = key
+		if !ok || key.Curve != elliptic.P256() {
+			continue
 		}
+		keys[entry.KeyIdentifier] = key
 	}
 	if len(keys) == 0 {
 		return nil, errors.New("github response contains no usable signing keys")
