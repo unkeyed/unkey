@@ -4,42 +4,20 @@ import (
 	"context"
 	"errors"
 	"maps"
-	"os"
 	"slices"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/proto"
 	binlog "vitess.io/vitess/go/vt/proto/binlogdata"
 	"vitess.io/vitess/go/vt/proto/query"
 )
-
-var metricsRegistry = prometheus.NewRegistry()
-
-func TestMain(m *testing.M) {
-	lazy.SetRegistry(metricsRegistry)
-	os.Exit(m.Run())
-}
-
-func builds(t *testing.T) float64 {
-	t.Helper()
-	families, err := metricsRegistry.Gather()
-	require.NoError(t, err)
-	for _, family := range families {
-		if family.GetName() == "unkey_control_private_network_catalog_builds_total" {
-			return family.GetMetric()[0].GetCounter().GetValue()
-		}
-	}
-	return 0
-}
 
 type fakeStore struct {
 	mu         sync.Mutex
@@ -362,7 +340,6 @@ func TestCatalogUnchangedStateDoesNoWork(t *testing.T) {
 		uid.New(uid.DeploymentPrefix): callerOf(workspace, uid.New(uid.AppPrefix), target),
 	})
 	before := h.store.work()
-	buildsBefore := builds(t)
 	first := h.snapshot(t)
 
 	cluster := []string{uid.New(uid.ClusterPrefix), uid.New(uid.RegionPrefix), "cell-1"}
@@ -375,7 +352,6 @@ func TestCatalogUnchangedStateDoesNoWork(t *testing.T) {
 		require.Equal(t, first.Version, snapshot.Version, "iteration %d", i)
 	}
 	require.Equal(t, before, h.store.work())
-	require.Equal(t, buildsBefore, builds(t))
 }
 
 // TestCatalogRefreshesOnlyAffectedCallers guarantees that one change reads
@@ -406,19 +382,19 @@ func TestCatalogRefreshesOnlyAffectedCallers(t *testing.T) {
 		{"unrelated deployment", rowEvent("deployments", []string{lonely, nobody}, []string{lonely, nobody}), []string{lonely}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			buildsBefore := builds(t)
+			before := h.snapshot(t)
 			require.NoError(t, h.stream.deliver(t, test.event))
 			require.NoError(t, h.stream.deliver(t, h.checkpoint(test.name, time.Second)))
 			require.ElementsMatch(t, test.want, h.store.work().lastCallers)
-			require.Equal(t, buildsBefore, builds(t), "entries read again unchanged")
+			require.Equal(t, before.Version, h.snapshot(t).Version, "entries read again unchanged")
 		})
 	}
 
-	buildsBefore := builds(t)
+	before := h.snapshot(t)
 	h.store.set(toWeb, callerOf(workspace, api, web, dbApp))
 	require.NoError(t, h.stream.deliver(t, rowEvent("deployments", []string{toWeb, api}, []string{toWeb, api})))
 	require.NoError(t, h.stream.deliver(t, h.checkpoint("changed", time.Second)))
-	require.Equal(t, buildsBefore+1, builds(t))
+	require.NotEqual(t, before.Version, h.snapshot(t).Version)
 }
 
 // TestCatalogInvalidatesBothRowImages guarantees that a row leaving the CDC

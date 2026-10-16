@@ -109,9 +109,6 @@ func (s dbStore) topology(ctx context.Context, platform string) (*ctrlv1.Private
 }
 
 func replicaFromRow(row db.ListPrivateNetworkReplicasRow) *ctrlv1.PrivateNetworkConnection {
-	if _, ok := privatenetwork.ReplicaHost(row.AppSlug); !ok {
-		return nil
-	}
 	return &ctrlv1.PrivateNetworkConnection{
 		WorkspaceId:         row.WorkspaceID,
 		ProjectId:           row.ProjectID,
@@ -123,6 +120,6 @@ func replicaFromRow(row db.ListPrivateNetworkReplicasRow) *ctrlv1.PrivateNetwork
 		TargetEnvironmentId: row.EnvironmentID,
 		CallerDeploymentId:  row.DeploymentID,
 		ConnectionId:        "self-" + row.DeploymentID,
-		ConnectionName:      row.AppSlug,
+		ConnectionName:      privatenetwork.SelfName,
 	}
 }
