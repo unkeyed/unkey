@@ -8,13 +8,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "./dialog/popover";
 import { toast } from "./toaster";
 
 const timestampLocalFormatter = (value: string | number) =>
-  formatTimestamp(parseTimestamp(value), "dateTime24h");
+  formatTimestamp(parseTimestamp(value), "MMM dd, HH:mm:ss");
 
 const timestampLocalHoursWithMillisFormatter = (value: string | number) =>
-  formatTimestamp(parseTimestamp(value), "timeWithMillis");
+  formatTimestamp(parseTimestamp(value), "HH:mm:ss.SSS");
 
 const timestampUtcFormatter = (value: string | number) =>
-  formatTimestamp(parseTimestamp(value), "full", "UTC");
+  formatTimestamp(parseTimestamp(value), "MMM d, yyyy, HH:mm:ss", "UTC");
 
 const TooltipRow = ({ label, value }: { label: string; value: string }) => {
   const [copied, setCopied] = useState(false);

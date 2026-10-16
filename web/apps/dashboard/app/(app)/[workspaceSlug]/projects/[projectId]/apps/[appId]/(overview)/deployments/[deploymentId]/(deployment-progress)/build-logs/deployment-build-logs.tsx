@@ -394,7 +394,7 @@ function BuildLogLineRow({
           title={new Date(entry.time).toLocaleString()}
           className={cn(GUTTER_WIDTH_CLASS, "tabular-nums text-grayA-10")}
         >
-          {formatTimestamp(entry.time, "timeWithMillis")}
+          {formatTimestamp(entry.time, "HH:mm:ss.SSS")}
         </time>
         <span
           className={cn("min-w-0 whitespace-pre-wrap break-all", ENTRY_TONE_CLASSES[tone].text)}

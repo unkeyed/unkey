@@ -90,7 +90,7 @@ export const formatTooltipTimestamp = (
     const last = parseTimestamp(data[data.length - 1].originalTimestamp);
     if (!isSameDay(first, last)) {
       // Data spans multiple days, always show date + time
-      return formatTimestamp(timestampMs, "dateTime");
+      return formatTimestamp(timestampMs, "MMM d, h:mm a");
     }
   }
 
@@ -108,11 +108,11 @@ export const formatTooltipTimestamp = (
       "per6Hours",
     ].includes(granularity)
   ) {
-    return formatTimestamp(timestampMs, "time");
+    return formatTimestamp(timestampMs, "h:mm a");
   }
 
   // For granularities 12 hours or more, show date + time
-  return formatTimestamp(timestampMs, "dateTime");
+  return formatTimestamp(timestampMs, "MMM d, h:mm a");
 };
 
 /**

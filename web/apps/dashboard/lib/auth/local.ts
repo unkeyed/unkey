@@ -1,4 +1,4 @@
-import { addDays } from "@/lib/dates";
+import { DAY_IN_MS } from "@/lib/trpc/routers/utils/constants";
 import { BaseAuthProvider } from "./base-provider";
 import { getCookie } from "./cookies";
 import {
@@ -82,7 +82,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     if (newOrgId !== LOCAL_ORG_ID) {
       throw new Error(`Organization ${newOrgId} not found`);
     }
-    const expiresAt = addDays(new Date(), 7);
+    const expiresAt = new Date(Date.now() + 7 * DAY_IN_MS);
     return {
       newToken: currentToken,
       expiresAt,
@@ -163,7 +163,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
 
   async inviteMember(params: OrgInviteParams): Promise<Invitation> {
     const now = new Date();
-    const expiresAt = addDays(now, 7);
+    const expiresAt = new Date(now.getTime() + 7 * DAY_IN_MS);
     return {
       id: `inv_local_${now.getTime()}`,
       email: params.email,

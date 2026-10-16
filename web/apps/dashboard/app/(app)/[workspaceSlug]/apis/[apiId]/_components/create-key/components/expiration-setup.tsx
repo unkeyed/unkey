@@ -1,8 +1,7 @@
 "use client";
 import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
-import { addDays } from "@/lib/dates";
-import { MINUTE_IN_MS } from "@/lib/trpc/routers/utils/constants";
+import { DAY_IN_MS, MINUTE_IN_MS } from "@/lib/trpc/routers/utils/constants";
 import { IconClockOutline12 } from "@unkey/icons";
 import { FormInput, formatTimestamp } from "@unkey/ui";
 import { useState } from "react";
@@ -71,7 +70,7 @@ export const ExpirationSetup = ({
 
     // Set default expiry date (1 day) when enabling if not already set
     if (checked && !currentExpiryDate) {
-      setValue("expiration.data", addDays(new Date(), 1));
+      setValue("expiration.data", new Date(Date.now() + DAY_IN_MS));
     }
   };
 
@@ -85,13 +84,13 @@ export const ExpirationSetup = ({
       let newDate = new Date();
       switch (since) {
         case "1d":
-          newDate = addDays(newDate, 1);
+          newDate = new Date(Date.now() + DAY_IN_MS);
           break;
         case "7d":
-          newDate = addDays(newDate, 7);
+          newDate = new Date(Date.now() + 7 * DAY_IN_MS);
           break;
         case "30d":
-          newDate = addDays(newDate, 30);
+          newDate = new Date(Date.now() + 30 * DAY_IN_MS);
           break;
       }
       setValue("expiration.data", newDate);
@@ -114,7 +113,7 @@ export const ExpirationSetup = ({
     if (!date) {
       return "Select expiration date";
     }
-    return formatTimestamp(new Date(date), "dateTimeWithYear");
+    return formatTimestamp(new Date(date), "MMM d, yyyy, h:mm a");
   };
 
   const getInitialTimeValues = () => {

@@ -25,7 +25,7 @@ export function formatFilterValues(
         return { value: value.toUpperCase(), color: null };
       case "startTime":
       case "endTime":
-        return { value: formatTimestamp(Number(value), "full"), color: null };
+        return { value: formatTimestamp(Number(value), "MMM d, yyyy, HH:mm:ss"), color: null };
       case "since":
         return { value: value, color: null };
       case "host":

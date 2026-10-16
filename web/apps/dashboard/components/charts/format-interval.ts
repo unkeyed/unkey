@@ -11,13 +11,13 @@ export function formatBucketInterval(
   nextTs: number | undefined,
   withDate?: boolean,
 ): string {
-  const startStr = formatTimestamp(startTs, withDate ? "dateTime" : "time");
+  const startStr = formatTimestamp(startTs, withDate ? "MMM d, h:mm a" : "h:mm a");
   if (typeof nextTs !== "number") {
     return startStr;
   }
   const endStr = formatTimestamp(
     nextTs,
-    withDate && !isSameDay(startTs, nextTs) ? "dateTime" : "time",
+    withDate && !isSameDay(startTs, nextTs) ? "MMM d, h:mm a" : "h:mm a",
   );
   return `${startStr} – ${endStr}`;
 }

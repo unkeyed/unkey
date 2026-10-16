@@ -419,7 +419,7 @@ function formatXAxisTick(v: number, spanMs: number, utc?: boolean): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
   }
-  return formatTimestamp(v, spanMs >= TWO_DAYS_MS ? "monthDay" : "time", utc ? "UTC" : undefined);
+  return formatTimestamp(v, spanMs >= TWO_DAYS_MS ? "MMM d" : "h:mm a", utc ? "UTC" : undefined);
 }
 
 function formatCompactInterval(

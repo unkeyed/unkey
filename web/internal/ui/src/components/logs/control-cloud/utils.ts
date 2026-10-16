@@ -2,7 +2,7 @@ import { formatTimestamp } from "../../../lib/time";
 
 export const defaultFormatValue = (value: string | number, field: string): string => {
   if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
-    return formatTimestamp(value, "full");
+    return formatTimestamp(value, "MMM d, yyyy, HH:mm:ss");
   }
   return String(value);
 };

@@ -58,7 +58,7 @@ const formatValue = (value: string | number, field: string, appName?: string): s
     return formatStatusCode(String(value));
   }
   if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
-    return formatTimestamp(value, "full");
+    return formatTimestamp(value, "MMM d, yyyy, HH:mm:ss");
   }
   if (field === "appId") {
     return appName ?? String(value);

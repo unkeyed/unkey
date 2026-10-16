@@ -89,7 +89,7 @@ export function DeploymentSelect({
     }
     return deployments.map(({ deployment }) => {
       const isDisabled = deployment.id === disabledDeploymentId || !deployment.hasOpenApiSpec;
-      const deployedAt = formatTimestamp(deployment.createdAt, "dateTime");
+      const deployedAt = formatTimestamp(deployment.createdAt, "MMM d, h:mm a");
       const isLatest = deployment.id === latestDeploymentId;
       const isCurrent = deployment.id === currentDeploymentId;
       const tooltipContent = getTooltipContent(deployment.id, isDisabled, isCurrent, isLatest);
@@ -134,7 +134,7 @@ export function DeploymentSelect({
       disabled={disabled || isLoading || deployments.length === 0}
       items={deployments.map(({ deployment }) => ({
         value: deployment.id,
-        label: `${shortenId(deployment.id)} • ${formatTimestamp(deployment.createdAt, "dateTime")}`,
+        label: `${shortenId(deployment.id)} • ${formatTimestamp(deployment.createdAt, "MMM d, h:mm a")}`,
       }))}
     >
       <SelectTrigger id={id} className="rounded-md" title={getTriggerTitle()}>

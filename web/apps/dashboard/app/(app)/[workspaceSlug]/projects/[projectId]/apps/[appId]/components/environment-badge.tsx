@@ -40,7 +40,7 @@ export function EnvironmentBadge({
   }
 
   const liveLabel =
-    liveSince === null ? "Live" : `Live since ${formatTimestamp(liveSince, "dateTimeWithYear")}`;
+    liveSince === null ? "Live" : `Live since ${formatTimestamp(liveSince, "MMM d, yyyy, h:mm a")}`;
 
   const { Icon, className, title, detail } = match(rollout)
     .with("none", () => ({

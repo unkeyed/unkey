@@ -30,23 +30,30 @@ describe("formatTimestamp", () => {
   const date = new Date(2026, 0, 5, 15, 4, 5, 123);
 
   it("renders each style in the reader's timezone", () => {
-    expect(formatTimestamp(date, "time")).toBe("3:04 PM");
-    expect(formatTimestamp(date, "timeWithMillis")).toBe("15:04:05.123");
-    expect(formatTimestamp(date, "monthDay")).toBe("Jan 5");
-    expect(formatTimestamp(date, "monthYear")).toBe("Jan 2026");
-    expect(formatTimestamp(date, "monthYearLong")).toBe("January 2026");
-    expect(formatTimestamp(date, "dateTime")).toBe("Jan 5, 3:04 PM");
-    expect(formatTimestamp(date, "dateTimeWithYear")).toBe("Jan 5, 2026, 3:04 PM");
-    expect(formatTimestamp(date, "dateTime24h")).toBe("Jan 05, 15:04:05");
-    expect(formatTimestamp(date, "full")).toBe("Jan 5, 2026, 15:04:05");
+    expect(formatTimestamp(date, "h:mm a")).toBe("3:04 PM");
+    expect(formatTimestamp(date, "HH:mm:ss.SSS")).toBe("15:04:05.123");
+    expect(formatTimestamp(date, "MMM d")).toBe("Jan 5");
+    expect(formatTimestamp(date, "MMM yyyy")).toBe("Jan 2026");
+    expect(formatTimestamp(date, "MMMM yyyy")).toBe("January 2026");
+    expect(formatTimestamp(date, "MMM d, h:mm a")).toBe("Jan 5, 3:04 PM");
+    expect(formatTimestamp(date, "MMM d, yyyy, h:mm a")).toBe("Jan 5, 2026, 3:04 PM");
+    expect(formatTimestamp(date, "MMM dd, HH:mm:ss")).toBe("Jan 05, 15:04:05");
+    expect(formatTimestamp(date, "MMM d, yyyy, HH:mm:ss")).toBe("Jan 5, 2026, 15:04:05");
   });
 
   it("accepts epoch milliseconds, keeps midnight on the 24-hour clock, and can render UTC", () => {
-    expect(formatTimestamp(date.getTime(), "time")).toBe("3:04 PM");
-    expect(formatTimestamp(new Date(2026, 10, 30, 0, 0, 0), "full")).toBe("Nov 30, 2026, 00:00:00");
-    expect(formatTimestamp(Date.UTC(2026, 0, 5, 15, 4, 5), "full", "UTC")).toBe(
+    expect(formatTimestamp(date.getTime(), "h:mm a")).toBe("3:04 PM");
+    expect(formatTimestamp(new Date(2026, 10, 30, 0, 0, 0), "MMM d, yyyy, HH:mm:ss")).toBe(
+      "Nov 30, 2026, 00:00:00",
+    );
+    expect(formatTimestamp(Date.UTC(2026, 0, 5, 15, 4, 5), "MMM d, yyyy, HH:mm:ss", "UTC")).toBe(
       "Jan 5, 2026, 15:04:05",
     );
+  });
+
+  it("names TIMESTAMP_STYLES when a style is missing", () => {
+    // @ts-expect-error "HH:mm" is not a style yet
+    expect(() => formatTimestamp(date, "HH:mm")).toThrow(/TIMESTAMP_STYLES/);
   });
 });
 

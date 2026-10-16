@@ -414,7 +414,7 @@ const formatDeploymentInfo = (
 // Format meta information
 const formatMetaInfo = (log: RequestLogsResponse): React.ReactNode => {
   const timestamp = new Date(log.time);
-  const formattedTime = formatTimestamp(timestamp, "dateTime24h");
+  const formattedTime = formatTimestamp(timestamp, "MMM dd, HH:mm:ss");
 
   // Format query params if present
   const queryParamsEntries = Object.entries(log.query_params);

@@ -75,6 +75,9 @@ export type TimestampStyle = keyof typeof TIMESTAMP_STYLES;
  * Timestamp in the reader's timezone, or in UTC. Browsers put a narrow no-break
  * space between "3:04" and "PM"; it is replaced with a plain space so the label
  * copies and compares like ordinary text.
+ *
+ * Styles are named with LDML tokens ("MMM d, h:mm a") and form a fixed list.
+ * To format another way, add an entry to TIMESTAMP_STYLES.
  */
 export function formatTimestamp(
   value: Date | number,
@@ -89,26 +92,26 @@ export function isSameDay(a: Date | number, b: Date | number): boolean {
 }
 
 const TIMESTAMP_STYLES = {
-  time: { hour: "numeric", minute: "2-digit" },
-  timeWithMillis: {
+  "h:mm a": { hour: "numeric", minute: "2-digit" },
+  "HH:mm:ss.SSS": {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     fractionalSecondDigits: 3,
     hourCycle: "h23",
   },
-  monthDay: { month: "short", day: "numeric" },
-  monthYear: { month: "short", year: "numeric" },
-  monthYearLong: { month: "long", year: "numeric" },
-  dateTime: { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },
-  dateTimeWithYear: {
+  "MMM d": { month: "short", day: "numeric" },
+  "MMM yyyy": { month: "short", year: "numeric" },
+  "MMMM yyyy": { month: "long", year: "numeric" },
+  "MMM d, h:mm a": { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },
+  "MMM d, yyyy, h:mm a": {
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   },
-  dateTime24h: {
+  "MMM dd, HH:mm:ss": {
     month: "short",
     day: "2-digit",
     hour: "2-digit",
@@ -116,7 +119,7 @@ const TIMESTAMP_STYLES = {
     second: "2-digit",
     hourCycle: "h23",
   },
-  full: {
+  "MMM d, yyyy, HH:mm:ss": {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -135,7 +138,13 @@ function timestampFormatter(style: TimestampStyle, timeZone?: "UTC"): Intl.DateT
   if (cached) {
     return cached;
   }
-  const made = new Intl.DateTimeFormat("en-US", { ...TIMESTAMP_STYLES[style], timeZone });
+  const options = TIMESTAMP_STYLES[style];
+  if (!options) {
+    throw new Error(
+      `Unknown timestamp style "${style}". Add it to TIMESTAMP_STYLES in @unkey/ui lib/time.ts.`,
+    );
+  }
+  const made = new Intl.DateTimeFormat("en-US", { ...options, timeZone });
   timestampFormatters.set(key, made);
   return made;
 }

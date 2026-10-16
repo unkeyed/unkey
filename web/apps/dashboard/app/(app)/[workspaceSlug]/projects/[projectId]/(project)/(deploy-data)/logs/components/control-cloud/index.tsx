@@ -38,7 +38,7 @@ const formatValue = (
   environmentName?: string,
 ): string => {
   if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
-    return formatTimestamp(value, "full");
+    return formatTimestamp(value, "MMM d, yyyy, HH:mm:ss");
   }
   if (field === "severity") {
     return value.toString().toUpperCase();

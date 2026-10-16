@@ -21,7 +21,7 @@ function CustomMonthCaptionComponent({ calendarMonth }: { calendarMonth: { date:
         <IconChevronLeftOutline12 className="text-gray-12" />
       </button>
       <div className="flex w-full text-gray-12 justify-center items-center font-medium">
-        {formatTimestamp(displayMonth, "monthYearLong")}
+        {formatTimestamp(displayMonth, "MMMM yyyy")}
       </div>
       <button
         className="flex min-w-6 min-h-6 justify-center items-center"
