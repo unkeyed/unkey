@@ -43,7 +43,7 @@ export const env = () =>
 
       // This key is used for ratelimiting our trpc procedures
       // It requires the following permission:
-      // `ratelimit.*.limit`
+      // `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*#limit_ratelimit_namespace`
       UNKEY_ROOT_KEY: z.string().optional(),
 
       CLICKHOUSE_URL: z.string().optional(),
