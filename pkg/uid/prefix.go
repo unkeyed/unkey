@@ -38,6 +38,7 @@ const (
 	EnvironmentPrefix         Prefix = "env"
 	EnvironmentVariablePrefix Prefix = "evr"
 	AppPrefix                 Prefix = "app"
+	ConnectionPrefix          Prefix = "conn"
 	DomainPrefix              Prefix = "dom"
 	DeploymentPrefix          Prefix = "d"
 	FrontlineRoutePrefix      Prefix = "flr"
