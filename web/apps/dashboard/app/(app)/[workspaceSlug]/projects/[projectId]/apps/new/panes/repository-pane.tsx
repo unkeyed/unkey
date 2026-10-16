@@ -96,7 +96,6 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
   });
   const pending = pick.isLoading
     ? {
-        repoId: pick.variables?.id ?? null,
         label: appId === null ? "Creating your app…" : "Connecting repository…",
       }
     : null;

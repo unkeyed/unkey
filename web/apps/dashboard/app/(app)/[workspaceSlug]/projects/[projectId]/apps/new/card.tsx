@@ -86,16 +86,28 @@ function CardTitle({
   );
 }
 
-export function CardPending({ message, className }: { message: string; className?: string }) {
+export function CardPending({
+  message,
+  description,
+  className,
+}: {
+  message: string;
+  description?: string;
+  className?: string;
+}) {
   return (
     <div
+      aria-live="polite"
       className={cn(
         "flex h-36 flex-col items-center justify-center gap-3 text-sm text-gray-11",
         className,
       )}
     >
       <Loading size={18} />
-      <p>{message}</p>
+      <div className="flex flex-col items-center gap-0.5">
+        <p>{message}</p>
+        {description ? <p className="text-xs text-gray-10">{description}</p> : null}
+      </div>
     </div>
   );
 }
