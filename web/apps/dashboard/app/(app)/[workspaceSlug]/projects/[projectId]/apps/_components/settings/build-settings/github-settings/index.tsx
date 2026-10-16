@@ -83,6 +83,7 @@ export const GitHub = ({ readOnly = false }: GitHubProps) => {
             onInstall={install}
             variant="outline"
             className="px-2.5 py-3 text-gray-12 font-medium text-sm hover:bg-grayA-2"
+            text="Connect GitHub"
           />
         </div>
       </GitHubSettingCard>

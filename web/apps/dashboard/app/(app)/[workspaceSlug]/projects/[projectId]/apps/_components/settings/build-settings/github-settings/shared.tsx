@@ -40,12 +40,12 @@ export const ManageGitHubAppLink = ({
   onInstall,
   variant = "primary",
   className = "px-3 py-2 rounded-md",
-  text = "Manage Github App",
+  text,
 }: {
   onInstall: () => Promise<void> | void;
   variant?: "outline" | "ghost" | "primary";
   className?: string;
-  text?: React.ReactNode;
+  text: React.ReactNode;
 }) => (
   <Button
     variant={variant}
