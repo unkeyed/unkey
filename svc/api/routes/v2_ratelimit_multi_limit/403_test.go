@@ -83,7 +83,7 @@ func TestInsufficientPermissions(t *testing.T) {
 		nonExistentNamespace := uid.New("nonexistent")
 
 		// Create a key that can limit any namespace but cannot create namespaces
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.limit")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/*#limit", h.Resources().UserWorkspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -104,7 +104,7 @@ func TestInsufficientPermissions(t *testing.T) {
 		// Should return 403 because user has some permissions but not create_namespace
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, got: %d, body: %s", res.Status, res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "create_namespace", "Error should mention missing create_namespace permission")
+		require.Contains(t, res.Body.Error.Detail, "ratelimits/namespaces/*#write", "error should name the missing namespace write permission")
 
 		// Verify the namespace was NOT created
 		ctx := context.Background()
@@ -140,7 +140,7 @@ func TestInsufficientPermissions(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a key that only has permission for namespace A (not wildcard, not B)
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceAID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, namespaceAID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

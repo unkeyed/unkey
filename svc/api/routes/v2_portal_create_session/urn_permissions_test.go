@@ -22,14 +22,14 @@ import (
 // keyspace has an owning API. Stage 2 needs that API to express its API-scoped
 // checks, so a portal without one would fail for the wrong reason. It returns
 // the project and portal ids a canonical session grant names.
-func sessionURNFixture(t *testing.T, h *testutil.Harness, slug string) (string, string) {
+func sessionURNFixture(t *testing.T, h *testutil.Harness, slug string) (string, string, string) {
 	t.Helper()
 
 	workspaceID := h.Resources().UserWorkspace.ID
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	portalID := insertKeyspacePortal(t, h, workspaceID, slug, api.KeyAuthID.String)
 
-	return api.ProjectID, portalID
+	return api.ProjectID, portalID, api.KeyAuthID.String
 }
 
 // TestCreateSessionAuthorizesCanonicalSessionURNs guarantees stage 1 requires
@@ -47,12 +47,10 @@ func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	projectID, portalID := sessionURNFixture(t, h, "urn-session-portal")
+	projectID, portalID, keyspaceID := sessionURNFixture(t, h, "urn-session-portal")
 	otherProjectID := uid.New(uid.ProjectPrefix)
 
-	// Legacy tuples for the keys:read ceiling, so stage 2 never refuses and
-	// stage 1 is what is under test.
-	keyGrants := []string{"api.*.read_key", "api.*.read_api"}
+	keyGrants := canonicalReadGrants(workspaceID, projectID, keyspaceID)
 
 	testCases := []struct {
 		name       string

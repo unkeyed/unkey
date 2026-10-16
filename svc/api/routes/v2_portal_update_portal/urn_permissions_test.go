@@ -25,7 +25,7 @@ func TestUpdatePortalAuthorizesAdminURN(t *testing.T) {
 	stored := h.SeedPortal(t, workspace.ID, "urn-portal", "urn-portal", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
 
-	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID))
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 	req := baseRequest(stored.Slug)
 	req.Slug = new("updated-urn-portal")
 
@@ -38,10 +38,8 @@ func TestUpdatePortalAuthorizesAdminURN(t *testing.T) {
 // every other field skips it, which is why the cases above pass without holding
 // any grant on the target.
 //
-// The grant here is deliberately the bare admin URN, with no legacy tuple beside
-// it. That is exactly what a dashboard operator carries. The JWT admin role
-// produces `unkey:v1:{ws}:**#*` without a tuple, so a target check that read
-// tuples only would deny the only caller this route has.
+// The grant here is deliberately the bare admin URN. That is exactly what a
+// dashboard operator carries, so the target check must authorize it directly.
 func TestUpdatePortalAuthorizesURNGrantOnRemap(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
@@ -51,7 +49,7 @@ func TestUpdatePortalAuthorizesURNGrantOnRemap(t *testing.T) {
 	stored := h.SeedPortal(t, workspace.ID, "urn-remap", "urn-remap", keyspaceMapping(t, h, workspace.ID),
 		nil, nil)
 
-	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID))
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", h.Resources().UserWorkspace.ID))
 
 	target := keyspaceMapping(t, h, workspace.ID)
 	req := baseRequest(stored.Slug)
@@ -110,6 +108,7 @@ func TestUpdatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 			req := baseRequest(stored.Slug)
 			req.DisplayName = new(displayName)
 
+			auditBefore := countAuditEntriesMentioning(t, h, workspace.ID, "portal.update")
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), req)
 
 			if tc.shouldPass {
@@ -125,6 +124,7 @@ func TestUpdatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 				"a denial must not disclose the project id")
 			require.NotEqual(t, displayName, fetchPortal(t, h, workspace.ID, stored.ID).DisplayName,
 				"a denied request must not write")
+			require.Equal(t, auditBefore, countAuditEntriesMentioning(t, h, workspace.ID, "portal.update"))
 		})
 	}
 }

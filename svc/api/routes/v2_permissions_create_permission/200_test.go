@@ -27,7 +27,7 @@ func TestSuccess(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_permission")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{

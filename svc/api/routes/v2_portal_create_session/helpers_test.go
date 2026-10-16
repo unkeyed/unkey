@@ -1,0 +1,53 @@
+package handler_test
+
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+)
+
+func sessionWriteGrant(workspaceID, projectID, portalID string) string {
+	return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Portal(portalID).Session("*"), permissions.Write).Value
+}
+
+func insertKeyspacePortal(t *testing.T, h *testutil.Harness, workspaceID, slug, keyspaceID string) string {
+	t.Helper()
+
+	mapping := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: keyspaceID}
+	return h.SeedPortal(t, workspaceID, slug, slug, mapping, nil, nil).ID
+}
+
+func countPortalSessions(t *testing.T, h *testutil.Harness, workspaceID, externalID string) int {
+	t.Helper()
+
+	count, err := db.Query.CountPortalSessionsByExternalID(context.Background(), h.DB.RO(), db.CountPortalSessionsByExternalIDParams{
+		WorkspaceID: workspaceID,
+		ExternalID:  externalID,
+	})
+	require.NoError(t, err)
+	return int(count)
+}
+
+func countAuditEntriesMentioning(t *testing.T, h *testutil.Harness, workspaceID, needle string) int {
+	t.Helper()
+
+	rows, err := db.Query.ListClickhouseOutboxByWorkspace(context.Background(), h.DB.RO(), workspaceID)
+	require.NoError(t, err)
+
+	count := 0
+	for _, row := range rows {
+		if strings.Contains(string(row.Payload), needle) {
+			count++
+		}
+	}
+	return count
+}

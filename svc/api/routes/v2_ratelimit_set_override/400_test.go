@@ -15,7 +15,7 @@ import (
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.set_override")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/*/overrides/*#write", h.Resources().UserWorkspace.ID))
 	route := &handler.Handler{
 		DB:             h.DB,
 		NamespaceCache: h.Caches.RatelimitNamespace,

@@ -6,7 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -17,21 +20,21 @@ import (
 // one keyspace, mirroring the list-keys route: key read and keyspace read.
 func canonicalReadGrants(workspaceID, projectID, keyspaceID string) []string {
 	return []string{
-		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", workspaceID, projectID, keyspaceID),
-		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspaceID, projectID, keyspaceID),
+		rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID).Key("*"), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID), permissions.Read).Value,
 	}
 }
 
 // canonicalRerollGrant is the canonical grant the keys:reroll ceiling requires on
 // one keyspace. The key segment is a wildcard because mint time has no key id.
 func canonicalRerollGrant(workspaceID, projectID, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write", workspaceID, projectID, keyspaceID)
+	return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID).Key("*"), permissions.Write).Value
 }
 
 // canonicalAnalyticsGrant is the canonical grant the analytics:read ceiling
 // requires on one keyspace: read on the keyspace's log resource.
 func canonicalAnalyticsGrant(workspaceID, projectID, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/logs#read", workspaceID, projectID, keyspaceID)
+	return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID).Logs(), permissions.Read).Value
 }
 
 // TestCreateSessionCeilingAcceptsCanonicalGrants guarantees the mint-time
@@ -50,7 +53,7 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	keyspaceID := api.KeyAuthID.String
-	insertKeyspacePortal(t, h, workspaceID, "canonical-ceiling-portal", keyspaceID)
+	portalID := insertKeyspacePortal(t, h, workspaceID, "canonical-ceiling-portal", keyspaceID)
 
 	// A real key id, so the concrete-key case is not a shape the evaluator might
 	// treat differently.
@@ -60,7 +63,7 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 	})
 
 	canonicalRead := canonicalReadGrants(workspaceID, api.ProjectID, keyspaceID)
-	mint := "portal.*.create_portal_session"
+	mint := fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#write", workspaceID, api.ProjectID, portalID)
 	read := []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead}
 	reroll := []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead, openapi.KeysReroll}
 	analytics := []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead, openapi.AnalyticsRead}
@@ -92,12 +95,6 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 			shouldPass: false,
 		},
 		{
-			name:       "legacy tuples still satisfy read",
-			scopes:     read,
-			grants:     []string{mint, "api.*.read_key", "api.*.read_api"},
-			shouldPass: true,
-		},
-		{
 			name:       "canonical key write satisfies reroll on a plaintext keyspace",
 			scopes:     reroll,
 			grants:     append([]string{mint, canonicalRerollGrant(workspaceID, api.ProjectID, keyspaceID)}, canonicalRead...),
@@ -118,27 +115,12 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 			shouldPass: true,
 		},
 		{
-			// Grantable before the root key migration runs: no root key carries
-			// a URN today.
-			name:       "the legacy analytics tuple satisfies analytics",
-			scopes:     analytics,
-			grants:     append([]string{mint, "api.*.read_analytics"}, canonicalRead...),
-			shouldPass: true,
-		},
-		{
 			// Keyspace read is not log read: neither analytics form is held
 			// here, so the keys:read grants must not carry the scope.
 			name:       "neither analytics form does not satisfy analytics",
 			scopes:     analytics,
 			grants:     append([]string{mint}, canonicalRead...),
 			shouldPass: false,
-		},
-		{
-			// The disjunction is per scope as well as per keyspace.
-			name:       "canonical read mixes with a legacy reroll grant",
-			scopes:     reroll,
-			grants:     append([]string{mint, "api.*.create_key"}, canonicalRead...),
-			shouldPass: true,
 		},
 	}
 
@@ -182,10 +164,10 @@ func TestCreateSessionCeilingInheritsRerollURNWeakness(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID, EncryptedKeys: true})
 	keyspaceID := api.KeyAuthID.String
-	insertKeyspacePortal(t, h, workspaceID, "canonical-encrypted-portal", keyspaceID)
+	portalID := insertKeyspacePortal(t, h, workspaceID, "canonical-encrypted-portal", keyspaceID)
 
 	grants := append([]string{
-		"portal.*.create_portal_session",
+		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#write", workspaceID, api.ProjectID, portalID),
 		canonicalRerollGrant(workspaceID, api.ProjectID, keyspaceID),
 	}, canonicalReadGrants(workspaceID, api.ProjectID, keyspaceID)...)
 
@@ -232,9 +214,9 @@ func TestCreateSessionCeilingComposesPerKeyspace(t *testing.T) {
 		first.KeyAuthID.String,
 		second.KeyAuthID.String,
 	})
-	h.SeedPortal(t, workspaceID, "ceiling-portal", "ceiling-portal", appMapping(app.AppID), nil, nil)
+	stored := h.SeedPortal(t, workspaceID, "ceiling-portal", "ceiling-portal", appMapping(app.AppID), nil, nil)
 
-	mint := "portal.*.create_portal_session"
+	mint := fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#write", workspaceID, project.ID, stored.ID)
 	canonicalFirst := canonicalReadGrants(workspaceID, project.ID, first.KeyAuthID.String)
 	canonicalSecond := canonicalReadGrants(workspaceID, project.ID, second.KeyAuthID.String)
 
@@ -247,17 +229,6 @@ func TestCreateSessionCeilingComposesPerKeyspace(t *testing.T) {
 		grants     []string
 		shouldPass bool
 	}{
-		{
-			// The two forms may be mixed across keyspaces.
-			name:   "legacy on one keyspace and canonical on the other",
-			scopes: read,
-			grants: append([]string{
-				mint,
-				fmt.Sprintf("api.%s.read_key", first.ID),
-				fmt.Sprintf("api.%s.read_api", first.ID),
-			}, canonicalSecond...),
-			shouldPass: true,
-		},
 		{
 			name:       "canonical on both keyspaces",
 			scopes:     read,

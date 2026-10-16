@@ -44,10 +44,8 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	// Granted so validation failures are isolated from authorization: a 400 case
 	// must fail on the request body, not on a missing permission.
 	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		"api.*.read_key",
-		"api.*.read_api",
-	)
+		append([]string{sessionWriteGrant(workspaceID, api.ProjectID, portalID)},
+			canonicalReadGrants(workspaceID, api.ProjectID, api.KeyAuthID.String)...)...)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -179,11 +177,11 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("legacy rbac tuple rejected", func(t *testing.T) {
+	t.Run("unsupported scope rejected", func(t *testing.T) {
 		req := handler.Request{
 			Portal:     "test-portal",
 			ExternalId: "user_123",
-			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"api.*.read_key"},
+			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"unsupported:read"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -194,7 +192,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Portal:     "test-portal",
 			ExternalId: "user_123",
-			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "api.*.read_key"},
+			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "unsupported:read"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -229,13 +227,11 @@ func TestCreateSessionRejectsRemovedScopes(t *testing.T) {
 	insertKeyspacePortal(t, h, workspaceID, "removed-scope-portal", api.KeyAuthID.String)
 
 	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		"api.*.read_key",
-		"api.*.read_api",
-		"api.*.create_key",
-		"api.*.encrypt_key",
-		"api.*.read_analytics",
-	)
+		append([]string{
+			sessionWriteGrant(workspaceID, api.ProjectID, "*"),
+			canonicalRerollGrant(workspaceID, api.ProjectID, api.KeyAuthID.String),
+			canonicalAnalyticsGrant(workspaceID, api.ProjectID, api.KeyAuthID.String),
+		}, canonicalReadGrants(workspaceID, api.ProjectID, api.KeyAuthID.String)...)...)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -344,10 +340,8 @@ func TestCreateSessionRejectsUnsafeReturnUrl(t *testing.T) {
 	insertKeyspacePortal(t, h, workspaceID, "return-url-portal", api.KeyAuthID.String)
 
 	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		"api.*.read_key",
-		"api.*.read_api",
-	)
+		append([]string{sessionWriteGrant(workspaceID, api.ProjectID, "*")},
+			canonicalReadGrants(workspaceID, api.ProjectID, api.KeyAuthID.String)...)...)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
