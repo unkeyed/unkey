@@ -10,6 +10,7 @@ type BulkQuerier interface {
 	InsertAcmeUsers(ctx context.Context, args []InsertAcmeUserParams) error
 	InsertApis(ctx context.Context, args []InsertApiParams) error
 	UpsertAppBuildSettings(ctx context.Context, args []UpsertAppBuildSettingsParams) error
+	InsertAppConnections(ctx context.Context, args []InsertAppConnectionParams) error
 	InsertAppEnvironmentVariables(ctx context.Context, args []InsertAppEnvironmentVariableParams) error
 	InsertApps(ctx context.Context, args []InsertAppParams) error
 	UpsertAppRegionalSettings(ctx context.Context, args []UpsertAppRegionalSettingsParams) error
@@ -22,8 +23,11 @@ type BulkQuerier interface {
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertRegion(ctx context.Context, args []UpsertRegionParams) error
 	UpsertCluster(ctx context.Context, args []UpsertClusterParams) error
+	InsertConnectionAppTargets(ctx context.Context, args []InsertConnectionAppTargetParams) error
 	InsertCustomDomains(ctx context.Context, args []InsertCustomDomainParams) error
 	UpsertCustomDomain(ctx context.Context, args []UpsertCustomDomainParams) error
+	InsertDeploymentConnectionAppTargets(ctx context.Context, args []InsertDeploymentConnectionAppTargetParams) error
+	InsertDeploymentConnections(ctx context.Context, args []InsertDeploymentConnectionParams) error
 	InsertDeployments(ctx context.Context, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, args []InsertDeploymentTopologyParams) error

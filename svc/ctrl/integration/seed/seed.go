@@ -71,6 +71,7 @@ func (s *Seeder) cleanup() {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
+	require.NoError(s.t, s.DB.DeleteDeploymentConnectionsByWorkspaceIds(ctx, s.workspaceIDs))
 	require.NoError(s.t, s.DB.DeleteWorkspacesWithChildren(ctx, s.workspaceIDs))
 }
 
@@ -424,6 +425,8 @@ type CreateDeploymentRequest struct {
 	Source         db.DeploymentsSource
 	ImageRequested sql.NullString
 	ImageResolved  sql.NullString
+
+	Capabilities dbtype.DeploymentCapabilities
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -469,6 +472,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
+		Capabilities:                  req.Capabilities,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      req.PrNumber,
 		ForkRepositoryFullName:        req.ForkRepositoryFullName,

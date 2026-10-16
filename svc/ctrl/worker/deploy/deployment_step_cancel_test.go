@@ -8,6 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	"github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
@@ -34,6 +35,7 @@ func TestDeploymentStepDoesNotReviveACancelledDeployment(t *testing.T) {
 	workflow, err := deploy.New(deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
+		Flags:         flags.NewNoop(),
 		DefaultDomain: "test.example.com",
 		DashboardURL:  "https://app.unkey.local",
 		Vault:         nil,
