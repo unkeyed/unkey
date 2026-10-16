@@ -132,12 +132,6 @@ message RegionalConfig {
   int32 max_instances = 3;
 }
 
-message AuthorizeDeploymentRequest {
-  string deployment_id = 1;
-}
-
-message AuthorizeDeploymentResponse {}
-
 message CancelDeploymentRequest {
   string deployment_id = 1;
   ActorInfo actor = 2;
@@ -155,9 +149,6 @@ message DeprovisionComputeResponse {}
 service DeployService {
   // Get deployment details
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse) {}
-
-  // Authorize deployment for an external contributor's push on a branch
-  rpc AuthorizeDeployment(AuthorizeDeploymentRequest) returns (AuthorizeDeploymentResponse) {}
 
   // Cancel a running or queued deployment. Marks the row cancelled and cancels
   // the Restate Deploy invocation; Restate cancels a queued or running Build
