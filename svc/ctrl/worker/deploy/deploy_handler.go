@@ -237,14 +237,14 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	})
 
 	var (
-		liveRouteIDs      []string
+		reassignRouteIDs  []string
 		shouldAutoPromote bool
 	)
 
 	// --- Network ---
 	err = DeploymentStep(w, ctx, db.DeploymentStepsStepNetwork, deployment.ID, func(stepCtx restate.WorkflowContext) error {
 		var err error
-		liveRouteIDs, shouldAutoPromote, err = w.configureRouting(stepCtx, deployment)
+		reassignRouteIDs, shouldAutoPromote, err = w.configureRouting(stepCtx, deployment)
 		return err
 	})
 	if err != nil {
@@ -275,7 +275,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 
 		if shouldAutoPromote {
 			var err error
-			promotionSkipReason, err = w.swapLiveDeployment(stepCtx, deployment, liveRouteIDs)
+			promotionSkipReason, err = w.swapLiveDeployment(stepCtx, deployment, reassignRouteIDs)
 			if err != nil {
 				return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
 			}
@@ -595,8 +595,8 @@ func (w *Workflow) reserveTopologies(ctx context.Context, req reserveTopologiesR
 // configureRouting sets up domain-based routing for a deployment. It generates
 // domain names via [buildDomains] (per-commit, per-branch, and per-environment
 // URLs), upserts a frontline route record for each domain, and then collects
-// any existing sticky routes (environment-level, and live-level for non-rolled-back
-// production) so they point to the new deployment.
+// the routes that follow a new deployment: the environment route, the live
+// route unless the app is rolled back, and this deployment's branch route.
 func (w *Workflow) configureRouting(
 	ctx restate.ObjectContext,
 	deployment db.FindDeploymentForDeployRow,
@@ -630,7 +630,7 @@ func (w *Workflow) configureRouting(
 		deployment.ID,
 	)
 
-	existingRouteIDs := make([]string, 0)
+	branchRouteIDs := make([]string, 0)
 
 	for _, domain := range allDomains {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
@@ -660,8 +660,8 @@ func (w *Workflow) configureRouting(
 		if getFrontlineRouteErr != nil {
 			return nil, false, fault.Wrap(getFrontlineRouteErr, fault.Public("Route records could not be created."))
 		}
-		if frontlineRouteID != "" {
-			existingRouteIDs = append(existingRouteIDs, frontlineRouteID)
+		if frontlineRouteID != "" && domain.sticky == db.FrontlineRoutesStickyBranch {
+			branchRouteIDs = append(branchRouteIDs, frontlineRouteID)
 		}
 	}
 
@@ -673,7 +673,7 @@ func (w *Workflow) configureRouting(
 		return nil, false, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
-	routeIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
+	envAndLiveRouteIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
 		// using a transaction here to ensure we read a consistent set of sticky routes that won't change under us as we promote this deployment.
 		// This is important to prevent a race
 		return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) ([]string, error) {
@@ -714,9 +714,9 @@ func (w *Workflow) configureRouting(
 		)
 	}
 
-	frontlineRouteIDs := append(routeIDs, existingRouteIDs...)
+	reassignRouteIDs := append(envAndLiveRouteIDs, branchRouteIDs...)
 	if deployment.EnvironmentKind.IsProduction() && !app.IsRolledBack {
-		return frontlineRouteIDs, true, nil
+		return reassignRouteIDs, true, nil
 	}
 
 	// Routing VO is keyed by env_id — per-env serialization for both route
@@ -724,7 +724,7 @@ func (w *Workflow) configureRouting(
 	_, err = hydrav1.NewRoutingServiceClient(ctx, deployment.EnvironmentID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
-		FrontlineRouteIds: frontlineRouteIDs,
+		FrontlineRouteIds: reassignRouteIDs,
 	})
 	if err != nil {
 		return nil, false, fault.Wrap(
