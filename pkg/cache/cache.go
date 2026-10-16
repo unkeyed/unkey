@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -33,7 +34,23 @@ type cache[K comparable, V any] struct {
 
 	inflightMu        sync.Mutex
 	inflightRefreshes map[K]bool
+
+	loadsMu sync.Mutex
+	loads   map[K]*inflight[V]
 }
+
+// inflight is an origin read for a key that other SWR callers wait for.
+// Its result fields are written before done is closed.
+type inflight[V any] struct {
+	done    chan struct{}
+	cancel  context.CancelFunc
+	waiters int
+	value   V
+	hit     CacheHit
+	err     error
+}
+
+var errLoadPanicked = errors.New("cache: shared origin read panicked")
 
 type Config[K comparable, V any] struct {
 	// How long the data is considered fresh
@@ -92,6 +109,8 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		stopMetrics:       nil, // set below, needs c
 		inflightMu:        sync.Mutex{},
 		inflightRefreshes: make(map[K]bool),
+		loadsMu:           sync.Mutex{},
+		loads:             make(map[K]*inflight[V]),
 	}
 
 	for range 10 {
@@ -347,19 +366,101 @@ func (c *cache[K, V]) revalidate(
 	op func(error) Op,
 ) {
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
-	v, err := refreshFromOrigin(ctx)
+	_, _, err := c.load(ctx, key, refreshFromOrigin, op)
 
 	if err != nil && !db.IsNotFound(err) {
 		logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
 	}
+}
 
+// load reads key from the origin and writes the result to the cache as op decides.
+// Concurrent callers for the same key share one origin read: the first caller
+// runs it and the others wait for its result or their own ctx, whichever ends
+// first. The read is canceled once every caller's ctx has ended.
+func (c *cache[K, V]) load(
+	ctx context.Context,
+	key K,
+	refreshFromOrigin func(context.Context) (V, error),
+	op func(error) Op,
+) (V, CacheHit, error) {
+	var zero V
+	if err := ctx.Err(); err != nil {
+		return zero, Miss, err
+	}
+
+	c.loadsMu.Lock()
+	if f, ok := c.loads[key]; ok {
+		f.waiters++
+		c.loadsMu.Unlock()
+		select {
+		case <-f.done:
+			return f.value, f.hit, f.err
+		case <-ctx.Done():
+			c.leaveLoad(key, f)
+			return zero, Miss, ctx.Err()
+		}
+	}
+
+	// The first caller's cancellation must not fail the callers waiting for
+	// it, so it cancels the read only through leaveLoad. Its deadline still
+	// bounds the read.
+	loadCtx := context.WithoutCancel(ctx)
+	var cancel context.CancelFunc
+	if deadline, ok := ctx.Deadline(); ok {
+		loadCtx, cancel = context.WithDeadline(loadCtx, deadline)
+	} else {
+		loadCtx, cancel = context.WithCancel(loadCtx)
+	}
+	f := &inflight[V]{done: make(chan struct{}), cancel: cancel, waiters: 1, value: zero, hit: Miss, err: errLoadPanicked}
+	c.loads[key] = f
+	c.loadsMu.Unlock()
+
+	stopLeave := context.AfterFunc(ctx, func() { c.leaveLoad(key, f) })
+	defer func() {
+		stopLeave()
+		c.loadsMu.Lock()
+		if c.loads[key] == f {
+			delete(c.loads, key)
+		}
+		c.loadsMu.Unlock()
+		f.cancel()
+		close(f.done)
+	}()
+
+	v, err := refreshFromOrigin(loadCtx)
+	var hit CacheHit
 	switch op(err) {
 	case WriteValue:
-		c.Set(ctx, key, v)
+		c.Set(loadCtx, key, v)
+		hit = Hit
 	case WriteNull:
-		c.SetNull(ctx, key)
+		c.SetNull(loadCtx, key)
+		hit = Null
 	case Noop:
-		break
+		hit = Null
+	default:
+		hit = Miss
+	}
+	if err != nil {
+		hit = Miss
+	}
+
+	f.value, f.hit, f.err = v, hit, err
+	return v, hit, err
+}
+
+// leaveLoad records that a caller stopped waiting for f. When no caller is
+// left, it cancels the read and removes it so later callers start a new one.
+func (c *cache[K, V]) leaveLoad(key K, f *inflight[V]) {
+	c.loadsMu.Lock()
+	defer c.loadsMu.Unlock()
+	f.waiters--
+	if f.waiters > 0 {
+		return
+	}
+	f.cancel()
+	if c.loads[key] == f {
+		delete(c.loads, key)
 	}
 }
 
@@ -395,35 +496,8 @@ func (c *cache[K, V]) SWR(
 	}
 
 	// Cache Miss - measure total time including all overhead
-	v, err := refreshFromOrigin(ctx)
+	v, hit, err := c.load(ctx, key, refreshFromOrigin, op)
 	c.recordTiming(ctx, "cache_swr", "miss", start)
-
-	switch op(err) {
-	case WriteValue:
-		c.Set(ctx, key, v)
-	case WriteNull:
-		c.SetNull(ctx, key)
-	case Noop:
-		break
-	}
-
-	if err != nil {
-		// Error occurred, return Miss as the cache hit status
-		return v, Miss, err
-	}
-
-	// Determine cache hit status based on the operation
-	var hit CacheHit
-	switch op(err) {
-	case Noop:
-		// Skip
-	case WriteValue:
-		hit = Hit
-	case WriteNull:
-		hit = Null
-	default:
-		hit = Miss
-	}
 
 	return v, hit, err
 }

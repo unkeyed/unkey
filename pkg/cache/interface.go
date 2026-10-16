@@ -36,6 +36,16 @@ type Cache[K comparable, V any] interface {
 	// SWR performs stale-while-revalidate: returns cached data immediately while
 	// optionally refreshing in the background. The op function determines whether
 	// to write the refreshed value, write null, or take no action based on the refresh error.
+	//
+	// Concurrent SWR calls that need the same key from the origin, including a
+	// background refresh started by SWR, share one call to refreshFromOrigin.
+	// The result is written to the cache before later calls stop joining it.
+	// The first caller runs the call with its refreshFromOrigin, op, context
+	// values, and deadline, so callers must pass equivalent functions for a key.
+	// Callers other than the first stop waiting and get ctx.Err() when their
+	// ctx ends, and a caller whose ctx has already ended gets ctx.Err() at once.
+	// The call is canceled only when every caller's ctx has ended. If it panics,
+	// the panic reaches the first caller and the others get an error.
 	SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(error) Op) (value V, hit CacheHit, err error)
 
 	// SWRMany performs stale-while-revalidate for multiple keys.
