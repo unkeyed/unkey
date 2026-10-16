@@ -2,100 +2,101 @@ package deployment
 
 import (
 	"context"
-	"errors"
-	"sync/atomic"
 	"testing"
-	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes/fake"
-	ktesting "k8s.io/client-go/testing"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestRunPodWatchLoopRetriesStartupAndReconnectFailures(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		client := fake.NewClientset()
-		first := &stubbornWatch{result: make(chan watch.Event)}
-		second := &stubbornWatch{result: make(chan watch.Event)}
-		var attempts atomic.Int32
-		client.PrependWatchReactor("pods", func(ktesting.Action) (bool, watch.Interface, error) {
-			switch attempts.Add(1) {
-			case 1, 2, 4, 5:
-				return true, nil, errors.New("watch unavailable")
-			case 3:
-				return true, first, nil
-			default:
-				return true, second, nil
-			}
-		})
+func podEventFixture(t *testing.T) (*appsv1.Deployment, *appsv1.ReplicaSet, *corev1.Pod) {
+	t.Helper()
+	d := testController().buildDeployment(fullApplyRequest(t), false)
+	d.UID = types.UID("deployment-uid")
 
-		ctrl := &Controller{clientSet: client}
-		ctx, cancel := context.WithCancel(t.Context())
-		defer cancel()
+	revision := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:       testNamespace,
+			Name:            testK8sName + "-abc123",
+			Labels:          d.Spec.Template.Labels,
+			UID:             types.UID("revision-uid"),
+			OwnerReferences: []metav1.OwnerReference{deploymentOwnerRef(d)},
+		},
+		Spec: appsv1.ReplicaSetSpec{Selector: d.Spec.Selector, Template: d.Spec.Template},
+	}
 
-		done := make(chan struct{})
-		go func() {
-			ctrl.runPodWatchLoop(ctx)
-			close(done)
-		}()
-		time.Sleep(11 * time.Second)
-		require.Equal(t, int32(3), attempts.Load())
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNamespace,
+			Name:      testK8sName + "-abc123-x1",
+			Labels:    d.Spec.Template.Labels,
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "apps/v1",
+				Kind:       "ReplicaSet",
+				Name:       revision.Name,
+				UID:        revision.UID,
+				Controller: new(true),
+			}},
+		},
+		Spec: d.Spec.Template.Spec,
+		Status: corev1.PodStatus{
+			Phase:      corev1.PodRunning,
+			PodIP:      "10.0.0.7",
+			Conditions: []corev1.PodCondition{{Type: corev1.ContainersReady, Status: corev1.ConditionTrue}},
+		},
+	}
 
-		close(first.result)
-		time.Sleep(16 * time.Second)
-		require.Equal(t, int32(6), attempts.Load())
-		require.True(t, first.stopped.Load())
+	return d, revision, pod
+}
 
-		cancel()
-		synctest.Wait()
-		require.True(t, second.stopped.Load())
+func TestRunPodEventHandlerReportsPodChanges(t *testing.T) {
+	d, revision, pod := podEventFixture(t)
+	reports := make(chan *ctrlv1.ReportDeploymentStatusRequest_Update, 10)
+	ctrl := cachedController(t, d, revision, pod)
+	ctrl.cluster = &testutil.MockClusterClient{
+		ReportDeploymentStatusFunc: func(_ context.Context, req *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error) {
+			reports <- req.GetUpdate()
+			return &ctrlv1.ReportDeploymentStatusResponse{}, nil
+		},
+	}
+
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan struct{})
+	go func() {
+		ctrl.runPodEventHandler(ctx)
+		close(done)
+	}()
+
+	nextReport := func() *ctrlv1.ReportDeploymentStatusRequest_Update {
+		t.Helper()
 		select {
-		case <-done:
-		default:
-			t.Fatal("watch loop did not stop after cancellation")
+		case update := <-reports:
+			return update
+		case <-time.After(5 * time.Second):
+			t.Fatal("no status report")
+			return nil
 		}
-	})
+	}
+
+	update := nextReport()
+	require.Equal(t, testK8sName, update.GetK8SName(), "status must be reported under the Deployment name")
+	require.Len(t, update.GetInstances(), 1)
+	require.Equal(t, pod.Name, update.GetInstances()[0].GetK8SName())
+
+	require.NoError(t, ctrl.clientSet.CoreV1().Pods(testNamespace).Delete(t.Context(), pod.Name, metav1.DeleteOptions{}))
+	update = nextReport()
+	require.Equal(t, testK8sName, update.GetK8SName())
+	require.Empty(t, update.GetInstances(), "a deleted pod must stop being reported")
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("pod event handler did not stop after cancellation")
+	}
 }
-
-func TestRunPodWatchLoopCancellationInterruptsBackoff(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		client := fake.NewClientset()
-		var attempts atomic.Int32
-		client.PrependWatchReactor("pods", func(ktesting.Action) (bool, watch.Interface, error) {
-			attempts.Add(1)
-			return true, nil, errors.New("watch unavailable")
-		})
-
-		ctrl := &Controller{clientSet: client}
-		ctx, cancel := context.WithCancel(t.Context())
-		defer cancel()
-
-		done := make(chan struct{})
-		go func() {
-			ctrl.runPodWatchLoop(ctx)
-			close(done)
-		}()
-		synctest.Wait()
-		require.Equal(t, int32(1), attempts.Load())
-
-		cancel()
-		synctest.Wait()
-		select {
-		case <-done:
-		default:
-			t.Fatal("watch loop did not interrupt reconnect backoff")
-		}
-		require.Equal(t, int32(1), attempts.Load())
-	})
-}
-
-type stubbornWatch struct {
-	result  chan watch.Event
-	stopped atomic.Bool
-}
-
-func (w *stubbornWatch) Stop() { w.stopped.Store(true) }
-
-func (w *stubbornWatch) ResultChan() <-chan watch.Event { return w.result }

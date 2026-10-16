@@ -7,10 +7,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -31,6 +34,18 @@ func legacyReplicaSet(t *testing.T, replicas int32) *appsv1.ReplicaSet {
 			Template: desired.Spec.Template,
 		},
 	}
+}
+
+func cachedController(t *testing.T, objects ...runtime.Object) *Controller {
+	t.Helper()
+	ctrl := New(Config{
+		ClientSet:    fake.NewClientset(objects...),
+		Cluster:      &testutil.MockClusterClient{},
+		Fingerprints: cache.NewNoopCache[string, string](),
+	})
+	t.Cleanup(ctrl.informers.Shutdown)
+	require.NoError(t, ctrl.StartCaches(t.Context()))
+	return ctrl
 }
 
 func getDeployment(t *testing.T, ctrl *Controller) *appsv1.Deployment {
@@ -122,7 +137,7 @@ func TestForEachWorkload_SkipsDeploymentRevisions(t *testing.T) {
 	revision.Name = testK8sName + "-abc123"
 	revision.OwnerReferences = []metav1.OwnerReference{deploymentOwnerRef(d)}
 
-	ctrl := &Controller{clientSet: fake.NewClientset(legacy, d, revision)}
+	ctrl := cachedController(t, legacy, d, revision)
 
 	var mu sync.Mutex
 	var got []workload
@@ -153,15 +168,15 @@ func TestWorkloadForReplicaSet(t *testing.T) {
 		"pod-template-hash":         "abc123",
 	}}
 
-	ctrl := &Controller{clientSet: fake.NewClientset(d)}
+	ctrl := cachedController(t, d)
 
-	w, err := ctrl.workloadForReplicaSet(t.Context(), revision)
+	w, err := ctrl.workloadForReplicaSet(revision)
 	require.NoError(t, err)
 	require.Equal(t, testK8sName, w.k8sName, "status must be reported under the Deployment name")
 	require.Equal(t, d.Spec.Selector, w.selector, "status must cover the pods of every revision")
 
 	legacy := legacyReplicaSet(t, 1)
-	w, err = ctrl.workloadForReplicaSet(t.Context(), legacy)
+	w, err = ctrl.workloadForReplicaSet(legacy)
 	require.NoError(t, err)
 	require.Equal(t, legacy.Name, w.k8sName)
 }
@@ -174,13 +189,13 @@ func TestHasUndrainedPods(t *testing.T) {
 		Spec:       desired.Spec.Template.Spec,
 	}
 
-	ctrl := &Controller{clientSet: fake.NewClientset(current)}
-	undrained, err := ctrl.hasUndrainedPods(t.Context(), testNamespace, testDeploymentID)
+	ctrl := cachedController(t, current)
+	undrained, err := ctrl.hasUndrainedPods(testNamespace, testDeploymentID)
 	require.NoError(t, err)
 	require.False(t, undrained)
 
-	ctrl = &Controller{clientSet: fake.NewClientset(current, legacy)}
-	undrained, err = ctrl.hasUndrainedPods(t.Context(), testNamespace, testDeploymentID)
+	ctrl = cachedController(t, current, legacy)
+	undrained, err = ctrl.hasUndrainedPods(testNamespace, testDeploymentID)
 	require.NoError(t, err)
 	require.True(t, undrained)
 

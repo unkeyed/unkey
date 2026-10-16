@@ -8,15 +8,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
-	ktesting "k8s.io/client-go/testing"
 )
 
 func TestNew_CreatesControllerWithCorrectFields(t *testing.T) {
@@ -62,31 +61,36 @@ func TestNew_CreatesOwnCircuitBreaker(t *testing.T) {
 	require.NotNil(t, ctrl.cb, "circuit breaker should not be nil")
 }
 
-func TestRunStopsWatchAndResyncLoops(t *testing.T) {
+func TestRunStopsLoopsAndPodEventHandler(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		client := fake.NewClientset()
-		var lists atomic.Int32
-		client.PrependReactor("list", "replicasets", func(ktesting.Action) (bool, runtime.Object, error) {
-			lists.Add(1)
-			return false, nil, nil
+		d, revision, pod := podEventFixture(t)
+		var reports atomic.Int32
+		client := fake.NewClientset(d, revision, pod)
+		ctrl := New(Config{
+			ClientSet: client,
+			Cluster: &testutil.MockClusterClient{
+				ReportDeploymentStatusFunc: func(context.Context, *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error) {
+					reports.Add(1)
+					return &ctrlv1.ReportDeploymentStatusResponse{}, nil
+				},
+			},
+			Fingerprints: cache.NewNoopCache[string, string](),
 		})
+		cachesCtx, stopCaches := context.WithCancel(t.Context())
+		defer func() {
+			stopCaches()
+			ctrl.informers.Shutdown()
+		}()
+		require.NoError(t, ctrl.StartCaches(cachesCtx))
 
-		w := &stubbornWatch{result: make(chan watch.Event)}
-		client.PrependWatchReactor("pods", func(ktesting.Action) (bool, watch.Interface, error) {
-			return true, w, nil
-		})
-
-		ctrl := New(Config{ClientSet: client})
-		ctx, cancel := context.WithCancel(t.Context())
-		defer cancel()
-
+		ctx, cancel := context.WithCancel(cachesCtx)
 		done := make(chan struct{})
 		go func() {
 			ctrl.Run(ctx)
 			close(done)
 		}()
 		synctest.Wait()
-		require.Equal(t, int32(2), lists.Load())
+		require.Positive(t, reports.Load(), "a new leader must report the cached pods")
 
 		cancel()
 		synctest.Wait()
@@ -95,9 +99,11 @@ func TestRunStopsWatchAndResyncLoops(t *testing.T) {
 		default:
 			t.Fatal("controller did not stop after cancellation")
 		}
-		require.True(t, w.stopped.Load())
 
+		reported := reports.Load()
+		require.NoError(t, client.CoreV1().Pods(testNamespace).Delete(t.Context(), pod.Name, metav1.DeleteOptions{}))
 		time.Sleep(2 * time.Minute)
-		require.Equal(t, int32(2), lists.Load())
+		synctest.Wait()
+		require.Equal(t, reported, reports.Load(), "a stopped controller must not report pod events")
 	})
 }
