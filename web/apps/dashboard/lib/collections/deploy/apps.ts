@@ -1,3 +1,4 @@
+import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import {
   type QueryCollectionUtils,
@@ -43,17 +44,18 @@ const schema = z.object({
 
 export const ociImageReferenceSchema = z
   .string()
-  .trim()
-  .min(1, "Image reference is required")
-  .max(512, "Image reference too long");
+  .transform(sanitizeImageRef)
+  .superRefine((ref, ctx) => {
+    const validation = validateImageRef(ref);
+    if (!validation.ok) {
+      ctx.addIssue({
+        code: "custom",
+        message: ref ? validation.error : "Enter an image, like ghcr.io/acme/api:1.0",
+      });
+    }
+  });
 
-export const appCreationSourceSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("git") }),
-  z.object({
-    kind: z.literal("oci"),
-    imageReference: ociImageReferenceSchema,
-  }),
-]);
+export const APP_SLUG_LENGTH = { min: 3, max: 255 };
 
 export const createAppRequestSchema = z.object({
   projectId: z.string().min(1, "Project is required"),
@@ -61,14 +63,22 @@ export const createAppRequestSchema = z.object({
   slug: z
     .string()
     .trim()
-    .min(1, "App slug is required")
-    .max(256, "App slug too long")
+    .min(1, "Enter a name")
+    .min(APP_SLUG_LENGTH.min, `Use at least ${APP_SLUG_LENGTH.min} characters`)
+    .max(APP_SLUG_LENGTH.max, `Use ${APP_SLUG_LENGTH.max} characters or fewer`)
     .regex(/^[a-z0-9-]+$/, "App slug must contain only lowercase letters, numbers, and hyphens"),
-  source: appCreationSourceSchema,
 });
 
 export type App = z.infer<typeof schema>;
-export type CreateAppRequestSchema = z.infer<typeof createAppRequestSchema>;
+
+export type AppDeploymentRefs = {
+  headlineDeployment: { id: string } | null;
+  currentDeploymentId: string | null;
+};
+
+export function latestDeploymentId(app: AppDeploymentRefs): string | null {
+  return app.headlineDeployment?.id ?? app.currentDeploymentId;
+}
 
 /**
  * Global apps collection.
@@ -135,50 +145,14 @@ export const apps = createCollection<App, string, QueryCollectionUtils<App, stri
       apps.utils.writeUpdate(transaction.mutations.map(({ modified }) => modified));
       return { refetch: false };
     },
-    onInsert: async ({ transaction }) => {
-      const { changes } = transaction.mutations[0];
-      const createInput = createAppRequestSchema.parse({
-        projectId: changes.projectId,
-        name: changes.name,
-        slug: changes.slug,
-        source:
-          changes.sourceType === "oci"
-            ? { kind: "oci", imageReference: changes.imageReference }
-            : { kind: changes.sourceType },
-      });
-      const mutation = getUnkeyClient().apps.createApp(
-        createInput.source.kind === "git"
-          ? {
-              project: createInput.projectId,
-              name: createInput.name,
-              slug: createInput.slug,
-              git: {},
-            }
-          : {
-              project: createInput.projectId,
-              name: createInput.name,
-              slug: createInput.slug,
-              oci: { image: createInput.source.imageReference },
-            },
-      );
-
-      toast.promise(mutation, {
-        loading: "Creating app...",
-        success: "App created successfully",
-        error: (err) => {
-          console.error("Failed to create app", err);
-          return getErrorToast(err, "Failed to Create App");
-        },
-      });
-
-      const result = await mutation;
-      transaction.metadata = { appId: result.data.appId };
-    },
   }),
 );
 
-export function refetchProjectApps(projectId: string) {
-  return queryClient.refetchQueries({ queryKey: ["apps", projectId], type: "active" });
+export function refetchProjectApps(projectId: string, { throwOnError = false } = {}) {
+  return queryClient.refetchQueries(
+    { queryKey: ["apps", projectId], type: "active" },
+    { throwOnError },
+  );
 }
 
 async function listProjectApps(projectId: string): Promise<App[]> {

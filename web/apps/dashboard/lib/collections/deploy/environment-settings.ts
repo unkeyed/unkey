@@ -12,6 +12,7 @@ import type {
   V2EnvironmentsUpdateSettingsRequestBody,
 } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { queryClient } from "../client";
 import { listAppEnvironments, refetchAppEnvironments } from "./app-environments";
@@ -283,23 +284,67 @@ export function buildSettingsUpdate(
   return dirty ? body : null;
 }
 
+const pendingDefaults = new Map<string, Promise<void>>();
+
 /**
  * Persist real defaults for a new environment at create time, so a user who
  * bails before configuring deployment still has usable settings instead of the
  * empty placeholders it starts with.
  */
-export async function applyDefaultSettings(
+export function applyDefaultSettings(
   projectId: string,
   appId: string,
-  environmentIds: string[],
-  regionNames: string[],
+  loadRegionNames: () => Promise<string[]>,
+): Promise<void> {
+  const run = writeDefaultSettings(projectId, appId, loadRegionNames);
+  const settled = run
+    .catch(() => undefined)
+    .finally(() => {
+      if (pendingDefaults.get(appId) === settled) {
+        pendingDefaults.delete(appId);
+      }
+    });
+  pendingDefaults.set(appId, settled);
+  return run;
+}
+
+export function defaultSettingsSettled(appId: string): Promise<void> {
+  return pendingDefaults.get(appId) ?? Promise.resolve();
+}
+
+export function useDefaultSettingsSettled(appId: string): boolean {
+  const [settledAppId, setSettledAppId] = useState(() =>
+    pendingDefaults.has(appId) ? null : appId,
+  );
+  useEffect(() => {
+    let current = true;
+    void defaultSettingsSettled(appId).then(() => {
+      if (current) {
+        setSettledAppId(appId);
+      }
+    });
+    return () => {
+      current = false;
+    };
+  }, [appId]);
+  return settledAppId === appId;
+}
+
+async function writeDefaultSettings(
+  projectId: string,
+  appId: string,
+  loadRegionNames: () => Promise<string[]>,
 ): Promise<void> {
   const d = ENVIRONMENT_SETTINGS_DEFAULTS;
   const client = getUnkeyClient();
+  const [environments, regionNames] = await Promise.all([
+    listAppEnvironments(projectId, appId),
+    loadRegionNames(),
+  ]);
 
   try {
     await settleAll(
-      environmentIds.map((environmentId) =>
+      environments.map(({ id: environmentId }) =>
         client.environments.updateSettings({
           project: projectId,
           app: appId,
@@ -324,7 +369,10 @@ export async function applyDefaultSettings(
       ),
     );
   } finally {
-    void refetchAppEnvironments(projectId, appId);
+    await Promise.all([
+      refetchAppEnvironments(projectId, appId),
+      queryClient.refetchQueries({ queryKey: ["environmentSettings", appId], exact: true }),
+    ]);
   }
 }
 
@@ -350,7 +398,8 @@ async function dispatchSettingsMutations(
   }
 
   const client = getUnkeyClient();
-  const mutation = settleAll(bodies.map((body) => client.environments.updateSettings(body)))
+  const mutation = Promise.all(bodies.map((body) => defaultSettingsSettled(body.app)))
+    .then(() => settleAll(bodies.map((body) => client.environments.updateSettings(body))))
     .finally(() => {
       const apps = new Map(bodies.map((body) => [`${body.project}:${body.app}`, body]));
       for (const { project, app } of apps.values()) {
