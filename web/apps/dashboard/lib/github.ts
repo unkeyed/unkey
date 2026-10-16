@@ -175,6 +175,23 @@ export async function userCanAccessInstallation(
   }
 }
 
+export async function installationExists(installationId: number): Promise<boolean> {
+  const response = await fetch(`https://api.github.com/app/installations/${installationId}`, {
+    headers: {
+      Authorization: `Bearer ${generateAppJWT()}`,
+      ...GITHUB_API_HEADERS,
+    },
+  });
+
+  if (response.status === 404) {
+    return false;
+  }
+  if (!response.ok) {
+    throw new GitHubApiError(response.status, await response.text());
+  }
+  return true;
+}
+
 export async function getInstallationAccessToken(
   installationId: number,
 ): Promise<{ token: string; expires_at: string }> {

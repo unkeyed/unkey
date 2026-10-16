@@ -155,6 +155,10 @@ vi.mock("@/lib/env", () => ({
   }),
 }));
 
+vi.mock("@/lib/github-installations", () => ({
+  reconcileInstallations: async () => [],
+}));
+
 vi.mock("@/lib/github", () => ({
   MAX_BRANCHES: 20,
   GitHubApiError: class GitHubApiError extends Error {

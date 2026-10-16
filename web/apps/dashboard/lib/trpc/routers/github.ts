@@ -17,6 +17,7 @@ import {
   userCanAccessInstallation,
 } from "@/lib/github";
 import { type SignedStatePayload, signedState } from "@/lib/github-install-state";
+import { reconcileInstallations } from "@/lib/github-installations";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, workspaceProcedure } from "../trpc";
@@ -205,11 +206,8 @@ const fetchProjectInstallation = async (
 
 export const githubRouter = t.router({
   hasInstallations: workspaceProcedure.query(async ({ ctx }) => {
-    const installation = await db.query.githubAppInstallations.findFirst({
-      where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
-      columns: { pk: true },
-    });
-    return { hasInstallation: Boolean(installation) };
+    const installationIds = await reconcileInstallations(ctx.workspace.id);
+    return { hasInstallation: installationIds.length > 0 };
   }),
 
   // Mint a signed install state for a workspace-wide install started from the
@@ -548,6 +546,7 @@ export const githubRouter = t.router({
       }),
     )
     .query(async ({ ctx, input }) => {
+      await reconcileInstallations(ctx.workspace.id);
       const githubContext = await fetchGithubContext(
         ctx.workspace.id,
         input.projectId,
@@ -582,6 +581,7 @@ export const githubRouter = t.router({
         });
       }
 
+      await reconcileInstallations(ctx.workspace.id);
       const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
       if (!githubContext) {
         throw new TRPCError({
