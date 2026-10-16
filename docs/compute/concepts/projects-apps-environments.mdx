@@ -48,7 +48,7 @@ Your workspace holds projects. A project holds <Tooltip tip="A Compute app: a de
 
 A project is how you group apps. It has a name and a slug. The slug is what you pass to the API and the CLI, so it must be unique in your workspace. The slug `default` is reserved, so the API will return an error if you use it. A project can also carry delete protection, which blocks deletion until you turn it off. See [Delete protection](/platform/security/delete-protection).
 
-Creating a project creates nothing else. There's no default app. The project page shows an empty Apps list and a **Create app** button, and the API returns the project alone. Unlike platforms where a project is itself what you deploy, here the project is only a folder.
+Creating a project creates nothing else. There's no default app. In the dashboard, creating a project opens the new-app flow. The API returns the project alone. Unlike platforms where a project is itself what you deploy, here the project is only a folder.
 
 In the dashboard, the project level holds things that span apps: runtime **Logs** and gateway **Requests** for every app in the project, plus **Project settings** (name and delete).
 

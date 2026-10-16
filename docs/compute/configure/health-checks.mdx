@@ -29,7 +29,7 @@ Check the process, not its dependencies. A failing check restarts the container,
 ## Add a health check
 
 <Frame>
-  <img src="/images/dashboard/compute--configure-runtime-settings--runtime.png" alt="App settings Runtime page with the Process group (port and command) and the Health check group (endpoint and interval)" />
+  <img src="/images/dashboard/compute--configure-runtime-settings--runtime.png" alt="App settings Runtime page with the Process group (port and start command) and the Health check group (endpoint and interval)" />
 </Frame>
 
 In the dashboard, go to **App settings** > **Runtime** and use the **Health check** group: pick `GET` or `POST`, enter the path under **Endpoint**, and set the **Interval**. Saving there applies the check to every environment of the app. In the API, set `healthcheck` in [runtime settings](/compute/configure/runtime-settings) with `environments.updateSettings`:

@@ -30,7 +30,7 @@ Connect a GitHub repository to an <Tooltip tip="A Compute app: a deployable serv
 
 You install the Unkey GitHub App once per workspace, on a GitHub organization or personal account, and choose which repositories it can see.
 
-1. Start from any of these places in the dashboard: the **Import from GitHub** step when you create an app, the **Repository** row on an app's **App settings** > **Build** page, or [workspace settings](/platform/workspace/settings).
+1. Start from any of these places in the dashboard: **Connect GitHub** when you create an app, the **Repository** row on an app's **App settings** > **Build** page, or [workspace settings](/platform/workspace/settings).
 2. Approve the installation on GitHub. GitHub sends you back to Unkey.
 
 To do it with the API, call `github.installApp` with a root key that has `workspace.*.install_github`, and open the URL it returns.

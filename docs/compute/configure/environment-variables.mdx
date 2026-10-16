@@ -22,6 +22,8 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/variables-table/variables-table.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/variables-table/variable-rows.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/add/add-env-vars-fields.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/add/add-env-vars-button.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/config-blocks.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/list/env-var-edit-row.tsx
 ---
 
@@ -37,12 +39,20 @@ Environment variables give your <Tooltip tip="A Compute app: a deployable servic
 6. Save, then redeploy. See [When a change takes effect](#when-a-change-takes-effect).
 
 <Frame>
-  <img src="/images/dashboard/compute--configure-environment-variables--add.png" alt="Add environment variables panel with a table of key and value rows, a Sensitive switch per row, the Add variable and Import .env actions, and the Environment select set to All environments" />
+  <img src="/images/dashboard/compute--configure-environment-variables--add.png" alt="Add environment variables panel with a LOG_LEVEL row and a sensitive STRIPE_SECRET_KEY row, the Add variable and Import .env actions, the Environment select set to All environments, and Cancel and Save buttons" />
 </Frame>
 
 The `.env` import skips comments, strips surrounding quotes, and handles multi-line values such as PEM keys. If a key appears twice in the file, the last one wins. You can save up to 200 variables at once. If a key already exists in the target environment, nothing is saved, the row shows "A variable with this key already exists.", and the panel stays open. If you close the panel with unsaved rows, the dashboard asks before it discards them.
 
 The saved list has one row for each variable in each environment. You can filter it by environment, search it by key, and sort it by name or newest. Click a row to edit its key, value, note, or sensitive setting.
+
+### While you set up a new app
+
+In the new-app flow, you can also change the value of a saved variable or delete it. Sensitive rows and rows marked "Varies by environment" can only be deleted. Changes apply to every selected environment.
+
+<Frame>
+  <img src="/images/dashboard/compute--configure-environment-variables--new-app.png" alt="Environment variables panel in the new-app flow with saved DATABASE_URL and LOG_LEVEL values, a masked sensitive STRIPE_SECRET_KEY, an empty row for a new variable, and the Environment select set to All environments" />
+</Frame>
 
 ## Recoverable or write-only
 

@@ -16,8 +16,14 @@ sources:
   - cmd/api/deployments/get_deployment.go
   - cmd/api/util/flags.go
   - web/apps/dashboard/lib/docker-image-ref.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/choose-source.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/deploy-image-card.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/wizard-model.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/app-name.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/deploy-target.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/source-pane.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/image-pane.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/configure-pane.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/config-blocks.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/page.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/navigations/create-deployment-button.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/oci-image.tsx
 ---
@@ -33,16 +39,24 @@ The image must be pullable without credentials, and your container must listen o
 
 <Steps titleSize="h3">
   <Step title="Create a project">
-    Open **Projects** in the dashboard and choose **Create project**. An app always lives in a project, and once the project exists the dashboard takes you straight to creating the app.
+    Open **Projects** in the dashboard and choose **Create project**. An app always lives in a project. When the project exists, the dashboard opens the new-app flow. To add an app to a project later, open the project and choose **Create app**.
   </Step>
   <Step title="Deploy from the dashboard">
-    Choose **Create app**, give it a name and a slug, and on the source step pick **Use a container image** instead of importing from GitHub. Enter the **Image reference** and deploy. The wizard creates the app's first deployment in the preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, so you can check the image before anything reaches production.
+    On **Deploy a new app**, pick **Container image**. Enter the **Image** reference and choose **Continue**. This creates the app, named after the last part of the image path.
 
     <Frame>
-      <img src="/images/dashboard/compute--get-started-deploy-an-image--image.png" alt="Deploy an image step with an image reference entered and the Deploy button" />
+      <img src="/images/dashboard/compute--get-started-deploy-an-image--image.png" alt="Run a container image card with ghcr.io/acme/storefront-worker:v1.4.2 in the Image field and a Continue button" />
     </Frame>
 
-    An image app has no build settings, because there's nothing to build, and its source kind is fixed: you can't later connect a repository to it. Its **App settings** > **Build** page shows the image instead. To ship a new version or reach production, open the app and choose **Create Deployment**: pick the **Environment** and enter the image reference. The dialog lists images you deployed before so you can redeploy one of them with a click.
+    Build and scaling settings you save on **Set up your app** apply to both environments.
+
+    <Frame>
+      <img src="/images/dashboard/compute--get-started-deploy-an-image--configure.png" alt="Set up your app card with the app name, and Build, Scaling, and Environment variables blocks, each with an Edit button, above Back and Deploy" />
+    </Frame>
+
+    Choose **Deploy**. The dashboard creates the app's first deployment in the preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> and opens it, so you can check the image before anything reaches production. Leaving before you deploy asks you to discard the app.
+
+    An image app has no build step, and its source kind is fixed: you can't later connect a repository to it. Its **App settings** > **Build** page shows the image. To ship a new version or reach production, open the app's **Deployments** page and choose **Create deployment**. Pick the **Environment** and enter the **Image Reference**, or pick an image you deployed before.
   </Step>
   <Step title="Deploy with unkey api deployments create-deployment">
     The `unkey api` commands match the public API one to one. `create-deployment` returns immediately with the deployment ID, and `get-deployment` reads its status. Both take the root key from `--root-key` or `UNKEY_ROOT_KEY` and print JSON with `--output json`.
