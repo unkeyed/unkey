@@ -15,7 +15,9 @@ sources:
   - web/apps/dashboard/lib/navigation/leaves.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/page.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/page.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/deployment-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/sections.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/environments/[environment]/page.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/build-settings.tsx
 ---
 
 Your workspace holds projects. A project holds <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">apps</Tooltip>. Every app has exactly two <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>: production and preview. A <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> belongs to one environment. Almost everything you configure (environment variables, gateway policies, the container's CPU) is set per environment.
@@ -48,19 +50,21 @@ A project is how you group apps. It has a name and a slug. The slug is what you 
 
 Creating a project creates nothing else. There's no default app. The project page shows an empty Apps list and a **Create app** button, and the API returns the project alone. Unlike platforms where a project is itself what you deploy, here the project is only a folder.
 
-In the dashboard, the project level holds things that span apps: runtime **Logs** and gateway **Requests** for every app in the project, plus project **Settings** (name and delete).
+In the dashboard, the project level holds things that span apps: runtime **Logs** and gateway **Requests** for every app in the project, plus **Project settings** (name and delete).
 
 ## Apps
 
 An app is what you deploy. Two apps in one project build and deploy on their own. A monorepo with an API and a background worker is two apps on the same repository with different root directories. The project page lists apps. **Create app** adds another.
 
-An app has a name, a slug unique within its project, and a source. The source is either a GitHub repository or a container image. The source kind is fixed when you create the app. Image-sourced apps hide build settings in the dashboard because there's nothing to build.
+An app has a name, a slug unique within its project, and a source. The source is either a GitHub repository or a container image. The source kind is fixed when you create the app. For an image-sourced app, the dashboard's **Build** settings page shows only the image, because there's nothing to build.
 
 For a git-connected app the tracked branch is `defaultBranch`, which defaults to the repository's default branch on GitHub. Pushes to that branch deploy to production. Every other branch deploys to preview. You can retarget the branch, replace the repository, or disconnect.
 
 ## Environments
 
 Creating an app also creates its two environments: `production` with kind `production` and `preview` with kind `preview`. You can't add a third environment or delete either of these. The environment slug is what you pass to the API alongside the project and app slugs.
+
+In the dashboard, **App settings** > **Environments** lists both environments. Each one opens a page with its compute (regions, size, instances, and storage), its domains, and, for a git-connected app, its tracked branch and auto-deploy switch.
 
 The kind decides how deployments behave:
 
