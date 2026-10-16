@@ -318,6 +318,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Auditlogs:                       auditlogSvc,
 		GitHub:                          githubclient.NewNoop(),
 		AllowUnauthenticatedDeployments: false,
+		RestateAdmin:                    nil,
 	})
 	require.NoError(t, err)
 
