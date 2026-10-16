@@ -41,7 +41,7 @@ In the dashboard, the settings are in three places:
 **Runtime** and **Advanced** show the production values, and saving there writes to every environment of the app. Compute is saved for one environment only. To give production and preview a different port, command, or protocol, use the API or CLI.
 
 <Frame>
-  <img src="/images/dashboard/compute--configure-runtime-settings--runtime.png" alt="App settings Runtime page with the Process group (port and command) and the Health check group (endpoint and interval)" />
+  <img src="/images/dashboard/compute--configure-runtime-settings--runtime.png" alt="App settings Runtime page with the Process group (port and start command) and the Health check group (endpoint and interval)" />
 </Frame>
 
 A change applies from the next deployment, and the dashboard shows "Changes apply to the next deployment" on a group with unsaved edits. Running deployments keep what they started with, so to apply a change without new code, redeploy the current deployment.
@@ -96,7 +96,7 @@ Your plan caps CPU, memory, and disk per instance. Going over returns `400` with
   - `min` is at least 1. `max` is at least `min` and at most your plan's replicas-per-region limit.
   - Every region must use the same bounds, or you get "All regions must specify the same replica bounds; per-region autoscaling is not supported yet."
 
-  A new app created with the API starts in one region, `ap-southeast-1` (Singapore), with `min` and `max` both 1, so autoscaling is off until you raise `max`. In the dashboard, a new app starts in every region available to the workspace. Pick your regions before you go live. See [Regions](/compute/concepts/regions).
+  A new app created with the API starts in one schedulable region, with `min` and `max` both 1, so autoscaling is off until you raise `max`. In the dashboard, a new app starts in every region available to the workspace. Pick your regions before you go live. See [Regions](/compute/concepts/regions).
 </ParamField>
 
 ## Raise resources and add a region

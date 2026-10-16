@@ -48,13 +48,13 @@ The image must be pullable without credentials, and your container must listen o
       <img src="/images/dashboard/compute--get-started-deploy-an-image--image.png" alt="Run a container image card with ghcr.io/acme/storefront-worker:v1.4.2 in the Image field and a Continue button" />
     </Frame>
 
-    Settings you save on **Set up your app** apply to both environments.
+    Build and scaling settings you save on **Set up your app** apply to both environments.
 
     <Frame>
       <img src="/images/dashboard/compute--get-started-deploy-an-image--configure.png" alt="Set up your app card with the app name, and Build, Scaling, and Environment variables blocks, each with an Edit button, above Back and Deploy" />
     </Frame>
 
-    Choose **Deploy**. The dashboard creates the app's first deployment in the preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> and opens it, so you can check the image before anything reaches production. If you leave before you deploy, you can discard the app.
+    Choose **Deploy**. The dashboard creates the app's first deployment in the preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> and opens it, so you can check the image before anything reaches production. Leaving before you deploy asks you to discard the app.
 
     An image app has no build step, and its source kind is fixed: you can't later connect a repository to it. Its **App settings** > **Build** page shows the image. To ship a new version or reach production, open the app's **Deployments** page and choose **Create deployment**. Pick the **Environment** and enter the **Image Reference**, or pick an image you deployed before.
   </Step>

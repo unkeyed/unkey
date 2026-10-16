@@ -57,7 +57,7 @@ If you'd rather bring an image you built yourself, see [Deploy a container image
       <img src="/images/dashboard/compute--get-started-deploy-from-github--create-project.png" alt="Create New Project dialog with a project name and the slug generated from it" />
     </Frame>
 
-    A project is only a container. Creating one doesn't create an app. The dashboard opens the new-app flow next.
+    The dashboard then opens the new-app flow.
   </Step>
   <Step title="Pick the repository">
     On **Deploy a new app**, pick **GitHub repository**. To add an app to a project later, open the project and choose **Create app**.
@@ -79,15 +79,15 @@ If you'd rather bring an image you built yourself, see [Deploy a container image
   <Step title="Check the settings">
     The branch starts as the repository's default branch. The defaults build and run most repositories without changes:
 
-    - **Build**: root directory `.`, no Dockerfile, build command, start command, and watch paths. With no Dockerfile, Unkey detects your language and toolchain and builds the image. See [Build settings](/compute/configure/build-settings).
-    - **Scaling**: regions, size, instances, and storage. Each app starts with 0.25 vCPU, 256 MiB of memory, and one instance in each region available to the workspace. See [Runtime settings](/compute/configure/runtime-settings).
-    - **Environment variables**: none at first. Mark secrets as sensitive to make them write-only. See [Environment variables](/compute/configure/environment-variables).
+    - **Build**: with no Dockerfile set, Unkey detects your language and toolchain and builds the image. See [Build settings](/compute/configure/build-settings).
+    - **Scaling**: each app starts with 0.25 vCPU, 256 MiB of memory, and one instance in each region available to the workspace. See [Runtime settings](/compute/configure/runtime-settings).
+    - **Environment variables**: mark secrets as sensitive to make them write-only. See [Environment variables](/compute/configure/environment-variables).
 
-    Settings you save here apply to both <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>. Auto deploy starts on for both. Your container must listen on the port in the `PORT` environment variable, 8080 unless you change it under **App settings** > **Runtime**.
+    Build and scaling settings you save here apply to both <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>. Auto deploy starts on for both. Your container must listen on the port in the `PORT` environment variable, 8080 unless you change it under **App settings** > **Runtime**.
 
     Going back keeps your saved settings. Picking a different repository connects it to the same app.
 
-    If you leave before you deploy, you can discard the app. An app that was never deployed reopens this flow.
+    Leaving before you deploy asks you to discard the app. An app that was never deployed reopens this flow.
   </Step>
   <Step title="Deploy">
     Choose **Deploy**. The dashboard creates a deployment in the production environment from the head of the selected branch and opens the deployment page. The deployment moves through `pending`, `starting`, `building`, `deploying`, `network` (shown as **Assigning Domains**), and `finalizing` before it reaches `ready`. The build log streams while `building` runs. A first build waits its turn if another deployment in the workspace is running.
