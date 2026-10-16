@@ -1,6 +1,7 @@
 package buffer
 
 import (
+	"context"
 	"strconv"
 	"sync"
 	"time"
@@ -22,10 +23,10 @@ type channelBuffer[T any] struct {
 	drop bool    // Whether to drop new elements when buffer is full
 	name string  // name of the buffer
 
-	stopMetrics func()
-	closeOnce   sync.Once // Protects isClosed and stopMetrics
-	mu          sync.RWMutex
-	isClosed    bool
+	done      chan struct{}
+	closeOnce sync.Once // Protects isClosed and done
+	mu        sync.RWMutex
+	isClosed  bool
 }
 
 type Config struct {
@@ -56,18 +57,18 @@ type Config struct {
 //	})
 func New[T any](config Config) Buffer[T] {
 	b := &channelBuffer[T]{
-		mu:          sync.RWMutex{},
-		closeOnce:   sync.Once{},
-		isClosed:    false,
-		c:           make(chan *T, config.Capacity),
-		drop:        config.Drop,
-		name:        config.Name,
-		stopMetrics: func() {},
+		mu:        sync.RWMutex{},
+		closeOnce: sync.Once{},
+		isClosed:  false,
+		c:         make(chan *T, config.Capacity),
+		drop:      config.Drop,
+		name:      config.Name,
+		done:      make(chan struct{}),
 	}
 
-	b.stopMetrics = repeat.Every(time.Minute, func() {
+	repeat.Every(time.Minute, func(context.Context) {
 		metrics.BufferSize.WithLabelValues(b.name, strconv.FormatBool(b.drop)).Set(float64(len(b.c)) / float64(cap(b.c)))
-	})
+	}, repeat.UntilClose(b.done))
 
 	return b
 }
@@ -181,6 +182,6 @@ func (b *channelBuffer[T]) Close() {
 
 		b.isClosed = true
 		close(b.c)
-		b.stopMetrics()
+		close(b.done)
 	})
 }

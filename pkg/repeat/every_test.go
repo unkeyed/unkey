@@ -1,465 +1,343 @@
 package repeat
 
 import (
+	"context"
+	"math"
+	"math/rand/v2"
 	"runtime"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
-func TestEveryClock_FiresOnSimulatedTime(t *testing.T) {
-	clk := clock.NewTestClock(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+const waitTimeout = 2 * time.Second
 
-	var counter atomic.Int32
-	stop := EveryClock(clk, 10*time.Second, func() {
-		counter.Add(1)
-	})
-	defer stop()
-
-	// EveryClock fires fn() once before entering the ticker loop, so
-	// give the launcher goroutine a beat to land that initial call
-	// before we measure.
-	require.Eventually(t, func() bool {
-		return counter.Load() >= 1
-	}, time.Second, 5*time.Millisecond)
-
-	// Six 10s ticks worth of simulated time should produce six more
-	// invocations on top of the initial call. Tick blocks per-send
-	// until each due tick is received, but the consumer's fn runs
-	// asynchronously, so processing-complete is reached just after
-	// Tick returns.
-	clk.Tick(60 * time.Second)
-	require.Eventually(t, func() bool {
-		return counter.Load() == 7
-	}, time.Second, 5*time.Millisecond)
-
-	clk.Tick(30 * time.Second)
-	require.Eventually(t, func() bool {
-		return counter.Load() == 10
-	}, time.Second, 5*time.Millisecond)
+func eventually(t *testing.T, cond func() bool) {
+	t.Helper()
+	require.Eventually(t, cond, waitTimeout, time.Millisecond)
 }
 
-func TestEvery_BasicFunctionality(t *testing.T) {
-	t.Run("calls function repeatedly", func(t *testing.T) {
-		var counter atomic.Int32
+func TestEvery_CallsImmediatelyThenOncePerInterval(t *testing.T) {
+	const interval = 10 * time.Second
+	clk := newTimerObserved()
+	var calls atomic.Int32
+	done := make(chan struct{})
+	t.Cleanup(func() { close(done) })
 
-		stop := Every(10*time.Millisecond, func() {
-			counter.Add(1)
-		})
+	Every(interval, func(context.Context) { calls.Add(1) }, WithClock(clk), UntilClose(done))
 
-		// Wait for several calls
-		time.Sleep(55 * time.Millisecond)
-		stop()
-
-		count := counter.Load()
-		assert.GreaterOrEqual(t, count, int32(3), "should have called function at least 3 times")
-		assert.LessOrEqual(t, count, int32(8), "should not have called function too many times")
-	})
-
-	t.Run("stops when stop function is called", func(t *testing.T) {
-		var counter atomic.Int32
-		clk := clock.NewTestClock()
-		stopped := make(chan struct{})
-		stop := EveryClock(stopObservedClock{Clock: clk, stopped: stopped}, 10*time.Millisecond, func() {
-			counter.Add(1)
-		})
-		t.Cleanup(stop)
-
-		stop()
-		select {
-		case <-stopped:
-		case <-time.After(time.Second):
-			t.Fatal("ticker did not stop")
-		}
-
-		countAfterStop := counter.Load()
-		clk.Tick(time.Second)
-		require.Equal(t, countAfterStop, counter.Load(), "function should not be called after the ticker stops")
-	})
+	for want := int32(1); want <= 4; want++ {
+		d := clk.nextTimer(t)
+		require.Equal(t, interval, d)
+		eventually(t, func() bool { return calls.Load() == want })
+		clk.Tick(d)
+	}
 }
 
-func TestEvery_GoroutineLeak(t *testing.T) {
-	t.Run("no goroutine leak with normal stop", func(t *testing.T) {
-		initialGoroutines := runtime.NumGoroutine()
+// TestEvery_UntilCloseCancelsContextAndStopsLoop guarantees that closing the
+// channel cancels the context handed to a running fn and that no later tick
+// invokes fn again.
+func TestEvery_UntilCloseCancelsContextAndStopsLoop(t *testing.T) {
+	clk := clock.NewTestClock()
+	done := make(chan struct{})
+	started := make(chan struct{})
+	cancelled := make(chan struct{})
+	var calls atomic.Int32
 
-		var stops []func()
-		for range 10 {
-			stop := Every(100*time.Millisecond, func() {
-				// Do minimal work
-			})
-			stops = append(stops, stop)
-		}
-
-		// Stop all
-		for _, stop := range stops {
-			stop()
-		}
-
-		// Wait for cleanup
-		time.Sleep(100 * time.Millisecond)
-		runtime.GC()
-		runtime.GC() // Double GC to be thorough
-
-		finalGoroutines := runtime.NumGoroutine()
-
-		// Allow some tolerance for test framework goroutines
-		assert.LessOrEqual(t, finalGoroutines, initialGoroutines+2,
-			"should not have significant goroutine leak")
-	})
-
-	t.Run("immediate stop does not leak", func(t *testing.T) {
-		initialGoroutines := runtime.NumGoroutine()
-
-		for range 5 {
-			stop := Every(1*time.Millisecond, func() {})
-			stop() // Stop immediately
-		}
-
-		time.Sleep(50 * time.Millisecond)
-		runtime.GC()
-
-		finalGoroutines := runtime.NumGoroutine()
-		assert.LessOrEqual(t, finalGoroutines, initialGoroutines+1,
-			"immediate stop should not leak goroutines")
-	})
-}
-
-func TestEvery_PanicRecovery(t *testing.T) {
-	t.Run("recovers from panic", func(t *testing.T) {
-		var callCount atomic.Int32
-
-		stop := Every(5*time.Millisecond, func() {
-			count := callCount.Add(1)
-			if count == 2 {
-				panic("test panic")
-			}
-		})
-
-		// Wait longer for panic to occur and recovery
-		time.Sleep(100 * time.Millisecond)
-		stop()
-
-		// Should have continued calling after panic
-		assert.GreaterOrEqual(t, callCount.Load(), int32(3),
-			"should continue calling function after panic")
-	})
-
-	t.Run("panic in function does not crash program", func(t *testing.T) {
-		done := make(chan bool)
-
-		stop := Every(5*time.Millisecond, func() {
-			panic("intentional panic")
-		})
-
-		// Run for a bit to ensure multiple panics are handled
-		go func() {
-			time.Sleep(30 * time.Millisecond)
-			stop()
-			done <- true
-		}()
-
-		select {
-		case <-done:
-			// Success - program didn't crash
-		case <-time.After(100 * time.Millisecond):
-			t.Fatal("test timed out - program may have crashed")
-		}
-	})
-}
-
-func TestEvery_ConcurrentStops(t *testing.T) {
-	t.Run("multiple stop calls are safe", func(t *testing.T) {
-		var counter atomic.Int32
-
-		stop := Every(5*time.Millisecond, func() {
-			counter.Add(1)
-		})
-
-		// Call stop multiple times sequentially
-		stop()
-		stop()
-		stop()
-
-		time.Sleep(20 * time.Millisecond)
-
-		// Function should have stopped after first stop call
-		// Counter should be low since we stopped quickly
-		assert.LessOrEqual(t, counter.Load(), int32(3),
-			"function should stop after first stop call")
-	})
-
-	t.Run("concurrent stop calls are safe", func(t *testing.T) {
-		var counter atomic.Int32
-
-		stop := Every(5*time.Millisecond, func() {
-			counter.Add(1)
-		})
-
-		// Call stop concurrently from multiple goroutines
-		var wg sync.WaitGroup
-		for range 10 {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				stop()
-			}()
-		}
-
-		wg.Wait()
-		time.Sleep(20 * time.Millisecond)
-
-		// Should not panic or cause issues
-		assert.LessOrEqual(t, counter.Load(), int32(5),
-			"concurrent stops should work without issues")
-	})
-}
-
-func TestEvery_EdgeCases(t *testing.T) {
-	t.Run("very short interval", func(t *testing.T) {
-		var counter atomic.Int32
-
-		stop := Every(1*time.Millisecond, func() {
-			counter.Add(1)
-		})
-
-		time.Sleep(50 * time.Millisecond)
-		stop()
-
-		// Should handle very short intervals without issues
-		count := counter.Load()
-		assert.Greater(t, count, int32(10), "should handle very short intervals")
-		assert.Less(t, count, int32(100), "should not be unreasonably high")
-	})
-
-	t.Run("very long interval", func(t *testing.T) {
-		var counter atomic.Int32
-
-		stop := Every(1*time.Hour, func() {
-			counter.Add(1)
-		})
-
-		// Should handle very long intervals without issues
-		time.Sleep(10 * time.Millisecond)
-		stop()
-
-		// Should have been called once
-		count := counter.Load()
-		assert.Equal(t, int32(1), count, "should have been called once")
-	})
-
-	t.Run("function that takes longer than interval", func(t *testing.T) {
-		var counter atomic.Int32
-
-		stop := Every(10*time.Millisecond, func() {
-			counter.Add(1)
-			time.Sleep(20 * time.Millisecond) // Longer than interval
-		})
-
-		time.Sleep(60 * time.Millisecond)
-		stop()
-
-		// Should handle slow functions gracefully
-		count := counter.Load()
-		assert.GreaterOrEqual(t, count, int32(1), "should call slow function at least once")
-		assert.LessOrEqual(t, count, int32(5), "should not stack up too many calls")
-	})
-}
-
-func TestEvery_StopBehavior(t *testing.T) {
-	t.Run("stop is idempotent", func(t *testing.T) {
-		started := make(chan struct{})
-		release := make(chan struct{})
-		finished := make(chan struct{})
-		stopped := make(chan struct{})
-		clk := stopObservedClock{Clock: clock.NewTestClock(), stopped: stopped}
-		stop := EveryClock(clk, time.Hour, func() {
+	Every(time.Second, func(ctx context.Context) {
+		if calls.Add(1) == 1 {
 			close(started)
-			<-release
-		})
-		t.Cleanup(func() {
-			close(release)
-			stop()
-			select {
-			case <-stopped:
-			case <-time.After(time.Second):
-				t.Error("ticker did not stop after releasing the callback")
-			}
-		})
-
-		select {
-		case <-started:
-		case <-time.After(time.Second):
-			t.Fatal("callback did not start")
+			<-ctx.Done()
+			close(cancelled)
 		}
-		go func() {
-			stop()
-			stop()
-			close(finished)
-		}()
+	}, WithClock(clk), UntilClose(done))
 
-		select {
-		case <-finished:
-		case <-time.After(time.Second):
-			t.Fatal("repeated stop calls must return while the callback is blocked")
+	select {
+	case <-started:
+	case <-time.After(waitTimeout):
+		t.Fatal("fn was not called")
+	}
+	close(done)
+	select {
+	case <-cancelled:
+	case <-time.After(waitTimeout):
+		t.Fatal("fn context was not cancelled when the channel closed")
+	}
+
+	clk.Tick(10 * time.Second)
+	require.Never(t, func() bool { return calls.Load() > 1 }, 50*time.Millisecond, time.Millisecond)
+}
+
+func TestEvery_WithContextStopsLoopAndDerivesFnContext(t *testing.T) {
+	type key struct{}
+	clk := clock.NewTestClock()
+	parent, cancel := context.WithCancel(context.WithValue(context.Background(), key{}, "v"))
+	var calls atomic.Int32
+	var seen atomic.Value
+
+	Every(time.Second, func(ctx context.Context) {
+		seen.Store(ctx.Value(key{}))
+		calls.Add(1)
+	}, WithClock(clk), WithContext(parent))
+
+	eventually(t, func() bool { return calls.Load() == 1 })
+	require.Equal(t, "v", seen.Load())
+
+	cancel()
+	clk.Tick(10 * time.Second)
+	require.Never(t, func() bool { return calls.Load() > 1 }, 50*time.Millisecond, time.Millisecond)
+}
+
+func TestEvery_AlreadyStoppedNeverCallsFn(t *testing.T) {
+	done := make(chan struct{})
+	close(done)
+	var calls atomic.Int32
+
+	Every(time.Millisecond, func(context.Context) { calls.Add(1) }, UntilClose(done))
+
+	require.Never(t, func() bool { return calls.Load() > 0 }, 50*time.Millisecond, time.Millisecond)
+}
+
+func TestEvery_RecoversPanicAndKeepsTicking(t *testing.T) {
+	clk := newTimerObserved()
+	done := make(chan struct{})
+	t.Cleanup(func() { close(done) })
+	counter := metrics.PanicsTotal.WithLabelValues("repeat.Every", "background")
+	before := counterValue(t, counter)
+	var calls atomic.Int32
+
+	Every(time.Second, func(context.Context) {
+		if calls.Add(1) == 1 {
+			panic("boom")
 		}
+	}, WithClock(clk), UntilClose(done))
+
+	clk.Tick(clk.nextTimer(t))
+	eventually(t, func() bool { return calls.Load() == 2 })
+	clk.Tick(clk.nextTimer(t))
+	eventually(t, func() bool { return calls.Load() == 3 })
+	require.InDelta(t, before+1, counterValue(t, counter), 0)
+}
+
+func TestEvery_AcceptsSmallestPositiveInterval(t *testing.T) {
+	done := make(chan struct{})
+	require.NotPanics(t, func() {
+		Every(time.Nanosecond, func(context.Context) {}, WithClock(clock.NewTestClock()), UntilClose(done))
 	})
+	close(done)
+}
+
+// TestEvery_WithoutUntilCloseStartsOneGoroutinePerLoop guarantees that a loop
+// without UntilClose does not park a second goroutine waiting on a nil channel.
+func TestEvery_WithoutUntilCloseStartsOneGoroutinePerLoop(t *testing.T) {
+	const loops = 20
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	before := runtime.NumGoroutine()
+	var started atomic.Int32
+
+	for range loops {
+		Every(time.Hour, func(context.Context) { started.Add(1) },
+			WithClock(clock.NewTestClock()), WithContext(ctx))
+	}
+	eventually(t, func() bool { return started.Load() == loops })
+
+	require.Less(t, runtime.NumGoroutine()-before, loops+loops/2)
+}
+
+func TestEvery_PanicsOnNonPositiveInterval(t *testing.T) {
+	require.Panics(t, func() { Every(0, func(context.Context) {}) })
+	require.Panics(t, func() { Every(-time.Second, func(context.Context) {}) })
+}
+
+// TestEvery_NoCallAfterStopWhenTimerIsReady guarantees that a timer which is
+// already due when the loop stops does not trigger another call. Repeating
+// the scenario makes a random select choice between the ready timer and the
+// cancelled context fail with overwhelming probability.
+func TestEvery_NoCallAfterStopWhenTimerIsReady(t *testing.T) {
+	for range 50 {
+		done := make(chan struct{})
+		entered := make(chan struct{})
+		release := make(chan struct{})
+		var calls atomic.Int32
+
+		Every(time.Hour, func(context.Context) {
+			if calls.Add(1) == 1 {
+				close(entered)
+				<-release
+			}
+		}, WithClock(clock.NewTestClock()), UntilClose(done), WithJitter(1, func() float64 { return 0 }))
+
+		select {
+		case <-entered:
+		case <-time.After(waitTimeout):
+			t.Fatal("fn was not called")
+		}
+		close(done)
+		close(release)
+
+		require.Never(t, func() bool { return calls.Load() > 1 }, 5*time.Millisecond, time.Millisecond)
+	}
+}
+
+func TestEvery_UsesSystemClockByDefault(t *testing.T) {
+	done := make(chan struct{})
+	t.Cleanup(func() { close(done) })
+	var calls atomic.Int32
+
+	Every(5*time.Millisecond, func(context.Context) { calls.Add(1) }, UntilClose(done))
+
+	eventually(t, func() bool { return calls.Load() >= 3 })
+}
+
+func TestJitterDuration_SpreadsEvenlyAroundInterval(t *testing.T) {
+	const (
+		d        = 100 * time.Millisecond
+		fraction = 0.5
+		samples  = 10_000
+	)
+	lo, hi := time.Duration(math.MaxInt64), time.Duration(0)
+	for range samples {
+		got := jitterDuration(d, fraction, rand.Float64)
+		lo, hi = min(lo, got), max(hi, got)
+	}
+	require.GreaterOrEqual(t, lo, d/2)
+	require.LessOrEqual(t, hi, d*3/2)
+	require.Less(t, lo, d*55/100, "delays must reach the lower half of the range")
+	require.Greater(t, hi, d*145/100, "delays must reach the upper half of the range")
+}
+
+func TestEvery_JitterUsesGivenRandomSource(t *testing.T) {
+	const interval = 100 * time.Millisecond
+	clk := newTimerObserved()
+	done := make(chan struct{})
+	t.Cleanup(func() { close(done) })
+
+	Every(interval, func(context.Context) {}, WithClock(clk), UntilClose(done),
+		WithJitter(0.5, func() float64 { return 0.75 }))
+
+	require.Equal(t, interval*5/4, clk.nextTimer(t))
 }
 
 func TestEvery_Jitter(t *testing.T) {
-	t.Run("zero jitter is fixed cadence", func(t *testing.T) {
-		var counter atomic.Int32
-		stop := Every(10*time.Millisecond, func() { counter.Add(1) }, 0)
-		time.Sleep(55 * time.Millisecond)
-		stop()
-		count := counter.Load()
-		assert.GreaterOrEqual(t, count, int32(3))
-		assert.LessOrEqual(t, count, int32(8))
+	const interval = 100 * time.Millisecond
+
+	start := func(t *testing.T, fn func(ctx context.Context, clk *timerObserved), opts ...Option) *timerObserved {
+		t.Helper()
+		clk := newTimerObserved()
+		done := make(chan struct{})
+		t.Cleanup(func() { close(done) })
+		Every(interval, func(ctx context.Context) { fn(ctx, clk) },
+			append([]Option{WithClock(clk), UntilClose(done)}, opts...)...)
+		return clk
+	}
+
+	t.Run("delays stay within the configured range", func(t *testing.T) {
+		clk := start(t, func(context.Context, *timerObserved) {}, WithJitter(0.5))
+		seen := map[time.Duration]bool{}
+		for range 50 {
+			d := clk.nextTimer(t)
+			require.GreaterOrEqual(t, d, interval/2)
+			require.LessOrEqual(t, d, interval*3/2)
+			seen[d] = true
+			clk.Tick(d)
+		}
+		require.Greater(t, len(seen), 1, "jittered delays must vary")
 	})
 
-	t.Run("omitted jitter is fixed cadence", func(t *testing.T) {
-		var counter atomic.Int32
-		stop := Every(10*time.Millisecond, func() { counter.Add(1) })
-		time.Sleep(55 * time.Millisecond)
-		stop()
-		count := counter.Load()
-		assert.GreaterOrEqual(t, count, int32(3))
-		assert.LessOrEqual(t, count, int32(8))
+	t.Run("negative jitter is fixed cadence", func(t *testing.T) {
+		var calls atomic.Int32
+		clk := start(t, func(context.Context, *timerObserved) { calls.Add(1) }, WithJitter(-0.5))
+		for range 3 {
+			d := clk.nextTimer(t)
+			require.Equal(t, interval, d)
+			clk.Tick(d)
+		}
+		eventually(t, func() bool { return calls.Load() == 4 })
 	})
 
-	t.Run("jitter keeps gaps within the configured range", func(t *testing.T) {
-		// With jitter=0.5 and base=20ms, ticks land in [10ms, 30ms].
-		// Slack accounts for scheduler latency on busy CI machines.
-		var (
-			mu    sync.Mutex
-			ticks []time.Time
-			base  = 20 * time.Millisecond
-			slack = 15 * time.Millisecond
-		)
-		stop := Every(base, func() {
-			mu.Lock()
-			ticks = append(ticks, time.Now())
-			mu.Unlock()
-		}, 0.5)
-		time.Sleep(200 * time.Millisecond)
-		stop()
-
-		mu.Lock()
-		defer mu.Unlock()
-		assert.GreaterOrEqual(t, len(ticks), 4, "should have ticked several times")
-		for i := 1; i < len(ticks); i++ {
-			gap := ticks[i].Sub(ticks[i-1])
-			assert.GreaterOrEqual(t, gap, 10*time.Millisecond-slack,
-				"gap %d below jitter floor", i)
-			assert.LessOrEqual(t, gap, 30*time.Millisecond+slack,
-				"gap %d above jitter ceiling", i)
+	t.Run("jitter above one clamps to one", func(t *testing.T) {
+		clk := start(t, func(context.Context, *timerObserved) {}, WithJitter(5))
+		for range 50 {
+			d := clk.nextTimer(t)
+			require.Positive(t, d)
+			require.LessOrEqual(t, d, 2*interval)
+			clk.Tick(d)
 		}
 	})
 
-	t.Run("jitter clamps negative to zero", func(t *testing.T) {
-		// Negative jitter must be treated as 0, not propagate as a
-		// negative offset that would produce sub-zero durations.
-		var counter atomic.Int32
-		stop := Every(10*time.Millisecond, func() { counter.Add(1) }, -0.5)
-		time.Sleep(55 * time.Millisecond)
-		stop()
-		assert.GreaterOrEqual(t, counter.Load(), int32(3),
-			"clamped jitter should still tick at the base cadence")
+	t.Run("slow fn does not drift the schedule", func(t *testing.T) {
+		const work = 50 * time.Millisecond
+		var calls atomic.Int32
+		clk := start(t, func(_ context.Context, clk *timerObserved) {
+			if calls.Add(1) == 2 {
+				clk.Tick(work)
+			}
+		}, WithJitter(0.1))
+
+		first := clk.nextTimer(t)
+		clk.Tick(first)
+		second := clk.nextTimer(t)
+		require.LessOrEqual(t, second, interval*11/10-work,
+			"the next delay must be measured from the previous target, not from when fn returned")
 	})
 
-	t.Run("slow fn does not drift the cadence", func(t *testing.T) {
-		// fn takes ~5ms, base interval is 20ms. Cadence must stay at
-		// roughly 20ms between fn starts, not 25ms (which would be the
-		// drift if we waited for fn to return before starting the next
-		// timer). Without jitter so the assertion is tight.
-		var (
-			mu     sync.Mutex
-			starts []time.Time
-		)
-		stop := Every(20*time.Millisecond, func() {
-			mu.Lock()
-			starts = append(starts, time.Now())
-			mu.Unlock()
-			time.Sleep(5 * time.Millisecond)
-		})
-		time.Sleep(150 * time.Millisecond)
-		stop()
+	t.Run("catch-up drops missed ticks", func(t *testing.T) {
+		const work = 10 * interval
+		var calls atomic.Int32
+		clk := start(t, func(_ context.Context, clk *timerObserved) {
+			if calls.Add(1) == 2 {
+				clk.Tick(work)
+			}
+		}, WithJitter(0.1))
 
-		mu.Lock()
-		defer mu.Unlock()
-		assert.GreaterOrEqual(t, len(starts), 5,
-			"a 150ms run with 20ms cadence should start fn at least 5 times")
-		const slack = 10 * time.Millisecond
-		for i := 1; i < len(starts); i++ {
-			gap := starts[i].Sub(starts[i-1])
-			assert.GreaterOrEqual(t, gap, 20*time.Millisecond-slack,
-				"gap %d below cadence (drift toward fast)", i)
-			assert.LessOrEqual(t, gap, 20*time.Millisecond+slack,
-				"gap %d above cadence (drift from slow fn)", i)
-		}
-	})
-
-	t.Run("jitter clamps above one", func(t *testing.T) {
-		// Jitter > 1 would let the lower bound go negative, which is
-		// meaningless for a periodic timer. Clamping to 1 keeps the
-		// realized duration in [~0, 2*d] (with the package floor).
-		var counter atomic.Int32
-		stop := Every(10*time.Millisecond, func() { counter.Add(1) }, 5.0)
-		time.Sleep(55 * time.Millisecond)
-		stop()
-		// Should still tick at least the base cadence number of times.
-		assert.GreaterOrEqual(t, counter.Load(), int32(2))
+		first := clk.nextTimer(t)
+		clk.Tick(first)
+		second := clk.nextTimer(t)
+		require.GreaterOrEqual(t, second, interval*9/10)
+		require.LessOrEqual(t, second, interval*11/10)
 	})
 }
 
-type stopObservedClock struct {
-	clock.Clock
-	stopped chan struct{}
+func counterValue(t *testing.T, c prometheus.Counter) float64 {
+	t.Helper()
+	var m dto.Metric
+	require.NoError(t, c.Write(&m))
+	return m.GetCounter().GetValue()
 }
 
-func (c stopObservedClock) NewTicker(d time.Duration) clock.Ticker {
-	return stopObservedTicker{Ticker: c.Clock.NewTicker(d), stopped: c.stopped}
+type timerObserved struct {
+	*clock.TestClock
+	durations chan time.Duration
 }
 
-type stopObservedTicker struct {
-	clock.Ticker
-	stopped chan struct{}
+func newTimerObserved() *timerObserved {
+	return &timerObserved{
+		TestClock: clock.NewTestClock(),
+		durations: make(chan time.Duration, 1024),
+	}
 }
 
-func (t stopObservedTicker) Stop() {
-	t.Ticker.Stop()
-	close(t.stopped)
+func (c *timerObserved) nextTimer(t *testing.T) time.Duration {
+	t.Helper()
+	select {
+	case d := <-c.durations:
+		return d
+	case <-time.After(waitTimeout):
+		t.Fatal("no timer was armed")
+		return 0
+	}
 }
 
-// Benchmark tests to measure performance impact
-func BenchmarkEvery(b *testing.B) {
-
-	b.Run("StartStop", func(b *testing.B) {
-		b.ResetTimer()
-		for b.Loop() {
-			stop := Every(100*time.Millisecond, func() {})
-			stop()
-		}
-	})
-
-	b.Run("WithFunction", func(b *testing.B) {
-		var counter atomic.Int64
-
-		stop := Every(1*time.Microsecond, func() {
-			counter.Add(1)
-		})
-
-		b.ResetTimer()
-		for b.Loop() {
-			// Just let it run
-			runtime.Gosched()
-		}
-
-		stop()
-	})
+func (c *timerObserved) NewTimer(d time.Duration) clock.Timer {
+	timer := c.TestClock.NewTimer(d)
+	c.durations <- d
+	return timer
 }

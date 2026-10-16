@@ -339,7 +339,10 @@ func (s *counterService) Close() error {
 	// Wait for the buffer to drain with periodic checks using repeat package
 	done := make(chan struct{})
 
-	stopRepeater := repeat.Every(100*time.Millisecond, func() {
+	stopRepeater := make(chan struct{})
+	defer close(stopRepeater)
+
+	repeat.Every(100*time.Millisecond, func(context.Context) {
 		remaining := s.replayBuffer.Size()
 		if remaining == 0 {
 			logger.Debug("usage limiter replay buffer drained successfully")
@@ -347,8 +350,7 @@ func (s *counterService) Close() error {
 			return
 		}
 		logger.Debug("waiting for replay buffer to drain", "remaining", remaining)
-	})
-	defer stopRepeater()
+	}, repeat.UntilClose(stopRepeater))
 
 	select {
 	case <-ctx.Done():
