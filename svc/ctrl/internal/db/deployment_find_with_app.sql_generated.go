@@ -14,7 +14,13 @@ const findDeploymentWithApp = `-- name: FindDeploymentWithApp :one
 SELECT d.id, d.app_id, a.current_deployment_id
 FROM deployments d
 JOIN apps a ON a.id = d.app_id
+JOIN environments e ON e.id = d.environment_id
+JOIN projects p ON p.id = d.project_id
 WHERE d.id = ?
+  AND e.deleted_at IS NULL
+  AND a.deleted_at IS NULL
+  AND p.deleted_at IS NULL
+LOCK IN SHARE MODE
 `
 
 type FindDeploymentWithAppRow struct {
@@ -23,15 +29,18 @@ type FindDeploymentWithAppRow struct {
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 }
 
-// FindDeploymentWithApp returns what the desired-state guard needs: the
-// deployment and its app's current deployment pointer. It joins only apps, so a
-// deployment whose environment row is already gone still resolves and a pending
-// transition can still be applied to it.
+// FindDeploymentWithApp
 //
 //	SELECT d.id, d.app_id, a.current_deployment_id
 //	FROM deployments d
 //	JOIN apps a ON a.id = d.app_id
+//	JOIN environments e ON e.id = d.environment_id
+//	JOIN projects p ON p.id = d.project_id
 //	WHERE d.id = ?
+//	  AND e.deleted_at IS NULL
+//	  AND a.deleted_at IS NULL
+//	  AND p.deleted_at IS NULL
+//	LOCK IN SHARE MODE
 func (q *Queries) FindDeploymentWithApp(ctx context.Context, id string) (FindDeploymentWithAppRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeploymentWithApp, id)
 	var i FindDeploymentWithAppRow

@@ -81,7 +81,7 @@ export function SlidePanel({
             onClick={requestClose}
             className={cn(
               "fixed inset-0 z-50 transition-opacity duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
-              "data-starting-style:opacity-0 data-ending-style:opacity-0",
+              "data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:pointer-events-none",
               backdrop === "blur" ? "bg-background/5 backdrop-blur-[2px]" : "bg-background/20",
             )}
           />
@@ -98,7 +98,7 @@ export function SlidePanel({
             side === "right" ? "right-(--slide-panel-inset)" : "left-(--slide-panel-inset)",
             fitContent && "bottom-auto max-h-[calc(100dvh_-_var(--slide-panel-inset)_*_2)]",
             "transition-[opacity,translate] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
-            "data-starting-style:opacity-0 data-ending-style:opacity-0",
+            "data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:pointer-events-none",
             side === "right"
               ? "data-starting-style:translate-x-5 data-ending-style:translate-x-10"
               : "data-starting-style:-translate-x-5 data-ending-style:-translate-x-10",

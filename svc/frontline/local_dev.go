@@ -118,6 +118,7 @@ func ServeLocalDev(ctx context.Context, listener net.Listener, cfg LocalDevConfi
 		TrustedProxyCIDRs:  nil,
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
+		IdleTimeout:        0,
 	})
 	if err != nil {
 		return err

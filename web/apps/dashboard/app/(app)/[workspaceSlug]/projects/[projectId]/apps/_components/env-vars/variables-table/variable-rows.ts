@@ -1,61 +1,86 @@
-import type { VariableInput } from "@/lib/collections/deploy/env-vars";
+import type { EnvVar, VariableInput } from "@/lib/collections/deploy/env-vars";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import type { EnvEntry } from "../env-file";
 
 const DUPLICATE_NAME = "This key appears more than once. Rename or remove the extra rows.";
 
-export type VariableRow = { id: string; key: string; value: string; sensitive: boolean };
+const TAKEN_NAME = "A variable with this key already exists.";
+
+type RowLock = "none" | "sensitive" | "varies";
+
+type SavedOrigin = {
+  kind: "saved";
+  lock: RowLock;
+  initial: string;
+  envVars: readonly EnvVar[];
+};
+
+type RowFields = { id: string; key: string; value: string; sensitive: boolean };
+
+export type SavedRow = RowFields & { origin: SavedOrigin };
+
+export type VariableRow = RowFields & { origin: { kind: "new" } | SavedOrigin };
+
+export type RowPatch = Partial<Pick<VariableRow, "key" | "value" | "sensitive">>;
+
+export type RowView = "new" | RowLock;
 
 export type RowErrors = { key?: string; value?: string };
 
-type ParsedRows =
-  | { ok: true; variables: VariableInput[] }
-  | { ok: false; errors: Map<string, RowErrors> };
-
 export function newVariableRow(entry: EnvEntry = { key: "", value: "" }): VariableRow {
-  return { id: crypto.randomUUID(), key: entry.key, value: entry.value, sensitive: false };
+  return {
+    id: crypto.randomUUID(),
+    key: entry.key,
+    value: entry.value,
+    sensitive: false,
+    origin: { kind: "new" },
+  };
+}
+
+export function rowView(row: VariableRow): RowView {
+  return row.origin.kind === "new" ? "new" : row.origin.lock;
 }
 
 export function isBlankRow(row: VariableRow): boolean {
   return row.key.trim() === "" && row.value.trim() === "";
 }
 
-export function isIncompleteRow(row: VariableRow): boolean {
-  return !isBlankRow(row) && (row.key.trim() === "" || row.value.trim() === "");
+export function isChangedRow(row: VariableRow): boolean {
+  return row.origin.kind === "new" ? !isBlankRow(row) : row.value !== row.origin.initial;
 }
 
-export function parseVariableRows(rows: VariableRow[]): ParsedRows {
-  const { variables, errors } = splitVariableRows(rows);
-  return errors.size > 0 ? { ok: false, errors } : { ok: true, variables };
-}
-
-export function splitVariableRows(rows: VariableRow[]): {
+export function splitVariableRows(rows: readonly VariableRow[]): {
   variables: VariableInput[];
   errors: Map<string, RowErrors>;
 } {
   const errors = new Map<string, RowErrors>();
   const variables: VariableInput[] = [];
-  const seen = new Set<string>();
+  const seen = new Map<string, string>();
 
   for (const row of rows) {
+    if (row.origin.kind === "saved") {
+      seen.set(row.key, TAKEN_NAME);
+      const value = isChangedRow(row) ? envVarValueSchema.safeParse(row.value) : null;
+      if (value && !value.success) {
+        errors.set(row.id, { value: value.error.issues[0]?.message });
+      }
+      continue;
+    }
     if (isBlankRow(row)) {
       continue;
     }
     const key = envVarKeySchema.safeParse(row.key);
     const value = envVarValueSchema.safeParse(row.value);
     const rowErrors: RowErrors = {
-      key: key.success ? undefined : key.error.issues[0]?.message,
+      key: key.success ? seen.get(key.data) : key.error.issues[0]?.message,
       value: value.success ? undefined : value.error.issues[0]?.message,
     };
-    if (key.success && seen.has(key.data)) {
-      rowErrors.key = DUPLICATE_NAME;
-    }
     if (rowErrors.key || rowErrors.value) {
       errors.set(row.id, rowErrors);
       continue;
     }
     if (key.success && value.success) {
-      seen.add(key.data);
+      seen.set(key.data, DUPLICATE_NAME);
       variables.push({
         key: key.data,
         value: value.data,
@@ -67,10 +92,8 @@ export function splitVariableRows(rows: VariableRow[]): {
   return { variables, errors };
 }
 
-const TAKEN_NAME = "A variable with this key already exists.";
-
 export function conflictErrors(
-  rows: VariableRow[],
+  rows: readonly VariableRow[],
   existingKeys: ReadonlySet<string>,
 ): Map<string, RowErrors> {
   return new Map(
@@ -113,4 +136,51 @@ export function pasteVariableEntriesAt(
     ...rows.map((row) => (row.id === rowId ? { ...row, key: first.key, value: first.value } : row)),
     ...rest.map(newVariableRow),
   ];
+}
+
+function savedLock(variables: readonly EnvVar[]): RowLock {
+  if (variables.some((v) => v.type === "writeonly")) {
+    return "sensitive";
+  }
+  return new Set(variables.map((v) => v.value)).size === 1 ? "none" : "varies";
+}
+
+export function savedVariableRows(
+  envVars: readonly EnvVar[],
+  targetIds: readonly string[],
+): SavedRow[] {
+  const targets = new Set(targetIds);
+  const byKey = new Map<string, EnvVar[]>();
+  for (const variable of envVars) {
+    if (targets.has(variable.environmentId)) {
+      byKey.set(variable.key, [...(byKey.get(variable.key) ?? []), variable]);
+    }
+  }
+  return [...byKey]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, variables]) => {
+      const lock = savedLock(variables);
+      const initial = lock === "none" ? variables[0].value : "";
+      return {
+        id: `saved:${key}`,
+        key,
+        value: initial,
+        sensitive: lock === "sensitive",
+        origin: { kind: "saved", lock, initial, envVars: variables },
+      };
+    });
+}
+
+export function savedVariableChanges(
+  rows: readonly VariableRow[],
+  removed: readonly SavedRow[],
+): { edited: EnvVar[]; removed: EnvVar[] } {
+  return {
+    edited: rows.flatMap((row) =>
+      row.origin.kind === "saved" && isChangedRow(row)
+        ? row.origin.envVars.map((variable) => ({ ...variable, value: row.value }))
+        : [],
+    ),
+    removed: removed.flatMap((row) => row.origin.envVars),
+  };
 }

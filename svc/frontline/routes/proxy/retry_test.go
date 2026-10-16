@@ -411,6 +411,7 @@ func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, p
 	zenSrv, err := zen.New(zen.Config{
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
+		IdleTimeout:        0,
 		MaxRequestBodySize: 0,
 		EnableH2C:          enableH2CIngress,
 		StreamRequestBody:  true,

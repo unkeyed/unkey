@@ -35,6 +35,7 @@ func New(cfg *config.PprofConfig, prefix string) (*zen.Server, error) {
 		TrustedProxyCIDRs:  nil,
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
+		IdleTimeout:        0,
 	})
 	if err != nil {
 		return nil, err

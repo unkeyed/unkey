@@ -9,7 +9,7 @@ type StatusOption = {
   checked: boolean;
 };
 
-const options: StatusOption[] = [
+export const statusOptions: StatusOption[] = [
   {
     id: 1,
     status: "passed",
@@ -30,7 +30,7 @@ export const StatusFilter = () => {
   const { filters, updateFilters } = useFilters();
   return (
     <FilterCheckbox
-      options={options}
+      options={statusOptions}
       filterField="status"
       checkPath="status"
       renderOptionContent={(checkbox) => (

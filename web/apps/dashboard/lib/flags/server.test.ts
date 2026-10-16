@@ -61,6 +61,7 @@ it("loads server flags directly with the session credential and preserves disabl
     expect(request.cache).toBe("no-store");
     expect(request.redirect).toBe("error");
     expect(request.headers.get("authorization")).toBe("Bearer session-token");
+    expect(request.headers.get("x-unkey-client")).toBe("unkey-dashboard");
     return Response.json({ meta: { requestId: crypto.randomUUID() }, data });
   });
   vi.mocked(getAuth).mockResolvedValue({

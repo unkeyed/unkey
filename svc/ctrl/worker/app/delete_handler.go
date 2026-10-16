@@ -40,7 +40,7 @@ func (s *Service) Delete(
 	}
 
 	envIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
-		return s.db.ListEnvironmentIdsByApp(runCtx, appID)
+		return s.db.ListEnvironmentIdsByApp(runCtx, db.ListEnvironmentIdsByAppParams{AppID: appID})
 	}, restate.WithName("list environments"))
 	if err != nil {
 		return nil, fmt.Errorf("list environments: %w", err)

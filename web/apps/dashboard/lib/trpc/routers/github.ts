@@ -16,6 +16,7 @@ import {
   searchBranchesByPrefix,
   userCanAccessInstallation,
 } from "@/lib/github";
+import { type SignedStatePayload, signedState } from "@/lib/github-install-state";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, workspaceProcedure } from "../trpc";
@@ -26,59 +27,6 @@ const STATE_TTL_MS = 15 * 60 * 1000;
 // the state to a workspace (and, per flow, a user + app) so the callback cannot
 // be replayed across sessions or used by an attacker who phishes a logged-in
 // victim into hitting /integrations/github/callback?state=
-//
-// `flow` is the discriminator over the three install flows, and it also drives
-// where the callback lands the user:
-//   - "api":       CLI/API workspace install (github.installApp). No user;
-//                  secured by the OAuth-code ownership proof. -> workspace settings.
-//   - "workspace": dashboard workspace install (settings). User-bound. -> workspace settings.
-//   - "app":       dashboard app install (onboarding or app settings). User- and
-//                  app-bound. -> the app.
-const stateBaseFields = {
-  workspaceId: z.string().min(1),
-  nonce: z.string().min(1),
-  exp: z.number().int().positive(),
-  installationId: z.number().int().positive().optional(),
-};
-
-// Each variant is strict: a state may carry ONLY the fields its flow declares.
-// An "api" state with a userId, or a "workspace" state with an appId, fails to
-// verify rather than being silently stripped.
-const apiInstallState = z.object({ ...stateBaseFields, flow: z.literal("api") }).strict();
-
-const workspaceInstallState = z
-  .object({
-    ...stateBaseFields,
-    flow: z.literal("workspace"),
-    userId: z.string().min(1),
-  })
-  .strict();
-
-const appInstallState = z
-  .object({
-    ...stateBaseFields,
-    flow: z.literal("app"),
-    userId: z.string().min(1),
-    projectId: z.string().min(1),
-    appId: z.string().min(1),
-    returnTo: z.enum(["settings"]).optional(),
-  })
-  .strict();
-
-const signedStatePayload = z.discriminatedUnion("flow", [
-  apiInstallState,
-  workspaceInstallState,
-  appInstallState,
-]);
-
-const signedState = z.discriminatedUnion("flow", [
-  apiInstallState.extend({ sig: z.string().min(1) }),
-  workspaceInstallState.extend({ sig: z.string().min(1) }),
-  appInstallState.extend({ sig: z.string().min(1) }),
-]);
-
-type SignedStatePayload = z.infer<typeof signedStatePayload>;
-
 const stateSigningKey = (): Buffer | null => {
   const env = githubAppEnv();
   if (!env) {
@@ -765,6 +713,7 @@ export const githubRouter = t.router({
 
       return {
         branches,
+        repositoryDefaultBranch: repoData.default_branch,
         pushedAt: repoData.pushed_at,
       };
     }),

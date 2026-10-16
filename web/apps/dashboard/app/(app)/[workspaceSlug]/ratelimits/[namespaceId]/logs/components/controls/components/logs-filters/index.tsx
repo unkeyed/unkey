@@ -2,16 +2,18 @@ import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbo
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import type { RatelimitFilterField } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import { IdentifiersFilter } from "./components/identifiers-filter";
-import { StatusFilter } from "./components/status-filter";
+import { StatusFilter, statusOptions } from "./components/status-filter";
 
-const FILTER_ITEMS: FilterItemConfig[] = [
+const FILTER_ITEMS: FilterItemConfig<RatelimitFilterField>[] = [
   {
     id: "status",
     label: "Status",
     shortcut: "e",
     component: <StatusFilter />,
+    options: statusOptions.map((status) => ({ value: status.status, label: status.label })),
   },
   {
     id: "identifiers",
@@ -22,9 +24,9 @@ const FILTER_ITEMS: FilterItemConfig[] = [
 ];
 
 export const LogsFilters = () => {
-  const { filters } = useFilters();
+  const { filters, updateFilters } = useFilters();
   return (
-    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters}>
+    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters} updateFilters={updateFilters}>
       <div className="group">
         <Button
           size="md"

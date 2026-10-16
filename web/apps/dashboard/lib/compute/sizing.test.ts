@@ -1,6 +1,14 @@
 import { limitsByPlan } from "@/lib/limits";
 import { describe, expect, it } from "vitest";
-import { PRESETS, presetFits, resolveLimits, sizeOptions, unitFields, unitOptions } from "./sizing";
+import {
+  PRESETS,
+  presetFits,
+  resolveLimits,
+  sizeOptions,
+  storageOptions,
+  unitFields,
+  unitOptions,
+} from "./sizing";
 
 describe("unitOptions", () => {
   const fields = unitFields(resolveLimits(limitsByPlan.starter));
@@ -39,5 +47,17 @@ describe("sizeOptions", () => {
     ]);
     expect(summary("pro")).toEqual(["XS", "S", "M", "L", "XL", "2XL:business", "4XL:business"]);
     expect(summary("business")).toEqual(["XS", "S", "M", "L", "XL", "2XL", "4XL"]);
+  });
+});
+
+describe("storageOptions", () => {
+  const limits = resolveLimits(limitsByPlan.starter);
+
+  it("lists the presets that fit the plan", () => {
+    expect(storageOptions(limits, 1024)).toEqual([0, 512, 1024, 2048, 5120, 10240]);
+  });
+
+  it("keeps a saved value that is not a preset, in order", () => {
+    expect(storageOptions(limits, 3000)).toEqual([0, 512, 1024, 2048, 3000, 5120, 10240]);
   });
 });

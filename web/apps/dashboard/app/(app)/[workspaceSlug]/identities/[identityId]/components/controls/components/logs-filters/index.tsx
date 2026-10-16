@@ -1,10 +1,14 @@
+import { getOutcomeOptions } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/utils";
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
-import { identityDetailsFilterFieldConfig } from "../../../../filters.schema";
+import {
+  identityDetailsFilterFieldConfig,
+  identityDetailsFilterValue,
+} from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import { OutcomesFilter } from "./outcome-filter";
 
@@ -54,9 +58,17 @@ export const LogsFilters = () => {
           label: "Outcomes",
           shortcut: "o",
           component: <OutcomesFilter onDrawerClose={() => setOpen(false)} />,
+          single: true,
+          options: getOutcomeOptions().map((outcome) => ({
+            value: outcome.outcome,
+            label: outcome.label,
+          })),
         },
       ]}
       activeFilters={filters}
+      updateFilters={(next) =>
+        updateFilters(next.map((filter) => identityDetailsFilterValue.parse(filter)))
+      }
     >
       <div className="group">
         <Button

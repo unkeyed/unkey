@@ -394,6 +394,7 @@ func (w *Workflow) insertDeployment(
 				Port:                          target.Port,
 				ShutdownSignal:                db.DeploymentsShutdownSignal(target.ShutdownSignal),
 				UpstreamProtocol:              db.DeploymentsUpstreamProtocol(target.UpstreamProtocol),
+				Capabilities:                  mysqltype.DeploymentCapabilities{PrivateNetworking: false},
 				Healthcheck:                   target.Healthcheck,
 				PrNumber:                      sql.NullInt64{Int64: payload.PRNumber, Valid: payload.PRNumber != 0},
 				ForkRepositoryFullName:        sql.NullString{String: commit.ForkRepository, Valid: commit.ForkRepository != ""},

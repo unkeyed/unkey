@@ -57,6 +57,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
 
+	"github.com/unkeyed/unkey/internal/services/flags"
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
@@ -285,9 +286,16 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create audit log service: %w", err)
 	}
 
+	flagSvc, err := flags.New(flags.Config{DB: database, Clock: cfg.Clock})
+	if err != nil {
+		return fmt.Errorf("failed to create flags service: %w", err)
+	}
+	r.Defer(func() error { flagSvc.Close(); return nil })
+
 	deployWorkflow, err := deploy.New(deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
+		Flags:         flagSvc,
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
 

@@ -20,8 +20,8 @@ An OpenAPI validation policy tells the [gateway](/compute/gateway/overview) to c
 ## Set it up
 
 1. Serve your OpenAPI document from your app, for example at `/openapi.yaml`.
-2. Set that path as `openapiSpecPath` in the <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>'s [runtime settings](/compute/configure/runtime-settings), in the app's settings or with `environments.updateSettings`. It must start with `/` and be at most 512 characters.
-3. Add the policy: open the app, go to **Policies**, click **Add Policy**, and pick **OpenAPI Validation**. There's nothing else to configure.
+2. Set that path as `openapiSpecPath` in the <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>'s [runtime settings](/compute/configure/runtime-settings), under **App settings** > **Advanced** or with `environments.updateSettings`. It must start with `/` and be at most 512 characters.
+3. Add the policy: open the app, go to **Policies**, click **Add policy**, and set **Type** to **OpenAPI Validation**. There's nothing else to configure.
 4. Deploy. When the <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> succeeds, we fetch the spec from it over HTTPS and save it with that deployment.
 
 The policy has no settings. In the API it's an empty object:
@@ -36,7 +36,7 @@ The policy has no settings. In the API it's an empty object:
 ```
 
 <Visibility for="agents">
-  In the dashboard this is the **OpenAPI Validation** type in **Policies > Add Policy**. The form has no type-specific fields. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`, and set `openapiSpecPath` with `POST /v2/environments.updateSettings` so the next deployment is scraped. Both changes apply to the next deployment.
+  In the dashboard this is the **OpenAPI Validation** type in **Policies > Add policy**. The form has no type-specific fields. Its **Then** row shows "Uses the auto-scraped spec." and a **Configure scrape path** link to **App settings** > **Advanced**. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`, and set `openapiSpecPath` with `POST /v2/environments.updateSettings` so the next deployment is scraped. Both changes apply to the next deployment.
 </Visibility>
 
 Each deployment checks requests against the spec it was deployed with. A spec change applies when you deploy the version that serves it.

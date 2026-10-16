@@ -20,15 +20,23 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/_components/create-project-dialog.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/_components/deploy-plan-gate-dialog.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/page.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/create-app.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/choose-source.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/select-repo/index.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/configure-deployment/content.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/steps/deploy-action.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/wizard-model.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/flow.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/app-name.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/use-app-lifecycle.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/use-connect-github.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/deploy-target.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/source-pane.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/repository-pane.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/configure-pane.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/config-blocks.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/branch-field.tsx
+  - web/apps/dashboard/app/(app)/integrations/github/callback/page.tsx
+  - web/apps/dashboard/lib/collections/deploy/environment-settings.ts
 ---
 
 
-You can deploy an app straight from a GitHub repository, and Unkey deploys on every push. Connect the repository and Unkey tracks its default branch, unless you pick another one. A push to that branch creates a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>. A push to any other branch creates a preview deployment. Open the deployment in the dashboard and wait for its status to be `ready`. Then it's live on a `unkey.app` domain.
+You can deploy an app straight from a GitHub repository, and Unkey deploys on every push. Connect the repository and Unkey tracks its default branch on GitHub. A push to that branch creates a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>. A push to any other branch creates a preview deployment. Open the deployment in the dashboard and wait for its status to be `ready`. Then it's live on a `unkey.app` domain.
 
 That's the default, with auto deploy on and no watch paths. If you turn auto deploy off or set watch paths, a push can be recorded as `skipped` instead of built. A pull request from a fork waits in `awaiting_approval` until a project member approves it.
 
@@ -49,41 +57,40 @@ If you'd rather bring an image you built yourself, see [Deploy a container image
       <img src="/images/dashboard/compute--get-started-deploy-from-github--create-project.png" alt="Create New Project dialog with a project name and the slug generated from it" />
     </Frame>
 
-    A project is only a container. Creating one doesn't create an app, so the project page opens on an empty Apps list.
+    The dashboard then opens the new-app flow.
   </Step>
-  <Step title="Create an app and connect the repository">
-    Choose **Create app**. The wizard first asks for an **App Name** and a **Slug** (unique within the project), then for a source. Pick **Import from GitHub**.
+  <Step title="Pick the repository">
+    On **Deploy a new app**, pick **GitHub repository**. To add an app to a project later, open the project and choose **Create app**.
 
     <Frame>
-      <img src="/images/dashboard/compute--get-started-deploy-from-github--source.png" alt="Deploy your app screen offering Import from GitHub or Use a container image" />
+      <img src="/images/dashboard/compute--get-started-deploy-from-github--source.png" alt="Deploy a new app card offering GitHub repository or Container image, next to the steps Select a source, Choose your app, and Configure and deploy" />
     </Frame>
 
-    If the workspace hasn't installed the Unkey GitHub App yet, the wizard sends you to GitHub to install it on your organization or personal account and grant access to repositories. GitHub returns you to the dashboard when you're done. The installation belongs to the workspace, so you do it once. Then pick the account and the repository under **Select a repository**. The app tracks the repository's default branch on GitHub unless you change the branch later in the app's settings.
+    If the workspace hasn't installed the Unkey GitHub App, the row reads **Connect GitHub** instead. It sends you to GitHub to install the app on an organization or personal account and choose repositories, then brings you back to the repository list. The installation belongs to the workspace, so you do it once.
+
+    Click a repository. If it's missing, choose **Can't find it? Add repositories on GitHub**.
 
     <Frame>
-      <img src="/images/dashboard/compute--get-started-deploy-from-github--select-repository.png" alt="Select a repository screen listing GitHub repositories, each with a branch picker and a Select button" />
+      <img src="/images/dashboard/compute--get-started-deploy-from-github--select-repository.png" alt="Import a GitHub repository card with an account filter, a search field, and a list of repositories" />
     </Frame>
 
-    **Skip for now** creates the app without a repository. You can connect one later from the app's settings, or deploy an image instead.
+    This creates the app, named after the repository. If the project already uses that name, Unkey adds `-2`, `-3`, and so on.
   </Step>
-  <Step title="Review the build settings">
-    The **Configure deployment** step shows the build settings for the new app. The defaults build most repositories without changes:
+  <Step title="Check the settings">
+    The branch starts as the repository's default branch. The defaults build and run most repositories without changes:
 
-    - **Root directory** `.`: the directory Unkey builds from. Point it at a subdirectory for a monorepo.
-    - **Dockerfile** automatic: with no Dockerfile set, Unkey detects your language and toolchain and builds the image for you. Pick a Dockerfile from the list to take full control of the image.
-    - **Build command**: overrides the detected build command. It's unused when a Dockerfile is set.
-    - **Watch paths**: leave empty to deploy on every push, or add glob patterns so pushes touching only other files are recorded as skipped instead of built.
-    - **Auto deploy** for production and for preview, both on.
+    - **Build**: with no Dockerfile set, Unkey detects your language and toolchain and builds the image. See [Build settings](/compute/configure/build-settings).
+    - **Scaling**: each app starts with 0.25 vCPU, 256 MiB of memory, and one instance in each region available to the workspace. See [Runtime settings](/compute/configure/runtime-settings).
+    - **Environment variables**: mark secrets as sensitive to make them write-only. See [Environment variables](/compute/configure/environment-variables).
 
-    Every field is described on [Build settings](/compute/configure/build-settings).
+    Build and scaling settings you save here apply to both <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>. Auto deploy starts on for both. Your container must listen on the port in the `PORT` environment variable, 8080 unless you change it under **App settings** > **Runtime**.
 
-    Runtime settings aren't part of the wizard. The app's two <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip> start with the defaults, port 8080, 0.25 vCPU, 256 MiB of memory, and one replica in one region, and you change them later under **App Settings**. See [Runtime settings](/compute/configure/runtime-settings). Your container must listen on the port in the `PORT` environment variable, which Unkey sets to the configured port.
-  </Step>
-  <Step title="Add environment variables">
-    The **Configure environment variables** step is optional. [Variables](/compute/configure/environment-variables) are scoped to an environment, so production and preview can hold different values, and you can add a variable to all environments at once. Mark secrets as sensitive to make them write-only: you can replace or delete them later but never read them back. Variables are encrypted at rest either way. You can add or change variables at any time. A change applies to the next deployment.
+    Going back keeps your saved settings. Picking a different repository connects it to the same app.
+
+    Leaving before you deploy asks you to discard the app. An app that was never deployed reopens this flow.
   </Step>
   <Step title="Deploy">
-    Choose **Deploy**. The wizard creates a deployment in the production environment from the head of the app's default branch and shows its progress. The deployment moves through `pending`, `starting`, `building`, `deploying`, `network` (shown as **Assigning Domains**), and `finalizing` before it reaches `ready`. The build log streams while `building` runs. A first build waits its turn if another deployment in the workspace is running.
+    Choose **Deploy**. The dashboard creates a deployment in the production environment from the head of the selected branch and opens the deployment page. The deployment moves through `pending`, `starting`, `building`, `deploying`, `network` (shown as **Assigning Domains**), and `finalizing` before it reaches `ready`. The build log streams while `building` runs. A first build waits its turn if another deployment in the workspace is running.
 
     When the status is `ready` the app is live on its automatic domains. With a project `payments`, an app `api`, and a workspace `acme`, the production deployment answers on `payments-api-acme.unkey.app`, with further domains for the environment, the branch, and the exact commit. If the app slug is `default` the domains omit it and start with `payments-`. The deployment detail page lists every domain.
 
