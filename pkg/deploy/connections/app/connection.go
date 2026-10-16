@@ -7,9 +7,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
-// IsValidName accepts canonical connection names, excluding the reserved unkey prefix.
+// IsValidName accepts canonical connection names, excluding the reserved unkey
+// prefix and [privatenetwork.SelfName].
 func IsValidName(name string) bool {
-	return len(validation.IsDNS1035Label(name)) == 0 && !strings.HasPrefix(name, "unkey")
+	return len(validation.IsDNS1035Label(name)) == 0 && !strings.HasPrefix(name, "unkey") && name != privatenetwork.SelfName
 }
 
 // HostVariable returns the environment variable that a caller deployment

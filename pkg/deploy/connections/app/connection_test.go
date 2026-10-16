@@ -29,6 +29,9 @@ func TestIsValidName(t *testing.T) {
 		{name: "unkey", want: false},
 		{name: "unkey-api", want: false},
 		{name: "unkeyed", want: false},
+		{name: "self", want: false},
+		{name: "selfish", want: true},
+		{name: "my-self", want: true},
 		{name: strings.Repeat("a", 64), want: false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

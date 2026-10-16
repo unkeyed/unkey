@@ -1944,14 +1944,13 @@ type Querier interface {
 	//      t.target_environment_id, t.target_deployment_id
 	//  FROM app_connections b
 	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
-	//  INNER JOIN apps a ON a.id = b.app_id
 	//  WHERE b.workspace_id = ?
 	//      AND b.project_id = ?
 	//      AND b.app_id = ?
 	//      AND b.environment_id = ?
 	//      AND b.resource_type = 'app'
 	//      AND b.resource_id <> b.app_id
-	//      AND b.name <> a.slug COLLATE utf8mb4_0900_as_cs
+	//      AND b.name <> 'self'
 	//  ORDER BY b.pk
 	ListAppConnectionsByApp(ctx context.Context, arg ListAppConnectionsByAppParams) ([]ListAppConnectionsByAppRow, error)
 	//ListAppIdsByProject

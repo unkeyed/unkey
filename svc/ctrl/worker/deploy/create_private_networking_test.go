@@ -151,6 +151,40 @@ func TestCreateApprovalReusesPrivateNetworkingDecision(t *testing.T) {
 	}
 }
 
+// TestCreatePrivateNetworkingIgnoresAppSlug guarantees that the app slug
+// neither decides private networking nor reserves a connection name, and that
+// a connection named self is never saved.
+func TestCreatePrivateNetworkingIgnoresAppSlug(t *testing.T) {
+	ctx := t.Context()
+	h := newCreateHarness(t, ctx)
+	h.setPrivateNetworking(t, ctx, true)
+	h.renameApp(t, ctx, "caller-app")
+	target := h.newApp(t, ctx)
+	slugNamed := h.seeder.CreateAppConnection(ctx, seed.CreateAppConnectionRequest{
+		WorkspaceID: h.workspaceID, ProjectID: h.projectID, CallerAppID: h.appID,
+		CallerEnvironmentID: h.environmentID, TargetAppID: target.appID, Name: "caller-app",
+	})
+	h.seeder.CreateAppConnection(ctx, seed.CreateAppConnectionRequest{
+		WorkspaceID: h.workspaceID, ProjectID: h.projectID, CallerAppID: h.appID,
+		CallerEnvironmentID: h.environmentID, TargetAppID: h.newApp(t, ctx).appID, Name: "self",
+	})
+
+	named := uid.New(uid.DeploymentPrefix)
+	h.create(t, ctx, named, h.imageRequest())
+	require.True(t, h.deployment(t, ctx, named).Capabilities.PrivateNetworking)
+	require.Equal(t, []db.ListDeploymentConnectionsByDeploymentIdRow{
+		automaticConnection(slugNamed, "caller-app", target.appID),
+	}, h.savedConnections(t, ctx, named))
+	secrets := string(h.deployment(t, ctx, named).EncryptedEnvironmentVariables)
+	require.Contains(t, secrets, "ciphertext-for-CALLER_APP_HOST")
+	require.NotContains(t, secrets, "SELF_HOST")
+
+	h.renameApp(t, ctx, "Not_A_Label")
+	invalid := uid.New(uid.DeploymentPrefix)
+	h.create(t, ctx, invalid, h.imageRequest())
+	require.True(t, h.deployment(t, ctx, invalid).Capabilities.PrivateNetworking, "a slug that is not a DNS label keeps private networking")
+}
+
 // TestCreateRebuildDecidesPrivateNetworkingForNewDeployment guarantees that a
 // rebuild makes its own private networking decision instead of copying the
 // source deployment's.
@@ -322,6 +356,14 @@ func (h *createHarness) setPrivateNetworking(t *testing.T, ctx context.Context, 
 		WorkspaceID: h.workspaceID, FlagSlug: privateNetworkingSlug, Enabled: enabled,
 	}))
 	h.flagClock.Tick(2 * time.Minute)
+}
+
+func (h *createHarness) renameApp(t *testing.T, ctx context.Context, slug string) {
+	t.Helper()
+	require.NoError(t, pkgdb.Query.UpdateApp(ctx, h.database.RW(), pkgdb.UpdateAppParams{
+		SlugSpecified: 1, Slug: slug, UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		WorkspaceID: h.workspaceID, ID: h.appID,
+	}))
 }
 
 func (h *createHarness) approve(t *testing.T, ctx context.Context, deploymentID string) {
