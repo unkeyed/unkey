@@ -27,6 +27,6 @@ In the dashboard, pass a Next.js link with `render={<Link href={listHref} />}` s
 
 ## Full width
 
-For full width pages like logs, requests, use the full width prop to let your page span the entire width of the viewport.
+For full width pages like logs, requests, use the full width prop to let your page span the entire width of the viewport. On desktop the page also fills the height of the content area, so a `DataTable` inside it takes the remaining height and scrolls within itself. Every wrapper between the page and the table needs `flex flex-col md:flex-1 md:min-h-0` to pass that height down.
 
 <Component path="layout/full-width" />
