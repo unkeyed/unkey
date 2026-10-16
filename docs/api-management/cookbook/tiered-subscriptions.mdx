@@ -44,7 +44,7 @@ export const PLANS = {
 export type Plan = keyof typeof PLANS;
 ```
 
-You don't have to create these permissions first. `keys.createKey` creates any that don't exist. `keys.setPermissions` does too, but only if the root key has `rbac.*.create_permission`; otherwise it returns 403. Don't use `*` in slugs, because it isn't a wildcard.
+You don't have to create these permissions first. `keys.createKey` creates any that don't exist. `keys.setPermissions` does too, but only if the root key has `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write`; otherwise it returns 403. Don't use `*` in slugs, because it isn't a wildcard.
 
 ## Create a key for a plan
 

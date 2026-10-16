@@ -88,7 +88,7 @@ curl -X POST https://api.unkey.com/v2/gateway.setPolicies \
   }'
 ```
 
-Your root key needs `environment.*.set_policies` to replace the list, `environment.*.read_policies` to list, and `environment.*.update_policy` to change one, or the same actions on `environment.<environment_id>.…`. See [root key permissions](/platform/root-keys/permissions). A keyspace in an authentication policy must be in the same workspace, or the call fails with [`err:unkey:data:key_space_not_found`](/errors/unkey/data/key_space_not_found).
+Your root key needs `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#write` to replace the list, `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#read` to list, and `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/policies/*#write` to change one. See [root key permissions](/platform/root-keys/permissions). A keyspace in an authentication policy must be in the same workspace, or the call fails with [`err:unkey:data:key_space_not_found`](/errors/unkey/data/key_space_not_found).
 
 Every change, from the dashboard, API, or CLI, is recorded in the audit log with the full policy list.
 

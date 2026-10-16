@@ -393,8 +393,8 @@ export function renderPlatform(card, g) {
       return (
         key(148, 91, 1.2) +
         line("M228 91h81v57m0 0h-98v45m98 -45h119v45", p.border, 2) +
-        tag(99, 205, "Legacy tuple", false, 195) +
-        tag(320, 205, "Resource name", true, 209)
+        tag(99, 205, "Workspace", false, 195) +
+        tag(320, 205, "Resource path", true, 209)
       );
     case "platform--root-keys--overview--2":
       return (
@@ -403,11 +403,11 @@ export function renderPlatform(card, g) {
             rect(92 + 145 * i, 73 + 31 * i, 125, 111, i === 1 ? p.tint : p.raised, 15, true),
           )
           .join("") +
-        t(127, 132, "api", p.text, 29) +
-        text(300, 164, "*", p.accent, 38, "middle") +
-        t(397, 192, "read_key", p.text, 19) +
+        t(107, 132, "projects/*", p.text, 21) +
+        text(300, 164, "#", p.accent, 38, "middle") +
+        t(397, 192, "read", p.text, 21) +
         line("M219 128h14m130 31h14", p.border, 2) +
-        t(139, 268, "Three parts. One grant.", p.muted, 23)
+        t(139, 268, "Resource and action.", p.muted, 23)
       );
     case "platform--root-keys--overview--3":
       return (

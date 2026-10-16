@@ -21,7 +21,7 @@ Create a key with `keys.createKey`. The only required field is the keyspace's AP
 
 <RootKeyPrereq />
 
-The root key needs `api.*.create_key` or `api.<api_id>.create_key`. Creating a recoverable key also needs `api.*.encrypt_key` or `api.<api_id>.encrypt_key`. Without it you get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), not a permission error, so a missing grant looks like a missing API. See [Root key permissions](/platform/root-keys/permissions).
+The root key needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`. Without it you get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), not a permission error, so a missing grant looks like a missing API. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Request fields
 
