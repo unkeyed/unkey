@@ -65,15 +65,10 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
         <Loading />
       </div>
     ))
-    .with({ status: "failed" }, ({ retry, retrying }) => (
+    .with({ status: "failed" }, ({ retry }) => (
       <Card>
         <CardContent className="p-0">
-          <LoadError
-            title="Could not load team members"
-            frame="none"
-            onRetry={retry}
-            retrying={retrying}
-          />
+          <LoadError title="Could not load team members" frame="none" onRetry={retry} />
         </CardContent>
       </Card>
     ))

@@ -28,7 +28,6 @@ describe("fromQuery", () => {
       status: "failed",
       error,
       retry: expect.any(Function),
-      retrying: false,
     });
     if (result.status === "failed") {
       result.retry();
@@ -58,16 +57,6 @@ describe("fromQuery", () => {
       result.stale?.retry();
     }
     expect(refetches).toEqual(["refetch"]);
-  });
-
-  test("no data with an error and a refetch in flight is failed and retrying", () => {
-    const error = new Error("boom");
-    expect(fromQuery(query({ isError: true, isFetching: true, error }))).toEqual({
-      status: "failed",
-      error,
-      retry: expect.any(Function),
-      retrying: true,
-    });
   });
 
   test("data with an error and a refetch in flight marks the stale failure retrying", () => {

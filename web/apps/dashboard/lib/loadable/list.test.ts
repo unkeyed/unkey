@@ -160,7 +160,7 @@ describe("listOf", () => {
           refetch: calls.refetch,
         }),
       ),
-    ).toEqual({ status: "failed", error, retry: expect.any(Function), retrying: false });
+    ).toEqual({ status: "failed", error, retry: expect.any(Function) });
   });
 
   test("no data and no error is loading", () => {
@@ -198,7 +198,6 @@ describe("infiniteListOf", () => {
       status: "failed",
       error,
       retry: expect.any(Function),
-      retrying: false,
     });
     if (result.status === "failed") {
       result.retry();

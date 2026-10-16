@@ -16,13 +16,11 @@ export function LoadError({
   error,
   frame,
   onRetry,
-  retrying,
 }: {
   title: string;
   error?: unknown;
   frame?: ComponentProps<typeof EmptyState>["frame"];
   onRetry: () => void;
-  retrying?: boolean;
 }) {
   return (
     <EmptyState frame={frame}>
@@ -33,13 +31,7 @@ export function LoadError({
         </EmptyStateDescription>
       </EmptyStateHeader>
       <EmptyStateActions>
-        <Button
-          variant="primary"
-          size="md"
-          onClick={onRetry}
-          loading={retrying}
-          disabled={retrying}
-        >
+        <Button variant="primary" size="md" onClick={onRetry}>
           Retry
         </Button>
       </EmptyStateActions>

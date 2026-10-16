@@ -35,7 +35,13 @@ export function ListPager({ state, noun }: { state: ListFooterState; noun: strin
           <span role="alert" className="text-error-11 text-sm">
             {getErrorMessage(error, ERROR_COPY[reason](noun))}
           </span>
-          <Button variant="outline" onClick={onRetry} loading={retrying} disabled={retrying}>
+          <Button
+            size="md"
+            variant="outline"
+            onClick={onRetry}
+            loading={retrying}
+            disabled={retrying}
+          >
             Retry
           </Button>
         </div>

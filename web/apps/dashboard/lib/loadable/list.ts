@@ -1,6 +1,6 @@
 import { isCancelledError } from "@tanstack/react-query";
 import { useState } from "react";
-import { type Failure, type Loadable, type QueryResult, fromQuery } from "./loadable";
+import { type Failure, type Loadable, type QueryResult, type Stale, fromQuery } from "./loadable";
 
 export type ListFooterState =
   | { kind: "hidden" }
@@ -86,7 +86,7 @@ function infiniteFooterOf<Page>(
   query: InfiniteQueryResult<Page>,
   attempt: NextPageAttempt,
   loadMore: () => void,
-  stale: Failure | null,
+  stale: Stale | null,
 ): ListFooterState {
   if (attempt.status === "failed" && attempt.dataUpdatedAt === query.dataUpdatedAt) {
     return {
@@ -116,7 +116,7 @@ function infiniteFooterOf<Page>(
   return query.hasNextPage ? { kind: "more", onLoadMore: loadMore } : HIDDEN;
 }
 
-function refreshError({ error, retry, retrying }: Failure): ListFooterState {
+function refreshError({ error, retry, retrying }: Stale): ListFooterState {
   return { kind: "error", reason: "refresh", error, onRetry: retry, retrying };
 }
 

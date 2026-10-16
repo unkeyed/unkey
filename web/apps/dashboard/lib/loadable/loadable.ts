@@ -1,9 +1,11 @@
-export type Failure = { error: unknown; retry: () => void; retrying: boolean };
+export type Failure = { error: unknown; retry: () => void };
+
+export type Stale = Failure & { retrying: boolean };
 
 export type Loadable<T> =
   | { status: "loading" }
   | ({ status: "failed" } & Failure)
-  | { status: "ready"; data: T; stale: Failure | null };
+  | { status: "ready"; data: T; stale: Stale | null };
 
 export type QueryResult<T> = {
   data: T | undefined;
@@ -25,7 +27,7 @@ export function fromQuery<T>(query: QueryResult<T>): Loadable<T> {
     };
   }
   if (query.isError) {
-    return { status: "failed", error: query.error, retry, retrying: query.isFetching };
+    return { status: "failed", error: query.error, retry };
   }
   return { status: "loading" };
 }

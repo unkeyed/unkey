@@ -129,15 +129,9 @@ function IdentityResults({ search }: { search: string }) {
 
   return match(view)
     .with({ status: "loading" }, () => <IdentitiesSkeleton />)
-    .with({ status: "failed" }, ({ error, retry, retrying }) => (
+    .with({ status: "failed" }, ({ error, retry }) => (
       <ResourceListContent>
-        <LoadError
-          title="Could not load identities"
-          error={error}
-          frame="none"
-          onRetry={retry}
-          retrying={retrying}
-        />
+        <LoadError title="Could not load identities" error={error} frame="none" onRetry={retry} />
       </ResourceListContent>
     ))
     .with({ status: "empty" }, () => <IdentitiesEmpty search={search} />)
