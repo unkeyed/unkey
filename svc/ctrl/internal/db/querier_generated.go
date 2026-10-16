@@ -2569,6 +2569,21 @@ type Querier interface {
 	//  SET desired_status = ?, updated_at = ?
 	//  WHERE deployment_id = ? AND region_id = ?
 	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, arg UpdateDeploymentTopologyDesiredStatusParams) error
+	// UpdateInstance refreshes an instance that is already known, matching on its
+	// primary identity so only the target row is locked. A report for an existing
+	// instance must not go through INSERT ... ON DUPLICATE KEY UPDATE: the insert
+	// attempt probes the id and (k8s_name, region_id) unique indexes and allocates
+	// an auto-increment value, and those gap locks deadlock under concurrent
+	// reports.
+	//
+	//  UPDATE instances
+	//  SET
+	//      address = ?,
+	//      cpu_millicores = ?,
+	//      memory_mib = ?,
+	//      status = ?
+	//  WHERE id = ?
+	UpdateInstance(ctx context.Context, arg UpdateInstanceParams) error
 	//UpdateKeysLastUsed
 	//
 	//  UPDATE `keys`
