@@ -358,6 +358,18 @@ func TestListPrivateNetworkConnections(t *testing.T) {
 		require.Equal(t, whole[0], split)
 	})
 
+	t.Run("one page resolves each selection like a page of one connection", func(t *testing.T) {
+		q := newCatalog(t)
+		callers := q.catalogReplicaIDs(t, q.Queries, platform)
+		whole := catalogConnectionPages(t, q.Queries, platform, callers, 100)
+		require.Len(t, whole, 1)
+		byConnectionCaller := make(map[string]ListPrivateNetworkConnectionsRow, len(whole[0]))
+		for _, row := range whole[0] {
+			byConnectionCaller[row.ConnectionID+"/"+row.CallerDeploymentID] = row
+		}
+		require.Equal(t, list(t, q), byConnectionCaller, "same-branch callers on different forks and callers without a match must not share or shift targets")
+	})
+
 	t.Run("callers publish from deploying through ready", func(t *testing.T) {
 		q := newCatalog(t)
 		for _, status := range []mysqltype.DeploymentsStatus{
