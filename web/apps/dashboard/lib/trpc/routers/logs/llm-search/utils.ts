@@ -177,14 +177,11 @@ Result: [
   }
 ]
 
-Query: "show successful and not found requests"
+Query: "show successful requests"
 Result: [
   {
     field: "status",
-    filters: [
-      { operator: "is", value: 200 },
-      { operator: "is", value: 404 }
-    ]
+    filters: [{ operator: "is", value: 200 }]
   }
 ]
 
@@ -286,6 +283,7 @@ ${operatorsByField}
   • 200 for successful responses
   • 400 for client errors (4XX series)
   • 500 for server errors (5XX series)
+- Use one status value, or 400 and 500 together for errors. Never combine 200 with 400 or 500
 - For relative time queries, support any combination of:
   • Nx[m] for minutes (e.g., 30m, 45m)
   • Nx[h] for hours (e.g., 1h, 24h)

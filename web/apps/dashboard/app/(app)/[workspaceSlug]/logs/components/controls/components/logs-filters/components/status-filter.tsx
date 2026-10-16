@@ -45,6 +45,8 @@ export const StatusFilter = () => {
       options={statusOptions}
       filterField="status"
       checkPath="status"
+      selectionMode="single"
+      allowDeselection
       renderOptionContent={(checkbox) => (
         <>
           <div className={`size-2 ${checkbox.color} rounded-xs`} />

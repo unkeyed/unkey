@@ -1,9 +1,11 @@
 import type { UsagePeriod } from "@/app/(app)/[workspaceSlug]/settings/usage/period";
+import type { V2LogsListApiRequestsFilters } from "@unkey/api/models/components";
 const keysRoot = ["keys"] as const;
 const rbacRoot = ["rbac"] as const;
 const rolesRoot = [...rbacRoot, "roles"] as const;
 const permissionsRoot = [...rbacRoot, "permissions"] as const;
 const identitiesRoot = ["identities"] as const;
+const apiRequestsRoot = ["logs", "apiRequests"] as const;
 const workspaceRoot = ["workspace"] as const;
 const ratelimitNamespacesRoot = ["ratelimit", "namespaces"] as const;
 const portalSessionLists = (portalId: string) => ["portalSessions", portalId, "list"] as const;
@@ -24,6 +26,17 @@ export const queryKeys = {
     details: (workspaceId: string) => [...identitiesRoot, workspaceId, "detail"] as const,
     detail: (workspaceId: string, identityId: string) =>
       [...identitiesRoot, workspaceId, "detail", identityId] as const,
+  },
+  logs: {
+    apiRequests: {
+      all: apiRequestsRoot,
+      list: (filters: V2LogsListApiRequestsFilters, limit: number) =>
+        [...apiRequestsRoot, "list", filters, limit] as const,
+      live: (filters: V2LogsListApiRequestsFilters, limit: number) =>
+        [...apiRequestsRoot, "live", filters, limit] as const,
+      detail: (requestId: string, time: number) =>
+        [...apiRequestsRoot, "detail", requestId, time] as const,
+    },
   },
   keys: {
     all: keysRoot,
