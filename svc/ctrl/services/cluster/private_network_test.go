@@ -146,7 +146,7 @@ func TestPrivateNetworkStateStreamsCatalog(t *testing.T) {
 	}
 	require.Equal(t, uint64(len(connections)+len(replicas)), last.GetTotal())
 	require.Len(t, connections, callers*privateNetworkConnectionsPerCaller, "every connection of every caller deployment created with private networking")
-	require.Len(t, replicas, callers+1, "every caller and the target publish replicas; the app with an invalid slug does not")
+	require.Len(t, replicas, callers+2, "every caller, the target, and the app with an invalid slug publish replicas")
 	for caller, connection := range connections {
 		require.True(t, strings.HasPrefix(connection.GetConnectionName(), "database"), "connection for %s keeps its saved name", caller)
 		require.Equal(t, target, connection.GetTargetDeploymentId(), "connection for %s", caller)
@@ -155,7 +155,7 @@ func TestPrivateNetworkStateStreamsCatalog(t *testing.T) {
 	for deployment, connection := range replicas {
 		require.Equal(t, deployment, connection.GetTargetDeploymentId())
 		require.Equal(t, "self-"+deployment, connection.GetConnectionId())
-		require.Contains(t, []string{"api", "db"}, connection.GetConnectionName(), "replicas resolve under their app slug")
+		require.Equal(t, "self", connection.GetConnectionName(), "replicas resolve under the self name whatever their app slug")
 	}
 
 	work := catalogWork(t)
