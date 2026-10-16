@@ -239,6 +239,7 @@ func Run(ctx context.Context, cfg Config) error {
 		TrustedProxyCIDRs:  cfg.TrustedProxyCIDRs,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
+		IdleTimeout:        0,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
