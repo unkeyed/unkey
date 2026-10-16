@@ -41,7 +41,7 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, "*", "*", "*", "verify"))
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
 	headers := http.Header{

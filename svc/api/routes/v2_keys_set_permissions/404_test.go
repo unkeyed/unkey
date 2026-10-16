@@ -30,7 +30,7 @@ func TestNotFound(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_permission_from_key", "rbac.*.add_permission_to_key")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -41,11 +41,12 @@ func TestNotFound(t *testing.T) {
 	t.Run("non-existent key ID", func(t *testing.T) {
 		// Create a permission to reference
 		permissionID := uid.New(uid.TestPrefix)
+		permissionSlug := uid.New("documents.read.notfound")
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.notfound",
-			Slug:         "documents.read.notfound",
+			Name:         permissionSlug,
+			Slug:         permissionSlug,
 			Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 		})
 		require.NoError(t, err)
@@ -94,11 +95,12 @@ func TestNotFound(t *testing.T) {
 
 		// Create permission in the authorized workspace
 		permissionID := uid.New(uid.TestPrefix)
+		permissionSlug := uid.New("documents.read.isolation")
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.isolation",
-			Slug:         "documents.read.isolation",
+			Name:         permissionSlug,
+			Slug:         permissionSlug,
 			Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 		})
 		require.NoError(t, err)

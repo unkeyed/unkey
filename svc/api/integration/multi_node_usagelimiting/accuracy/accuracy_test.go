@@ -120,7 +120,7 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 
 	// Step 1: Set up test resources
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
+	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "unkey:v1:"+workspace.ID+":projects/*/keyspaces/*/keys/*#verify")
 
 	api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,

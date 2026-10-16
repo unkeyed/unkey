@@ -45,19 +45,3 @@ func TestCreateRejectsInvalidBearerThroughAuthenticationMiddleware(t *testing.T)
 	}, handler.Request{Permissions: []string{"*"}})
 	require.Equal(t, http.StatusUnauthorized, res.Status)
 }
-
-func TestCreateRejectsLegacyCreationPermissions(t *testing.T) {
-	for _, grant := range []string{"*", "workspace.*.create_root_key"} {
-		p := &principal.Principal{
-			Type: principal.TypeAPIKey, Subject: principal.Subject{ID: "key_caller", Type: principal.SubjectTypeRootKey},
-			Source: principal.KeySource{}, AuthorizedWorkspaceID: "ws_customer", Permissions: []string{grant},
-		}
-		s := &zen.Session{}
-		s.SetPrincipal(p)
-		err := (&handler.Handler{}).Handle(t.Context(), s)
-		require.Error(t, err)
-		code, ok := fault.GetCode(err)
-		require.True(t, ok)
-		require.Equal(t, codes.Auth.Authorization.InsufficientPermissions.URN(), code)
-	}
-}

@@ -34,8 +34,6 @@ func TestRerollKeySuccess(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key", "api.*.encrypt_key")
-
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
 		EncryptedKeys: true,
@@ -47,6 +45,7 @@ func TestRerollKeySuccess(t *testing.T) {
 	})
 
 	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "write"))
 
 	identityMeta, err := json.Marshal(map[string]string{"name": "Test User"})
 	require.NoError(t, err)

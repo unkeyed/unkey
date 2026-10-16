@@ -49,7 +49,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 		Name:        new("test"),
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -259,7 +259,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		Name:        new("test"),
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -342,7 +342,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	})
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "write"))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -420,7 +420,7 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 		keyIDs[i] = keyResponse.KeyID
 	}
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -509,7 +509,7 @@ func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 		Name:        new("concurrent-ratelimit-test-key"),
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

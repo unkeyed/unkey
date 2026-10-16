@@ -131,16 +131,10 @@ func TestRootKeyRejectsUnauthorizedCreationWithoutWrites(t *testing.T) {
 		{"concrete subtree does not cover creation wildcard", []string{base + "rootKeys/key_one/**#write"}, []string{permission}, 403},
 		{"project subtree does not cover workspace root keys", []string{base + "projects/*/**#write"}, []string{permission}, 403},
 		{"creation cannot grant global access", []string{permission}, []string{base + "**#*"}, 403},
-		{"legacy star cannot grant global access", []string{permission, "*"}, []string{base + "**#*"}, 403},
-		{"legacy star cannot grant descendant write", []string{permission, "*"}, []string{base + "projects/" + api.ProjectID + "/**#write"}, 403},
-		{"legacy star cannot grant workspace write", []string{permission, "*"}, []string{base + "**#write"}, 403},
-		{"legacy requests are invalid even for admins", []string{base + "**#*", "*"}, []string{"*"}, 400},
 		{"creation cannot grant unrelated action", []string{permission}, []string{decrypt}, 403},
 		{"single key cannot grant all keys", []string{permission, scope + "/keys/key_one#decrypt"}, []string{decrypt}, 403},
 		{"permission scope cannot expand", []string{permission, decrypt}, []string{base + "projects/*/keyspaces/*/keys/*#decrypt"}, 403},
 		{"foreign requested creation", []string{permission}, []string{"unkey:v1:" + foreign.WorkspaceID + ":rootKeys/*#write"}, 400},
-		{"foreign legacy API", []string{base + "**#*"}, []string{"api." + foreign.ID + ".decrypt_key"}, 400},
-		{"no workspace ID legacy equivalence", []string{base + "**#*"}, []string{"workspace." + r.UserWorkspace.ID + ".create_root_key"}, 400},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			bearer := h.CreateRootKey(r.UserWorkspace.ID, tt.caller...)

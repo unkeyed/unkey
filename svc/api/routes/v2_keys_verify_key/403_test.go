@@ -36,7 +36,7 @@ func TestForbidden_NoVerifyPermissions(t *testing.T) {
 		api2 := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
 		// Create root key with verify permission for api2 only
-		rootKeyForApi2 := h.CreateRootKey(workspace.ID, fmt.Sprintf("api.%s.verify_key", api2.ID))
+		rootKeyForApi2 := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api2.ProjectID, api2.KeyAuthID.String, "*", "verify"))
 
 		// Try to verify a key from api1
 		req := handler.Request{
@@ -58,7 +58,7 @@ func TestForbidden_NoVerifyPermissions(t *testing.T) {
 
 	t.Run("root key with wildcard verify permission returns 200 VALID", func(t *testing.T) {
 		// Create root key with wildcard verify permission
-		rootKeyWithVerify := h.CreateRootKey(workspace.ID, "api.*.verify_key")
+		rootKeyWithVerify := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "verify"))
 
 		req := handler.Request{
 			Key: key.Key,
@@ -78,7 +78,7 @@ func TestForbidden_NoVerifyPermissions(t *testing.T) {
 
 	t.Run("root key with specific api verify permission returns 200 VALID", func(t *testing.T) {
 		// Create root key with specific API verify permission
-		rootKeyWithSpecificVerify := h.CreateRootKey(workspace.ID, fmt.Sprintf("api.%s.verify_key", api.ID))
+		rootKeyWithSpecificVerify := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "verify"))
 
 		req := handler.Request{
 			Key: key.Key,

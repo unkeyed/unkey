@@ -60,7 +60,7 @@ func TestMigrateKeysForbidden(t *testing.T) {
 
 	t.Run("wrong permission - has read but not create", func(t *testing.T) {
 		// Create root key with read permission instead of create
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -74,7 +74,7 @@ func TestMigrateKeysForbidden(t *testing.T) {
 
 	t.Run("permission for different API", func(t *testing.T) {
 		// Create root key with create permission for other API
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.create_key", otherAPI.ID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, otherAPI.ProjectID, otherAPI.KeyAuthID.String, "write"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -88,7 +88,7 @@ func TestMigrateKeysForbidden(t *testing.T) {
 
 	t.Run("permission for specific API but requesting different API", func(t *testing.T) {
 		// Create root key with create permission for specific API
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.create_key", otherAPI.ID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, otherAPI.ProjectID, otherAPI.KeyAuthID.String, "write"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -103,7 +103,7 @@ func TestMigrateKeysForbidden(t *testing.T) {
 
 	t.Run("unrelated permission", func(t *testing.T) {
 		// Create root key with completely unrelated permission
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "workspace.read")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -117,7 +117,7 @@ func TestMigrateKeysForbidden(t *testing.T) {
 
 	t.Run("partial permission match", func(t *testing.T) {
 		// Create root key with permission that partially matches but isn't sufficient
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.create")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
