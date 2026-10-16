@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -64,26 +65,16 @@ func TestDeploymentRowToState_Stopped(t *testing.T) {
 }
 
 func TestDeploymentRowToState_PrivateNetworking(t *testing.T) {
-	for _, tt := range []struct {
-		name     string
-		enrolled bool
-		slug     string
-		want     string
-	}{
-		{name: "enrolled", enrolled: true, slug: "api", want: "api.unkey.internal"},
-		{name: "not_enrolled", enrolled: false, slug: "api", want: ""},
-		{name: "enrolled_invalid_slug", enrolled: true, slug: "Bad_Slug", want: ""},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, enrolled := range []bool{true, false} {
+		t.Run(fmt.Sprintf("enrolled=%t", enrolled), func(t *testing.T) {
 			state, err := deploymentRowToState(db.ListAllDeploymentTopologiesByRegionRow{
 				TopologyDesiredStatus:  db.DeploymentTopologyDesiredStatusRunning,
 				DeploymentID:           uid.New(uid.DeploymentPrefix),
-				AppSlug:                tt.slug,
-				DeploymentCapabilities: mysqltype.DeploymentCapabilities{PrivateNetworking: tt.enrolled},
+				DeploymentCapabilities: mysqltype.DeploymentCapabilities{PrivateNetworking: enrolled},
 			})
 			require.NoError(t, err)
-			require.Equal(t, tt.want, state.GetApply().GetPrivateNetworkReplicaHost())
-			require.Equal(t, tt.want != "", state.GetApply().GetPrivateNetworking(), "private networking is enabled exactly when the replica host is set")
+			require.NotNil(t, state.GetApply().GetCapabilities(), "Ctrl always sends the saved capabilities")
+			require.Equal(t, enrolled, state.GetApply().GetCapabilities().GetPrivateNetworking())
 		})
 	}
 }

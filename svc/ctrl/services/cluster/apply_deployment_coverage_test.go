@@ -68,16 +68,10 @@ func producerFieldAssertions(row db.FindDeploymentTopologyByDeploymentAndRegionR
 			require.Equal(t, row.AppID, a.GetAppId())
 		},
 		"environment_slug": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-			require.Equal(t, "preview", a.GetEnvironmentSlug())
+			require.Equal(t, "production", a.GetEnvironmentSlug())
 		},
-		"environment_kind": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-			require.Equal(t, "preview", a.GetEnvironmentKind())
-		},
-		"private_networking": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-			require.True(t, a.GetPrivateNetworking())
-		},
-		"private_network_replica_host": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-			require.Equal(t, "api.unkey.internal", a.GetPrivateNetworkReplicaHost())
+		"capabilities": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+			require.True(t, a.GetCapabilities().GetPrivateNetworking())
 		},
 		"region": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
 			require.Equal(t, "us-east-1", a.GetRegion())
@@ -138,9 +132,7 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 			Healthcheck: &dbtype.Healthcheck{Method: "GET", Path: "/sentinel-healthz"},
 		},
 		K8sNamespace:    "ns-sentinel",
-		EnvironmentSlug: "preview",
-		EnvironmentKind: dbtype.EnvironmentKindPreview,
-		AppSlug:         "api",
+		EnvironmentSlug: "production",
 		Capabilities:    dbtype.DeploymentCapabilities{PrivateNetworking: true},
 		RegionName:      "us-east-1",
 		GitRepo:         sql.NullString{Valid: true, String: "github.com/test/sentinel"},
