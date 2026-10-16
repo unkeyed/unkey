@@ -35,6 +35,7 @@ var resourcePathShapes = []resourcePathShape{
 	{resource: limits{}, segments: []string{"limits"}},
 	{resource: usage{}, segments: []string{"usage"}},
 	{resource: flags{}, segments: []string{"flags"}},
+	{resource: requestLogs{}, segments: []string{"logs", "requests"}},
 	{resource: new(Project), segments: []string{"projects", resourceIDSegment}},
 	{resource: new(App), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment}},
 	{resource: new(Environment), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment}},
@@ -63,6 +64,7 @@ var resourcePathShapes = []resourcePathShape{
 var resourceContainerPathShapes = []resourcePathShape{
 	{resource: new(Gateway), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway"}},
 	{resource: new(RBAC), segments: []string{"projects", resourceIDSegment, "rbac"}},
+	{resource: workspaceLogs{}, segments: []string{"logs"}},
 }
 
 // V1 is a parsed v1 Unkey resource name.

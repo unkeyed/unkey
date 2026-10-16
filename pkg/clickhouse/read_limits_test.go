@@ -11,11 +11,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// TestClassifyPortalQueryErrorAdoptsResourceLimits guarantees the bounds
-// withPortalQueryLimits sets reach the caller as rejections rather than
+// TestClassifyReadLimitErrorAdoptsResourceLimits guarantees the bounds
+// withReadLimits sets reach the caller as rejections rather than
 // internal errors. Without a code the API middleware answers 500, which tells a
 // client to retry the query that just exceeded a limit.
-func TestClassifyPortalQueryErrorAdoptsResourceLimits(t *testing.T) {
+func TestClassifyReadLimitErrorAdoptsResourceLimits(t *testing.T) {
 	tests := []struct {
 		name      string
 		exception *ch.Exception
@@ -40,23 +40,23 @@ func TestClassifyPortalQueryErrorAdoptsResourceLimits(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			code, ok := fault.GetCode(classifyPortalQueryError(tt.exception))
+			code, ok := fault.GetCode(classifyReadLimitError(tt.exception))
 			require.True(t, ok, "a resource limit must carry a code")
 			require.Equal(t, tt.expected, code)
 			wrapped := errors.Join(errors.New("query failed"), tt.exception)
-			code, ok = fault.GetCode(classifyPortalQueryError(wrapped))
+			code, ok = fault.GetCode(classifyReadLimitError(wrapped))
 			require.True(t, ok, "a wrapped resource limit must carry a code")
 			require.Equal(t, tt.expected, code)
 		})
 	}
 }
 
-// TestClassifyPortalQueryErrorPreservesOperationalFailures guarantees anything
+// TestClassifyReadLimitErrorPreservesOperationalFailures guarantees anything
 // that is not one of those bounds stays unclassified. These queries are written
 // in this package rather than by the caller, so WrapClickHouseError's closing
 // arm, which reads an unmatched failure as a bad customer query, would both
 // blame the wrong party and hide an outage from the 5xx metrics.
-func TestClassifyPortalQueryErrorPreservesOperationalFailures(t *testing.T) {
+func TestClassifyReadLimitErrorPreservesOperationalFailures(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error
@@ -107,7 +107,7 @@ func TestClassifyPortalQueryErrorPreservesOperationalFailures(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			classified := classifyPortalQueryError(tt.err)
+			classified := classifyReadLimitError(tt.err)
 			require.Equal(t, tt.err, classified, "an operational failure must be returned untouched")
 
 			_, ok := fault.GetCode(classified)

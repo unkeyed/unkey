@@ -414,6 +414,7 @@ func TestResourceCatalogBuilders(t *testing.T) {
 		got  string
 		want string
 	}{
+		{name: "request logs", got: workspace.RequestLogs().String(), want: "unkey:v1:ws_123:logs/requests"},
 		{name: "GitHub app", got: workspace.GitHubApp("github_123").String(), want: "unkey:v1:ws_123:github/apps/github_123"},
 		{name: "project", got: project.String(), want: "unkey:v1:ws_123:projects/proj_123"},
 		{name: "app", got: app.String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123"},

@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+description: |
+  Filters a field that matches only as a whole value, such as a host or a request ID.
+  Matching is exact and case-sensitive.
+properties:
+  is:
+    "$ref": "./LogStringValues.yaml"
+    description: Keep rows where the field equals one of the values.
+  isNot:
+    "$ref": "./LogStringValues.yaml"
+    description: Remove rows where the field equals one of the values.
+example:
+  isNot: ["api.unkey.dev"]

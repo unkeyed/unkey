@@ -1,0 +1,9 @@
+type: array
+minItems: 1
+maxItems: 20
+items:
+  type: integer
+  format: int64
+description: |
+  The values of one filter operator. A row matches `is` when it equals any value in the list.
+  A row matches `isNot` only when it equals none of the values.

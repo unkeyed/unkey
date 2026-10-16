@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+description: |
+  Filters for the listing. A missing field does not filter. Different fields are combined with AND.
+properties:
+  time:
+    "$ref": "../../../../common/LogTimeFilter.yaml"
+  path:
+    "$ref": "../../../../common/LogTextFilter.yaml"
+  host:
+    "$ref": "../../../../common/LogIdFilter.yaml"
+  method:
+    "$ref": "../../../../common/LogMethodFilter.yaml"
+  requestId:
+    "$ref": "../../../../common/LogIdFilter.yaml"
+  status:
+    "$ref": "../../../../common/LogIntFilter.yaml"

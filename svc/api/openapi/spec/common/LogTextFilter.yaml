@@ -1,0 +1,28 @@
+type: object
+additionalProperties: false
+description: |
+  Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+  The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+  The negated operators (`isNot`, `notContains`) are combined with AND.
+properties:
+  is:
+    "$ref": "./LogStringValues.yaml"
+    description: Keep rows where the field equals one of the values.
+  isNot:
+    "$ref": "./LogStringValues.yaml"
+    description: Remove rows where the field equals one of the values.
+  contains:
+    "$ref": "./LogStringValues.yaml"
+    description: Keep rows where the field contains one of the values.
+  notContains:
+    "$ref": "./LogStringValues.yaml"
+    description: Remove rows where the field contains one of the values.
+  startsWith:
+    "$ref": "./LogStringValues.yaml"
+    description: Keep rows where the field starts with one of the values.
+  endsWith:
+    "$ref": "./LogStringValues.yaml"
+    description: Keep rows where the field ends with one of the values.
+example:
+  startsWith: ["/v2/keys."]
+  notContains: ["verifyKey"]

@@ -1,0 +1,20 @@
+type: object
+additionalProperties: false
+description: Filters by HTTP method.
+properties:
+  is:
+    type: array
+    minItems: 1
+    maxItems: 7
+    items:
+      "$ref": "./LogHttpMethod.yaml"
+    description: Keep rows with one of these methods.
+  isNot:
+    type: array
+    minItems: 1
+    maxItems: 7
+    items:
+      "$ref": "./LogHttpMethod.yaml"
+    description: Remove rows with one of these methods.
+example:
+  is: ["POST", "PUT"]

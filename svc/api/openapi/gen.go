@@ -386,6 +386,39 @@ func (e KeyCreditsRefillInterval) Valid() bool {
 	}
 }
 
+// Defines values for LogHttpMethod.
+const (
+	LogHttpMethodDELETE  LogHttpMethod = "DELETE"
+	LogHttpMethodGET     LogHttpMethod = "GET"
+	LogHttpMethodHEAD    LogHttpMethod = "HEAD"
+	LogHttpMethodOPTIONS LogHttpMethod = "OPTIONS"
+	LogHttpMethodPATCH   LogHttpMethod = "PATCH"
+	LogHttpMethodPOST    LogHttpMethod = "POST"
+	LogHttpMethodPUT     LogHttpMethod = "PUT"
+)
+
+// Valid indicates whether the value is a known member of the LogHttpMethod enum.
+func (e LogHttpMethod) Valid() bool {
+	switch e {
+	case LogHttpMethodDELETE:
+		return true
+	case LogHttpMethodGET:
+		return true
+	case LogHttpMethodHEAD:
+		return true
+	case LogHttpMethodOPTIONS:
+		return true
+	case LogHttpMethodPATCH:
+		return true
+	case LogHttpMethodPOST:
+		return true
+	case LogHttpMethodPUT:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MethodMatchMethods.
 const (
 	MethodMatchMethodsDELETE  MethodMatchMethods = "DELETE"
@@ -585,6 +618,69 @@ func (e V2PortalListSessionsSessionStatus) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// ApiRequestLog One request that the Unkey API served for your workspace.
+type ApiRequestLog struct {
+	// Error The internal error of a failed request. Empty when the request did not fail.
+	//
+	// Example:
+	Error string `json:"error"`
+
+	// Host The host the request was sent to.
+	//
+	// Example: api.unkey.com
+	Host string `json:"host"`
+
+	// LatencyMs How long the Unkey API took to serve the request, in milliseconds.
+	//
+	// Example: 38
+	LatencyMs int64 `json:"latencyMs"`
+
+	// Method The HTTP method of the request.
+	//
+	// Example: POST
+	Method string `json:"method"`
+
+	// Path The path of the request.
+	//
+	// Example: /v2/keys.updateKey
+	Path string `json:"path"`
+
+	// RequestBody The request body. Secret values are redacted.
+	//
+	// Example: {"keyId":"key_1234abcd","name":"Payments"}
+	RequestBody string `json:"requestBody"`
+
+	// RequestHeaders Request headers as `Name: value` strings. Credential headers show `[REDACTED]`.
+	//
+	// Example: ["Content-Type: application/json","Authorization: [REDACTED]"]
+	RequestHeaders []string `json:"requestHeaders"`
+
+	// RequestId The ID that the Unkey API returned in `meta.requestId` for this request.
+	//
+	// Example: req_1234abcd
+	RequestId string `json:"requestId"`
+
+	// ResponseBody The response body. Secret values are redacted.
+	//
+	// Example: {"meta":{"requestId":"req_1234abcd"},"error":{"status":404}}
+	ResponseBody string `json:"responseBody"`
+
+	// ResponseHeaders Response headers as `Name: value` strings.
+	//
+	// Example: ["Content-Type: application/json"]
+	ResponseHeaders []string `json:"responseHeaders"`
+
+	// Status The HTTP status of the response.
+	//
+	// Example: 404
+	Status int32 `json:"status"`
+
+	// Time When the Unkey API received the request, in Unix milliseconds.
+	//
+	// Example: 1792021850123
+	Time int64 `json:"time"`
 }
 
 // App defines model for App.
@@ -1935,6 +2031,119 @@ type KeysVerifyKeyRatelimit struct {
 	//
 	// Example: tokens
 	Name string `json:"name"`
+}
+
+// LogHttpMethod An HTTP method in upper case.
+//
+// Example: POST
+type LogHttpMethod string
+
+// LogIdFilter Filters a field that matches only as a whole value, such as a host or a request ID.
+// Matching is exact and case-sensitive.
+//
+// Example: {"isNot":["api.unkey.dev"]}
+type LogIdFilter struct {
+	// Is The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	Is *LogStringValues `json:"is,omitempty"`
+
+	// IsNot The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	IsNot *LogStringValues `json:"isNot,omitempty"`
+}
+
+// LogIntFilter Filters an integer field. `is` keeps rows that equal one of its values.
+// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+//
+// Example: {"gte":400,"isNot":[429],"lt":600}
+type LogIntFilter struct {
+	// Gt Keep rows where the field is greater than this value.
+	Gt *int64 `json:"gt,omitempty"`
+
+	// Gte Keep rows where the field is greater than or equal to this value.
+	Gte *int64 `json:"gte,omitempty"`
+
+	// Is The values of one filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	Is *LogIntValues `json:"is,omitempty"`
+
+	// IsNot The values of one filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	IsNot *LogIntValues `json:"isNot,omitempty"`
+
+	// Lt Keep rows where the field is less than this value.
+	Lt *int64 `json:"lt,omitempty"`
+
+	// Lte Keep rows where the field is less than or equal to this value.
+	Lte *int64 `json:"lte,omitempty"`
+}
+
+// LogIntValues The values of one filter operator. A row matches `is` when it equals any value in the list.
+// A row matches `isNot` only when it equals none of the values.
+type LogIntValues = []int64
+
+// LogMethodFilter Filters by HTTP method.
+//
+// Example: {"is":["POST","PUT"]}
+type LogMethodFilter struct {
+	// Is Keep rows with one of these methods.
+	Is *[]LogHttpMethod `json:"is,omitempty"`
+
+	// IsNot Remove rows with one of these methods.
+	IsNot *[]LogHttpMethod `json:"isNot,omitempty"`
+}
+
+// LogStringValues The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+// A row matches a negated operator only when it matches none of the values.
+type LogStringValues = []string
+
+// LogTextFilter Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+// The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+// The negated operators (`isNot`, `notContains`) are combined with AND.
+//
+// Example: {"notContains":["verifyKey"],"startsWith":["/v2/keys."]}
+type LogTextFilter struct {
+	// Contains The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	Contains *LogStringValues `json:"contains,omitempty"`
+
+	// EndsWith The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	EndsWith *LogStringValues `json:"endsWith,omitempty"`
+
+	// Is The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	Is *LogStringValues `json:"is,omitempty"`
+
+	// IsNot The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	IsNot *LogStringValues `json:"isNot,omitempty"`
+
+	// NotContains The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	NotContains *LogStringValues `json:"notContains,omitempty"`
+
+	// StartsWith The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	StartsWith *LogStringValues `json:"startsWith,omitempty"`
+}
+
+// LogTimeFilter Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+// Unkey keeps only rows inside the workspace's log retention. A lower bound older than the retention start has no effect.
+//
+// Example: {"gte":1791936000000,"lt":1792022400000}
+type LogTimeFilter struct {
+	// Gt Keep events after this time.
+	Gt *int64 `json:"gt,omitempty"`
+
+	// Gte Keep events at or after this time.
+	Gte *int64 `json:"gte,omitempty"`
+
+	// Lt Keep events before this time.
+	Lt *int64 `json:"lt,omitempty"`
+
+	// Lte Keep events at or before this time.
+	Lte *int64 `json:"lte,omitempty"`
 }
 
 // LoggingPolicy Adds request data to the log entries of matching requests. The gateway
@@ -5519,6 +5728,78 @@ type V2LivenessResponseData struct {
 	Message string `json:"message"`
 }
 
+// V2LogsListApiRequestsFilters Filters for the listing. A missing field does not filter. Different fields are combined with AND.
+type V2LogsListApiRequestsFilters struct {
+	// Host Filters a field that matches only as a whole value, such as a host or a request ID.
+	// Matching is exact and case-sensitive.
+	//
+	//
+	// Example: {"isNot":["api.unkey.dev"]}
+	Host *LogIdFilter `json:"host,omitempty"`
+
+	// Method Filters by HTTP method.
+	//
+	// Example: {"is":["POST","PUT"]}
+	Method *LogMethodFilter `json:"method,omitempty"`
+
+	// Path Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+	// The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+	// The negated operators (`isNot`, `notContains`) are combined with AND.
+	//
+	//
+	// Example: {"notContains":["verifyKey"],"startsWith":["/v2/keys."]}
+	Path *LogTextFilter `json:"path,omitempty"`
+
+	// RequestId Filters a field that matches only as a whole value, such as a host or a request ID.
+	// Matching is exact and case-sensitive.
+	//
+	//
+	// Example: {"isNot":["api.unkey.dev"]}
+	RequestId *LogIdFilter `json:"requestId,omitempty"`
+
+	// Status Filters an integer field. `is` keeps rows that equal one of its values.
+	// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+	//
+	//
+	// Example: {"gte":400,"isNot":[429],"lt":600}
+	Status *LogIntFilter `json:"status,omitempty"`
+
+	// Time Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+	// Unkey keeps only rows inside the workspace's log retention. A lower bound older than the retention start has no effect.
+	//
+	//
+	// Example: {"gte":1791936000000,"lt":1792022400000}
+	Time *LogTimeFilter `json:"time,omitempty"`
+}
+
+// V2LogsListApiRequestsRequestBody defines model for V2LogsListApiRequestsRequestBody.
+type V2LogsListApiRequestsRequestBody struct {
+	// Cursor The `pagination.cursor` of the previous page. Send the same `filters` with every page of one listing.
+	// Omit the cursor to get the first page.
+	//
+	//
+	// Example: eyJ0IjoxNzkyMDIxODUwMTIzLCJyIjoicmVxXzU2NzhlZmdoIn0
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Filters Filters for the listing. A missing field does not filter. Different fields are combined with AND.
+	Filters *V2LogsListApiRequestsFilters `json:"filters,omitempty"`
+
+	// Limit The maximum number of requests to return in one page.
+	Limit *int `json:"limit,omitempty"`
+}
+
+// V2LogsListApiRequestsResponseBody defines model for V2LogsListApiRequestsResponseBody.
+type V2LogsListApiRequestsResponseBody struct {
+	// Data The requests that match the filters, newest first.
+	Data []ApiRequestLog `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
 // V2PermissionsCreatePermissionRequestBody defines model for V2PermissionsCreatePermissionRequestBody.
 type V2PermissionsCreatePermissionRequestBody struct {
 	// Description Provides detailed documentation of what this permission grants access to.
@@ -7857,6 +8138,9 @@ type KeysVerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 
 // KeysWhoamiJSONRequestBody defines body for KeysWhoami for application/json ContentType.
 type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
+
+// LogsListApiRequestsJSONRequestBody defines body for LogsListApiRequests for application/json ContentType.
+type LogsListApiRequestsJSONRequestBody = V2LogsListApiRequestsRequestBody
 
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody

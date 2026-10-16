@@ -65,6 +65,11 @@ func (n *noop) GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (Build
 	return BuildLogsPage{Entries: []BuildLogEntry{}, HasMore: false}, nil
 }
 
+// ListApiRequests implements the Querier interface but always returns an empty page
+func (n *noop) ListApiRequests(ctx context.Context, req ListApiRequestsRequest) (ApiRequestsPage, error) {
+	return ApiRequestsPage{Requests: []ApiRequestLog{}, HasMore: false}, nil
+}
+
 // InsertAuditLogs implements the Querier interface but discards the input.
 func (n *noop) InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) error {
 	return nil

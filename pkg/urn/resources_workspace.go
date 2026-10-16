@@ -11,6 +11,8 @@ import "fmt"
 //	├── rootKeys/{key_id}
 //	├── limits
 //	├── usage
+//	├── flags
+//	├── logs/requests
 //	└── projects/{project_id}
 type workspace struct {
 	workspaceID string
@@ -46,6 +48,13 @@ func (w workspace) Usage() V1 {
 
 func (w workspace) Flags() V1 {
 	return V1{WorkspaceID: w.workspaceID, Resource: "flags"}
+}
+
+// RequestLogs returns the resource name of the workspace's Unkey API request
+// logs. They have no owning resource below the workspace, so a grant on
+// logs/** covers them along with any later workspace-owned log.
+func (w workspace) RequestLogs() V1 {
+	return V1{WorkspaceID: w.workspaceID, Resource: "logs/requests"}
 }
 
 // Project returns builders for project resource paths.
