@@ -66,6 +66,10 @@ type appPrecondition struct {
 	// DeploymentNotAwaitingApproval indicates the target deployment is not
 	// waiting for approval, so there is nothing to authorize.
 	DeploymentNotAwaitingApproval Code
+
+	// DeploymentNotInProgress indicates the target deployment already finished,
+	// so there is nothing to cancel.
+	DeploymentNotInProgress Code
 }
 
 // UnkeyAppErrors defines all application-level errors in the Unkey system.
@@ -115,5 +119,6 @@ var App = UnkeyAppErrors{
 		DeploymentNotStopped:          Code{SystemUnkey, CategoryUnkeyApplication, "deployment_not_stopped"},
 		DeploymentIsProduction:        Code{SystemUnkey, CategoryUnkeyApplication, "deployment_is_production"},
 		DeploymentNotAwaitingApproval: Code{SystemUnkey, CategoryUnkeyApplication, "deployment_not_awaiting_approval"},
+		DeploymentNotInProgress:       Code{SystemUnkey, CategoryUnkeyApplication, "deployment_not_in_progress"},
 	},
 }

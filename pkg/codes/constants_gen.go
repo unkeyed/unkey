@@ -267,6 +267,9 @@ const (
 	// DeploymentNotAwaitingApproval indicates the target deployment is not
 	// waiting for approval, so there is nothing to authorize.
 	UnkeyAppErrorsPreconditionDeploymentNotAwaitingApproval URN = "err:unkey:application:deployment_not_awaiting_approval"
+	// DeploymentNotInProgress indicates the target deployment already finished,
+	// so there is nothing to cancel.
+	UnkeyAppErrorsPreconditionDeploymentNotInProgress URN = "err:unkey:application:deployment_not_in_progress"
 
 	// ----------------
 	// UnkeyLimitsErrors
