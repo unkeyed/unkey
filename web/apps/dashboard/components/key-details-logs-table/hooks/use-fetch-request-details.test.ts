@@ -1,19 +1,16 @@
+import { listApiRequests } from "@/lib/api-request-logs";
 import { trpc } from "@/lib/trpc/client";
+import { useQuery } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { type Mock, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  apiRequestDetailsQuery,
   buildGatewayRequestDetailsQueryParams,
-  buildRequestDetailsQueryParams,
   useFetchRequestDetails,
 } from "./use-fetch-request-details";
 
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
-    logs: {
-      queryLogs: {
-        useQuery: vi.fn(),
-      },
-    },
     deploy: {
       requestLogs: {
         details: {
@@ -24,60 +21,72 @@ vi.mock("@/lib/trpc/client", () => ({
   },
 }));
 
-describe("buildRequestDetailsQueryParams", () => {
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: vi.fn(),
+}));
+
+vi.mock("@/lib/api-request-logs", () => ({
+  listApiRequests: vi.fn().mockResolvedValue({ logs: [], cursor: undefined }),
+}));
+
+async function detailsRequest(target: { requestId?: string; time?: number }) {
+  const listMock = vi.mocked(listApiRequests);
+  listMock.mockClear();
+  await apiRequestDetailsQuery(target).queryFn({});
+  const body = listMock.mock.calls[0]?.[0];
+  if (!body?.filters?.time) {
+    throw new Error("details query sent no time window");
+  }
+  return { body, window: body.filters.time };
+}
+
+describe("apiRequestDetailsQuery", () => {
   const time = 1_757_872_504_000;
 
-  it("brackets the window around the row's own time", () => {
-    const params = buildRequestDetailsQueryParams({ requestId: "req_1", time });
+  it("brackets the window around the row's own time", async () => {
+    const { body, window } = await detailsRequest({ requestId: "req_1", time });
 
-    expect(params.startTime).toBeLessThan(time);
-    expect(params.endTime).toBeGreaterThan(time);
-    expect(params.requestId).toEqual({ filters: [{ operator: "is", value: "req_1" }] });
-    expect(params.limit).toBe(1);
+    expect(window.gte).toBeLessThan(time);
+    expect(window.lte).toBeGreaterThan(time);
+    expect(body.filters?.requestId).toEqual({ is: ["req_1"] });
+    expect(body.limit).toBe(1);
   });
 
-  it("covers a row stamped after the page's query clock", () => {
+  it("covers a row stamped after the page's query clock", async () => {
     // The regression: live-tailed rows arrive with a time past the frozen
     // query clock, and an endTime taken from that clock excluded them forever.
     const staleQueryClock = time - 5 * 60_000;
-    const params = buildRequestDetailsQueryParams({ requestId: "req_1", time });
+    const { window } = await detailsRequest({ requestId: "req_1", time });
 
-    expect(params.endTime).toBeGreaterThan(staleQueryClock);
-    expect(params.endTime).toBeGreaterThanOrEqual(time);
+    expect(window.lte).toBeGreaterThan(staleQueryClock);
+    expect(window.lte).toBeGreaterThanOrEqual(time);
   });
 
-  it("reaches back far enough for a request that started before its verification", () => {
+  it("reaches back far enough for a request that started before its verification", async () => {
     // api_requests rows are stamped at request start, verification rows
     // mid-handler; the API caps a request at a one minute timeout.
-    const params = buildRequestDetailsQueryParams({ requestId: "req_1", time });
+    const { window } = await detailsRequest({ requestId: "req_1", time });
 
-    expect(params.startTime).toBeLessThanOrEqual(time - 60_000);
+    expect(window.gte).toBeLessThanOrEqual(time - 60_000);
   });
 
-  it("never asks for a negative start time", () => {
-    const params = buildRequestDetailsQueryParams({ requestId: "req_1", time: 0 });
+  it("never asks for a negative start time", async () => {
+    const { window } = await detailsRequest({ requestId: "req_1", time: 0 });
 
-    expect(params.startTime).toBe(0);
-  });
-
-  it("drops the request filter when there is no selected row", () => {
-    expect(buildRequestDetailsQueryParams({}).requestId).toBeNull();
+    expect(window.gte).toBe(0);
   });
 });
 
 describe("buildGatewayRequestDetailsQueryParams", () => {
   const time = 1_757_872_504_000;
 
-  it("anchors the same window on the row's own time", () => {
+  it("anchors the same window on the row's own time", async () => {
     const params = buildGatewayRequestDetailsQueryParams({ requestId: "req_1", time });
+    const { window } = await detailsRequest({ requestId: "req_1", time });
 
     expect(params.requestId).toBe("req_1");
-    expect(params.startTime).toBe(
-      buildRequestDetailsQueryParams({ requestId: "req_1", time }).startTime,
-    );
-    expect(params.endTime).toBe(
-      buildRequestDetailsQueryParams({ requestId: "req_1", time }).endTime,
-    );
+    expect(params.startTime).toBe(window.gte);
+    expect(params.endTime).toBe(window.lte);
   });
 });
 
@@ -87,17 +96,17 @@ describe("useFetchRequestDetails", () => {
   const retryIntervalMs = 2_000;
 
   type QueryState = {
-    data?: { logs: { request_id: string }[] } | { log: { request_id: string } | null };
+    data?: { request_id: string } | null | { log: { request_id: string } | null };
     dataUpdatedAt: number;
     errorUpdatedAt: number;
     isSuccess: boolean;
     isError: boolean;
     isLoading: boolean;
-    error: { message: string } | null;
+    error: Error | null;
   };
 
   const settledEmpty = (at: number): QueryState => ({
-    data: { logs: [] },
+    data: null,
     dataUpdatedAt: at,
     errorUpdatedAt: 0,
     isSuccess: true,
@@ -113,11 +122,11 @@ describe("useFetchRequestDetails", () => {
     isSuccess: false,
     isError: true,
     isLoading: false,
-    error: { message: "clickhouse unavailable" },
+    error: new Error("clickhouse unavailable"),
   });
 
   const settledWithLog = (at: number): QueryState => ({
-    data: { logs: [{ request_id: "req_1" }] },
+    data: { request_id: "req_1" },
     dataUpdatedAt: at,
     errorUpdatedAt: 0,
     isSuccess: true,
@@ -136,7 +145,7 @@ describe("useFetchRequestDetails", () => {
     error: null,
   };
 
-  const useQueryMock = trpc.logs.queryLogs.useQuery as unknown as Mock;
+  const useQueryMock = useQuery as unknown as Mock;
   const useGatewayQueryMock = trpc.deploy.requestLogs.details.useQuery as unknown as Mock;
 
   let queryState: QueryState;
@@ -156,7 +165,7 @@ describe("useFetchRequestDetails", () => {
     gatewayQueryState = idle;
     useQueryMock.mockReset();
     useQueryMock.mockImplementation(
-      (_params: unknown, options: { refetchInterval: number | false; enabled: boolean }) => {
+      (options: { refetchInterval: number | false; enabled: boolean }) => {
         lastOptions = options;
         return queryState;
       },
@@ -194,7 +203,7 @@ describe("useFetchRequestDetails", () => {
 
     expect(lastOptions?.refetchInterval).toBe(false);
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.error).toEqual({ message: "clickhouse unavailable" });
+    expect(result.current.error?.message).toBe("clickhouse unavailable");
   });
 
   it("settles as soon as the log turns up after a failed refetch", () => {

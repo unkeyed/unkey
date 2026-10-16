@@ -182,6 +182,10 @@ export function limitsRows(): PermissionRow[] {
   ];
 }
 
+export function requestLogRows(): PermissionRow[] {
+  return [logRow("api_request_log", "API request logs", "logs/requests")];
+}
+
 export function usageRows(): PermissionRow[] {
   return [
     permissionRow({
