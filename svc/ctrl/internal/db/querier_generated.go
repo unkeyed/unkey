@@ -2788,7 +2788,12 @@ type Querier interface {
 	//UpdateDeploymentStatus
 	//
 	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
+	//  SET first_ready_at = COALESCE(first_ready_at, CASE
+	//          WHEN status = 'ready' THEN COALESCE(updated_at, created_at)
+	//          WHEN ? = 'ready' THEN COALESCE(?, created_at)
+	//          ELSE NULL
+	//      END),
+	//      status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
 	// Batch form of UpdateDeploymentStatusIfActive.
@@ -2803,7 +2808,11 @@ type Querier interface {
 	// mysqltype.ProgressingDeploymentStatuses.
 	//
 	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
+	//  SET first_ready_at = COALESCE(first_ready_at, CASE
+	//          WHEN ? = 'ready' THEN COALESCE(?, created_at)
+	//          ELSE NULL
+	//      END),
+	//      status = ?, updated_at = ?
 	//  WHERE id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error
