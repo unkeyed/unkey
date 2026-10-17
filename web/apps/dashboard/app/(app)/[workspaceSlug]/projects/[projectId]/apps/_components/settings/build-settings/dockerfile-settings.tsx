@@ -21,7 +21,7 @@ export function Dockerfile() {
 
   const currentDockerfile = form.watch("dockerfile");
   const setDockerfile = (path: string) =>
-    form.setValue("dockerfile", path, { shouldValidate: true });
+    form.setValue("dockerfile", path, { shouldDirty: true, shouldValidate: true });
 
   const validation = currentDockerfile
     ? validateDockerfilePath(currentDockerfile, dockerContext)
