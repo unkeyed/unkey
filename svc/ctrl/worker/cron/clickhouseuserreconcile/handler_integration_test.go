@@ -19,8 +19,10 @@ func TestHandlerReconcilesOncePerFingerprint(t *testing.T) {
 		"ws_01", "ws_02", "ws_03", "ws_04", "ws_05", "ws_06",
 		"ws_07", "ws_08", "ws_09", "ws_10", "ws_11", "ws_12",
 	}
+	heartbeat := &recordingHeartbeat{}
 	handler, err := clickhouseuserreconcile.New(clickhouseuserreconcile.Config{
-		DB: &workspaceListDB{workspaceIDs: workspaceIDs},
+		DB:        &workspaceListDB{workspaceIDs: workspaceIDs},
+		Heartbeat: heartbeat,
 	})
 	require.NoError(t, err)
 
@@ -43,6 +45,26 @@ func TestHandlerReconcilesOncePerFingerprint(t *testing.T) {
 	require.Zero(t, second.GetUsersReconfigured())
 	require.ElementsMatch(t, workspaceIDs, users.workspaceIDs(),
 		"an unchanged fingerprint must not reconcile users again")
+	require.Equal(t, 2, heartbeat.count(),
+		"both the reconfigure and the no-op tick must ping the heartbeat")
+}
+
+type recordingHeartbeat struct {
+	mu    sync.Mutex
+	pings int
+}
+
+func (h *recordingHeartbeat) Ping(context.Context) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.pings++
+	return nil
+}
+
+func (h *recordingHeartbeat) count() int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.pings
 }
 
 type workspaceListDB struct {
