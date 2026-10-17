@@ -27,11 +27,13 @@ sources:
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 import { versions } from "/snippets/versions.mdx";
 
-Per customer, Unkey counts on an identity, so extra keys don't add budget, and Compute can rate limit the deployed API at the gateway.
+Per customer, Unkey counts on an identity, so extra keys don't add budget.
 
-You can also limit per key, per endpoint with a named limit or a `cost`, and per IP with `ratelimit.limit` or a Compute gateway policy.
+You can also limit per key, per endpoint with a named limit or a `cost`, and per IP with `ratelimit.limit`.
 
-Monthly quotas are separate, as credits on the key, and a Compute API key policy spends those credits the same way.
+Monthly quotas are separate, as credits on the key.
+
+On Compute, a gateway policy applies these limits before the request reaches your API.
 
 ## Which one do I use
 

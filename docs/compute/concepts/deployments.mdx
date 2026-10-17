@@ -1,7 +1,7 @@
 ---
 title: Deployments on Unkey
 sidebarTitle: "Deployments"
-description: "Unkey builds and runs a deployment from GitHub, an image, or the CLI, and API management handles keys and rate limits."
+description: "Unkey builds a deployment from GitHub, an image, or the CLI."
 sources:
   - pkg/mysql/types/deployment_status.go
   - pkg/mysql/types/deployment_desired_state.go
@@ -24,7 +24,7 @@ sources:
   - svc/ctrl/worker/deploy/build_handler.go
 ---
 
-Unkey creates a deployment from a GitHub push, a container image, the dashboard, the CLI, or `deployments.createDeployment` to run your API, and API management handles keys and rate limits. That deployment keeps the image, runtime settings, environment variables, and gateway policies it started with, including API key and rate limit policies when you set them. With auto deploy on and no watch paths, the default branch becomes a production deployment and any other branch becomes a preview, and API management handles keys and rate limits for that API.
+Unkey creates a deployment from a GitHub push, a container image, the dashboard, the CLI, or `deployments.createDeployment`. That deployment keeps the image, runtime settings, environment variables, and gateway policies it started with. With auto deploy on and no watch paths, the default branch becomes a production deployment and any other branch becomes a preview. The deployment can enforce API keys and rate limits from API management through its gateway policies.
 
 ## How a deployment starts
 

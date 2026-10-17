@@ -22,7 +22,7 @@ sources:
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-Unkey checks the key your user sent by calling `keys.verifyKey` from your own server, and on Compute the API key authentication policy runs the same checks before your deployed API runs. One call runs expiry, an IP allow list when the keyspace has one, permissions, rate limits, and credits, then returns `data.valid` and a `code`, and Compute's API key authentication policy runs those same checks on a deployed API. The HTTP status stays 200 when the key fails, and your server returns 401 or 429 to the caller, while on Compute the gateway returns 401, 403, or 429 itself.
+Unkey checks the key your user sent by calling `keys.verifyKey` from your own server. One call runs expiry, an IP allow list when the keyspace has one, permissions, rate limits, and credits, then returns `data.valid` and a `code`. The HTTP status stays 200 when the key fails, and your server returns 401 or 429 to the caller. On Compute, the API key authentication policy runs the same checks at the gateway and returns 401, 403 or 429 itself.
 
 ## What the check tells you
 
