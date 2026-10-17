@@ -1,5 +1,4 @@
-import { ControlCloud } from "@unkey/ui";
-import { format } from "date-fns";
+import { ControlCloud, formatTimestamp } from "@unkey/ui";
 import { useFilters } from "../../hooks/use-filters";
 
 const formatFieldName = (field: string): string => {
@@ -38,7 +37,7 @@ const formatValue = (value: string | number, field: string): string => {
     }
   }
   if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
-    return format(value, "MMM d, yyyy HH:mm:ss");
+    return formatTimestamp(value, "MMM d, yyyy, HH:mm:ss");
   }
   return String(value);
 };

@@ -1,9 +1,9 @@
 import { IconClockOutline18 } from "@unkey/icons";
-import { isSameDay } from "date-fns";
 import { useState } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 import type { DateRange } from "react-day-picker";
+import { isSameDay } from "../../../lib/time";
 import { cn } from "../../../lib/utils";
 import { useDateTimeContext } from "../date-time";
 

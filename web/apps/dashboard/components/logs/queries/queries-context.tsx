@@ -1,5 +1,6 @@
 import type { QuerySearchParams as AuditSearchParams } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import type { RatelimitQuerySearchParams } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
+import { formatTimestamp } from "@unkey/ui";
 import { type ReactNode, createContext, useContext } from "react";
 import { type SavedFiltersGroup, useBookmarkedFilters } from "../hooks/use-bookmarked-filters";
 import type { FilterValue } from "../validation/filter.types";
@@ -117,8 +118,9 @@ export const defaultFormatValues = (
         return { value: value.toUpperCase(), color: null };
       case "startTime":
       case "endTime":
+        return { value: formatTimestamp(Number(value), "MMM d, yyyy, HH:mm:ss"), color: null };
       case "since":
-        return { value: new Date(Number(value)).toLocaleString(), color: null };
+        return { value: value, color: null };
       case "host":
       case "requestId":
       case "paths":

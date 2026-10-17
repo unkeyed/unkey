@@ -1,9 +1,9 @@
 "use client";
 import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
+import { DAY_IN_MS, MINUTE_IN_MS } from "@/lib/trpc/routers/utils/constants";
 import { IconClockOutline12 } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
-import { addDays, addMinutes, format } from "date-fns";
+import { FormInput, formatTimestamp } from "@unkey/ui";
 import { useState } from "react";
 import { Controller, useController, useFormContext, useWatch } from "react-hook-form";
 import type { ExpirationFormValues } from "../create-key.schema";
@@ -70,12 +70,12 @@ export const ExpirationSetup = ({
 
     // Set default expiry date (1 day) when enabling if not already set
     if (checked && !currentExpiryDate) {
-      setValue("expiration.data", addDays(new Date(), 1));
+      setValue("expiration.data", new Date(Date.now() + DAY_IN_MS));
     }
   };
 
   // Calculate minimum valid date (10 minutes from now)
-  const minValidDate = addMinutes(new Date(), 10);
+  const minValidDate = new Date(Date.now() + 10 * MINUTE_IN_MS);
 
   // Handle date and time selection from DatetimePopover
   const handleDateTimeChange = (startTime?: number, _?: number, since?: string) => {
@@ -84,13 +84,13 @@ export const ExpirationSetup = ({
       let newDate = new Date();
       switch (since) {
         case "1d":
-          newDate = addDays(newDate, 1);
+          newDate = new Date(Date.now() + DAY_IN_MS);
           break;
         case "7d":
-          newDate = addDays(newDate, 7);
+          newDate = new Date(Date.now() + 7 * DAY_IN_MS);
           break;
         case "30d":
-          newDate = addDays(newDate, 30);
+          newDate = new Date(Date.now() + 30 * DAY_IN_MS);
           break;
       }
       setValue("expiration.data", newDate);
@@ -109,11 +109,11 @@ export const ExpirationSetup = ({
   };
 
   // Format date for display
-  const formatExpiryDate = (date?: Date) => {
+  const formatExpiryDate = (date?: Date | string) => {
     if (!date) {
       return "Select expiration date";
     }
-    return format(date, "MMM d, yyyy 'at' h:mm a");
+    return formatTimestamp(new Date(date), "MMM d, yyyy, h:mm a");
   };
 
   const getInitialTimeValues = () => {
@@ -178,7 +178,7 @@ export const ExpirationSetup = ({
               description={getExpiryDescription()}
               readOnly
               disabled={!expirationEnabled}
-              value={formatExpiryDate(field.value as Date | undefined)}
+              value={formatExpiryDate(field.value as Date | string | undefined)}
               className="cursor-pointer w-full"
               variant={expirationEnabled && isExpiringVerySoon ? "warning" : undefined}
               error={
