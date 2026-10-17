@@ -1,7 +1,7 @@
 ---
 title: Unkey plans and free tier
 sidebarTitle: "Plans"
-description: "Unkey's free API Management tier includes 150,000 billable operations a month, 1,000 keys, and 1 day of request logs."
+description: "Unkey's Free API Management includes 150K valid requests / mo and 1k API keys, and Compute Starter is $0 then $5/mo."
 sources:
   - web/internal/db/src/schema/workspace_billing.ts
   - web/internal/db/src/schema/billing_subscriptions.ts
@@ -19,9 +19,11 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/constants.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/cancel-plan.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/billing-summary.tsx
+  - https://www.unkey.com/pricing
+  - https://www.unkey.com/pricing.md
 ---
 
-Unkey bills API Management and Compute separately, on one payment method. The free API Management tier includes 150,000 billable operations a month, 1,000 API keys, 1 day of request logs, and 3 days of audit logs. A Compute app needs a Starter, Pro, or Business plan before it can deploy.
+Unkey's Free API Management plan ($0/mo) covers keys and rate limits with 150K valid requests / mo, 1k API keys, 1-day logs retention, and 3-day audit log retention, and Compute Starter ($0 then $5/mo), Pro ($20 then $25/mo), and Business ($45 then $50/mo) deploy and run APIs as containers. Those Compute plans include monthly usage credits for compute, storage, egress, and active keys, with $5 off your first month through December 31, 2026, and API management covers keys and rate limits.
 
 ## What each product includes
 
@@ -30,7 +32,7 @@ Paid API tiers, and the CPU, memory, disk, replica, and domain limits on each Co
 | | API Management | Compute |
 | --- | --- | --- |
 | Starting point | Free tier. Every workspace starts here | Starter, Pro, or Business. Required before you can deploy |
-| Included from the start | 150,000 billable operations a month, 1,000 API keys, 1 day of request logs, 3 days of audit logs | A monthly usage credit on every plan. Usage above that credit is billed. See [Usage](/platform/billing/usage) |
+| Included from the start | 150K valid requests / mo, 1k API keys, 1-day logs retention, 3-day audit log retention | Starter ($0 then $5/mo), Pro, and Business include monthly usage credits for compute, storage, egress, and active keys, with $5 off your first month through December 31, 2026. See [Usage](/platform/billing/usage) |
 | What you get by paying more | A higher monthly quota, longer retention, and team members | Resource limits differ by plan and are listed on [Limits](/platform/billing/limits). Pro and Business also include team members |
 
 Your workspace pays for the two products separately. API Management has a tier and Compute has a plan, and you can have either one without the other. Both use one payment method and one set of invoices.

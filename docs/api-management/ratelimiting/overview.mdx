@@ -1,7 +1,7 @@
 ---
 title: Rate limiting with Unkey
 sidebarTitle: "Overview"
-description: "Unkey rate limits your API per customer, per API key, per endpoint or per IP, with no Redis to run."
+description: "Unkey rate limits your API per customer, key, endpoint, or IP, and Compute limits it at the gateway."
 sources:
   - svc/api/routes/v2_ratelimit_limit/handler.go
   - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitRequestBody.yaml
@@ -27,11 +27,11 @@ sources:
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 import { versions } from "/snippets/versions.mdx";
 
-Per customer, Unkey counts on an identity, so extra keys don't add budget.
+Per customer, Unkey counts on an identity, so extra keys don't add budget, and Compute can rate limit the deployed API at the gateway.
 
-You can also limit per key, per endpoint with a named limit or a `cost`, and per IP with `ratelimit.limit`.
+You can also limit per key, per endpoint with a named limit or a `cost`, and per IP with `ratelimit.limit` or a Compute gateway policy.
 
-Monthly quotas are separate, as credits on the key.
+Monthly quotas are separate, as credits on the key, and a Compute API key policy spends those credits the same way.
 
 ## Which one do I use
 

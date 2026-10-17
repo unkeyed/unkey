@@ -1,7 +1,7 @@
 ---
 title: Verify API keys with Unkey
 sidebarTitle: "Verifying keys"
-description: "Unkey checks an API key with keys.verifyKey and returns whether it is valid, rate limited, or out of credits."
+description: "Unkey checks an API key for validity, rate limits, and credits, and Compute runs that check before your API."
 sources:
   - svc/api/routes/v2_keys_verify_key/handler.go
   - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
@@ -22,7 +22,7 @@ sources:
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-Unkey checks the key your user sent by calling `keys.verifyKey` from your own server. One call runs expiry, an IP allow list when the keyspace has one, permissions, rate limits, and credits, then returns `data.valid` and a `code`. The HTTP status stays 200 when the key fails, and your server returns 401 or 429 to the caller.
+Unkey checks the key your user sent by calling `keys.verifyKey` from your own server, and on Compute the API key authentication policy runs the same checks before your deployed API runs. One call runs expiry, an IP allow list when the keyspace has one, permissions, rate limits, and credits, then returns `data.valid` and a `code`, and Compute's API key authentication policy runs those same checks on a deployed API. The HTTP status stays 200 when the key fails, and your server returns 401 or 429 to the caller, while on Compute the gateway returns 401, 403, or 429 itself.
 
 ## What the check tells you
 
