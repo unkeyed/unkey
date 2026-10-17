@@ -31,7 +31,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/routes"
 )
 
-func TestProductionSecurityCredentials(t *testing.T) {
+func TestProductionRoutesEnforceCredentialAndWorkspaceBoundaries(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	foreignWorkspace := h.CreateWorkspace()
@@ -45,7 +45,12 @@ func TestProductionSecurityCredentials(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
+	})
+	portalKey := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
 		IdentityID:  &identity.ID,
+		Disabled:    true,
 	})
 
 	otherIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
@@ -181,7 +186,7 @@ func TestProductionSecurityCredentials(t *testing.T) {
 		Enabled: new(false),
 	}
 
-	t.Run("missing header is rejected by production validation", func(t *testing.T) {
+	t.Run("key updates require credentials", func(t *testing.T) {
 		res := securityRequest[openapi.V2KeysUpdateKeyRequestBody, openapi.BadRequestErrorResponse](
 			t, srv, http.MethodPost, "/v2/keys.updateKey", nil, update,
 		)
@@ -209,11 +214,11 @@ func TestProductionSecurityCredentials(t *testing.T) {
 		headers http.Header
 		want    openapi.BaseError
 	}{
-		{"unknown root", unknownHeaders, unknownRoot},
+		{"unknown root cannot update keys", unknownHeaders, unknownRoot},
 		{"portal cookie cannot rescue unknown bearer", mixedHeaders, unknownRoot},
 		{"ordinary API key is not a root credential", testutil.Bearer(key.Key), unknownRoot},
 		{"foreign root cannot mutate key", testutil.Bearer(foreignRoot), keyNotFound},
-		{"forged admin JWT", testutil.Bearer(forgedJWT), invalidJWT},
+		{"forged admin JWT cannot update keys", testutil.Bearer(forgedJWT), invalidJWT},
 		{"foreign admin JWT cannot mutate key", testutil.Bearer(foreignJWT), keyNotFound},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -230,7 +235,7 @@ func TestProductionSecurityCredentials(t *testing.T) {
 		})
 	}
 
-	t.Run("root mutation positive control", func(t *testing.T) {
+	t.Run("authorized root can disable its workspace key", func(t *testing.T) {
 		res := securityRequest[openapi.V2KeysUpdateKeyRequestBody, openapi.V2KeysUpdateKeyResponseBody](
 			t, srv, http.MethodPost, "/v2/keys.updateKey", testutil.Bearer(root), update,
 		)
@@ -243,7 +248,7 @@ func TestProductionSecurityCredentials(t *testing.T) {
 		require.False(t, row.KeyEnabled)
 	})
 
-	t.Run("root and verified JWT read positive controls", func(t *testing.T) {
+	t.Run("authorized root and verified JWT can read their workspace API", func(t *testing.T) {
 		for _, token := range []string{root, jwt} {
 			res := securityRequest[openapi.V2ApisGetApiRequestBody, openapi.V2ApisGetApiResponseBody](
 				t, srv, http.MethodPost, "/v2/apis.getApi",
@@ -258,7 +263,7 @@ func TestProductionSecurityCredentials(t *testing.T) {
 		}
 	})
 
-	t.Run("portal credential separation", func(t *testing.T) {
+	t.Run("portal session lists only its identity and granted keyspace", func(t *testing.T) {
 		bearerAndCookie := portalHeaders.Clone()
 		bearerAndCookie.Set("Authorization", "Bearer "+root)
 
@@ -316,11 +321,11 @@ func TestProductionSecurityCredentials(t *testing.T) {
 		require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
-		row, err := db.Query.FindLiveKeyByID(t.Context(), h.DB.RO(), key.KeyID)
+		row, err := db.Query.FindLiveKeyByID(t.Context(), h.DB.RO(), portalKey.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, []openapi.KeyResponseData{{
-			KeyId:   key.KeyID,
-			Start:   key.Key[:4],
+			KeyId:   portalKey.KeyID,
+			Start:   portalKey.Key[:4],
 			Name:    "test-key",
 			Enabled: false,
 			Identity: &openapi.Identity{

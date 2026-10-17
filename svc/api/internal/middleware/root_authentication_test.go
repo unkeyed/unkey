@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-func TestRootAuthenticationCredentialMatrix(t *testing.T) {
+func TestRootAuthenticationRejectsInvalidCredentialsBeforeCallingHandler(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	rootKey := h.CreateRootKey(workspace.ID)

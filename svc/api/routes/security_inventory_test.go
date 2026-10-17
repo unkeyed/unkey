@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestProductionSecurityOperationInventory(t *testing.T) {
+func TestPublicAPIOperationsHaveRegisteredRoutesAndDeclaredSecurity(t *testing.T) {
 	type operation struct {
 		Security *[]map[string][]string `yaml:"security"`
 	}
