@@ -221,12 +221,7 @@ func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) 
 		field := openapi.FieldMatch{Name: expr.Header.GetName(), Present: nil, Value: nil}
 		switch match := expr.Header.GetMatch().(type) {
 		case *frontlinev1.HeaderMatch_Present:
-			// The schema only admits `present: true`; the gateway's
-			// absent-match (present=false) has no response representation.
-			if !match.Present {
-				return out, unmappable("", "header absent-match")
-			}
-			field.Present = new(openapi.FieldMatchPresent(match.Present))
+			field.Present = new(match.Present)
 		case *frontlinev1.HeaderMatch_Value:
 			sm, err := mapStringMatchFromProto(match.Value)
 			if err != nil {
@@ -242,10 +237,7 @@ func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) 
 		field := openapi.FieldMatch{Name: expr.QueryParam.GetName(), Present: nil, Value: nil}
 		switch match := expr.QueryParam.GetMatch().(type) {
 		case *frontlinev1.QueryParamMatch_Present:
-			if !match.Present {
-				return out, unmappable("", "queryParam absent-match")
-			}
-			field.Present = new(openapi.FieldMatchPresent(match.Present))
+			field.Present = new(match.Present)
 		case *frontlinev1.QueryParamMatch_Value:
 			sm, err := mapStringMatchFromProto(match.Value)
 			if err != nil {

@@ -72,6 +72,12 @@ func (c *CachedClock) NewTicker(d time.Duration) Ticker {
 	return &realTicker{t: time.NewTicker(d)}
 }
 
+// NewTimer delegates to [time.NewTimer]. Timers run against the system
+// clock, like [CachedClock.NewTicker].
+func (c *CachedClock) NewTimer(d time.Duration) Timer {
+	return &realTimer{t: time.NewTimer(d)}
+}
+
 // Close stops the background goroutine that updates the cached time.
 // After calling Close, the clock will continue to return the last cached time
 // but will no longer update. This method should be called to clean up resources

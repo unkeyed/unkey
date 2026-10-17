@@ -8,13 +8,13 @@ sources:
   - svc/frontline/middleware/clickhouse_logging.go
   - svc/frontline/internal/policies/redaction.go
   - pkg/zen/session.go
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/schema.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/forms/logging-fields.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/policy-kinds/logging/model.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/policy-kinds/logging/fields.tsx
 ---
 
 The [gateway](/compute/gateway/overview) logs the method, host, path, status, and latency of every request that reaches your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. A logging policy also saves headers, query data, or bodies for the requests it matches. Use it to debug a route. It never rejects a request or changes what your app receives.
 
-To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Logging**.
+To add one, open the app, go to **Policies**, click **Add policy**, and set **Type** to **Logging**.
 
 ## Settings
 
@@ -56,7 +56,7 @@ Each setting turns on one kind of data. In the dashboard all five start on, so c
 ```
 
 <Visibility for="agents">
-  In the dashboard this is the **Logging** type in **Policies > Add Policy**, with one switch per flag, all on by default. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`. Omitted flags are `false`. The change applies to the next deployment.
+  In the dashboard this is the **Logging** type in **Policies > Add policy**, with one switch per flag, all on by default. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`. Omitted flags are `false`. The change applies to the next deployment.
 </Visibility>
 
 ## What gets saved

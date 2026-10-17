@@ -353,21 +353,6 @@ func (e EnvironmentVariableKind) Valid() bool {
 	}
 }
 
-// Defines values for FieldMatchPresent.
-const (
-	True FieldMatchPresent = true
-)
-
-// Valid indicates whether the value is a known member of the FieldMatchPresent enum.
-func (e FieldMatchPresent) Valid() bool {
-	switch e {
-	case True:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for FirewallPolicyAction.
 const (
 	ACTIONDENY FirewallPolicyAction = "ACTION_DENY"
@@ -1664,17 +1649,14 @@ type EnvironmentVariableKind string
 type FieldMatch struct {
 	Name string `json:"name"`
 
-	// Present Matches when the field is present, regardless of value.
-	Present *FieldMatchPresent `json:"present,omitempty"`
+	// Present Matches when the field is present if true, or absent if false, regardless of value.
+	Present *bool `json:"present,omitempty"`
 
 	// Value String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
 	//
 	// Example: {"ignoreCase":true,"prefix":"/api/"}
 	Value *StringMatch `json:"value,omitempty"`
 }
-
-// FieldMatchPresent Matches when the field is present, regardless of value.
-type FieldMatchPresent bool
 
 // FirewallPolicy Blocks matching requests.
 //

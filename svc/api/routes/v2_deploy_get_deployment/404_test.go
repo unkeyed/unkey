@@ -51,6 +51,7 @@ func TestNotFound(t *testing.T) {
 			ID:            deploymentID,
 			WorkspaceID:   otherSetup.Workspace.ID,
 			ProjectID:     otherSetup.Project.ID,
+			AppID:         otherSetup.App.ID,
 			EnvironmentID: otherSetup.Environment.ID,
 			GitBranch:     "main",
 		})

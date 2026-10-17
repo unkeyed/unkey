@@ -10,12 +10,20 @@ import (
 )
 
 const deleteCustomDomainByID = `-- name: DeleteCustomDomainByID :exec
-DELETE FROM custom_domains WHERE id = ?
+DELETE d, c, cert
+FROM custom_domains d
+LEFT JOIN acme_challenges c ON c.domain_id = d.id
+LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
+WHERE d.id = ?
 `
 
 // DeleteCustomDomainByID
 //
-//	DELETE FROM custom_domains WHERE id = ?
+//	DELETE d, c, cert
+//	FROM custom_domains d
+//	LEFT JOIN acme_challenges c ON c.domain_id = d.id
+//	LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
+//	WHERE d.id = ?
 func (q *Queries) DeleteCustomDomainByID(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, deleteCustomDomainByID, id)
 	return err

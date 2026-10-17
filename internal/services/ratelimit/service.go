@@ -326,12 +326,12 @@ type service struct {
 	globalPullWatermarkMs      int64
 	globalPullLastReconciledMs int64
 
-	// stopBackground holds the stop functions returned by repeat.Every for
-	// every periodic goroutine the service starts. Close invokes each one
-	// so the push, pull, and janitor loops do not outlive the database
-	// connection and start logging "database is closed" errors after
-	// teardown.
-	stopBackground []func()
+	// stopBackground is closed by Close and stops every periodic goroutine
+	// the service starts through repeat.Every, so the push, pull, and
+	// janitor loops do not outlive the database connection and start
+	// logging "database is closed" errors after teardown.
+	stopBackground     chan struct{}
+	stopBackgroundOnce sync.Once
 }
 
 // Config holds configuration for creating a new rate limiting service.
@@ -401,6 +401,7 @@ func New(config Config) (*service, error) {
 		),
 		globalCircuitBreaker: circuitbreaker.New[any]("ratelimit_global_push"),
 		db:                   db.New(config.DB.RW(), config.DB.RO()),
+		stopBackground:       make(chan struct{}),
 	}
 	s.startGlobalPush()
 	s.startGlobalPull()
@@ -436,7 +437,8 @@ func NewLocal(clk clock.Clock) *service {
 		globalPullInitialized:      false,
 		globalPullWatermarkMs:      0,
 		globalPullLastReconciledMs: 0,
-		stopBackground:             nil,
+		stopBackground:             make(chan struct{}),
+		stopBackgroundOnce:         sync.Once{},
 	}
 	s.startJanitor()
 
@@ -447,9 +449,7 @@ func NewLocal(clk clock.Clock) *service {
 // releases the replay buffer. Stop the periodic loops first so they do
 // not race with the database tearing down underneath them.
 func (s *service) Close() error {
-	for _, stop := range s.stopBackground {
-		stop()
-	}
+	s.stopBackgroundOnce.Do(func() { close(s.stopBackground) })
 	s.replayBuffer.Close()
 	return nil
 }

@@ -3,10 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const rename = vi.fn();
 const listEnvironmentVariables = vi.fn();
 const setEnvironmentVariables = vi.fn();
+const removeEnvironmentVariables = vi.fn();
 
 vi.mock("@/lib/unkey-client", () => ({
   getUnkeyClient: () => ({
-    environments: { listEnvironmentVariables, setEnvironmentVariables },
+    environments: {
+      listEnvironmentVariables,
+      setEnvironmentVariables,
+      removeEnvironmentVariables,
+    },
   }),
   getErrorToast: () => ({ message: "" }),
 }));
@@ -25,6 +30,7 @@ const {
   WRITEONLY_VALUE_REQUIRED,
   addVariables,
   envVars,
+  saveVariables,
   updateVariable,
 } = await import("./env-vars");
 const refetch = vi.spyOn(envVars.utils, "refetch").mockResolvedValue([]);
@@ -143,6 +149,77 @@ describe("addVariables", () => {
     expect(err).toBeInstanceOf(PartialAddError);
     expect(err).toMatchObject({ savedEnvironmentIds: ["env_prod"], message: "rejected" });
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("saveVariables", () => {
+  const saved = (environmentId: string, key: string, value: string) => ({
+    id: `${environmentId}:${key}`,
+    key,
+    value,
+    type: "recoverable" as const,
+    description: null,
+    createdAt: 0,
+    environmentId,
+    projectId: "proj_1",
+    appId: "app_1",
+  });
+  const changes = {
+    edited: [saved("env_prod", "PORT", "3000"), saved("env_prev", "PORT", "3000")],
+    removed: [saved("env_prod", "OLD", "x")],
+  };
+
+  beforeEach(() => {
+    refetch.mockClear();
+    listEnvironmentVariables.mockReset();
+    setEnvironmentVariables.mockReset();
+    setEnvironmentVariables.mockResolvedValue({});
+    removeEnvironmentVariables.mockReset();
+    removeEnvironmentVariables.mockResolvedValue({});
+  });
+
+  it("removes and edits saved keys per environment, then adds the new variables", async () => {
+    existingKeys({});
+
+    await expect(
+      saveVariables({ ...input, variables: [variable("NEW")], ...changes }),
+    ).resolves.toEqual({ status: "added", count: 1 });
+    expect(removeEnvironmentVariables.mock.calls.map(([req]) => req)).toEqual([
+      { project: "proj_1", app: "app_1", environment: "env_prod", variables: ["OLD"] },
+    ]);
+    const sets = (environment: string) =>
+      setEnvironmentVariables.mock.calls
+        .map(([req]) => req)
+        .filter((req) => req.environment === environment)
+        .map((req) => req.variables);
+    const port = { key: "PORT", value: "3000", kind: "recoverable" };
+    expect(sets("env_prod")).toEqual([[port], [variable("NEW")]]);
+    expect(sets("env_prev")).toEqual([[port], [variable("NEW")]]);
+  });
+
+  it("rejects with the cause and adds nothing when an edit fails in only some environments", async () => {
+    setEnvironmentVariables.mockImplementation(async ({ environment }) => {
+      if (environment === "env_prev") {
+        throw new Error("rejected");
+      }
+      return {};
+    });
+
+    const err = await saveVariables({ ...input, ...changes }).catch((e: unknown) => e);
+    expect(err).toEqual(new Error("rejected"));
+    expect(err).not.toBeInstanceOf(PartialAddError);
+    expect(listEnvironmentVariables).not.toHaveBeenCalled();
+  });
+
+  it("rejects with the cause when no change lands", async () => {
+    removeEnvironmentVariables.mockRejectedValue(new Error("down"));
+    setEnvironmentVariables.mockRejectedValue(new Error("down"));
+
+    const err = await saveVariables({ ...input, variables: [], ...changes }).catch(
+      (e: unknown) => e,
+    );
+    expect(err).toEqual(new Error("down"));
+    expect(err).not.toBeInstanceOf(PartialAddError);
   });
 });
 

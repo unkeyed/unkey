@@ -19,6 +19,8 @@ FROM apps
 LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
 WHERE apps.project_id = sqlc.arg(project_id)
+  AND apps.deleted_at IS NULL
+  AND EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id AND p.deleted_at IS NULL)
   AND apps.id >= sqlc.arg(id_cursor)
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
   AND (sqlc.narg(search) IS NULL OR LOWER(apps.id) LIKE LOWER(sqlc.narg(search)) OR LOWER(apps.name) LIKE LOWER(sqlc.narg(search)) OR LOWER(apps.slug) LIKE LOWER(sqlc.narg(search)))

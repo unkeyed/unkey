@@ -14,6 +14,7 @@ SELECT a.id
 FROM apps a
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 WHERE a.workspace_id = ?
+  AND a.deleted_at IS NULL AND p.deleted_at IS NULL
   AND a.id = ?
   AND (? = '' OR p.id = ? OR p.slug = ?)
 UNION ALL
@@ -21,6 +22,7 @@ SELECT a.id
 FROM apps a
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 WHERE a.workspace_id = ?
+  AND a.deleted_at IS NULL AND p.deleted_at IS NULL
   AND a.slug = ?
   AND a.id <> ?
   AND (? = '' OR p.id = ? OR p.slug = ?)
@@ -51,6 +53,7 @@ type ResolveCustomDomainAppsParams struct {
 //	FROM apps a
 //	JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 //	WHERE a.workspace_id = ?
+//	  AND a.deleted_at IS NULL AND p.deleted_at IS NULL
 //	  AND a.id = ?
 //	  AND (? = '' OR p.id = ? OR p.slug = ?)
 //	UNION ALL
@@ -58,6 +61,7 @@ type ResolveCustomDomainAppsParams struct {
 //	FROM apps a
 //	JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 //	WHERE a.workspace_id = ?
+//	  AND a.deleted_at IS NULL AND p.deleted_at IS NULL
 //	  AND a.slug = ?
 //	  AND a.id <> ?
 //	  AND (? = '' OR p.id = ? OR p.slug = ?)

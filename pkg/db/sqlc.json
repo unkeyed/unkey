@@ -56,6 +56,14 @@
               "nullable": true
             },
             {
+              "column": "deployments.capabilities",
+              "go_type": {
+                "type": "DeploymentCapabilities",
+                "package": "mysqltype",
+                "import": "github.com/unkeyed/unkey/pkg/mysql/types"
+              }
+            },
+            {
               "column": "deployments.command",
               "go_type": {
                 "type": "StringSlice",

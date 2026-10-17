@@ -27,6 +27,7 @@ func TestGetDeploymentInsufficientPermissions(t *testing.T) {
 		ID:            deploymentID,
 		WorkspaceID:   setupCreate.Workspace.ID,
 		ProjectID:     setupCreate.Project.ID,
+		AppID:         setupCreate.App.ID,
 		EnvironmentID: setupCreate.Environment.ID,
 		GitBranch:     "main",
 	})

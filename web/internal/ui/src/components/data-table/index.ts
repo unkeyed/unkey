@@ -16,13 +16,12 @@ export type {
 } from "./types";
 
 // Constants
-export { DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT, BREATHING_SPACE, STATUS_STYLES } from "./constants";
+export { DEFAULT_CONFIG, STATUS_STYLES } from "./constants";
 export type { StatusStyle } from "./constants";
 
 // Hooks
 export { useDataTable } from "./hooks/use-data-table";
 export { useRealtimeData } from "./hooks/use-realtime-data";
-export { useTableHeight } from "./hooks/use-table-height";
 
 // Cell components
 export { CheckboxCell, CheckboxHeaderCell, RowActionSkeleton } from "./components/cells";

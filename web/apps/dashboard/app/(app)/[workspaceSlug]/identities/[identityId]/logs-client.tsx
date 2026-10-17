@@ -44,7 +44,7 @@ export const IdentityDetailsLogsClient = ({
 
   return (
     <IdentityDetailsLogsProvider>
-      <div className="flex flex-col">
+      <div className="flex flex-col md:flex-1 md:min-h-0">
         <ErrorBoundary fallback={createErrorFallback("Controls")}>
           <IdentityDetailsLogsControls identityId={identityId} />
         </ErrorBoundary>
@@ -53,7 +53,7 @@ export const IdentityDetailsLogsClient = ({
           <IdentityDetailsLogsControlCloud />
         </ErrorBoundary>
 
-        <div className="flex flex-col">
+        <div className="flex flex-col md:flex-1 md:min-h-0">
           <ErrorBoundary fallback={createErrorFallback("Chart")}>
             <IdentityDetailsLogsChart identityId={identityId} onMount={handleDistanceToTop} />
           </ErrorBoundary>

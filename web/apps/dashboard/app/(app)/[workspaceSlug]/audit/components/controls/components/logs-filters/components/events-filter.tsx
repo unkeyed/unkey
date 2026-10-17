@@ -1,34 +1,36 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
-import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
+import {
+  type CheckboxGroup,
+  GroupedFilterCheckbox,
+} from "@/components/logs/checkbox/grouped-filter-checkbox";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 
-type EventsOption = {
-  id: number;
-  display: string;
-  label: string;
-  checked: boolean;
-};
+export const eventGroups: CheckboxGroup[] = [
+  ...unkeyAuditLogEvents.options
+    .reduce((groups, event) => {
+      const [resource] = event.split(".");
+      const items = groups.get(resource) ?? [];
+      items.push({ value: event, label: event.slice(resource.length + 1) });
+      return groups.set(resource, items);
+    }, new Map<string, CheckboxGroup["items"]>())
+    .entries(),
+].map(([resource, items]) => ({ id: resource, label: resource, items }));
+
 export const EventsFilter = () => {
   const { filters, updateFilters } = useFilters();
   return (
-    <FilterCheckbox
-      showScroll
-      options={Object.values(unkeyAuditLogEvents.enum).map<EventsOption>((value, index) => ({
-        id: index,
-        display: value,
-        label: value,
-        checked: false,
-      }))}
+    <GroupedFilterCheckbox
+      groups={eventGroups}
       filterField="events"
-      checkPath="display"
-      renderOptionContent={(checkbox) => (
-        <div className="text-gray-12 text-xs">{checkbox.display}</div>
-      )}
-      createFilterValue={(option) => ({
-        value: option.display,
-      })}
       filters={filters}
       updateFilters={updateFilters}
+      createFilter={(value) => ({
+        id: crypto.randomUUID(),
+        field: "events" as const,
+        operator: "is" as const,
+        value,
+      })}
+      searchPlaceholder="Search events..."
     />
   );
 };

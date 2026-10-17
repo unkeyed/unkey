@@ -31,7 +31,7 @@ function WorkspaceContent({
   children: React.ReactNode;
 }) {
   return (
-    <div className="w-full flex-1 flex flex-col">
+    <div className="w-full flex-1 flex flex-col md:has-data-[width=full]:min-h-0 md:has-data-[width=full]:basis-0">
       {workspace.enabled ? (
         <QueryTimeProvider>{children}</QueryTimeProvider>
       ) : (
@@ -62,7 +62,9 @@ export default function Layout({ children }: LayoutProps) {
   const { user, workspace, isLoading, error, workspaceMissing } = useWorkspace();
   // Creation wizards are focused full-screen experiences without the sidebar.
   const isCreationWizard =
-    /\/projects\/[^/]+\/apps\/new$/.test(pathname) || /\/settings\/logdrains\/new$/.test(pathname);
+    pathname === "/integrations/github/callback" ||
+    /\/projects\/[^/]+\/apps\/new$/.test(pathname) ||
+    /\/settings\/logdrains\/new$/.test(pathname);
 
   useEffect(() => {
     // Don't navigate while loading
@@ -107,11 +109,7 @@ export default function Layout({ children }: LayoutProps) {
         <MobileNavDrawer />
         <div className="relative flex flex-1 overflow-hidden">
           {!isCreationWizard && <SidebarV2 className="bg-background" />}
-          {/* Reserve the scrollbar gutter so content doesn't shift horizontally
-              when the scrollbar appears/disappears (e.g. a dialog locking scroll
-              or content height changing). Without this the centered layout
-              "shakes" and buttons move out from under the cursor (ENG-2884). */}
-          <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
+          <div className="flex-1 overflow-auto">
             <div
               className="isolate bg-background w-full min-h-full flex flex-col items-center"
               id="layout-wrapper"

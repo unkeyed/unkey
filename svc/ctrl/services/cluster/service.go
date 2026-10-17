@@ -179,7 +179,7 @@ func New(cfg Config) (*Service, error) {
 		regionalDomain:                     cfg.RegionalDomain,
 		provisionedCerts:                   provisionedCerts,
 	}
-	repeat.Every(notifiedReadyTTL, func() {
+	repeat.Every(notifiedReadyTTL, func(context.Context) {
 		if dropped := s.notifiedReady.Sweep(); dropped > 0 {
 			logger.Info("swept stale notifiedReady entries", "dropped", dropped)
 		}

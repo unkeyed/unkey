@@ -71,6 +71,7 @@ func (s *Seeder) cleanup() {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
+	require.NoError(s.t, s.DB.DeleteDeploymentConnectionsByWorkspaceIds(ctx, s.workspaceIDs))
 	require.NoError(s.t, s.DB.DeleteWorkspacesWithChildren(ctx, s.workspaceIDs))
 }
 
@@ -227,6 +228,7 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		DeleteProtection: project.DeleteProtection,
 		CreatedAt:        project.CreatedAt,
 		UpdatedAt:        project.UpdatedAt,
+		DeletedAt:        project.DeletedAt,
 		Pk:               0,
 		DepotProjectID:   sql.NullString{String: "", Valid: false},
 	}
@@ -314,6 +316,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
+		DeletedAt:        environment.DeletedAt,
 	}
 }
 
@@ -422,6 +425,8 @@ type CreateDeploymentRequest struct {
 	Source         db.DeploymentsSource
 	ImageRequested sql.NullString
 	ImageResolved  sql.NullString
+
+	Capabilities dbtype.DeploymentCapabilities
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -467,6 +472,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
+		Capabilities:                  req.Capabilities,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      req.PrNumber,
 		ForkRepositoryFullName:        req.ForkRepositoryFullName,

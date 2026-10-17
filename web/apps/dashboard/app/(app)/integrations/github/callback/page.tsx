@@ -1,5 +1,8 @@
 "use client";
+import { CardPending } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/card";
+import { PendingFlowCard } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/flow-layout";
 import { LoadingState } from "@/components/loading-state";
+import { signedState } from "@/lib/github-install-state";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import {
@@ -11,7 +14,36 @@ import {
   PageContainer,
 } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
+
+type PendingKind = "new-app" | "default";
+
+function pendingKind(rawState: string | null): PendingKind {
+  if (!rawState) {
+    return "default";
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(rawState);
+  } catch {
+    return "default";
+  }
+  const parsed = signedState.safeParse(json);
+  const newApp =
+    parsed.success && parsed.data.flow === "app" && parsed.data.returnTo !== "settings";
+  return newApp ? "new-app" : "default";
+}
+
+const pendingView: Record<PendingKind, ReactNode> = {
+  "new-app": (
+    <PendingFlowCard card="pick-repo">
+      <CardPending message="Connecting GitHub…" />
+    </PendingFlowCard>
+  ),
+  default: <LoadingState message="Finalizing GitHub installation..." />,
+};
+
+const submitted = new Set<string>();
 
 export default function Page() {
   const router = useRouter();
@@ -31,6 +63,7 @@ export default function Page() {
     return Number.isNaN(parsed) ? null : parsed;
   }, [installationId]);
 
+  const utils = trpc.useUtils();
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
       if (data.status === "authorization_required") {
@@ -39,23 +72,17 @@ export default function Page() {
       }
 
       if (data.flow === "app" && data.projectId && data.appId) {
-        // Return to the app: its settings, or the repo picker when the wizard
-        // hasn't chosen a repo yet.
-        router.replace(
-          data.returnTo === "settings"
-            ? routes.projects.apps.settings({
-                workspaceSlug: data.workspaceSlug,
-                projectId: data.projectId,
-                appId: data.appId,
-                page: "build",
-              })
-            : routes.projects.apps.new({
-                workspaceSlug: data.workspaceSlug,
-                projectId: data.projectId,
-                step: "select-repo",
-                appId: data.appId,
-              }),
-        );
+        const scope = {
+          workspaceSlug: data.workspaceSlug,
+          projectId: data.projectId,
+          appId: data.appId,
+        };
+        if (data.returnTo === "settings") {
+          router.replace(routes.projects.apps.settings({ ...scope, page: "build" }));
+          return;
+        }
+        void utils.github.listRepositories.prefetch({ projectId: data.projectId });
+        router.replace(routes.projects.apps.new({ ...scope, step: "pick-repo" }));
         return;
       }
 
@@ -64,14 +91,14 @@ export default function Page() {
     },
   });
 
-  // OAuth code is single-use; fire once. A ref, not mutation.isIdle (which the
-  // strict-mode remount reads before the first mutate flips it), blocks a re-submit.
-  const submittedRef = useRef(false);
+  // OAuth code is single-use; fire once. The set outlives a remount, which
+  // mutation.isIdle and a ref do not, so it blocks a re-submit.
   useEffect(() => {
-    if (!state || (installationIdNumber === null && !code) || submittedRef.current) {
+    const key = code ?? `${state}:${installationIdNumber}`;
+    if (!state || (installationIdNumber === null && !code) || submitted.has(key)) {
       return;
     }
-    submittedRef.current = true;
+    submitted.add(key);
 
     // `code` is absent when GitHub returns from editing an existing
     // installation. The server starts an authorization round-trip if this
@@ -85,52 +112,40 @@ export default function Page() {
 
   if (!state) {
     return (
-      <PageContainer>
-        <PageBody>
-          <EmptyState>
-            <EmptyStateHeader>
-              <EmptyStateTitle>Invalid callback state</EmptyStateTitle>
-              <EmptyStateDescription>
-                Missing or invalid GitHub installation state.
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-          </EmptyState>
-        </PageBody>
-      </PageContainer>
+      <CallbackError
+        title="Invalid callback state"
+        description="Missing or invalid GitHub installation state."
+      />
     );
   }
 
   if (installationIdNumber === null && !code) {
     return (
-      <PageContainer>
-        <PageBody>
-          <EmptyState>
-            <EmptyStateHeader>
-              <EmptyStateTitle>Missing installation</EmptyStateTitle>
-              <EmptyStateDescription>
-                Missing or invalid GitHub installation id.
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-          </EmptyState>
-        </PageBody>
-      </PageContainer>
+      <CallbackError
+        title="Missing installation"
+        description="Missing or invalid GitHub installation id."
+      />
     );
   }
 
   if (mutation.isError) {
-    return (
-      <PageContainer>
-        <PageBody>
-          <EmptyState>
-            <EmptyStateHeader>
-              <EmptyStateTitle>Installation failed</EmptyStateTitle>
-              <EmptyStateDescription>{mutation.error.message}</EmptyStateDescription>
-            </EmptyStateHeader>
-          </EmptyState>
-        </PageBody>
-      </PageContainer>
-    );
+    return <CallbackError title="Installation failed" description={mutation.error.message} />;
   }
 
-  return <LoadingState message="Finalizing GitHub installation..." />;
+  return pendingView[pendingKind(state)];
+}
+
+function CallbackError({ title, description }: { title: string; description: string }) {
+  return (
+    <PageContainer>
+      <PageBody>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>{title}</EmptyStateTitle>
+            <EmptyStateDescription>{description}</EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
+      </PageBody>
+    </PageContainer>
+  );
 }

@@ -109,10 +109,9 @@ func New(cfg Config) *Collector {
 }
 
 func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
-	stop := repeat.Every(interval, func() {
+	repeat.Every(interval, func(ctx context.Context) {
 		c.collectWithMetrics(ctx, interval)
-	})
-	defer stop()
+	}, repeat.WithContext(ctx))
 
 	// Track the CRI goroutine so shutdown can wait for it before returning.
 	// Without this wait, a late-arriving TaskExit event could fire its handler

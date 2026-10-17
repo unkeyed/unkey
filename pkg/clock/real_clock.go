@@ -41,3 +41,15 @@ type realTicker struct {
 
 func (r *realTicker) C() <-chan time.Time { return r.t.C }
 func (r *realTicker) Stop()               { r.t.Stop() }
+
+// NewTimer delegates to [time.NewTimer].
+func (c *RealClock) NewTimer(d time.Duration) Timer {
+	return &realTimer{t: time.NewTimer(d)}
+}
+
+type realTimer struct {
+	t *time.Timer
+}
+
+func (r *realTimer) C() <-chan time.Time { return r.t.C }
+func (r *realTimer) Stop()               { r.t.Stop() }

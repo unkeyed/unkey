@@ -70,6 +70,10 @@ func (s *service) Values(ctx context.Context, workspaceID string) (map[string]Fl
 	return result, nil
 }
 
+func (s *service) IsPrivateNetworkingEnabled(ctx context.Context, workspaceID string) bool {
+	return s.enabled(ctx, workspaceID, "private_network_enable", false)
+}
+
 func (s *service) enabled(ctx context.Context, workspaceID, slug string, fallback bool) bool {
 	values, err := s.load(ctx, workspaceID)
 	if err != nil {

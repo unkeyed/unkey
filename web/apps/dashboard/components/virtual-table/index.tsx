@@ -4,7 +4,7 @@ import {
   IconCaretUpOutline12,
   IconCircleCaretRightOutline18,
 } from "@unkey/icons";
-import { Skeleton, useIsMobile } from "@unkey/ui";
+import { Skeleton } from "@unkey/ui";
 import { cn } from "cn";
 import {
   Fragment,
@@ -19,11 +19,8 @@ import { VirtualTableEmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
-import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
-
-const MOBILE_TABLE_HEIGHT = 400;
 
 const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
   return columns.map((column) => {
@@ -72,7 +69,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       renderSkeletonRow,
       onRowMouseEnter,
       onRowMouseLeave,
-      fixedHeight: fixedHeightProp,
+      fixedHeight,
       expandedIds: controlledExpandedIds,
       onExpandedChange,
       renderExpanded,
@@ -86,7 +83,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const parentRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     const containerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     // Default to false (desktop) to prevent hydration mismatches
-    const isMobile = useIsMobile({ defaultValue: false });
 
     // Track expansion state internally if not controlled
     const [internalExpandedIds, setInternalExpandedIds] = useState<Set<string | number>>(new Set());
@@ -111,8 +107,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const hasPadding = config.containerPadding !== "px-0";
     const hasHeaders = columns.some((col) => col.header);
 
-    const calculatedHeight = useTableHeight(containerRef);
-    const fixedHeight = fixedHeightProp ?? calculatedHeight;
     const tableData = useTableData<TTableData>(realtimeData, historicData);
 
     // Dynamic row sizing for expandable rows
@@ -157,12 +151,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       config.tableLayout === "fixed" ? "table-fixed!" : "table-auto!",
     );
 
-    const containerClassName = cn(
-      "overflow-auto relative pb-4",
-      config.className,
-      config.containerPadding || "px-2",
-    );
-
     // biome-ignore lint/correctness/useExhaustiveDependencies: refs are stable and shouldn't be in deps
     useImperativeHandle(
       ref,
@@ -175,61 +163,25 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
     const colWidths = useMemo(() => calculateTableLayout(columns), [columns]);
 
-    if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
-      return (
-        <div
-          className="w-full flex flex-col md:h-full"
-          style={{ height: `${fixedHeight}px` }}
-          ref={containerRef}
-        >
-          <table className={tableClassName}>
-            <colgroup>
-              {columns.map((column, idx) => (
-                <col key={column.key} style={{ width: colWidths[idx].width }} />
-              ))}
-            </colgroup>
-            {hasHeaders && (
-              <thead className={cn("sticky top-0 z-10", config.className)}>
-                <tr>
-                  {columns.map((column) => (
-                    <th
-                      key={column.key}
-                      className={cn(
-                        "text-sm font-medium text-gray-12 py-1 text-left",
-                        column.headerClassName,
-                        column.cellClassName,
-                      )}
-                    >
-                      <div className="truncate text-gray-12">{column.header}</div>
-                    </th>
-                  ))}
-                </tr>
-                <tr>
-                  <th colSpan={columns.length} className="p-0">
-                    <div
-                      className={cn(
-                        "absolute inset-y-0 -z-10 bg-table-header border-b",
-                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                      )}
-                    />
-                  </th>
-                </tr>
-              </thead>
-            )}
-          </table>
-          <div className="flex-1 flex items-center justify-center">
-            {emptyState ?? <VirtualTableEmptyState />}
-          </div>
-        </div>
-      );
-    }
+    const isEmpty = !isLoading && historicData.length === 0 && realtimeData.length === 0;
+    const fillsParent = fixedHeight === undefined;
 
     return (
-      <div className="w-full flex flex-col" ref={containerRef}>
+      <div
+        className={cn("w-full flex flex-col", fillsParent && "md:flex-1 md:min-h-0")}
+        ref={containerRef}
+      >
         <div
           ref={parentRef}
-          className={containerClassName}
-          style={isMobile ? { height: MOBILE_TABLE_HEIGHT } : { height: `${fixedHeight}px` }}
+          className={cn(
+            "overflow-auto relative pb-4",
+            config.className,
+            config.containerPadding || "px-2",
+            "max-md:h-[400px]",
+            fillsParent && "md:flex-1 md:min-h-0",
+            isEmpty && "flex flex-col",
+          )}
+          style={fixedHeight === undefined ? undefined : { height: fixedHeight }}
         >
           <table className={tableClassName}>
             <colgroup>
@@ -238,13 +190,15 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               ))}
             </colgroup>
             {hasHeaders && (
-              <thead className={cn("sticky top-0 z-10", config.className)}>
+              <thead className={cn("sticky top-0 z-10 bg-table-header", config.className)}>
                 <tr>
                   {columns.map((column) => (
                     <th
                       key={column.key}
                       className={cn(
                         "text-sm font-medium text-gray-12 py-1 text-left relative",
+                        hasPadding &&
+                          "first:shadow-[-8px_0_0_var(--background-color-table-header)] last:shadow-[8px_0_0_var(--background-color-table-header)]",
                         column.headerClassName,
                         column.cellClassName,
                       )}
@@ -254,10 +208,10 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   ))}
                 </tr>
                 <tr>
-                  <th colSpan={columns.length} className="p-0">
+                  <th colSpan={columns.length} className="relative p-0">
                     <div
                       className={cn(
-                        "absolute inset-y-0 -z-10 bg-table-header border-b",
+                        "absolute bottom-0 border-b",
                         hasPadding ? "inset-x-[-8px]" : "inset-x-0",
                       )}
                     />
@@ -495,7 +449,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
             </tbody>
           </table>
-          {loadMoreFooterProps && (
+          {isEmpty && (
+            <div className="flex-1 flex items-center justify-center">
+              {emptyState ?? <VirtualTableEmptyState />}
+            </div>
+          )}
+          {!isEmpty && loadMoreFooterProps && (
             <LoadMoreFooter
               {...loadMoreFooterProps}
               onLoadMore={onLoadMore}

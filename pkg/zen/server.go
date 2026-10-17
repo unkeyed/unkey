@@ -80,6 +80,20 @@ type Config struct {
 	// If 0, defaults to 20 seconds.
 	// For proxy services, this should be longer than any downstream timeout.
 	WriteTimeout time.Duration
+
+	// IdleTimeout is the maximum duration to wait for the next request on a
+	// keep-alive connection. If 0, net/http uses ReadTimeout.
+	IdleTimeout time.Duration
+}
+
+func fallback(configured, defaultValue time.Duration) time.Duration {
+	if configured == 0 {
+		return defaultValue
+	}
+	if configured < 0 {
+		return 0
+	}
+	return configured
 }
 
 // New creates a new server with the provided configuration.
@@ -110,24 +124,6 @@ func New(config Config) (*Server, error) {
 		trustedProxyCIDRs = append(trustedProxyCIDRs, prefix.Masked())
 	}
 
-	// Set default timeouts if not provided.
-	// Services that use middleware-level timeouts (WithTimeout) and need
-	// long-lived connections (proxies, streaming) should explicitly pass
-	// negative values to disable server-level timeouts.
-	readTimeout := config.ReadTimeout
-	if readTimeout == 0 {
-		readTimeout = 10 * time.Second
-	} else if readTimeout < 0 {
-		readTimeout = 0
-	}
-
-	writeTimeout := config.WriteTimeout
-	if writeTimeout == 0 {
-		writeTimeout = 20 * time.Second
-	} else if writeTimeout < 0 {
-		writeTimeout = 0
-	}
-
 	srv := &http.Server{
 		// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
 		//
@@ -142,8 +138,13 @@ func New(config Config) (*Server, error) {
 		// >
 		// > Instead, create a http.Server instance with ReadTimeout and WriteTimeout and use its
 		// > corresponding methods, like in the example a few paragraphs above.
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
+		//
+		// Services that use middleware-level timeouts (WithTimeout) and
+		// need long-lived connections (proxies, streaming) should pass
+		// negative values to disable server-level timeouts.
+		ReadTimeout:  fallback(config.ReadTimeout, 10*time.Second),
+		WriteTimeout: fallback(config.WriteTimeout, 20*time.Second),
+		IdleTimeout:  config.IdleTimeout,
 	}
 
 	flags := Flags{

@@ -40,30 +40,46 @@ describe("nextLeaveStep", () => {
       { type: "guardOn", sentinelOnTop: false },
       { type: "guardOff", sentinelOnTop: true },
       { type: "guardOn", sentinelOnTop: true },
-      { type: "popstate", sentinel: false },
-      { type: "popstate", sentinel: false },
+      { type: "popstate", sentinel: false, mode: "confirm" },
+      { type: "popstate", sentinel: false, mode: "confirm" },
     ]);
     expect(steps[3]).toEqual({ phase: "idle", effects: ["pushSentinel"] });
     expect(steps[4].effects).toEqual(["askBack"]);
   });
 
   it("asks on Back and closes the prompt on Forward to the sentinel", () => {
-    expect(nextLeaveStep("idle", { type: "popstate", sentinel: false }).effects).toEqual([
-      "askBack",
-    ]);
-    expect(nextLeaveStep("idle", { type: "popstate", sentinel: true }).effects).toEqual([
-      "closePrompt",
-    ]);
+    expect(
+      nextLeaveStep("idle", { type: "popstate", sentinel: false, mode: "confirm" }).effects,
+    ).toEqual(["askBack"]);
+    expect(
+      nextLeaveStep("idle", { type: "popstate", sentinel: true, mode: "confirm" }).effects,
+    ).toEqual(["closePrompt"]);
   });
 
   it("blocks reload and tab close until the user chooses to leave", () => {
-    expect(nextLeaveStep("idle", { type: "beforeunload" }).effects).toEqual(["blockUnload"]);
-    const [, unload] = run([{ type: "leave" }, { type: "beforeunload" }]);
+    expect(nextLeaveStep("idle", { type: "beforeunload", dirty: true }).effects).toEqual([
+      "blockUnload",
+    ]);
+    const [, unload] = run([{ type: "leave" }, { type: "beforeunload", dirty: true }]);
     expect(unload.effects).toEqual([]);
   });
 
+  it("lets reload through when nothing is dirty", () => {
+    expect(nextLeaveStep("idle", { type: "beforeunload", dirty: false }).effects).toEqual([]);
+  });
+
+  it("stays on the page without asking on Back while holding", () => {
+    expect(nextLeaveStep("idle", { type: "popstate", sentinel: false, mode: "hold" })).toEqual({
+      phase: "idle",
+      effects: ["pushSentinel"],
+    });
+  });
+
   it("lets a bypassed navigation through without asking", () => {
-    const [, back] = run([{ type: "leave" }, { type: "popstate", sentinel: false }]);
+    const [, back] = run([
+      { type: "leave" },
+      { type: "popstate", sentinel: false, mode: "confirm" },
+    ]);
     expect(back).toEqual({ phase: "idle", effects: ["disarmFallback"] });
   });
 
@@ -79,9 +95,9 @@ describe("nextLeaveStep", () => {
   });
 
   it("drops the fallback when Back lands or the page unloads", () => {
-    expect(nextLeaveStep("leaving", { type: "popstate", sentinel: false }).effects).toEqual([
-      "disarmFallback",
-    ]);
+    expect(
+      nextLeaveStep("leaving", { type: "popstate", sentinel: false, mode: "confirm" }).effects,
+    ).toEqual(["disarmFallback"]);
     expect(nextLeaveStep("leaving", { type: "pagehide" })).toEqual({
       phase: "idle",
       effects: ["disarmFallback"],

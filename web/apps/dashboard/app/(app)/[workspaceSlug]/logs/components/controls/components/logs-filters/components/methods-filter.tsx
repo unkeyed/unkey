@@ -7,7 +7,7 @@ type MethodOption = {
   checked: boolean;
 };
 
-const options: MethodOption[] = [
+export const methodOptions: MethodOption[] = [
   { id: 1, method: "GET", checked: false },
   { id: 2, method: "POST", checked: false },
   { id: 3, method: "PUT", checked: false },
@@ -19,7 +19,7 @@ export const MethodsFilter = () => {
   const { filters, updateFilters } = useFilters();
   return (
     <FilterCheckbox
-      options={options}
+      options={methodOptions}
       filterField="methods"
       checkPath="method"
       renderOptionContent={(checkbox) => (

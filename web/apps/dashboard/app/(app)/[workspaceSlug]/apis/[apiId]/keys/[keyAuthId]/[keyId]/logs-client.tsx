@@ -31,10 +31,10 @@ export const KeyDetailsLogsClient = ({
 
   return (
     <KeyDetailsLogsProvider>
-      <div className="flex flex-col">
+      <div className="flex flex-col md:flex-1 md:min-h-0">
         <KeysDetailsLogsControls keyId={keyId} apiId={apiId} />
         <KeysDetailsLogsControlCloud />
-        <div className="flex flex-col">
+        <div className="flex flex-col md:flex-1 md:min-h-0">
           <KeyDetailsLogsChart
             keyspaceId={keyspaceId}
             keyId={keyId}

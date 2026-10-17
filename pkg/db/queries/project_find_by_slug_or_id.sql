@@ -17,4 +17,5 @@ JOIN (
     FROM projects p2
     WHERE p2.slug = sqlc.arg(project) AND p2.workspace_id = sqlc.arg(workspace_id)
 ) AS project_lookup ON project_lookup.id = p.id
+WHERE p.deleted_at IS NULL
 LIMIT 1;

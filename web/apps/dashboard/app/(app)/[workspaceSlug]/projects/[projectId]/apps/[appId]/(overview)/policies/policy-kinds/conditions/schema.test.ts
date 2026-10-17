@@ -1,4 +1,4 @@
-import type { Policy } from "@/lib/collections/deploy/policies.schema";
+import { type Policy, fromWirePolicy } from "@/lib/collections/deploy/policies.schema";
 import { describe, expect, it } from "vitest";
 import { fromPolicy, policyFormSchema, toPolicy } from "..";
 import type { PolicyFormValues } from "..";
@@ -64,5 +64,40 @@ describe("remote ip condition", () => {
     const ranges = Array.from({ length: 101 }, () => "203.0.113.0/24").join("\n");
     const r = policyFormSchema.safeParse(firewallWithRemoteIp("in", ranges));
     expect(r.success).toBe(false);
+  });
+});
+
+describe.each(["header", "queryParam"] as const)("%s condition", (type) => {
+  it.each([true, false])("preserves present: %s through editing", (present) => {
+    const match = [{ [type]: { name: "x-debug", present } }];
+    const stored = fromWirePolicy({
+      id: crypto.randomUUID(),
+      name: "debug filter",
+      enabled: true,
+      match,
+      firewall: { action: "ACTION_DENY" },
+    });
+
+    const form = fromPolicy(stored);
+    expect(form.matchConditions).toMatchObject([
+      { type, name: "x-debug", operator: present ? "present" : "absent" },
+    ]);
+    expect(policyFormSchema.safeParse(form).success).toBe(true);
+    expect(toPolicy(form).match).toEqual(match);
+  });
+
+  it("preserves value matching when present is omitted", () => {
+    const match = [{ [type]: { name: "x-debug", value: { exact: "enabled" } } }];
+    const stored = fromWirePolicy({
+      id: crypto.randomUUID(),
+      name: "debug filter",
+      enabled: true,
+      match,
+      firewall: { action: "ACTION_DENY" },
+    });
+
+    const form = fromPolicy(stored);
+    expect(policyFormSchema.safeParse(form).success).toBe(true);
+    expect(toPolicy(form).match).toEqual(match);
   });
 });

@@ -1,19 +1,25 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/logs/hooks/use-filters";
 import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
+import type { LogsFilterField } from "@/lib/schemas/logs.filter.schema";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { MethodsFilter } from "./components/methods-filter";
+import { MethodsFilter, methodOptions } from "./components/methods-filter";
 import { PathsFilter } from "./components/paths-filter";
-import { StatusFilter } from "./components/status-filter";
+import { StatusFilter, statusOptions } from "./components/status-filter";
 
-const FILTER_ITEMS: FilterItemConfig[] = [
+const FILTER_ITEMS: FilterItemConfig<LogsFilterField>[] = [
   {
     id: "status",
     label: "Status",
     shortcut: "E",
     shortcutLabel: "E",
     component: <StatusFilter />,
+    options: statusOptions.map((status) => ({
+      value: status.status,
+      label: status.label,
+      description: status.display,
+    })),
   },
   {
     id: "methods",
@@ -21,6 +27,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     shortcut: "M",
     shortcutLabel: "M",
     component: <MethodsFilter />,
+    options: methodOptions.map((method) => ({ value: method.method, label: method.method })),
   },
   {
     id: "paths",
@@ -32,9 +39,9 @@ const FILTER_ITEMS: FilterItemConfig[] = [
 ];
 
 export const LogsFilters = () => {
-  const { filters } = useFilters();
+  const { filters, updateFilters } = useFilters();
   return (
-    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters}>
+    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters} updateFilters={updateFilters}>
       <div className="group">
         <Button
           variant="ghost"

@@ -3171,6 +3171,7 @@
   "seo": {
     "indexing": "navigable",
     "metatags": {
+      "canonical": "https://www.unkey.com/docs",
       "og:site_name": "Unkey Docs"
     }
   },

@@ -13,10 +13,6 @@ export const DEFAULT_CONFIG: DataTableConfig = {
   loadingRows: 10,
 } as const;
 
-export const MOBILE_TABLE_HEIGHT = 400;
-
-export const BREATHING_SPACE = 10;
-
 export type StatusStyle = {
   base: string;
   hover: string;

@@ -21,10 +21,10 @@ export const LogsClient = ({ apiId }: { apiId: string }) => {
   }, []);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col md:flex-1 md:min-h-0">
       <KeysOverviewLogsControls apiId={apiId} />
       <KeysOverviewLogsControlCloud />
-      <div className="flex flex-col">
+      <div className="flex flex-col md:flex-1 md:min-h-0">
         <KeysOverviewLogsCharts apiId={apiId} onMount={handleDistanceToTop} />
         <KeysOverviewLogsTable apiId={apiId} setSelectedLog={handleSelectedLog} log={selectedLog} />
       </div>

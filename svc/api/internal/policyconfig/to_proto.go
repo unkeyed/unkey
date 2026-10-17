@@ -262,7 +262,7 @@ func mapMatchExprToProto(path string, m openapi.MatchExpr) (*frontlinev1.MatchEx
 			return nil, err
 		}
 		if m.Header.Present != nil {
-			header.Match = &frontlinev1.HeaderMatch_Present{Present: bool(*m.Header.Present)}
+			header.Match = &frontlinev1.HeaderMatch_Present{Present: *m.Header.Present}
 		} else {
 			sm, err := mapStringMatchToProto(path+".header.value", *m.Header.Value)
 			if err != nil {
@@ -279,7 +279,7 @@ func mapMatchExprToProto(path string, m openapi.MatchExpr) (*frontlinev1.MatchEx
 			return nil, err
 		}
 		if m.QueryParam.Present != nil {
-			queryParam.Match = &frontlinev1.QueryParamMatch_Present{Present: bool(*m.QueryParam.Present)}
+			queryParam.Match = &frontlinev1.QueryParamMatch_Present{Present: *m.QueryParam.Present}
 		} else {
 			sm, err := mapStringMatchToProto(path+".queryParam.value", *m.QueryParam.Value)
 			if err != nil {

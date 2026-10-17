@@ -1,5 +1,6 @@
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 
+import { getOutcomeOptions } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/utils";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
@@ -87,7 +88,7 @@ export const LogsFilters = () => {
           ),
         },
         {
-          id: "keyids",
+          id: "keyIds",
           label: "Key ID",
           shortcut: "k",
           component: (
@@ -143,9 +144,14 @@ export const LogsFilters = () => {
           label: "Outcomes",
           shortcut: "o",
           component: <OutcomesFilter onDrawerClose={() => setOpen(false)} />,
+          options: getOutcomeOptions().map((outcome) => ({
+            value: outcome.outcome,
+            label: outcome.label,
+          })),
         },
       ]}
       activeFilters={filters}
+      updateFilters={updateFilters}
     >
       <div className="group">
         <Button

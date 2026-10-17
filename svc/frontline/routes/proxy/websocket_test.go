@@ -142,6 +142,7 @@ func startFrontline(t *testing.T, backendAddr string) (string, func()) {
 	zenSrv, err := zen.New(zen.Config{
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
+		IdleTimeout:        0,
 		MaxRequestBodySize: 0,
 		StreamRequestBody:  true,
 	})

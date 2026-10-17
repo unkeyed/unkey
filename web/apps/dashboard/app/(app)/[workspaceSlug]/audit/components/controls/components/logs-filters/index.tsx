@@ -3,14 +3,20 @@ import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useState } from "react";
 import type { WorkspaceProps } from "../../../logs-client";
 import { BucketFilter } from "./components/bucket-filter";
 import { EventsFilter } from "./components/events-filter";
 import { RootKeysFilter } from "./components/root-keys-filter";
 import { UsersFilter } from "./components/users-filter";
+import { useAuditFilterOptions } from "./use-audit-filter-options";
 
 export const LogsFilters = (props: WorkspaceProps) => {
-  const { filters } = useFilters();
+  const { filters, updateFilters } = useFilters();
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
+  const options = useAuditFilterOptions(props, isPopoverOpen);
+
   return (
     <FiltersPopover
       items={[
@@ -19,27 +25,36 @@ export const LogsFilters = (props: WorkspaceProps) => {
           label: "Events",
           shortcut: "e",
           component: <EventsFilter />,
+          options: options.events,
         },
         {
           id: "users",
           label: "Users",
           shortcut: "m",
           component: <UsersFilter />,
+          options: options.users,
         },
         {
           id: "rootKeys",
           label: "Root Keys",
           shortcut: "p",
           component: <RootKeysFilter rootKeys={props.rootKeys} />,
+          options: options.rootKeys,
         },
         {
           id: "bucket",
           label: "Bucket",
           shortcut: "b",
           component: <BucketFilter buckets={props.buckets} />,
+          single: true,
+          options: options.buckets,
         },
       ]}
+      searchPlaceholder="Search events, users, root keys..."
       activeFilters={filters}
+      updateFilters={updateFilters}
+      open={isPopoverOpen}
+      onOpenChange={setIsPopoverOpen}
     >
       <div className="group">
         <Button
