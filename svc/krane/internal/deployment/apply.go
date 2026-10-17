@@ -43,15 +43,23 @@ import (
 // A request whose capabilities enable private networking must carry a
 // production or preview EnvironmentKind, which undns uses to identify callers.
 //
-// The namespace is created automatically if it doesn't exist. After the
-// Deployment is applied a CiliumNetworkPolicy is installed in the same
-// namespace, owned by the Deployment, that permits ingress only from
-// frontline pods on the deployment's container port. Pods run under the
+// The namespace is created automatically if it doesn't exist. The ingress
+// policy is installed before the Deployment and owned by it as soon as its
+// UID is known. Private deployments also allow scoped replica traffic. Pods run under the
 // configured RuntimeClass, gVisor in production, since they execute untrusted
 // user code, and are scheduled on Karpenter-managed untrusted nodes with
 // node- and zone-spread constraints so replicas don't stack on a single node.
-func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
+func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
+	unlock := c.deploymentLocks.Lock(req.GetK8SNamespace() + "/" + req.GetK8SName())
+	defer unlock()
+	return c.applyDeploymentLocked(ctx, req)
+}
+
+func (c *Controller) applyDeploymentLocked(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "apply", retErr) }()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	logger.Info(
 		"applying deployment",
 		"namespace", req.GetK8SNamespace(),
@@ -94,6 +102,30 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	hasSecrets := len(plaintext) > 0
 
 	desired := c.buildDeployment(req, hasSecrets)
+	var policyOwner *metav1.OwnerReference
+	existing, err := c.clientSet.AppsV1().Deployments(req.GetK8SNamespace()).Get(ctx, req.GetK8SName(), metav1.GetOptions{})
+	switch {
+	case k8serrors.IsNotFound(err):
+		legacy, err := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace()).Get(ctx, req.GetK8SName(), metav1.GetOptions{})
+		if err != nil && !k8serrors.IsNotFound(err) {
+			return fmt.Errorf("failed to read legacy replicaset before policy: %w", err)
+		}
+		if err == nil {
+			if legacy.DeletionTimestamp != nil {
+				return fmt.Errorf("replicaset %s is terminating", req.GetK8SName())
+			}
+			policyOwner = metav1.NewControllerRef(legacy, appsv1.SchemeGroupVersion.WithKind("ReplicaSet"))
+		}
+	case err != nil:
+		return fmt.Errorf("failed to read deployment before policy: %w", err)
+	case existing.DeletionTimestamp != nil:
+		return fmt.Errorf("deployment %s is terminating", req.GetK8SName())
+	default:
+		policyOwner = new(deploymentOwnerRef(existing))
+	}
+	if err := c.ensureCiliumNetworkPolicy(ctx, req, policyOwner); err != nil {
+		return fmt.Errorf("failed to ensure cilium network policy before deployment: %w", err)
+	}
 
 	// Create the Secret and ServiceAccount before the Deployment so they
 	// exist by the time pods are scheduled. This prevents the
@@ -123,6 +155,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 	owner := deploymentOwnerRef(applied)
 
+	if err := c.ensureCiliumNetworkPolicy(ctx, req, &owner); err != nil {
+		return fmt.Errorf("failed to ensure cilium network policy ownership: %w", err)
+	}
+
 	// Patch ownerReferences onto the Secret and SA so K8s garbage-collects
 	// them when the Deployment is deleted.
 	if hasSecrets {
@@ -134,10 +170,6 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	if err := c.ensureHPAExists(ctx, req, owner); err != nil {
 		return fmt.Errorf("failed to ensure HPA: %w", err)
-	}
-
-	if err := c.ensureCiliumNetworkPolicy(ctx, req, owner); err != nil {
-		return fmt.Errorf("failed to ensure cilium network policy: %w", err)
 	}
 
 	status, err := c.buildDeploymentStatus(ctx, workload{
