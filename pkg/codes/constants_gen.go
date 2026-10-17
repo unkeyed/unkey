@@ -264,6 +264,9 @@ const (
 	// DeploymentIsProduction indicates the action does not apply to production
 	// deployments, which cannot be stopped or started directly.
 	UnkeyAppErrorsPreconditionDeploymentIsProduction URN = "err:unkey:application:deployment_is_production"
+	// DeploymentNotAwaitingApproval indicates the target deployment is not
+	// waiting for approval, so there is nothing to authorize.
+	UnkeyAppErrorsPreconditionDeploymentNotAwaitingApproval URN = "err:unkey:application:deployment_not_awaiting_approval"
 
 	// ----------------
 	// UnkeyLimitsErrors
