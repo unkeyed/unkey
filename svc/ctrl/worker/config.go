@@ -246,6 +246,16 @@ type HeartbeatConfig struct {
 	// sync. When set, a heartbeat is sent after a run confirms the rule is in
 	// the book. Optional - if empty, no heartbeat is sent
 	BuildLimitSyncURL string `toml:"build_limit_sync_url"`
+
+	// ClickhouseUserReconcileURL is the heartbeat URL for the ClickHouse
+	// workspace-user reconcile. When set, a heartbeat is sent after every run.
+	// Optional - if empty, no heartbeat is sent.
+	ClickhouseUserReconcileURL string `toml:"clickhouse_user_reconcile_url"`
+
+	// ScaleDownIdleURL is the heartbeat URL for the idle preview deployment
+	// scale-down sweep. When set, a heartbeat is sent after every run.
+	// Optional - if empty, no heartbeat is sent.
+	ScaleDownIdleURL string `toml:"scale_down_idle_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.
