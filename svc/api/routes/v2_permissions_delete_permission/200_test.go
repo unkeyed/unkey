@@ -22,14 +22,13 @@ func TestDeletePermissionRemovesBindingsAndPreservesOtherPermissions(t *testing.
 	workspace := h.Resources().UserWorkspace
 	permission := h.CreatePermission(seed.CreatePermissionRequest{
 		WorkspaceID: workspace.ID,
-		Name:        "Delete me",
-		Slug:        "delete-me",
-		Description: new("Permission to remove from keys and roles"),
+		Name:        "Permission to remove",
+		Slug:        "permission-to-remove",
 	})
 	unrelated := h.CreatePermission(seed.CreatePermissionRequest{
 		WorkspaceID: workspace.ID,
-		Name:        "Keep me",
-		Slug:        "keep-me",
+		Name:        "Unrelated permission",
+		Slug:        "unrelated-permission",
 	})
 	role := h.CreateRole(seed.CreateRoleRequest{
 		WorkspaceID: workspace.ID,

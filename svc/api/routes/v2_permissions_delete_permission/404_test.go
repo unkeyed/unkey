@@ -12,7 +12,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_permission"
 )
 
-func TestDeletePermissionNotFound(t *testing.T) {
+func TestDeletePermissionReportsMissingAndDeletedPermissionsAsNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		DB:        h.DB,
@@ -23,8 +23,8 @@ func TestDeletePermissionNotFound(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	permission := h.CreatePermission(seed.CreatePermissionRequest{
 		WorkspaceID: workspace.ID,
-		Name:        "Delete me",
-		Slug:        "delete-me",
+		Name:        "Permission deleted before request",
+		Slug:        "deleted-permission",
 	})
 	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.delete_permission")
 	deleted := testutil.CallRoute[handler.Request, handler.Response](

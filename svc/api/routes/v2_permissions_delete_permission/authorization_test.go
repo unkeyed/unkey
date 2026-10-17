@@ -13,7 +13,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_permission"
 )
 
-func TestDeletePermissionAuthorization(t *testing.T) {
+func TestDeletePermissionHidesAndPreservesPermissionsOutsideCallerGrant(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		DB:        h.DB,
@@ -24,19 +24,19 @@ func TestDeletePermissionAuthorization(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	permission := h.CreatePermission(seed.CreatePermissionRequest{
 		WorkspaceID: workspace.ID,
-		Name:        "Legacy",
-		Slug:        "legacy",
+		Name:        "Target permission",
+		Slug:        "target-permission",
 	})
-	canonicalPermission := h.CreatePermission(seed.CreatePermissionRequest{
+	otherPermission := h.CreatePermission(seed.CreatePermissionRequest{
 		WorkspaceID: workspace.ID,
-		Name:        "Canonical",
-		Slug:        "canonical",
+		Name:        "Other permission",
+		Slug:        "other-permission",
 	})
 	otherWorkspace := h.CreateWorkspace()
 
-	canonicalGrant := fmt.Sprintf(
+	otherPermissionDeleteGrant := fmt.Sprintf(
 		"unkey:v1:%s:projects/%s/rbac/permissions/%s#delete",
-		workspace.ID, canonicalPermission.ProjectID, canonicalPermission.ID,
+		workspace.ID, otherPermission.ProjectID, otherPermission.ID,
 	)
 	request := handler.Request{Permission: permission.ID}
 	notFound := openapi.BaseError{
@@ -49,7 +49,7 @@ func TestDeletePermissionAuthorization(t *testing.T) {
 	testutil.CheckAuthorization(t, h, route, testutil.Authorization[handler.Request, handler.Response]{
 		Denied: []testutil.DeniedRequest[handler.Request]{
 			{
-				Name: "wrong action",
+				Name: "read grant cannot delete",
 				Grant: testutil.Grant{
 					WorkspaceID: workspace.ID,
 					Permissions: []string{"rbac.*.read_permission"},
@@ -58,16 +58,16 @@ func TestDeletePermissionAuthorization(t *testing.T) {
 				Error:   notFound,
 			},
 			{
-				Name: "wrong resource",
+				Name: "exact grant cannot delete another permission",
 				Grant: testutil.Grant{
 					WorkspaceID: workspace.ID,
-					Permissions: []string{canonicalGrant},
+					Permissions: []string{otherPermissionDeleteGrant},
 				},
 				Request: request,
 				Error:   notFound,
 			},
 			{
-				Name: "other workspace",
+				Name: "workspace grant cannot delete another workspace permission",
 				Grant: testutil.Grant{
 					WorkspaceID: otherWorkspace.ID,
 					Permissions: []string{"rbac.*.delete_permission"},
@@ -78,7 +78,7 @@ func TestDeletePermissionAuthorization(t *testing.T) {
 		},
 		Allowed: []testutil.AllowedRequest[handler.Request]{
 			{
-				Name: "legacy wildcard",
+				Name: "legacy workspace grant permits deletion",
 				Grant: testutil.Grant{
 					WorkspaceID: workspace.ID,
 					Permissions: []string{"rbac.*.delete_permission"},
@@ -87,12 +87,12 @@ func TestDeletePermissionAuthorization(t *testing.T) {
 				Status:  http.StatusOK,
 			},
 			{
-				Name: "canonical exact permission",
+				Name: "canonical exact grant permits deletion",
 				Grant: testutil.Grant{
 					WorkspaceID: workspace.ID,
-					Permissions: []string{canonicalGrant},
+					Permissions: []string{otherPermissionDeleteGrant},
 				},
-				Request: handler.Request{Permission: canonicalPermission.ID},
+				Request: handler.Request{Permission: otherPermission.ID},
 				Status:  http.StatusOK,
 			},
 		},

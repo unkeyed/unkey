@@ -11,7 +11,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_permission"
 )
 
-func TestDeletePermissionAuthentication(t *testing.T) {
+func TestDeletePermissionRejectsUnknownCredentialsWithoutDeletion(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		DB:        h.DB,
@@ -22,8 +22,8 @@ func TestDeletePermissionAuthentication(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	permission := h.CreatePermission(seed.CreatePermissionRequest{
 		WorkspaceID: workspace.ID,
-		Name:        "Delete me",
-		Slug:        "delete-me",
+		Name:        "Protected permission",
+		Slug:        "protected-permission",
 	})
 	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.delete_permission")
 
