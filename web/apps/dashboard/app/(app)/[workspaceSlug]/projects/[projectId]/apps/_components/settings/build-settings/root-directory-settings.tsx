@@ -39,7 +39,7 @@ export function RootDirectory() {
 
   const currentDockerContext = form.watch("dockerContext");
   const setDockerContext = (path: string) =>
-    form.setValue("dockerContext", path, { shouldValidate: true });
+    form.setValue("dockerContext", path, { shouldDirty: true, shouldValidate: true });
   const error = form.formState.errors.dockerContext;
 
   const hint = pathHint(
