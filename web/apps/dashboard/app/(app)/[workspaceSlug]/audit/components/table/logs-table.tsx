@@ -7,7 +7,11 @@ import {
   useAuditLogsQuery,
 } from "@/components/audit-logs-table";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { IconBookBookmarkOutline18, IconInputSearchOutline18 } from "@unkey/icons";
+import {
+  IconBookBookmarkOutline18,
+  IconInputSearchOutline18,
+  IconTriangleWarningOutline18,
+} from "@unkey/icons";
 import {
   DataTable,
   type DataTableRef,
@@ -34,6 +38,8 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) 
     auditLogs,
     isLoading,
     isNavigating,
+    isError,
+    refetch,
     page,
     pageSize,
     totalPages,
@@ -53,6 +59,36 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) 
   }, [auditLogs, selectedLog, setSelectedLog]);
 
   const columns = useMemo(() => createAuditLogColumns({ selectedLog }), [selectedLog]);
+
+  if (isError) {
+    return (
+      <div className="border border-errorA-4 bg-errorA-2 rounded-lg overflow-hidden">
+        <div className="flex items-center justify-center py-16 px-4">
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconTriangleWarningOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle className="text-error-11">Failed to load audit logs</EmptyStateTitle>
+              <EmptyStateDescription>
+                Something went wrong while loading your audit logs. This is usually temporary, so
+                try again in a moment.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className={buttonVariants({ variant: "outline", size: "md" })}
+              >
+                Try again
+              </button>
+            </EmptyStateActions>
+          </EmptyState>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
