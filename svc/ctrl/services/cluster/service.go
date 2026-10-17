@@ -16,6 +16,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/privatenetwork"
 )
 
 // notifiedReadyTTL is how long an entry in notifiedReady is kept before
@@ -66,7 +67,8 @@ type Service struct {
 	// are "deployment:<id>".
 	notifiedReady *expiringSet[string]
 	// clusterCache memoizes immutable cluster identities for cluster-scoped RPCs.
-	clusterCache cache.Cache[clusterCacheKey, db.FindClusterRow]
+	clusterCache   cache.Cache[clusterCacheKey, db.FindClusterRow]
+	privateNetwork PrivateNetworkCatalog
 	// topologyCache caches FindDeploymentTopologyMinReplicas lookups
 	// keyed by deployment_id. Topology is written once at deploy time,
 	// then read on every instance status report, so caching removes an
@@ -95,6 +97,10 @@ type Config struct {
 	// Database provides read and write access for querying and updating resource state.
 	Database         db.Database
 	DeploymentStream DeploymentStream
+
+	// PrivateNetwork serves the private network catalog to Krane. When nil,
+	// StreamPrivateNetworkState reports Unavailable.
+	PrivateNetwork PrivateNetworkCatalog
 
 	// Restate is the ingress client used to trigger durable workflows.
 	Restate *ingress.Client
@@ -174,6 +180,7 @@ func New(cfg Config) (*Service, error) {
 		deploymentStream:                   cfg.DeploymentStream,
 		notifiedReady:                      newExpiringSet[string](notifiedReadyTTL),
 		clusterCache:                       clusterCache,
+		privateNetwork:                     cfg.PrivateNetwork,
 		topologyCache:                      cfg.TopologyCache,
 		instanceEvents:                     cfg.InstanceEvents,
 		regionalDomain:                     cfg.RegionalDomain,
@@ -188,6 +195,11 @@ func New(cfg Config) (*Service, error) {
 }
 
 var _ ctrlv1connect.ClusterServiceHandler = (*Service)(nil)
+
+// PrivateNetworkCatalog serves complete private network catalogs by platform.
+type PrivateNetworkCatalog interface {
+	Snapshot(context.Context, string) (privatenetwork.Snapshot, error)
+}
 
 // DeploymentStream delivers deployment changes and checkpoints in order.
 type DeploymentStream interface {
