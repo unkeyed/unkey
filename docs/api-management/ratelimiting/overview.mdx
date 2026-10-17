@@ -1,7 +1,7 @@
 ---
-title: Rate limiting
+title: Rate limiting with Unkey
 sidebarTitle: "Overview"
-description: "Choose between the standalone rate limit API and limits attached to keys."
+description: "Unkey rate limits your API per customer, key, endpoint, or IP, and Compute limits it at the gateway."
 sources:
   - svc/api/routes/v2_ratelimit_limit/handler.go
   - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitRequestBody.yaml
@@ -9,6 +9,13 @@ sources:
   - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
   - svc/api/openapi/spec/common/KeyCreditsRefill.yaml
   - svc/frontline/internal/policies/ratelimit/headers.go
+  - svc/frontline/internal/policies/ratelimit/keyextract.go
+  - svc/api/openapi/spec/common/RemoteIpKey.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/KeysVerifyKeyRatelimit.yaml
+  - svc/api/openapi/spec/paths/v2/identities/createIdentity/V2IdentitiesCreateIdentityRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/identities/updateIdentity/V2IdentitiesUpdateIdentityRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - web/internal/api/src/sdk/identities.ts
   - svc/api/internal/middleware/authentication.go
   - internal/services/ratelimit/doc.go
   - internal/services/keys/validation.go
@@ -18,14 +25,70 @@ sources:
 ---
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+import { versions } from "/snippets/versions.mdx";
+
+Per customer, Unkey counts on an identity, so extra keys don't add budget.
+
+You can also limit per key, per endpoint with a named limit or a `cost`, and per IP with `ratelimit.limit`.
+
+Monthly quotas are separate, as credits on the key.
+
+On Compute, a gateway policy applies these limits before the request reaches your API.
+
+## Which one do I use
+
+Use the row that matches what you want to count.
+
+| You want to limit | What Unkey uses | Read more |
+| --- | --- | --- |
+| Per customer | A rate limit on the identity, shared by every key with that `externalId` | [Shared rate limits](/api-management/identities/shared-rate-limits) |
+| Per key | A named rate limit on the key, checked during `keys.verifyKey` | [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits) |
+| Per endpoint | A named limit the route opts into, or a `cost` on that call. With no key, one namespace per route on `ratelimit.limit` | [Per-endpoint rate limits](/api-management/cookbook/endpoint-rate-limit) |
+| Per IP | The IP as the identifier on `ratelimit.limit`. On Compute, a gateway policy can count by remote IP | [ratelimit.limit](/api-management/ratelimiting/limit-and-multi-limit), [Rate limit policy](/compute/gateway/rate-limiting) |
+| Monthly quota | Credits on the key, with `credits.refill.interval` set to `monthly` | [Credits and refill](/api-management/keys/credits-and-refill) |
+
+## Limit per customer
+
+Create the identity with the shared limit, then create each key with the same `externalId`. `keys.verifyKey` counts all of those keys together. The client is `@unkey/api` {versions.tsApi}.
+
+```typescript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+await unkey.identities.createIdentity({
+  externalId: "cus_acme",
+  ratelimits: [
+    { name: "requests", limit: 100, duration: 60000, autoApply: true },
+  ],
+});
+
+await unkey.keys.createKey({ apiId: "api_...", externalId: "cus_acme" });
+
+export async function handler(key: string) {
+  const { data } = await unkey.keys.verifyKey({ key });
+
+  if (data.valid) {
+    return new Response("ok");
+  }
+
+  if (data.code === "RATE_LIMITED") {
+    return new Response("Too many requests", { status: 429 });
+  }
+
+  return new Response("Unauthorized", { status: 401 });
+}
+```
+
+To override that customer's limit, call `identities.updateIdentity` with `identity` set to the same `externalId` and a new `ratelimits` array. The array replaces the whole list, so send every limit the customer should keep. See [Per-user rate limits](/api-management/cookbook/per-user-rate-limit).
 
 Unkey enforces per-user and per-customer rate limits, and a monthly request quota, on an API you host yourself. You don't run Redis or any other counter store. Attach both to an API key, or call `ratelimit.limit` with a user id, a customer id, or any other stable string.
 
 A rate limit is a sliding window, such as 100 requests per minute. A monthly quota is credits on the key: set `credits.refill.interval` to `monthly`, and each successful `keys.verifyKey` spends from that balance. Credits are an exact total. Rate limit counts are close, and they can run a little high when traffic is split across regions. See [Credits and refill](/api-management/keys/credits-and-refill).
 
-## Add per-user rate limits
+## Add a per-key limit
 
-Create the key with a per-minute limit and a monthly credit refill, then verify it on each request. `externalId` ties the key to one customer.
+Create the key with a per-minute limit and a monthly credit refill, then verify it on each request. This limit counts that key alone. `externalId` still ties the key to one customer.
 
 ```typescript
 import { Unkey } from "@unkey/api";

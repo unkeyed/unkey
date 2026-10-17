@@ -1,6 +1,7 @@
 ---
-title: Verifying keys
-description: "Check a key on every request and act on the result."
+title: Verify API keys with Unkey
+sidebarTitle: "Verifying keys"
+description: "Unkey checks an API key for validity, rate limits, and credits, and Compute runs that check before your API."
 sources:
   - svc/api/routes/v2_keys_verify_key/handler.go
   - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
@@ -16,9 +17,26 @@ sources:
   - pkg/cache/cache.go
   - internal/services/ratelimit/ratelimit.go
   - pkg/rbac/parser.go
+  - svc/frontline/internal/policies/keyauth/executor.go
 ---
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Unkey checks the key your user sent by calling `keys.verifyKey` from your own server. One call runs expiry, an IP allow list when the keyspace has one, permissions, rate limits, and credits, then returns `data.valid` and a `code`. The HTTP status stays 200 when the key fails, and your server returns 401 or 429 to the caller. On Compute, the API key authentication policy runs the same checks at the gateway and returns 401, 403 or 429 itself.
+
+## What the check tells you
+
+Read `data.code`. These are the outcomes you usually branch on. The full list, including the status to return, is under [Code values](#code-values).
+
+| You need to know | What Unkey returns |
+| --- | --- |
+| Is the key allowed? | `valid: true` and `code: VALID` |
+| Is it missing, disabled, or expired? | `NOT_FOUND`, `DISABLED`, or `EXPIRED` |
+| Is the caller blocked? | `FORBIDDEN` when the client IP is off the keyspace allow list, or the workspace is disabled |
+| Does it have permission? | `INSUFFICIENT_PERMISSIONS` when the `permissions` query fails |
+| Is it over a rate limit? | `RATE_LIMITED`. That request doesn't spend credits |
+| Has it used its quota? | `USAGE_EXCEEDED` when credits can't cover the cost |
+| Should the gateway check the key? | The [API key authentication policy](/compute/gateway/api-key-auth) runs the same checks and returns 401, 403, or 429 itself |
 
 Verify an API key for your public API by calling `keys.verifyKey` with the key your user sent. This is the API Management endpoint. Use it when your own server, not the Compute gateway, decides whether the request is allowed.
 
