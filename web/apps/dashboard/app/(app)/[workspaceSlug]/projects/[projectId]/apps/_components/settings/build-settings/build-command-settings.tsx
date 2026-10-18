@@ -7,21 +7,23 @@ import {
   SettingsRowHeader,
   SettingsRowTitle,
 } from "@unkey/ui";
-import type { useBuildFields } from "../hooks/use-build-fields";
+import type { SettingField } from "../hooks/use-setting-form";
 
 export function BuildCommand({
   field,
+  disabled,
 }: {
-  field: ReturnType<typeof useBuildFields>["buildCommand"];
+  field: SettingField<"buildCommand">;
+  disabled: boolean;
 }) {
-  const { form, formProps, dockerfileConfigured } = field;
+  const { form, formProps } = field;
 
   return (
     <SettingsForm {...formProps}>
       <SettingsRow>
         <SettingsRowHeader>
           <SettingsRowTitle>Build command</SettingsRowTitle>
-          {dockerfileConfigured ? (
+          {disabled ? (
             <SettingsRowDescription>Not used with a Dockerfile.</SettingsRowDescription>
           ) : null}
         </SettingsRowHeader>
@@ -31,7 +33,7 @@ export function BuildCommand({
             aria-label="Build command"
             className="max-w-(--setting-w)"
             placeholder="Auto-detected"
-            disabled={dockerfileConfigured}
+            disabled={disabled}
             error={form.formState.errors.buildCommand?.message}
             {...form.register("buildCommand")}
           />

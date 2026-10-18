@@ -7,12 +7,18 @@ import {
   SettingsRowTitle,
 } from "@unkey/ui";
 import { useMemo } from "react";
-import type { useBuildFields } from "../hooks/use-build-fields";
+import type { SettingField } from "../hooks/use-setting-form";
 import { pathHint, pathInputVariant } from "./path-hint";
 import { pathHintMessage } from "./path-hint-message";
 import { useRepoTree } from "./use-repo-tree";
 
-export function Dockerfile({ field, onSelect }: ReturnType<typeof useBuildFields>["dockerfile"]) {
+export function Dockerfile({
+  field,
+  onSelect,
+}: {
+  field: SettingField<"dockerfile">;
+  onSelect: (path: string) => void;
+}) {
   const { settings, form, formProps } = field;
   const { dockerContext } = settings;
   const { branch, validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =

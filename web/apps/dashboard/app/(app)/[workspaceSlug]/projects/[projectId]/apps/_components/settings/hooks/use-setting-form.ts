@@ -27,7 +27,7 @@ export function useSavableForm<TValues extends FieldValues>({
     let saved = false;
     let noop = false;
     await form.handleSubmit(async (submitted) => {
-      noop = isNoop?.(submitted) ?? false;
+      noop = isNoop ? isNoop(submitted) : sameJson(submitted, values);
       saved = await save(submitted).then(
         () => true,
         () => false,
@@ -92,3 +92,7 @@ export function useSettingField<K extends keyof EnvironmentSettings>(
     },
   });
 }
+
+export type SettingField<K extends keyof EnvironmentSettings> = ReturnType<
+  typeof useSettingField<K>
+>;

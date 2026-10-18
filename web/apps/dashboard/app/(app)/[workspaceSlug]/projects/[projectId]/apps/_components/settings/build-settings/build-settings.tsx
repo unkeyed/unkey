@@ -13,7 +13,6 @@ import { WatchPaths } from "./watch-paths-settings";
 
 export function BuildSettings({ githubReadOnly = false }: { githubReadOnly?: boolean }) {
   const { app, hasRepository } = useBuildSource();
-  const build = useBuildFields();
 
   return (
     <SettingsGroup>
@@ -26,15 +25,20 @@ export function BuildSettings({ githubReadOnly = false }: { githubReadOnly?: boo
               .with("git", "unknown", () => <GitHub readOnly={githubReadOnly} />)
               .exhaustive()
           : null}
-        {hasRepository ? (
-          <>
-            <RootDirectory />
-            <Dockerfile {...build.dockerfile} />
-            <BuildCommand field={build.buildCommand} />
-            <WatchPaths />
-          </>
-        ) : null}
+        {hasRepository ? <GitBuildRows /> : null}
       </SettingsGroupContent>
     </SettingsGroup>
+  );
+}
+
+function GitBuildRows() {
+  const build = useBuildFields();
+  return (
+    <>
+      <RootDirectory />
+      <Dockerfile field={build.dockerfile} onSelect={build.onDockerfileSelect} />
+      <BuildCommand field={build.buildCommand} disabled={build.dockerfileConfigured} />
+      <WatchPaths />
+    </>
   );
 }

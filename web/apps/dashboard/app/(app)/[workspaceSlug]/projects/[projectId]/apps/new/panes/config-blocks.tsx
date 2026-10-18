@@ -194,9 +194,9 @@ function GitBuildFields() {
     <>
       <div className="grid grid-cols-1 gap-5 @lg:grid-cols-2 @lg:gap-4">
         <RootDirectory />
-        <Dockerfile {...build.dockerfile} />
+        <Dockerfile field={build.dockerfile} onSelect={build.onDockerfileSelect} />
       </div>
-      <BuildCommand field={build.buildCommand} />
+      <BuildCommand field={build.buildCommand} disabled={build.dockerfileConfigured} />
       <Command />
       <WatchPaths />
     </>
