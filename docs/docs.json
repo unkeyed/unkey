@@ -3166,7 +3166,11 @@
     {
       "destination": "/platform/workspace/audit-logs/overview",
       "source": "/api-management/audit-logs"
-    }
+    },
+    {
+      "destination": "/compute/concepts/deployments",
+      "source": "/deployments"
+    },
   ],
   "seo": {
     "indexing": "navigable",
