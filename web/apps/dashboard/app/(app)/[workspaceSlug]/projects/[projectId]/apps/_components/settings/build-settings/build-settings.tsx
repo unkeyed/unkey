@@ -2,6 +2,7 @@
 
 import { match } from "@unkey/match";
 import { SettingsGroup, SettingsGroupContent } from "@unkey/ui";
+import { useBuildFields } from "../hooks/use-build-fields";
 import { useBuildSource } from "../hooks/use-build-source";
 import { OCIImage } from "../oci-image";
 import { BuildCommand } from "./build-command-settings";
@@ -12,6 +13,7 @@ import { WatchPaths } from "./watch-paths-settings";
 
 export function BuildSettings({ githubReadOnly = false }: { githubReadOnly?: boolean }) {
   const { app, hasRepository } = useBuildSource();
+  const build = useBuildFields();
 
   return (
     <SettingsGroup>
@@ -27,8 +29,8 @@ export function BuildSettings({ githubReadOnly = false }: { githubReadOnly?: boo
         {hasRepository ? (
           <>
             <RootDirectory />
-            <Dockerfile />
-            <BuildCommand />
+            <Dockerfile {...build.dockerfile} />
+            <BuildCommand field={build.buildCommand} />
             <WatchPaths />
           </>
         ) : null}

@@ -7,17 +7,14 @@ import {
   SettingsRowHeader,
   SettingsRowTitle,
 } from "@unkey/ui";
-import { z } from "zod";
-import { useEnvironmentSettings } from "../environment-provider";
-import { useSettingField } from "../hooks/use-setting-form";
+import type { useBuildFields } from "../hooks/use-build-fields";
 
-export function BuildCommand() {
-  const dockerfileConfigured = useEnvironmentSettings().settings.dockerfile.trim() !== "";
-  const { form, formProps } = useSettingField("buildCommand", z.string().max(1000), {
-    blockedReason: dockerfileConfigured
-      ? "Not used with a Dockerfile build. Remove the Dockerfile to build automatically."
-      : undefined,
-  });
+export function BuildCommand({
+  field,
+}: {
+  field: ReturnType<typeof useBuildFields>["buildCommand"];
+}) {
+  const { form, formProps, dockerfileConfigured } = field;
 
   return (
     <SettingsForm {...formProps}>
