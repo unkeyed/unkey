@@ -3,7 +3,7 @@
   "version": "0.3.1",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
-  "license": "FSL-1.1-ALv2",
+  "license": "MIT",
   "private": false,
   "publishConfig": {
     "access": "public"
