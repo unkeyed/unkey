@@ -12,7 +12,7 @@
   "keywords": [],
   "scripts": {},
   "author": "Andreas Thomas",
-  "license": "MIT",
+  "license": "FSL-1.1-ALv2",
   "devDependencies": {
     "@types/node": "20.14.9",
     "typescript": "5.5.3"
