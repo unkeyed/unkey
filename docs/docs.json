@@ -3170,7 +3170,7 @@
     {
       "destination": "/compute/concepts/deployments",
       "source": "/deployments"
-    },
+    }
   ],
   "seo": {
     "indexing": "navigable",
