@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
@@ -879,7 +878,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// v2/analytics
 
-	analyticsMiddlewares := append(slices.Clone(protectedMiddlewares), zen.WithCompression())
+	analyticsMiddlewares := append(protectedMiddlewares, zen.WithCompression())
 
 	// v2/analytics.getGatewayRequests
 	srv.RegisterRoute(
