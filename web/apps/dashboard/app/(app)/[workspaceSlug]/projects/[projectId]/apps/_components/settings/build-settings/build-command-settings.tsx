@@ -7,24 +7,23 @@ import {
   SettingsRowHeader,
   SettingsRowTitle,
 } from "@unkey/ui";
-import { z } from "zod";
-import { useEnvironmentSettings } from "../environment-provider";
-import { useSettingField } from "../hooks/use-setting-form";
+import type { SettingField } from "../hooks/use-setting-form";
 
-export function BuildCommand() {
-  const dockerfileConfigured = useEnvironmentSettings().settings.dockerfile.trim() !== "";
-  const { form, formProps } = useSettingField("buildCommand", z.string().max(1000), {
-    blockedReason: dockerfileConfigured
-      ? "Not used with a Dockerfile build. Remove the Dockerfile to build automatically."
-      : undefined,
-  });
+export function BuildCommand({
+  field,
+  disabled,
+}: {
+  field: SettingField<"buildCommand">;
+  disabled: boolean;
+}) {
+  const { form, formProps } = field;
 
   return (
     <SettingsForm {...formProps}>
       <SettingsRow>
         <SettingsRowHeader>
           <SettingsRowTitle>Build command</SettingsRowTitle>
-          {dockerfileConfigured ? (
+          {disabled ? (
             <SettingsRowDescription>Not used with a Dockerfile.</SettingsRowDescription>
           ) : null}
         </SettingsRowHeader>
@@ -34,7 +33,7 @@ export function BuildCommand() {
             aria-label="Build command"
             className="max-w-(--setting-w)"
             placeholder="Auto-detected"
-            disabled={dockerfileConfigured}
+            disabled={disabled}
             error={form.formState.errors.buildCommand?.message}
             {...form.register("buildCommand")}
           />

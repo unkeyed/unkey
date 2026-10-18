@@ -12,6 +12,7 @@ import {
   readCompute,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/compute/draft";
 import { useEnvironmentSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/environment-provider";
+import { useBuildFields } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-build-fields";
 import { useBuildSource } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-build-source";
 import { OCIImage } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/oci-image";
 import { Command } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/runtime-settings/command";
@@ -188,13 +189,14 @@ function BlockRow({
 }
 
 function GitBuildFields() {
+  const build = useBuildFields();
   return (
     <>
       <div className="grid grid-cols-1 gap-5 @lg:grid-cols-2 @lg:gap-4">
         <RootDirectory />
-        <Dockerfile />
+        <Dockerfile field={build.dockerfile} onSelect={build.onDockerfileSelect} />
       </div>
-      <BuildCommand />
+      <BuildCommand field={build.buildCommand} disabled={build.dockerfileConfigured} />
       <Command />
       <WatchPaths />
     </>

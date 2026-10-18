@@ -18,6 +18,7 @@ const dockerContextSegment = /^[A-Za-z0-9._-]+$/;
 const dockerContextSchema = z
   .string()
   .min(1, "Enter a root directory or use '.' for the repository root.")
+  .transform((path) => path.replace(/\/+$/, ""))
   .refine(
     (path) =>
       path === "." ||

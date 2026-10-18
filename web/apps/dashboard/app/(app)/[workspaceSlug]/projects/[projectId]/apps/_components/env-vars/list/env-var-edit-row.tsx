@@ -79,8 +79,8 @@ export function EnvVarEditRow({ envVar, onClose }: { envVar: EnvVar; onClose: ()
         return;
       }
       e.preventDefault();
-      setValue("key", entry.key);
-      setValue("value", entry.value);
+      setValue("key", entry.key, { shouldDirty: true, shouldValidate: true });
+      setValue("value", entry.value, { shouldDirty: true, shouldValidate: true });
     },
     [setValue],
   );

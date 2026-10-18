@@ -28,7 +28,7 @@ export function OpenapiSpecPath() {
   const error = form.formState.errors.openapiSpecPath;
 
   const handleRemove = () => {
-    form.setValue("openapiSpecPath", "");
+    form.setValue("openapiSpecPath", "", { shouldDirty: true });
     void submit();
   };
 
