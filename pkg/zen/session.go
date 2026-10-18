@@ -48,6 +48,7 @@ type Session struct {
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
+	sendResponse   func(int, []byte) error
 
 	streamRequestBody bool
 
@@ -476,6 +477,13 @@ func (s *Session) send(status int, body []byte) error {
 	s.responseStatus = status
 	s.responseBody = body
 
+	if s.sendResponse != nil {
+		return s.sendResponse(status, body)
+	}
+	return s.writeResponse(status, body)
+}
+
+func (s *Session) writeResponse(status int, body []byte) error {
 	s.w.WriteHeader(status)
 	_, err := s.w.Write(body)
 	if err != nil {
@@ -596,6 +604,7 @@ func (s *Session) reset() {
 	s.requestBody = nil
 	s.responseStatus = 0
 	s.responseBody = nil
+	s.sendResponse = nil
 	s.logRequestToClickHouse = true // Reset ClickHouse logging control to default (enabled)
 	s.internalError = ""
 	s.principal = nil

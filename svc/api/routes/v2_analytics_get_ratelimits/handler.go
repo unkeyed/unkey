@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/analyticsresponse"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -99,7 +98,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Query result exceeds the maximum response size."),
 		)
 	}
-	return analyticsresponse.Send(s, responseBytes)
+	s.AddHeader("Content-Type", "application/json")
+	return s.Send(http.StatusOK, responseBytes)
 }
 
 func extractLogPermissions(permissionsToCheck []string, workspaceID string) ([]urn.V1, bool) {

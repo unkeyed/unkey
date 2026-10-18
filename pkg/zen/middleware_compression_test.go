@@ -1,4 +1,4 @@
-package analyticsresponse_test
+package zen_test
 
 import (
 	"bytes"
@@ -17,10 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/analyticsresponse"
 )
 
-func TestSendNegotiatesEncoding(t *testing.T) {
+func TestCompressionNegotiatesEncoding(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
@@ -62,7 +61,7 @@ func TestSendNegotiatesEncoding(t *testing.T) {
 			s, rec := newSession(t, http.Header{"Accept-Encoding": tt.accept})
 			rec.Header().Set("Vary", "Origin")
 			rec.Header().Set("Content-Length", strconv.Itoa(len(body)))
-			require.NoError(t, analyticsresponse.Send(s, body))
+			require.NoError(t, sendCompressedJSON(t, s, body))
 			require.Equal(t, http.StatusOK, rec.Code)
 			require.Equal(t, "application/json", rec.Header().Get("Content-Type"))
 			require.Equal(t, tt.encoding, rec.Header().Get("Content-Encoding"))
@@ -73,13 +72,13 @@ func TestSendNegotiatesEncoding(t *testing.T) {
 	}
 }
 
-func TestSendCompressionThreshold(t *testing.T) {
+func TestCompressionThreshold(t *testing.T) {
 	t.Parallel()
 	for _, size := range []int{64, 1023, 1024, 1025} {
 		t.Run(strconv.Itoa(size), func(t *testing.T) {
 			body := jsonBody(t, size)
 			s, rec := newSession(t, http.Header{"Accept-Encoding": {"zstd, gzip"}})
-			require.NoError(t, analyticsresponse.Send(s, body))
+			require.NoError(t, sendCompressedJSON(t, s, body))
 			if size < 1024 {
 				require.Empty(t, rec.Header().Get("Content-Encoding"))
 			} else {
@@ -90,7 +89,7 @@ func TestSendCompressionThreshold(t *testing.T) {
 	}
 }
 
-func TestSendPreservesEncodingAndNoTransform(t *testing.T) {
+func TestCompressionPreservesEncodingAndNoTransform(t *testing.T) {
 	t.Parallel()
 	for _, tt := range []struct {
 		name     string
@@ -111,33 +110,95 @@ func TestSendPreservesEncodingAndNoTransform(t *testing.T) {
 			for name, values := range tt.response {
 				rec.Header()[name] = values
 			}
-			require.NoError(t, analyticsresponse.Send(s, body))
+			require.NoError(t, sendCompressedJSON(t, s, body))
 			require.Equal(t, tt.response.Get("Content-Encoding"), rec.Header().Get("Content-Encoding"))
 			require.Equal(t, body, rec.Body.Bytes())
 		})
 	}
 }
 
-func TestSendPreservesExistingVary(t *testing.T) {
+func TestCompressionPreservesExistingVary(t *testing.T) {
 	t.Parallel()
 	for _, vary := range []string{"Origin, accept-encoding", "*"} {
 		s, rec := newSession(t, http.Header{"Accept-Encoding": {"gzip"}})
 		rec.Header().Set("Vary", vary)
-		require.NoError(t, analyticsresponse.Send(s, jsonBody(t, 2048)))
+		require.NoError(t, sendCompressedJSON(t, s, jsonBody(t, 2048)))
 		require.Equal(t, []string{vary}, rec.Header().Values("Vary"))
 	}
 }
 
-func TestSendPreservesLoggedJSONAcrossRequests(t *testing.T) {
+func TestCompressionOnlyAppliesToOptedInJSONResponses(t *testing.T) {
+	t.Parallel()
+	body := jsonBody(t, 4096)
+	for _, tt := range []struct {
+		name     string
+		handle   func(*zen.Session) error
+		status   int
+		encoding string
+	}{
+		{
+			name:     "session JSON",
+			handle:   func(s *zen.Session) error { return s.JSON(http.StatusOK, json.RawMessage(body)) },
+			status:   http.StatusOK,
+			encoding: "zstd",
+		},
+		{
+			name:     "error JSON",
+			handle:   func(s *zen.Session) error { return s.JSON(http.StatusBadRequest, json.RawMessage(body)) },
+			status:   http.StatusBadRequest,
+			encoding: "",
+		},
+		{
+			name:     "plain text",
+			handle:   func(s *zen.Session) error { return s.Plain(http.StatusOK, body) },
+			status:   http.StatusOK,
+			encoding: "",
+		},
+		{
+			name: "direct writer",
+			handle: func(s *zen.Session) error {
+				s.AddHeader("Content-Type", "application/json")
+				_, err := s.ResponseWriter().Write(body)
+				return err
+			},
+			status:   http.StatusOK,
+			encoding: "",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s, rec := newSession(t, http.Header{"Accept-Encoding": {"zstd"}})
+			err := zen.WithCompression()(func(_ context.Context, s *zen.Session) error {
+				return tt.handle(s)
+			})(t.Context(), s)
+			require.NoError(t, err)
+			require.Equal(t, tt.status, rec.Code)
+			require.Equal(t, tt.status, s.StatusCode())
+			require.Equal(t, tt.encoding, rec.Header().Get("Content-Encoding"))
+			require.Equal(t, body, decode(t, rec))
+
+			req := httptest.NewRequest(http.MethodPost, "/without-compression", nil)
+			req.Header.Set("Accept-Encoding", "zstd")
+			rec = httptest.NewRecorder()
+			require.NoError(t, s.Init(rec, req, 0))
+			require.NoError(t, s.JSON(http.StatusOK, json.RawMessage(body)))
+			require.Empty(t, rec.Header().Get("Content-Encoding"))
+			require.Empty(t, rec.Header().Get("Vary"))
+			require.Equal(t, body, rec.Body.Bytes())
+		})
+	}
+}
+
+func TestCompressionPreservesLoggedJSONAcrossRequests(t *testing.T) {
 	for _, encoding := range []string{"gzip", "zstd"} {
 		t.Run(encoding, func(t *testing.T) {
 			recorder := &requestRecorder{}
 			server, err := zen.New(zen.Config{})
 			require.NoError(t, err)
 			body := jsonBody(t, 4096)
-			server.RegisterRoute([]zen.Middleware{zen.WithMetrics(recorder, zen.InstanceInfo{}, nil)},
+			server.RegisterRoute([]zen.Middleware{zen.WithMetrics(recorder, zen.InstanceInfo{}, nil), zen.WithCompression()},
 				zen.NewRoute(http.MethodPost, "/analytics", func(_ context.Context, s *zen.Session) error {
-					return analyticsresponse.Send(s, body)
+					s.AddHeader("Content-Type", "application/json")
+					return s.Send(http.StatusOK, body)
 				}),
 			)
 			originals := make([]string, 0, 3)
@@ -167,6 +228,14 @@ type requestRecorder struct {
 
 func (r *requestRecorder) Buffer(request schema.ApiRequest) {
 	r.requests = append(r.requests, request)
+}
+
+func sendCompressedJSON(t *testing.T, s *zen.Session, body []byte) error {
+	t.Helper()
+	return zen.WithCompression()(func(_ context.Context, s *zen.Session) error {
+		s.AddHeader("Content-Type", "application/json")
+		return s.Send(http.StatusOK, body)
+	})(t.Context(), s)
 }
 
 func newSession(t *testing.T, headers http.Header) (*zen.Session, *httptest.ResponseRecorder) {

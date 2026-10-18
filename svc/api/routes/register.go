@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
@@ -878,9 +879,11 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// v2/analytics
 
+	analyticsMiddlewares := append(slices.Clone(protectedMiddlewares), zen.WithCompression())
+
 	// v2/analytics.getGatewayRequests
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		analyticsMiddlewares,
 		&v2AnalyticsGetGatewayRequests.Handler{
 			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
@@ -889,7 +892,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/analytics.getRuntimeLogs
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		analyticsMiddlewares,
 		&v2AnalyticsGetRuntimeLogs.Handler{
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 		},
@@ -897,7 +900,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/analytics.getVerifications
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		analyticsMiddlewares,
 		&v2AnalyticsGetVerifications.Handler{
 			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
@@ -907,7 +910,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/analytics.getRatelimits
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		analyticsMiddlewares,
 		&v2AnalyticsGetRatelimits.Handler{
 			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
