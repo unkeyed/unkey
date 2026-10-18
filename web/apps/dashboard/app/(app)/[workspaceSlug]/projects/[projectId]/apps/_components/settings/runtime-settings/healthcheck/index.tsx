@@ -72,7 +72,11 @@ export function Healthcheck() {
                   control={control}
                   name="method"
                   render={({ field: method }) => (
-                    <Select value={method.value} onValueChange={method.onChange}>
+                    <Select
+                      value={method.value}
+                      onValueChange={method.onChange}
+                      disabled={pathEmpty}
+                    >
                       <SelectTrigger
                         aria-label="HTTP method"
                         variant="ghost"

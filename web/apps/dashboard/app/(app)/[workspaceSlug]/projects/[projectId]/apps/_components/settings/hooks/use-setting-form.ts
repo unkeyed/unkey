@@ -1,6 +1,7 @@
 "use client";
 
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+import { sameJson } from "@/lib/utils/same-json";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formSaveState } from "@unkey/ui";
 import type { BaseSyntheticEvent } from "react";
@@ -12,11 +13,13 @@ export function useSavableForm<TValues extends FieldValues>({
   schema,
   values,
   save,
+  isNoop,
   blockedReason,
 }: {
   schema: z.ZodType<TValues, TValues>;
   values: TValues;
   save: (values: TValues) => Promise<unknown>;
+  isNoop?: (submitted: TValues) => boolean;
   blockedReason?: string;
 }) {
   const form = useForm<TValues>({ resolver: zodResolver(schema), mode: "onChange", values });
@@ -24,12 +27,18 @@ export function useSavableForm<TValues extends FieldValues>({
 
   const submit = async (event?: BaseSyntheticEvent): Promise<boolean> => {
     let saved = false;
+    let noop = false;
     await form.handleSubmit(async (submitted) => {
+      noop = isNoop?.(submitted) ?? false;
       saved = await save(submitted).then(
         () => true,
         () => false,
       );
     })(event);
+    // A save that normalizes to the stored value leaves `values` unchanged, so RHF never resets on its own.
+    if (saved && noop) {
+      form.reset(values);
+    }
     return saved;
   };
 
@@ -61,6 +70,11 @@ export function useSettingForm<TValues extends FieldValues>({
     values: saved,
     save: (submitted) =>
       context.update((draft) => write(draft, submitted, saved)).isPersisted.promise,
+    isNoop: (submitted) => {
+      const draft = structuredClone(context.settings);
+      write(draft, submitted, saved);
+      return sameJson(read(draft), saved);
+    },
   });
 
   return { ...context, ...form };

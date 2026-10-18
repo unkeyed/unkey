@@ -25,6 +25,7 @@ export function OCIImage({ appId, imageReference }: { appId: string; imageRefere
       collection.apps.update(appId, { optimistic: false }, (draft) => {
         draft.imageReference = values.imageReference;
       }).isPersisted.promise,
+    isNoop: (submitted) => submitted.imageReference === imageReference,
   });
 
   return (
