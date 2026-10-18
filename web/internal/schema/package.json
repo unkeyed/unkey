@@ -4,7 +4,7 @@
   "description": "",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0",
+  "license": "FSL-1.1-ALv2",
   "devDependencies": {
     "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:*",
