@@ -1153,6 +1153,11 @@
   },
   "redirects": [
     {
+      "source": "/deployments",
+      "destination": "/compute/concepts/deployments",
+      "permanent": true
+    },
+    {
       "destination": "/platform/root-keys/permission-reference",
       "source": "/platform/root-keys/permissions-legacy"
     },
