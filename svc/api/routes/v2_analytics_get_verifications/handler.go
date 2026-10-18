@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"strings"
 
 	"github.com/unkeyed/unkey/internal/services/analytics"
@@ -17,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/analyticsresponse"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -134,8 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Query result exceeds the maximum response size."),
 		)
 	}
-	s.AddHeader("Content-Type", "application/json")
-	return s.Send(http.StatusOK, responseBytes)
+	return analyticsresponse.Send(s, responseBytes)
 }
 
 // analyticsPermissionScope identifies the ownership rows needed to evaluate
