@@ -74,7 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	var after *clickhouse.ApiRequestCursor
+	var pageCursor *clickhouse.ApiRequestCursor
 	if req.Cursor != nil {
 		decoded, decodeErr := base64.RawURLEncoding.DecodeString(*req.Cursor)
 		var c cursor
@@ -85,7 +85,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("The cursor is not valid. Send the `pagination.cursor` of the previous response, or omit it to get the first page."),
 			)
 		}
-		after = &clickhouse.ApiRequestCursor{
+		pageCursor = &clickhouse.ApiRequestCursor{
 			Time:      c.Time,
 			RequestID: c.RequestID,
 		}
@@ -122,7 +122,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	page, err := h.ClickHouse.ListApiRequests(ctx, clickhouse.ListApiRequestsRequest{
 		WorkspaceID:    principal.AuthorizedWorkspaceID,
 		RetentionStart: retentionStart,
-		After:          after,
+		Cursor:         pageCursor,
 		Limit:          limit,
 		Filters: clickhouse.ApiRequestFilters{
 			Time: logfilter.Int{

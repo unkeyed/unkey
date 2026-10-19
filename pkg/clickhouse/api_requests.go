@@ -38,12 +38,13 @@ type ApiRequestCursor struct {
 
 // ListApiRequestsRequest selects one page of a workspace's API request logs.
 // RetentionStart is the oldest time in unix milliseconds the workspace may
-// read, whatever Filters ask for. After, when set, returns only the rows that
-// come after that position in the listing order
+// read, whatever Filters ask for. Cursor, when set, returns only the rows
+// that sort below that position, which in a newest first listing are the
+// older ones
 type ListApiRequestsRequest struct {
 	WorkspaceID    string
 	RetentionStart int64
-	After          *ApiRequestCursor
+	Cursor         *ApiRequestCursor
 	Filters        ApiRequestFilters
 	Limit          int
 }
@@ -89,14 +90,12 @@ func (c *Client) ListApiRequests(ctx context.Context, req ListApiRequestsRequest
 	}
 	maps.Copy(params, filterParams)
 
-	// The plain time bound is what prunes on the sorting key. The tuple only
-	// orders the rows inside the cursor's millisecond
-	afterCursor := ""
-	if req.After != nil {
-		afterCursor = `AND time <= {cursor_time:Int64}
+	cursorCondition := ""
+	if req.Cursor != nil {
+		cursorCondition = `AND time <= {cursor_time:Int64}
 			AND (time, request_id) < ({cursor_time:Int64}, {cursor_request_id:String})`
-		params["cursor_time"] = strconv.FormatInt(req.After.Time, 10)
-		params["cursor_request_id"] = req.After.RequestID
+		params["cursor_time"] = strconv.FormatInt(req.Cursor.Time, 10)
+		params["cursor_request_id"] = req.Cursor.RequestID
 	}
 
 	rows, err := Select[ApiRequestLog](withReadLimits(ctx, AnalyticsResultBytesMax), c.conn, `
@@ -106,7 +105,7 @@ func (c *Client) ListApiRequests(ctx context.Context, req ListApiRequestsRequest
 		WHERE workspace_id = {workspace_id:String}
 			AND time >= {retention_start:Int64}
 			AND `+where+`
-			`+afterCursor+`
+			`+cursorCondition+`
 		ORDER BY time DESC, request_id DESC
 		LIMIT {limit_plus_one:UInt64}`, params)
 	if err != nil {
