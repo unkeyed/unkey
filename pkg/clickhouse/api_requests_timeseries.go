@@ -93,43 +93,45 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 	timeFilter := req.Filters.Time
 
 	// min before +1 keeps a bound near MaxInt64 from wrapping around
-	end := req.Now
+	windowEnd := req.Now
 	if timeFilter.Lt != nil {
-		end = min(end, *timeFilter.Lt)
+		windowEnd = min(windowEnd, *timeFilter.Lt)
 	}
 	if timeFilter.Lte != nil {
-		end = min(end-1, *timeFilter.Lte) + 1
+		windowEnd = min(windowEnd-1, *timeFilter.Lte) + 1
 	}
 
 	// A lower bound the caller sets starts the buckets there, even before
 	// RetentionStart, so a fixed window keeps its buckets. Rows before
 	// RetentionStart still read as zero
-	start := req.RetentionStart
+	windowStart := req.RetentionStart
 	if timeFilter.Gte != nil || timeFilter.Gt != nil {
-		start = 0
+		windowStart = 0
 	}
 	if timeFilter.Gte != nil {
-		start = max(start, *timeFilter.Gte)
+		windowStart = max(windowStart, *timeFilter.Gte)
 	}
 	if timeFilter.Gt != nil {
-		start = max(start, min(*timeFilter.Gt, end)+1)
+		windowStart = max(windowStart, min(*timeFilter.Gt, windowEnd)+1)
 	}
-	start = max(start, req.Now-apiRequestsPerDay.retentionMs)
+	windowStart = max(windowStart, req.Now-apiRequestsPerDay.retentionMs)
 
-	if start >= end {
+	if windowStart >= windowEnd {
 		return []ApiRequestsTimeseriesPoint{}, nil
 	}
 
+	windowLast := windowEnd - 1
+
 	resolution := apiRequestsResolutions[len(apiRequestsResolutions)-1]
 	for _, candidate := range apiRequestsResolutions {
-		if end-1-start <= candidate.windowMsMax && req.Now-start <= candidate.table.retentionMs {
+		if windowLast-windowStart <= candidate.windowMsMax && req.Now-windowStart <= candidate.table.retentionMs {
 			resolution = candidate
 			break
 		}
 	}
 
-	firstBucket := start - start%resolution.bucketMs
-	lastBucket := (end - 1) - (end-1)%resolution.bucketMs
+	firstBucketStart := windowStart - windowStart%resolution.bucketMs
+	lastBucketStart := windowLast - windowLast%resolution.bucketMs
 
 	b := logfilter.New()
 	b.Text(apiRequestPath, req.Filters.Path)
@@ -140,12 +142,12 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 
 	params := map[string]string{
 		"workspace_id":   req.WorkspaceID,
-		"rows_start":     strconv.FormatInt(max(firstBucket, req.RetentionStart), 10),
-		"rows_end":       strconv.FormatInt(end, 10),
+		"rows_start":     strconv.FormatInt(max(firstBucketStart, req.RetentionStart), 10),
+		"rows_end":       strconv.FormatInt(windowEnd, 10),
 		"bucket_seconds": strconv.FormatInt(resolution.bucketMs/time.Second.Milliseconds(), 10),
 		"bucket_ms":      strconv.FormatInt(resolution.bucketMs, 10),
-		"fill_from":      strconv.FormatInt(firstBucket, 10),
-		"fill_to":        strconv.FormatInt(lastBucket+resolution.bucketMs, 10),
+		"fill_from":      strconv.FormatInt(firstBucketStart, 10),
+		"fill_to":        strconv.FormatInt(lastBucketStart+resolution.bucketMs, 10),
 	}
 	maps.Copy(params, filterParams)
 
