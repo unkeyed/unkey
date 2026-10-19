@@ -78,7 +78,7 @@ type Querier interface {
 
 	// GetApiRequestsTimeseries counts a workspace's API requests per bucket
 	// over the window of req.Filters.Time, with a bucket width picked from the
-	// window. A query that exceeds a read limit returns a coded error for a 4xx
+	// window. A query over a read limit returns an error the API serves as a 422
 	GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTimeseriesRequest) (ApiRequestsTimeseries, error)
 
 	// InsertAuditLogs synchronously writes a batch of audit log rows to
