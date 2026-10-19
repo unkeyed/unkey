@@ -39,5 +39,5 @@ export function OnboardingCardFooter({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("mt-8 border-t pt-8", className)} {...props} />;
+  return <div className={cn("mt-8", className)} {...props} />;
 }
