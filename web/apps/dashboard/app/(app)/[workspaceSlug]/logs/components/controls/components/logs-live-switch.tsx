@@ -1,33 +1,16 @@
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { LiveSwitchButton } from "@/components/logs/live-switch-button";
+import { useQueryTime } from "@/providers/query-time-provider";
 import { useLogsContext } from "../../../context/logs";
-import { useFilters } from "../../../hooks/use-filters";
 
 export const LogsLiveSwitch = () => {
   const { isLive, toggleLive } = useLogsContext();
-  const { filters, updateFilters } = useFilters();
+  const { refreshQueryTime } = useQueryTime();
 
   const handleSwitch = () => {
     toggleLive();
-    // To able to refetch historic data again we have to update the endTime
+    // Leaving live mode keeps the selected window and ends it at now
     if (isLive) {
-      const timestamp = Date.now();
-      const activeFilters = filters.filter((f) => !["endTime", "startTime"].includes(f.field));
-      updateFilters([
-        ...activeFilters,
-        {
-          field: "endTime",
-          value: timestamp,
-          id: crypto.randomUUID(),
-          operator: "is",
-        },
-        {
-          field: "startTime",
-          value: timestamp - HISTORICAL_DATA_WINDOW,
-          id: crypto.randomUUID(),
-          operator: "is",
-        },
-      ]);
+      refreshQueryTime();
     }
   };
   return <LiveSwitchButton onToggle={handleSwitch} isLive={isLive} />;
