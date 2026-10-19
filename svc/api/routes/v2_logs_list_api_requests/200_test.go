@@ -110,8 +110,8 @@ func TestListApiRequestsFilters(t *testing.T) {
 			want:    []string{rows[4].RequestID},
 		},
 		{
-			name:    "request id",
-			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.LogExactFilter{Is: &[]string{rows[2].RequestID}}},
+			name:    "25 request ids, one stored",
+			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.LogExactFilter{Is: new(append(unknownRequestIDs(24), rows[2].RequestID))}},
 			want:    []string{rows[2].RequestID},
 		},
 		{
@@ -121,7 +121,7 @@ func TestListApiRequestsFilters(t *testing.T) {
 		},
 		{
 			name:    "no match",
-			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.LogExactFilter{Is: &[]string{uid.New(uid.RequestPrefix)}}},
+			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.LogExactFilter{Is: new(unknownRequestIDs(1))}},
 			want:    []string{},
 		},
 	}
@@ -214,4 +214,13 @@ func TestListApiRequestsKeepsRetention(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, []string{retained[0].RequestID}, requestIDs(res.Body.Data))
+}
+
+func unknownRequestIDs(count int) []string {
+	ids := make([]string, count)
+	for i := range ids {
+		ids[i] = uid.New(uid.RequestPrefix)
+	}
+
+	return ids
 }

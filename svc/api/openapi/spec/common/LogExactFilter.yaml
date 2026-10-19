@@ -5,10 +5,10 @@ description: |
   Matching is exact and case-sensitive.
 properties:
   is:
-    "$ref": "./LogStringValues.yaml"
+    "$ref": "./LogExactValues.yaml"
     description: Keep rows where the field equals one of the values.
   isNot:
-    "$ref": "./LogStringValues.yaml"
+    "$ref": "./LogExactValues.yaml"
     description: Remove rows where the field equals one of the values.
 example:
   isNot: ["api.unkey.dev"]

@@ -2033,14 +2033,21 @@ type KeysVerifyKeyRatelimit struct {
 //
 // Example: {"isNot":["api.unkey.dev"]}
 type LogExactFilter struct {
-	// Is The values of one filter operator. A row matches a positive operator when it matches any value in the list.
-	// A row matches a negated operator only when it matches none of the values.
-	Is *LogStringValues `json:"is,omitempty"`
+	// Is The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+	Is *LogExactValues `json:"is,omitempty"`
 
-	// IsNot The values of one filter operator. A row matches a positive operator when it matches any value in the list.
-	// A row matches a negated operator only when it matches none of the values.
-	IsNot *LogStringValues `json:"isNot,omitempty"`
+	// IsNot The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+	IsNot *LogExactValues `json:"isNot,omitempty"`
 }
+
+// LogExactValues The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+// A row matches `isNot` only when it equals none of the values.
+// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+type LogExactValues = []string
 
 // LogHttpMethod An HTTP method in upper case.
 //
