@@ -40,10 +40,6 @@ export type ApiRequestLog = {
    */
   latencyMs: number;
   /**
-   * The internal error of a failed request. Empty when the request did not fail.
-   */
-  error: string;
-  /**
    * Request headers as `Name: value` strings. Credential headers show `[REDACTED]`.
    */
   requestHeaders: Array<string>;
@@ -74,7 +70,6 @@ export const ApiRequestLog$inboundSchema: z.ZodType<
   path: z.string(),
   status: z.number().int(),
   latencyMs: z.number().int(),
-  error: z.string(),
   requestHeaders: z.array(z.string()),
   requestBody: z.string(),
   responseHeaders: z.array(z.string()),

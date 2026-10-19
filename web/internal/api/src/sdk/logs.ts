@@ -17,7 +17,7 @@ export class Logs extends ClientSDK {
    *
    * Filter by time, path, host, method, request ID, and status. In one field, values under `is`, `contains`, `startsWith`, and `endsWith` are combined with OR. Values under `isNot` and `notContains`, and the range operators `gt`, `gte`, `lt`, and `lte`, are combined with AND. Different fields are combined with AND. Every text match is exact and case-sensitive.
    *
-   * To get the next page, send the `pagination.cursor` of the previous page together with the same `filters`.
+   * To get the next page, send the `pagination.cursor` of the previous page together with the same `filters`. A cursor does not expire, but rows older than the log retention leave the listing.
    *
    * Unkey returns only requests inside the log retention of your workspace. The calls to this endpoint are not logged.
    *
