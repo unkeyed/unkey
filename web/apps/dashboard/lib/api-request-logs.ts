@@ -1,16 +1,11 @@
 import { getTimestampFromRelative } from "@/lib/duration";
 import type { LogsFilterValue } from "@/lib/schemas/logs.filter.schema";
-import {
-  TIMESERIES_GRANULARITIES,
-  type TimeseriesGranularity,
-} from "@/lib/trpc/routers/utils/granularity";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import {
   type ApiRequestLog,
   HttpMethod,
   type IntFilter,
   type TextFilter,
-  type V2LogsGetApiRequestsTimeseriesFilters,
   type V2LogsListApiRequestsFilters,
   type V2LogsListApiRequestsRequestBody,
 } from "@unkey/api/models/components";
@@ -47,25 +42,6 @@ export async function listApiRequests(
     logs: result.data.map(toLog),
     cursor: result.pagination.hasMore ? result.pagination.cursor : undefined,
   };
-}
-
-export async function getApiRequestsTimeseries(
-  filters: V2LogsGetApiRequestsTimeseriesFilters,
-  signal?: AbortSignal,
-) {
-  const { data } = await getUnkeyClient().logs.getApiRequestsTimeseries({ filters }, { signal });
-  const granularity = Object.keys(TIMESERIES_GRANULARITIES)
-    .filter(isTimeseriesGranularity)
-    .find((g) => TIMESERIES_GRANULARITIES[g].ms === data.bucketMs);
-  if (!granularity) {
-    throw new Error(`API request timeseries returned an unknown bucket width: ${data.bucketMs}ms`);
-  }
-
-  return { ...data, granularity };
-}
-
-function isTimeseriesGranularity(value: string): value is TimeseriesGranularity {
-  return value in TIMESERIES_GRANULARITIES;
 }
 
 function toLog(row: ApiRequestLog): Log {

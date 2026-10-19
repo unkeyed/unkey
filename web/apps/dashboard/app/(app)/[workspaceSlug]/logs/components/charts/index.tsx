@@ -9,7 +9,7 @@ export function LogsChart({
   onMount: (distanceToTop: number) => void;
 }) {
   const { filters, updateFilters } = useFilters();
-  const { timeseries, isLoading, isError, bucketMs } = useFetchTimeseries();
+  const { timeseries, isLoading, isError, bucketMs, granularity } = useFetchTimeseries();
 
   const handleSelectionChange = ({
     start,
@@ -52,12 +52,12 @@ export function LogsChart({
           subLabel: "2xx",
           color: "var(--color-gray-4)",
         },
-        warning: {
+        clientError: {
           label: "Warning",
           subLabel: "4xx",
           color: "var(--color-warning-9)",
         },
-        error: {
+        serverError: {
           label: "Error",
           subLabel: "5xx",
           color: "var(--color-error-9)",
@@ -68,6 +68,7 @@ export function LogsChart({
       isLoading={isLoading}
       isError={isError}
       enableSelection={true}
+      granularity={granularity}
     />
   );
 }
