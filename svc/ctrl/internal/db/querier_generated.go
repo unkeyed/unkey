@@ -2723,6 +2723,16 @@ type Querier interface {
 	//  SET desired_status = ?, updated_at = ?
 	//  WHERE deployment_id = ? AND region_id = ?
 	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, arg UpdateDeploymentTopologyDesiredStatusParams) error
+	//UpdateInstance
+	//
+	//  UPDATE instances
+	//  SET
+	//      address = ?,
+	//      cpu_millicores = ?,
+	//      memory_mib = ?,
+	//      status = ?
+	//  WHERE id = ?
+	UpdateInstance(ctx context.Context, arg UpdateInstanceParams) error
 	//UpdateKeysLastUsed
 	//
 	//  UPDATE `keys`
