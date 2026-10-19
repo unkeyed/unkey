@@ -51,8 +51,7 @@ type Config struct {
 	// DeployWorkflow, which posts no approval status in this mode
 	AllowUnauthenticatedDeployments bool
 
-	// RestateAdmin cancels a deployment's Deploy invocation. When nil,
-	// CancelDeployment refuses deployments that have one
+	// RestateAdmin cancels a deployment's Deploy invocation.
 	RestateAdmin *restateadmin.Client
 }
 
@@ -61,6 +60,7 @@ func New(cfg Config) (*VirtualObject, error) {
 	if err := assert.All(
 		assert.NotNil(cfg.Auditlogs, "Auditlogs must not be nil"),
 		assert.NotNil(cfg.GitHub, "GitHub must not be nil"),
+		assert.NotNil(cfg.RestateAdmin, "RestateAdmin must not be nil"),
 	); err != nil {
 		return nil, err
 	}
