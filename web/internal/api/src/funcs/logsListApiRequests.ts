@@ -47,9 +47,8 @@ import {
  *
  * **Required Permissions**
  *
- * Your root key must have one of the following permissions:
+ * Your root key must have the following permission:
  * - `unkey:v1:<workspace_id>:logs/requests#read`
- * - `unkey:v1:<workspace_id>:logs/**#read` (to read every workspace log)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

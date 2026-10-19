@@ -23,9 +23,8 @@ export class Logs extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have one of the following permissions:
+   * Your root key must have the following permission:
    * - `unkey:v1:<workspace_id>:logs/requests#read`
-   * - `unkey:v1:<workspace_id>:logs/**#read` (to read every workspace log)
    */
   async listApiRequests(
     request: components.V2LogsListApiRequestsRequestBody,
