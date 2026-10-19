@@ -17,6 +17,14 @@ type Querier interface {
 	//  ORDER BY delete_after
 	//  LIMIT ?
 	DeleteExpired(ctx context.Context, db DBTX, arg DeleteExpiredParams) (int64, error)
+	// DeleteWriterCounters removes one writer's rows for the given names. A writer
+	// uses it when it forgets those entries, so a surviving row cannot hold a higher
+	// revision than the writer's next snapshot of the same name.
+	//
+	//  DELETE FROM counters
+	//  WHERE writer_id = ?
+	//      AND name IN (/*SLICE:names*/?)
+	DeleteWriterCounters(ctx context.Context, db DBTX, arg DeleteWriterCountersParams) (int64, error)
 	// ListRows returns every row of a name. Tests and diagnostics use it to see how
 	// many rows a counter holds and what each one contains.
 	//

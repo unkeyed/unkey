@@ -10,14 +10,15 @@ import (
 
 func TestEntry_ApplySignedDeltasAdvanceTheRevision(t *testing.T) {
 	deleteAfter := time.Unix(1_700_000_000, 0)
+	now := deleteAfter.Add(-time.Minute)
 	var e entry
 	var err error
 	for i, delta := range []int64{30, -44, 0} {
-		e, err = e.apply(delta, deleteAfter)
+		e, err = e.apply(delta, deleteAfter, now)
 		require.NoError(t, err)
 		require.Equal(t, uint64(i+1), e.revision, "even a zero delta is a new snapshot")
 	}
-	require.Equal(t, entry{count: -14, revision: 3, deleteAfter: deleteAfter}, e)
+	require.Equal(t, entry{count: -14, revision: 3, deleteAfter: deleteAfter, touchedAt: now}, e)
 }
 
 func TestEntry_ApplyReplacesDeletionTimeWithoutResettingCount(t *testing.T) {
@@ -26,9 +27,24 @@ func TestEntry_ApplyReplacesDeletionTimeWithoutResettingCount(t *testing.T) {
 	var e entry
 	for i, deleteAfter := range []time.Time{first, later, first, {}, later} {
 		var err error
-		e, err = e.apply(3, deleteAfter)
+		e, err = e.apply(3, deleteAfter, first)
 		require.NoError(t, err)
-		require.Equal(t, entry{count: int64(3 * (i + 1)), revision: uint64(i + 1), deleteAfter: deleteAfter}, e)
+		require.Equal(t, entry{count: int64(3 * (i + 1)), revision: uint64(i + 1), deleteAfter: deleteAfter, touchedAt: first}, e)
+	}
+}
+
+func TestEntry_ForgettableAtWaitsForTheLaterOfDeletionAndLastChange(t *testing.T) {
+	deleteAfter := time.Unix(1_700_000_000, 0)
+	for _, tt := range []struct {
+		name string
+		e    entry
+		want time.Time
+	}{
+		{name: "never deleted", e: entry{touchedAt: deleteAfter}, want: time.Time{}},
+		{name: "changed before its deletion time", e: entry{deleteAfter: deleteAfter, touchedAt: deleteAfter.Add(-time.Hour)}, want: deleteAfter},
+		{name: "changed after its deletion time", e: entry{deleteAfter: deleteAfter, touchedAt: deleteAfter.Add(time.Hour)}, want: deleteAfter.Add(time.Hour)},
+	} {
+		require.Equal(t, tt.want, tt.e.forgettableAt(), tt.name)
 	}
 }
 
@@ -44,11 +60,11 @@ func TestEntry_ApplyRejectsCountOverflow(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			e := entry{count: tt.boundary, revision: 1}
 
-			rejected, err := e.apply(tt.delta, time.Time{})
+			rejected, err := e.apply(tt.delta, time.Time{}, time.Time{})
 			require.Error(t, err)
 			require.Zero(t, rejected)
 
-			recovered, err := e.apply(-tt.delta, time.Time{})
+			recovered, err := e.apply(-tt.delta, time.Time{}, time.Time{})
 			require.NoError(t, err)
 			require.Equal(t, entry{count: tt.boundary - tt.delta, revision: 2}, recovered)
 		})
@@ -58,11 +74,11 @@ func TestEntry_ApplyRejectsCountOverflow(t *testing.T) {
 func TestEntry_ApplyRejectsRevisionOverflow(t *testing.T) {
 	e := entry{count: 17, revision: math.MaxUint64 - 1}
 
-	last, err := e.apply(-3, time.Time{})
+	last, err := e.apply(-3, time.Time{}, time.Time{})
 	require.NoError(t, err)
 	require.Equal(t, entry{count: 14, revision: math.MaxUint64}, last)
 
-	rejected, err := last.apply(-5, time.Time{})
+	rejected, err := last.apply(-5, time.Time{}, time.Time{})
 	require.Error(t, err)
 	require.Zero(t, rejected)
 }

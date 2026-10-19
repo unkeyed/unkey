@@ -26,14 +26,37 @@ type entry struct {
 	// ignores snapshots that are not newer than the stored one.
 	revision uint64
 
+	// acked is the newest revision MySQL has acknowledged for this entry, or zero.
+	// While it is behind revision, the latest snapshot may not be persisted.
+	acked uint64
+
 	// deleteAfter is when the entry becomes eligible for eviction, or zero for never.
 	deleteAfter time.Time
+
+	// touchedAt is when this process last changed the entry, by its own clock.
+	// Eviction forgets an entry only a grace period after both deleteAfter and
+	// touchedAt, so a snapshot of the entry that is still in flight cannot arrive
+	// after a restarted entry of the same name has reused its revisions.
+	touchedAt time.Time
 }
 
-// apply returns the entry after adding delta: the count changes, the revision
-// advances, and deleteAfter replaces the old deletion time (zero means none). It
-// returns an error and a zero entry when the count or revision would overflow.
-func (e entry) apply(delta int64, deleteAfter time.Time) (entry, error) {
+// forgettableAt returns the time from which the entry may be forgotten, or zero
+// if it never may: the later of deleteAfter and touchedAt.
+func (e entry) forgettableAt() time.Time {
+	if e.deleteAfter.IsZero() {
+		return time.Time{}
+	}
+	if e.touchedAt.After(e.deleteAfter) {
+		return e.touchedAt
+	}
+	return e.deleteAfter
+}
+
+// apply returns the entry after adding delta at now: the count changes, the
+// revision advances, and deleteAfter replaces the old deletion time (zero means
+// none). It returns an error and a zero entry when the count or revision would
+// overflow.
+func (e entry) apply(delta int64, deleteAfter, now time.Time) (entry, error) {
 	if err := assert.All(
 		assert.False(delta > 0 && e.count > math.MaxInt64-delta, "counter count overflow"),
 		assert.False(delta < 0 && e.count < math.MinInt64-delta, "counter count overflow"),
@@ -41,7 +64,7 @@ func (e entry) apply(delta int64, deleteAfter time.Time) (entry, error) {
 	); err != nil {
 		return entry{}, err
 	}
-	return entry{count: e.count + delta, revision: e.revision + 1, deleteAfter: deleteAfter}, nil
+	return entry{count: e.count + delta, revision: e.revision + 1, acked: e.acked, deleteAfter: deleteAfter, touchedAt: now}, nil
 }
 
 // totalOf returns the peers' total plus this writer's local total, or an error

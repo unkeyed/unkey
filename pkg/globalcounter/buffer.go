@@ -21,8 +21,9 @@ type snapshot struct {
 
 // persist is the batch callback. It keeps the newest snapshot of each row, writes
 // them and retries transient failures through the write circuit breaker. A
-// failed write drops its rows, with a log line and a count. A later Add of the
-// same name persists the cumulative count again.
+// failed write drops its rows, with a log line and a count. The eviction pass
+// queues the snapshots of the previous sequence again until MySQL acknowledges
+// them, so a dropped row is repaired as long as its writer id is in memory.
 func (c *Counter) persist(ctx context.Context, snapshots []snapshot) {
 	snapshots = newestPerRow(snapshots)
 
@@ -46,7 +47,23 @@ func (c *Counter) persist(ctx context.Context, snapshots []snapshot) {
 		logger.Error("dropping counter snapshots after persist failed", "error", err.Error(), "batch_size", len(rows))
 		return
 	}
+	c.acknowledge(snapshots)
 	metrics.PersistRowsTotal.WithLabelValues("persisted").Add(float64(len(rows)))
+}
+
+// acknowledge records that MySQL accepted the snapshots, so the eviction pass
+// does not queue them again. An entry that was forgotten in the meantime stays
+// forgotten.
+func (c *Counter) acknowledge(snapshots []snapshot) {
+	for _, snap := range snapshots {
+		shard := c.shard(snap.key.name)
+		shard.mu.Lock()
+		if e, ok := shard.entries[snap.key]; ok && e.acked < snap.row.Revision {
+			e.acked = snap.row.Revision
+			shard.entries[snap.key] = e
+		}
+		shard.mu.Unlock()
+	}
 }
 
 // newestPerRow keeps the newest snapshot of each row, identified by name and

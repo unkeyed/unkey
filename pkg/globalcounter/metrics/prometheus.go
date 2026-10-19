@@ -22,7 +22,10 @@ var (
 	// Possible result values are:
 	// - "persisted": MySQL accepted the row.
 	// - "dropped": the write failed or the write circuit breaker rejected it. The
-	//   row is not retried; a later Add persists the cumulative count.
+	//   eviction pass queues the entry again while its writer id is the previous
+	//   one, so a later Add or that pass persists the cumulative count.
+	// - "abandoned": the writer forgot an entry whose last snapshot MySQL never
+	//   acknowledged. Its newest changes are missing from the totals.
 	//
 	// Example usage:
 	//   metrics.PersistRowsTotal.WithLabelValues("dropped").Add(float64(len(rows)))
@@ -37,7 +40,11 @@ var (
 	)
 
 	// MemoryEntries tracks how many entries this process holds in local memory, one
-	// per counter name and writer id.
+	// per counter name and writer id. Entries leave memory through eviction, when
+	// their deletion time passes or their writer id is older than the previous one.
+	// A name without a deletion time therefore holds one entry for each of the
+	// current and previous writer id, and steady growth beyond that means eviction
+	// is failing.
 	//
 	// Several counters in one process add up.
 	//
