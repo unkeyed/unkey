@@ -1,5 +1,5 @@
 type: array
-description: Array of rate limit checks to perform
+description: Array of rate limit checks to perform. Each check must have a different combination of namespace, identifier and duration. A repeated combination returns a 400 error with `invalid_input` before any namespace is created.
 minItems: 1
 maxItems: 100
 items:

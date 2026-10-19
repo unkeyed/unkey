@@ -68,6 +68,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// A repeated check would count the same window cell twice in one all-or-nothing
+	// call, so reject it before any namespace is created.
+	type checkKey struct {
+		namespace, identifier string
+		duration              int64
+	}
+	seen := make(map[checkKey]struct{}, len(req))
+	for _, check := range req {
+		key := checkKey{namespace: check.Namespace, identifier: check.Identifier, duration: check.Duration}
+		if _, duplicate := seen[key]; duplicate {
+			return fault.New("duplicate rate limit check",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Public("Each check must be unique by namespace, identifier and duration."),
+			)
+		}
+		seen[key] = struct{}{}
+	}
+
 	// Collect unique namespace names
 	uniqueNames := make(map[string]bool)
 	for _, check := range req {

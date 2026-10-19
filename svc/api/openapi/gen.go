@@ -6941,7 +6941,7 @@ type V2RatelimitMultiLimitCheck struct {
 	Reset int64 `json:"reset"`
 }
 
-// V2RatelimitMultiLimitRequestBody Array of rate limit checks to perform
+// V2RatelimitMultiLimitRequestBody Array of rate limit checks to perform. Each check must have a different combination of namespace, identifier and duration. A repeated combination returns a 400 error with `invalid_input` before any namespace is created.
 type V2RatelimitMultiLimitRequestBody = []V2RatelimitLimitRequestBody
 
 // V2RatelimitMultiLimitResponseBody defines model for V2RatelimitMultiLimitResponseBody.
