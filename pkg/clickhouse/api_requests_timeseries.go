@@ -33,7 +33,7 @@ var (
 // apiRequestsResolution is one bucket width of the timeseries and the table
 // that holds it
 type apiRequestsResolution struct {
-	windowMaxMs int64 // from the first to the last millisecond of the window
+	windowMsMax int64 // from the first to the last millisecond of the window
 	bucketMs    int64
 	table       apiRequestsTable
 }
@@ -42,14 +42,14 @@ type apiRequestsResolution struct {
 // buckets. The last one covers the longest window the timeseries accepts,
 // which is all the data the day table keeps
 var apiRequestsResolutions = []apiRequestsResolution{
-	{windowMaxMs: 2 * hourMs, bucketMs: minuteMs, table: apiRequestsPerMinute},
-	{windowMaxMs: 6 * hourMs, bucketMs: 5 * minuteMs, table: apiRequestsPerMinute},
-	{windowMaxMs: 12 * hourMs, bucketMs: 15 * minuteMs, table: apiRequestsPerMinute},
-	{windowMaxMs: dayMs, bucketMs: 30 * minuteMs, table: apiRequestsPerMinute},
-	{windowMaxMs: 3 * dayMs, bucketMs: hourMs, table: apiRequestsPerHour},
-	{windowMaxMs: 7 * dayMs, bucketMs: 2 * hourMs, table: apiRequestsPerHour},
-	{windowMaxMs: 30 * dayMs, bucketMs: 6 * hourMs, table: apiRequestsPerHour},
-	{windowMaxMs: apiRequestsPerDay.retentionMs, bucketMs: dayMs, table: apiRequestsPerDay},
+	{windowMsMax: 2 * hourMs, bucketMs: minuteMs, table: apiRequestsPerMinute},
+	{windowMsMax: 6 * hourMs, bucketMs: 5 * minuteMs, table: apiRequestsPerMinute},
+	{windowMsMax: 12 * hourMs, bucketMs: 15 * minuteMs, table: apiRequestsPerMinute},
+	{windowMsMax: dayMs, bucketMs: 30 * minuteMs, table: apiRequestsPerMinute},
+	{windowMsMax: 3 * dayMs, bucketMs: hourMs, table: apiRequestsPerHour},
+	{windowMsMax: 7 * dayMs, bucketMs: 2 * hourMs, table: apiRequestsPerHour},
+	{windowMsMax: 30 * dayMs, bucketMs: 6 * hourMs, table: apiRequestsPerHour},
+	{windowMsMax: apiRequestsPerDay.retentionMs, bucketMs: dayMs, table: apiRequestsPerDay},
 }
 
 // ApiRequestsTimeseriesFilters are the [ApiRequestFilters] the aggregate
@@ -122,7 +122,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 
 	resolution := apiRequestsResolutions[len(apiRequestsResolutions)-1]
 	for _, candidate := range apiRequestsResolutions {
-		if end-1-start <= candidate.windowMaxMs && req.Now-start <= candidate.table.retentionMs {
+		if end-1-start <= candidate.windowMsMax && req.Now-start <= candidate.table.retentionMs {
 			resolution = candidate
 			break
 		}
