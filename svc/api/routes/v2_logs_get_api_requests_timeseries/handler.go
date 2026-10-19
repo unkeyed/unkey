@@ -49,7 +49,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).RequestLogs(), permissions.Read))
+	err = principal.Authorize(rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).ApiRequestLogs(), permissions.Read))
 	if err != nil {
 		return err
 	}

@@ -26,9 +26,9 @@ func (limitedClickHouse) GetApiRequestsTimeseries(context.Context, clickhouse.Ap
 func TestGetApiRequestsTimeseriesReadLimit(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	route.ClickHouse = limitedClickHouse{ClickHouse: h.ClickHouse}
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
-	res := testutil.CallRoute[handler.Request, openapi.UnprocessableEntityErrorResponse](h, route, auth(rootKey), handler.Request{})
+	res := testutil.CallRoute[handler.Request, openapi.UnprocessableEntityErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{})
 
 	require.Equal(t, http.StatusUnprocessableEntity, res.Status, "expected 422, received: %s", res.RawBody)
 	require.Equal(t, "The query exceeds a read limit. Send a narrower `filters.time` window or more filters, then try again.", res.Body.Error.Detail)

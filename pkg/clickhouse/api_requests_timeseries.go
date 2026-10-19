@@ -145,7 +145,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 
 	// The day table stores a Date, so time converts as UTC midnight, the same
 	// edge the epoch-aligned buckets of every other interval fall on
-	points, err := Select[ApiRequestsTimeseriesPoint](withReadLimits(ctx, AnalyticsResultBytesMax), c.conn, `
+	points, err := Select[ApiRequestsTimeseriesPoint](withReadLimits(ctx), c.conn, `
 		SELECT
 			toInt64(intDiv(toUnixTimestamp(toDateTime(time, 'UTC')), {bucket_seconds:Int64}) * {bucket_ms:Int64}) AS bucket_time,
 			sumIf(count, response_status >= 200 AND response_status < 300) AS success,
