@@ -16,7 +16,6 @@ import {
   type TimeUnit,
 } from "@unkey/ui";
 import { cn } from "cn";
-import { endOfDay, startOfDay } from "date-fns";
 import {
   type PropsWithChildren,
   type ReactElement,
@@ -169,10 +168,10 @@ export const DatetimePopover = ({
   };
 
   const isDateInRange = (date: Date): boolean => {
-    if (minDate && date < startOfDay(minDate)) {
+    if (minDate && date.getTime() < new Date(minDate).setHours(0, 0, 0, 0)) {
       return false;
     }
-    if (maxDate && date > endOfDay(maxDate)) {
+    if (maxDate && date.getTime() > new Date(maxDate).setHours(23, 59, 59, 999)) {
       return false;
     }
     return true;

@@ -1,13 +1,10 @@
 import {
-  differenceInDays,
-  differenceInHours,
-  differenceInMinutes,
-  differenceInMonths,
-  differenceInSeconds,
-  differenceInWeeks,
-  differenceInYears,
-  format,
-} from "date-fns";
+  DAY_IN_MS,
+  HOUR_IN_MS,
+  MINUTE_IN_MS,
+  WEEK_IN_MS,
+} from "@/lib/trpc/routers/utils/constants";
+import { formatTimestamp } from "@unkey/ui";
 import React from "react";
 
 import { auditLogsFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
@@ -104,7 +101,7 @@ export function formatFilterValue(
         return { value: value.toUpperCase(), color: null };
       case "startTime":
       case "endTime":
-        return { value: format(Number(value), "MMM d HH:mm:ss"), color: null };
+        return { value: formatTimestamp(Number(value), "MMM d, yyyy, HH:mm:ss"), color: null };
       case "since":
         return { value: value, color: null };
       case "host":
@@ -190,36 +187,34 @@ export const getFilterFieldEnum = () => {
 };
 
 export const getSinceTime = (date: number) => {
-  const now = new Date();
-  const seconds = differenceInSeconds(now, date);
-  if (seconds < 60) {
+  const elapsedMs = Date.now() - date;
+  if (elapsedMs < MINUTE_IN_MS) {
     return "just now";
   }
-  const minutes = differenceInMinutes(now, date);
-  if (minutes < 60) {
-    return `${minutes}m ago`;
+  if (elapsedMs < HOUR_IN_MS) {
+    return `${Math.floor(elapsedMs / MINUTE_IN_MS)}m ago`;
   }
-  const hours = differenceInHours(now, date);
-  if (hours < 24) {
-    return `${hours}h ago`;
+  if (elapsedMs < DAY_IN_MS) {
+    return `${Math.floor(elapsedMs / HOUR_IN_MS)}h ago`;
   }
-  const days = differenceInDays(now, date);
-  if (days < 7) {
-    return `${days}d ago`;
+  if (elapsedMs < WEEK_IN_MS) {
+    return `${Math.floor(elapsedMs / DAY_IN_MS)}d ago`;
   }
-
-  const weeks = differenceInWeeks(now, date);
-  if (weeks < 4) {
-    return `${weeks}w ago`;
+  const now = new Date();
+  const then = new Date(date);
+  let months = (now.getFullYear() - then.getFullYear()) * 12 + now.getMonth() - then.getMonth();
+  const anniversary = new Date(then);
+  anniversary.setMonth(then.getMonth() + months);
+  if (anniversary > now) {
+    months -= 1;
   }
-
-  const months = differenceInMonths(now, date);
+  if (months < 1) {
+    return `${Math.floor(elapsedMs / WEEK_IN_MS)}w ago`;
+  }
   if (months < 12) {
     return `${months} month(s) ago`;
   }
-
-  const years = differenceInYears(now, date);
-  return `${years} year(s) ago`;
+  return `${Math.floor(months / 12)} year(s) ago`;
 };
 
 export type FullFilterField = LogsFilterField | AuditLogsFilterField | RatelimitFilterField;
