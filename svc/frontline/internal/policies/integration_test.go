@@ -99,6 +99,7 @@ func newTestHarness(t *testing.T) *testHarness {
 	t.Cleanup(func() { _ = rateLimiter.Close() })
 
 	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
+		DB: database.RW(),
 		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
 			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt64, error) {
 				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)

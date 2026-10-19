@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/buffer"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/counter"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/repeat"
@@ -32,6 +33,7 @@ type CreditChange struct {
 
 // RedisConfig holds configuration options for the Redis usage limiter.
 type RedisConfig struct {
+	DB                  *db.Replica
 	FindKeyCredits      FindKeyCreditsFunc
 	DecrementKeyCredits DecrementKeyCreditsFunc
 
@@ -66,6 +68,7 @@ var _ Service = (*counterService)(nil)
 
 // CounterConfig holds configuration options for the counter-based usage limiter
 type CounterConfig struct {
+	DB                  *db.Replica
 	FindKeyCredits      FindKeyCreditsFunc
 	DecrementKeyCredits DecrementKeyCreditsFunc
 
@@ -114,10 +117,7 @@ func NewCounter(config CounterConfig) (Service, error) {
 	}
 
 	// Create the direct DB fallback service
-	dbFallback, err := New(Config{
-		FindKeyCredits:      config.FindKeyCredits,
-		DecrementKeyCredits: config.DecrementKeyCredits,
-	})
+	dbFallback, err := New(Config{DB: config.DB})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DB fallback: %w", err)
 	}

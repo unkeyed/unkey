@@ -4,63 +4,37 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/db"
 )
 
-// service implements the direct DB-based usage limiter
 type service struct {
-	findKeyCredits      FindKeyCreditsFunc
-	decrementKeyCredits DecrementKeyCreditsFunc
+	db *db.Replica
 }
 
 var _ Service = (*service)(nil)
 
-// Config for the direct DB implementation
+// Config requires a primary database connection for atomic credit admission.
 type Config struct {
-	FindKeyCredits      FindKeyCreditsFunc
-	DecrementKeyCredits DecrementKeyCreditsFunc
+	DB *db.Replica
 }
 
-// New creates a new direct DB-based usage limiter service.
-// This implementation queries the database on every request.
-// For higher performance, use NewRedisWithCounter instead.
+// New creates a DB limiter that locks a key's credits until admission commits.
 func New(config Config) (*service, error) {
-	if err := assert.All(
-		assert.NotNil(config.FindKeyCredits, "FindKeyCredits is required"),
-		assert.NotNil(config.DecrementKeyCredits, "DecrementKeyCredits is required"),
-	); err != nil {
+	if err := assert.NotNil(config.DB, "DB is required"); err != nil {
 		return nil, fmt.Errorf("invalid usagelimiter service config: %w", err)
 	}
 
-	return &service{
-		findKeyCredits:      config.FindKeyCredits,
-		decrementKeyCredits: config.DecrementKeyCredits,
-	}, nil
+	return &service{db: config.DB}, nil
 }
 
-// NewRedisWithCounter creates a Redis usage limiter using the counter interface.
-//
-// This is the recommended Redis implementation as it provides truly atomic operations
-// using Redis INCRBY commands. It's the simplest, fastest, and most reliable approach.
-//
-// Characteristics:
-//   - Uses Redis INCRBY for atomic decrements (single operation, no race conditions)
-//   - Excellent performance under high contention
-//   - Simple, clean code with minimal complexity
-//   - No distributed locking or transactions needed
-//   - Falls back to direct DB on Redis failures
-//
-// Parameters:
-//   - config: Redis configuration options
-//
-// Returns:
-//   - Service: Counter-based Redis implementation (recommended)
-//   - error: Any initialization errors
+// NewRedisWithCounter creates a counter-based limiter with transactional DB fallback.
 func NewRedisWithCounter(config RedisConfig) (Service, error) {
-	//nolint:exhaustruct // ReplayWorkers defaults to 8 in NewCounter when unset
 	return NewCounter(CounterConfig{
+		DB:                  config.DB,
 		FindKeyCredits:      config.FindKeyCredits,
 		DecrementKeyCredits: config.DecrementKeyCredits,
 		Counter:             config.Counter,
 		TTL:                 config.TTL,
+		ReplayWorkers:       defaultReplayWorkers,
 	})
 }
