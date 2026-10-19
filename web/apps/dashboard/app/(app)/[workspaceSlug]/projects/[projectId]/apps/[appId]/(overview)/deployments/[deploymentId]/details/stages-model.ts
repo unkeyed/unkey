@@ -1,0 +1,126 @@
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import { type InstanceSummary, instanceLabel } from "@/lib/collections/deploy/instance-status";
+import { plural } from "@/lib/fmt";
+import type { StepsData } from "../use-deployment-status";
+import { runningCountText } from "./deployment-health";
+
+export type ExpandableStageKey = "build" | "instances";
+
+export type StageKey = ExpandableStageKey | "domains";
+
+export type StepResolution = {
+  status: "pending" | "started" | "completed" | "error" | "skipped";
+  description: string;
+  duration: number | undefined;
+};
+
+type StepData = NonNullable<NonNullable<StepsData>["building"]>;
+
+type StepMessages = { completed: string; inProgress: string; waiting: string };
+
+type StageBase = { label: string; resolution: StepResolution };
+
+export type Stage =
+  | (StageBase & { key: ExpandableStageKey; expandable: boolean })
+  | (StageBase & { key: "domains"; expandable: false });
+
+export type StagesInput = {
+  steps: StepsData | undefined;
+  now: number;
+  status: DeploymentStatus;
+  isPrebuilt: boolean;
+  instances: InstanceSummary | null;
+  domainCount: number;
+};
+
+export function resolveStages({
+  steps,
+  now,
+  status,
+  isPrebuilt,
+  instances,
+  domainCount,
+}: StagesInput): Stage[] {
+  const { building, deploying, network } = steps ?? {};
+  const isFailed = status === "failed";
+  const isReady = status === "ready";
+
+  const build = resolveStep(
+    building,
+    { now, isFailed, implicitlyComplete: isPrebuilt || isReady },
+    {
+      completed: isPrebuilt ? "Image was prebuilt" : "Build complete",
+      inProgress: "Building",
+      waiting: "Waiting to start",
+    },
+  );
+  const instancesStep = resolveStep(
+    deploying,
+    { now, isFailed, implicitlyComplete: isReady },
+    {
+      completed: instances ? runningCountText(instances) : "No instances",
+      inProgress: "Starting instances",
+      waiting: "Waiting for build",
+    },
+  );
+  const domains = resolveStep(
+    network,
+    { now, isFailed, implicitlyComplete: isReady },
+    {
+      completed: `${plural(domainCount, "domain")} assigned`,
+      inProgress: "Assigning domains",
+      waiting: "Waiting for instances",
+    },
+  );
+
+  return [
+    { key: "build", label: "Build Logs", resolution: build, expandable: !isPrebuilt },
+    {
+      key: "instances",
+      label: "Starting Instances",
+      resolution: withInstanceHealth(instancesStep, instances),
+      expandable: Boolean(deploying),
+    },
+    { key: "domains", label: "Assigning Domains", resolution: domains, expandable: false },
+  ];
+}
+
+function resolveStep(
+  step: StepData | null | undefined,
+  {
+    now,
+    isFailed,
+    implicitlyComplete,
+  }: { now: number; isFailed: boolean; implicitlyComplete: boolean },
+  messages: StepMessages,
+): StepResolution {
+  if (!step) {
+    if (implicitlyComplete) {
+      return { status: "completed", description: messages.completed, duration: undefined };
+    }
+    return isFailed
+      ? { status: "skipped", description: "Skipped", duration: undefined }
+      : { status: "pending", description: messages.waiting, duration: undefined };
+  }
+  const duration = (step.endedAt ?? now) - step.startedAt;
+  if (step.error) {
+    return { status: "error", description: step.error, duration };
+  }
+  return step.completed
+    ? { status: "completed", description: messages.completed, duration }
+    : { status: "started", description: messages.inProgress, duration };
+}
+
+function withInstanceHealth(
+  step: StepResolution,
+  instances: InstanceSummary | null,
+): StepResolution {
+  if (step.status !== "completed" || instances?.state !== "unhealthy") {
+    return step;
+  }
+  return {
+    ...step,
+    status: "error",
+    description: `${step.description} · ${instanceLabel.unhealthy}`,
+  };
+}

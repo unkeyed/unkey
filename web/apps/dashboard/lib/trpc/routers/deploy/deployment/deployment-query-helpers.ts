@@ -17,6 +17,7 @@ export function mapInstanceRow(row: {
   regionName: string;
   regionPlatform: string;
   status: InstanceStatus;
+  containerStatus: ContainerStatus | null;
 }) {
   return {
     id: row.id,
@@ -26,6 +27,7 @@ export function mapInstanceRow(row: {
       platform: row.regionPlatform,
     },
     status: row.status,
+    statusReason: row.containerStatus?.waiting?.reason ?? null,
   };
 }
 

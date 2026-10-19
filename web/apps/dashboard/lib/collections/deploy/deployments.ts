@@ -42,6 +42,7 @@ export const deploymentSchema = z.object({
         platform: z.string(),
       }),
       status: z.enum(INSTANCE_STATUSES),
+      statusReason: z.string().nullable(),
     }),
   ),
   desiredInstanceCount: z.number().int(),
@@ -81,8 +82,8 @@ export const deploymentSchema = z.object({
   buildEndedAt: z.number().nullable(),
   // Most-recent exit info across the deployment's instances. Null when
   // no instance has reported a termination yet (healthy deployments).
-  // Powers the header "OOMKilled · exit=137" badge — see
-  // active-deployment-card/index.tsx:LastExitBadge. Sourced from
+  // Powers the "OOMKilled · exit=137" badge, see
+  // components/last-exit-badge.tsx. Sourced from
   // instances.containerStatus on the trpc layer; the flat shape is kept
   // here so consumers don't have to walk the JSON's optional sub-fields.
   lastExit: z

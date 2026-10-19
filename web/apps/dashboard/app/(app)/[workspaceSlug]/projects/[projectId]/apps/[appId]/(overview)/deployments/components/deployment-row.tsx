@@ -1,11 +1,11 @@
 "use client";
 
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import {
   EnvironmentBadge,
-  type EnvironmentBadgeRollout,
+  badgeRollout,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
+import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit-badge";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
@@ -145,22 +145,4 @@ export function DeploymentRow({
       </span>
     </ResourceListItem>
   );
-}
-
-function badgeRollout({
-  isCurrent,
-  isRolledBack,
-  isRolledBackFrom,
-}: {
-  isCurrent: boolean;
-  isRolledBack: boolean;
-  isRolledBackFrom: boolean;
-}): EnvironmentBadgeRollout {
-  if (isRolledBackFrom) {
-    return "rolledBackFrom";
-  }
-  if (!isCurrent) {
-    return "none";
-  }
-  return isRolledBack ? "liveAfterRollback" : "live";
 }

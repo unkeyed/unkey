@@ -39,17 +39,7 @@ const BUILD_NOT_DONE_STATUSES: ReadonlySet<DeploymentStatus> = new Set([
   "building",
 ]);
 
-type Props = {
-  fixedHeight?: number;
-  focusErrorTick?: number;
-  isOpen?: boolean;
-};
-
-export function DeploymentBuildLogs({
-  fixedHeight = 500,
-  focusErrorTick = 0,
-  isOpen = true,
-}: Props) {
+export function DeploymentBuildLogs({ fixedHeight = 500 }: { fixedHeight?: number }) {
   const { deployment } = useDeployment();
   const { derivedStatus } = useDeploymentStatus(deployment);
   const isFailed = derivedStatus === "failed";
@@ -68,7 +58,7 @@ export function DeploymentBuildLogs({
   const logHeight = `min(${fixedHeight}px, 60dvh)`;
   const readsToEnd = isFailed || followsTail || pendingJump !== null || query.trim() !== "";
 
-  const logs = useBuildLogs(deployment, { readsToEnd, isOpen });
+  const logs = useBuildLogs(deployment, { readsToEnd, enabled: true });
   const entries = logs.data?.entries;
   const hasMore = logs.data?.hasMore === true;
   const isCaughtUp = logs.data !== undefined && !logs.data.hasMore;
@@ -181,12 +171,6 @@ export function DeploymentBuildLogs({
     }
   }, [jumpTargetIndex, totalSize, virtualizer]);
 
-  useEffect(() => {
-    if (focusErrorTick > 0) {
-      setPendingJump("last-error");
-    }
-  }, [focusErrorTick]);
-
   // A new query renumbers the lines, so old jump targets point at other lines
   const changeQuery = (nextQuery: string) => {
     setQuery(nextQuery);
@@ -198,12 +182,10 @@ export function DeploymentBuildLogs({
     searchRef.current?.focus();
     searchRef.current?.select();
   };
-  // A folded card keeps the logs mounted, so native find stays in charge until
-  // the logs are on screen
   const [isMac] = useState(
     () => typeof navigator !== "undefined" && navigator.userAgent.includes("Mac"),
   );
-  const searchShortcutDisabled = !isOpen || !entries || entries.length === 0;
+  const searchShortcutDisabled = !entries || entries.length === 0;
   useKeyboardShortcut("meta+f", focusSearch, {
     ignoreInputs: false,
     disabled: searchShortcutDisabled || !isMac,
