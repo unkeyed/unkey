@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+description: |
+  Filters for the timeseries. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+properties:
+  time:
+    "$ref": "../../../../common/TimeFilter.yaml"
+  path:
+    "$ref": "../../../../common/TextFilter.yaml"
+  host:
+    "$ref": "../../../../common/ExactFilter.yaml"
+  method:
+    "$ref": "../../../../common/MethodFilter.yaml"
+  status:
+    "$ref": "../../../../common/IntFilter.yaml"

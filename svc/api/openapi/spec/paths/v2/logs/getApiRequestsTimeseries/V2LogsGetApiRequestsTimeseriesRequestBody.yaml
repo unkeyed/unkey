@@ -1,0 +1,32 @@
+type: object
+properties:
+  filters:
+    "$ref": "./V2LogsGetApiRequestsTimeseriesFilters.yaml"
+additionalProperties: false
+examples:
+  lastDay:
+    summary: The last 24 hours
+    description: Count the requests of the last 24 hours in 30 minute buckets.
+    value:
+      filters:
+        time:
+          gte: 1791936000000
+          lt: 1792022400000
+  failedKeyRequests:
+    summary: Failed key requests in the last hour
+    description: Count the 4xx and 5xx responses of the keys endpoints, except rate limited requests, in 1 minute buckets.
+    value:
+      filters:
+        time:
+          gte: 1792018800000
+          lt: 1792022400000
+        path:
+          startsWith: ["/v2/keys."]
+        status:
+          gte: 400
+          lt: 600
+          isNot: [429]
+  retention:
+    summary: The whole log retention
+    description: Count every request in the log retention of your workspace.
+    value: {}

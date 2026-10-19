@@ -678,6 +678,34 @@ type ApiRequestLog struct {
 	Time int64 `json:"time"`
 }
 
+// ApiRequestsTimeseriesPoint The number of requests in one bucket.
+type ApiRequestsTimeseriesPoint struct {
+	// ClientError The number of requests with a 4xx status.
+	//
+	// Example: 31
+	ClientError int64 `json:"clientError"`
+
+	// ServerError The number of requests with a 5xx status.
+	//
+	// Example: 2
+	ServerError int64 `json:"serverError"`
+
+	// Success The number of requests with a 2xx status.
+	//
+	// Example: 1200
+	Success int64 `json:"success"`
+
+	// Time The start of the bucket, in Unix milliseconds.
+	//
+	// Example: 1792020600000
+	Time int64 `json:"time"`
+
+	// Total The number of requests with any status. It also counts 1xx and 3xx responses, which have no field of their own.
+	//
+	// Example: 1233
+	Total int64 `json:"total"`
+}
+
 // App defines model for App.
 type App struct {
 	// CreatedAt Unix timestamp in milliseconds when the app was created.
@@ -2859,7 +2887,7 @@ type TextFilter struct {
 }
 
 // TimeFilter Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
-// Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
+// Rows older than the workspace's retention are never returned or counted, whatever the bounds.
 //
 // Example: {"gte":1791936000000,"lt":1792022400000}
 type TimeFilter struct {
@@ -5730,6 +5758,69 @@ type V2LivenessResponseData struct {
 	Message string `json:"message"`
 }
 
+// V2LogsGetApiRequestsTimeseriesFilters Filters for the timeseries. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+type V2LogsGetApiRequestsTimeseriesFilters struct {
+	// Host Filters a field that matches only as a whole value, such as a host or a request ID.
+	// Matching is exact and case-sensitive.
+	//
+	//
+	// Example: {"isNot":["api.unkey.dev"]}
+	Host *ExactFilter `json:"host,omitempty"`
+
+	// Method Filters by HTTP method.
+	//
+	// Example: {"is":["POST","PUT"]}
+	Method *MethodFilter `json:"method,omitempty"`
+
+	// Path Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+	// The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+	// The negated operators (`isNot`, `notContains`) are combined with AND.
+	//
+	//
+	// Example: {"notContains":["verifyKey"],"startsWith":["/v2/keys."]}
+	Path *TextFilter `json:"path,omitempty"`
+
+	// Status Filters an integer field. `is` keeps rows that equal one of its values.
+	// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+	//
+	//
+	// Example: {"gte":400,"isNot":[429],"lt":600}
+	Status *IntFilter `json:"status,omitempty"`
+
+	// Time Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+	// Rows older than the workspace's retention are never returned or counted, whatever the bounds.
+	//
+	//
+	// Example: {"gte":1791936000000,"lt":1792022400000}
+	Time *TimeFilter `json:"time,omitempty"`
+}
+
+// V2LogsGetApiRequestsTimeseriesRequestBody defines model for V2LogsGetApiRequestsTimeseriesRequestBody.
+type V2LogsGetApiRequestsTimeseriesRequestBody struct {
+	// Filters Filters for the timeseries. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+	Filters *V2LogsGetApiRequestsTimeseriesFilters `json:"filters,omitempty"`
+}
+
+// V2LogsGetApiRequestsTimeseriesResponseBody defines model for V2LogsGetApiRequestsTimeseriesResponseBody.
+type V2LogsGetApiRequestsTimeseriesResponseBody struct {
+	Data V2LogsGetApiRequestsTimeseriesResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2LogsGetApiRequestsTimeseriesResponseData defines model for V2LogsGetApiRequestsTimeseriesResponseData.
+type V2LogsGetApiRequestsTimeseriesResponseData struct {
+	// BucketMs The width of every bucket in milliseconds. Unkey picks it from the length of the time window: 1 minute up to 2 hours, 5 minutes up to 6 hours, 15 minutes up to 12 hours, 30 minutes up to 1 day, 1 hour up to 3 days, 2 hours up to 7 days, 6 hours up to 30 days, and 1 day above. A window that starts more than 7 days ago gets at least 1 hour, and more than 30 days ago 1 day.
+	//
+	//
+	// Example: 1800000
+	BucketMs int64 `json:"bucketMs"`
+
+	// Points One point per bucket, oldest first. A bucket with no requests has a point with zero counts.
+	Points []ApiRequestsTimeseriesPoint `json:"points"`
+}
+
 // V2LogsListApiRequestsFilters Filters for the listing. A missing field does not filter. Different fields are combined with AND.
 type V2LogsListApiRequestsFilters struct {
 	// Method Filters by HTTP method.
@@ -5760,7 +5851,7 @@ type V2LogsListApiRequestsFilters struct {
 	Status *IntFilter `json:"status,omitempty"`
 
 	// Time Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
-	// Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
+	// Rows older than the workspace's retention are never returned or counted, whatever the bounds.
 	//
 	//
 	// Example: {"gte":1791936000000,"lt":1792022400000}
@@ -8133,6 +8224,9 @@ type KeysVerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 
 // KeysWhoamiJSONRequestBody defines body for KeysWhoami for application/json ContentType.
 type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
+
+// LogsGetApiRequestsTimeseriesJSONRequestBody defines body for LogsGetApiRequestsTimeseries for application/json ContentType.
+type LogsGetApiRequestsTimeseriesJSONRequestBody = V2LogsGetApiRequestsTimeseriesRequestBody
 
 // LogsListApiRequestsJSONRequestBody defines body for LogsListApiRequests for application/json ContentType.
 type LogsListApiRequestsJSONRequestBody = V2LogsListApiRequestsRequestBody
