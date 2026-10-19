@@ -21,7 +21,6 @@ export type Log = {
   response_status: number;
   response_headers: string[];
   response_body: string;
-  error: string;
   service_latency: number;
 };
 
@@ -57,7 +56,6 @@ function toLog(row: ApiRequestLog): Log {
     response_status: row.status,
     response_headers: row.responseHeaders,
     response_body: row.responseBody,
-    error: row.error,
     service_latency: row.latencyMs,
   };
 }
