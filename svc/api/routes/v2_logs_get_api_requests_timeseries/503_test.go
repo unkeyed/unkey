@@ -26,9 +26,9 @@ func (unreachableClickHouse) GetApiRequestsTimeseries(context.Context, clickhous
 func TestGetApiRequestsTimeseriesLogStoreUnavailable(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	route.ClickHouse = unreachableClickHouse{ClickHouse: h.ClickHouse}
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
-	res := testutil.CallRoute[handler.Request, openapi.ServiceUnavailableErrorResponse](h, route, auth(rootKey), handler.Request{})
+	res := testutil.CallRoute[handler.Request, openapi.ServiceUnavailableErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{})
 
 	require.Equal(t, http.StatusServiceUnavailable, res.Status, "expected 503, received: %s", res.RawBody)
 }

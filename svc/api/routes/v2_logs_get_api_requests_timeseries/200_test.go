@@ -54,10 +54,10 @@ func TestGetApiRequestsTimeseriesCountsStatusClasses(t *testing.T) {
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: rowTime, ResponseStatus: 503},
 	)
 	insertRequests(t, h, schema.ApiRequest{WorkspaceID: otherWorkspace.ID, Time: rowTime})
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
 	start := now - time.Hour.Milliseconds()
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{
 		Filters: &openapi.V2LogsGetApiRequestsTimeseriesFilters{Time: &openapi.TimeFilter{Gte: new(start), Lt: new(now)}},
 	})
 
@@ -87,7 +87,7 @@ func TestGetApiRequestsTimeseriesCountsStatusClasses(t *testing.T) {
 // lt and the dashboard's gte: now - since, lte: now get the same width
 func TestGetApiRequestsTimeseriesBucketWidth(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 	now := h.Clock.Now().UnixMilli()
 	day := 24 * time.Hour
 
@@ -126,7 +126,7 @@ func TestGetApiRequestsTimeseriesBucketWidth(t *testing.T) {
 				{time: openapi.TimeFilter{Gte: new(start), Lte: new(end - 1)}, end: end},
 				{time: openapi.TimeFilter{Gte: new(start), Lte: new(end)}, end: end + 1},
 			} {
-				res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{
 					Filters: &openapi.V2LogsGetApiRequestsTimeseriesFilters{Time: &bounds.time},
 				})
 
@@ -142,10 +142,10 @@ func TestGetApiRequestsTimeseriesBucketWidth(t *testing.T) {
 // the workspace's log retention, which is 30 days in the harness, up to now
 func TestGetApiRequestsTimeseriesDefaultWindow(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 	now := h.Clock.Now().UnixMilli()
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{})
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{})
 
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, (6 * time.Hour).Milliseconds(), res.Body.Data.BucketMs)
@@ -165,7 +165,7 @@ func TestGetApiRequestsTimeseriesFilters(t *testing.T) {
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 2000, Path: "/v2/apis.listKeys", ResponseStatus: 500, Method: "GET"},
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 1000, Path: "/v2/keys.deleteKey", ResponseStatus: 200, Host: "api.unkey.dev"},
 	)
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
 	tests := []struct {
 		name    string
@@ -189,7 +189,7 @@ func TestGetApiRequestsTimeseriesFilters(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.filters.Time = &openapi.TimeFilter{Gte: new(now - time.Hour.Milliseconds())}
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{Filters: &tt.filters})
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{Filters: &tt.filters})
 
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 			require.Equal(t, tt.total, sumPoints(res.Body.Data.Points).Total)
@@ -206,9 +206,9 @@ func TestGetApiRequestsTimeseriesKeepsRetention(t *testing.T) {
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: h.Clock.Now().Add(-29 * 24 * time.Hour).UnixMilli()},
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: h.Clock.Now().Add(-31 * 24 * time.Hour).UnixMilli()},
 	)
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{
 		Filters: &openapi.V2LogsGetApiRequestsTimeseriesFilters{Time: &openapi.TimeFilter{Gte: new(int64(0))}},
 	})
 
@@ -221,7 +221,7 @@ func TestGetApiRequestsTimeseriesKeepsRetention(t *testing.T) {
 // count returns no points instead of an error
 func TestGetApiRequestsTimeseriesEmptyWindow(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 	now := h.Clock.Now().UnixMilli()
 
 	tests := []struct {
@@ -235,7 +235,7 @@ func TestGetApiRequestsTimeseriesEmptyWindow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{
 				Filters: &openapi.V2LogsGetApiRequestsTimeseriesFilters{Time: &tt.time},
 			})
 

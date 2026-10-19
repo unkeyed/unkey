@@ -16031,7 +16031,7 @@ paths:
                 **Required Permissions**
 
                 Your root key must have the following permission:
-                - `unkey:v1:<workspace_id>:logs/requests#read`
+                - `unkey:v1:<workspace_id>:logs/apiRequests#read`
             operationId: logs.getApiRequestsTimeseries
             requestBody:
                 content:
@@ -16107,7 +16107,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:logs/requests#read'''
+                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:logs/apiRequests#read'''
                                             status: 403
                                             title: Insufficient Permissions
                                             type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
@@ -16115,7 +16115,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:logs/requests#read`)
+                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:logs/apiRequests#read`)
                 "422":
                     content:
                         application/json:
