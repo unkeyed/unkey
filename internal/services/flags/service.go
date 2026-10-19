@@ -74,6 +74,10 @@ func (s *service) IsPrivateNetworkingEnabled(ctx context.Context, workspaceID st
 	return s.enabled(ctx, workspaceID, "private_network_enable", false)
 }
 
+func (s *service) IsRatelimitGlobalCounterEnabled(ctx context.Context, workspaceID string) bool {
+	return s.enabled(ctx, workspaceID, "ratelimit_global_counter", false)
+}
+
 func (s *service) enabled(ctx context.Context, workspaceID, slug string, fallback bool) bool {
 	values, err := s.load(ctx, workspaceID)
 	if err != nil {

@@ -26,4 +26,9 @@ type Service interface {
 	// workspace join private networking. It is false unless the database
 	// enables it.
 	IsPrivateNetworkingEnabled(ctx context.Context, workspaceID string) bool
+
+	// IsRatelimitGlobalCounterEnabled reports whether the workspace's rate limits
+	// are counted through the cross-region global counter instead of the regional
+	// counters. It is false unless the database enables it.
+	IsRatelimitGlobalCounterEnabled(ctx context.Context, workspaceID string) bool
 }
