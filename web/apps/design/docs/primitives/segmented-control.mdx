@@ -1,0 +1,19 @@
+---
+title: Segmented control
+description: A radio group for choosing one value from a few visible options.
+---
+
+<Component path="segmented-control/default" />
+
+Use `SegmentedControl` for a form value. Use `Tabs` when each option opens a
+different content panel.
+
+Give the group an `aria-label` or `aria-labelledby`. Compose it with `FormField`
+for a label, helper text, or an error. Pass `control.describedBy` to
+`aria-describedby` and `control.invalid` to `aria-invalid`.
+
+Set `value` and `onValueChange` for a controlled value, or `defaultValue` for an
+uncontrolled value. Arrow keys move and select. Disabled items are skipped.
+
+Set `disabled` on the group to disable every option, or on one
+`SegmentedControlItem` to disable only that option.

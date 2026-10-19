@@ -1,9 +1,10 @@
 "use client";
 
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { Radio } from "@base-ui/react/radio";
-import { RadioGroup } from "@base-ui/react/radio-group";
 import {
+  FormField,
+  SegmentedControl,
+  SegmentedControlItem,
   SettingsForm,
   SettingsRow,
   SettingsRowContent,
@@ -11,7 +12,6 @@ import {
   SettingsRowHeader,
   SettingsRowTitle,
 } from "@unkey/ui";
-import { useId } from "react";
 import { Controller } from "react-hook-form";
 import { z } from "zod";
 import { useSettingField } from "../hooks/use-setting-form";
@@ -32,7 +32,6 @@ export const PROTOCOLS: Record<
 
 export function UpstreamProtocol() {
   const { form, formProps } = useSettingField("upstreamProtocol", z.enum(["http1", "h2c"]));
-  const descriptionId = useId();
 
   return (
     <SettingsForm {...formProps}>
@@ -56,36 +55,32 @@ export function UpstreamProtocol() {
           <Controller
             control={form.control}
             name="upstreamProtocol"
-            render={({ field }) => (
-              <div className="flex max-w-xs flex-col gap-2">
-                <RadioGroup
-                  aria-label="Upstream protocol"
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  className="grid grid-cols-2 gap-1 rounded-lg bg-grayA-3 p-1"
-                >
-                  {Object.entries(PROTOCOLS).map(([value, protocol]) => (
-                    <Radio.Root
-                      key={value}
-                      value={value}
-                      aria-describedby={`${descriptionId}-${value}`}
-                      className="flex min-h-8 cursor-pointer items-center justify-center rounded-md border border-transparent px-3 font-mono text-xs text-gray-11 transition-colors hover:text-gray-12 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-8 focus-visible:ring-offset-2 focus-visible:ring-offset-background data-checked:border-grayA-5 data-checked:bg-raised data-checked:text-gray-12 data-checked:shadow-xs"
-                    >
-                      {protocol.label}
-                    </Radio.Root>
-                  ))}
-                </RadioGroup>
-                {Object.entries(PROTOCOLS).map(([value, protocol]) => (
-                  <p
-                    key={value}
-                    id={`${descriptionId}-${value}`}
-                    hidden={value !== field.value}
-                    className="text-xs leading-4 text-gray-11"
+            render={({ field, fieldState }) => (
+              <FormField
+                className="max-w-xs"
+                description={PROTOCOLS[field.value].hint}
+                error={fieldState.error?.message}
+              >
+                {(control) => (
+                  <SegmentedControl
+                    id={control.id}
+                    aria-label="Upstream protocol"
+                    aria-describedby={control.describedBy}
+                    aria-invalid={control.invalid}
+                    name={field.name}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                    inputRef={field.ref}
                   >
-                    {protocol.hint}
-                  </p>
-                ))}
-              </div>
+                    {Object.entries(PROTOCOLS).map(([value, protocol]) => (
+                      <SegmentedControlItem key={value} value={value} className="font-mono text-xs">
+                        {protocol.label}
+                      </SegmentedControlItem>
+                    ))}
+                  </SegmentedControl>
+                )}
+              </FormField>
             )}
           />
         </SettingsRowContent>
