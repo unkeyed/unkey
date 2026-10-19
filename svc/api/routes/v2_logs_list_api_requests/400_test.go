@@ -3,6 +3,7 @@ package handler_test
 import (
 	"encoding/base64"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
@@ -33,8 +34,9 @@ func TestListApiRequestsBadRequest(t *testing.T) {
 		{name: "empty value list", body: pathFilter(openapi.LogTextFilter{Is: &[]string{}})},
 		{name: "empty value", body: pathFilter(openapi.LogTextFilter{Contains: &[]string{""}})},
 		{name: "value too long", body: pathFilter(openapi.LogTextFilter{Is: &[]string{strings.Repeat("a", 1025)}})},
-		{name: "too many values", body: pathFilter(openapi.LogTextFilter{Is: new(make([]string, 21))})},
+		{name: "too many values", body: pathFilter(openapi.LogTextFilter{Is: new(slices.Repeat([]string{"/v2/keys."}, 11))})},
 		{name: "unknown method", body: handler.Request{Filters: &openapi.V2LogsListApiRequestsFilters{Method: &openapi.LogMethodFilter{Is: &[]openapi.LogHttpMethod{"BREW"}}}}},
+		{name: "repeated method", body: handler.Request{Filters: &openapi.V2LogsListApiRequestsFilters{Method: &openapi.LogMethodFilter{Is: &[]openapi.LogHttpMethod{"GET", "GET"}}}}},
 		{name: "negative time", body: handler.Request{Filters: &openapi.V2LogsListApiRequestsFilters{Time: &openapi.LogTimeFilter{Gte: new(int64(-1))}}}},
 		{name: "unknown field", body: map[string]any{"filters": map[string]any{"region": map[string]any{"is": []string{"us-east-1"}}}}},
 		{name: "unknown operator", body: map[string]any{"filters": map[string]any{"path": map[string]any{"like": []string{"/v2/%"}}}}},

@@ -5,14 +5,14 @@ properties:
   is:
     type: array
     minItems: 1
-    maxItems: 7
+    uniqueItems: true
     items:
       "$ref": "./LogHttpMethod.yaml"
     description: Keep rows with one of these methods.
   isNot:
     type: array
     minItems: 1
-    maxItems: 7
+    uniqueItems: true
     items:
       "$ref": "./LogHttpMethod.yaml"
     description: Remove rows with one of these methods.

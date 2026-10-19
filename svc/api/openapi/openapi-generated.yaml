@@ -7839,14 +7839,14 @@ components:
                 is:
                     type: array
                     minItems: 1
-                    maxItems: 7
+                    uniqueItems: true
                     items:
                         "$ref": "#/components/schemas/LogHttpMethod"
                     description: Keep rows with one of these methods.
                 isNot:
                     type: array
                     minItems: 1
-                    maxItems: 7
+                    uniqueItems: true
                     items:
                         "$ref": "#/components/schemas/LogHttpMethod"
                     description: Remove rows with one of these methods.
@@ -7888,7 +7888,7 @@ components:
         LogStringValues:
             type: array
             minItems: 1
-            maxItems: 20
+            maxItems: 10
             items:
                 type: string
                 minLength: 1
@@ -7911,7 +7911,7 @@ components:
         LogIntValues:
             type: array
             minItems: 1
-            maxItems: 20
+            maxItems: 10
             items:
                 type: integer
                 format: int64
