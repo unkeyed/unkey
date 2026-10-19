@@ -42,10 +42,6 @@ var apiRequestsIntervals = []apiRequestsInterval{
 // aggregate data there is
 const apiRequestsWindowMaxMs = 100 * dayMillis
 
-// apiRequestsTimeseriesResultBytesMax holds the at most 121 buckets of a
-// window with room to spare
-const apiRequestsTimeseriesResultBytesMax = 1 << 20
-
 // ApiRequestsTimeseriesFilters are the [ApiRequestFilters] the aggregate
 // tables can answer. They have no request id column
 type ApiRequestsTimeseriesFilters struct {
@@ -149,7 +145,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 
 	// The day table stores a Date, so time converts as UTC midnight, the same
 	// edge the epoch-aligned buckets of every other interval fall on
-	points, err := Select[ApiRequestsTimeseriesPoint](withReadLimits(ctx, apiRequestsTimeseriesResultBytesMax), c.conn, `
+	points, err := Select[ApiRequestsTimeseriesPoint](withReadLimits(ctx, AnalyticsResultBytesMax), c.conn, `
 		SELECT
 			toInt64(intDiv(toUnixTimestamp(toDateTime(time, 'UTC')), {bucket_seconds:Int64}) * {bucket_ms:Int64}) AS bucket_time,
 			sumIf(count, response_status >= 200 AND response_status < 300) AS success,
