@@ -172,6 +172,26 @@ func TestService_PrivateNetworkingIsOffUnlessTheDatabaseEnablesIt(t *testing.T) 
 	require.False(t, service.IsPrivateNetworkingEnabled(ctx, uid.New(uid.WorkspacePrefix)))
 }
 
+// TestService_GlobalCounterRatelimitIsOffUnlessTheDatabaseEnablesIt guarantees
+// that counting through the global counter is rolled out only through the
+// ratelimit_global_counter definition and a per-workspace choice: without the
+// definition even an override row leaves the workspace on the regional counters.
+func TestService_GlobalCounterRatelimitIsOffUnlessTheDatabaseEnablesIt(t *testing.T) {
+	database, service, _ := newService(t)
+	ctx := t.Context()
+	const slug = "ratelimit_global_counter"
+
+	orphaned := uid.New(uid.WorkspacePrefix)
+	setOverride(t, database, orphaned, slug, true)
+	require.False(t, service.IsRatelimitGlobalCounterEnabled(ctx, orphaned))
+
+	upsertFlag(t, database, slug, false)
+	enabled := uid.New(uid.WorkspacePrefix)
+	setOverride(t, database, enabled, slug, true)
+	require.True(t, service.IsRatelimitGlobalCounterEnabled(ctx, enabled))
+	require.False(t, service.IsRatelimitGlobalCounterEnabled(ctx, uid.New(uid.WorkspacePrefix)))
+}
+
 type helloWorldService interface {
 	flags.Service
 	IsHelloWorldEnabled(ctx context.Context, workspaceID string) bool
