@@ -247,12 +247,14 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	t.Cleanup(func() { require.NoError(t, ctr.Close()) })
 
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
-		Clock:   clk,
-		Counter: ctr,
-		DB:      db.ToMySQL(database),
-		Region:  "test-region",
+		Clock:         clk,
+		Counter:       ctr,
+		DB:            db.ToMySQL(database),
+		Region:        "test-region",
+		GlobalCounter: true,
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, ratelimitService.Close()) })
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {

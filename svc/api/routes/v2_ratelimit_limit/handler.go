@@ -151,13 +151,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Apply rate limit
 	cost := ptr.SafeDeref(req.Cost, 1)
 	limitReq := ratelimit.RatelimitRequest{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		Namespace:   ns.ID,
-		Identifier:  req.Identifier,
-		Duration:    time.Duration(duration) * time.Millisecond,
-		Limit:       limit,
-		Cost:        cost,
-		Time:        time.Time{},
+		WorkspaceID:      principal.AuthorizedWorkspaceID,
+		Namespace:        ns.ID,
+		Identifier:       req.Identifier,
+		Duration:         time.Duration(duration) * time.Millisecond,
+		Limit:            limit,
+		Cost:             cost,
+		Time:             time.Time{},
+		UseGlobalCounter: ns.UseGlobalCounter,
 	}
 
 	if h.TestMode {
@@ -333,6 +334,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 				WorkspaceID:       principal.AuthorizedWorkspaceID,
 				ProjectID:         projectID,
 				Name:              name,
+				UseGlobalCounter:  false,
 				CreatedAtM:        now,
 				UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
 				DeletedAtM:        sql.NullInt64{Valid: false, Int64: 0},
