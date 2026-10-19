@@ -23,7 +23,7 @@ func pathFilter(f openapi.LogTextFilter) handler.Request {
 // what the typed request cannot express
 func TestListApiRequestsBadRequest(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
 	tests := []struct {
 		name string
@@ -49,7 +49,7 @@ func TestListApiRequestsBadRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := testutil.CallRoute[any, openapi.BadRequestErrorResponse](h, route, auth(rootKey), tt.body)
+			res := testutil.CallRoute[any, openapi.BadRequestErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), tt.body)
 
 			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		})

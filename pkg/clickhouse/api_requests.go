@@ -38,9 +38,8 @@ type ApiRequestCursor struct {
 
 // ListApiRequestsRequest selects one page of a workspace's API request logs.
 // RetentionStart is the oldest time in unix milliseconds the workspace may
-// read, whatever Filters ask for. Cursor, when set, returns only the rows
-// that sort below that position, which in a newest first listing are the
-// older ones
+// read, whatever Filters ask for. Cursor, when set, returns the rows after
+// it in the listing order
 type ListApiRequestsRequest struct {
 	WorkspaceID    string
 	RetentionStart int64
@@ -98,7 +97,7 @@ func (c *Client) ListApiRequests(ctx context.Context, req ListApiRequestsRequest
 		params["cursor_request_id"] = req.Cursor.RequestID
 	}
 
-	rows, err := Select[ApiRequestLog](withReadLimits(ctx, AnalyticsResultBytesMax), c.conn, `
+	rows, err := Select[ApiRequestLog](withReadLimits(ctx), c.conn, `
 		SELECT request_id, time, host, method, path, request_headers, request_body,
 			response_status, response_headers, response_body, error, service_latency
 		FROM default.api_requests_raw_v2

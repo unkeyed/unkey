@@ -13,7 +13,7 @@ import (
 func TestListApiRequestsUnauthorized(t *testing.T) {
 	h, route, _ := newRoute(t)
 
-	res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, auth("invalid_token"), handler.Request{})
+	res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, testutil.RootKeyHeaders("invalid_token"), handler.Request{})
 
 	require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
 }

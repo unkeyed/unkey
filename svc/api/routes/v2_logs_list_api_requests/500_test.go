@@ -21,10 +21,10 @@ import (
 func TestListApiRequestsWithoutLimits(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	require.NoError(t, db.Query.DeleteLimitByWorkspaceID(context.Background(), h.DB.RW(), workspaceID))
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
 	for range 2 {
-		res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, auth(rootKey), handler.Request{})
+		res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{})
 		require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
 	}
 }
@@ -43,9 +43,9 @@ func (rejectingClickHouse) ListApiRequests(context.Context, clickhouse.ListApiRe
 func TestListApiRequestsQueryRejected(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	route.ClickHouse = rejectingClickHouse{ClickHouse: h.ClickHouse}
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
-	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, auth(rootKey), handler.Request{})
+	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{})
 
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
 }

@@ -21,18 +21,17 @@ const (
 // settings profile, which this path has no user to hang off, so the bounds
 // ride on the query instead.
 //
-// resultBytesMax becomes max_result_bytes, which stops an oversized read
-// server-side, before the rows are shipped.
+// max_result_bytes stops an oversized read server-side, before the rows are
+// shipped.
 //
-// use_with_fill_by_sorting_prefix is what makes WITH FILL restart per key_id
-// rather than run once across the whole result. It defaults on, but the default
-// is what a settings profile on this shared connection could change, and every
-// caller charting a subset of keys depends on each series being contiguous.
-func withReadLimits(ctx context.Context, resultBytesMax int) context.Context {
+// use_with_fill_by_sorting_prefix keeps each key_id series of the per-key
+// verification timeseries contiguous. It defaults on, but a settings profile on
+// this shared connection could turn it off.
+func withReadLimits(ctx context.Context) context.Context {
 	return ch.Context(ctx, ch.WithSettings(ch.Settings{
 		"max_execution_time":              readExecutionTimeSecondsMax,
 		"max_memory_usage":                readMemoryBytesMax,
-		"max_result_bytes":                resultBytesMax,
+		"max_result_bytes":                AnalyticsResultBytesMax,
 		"result_overflow_mode":            "throw",
 		"use_with_fill_by_sorting_prefix": 1,
 	}))

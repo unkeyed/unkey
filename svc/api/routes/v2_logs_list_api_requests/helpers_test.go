@@ -2,8 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -72,13 +70,6 @@ func insertRequests(t *testing.T, h *testutil.Harness, rows ...schema.ApiRequest
 	return rows
 }
 
-func requestLogsPermission(workspaceID string) string {
-	return "unkey:v1:" + workspaceID + ":logs/requests#read"
-}
-
-func auth(rootKey string) http.Header {
-	return http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
+func apiRequestLogsPermission(workspaceID string) string {
+	return "unkey:v1:" + workspaceID + ":logs/apiRequests#read"
 }

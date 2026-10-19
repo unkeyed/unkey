@@ -183,7 +183,7 @@ func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req Ver
 	params := verificationScopeParams(req.VerificationTimeseriesRequest)
 	params["max_keys_probe"] = strconv.Itoa(req.MaxKeys + 1)
 
-	rows, err := Select[verificationTimeseriesPerKeyRow](withReadLimits(ctx, AnalyticsResultBytesMax), c.conn, query, params)
+	rows, err := Select[verificationTimeseriesPerKeyRow](withReadLimits(ctx), c.conn, query, params)
 	if err != nil {
 		return nil, fault.Wrap(classifyReadLimitError(err), fault.Internal("failed to query per-key verification timeseries"))
 	}

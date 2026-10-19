@@ -72,7 +72,7 @@ type Querier interface {
 
 	// ListApiRequests returns one page of a workspace's API request logs, newest
 	// first, that match req.Filters and are not older than req.RetentionStart.
-	// A query that exceeds a read limit returns a coded error for a 4xx
+	// A query over a read limit returns an error that the API serves as a 422
 	ListApiRequests(ctx context.Context, req ListApiRequestsRequest) (ApiRequestsPage, error)
 
 	// InsertAuditLogs synchronously writes a batch of audit log rows to

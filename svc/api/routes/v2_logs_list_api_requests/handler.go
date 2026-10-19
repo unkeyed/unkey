@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 
@@ -32,11 +33,7 @@ type (
 	Response = openapi.V2LogsListApiRequestsResponseBody
 )
 
-const (
-	millisPerDay = 24 * 60 * 60 * 1000
-
-	limitDefault = 50
-)
+const limitDefault = 50
 
 type Handler struct {
 	ClickHouse  clickhouse.ClickHouse
@@ -69,7 +66,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).RequestLogs(), permissions.Read))
+	err = principal.Authorize(rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).ApiRequestLogs(), permissions.Read))
 	if err != nil {
 		return err
 	}
@@ -107,7 +104,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	var retentionStart int64
 	if limits.LogsRetentionDaysMax > 0 {
-		retentionStart = h.Clock.Now().UnixMilli() - int64(limits.LogsRetentionDaysMax)*millisPerDay
+		retention := time.Duration(limits.LogsRetentionDaysMax) * 24 * time.Hour
+		retentionStart = h.Clock.Now().Add(-retention).UnixMilli()
 	}
 
 	filters := ptr.SafeDeref(req.Filters)

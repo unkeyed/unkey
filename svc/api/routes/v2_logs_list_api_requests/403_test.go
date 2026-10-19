@@ -23,13 +23,13 @@ func TestListApiRequestsPermissions(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "request logs read", permissions: []string{prefix + "logs/requests#read"}, shouldPass: true},
+		{name: "request logs read", permissions: []string{prefix + "logs/apiRequests#read"}, shouldPass: true},
 		{name: "logs container", permissions: []string{prefix + "logs/**#read"}, shouldPass: false},
 		{name: "workspace read", permissions: []string{prefix + "**#read"}, shouldPass: true},
-		{name: "alongside unrelated grants", permissions: []string{prefix + "limits#read", prefix + "logs/requests#read"}, shouldPass: true},
+		{name: "alongside unrelated grants", permissions: []string{prefix + "limits#read", prefix + "logs/apiRequests#read"}, shouldPass: true},
 		{name: "workspace limits", permissions: []string{prefix + "limits#read"}, shouldPass: false},
 		{name: "ratelimit logs", permissions: []string{prefix + "projects/*/ratelimits/namespaces/*/logs#read"}, shouldPass: false},
-		{name: "other workspace", permissions: []string{"unkey:v1:" + otherWorkspace.ID + ":logs/requests#read"}, shouldPass: false},
+		{name: "other workspace", permissions: []string{"unkey:v1:" + otherWorkspace.ID + ":logs/apiRequests#read"}, shouldPass: false},
 		{name: "legacy api permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
@@ -37,7 +37,7 @@ func TestListApiRequestsPermissions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rootKey := h.CreateRootKey(workspaceID, tt.permissions...)
-			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, auth(rootKey), handler.Request{})
+			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{})
 
 			if tt.shouldPass {
 				require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

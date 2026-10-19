@@ -49,8 +49,8 @@ func TestListApiRequestsReturnsOwnRowsNewestFirst(t *testing.T) {
 	)
 	insertRequests(t, h, schema.ApiRequest{WorkspaceID: otherWorkspace.ID, Time: now})
 
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{})
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{})
 
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, []string{rows[1].RequestID, rows[0].RequestID}, requestIDs(res.Body.Data))
@@ -85,7 +85,7 @@ func TestListApiRequestsFilters(t *testing.T) {
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 2000, Path: "/v2/apis.listKeys", ResponseStatus: 500, Method: "GET"},
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 1000, Path: "/v2/keys.deleteKey", ResponseStatus: 200, Host: "api.unkey.dev"},
 	)
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
 	tests := []struct {
 		name    string
@@ -129,7 +129,7 @@ func TestListApiRequestsFilters(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{Filters: &tt.filters})
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{Filters: &tt.filters})
 
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 			require.Equal(t, tt.want, requestIDs(res.Body.Data))
@@ -150,12 +150,12 @@ func TestListApiRequestsPaginates(t *testing.T) {
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 2000},
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 1000},
 	)
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
 	var seen []string
 	var cursor *string
 	for range 3 {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{Limit: new(2), Cursor: cursor})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{Limit: new(2), Cursor: cursor})
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 		seen = append(seen, requestIDs(res.Body.Data)...)
 		cursor = res.Body.Pagination.Cursor
@@ -178,12 +178,12 @@ func TestListApiRequestsPaginatesInsideOneMillisecond(t *testing.T) {
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now},
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 1},
 	)
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
 	var seen []string
 	var cursor *string
 	for range 2 {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{Limit: new(2), Cursor: cursor})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{Limit: new(2), Cursor: cursor})
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 		seen = append(seen, requestIDs(res.Body.Data)...)
 		cursor = res.Body.Pagination.Cursor
@@ -207,9 +207,9 @@ func TestListApiRequestsKeepsRetention(t *testing.T) {
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: h.Clock.Now().Add(-29 * 24 * time.Hour).UnixMilli()},
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: h.Clock.Now().Add(-31 * 24 * time.Hour).UnixMilli()},
 	)
-	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, auth(rootKey), handler.Request{
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{
 		Filters: &openapi.V2LogsListApiRequestsFilters{Time: &openapi.LogTimeFilter{Gte: new(int64(0))}},
 	})
 

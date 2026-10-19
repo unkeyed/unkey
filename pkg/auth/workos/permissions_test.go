@@ -50,7 +50,7 @@ func TestDeveloperRoleCoversProductPermissions(t *testing.T) {
 		{resource: "limits", actions: []string{"read"}},
 		{resource: "usage", actions: []string{"read"}},
 		{resource: "flags", actions: []string{"read", "write"}},
-		{resource: "logs/requests", actions: []string{"read"}},
+		{resource: "logs/apiRequests", actions: []string{"read"}},
 		{resource: "projects/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/portals/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/apps/*", actions: []string{"read", "write", "delete"}},

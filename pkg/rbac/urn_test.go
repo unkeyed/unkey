@@ -464,21 +464,21 @@ func fuzzStringSeed(values ...string) []byte {
 	return out
 }
 
-// TestRequestLogsGrants guarantees which grants read the workspace's API
+// TestApiRequestLogsGrants guarantees which grants read the workspace's API
 // request logs.
-func TestRequestLogsGrants(t *testing.T) {
+func TestApiRequestLogsGrants(t *testing.T) {
 	t.Parallel()
 
-	required := U(urn.New().Workspace("ws_123").RequestLogs(), permissions.Read)
+	required := U(urn.New().Workspace("ws_123").ApiRequestLogs(), permissions.Read)
 
 	tests := []struct {
 		granted string
 		want    bool
 	}{
-		{granted: "unkey:v1:ws_123:logs/requests#read", want: true},
+		{granted: "unkey:v1:ws_123:logs/apiRequests#read", want: true},
 		{granted: "unkey:v1:ws_123:logs/**#read", want: false},
 		{granted: "unkey:v1:ws_123:**#read", want: true},
-		{granted: "unkey:v1:ws_456:logs/requests#read", want: false},
+		{granted: "unkey:v1:ws_456:logs/apiRequests#read", want: false},
 		{granted: "unkey:v1:ws_123:limits#read", want: false},
 		{granted: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/logs#read", want: false},
 	}

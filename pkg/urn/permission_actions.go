@@ -58,8 +58,8 @@ type usage struct{}
 
 type flags struct{}
 
-// requestLogs represents the workspace's Unkey API request logs path shape
-type requestLogs struct{}
+// apiRequestLogs represents the workspace's Unkey API request logs path shape
+type apiRequestLogs struct{}
 
 // global represents the workspace-wide ** resource pattern.
 type global struct{}
@@ -127,7 +127,7 @@ func (flags) permissionActions(bool) permissionActionSet {
 }
 
 // permissionActions returns read for Unkey API request logs
-func (requestLogs) permissionActions(bool) permissionActionSet {
+func (apiRequestLogs) permissionActions(bool) permissionActionSet {
 	return newPermissionActionSet(PermissionRead)
 }
 
