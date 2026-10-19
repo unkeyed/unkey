@@ -126,7 +126,6 @@ func TestSupportsPermissionAction_RejectsUnsupportedActions(t *testing.T) {
 		{name: "usage write", resource: "usage", action: permissions.Write},
 		{name: "flags delete", resource: "flags", action: permissions.Delete},
 		{name: "request logs write", resource: "logs/requests", action: permissions.Write},
-		{name: "workspace logs write", resource: "logs/**", action: permissions.Write},
 		{name: "key limit", resource: "projects/proj_123/keyspaces/ks_123/keys/key_123", action: permissions.Limit},
 		{name: "namespace decrypt", resource: "projects/proj_123/ratelimits/namespaces/ns_123", action: permissions.Decrypt},
 		{name: "override limit", resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123", action: permissions.Limit},

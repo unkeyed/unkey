@@ -50,9 +50,8 @@ func (w workspace) Flags() V1 {
 	return V1{WorkspaceID: w.workspaceID, Resource: "flags"}
 }
 
-// RequestLogs returns the resource name of the workspace's Unkey API request
-// logs. They have no owning resource below the workspace, so a grant on
-// logs/** covers them along with any later workspace-owned log.
+// RequestLogs returns the resource name of the workspace's Unkey API
+// request logs.
 func (w workspace) RequestLogs() V1 {
 	return V1{WorkspaceID: w.workspaceID, Resource: "logs/requests"}
 }

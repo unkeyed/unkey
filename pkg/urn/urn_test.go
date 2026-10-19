@@ -326,6 +326,7 @@ func TestParseV1RejectsInvalidValues(t *testing.T) {
 		"unkey:v1:ws_123:projects/proj_123/unknown/value",
 		"unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway",
 		"unkey:v1:ws_123:projects/proj_123/rbac",
+		"unkey:v1:ws_123:logs/**",
 		"unkey:v1:ws_123:projects/*/apps/app_123",
 		"unkey:v1:ws_123:projects/*/portals/portal_123",
 		"unkey:v1:ws_123:projects/*/portals/*/sessions/sess_123",

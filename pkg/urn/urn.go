@@ -64,7 +64,6 @@ var resourcePathShapes = []resourcePathShape{
 var resourceContainerPathShapes = []resourcePathShape{
 	{resource: new(Gateway), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway"}},
 	{resource: new(RBAC), segments: []string{"projects", resourceIDSegment, "rbac"}},
-	{resource: workspaceLogs{}, segments: []string{"logs"}},
 }
 
 // V1 is a parsed v1 Unkey resource name.

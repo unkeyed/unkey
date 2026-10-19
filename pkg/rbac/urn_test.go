@@ -465,7 +465,7 @@ func fuzzStringSeed(values ...string) []byte {
 }
 
 // TestRequestLogsGrants guarantees which grants read the workspace's API
-// request logs. logs/** is the grant for every workspace-owned log.
+// request logs.
 func TestRequestLogsGrants(t *testing.T) {
 	t.Parallel()
 
@@ -476,7 +476,7 @@ func TestRequestLogsGrants(t *testing.T) {
 		want    bool
 	}{
 		{granted: "unkey:v1:ws_123:logs/requests#read", want: true},
-		{granted: "unkey:v1:ws_123:logs/**#read", want: true},
+		{granted: "unkey:v1:ws_123:logs/**#read", want: false},
 		{granted: "unkey:v1:ws_123:**#read", want: true},
 		{granted: "unkey:v1:ws_456:logs/requests#read", want: false},
 		{granted: "unkey:v1:ws_123:limits#read", want: false},
