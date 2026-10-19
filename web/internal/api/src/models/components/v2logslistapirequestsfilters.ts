@@ -4,10 +4,10 @@
 
 import * as z from "zod/v3";
 import {
-  LogIdFilter,
-  LogIdFilter$Outbound,
-  LogIdFilter$outboundSchema,
-} from "./logidfilter.js";
+  LogExactFilter,
+  LogExactFilter$Outbound,
+  LogExactFilter$outboundSchema,
+} from "./logexactfilter.js";
 import {
   LogIntFilter,
   LogIntFilter$Outbound,
@@ -56,7 +56,7 @@ export type V2LogsListApiRequestsFilters = {
    * @remarks
    * Matching is exact and case-sensitive.
    */
-  host?: LogIdFilter | undefined;
+  host?: LogExactFilter | undefined;
   /**
    * Filters by HTTP method.
    */
@@ -67,7 +67,7 @@ export type V2LogsListApiRequestsFilters = {
    * @remarks
    * Matching is exact and case-sensitive.
    */
-  requestId?: LogIdFilter | undefined;
+  requestId?: LogExactFilter | undefined;
   /**
    * Filters an integer field. `is` keeps rows that equal one of its values.
    *
@@ -81,9 +81,9 @@ export type V2LogsListApiRequestsFilters = {
 export type V2LogsListApiRequestsFilters$Outbound = {
   time?: LogTimeFilter$Outbound | undefined;
   path?: LogTextFilter$Outbound | undefined;
-  host?: LogIdFilter$Outbound | undefined;
+  host?: LogExactFilter$Outbound | undefined;
   method?: LogMethodFilter$Outbound | undefined;
-  requestId?: LogIdFilter$Outbound | undefined;
+  requestId?: LogExactFilter$Outbound | undefined;
   status?: LogIntFilter$Outbound | undefined;
 };
 
@@ -95,9 +95,9 @@ export const V2LogsListApiRequestsFilters$outboundSchema: z.ZodType<
 > = z.object({
   time: LogTimeFilter$outboundSchema.optional(),
   path: LogTextFilter$outboundSchema.optional(),
-  host: LogIdFilter$outboundSchema.optional(),
+  host: LogExactFilter$outboundSchema.optional(),
   method: LogMethodFilter$outboundSchema.optional(),
-  requestId: LogIdFilter$outboundSchema.optional(),
+  requestId: LogExactFilter$outboundSchema.optional(),
   status: LogIntFilter$outboundSchema.optional(),
 });
 
