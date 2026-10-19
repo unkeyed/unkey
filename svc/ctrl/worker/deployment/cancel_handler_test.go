@@ -89,7 +89,6 @@ func (f *handlerFixture) cancel(ctx context.Context, deploymentID, actorID strin
 	return hydrav1.NewDeploymentServiceIngressClient(f.client, deploymentID).
 		CancelDeployment().
 		Request(ctx, &hydrav1.CancelDeploymentRequest{
-			DeploymentId:  deploymentID,
 			Actor:         &ctrlv1.ActorInfo{Id: actorID, Type: ctrlv1.ActorType_ACTOR_TYPE_USER},
 			CorrelationId: uid.New("corr"),
 		})

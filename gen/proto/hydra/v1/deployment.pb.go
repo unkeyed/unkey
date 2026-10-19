@@ -625,9 +625,8 @@ func (*AuthorizeDeploymentResponse) Descriptor() ([]byte, []int) {
 
 type CancelDeploymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	Actor         *v1.ActorInfo          `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
-	CorrelationId string                 `protobuf:"bytes,3,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	Actor         *v1.ActorInfo          `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,2,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -660,13 +659,6 @@ func (x *CancelDeploymentRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CancelDeploymentRequest.ProtoReflect.Descriptor instead.
 func (*CancelDeploymentRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *CancelDeploymentRequest) GetDeploymentId() string {
-	if x != nil {
-		return x.DeploymentId
-	}
-	return ""
 }
 
 func (x *CancelDeploymentRequest) GetActor() *v1.ActorInfo {
@@ -748,11 +740,10 @@ const file_hydra_v1_deployment_proto_rawDesc = "" +
 	"\x1aAuthorizeDeploymentRequest\x12(\n" +
 	"\x05actor\x18\x01 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
 	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"\x1d\n" +
-	"\x1bAuthorizeDeploymentResponse\"\x8f\x01\n" +
-	"\x17CancelDeploymentRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
-	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
-	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\"\x1a\n" +
+	"\x1bAuthorizeDeploymentResponse\"j\n" +
+	"\x17CancelDeploymentRequest\x12(\n" +
+	"\x05actor\x18\x01 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
+	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"\x1a\n" +
 	"\x18CancelDeploymentResponse*\x8e\x01\n" +
 	"\x16DeploymentDesiredState\x12(\n" +
 	"$DEPLOYMENT_DESIRED_STATE_UNSPECIFIED\x10\x00\x12$\n" +
