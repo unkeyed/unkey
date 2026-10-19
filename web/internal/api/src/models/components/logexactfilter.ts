@@ -12,17 +12,19 @@ import * as z from "zod/v3";
  */
 export type LogExactFilter = {
   /**
-   * The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+   * The values of one exact filter operator. A row matches `is` when it equals any value in the list.
    *
    * @remarks
-   * A row matches a negated operator only when it matches none of the values.
+   * A row matches `isNot` only when it equals none of the values.
+   * Exact matches take up to 25 values, so one call can look up a page of requests by ID.
    */
   is?: Array<string> | undefined;
   /**
-   * The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+   * The values of one exact filter operator. A row matches `is` when it equals any value in the list.
    *
    * @remarks
-   * A row matches a negated operator only when it matches none of the values.
+   * A row matches `isNot` only when it equals none of the values.
+   * Exact matches take up to 25 values, so one call can look up a page of requests by ID.
    */
   isNot?: Array<string> | undefined;
 };
