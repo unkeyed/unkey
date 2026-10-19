@@ -55,6 +55,13 @@
 // Successful Add calls are not durable acknowledgements. A process exit can lose
 // pending changes.
 //
+// The database sets the compaction_after of a row to its own time plus 60 minutes
+// whenever it accepts a newer revision. A writer stops writing a row when it
+// forgets the writer id, at most about 36 minutes after the id started, so
+// compaction_after is the margin for a write that is still in flight. A pod that
+// stalls for longer than that is outside the model, and its late write would
+// recreate a merged row and be counted twice.
+//
 // # Eviction and shutdown
 //
 // DeleteAfter is cleanup metadata, not a read TTL. A background eviction pass
@@ -68,10 +75,43 @@
 // still in flight cannot arrive after the name has started again. A change after
 // that starts this writer's count for the name from zero, and a change that races
 // with the pass itself can lose its row, so nothing should change a counter after
-// its delete_after. Close stops eviction
-// and rotation, drains queued snapshots, then persists the entries of the
-// current and the previous writer id, including dropped snapshots, within one
-// deadline.
+// its delete_after. Close stops eviction, rotation and compaction, drains queued
+// snapshots, then persists the entries of the current and the previous writer id,
+// including dropped snapshots, within one deadline.
+//
+// # Compaction
+//
+// Every restart adds a process, and every rotation adds a writer id, so rows
+// would pile up. A background pass, run by every Counter about every 10 minutes
+// with 50% jitter, merges rows that nobody writes anymore. A row is compactable
+// once its compaction_after has passed by the database clock. That is 60 minutes
+// after its last accepted write, so every writer has forgotten its writer id and
+// the row is final.
+//
+// For each name with a compactable row, the pass locks the compactable rows of
+// that name, skipping rows another Counter holds, and the rows that compaction
+// created or moved earlier, which no writer writes either. A new row therefore
+// makes the pass merge its name's old rows in too. With two or more rows,
+// the pass sums them into one new row with a random writer id, keeping the latest
+// delete_after (no deletion time wins), and deletes the originals in the same
+// transaction. The total of the name does not change.
+//
+// Every row has a compaction level. Level 0 is for a row that a writer wrote,
+// which waits for its 60-minute margin. A merged row takes the lowest level of its
+// sources, but at least 1, so a counter that still gets new rows stays at a low
+// level. A row with nothing to merge with, or whose sum would overflow int64,
+// stays as it is, and its level goes up by one. Its compaction_after then moves
+// ahead by 10 minutes times two to the power of the new level, up to a year: 20
+// minutes at level 1, 40 at level 2, and so on. A counter that nobody writes is
+// looked at less and less often, and a counter that is written is merged about
+// every 20 minutes.
+//
+// A transaction handles up to 100 names and locks at most 500 rows, ready and
+// parked rows together, and a pass handles at most 5,000 rows, so the work is
+// bounded by rows and not by names, and Counters sharing a backlog take different
+// rows. A transaction runs at READ COMMITTED, so it takes no gap locks and does
+// not hold up a writer's persist for the same name. The transaction keeps no state
+// outside the database, so repeating it after a lost reply to COMMIT is safe.
 //
 // Metrics are in the metrics subpackage: unkey_globalcounter_persist_rows_total
 // counts rows by result, and unkey_globalcounter_memory_entries gauges entries,

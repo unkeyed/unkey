@@ -9,6 +9,17 @@ import (
 )
 
 type Querier interface {
+	// DeferCompaction gives the given rows of one name a compaction level and moves
+	// their compaction_after to the database time plus delay_ms, so compaction passes
+	// stop selecting rows that they cannot merge: a name with a single compactable
+	// row, or a sum that overflows.
+	//
+	//  UPDATE counters
+	//  SET compaction_level = ?,
+	//      compaction_after = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + ?
+	//  WHERE name = ?
+	//      AND writer_id IN (/*SLICE:writer_ids*/?)
+	DeferCompaction(ctx context.Context, db DBTX, arg DeferCompactionParams) error
 	// DeleteExpired bounds cleanup work and removes the oldest eligible rows first.
 	// The caller chooses a safe cutoff; rows without a delete_after are retained.
 	//
@@ -17,6 +28,13 @@ type Querier interface {
 	//  ORDER BY delete_after
 	//  LIMIT ?
 	DeleteExpired(ctx context.Context, db DBTX, arg DeleteExpiredParams) (int64, error)
+	// DeleteMergedRows removes the given writers' rows of one name, once compaction
+	// has merged them into a compacted row.
+	//
+	//  DELETE FROM counters
+	//  WHERE name = ?
+	//      AND writer_id IN (/*SLICE:writer_ids*/?)
+	DeleteMergedRows(ctx context.Context, db DBTX, arg DeleteMergedRowsParams) (int64, error)
 	// DeleteWriterCounters removes one writer's rows for the given names. A writer
 	// uses it when it forgets those entries, so a surviving row cannot hold a higher
 	// revision than the writer's next snapshot of the same name.
@@ -25,6 +43,39 @@ type Querier interface {
 	//  WHERE writer_id = ?
 	//      AND name IN (/*SLICE:names*/?)
 	DeleteWriterCounters(ctx context.Context, db DBTX, arg DeleteWriterCountersParams) (int64, error)
+	// InsertCompactedRow stores the sum of rows that compaction merged as one new row
+	// under a writer id nobody writes. Callers delete the merged rows in the same
+	// transaction. The row's compaction_after is the database time plus compact_delay_ms,
+	// and its compaction level is the lowest level of the rows it replaces.
+	//
+	//  INSERT INTO counters (
+	//      name,
+	//      writer_id,
+	//      count,
+	//      revision,
+	//      delete_after,
+	//      compaction_after,
+	//      compaction_level
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      1,
+	//      ?,
+	//      CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + ?,
+	//      ?
+	//  )
+	InsertCompactedRow(ctx context.Context, db DBTX, arg InsertCompactedRowParams) error
+	// ListCompactableNames returns the names of the rows whose compaction_after has
+	// passed by the database clock, oldest row first. A name appears once for each
+	// of its rows, so the caller removes duplicates. The read takes no locks.
+	//
+	//  SELECT name
+	//  FROM counters
+	//  WHERE compaction_after <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//  ORDER BY compaction_after
+	//  LIMIT ?
+	ListCompactableNames(ctx context.Context, db DBTX, arg ListCompactableNamesParams) ([]string, error)
 	// ListRows returns every row of a name. Tests and diagnostics use it to see how
 	// many rows a counter holds and what each one contains.
 	//
@@ -33,6 +84,38 @@ type Querier interface {
 	//  WHERE name = ?
 	//  ORDER BY writer_id
 	ListRows(ctx context.Context, db DBTX, arg ListRowsParams) ([]ListRowsRow, error)
+	// LockCompactableRowsOfName reads up to a limit of one name's rows whose
+	// compaction_after has passed by the database clock, oldest first, and locks them
+	// until the transaction ends. A row another compactor holds is skipped, so
+	// compactors working at the same time take different rows instead of waiting for
+	// each other. The limit counts rows, so one name with a long history cannot make
+	// a transaction unbounded.
+	//
+	//  SELECT writer_id, count, delete_after, compaction_level
+	//  FROM counters
+	//  WHERE name = ?
+	//      AND compaction_after <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//  ORDER BY compaction_after
+	//  LIMIT ?
+	//  FOR UPDATE SKIP LOCKED
+	LockCompactableRowsOfName(ctx context.Context, db DBTX, arg LockCompactableRowsOfNameParams) ([]LockCompactableRowsOfNameRow, error)
+	// LockParkedRowsOfName reads up to a limit of the rows of one name that compaction
+	// created or moved ahead, and that are not due yet, and locks them until the
+	// transaction ends. These are the rows with a compaction level above zero and the
+	// rows whose writer id starts with the given prefix. No writer writes them, so
+	// they are final even though compaction waits to look at them. A pass that looks
+	// at the name because of a ready row merges them in too. A row another compactor
+	// holds is skipped.
+	//
+	//  SELECT writer_id, count, delete_after, compaction_level
+	//  FROM counters
+	//  WHERE name = ?
+	//      AND compaction_after > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//      AND (compaction_level > 0 OR LOCATE(?, writer_id) = 1)
+	//  ORDER BY compaction_after
+	//  LIMIT ?
+	//  FOR UPDATE SKIP LOCKED
+	LockParkedRowsOfName(ctx context.Context, db DBTX, arg LockParkedRowsOfNameParams) ([]LockParkedRowsOfNameRow, error)
 	// Persist uses an increasing revision to stop delayed writes or retries from
 	// overwriting a newer snapshot, even when its count decreases.
 	//

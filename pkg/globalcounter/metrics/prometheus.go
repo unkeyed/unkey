@@ -120,4 +120,47 @@ var (
 			Buckets:   latencyBuckets,
 		},
 	)
+
+	// CompactionsTotal counts compaction transactions.
+	//
+	// Possible result values are:
+	// - "compacted": the transaction merged the rows it selected, or found none.
+	// - "error": MySQL failed; the rows stay and a later pass retries.
+	//
+	// Example usage:
+	//   metrics.CompactionsTotal.WithLabelValues("compacted").Inc()
+	CompactionsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "globalcounter",
+			Name:      "compactions_total",
+			Help:      "Compaction transactions by result",
+		},
+		[]string{"result"},
+	)
+
+	// CompactedRowsTotal counts rows that nobody wrote for a while, merged into
+	// compacted rows.
+	CompactedRowsTotal = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "globalcounter",
+			Name:      "compacted_rows_total",
+			Help:      "Rows nobody wrote for a while, merged into compacted rows",
+		},
+	)
+
+	// CompactionDeferredRowsTotal counts rows that a compaction pass left alone and
+	// moved to a higher compaction level, because their name had a single
+	// compactable row or their sum overflows int64. The wait doubles with each
+	// level, so a row that nobody writes costs a few updates in its first weeks and
+	// almost none after that.
+	CompactionDeferredRowsTotal = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "globalcounter",
+			Name:      "compaction_deferred_rows_total",
+			Help:      "Rows a compaction pass left alone and moved to a higher compaction level",
+		},
+	)
 )
