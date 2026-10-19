@@ -11,6 +11,7 @@ import {
   SettingsRowHeader,
   SettingsRowTitle,
 } from "@unkey/ui";
+import { useId } from "react";
 import { Controller } from "react-hook-form";
 import { z } from "zod";
 import { useSettingField } from "../hooks/use-setting-form";
@@ -19,12 +20,19 @@ export const PROTOCOLS: Record<
   EnvironmentSettings["upstreamProtocol"],
   { label: string; hint: string }
 > = {
-  http1: { label: "HTTP/1.1", hint: "Works with every server." },
-  h2c: { label: "HTTP/2 (h2c)", hint: "Cleartext HTTP/2. For gRPC and streaming." },
+  http1: {
+    label: "HTTP/1.1",
+    hint: "The default for most applications. No special server configuration needed.",
+  },
+  h2c: {
+    label: "HTTP/2 (h2c)",
+    hint: "For gRPC and HTTP/2 servers. Your app must accept cleartext HTTP/2 connections.",
+  },
 };
 
 export function UpstreamProtocol() {
   const { form, formProps } = useSettingField("upstreamProtocol", z.enum(["http1", "h2c"]));
+  const descriptionId = useId();
 
   return (
     <SettingsForm {...formProps}>
@@ -32,7 +40,7 @@ export function UpstreamProtocol() {
         <SettingsRowHeader>
           <SettingsRowTitle>Upstream protocol</SettingsRowTitle>
           <SettingsRowDescription>
-            Protocol Unkey uses to reach your app.{" "}
+            How Unkey connects to your app.{" "}
             <a
               href="https://www.unkey.com/docs/platform/apps/settings#upstream-protocol"
               target="_blank"
@@ -49,30 +57,35 @@ export function UpstreamProtocol() {
             control={form.control}
             name="upstreamProtocol"
             render={({ field }) => (
-              <RadioGroup
-                aria-label="Upstream protocol"
-                value={field.value}
-                onValueChange={field.onChange}
-                className="grid max-w-(--setting-w) gap-3 sm:grid-cols-2"
-              >
+              <div className="flex max-w-xs flex-col gap-2">
+                <RadioGroup
+                  aria-label="Upstream protocol"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  className="grid grid-cols-2 gap-1 rounded-lg bg-grayA-3 p-1"
+                >
+                  {Object.entries(PROTOCOLS).map(([value, protocol]) => (
+                    <Radio.Root
+                      key={value}
+                      value={value}
+                      aria-describedby={`${descriptionId}-${value}`}
+                      className="flex min-h-8 cursor-pointer items-center justify-center rounded-md border border-transparent px-3 font-mono text-xs text-gray-11 transition-colors hover:text-gray-12 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-8 focus-visible:ring-offset-2 focus-visible:ring-offset-background data-checked:border-grayA-5 data-checked:bg-raised data-checked:text-gray-12 data-checked:shadow-xs"
+                    >
+                      {protocol.label}
+                    </Radio.Root>
+                  ))}
+                </RadioGroup>
                 {Object.entries(PROTOCOLS).map(([value, protocol]) => (
-                  <Radio.Root
+                  <p
                     key={value}
-                    value={value}
-                    className="group flex items-start gap-3 rounded-lg border border-grayA-5 p-3.5 text-left transition-colors hover:border-grayA-7 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7 data-checked:border-gray-12 data-checked:bg-grayA-2 data-checked:ring-1 data-checked:ring-gray-12"
+                    id={`${descriptionId}-${value}`}
+                    hidden={value !== field.value}
+                    className="text-xs leading-4 text-gray-11"
                   >
-                    <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border border-grayA-7 group-data-checked:border-gray-12 group-data-checked:bg-gray-12">
-                      <Radio.Indicator className="size-1.5 rounded-full bg-gray-1" />
-                    </span>
-                    <span className="flex flex-col gap-1">
-                      <span className="font-mono text-sm font-medium text-gray-12">
-                        {protocol.label}
-                      </span>
-                      <span className="text-xs leading-5 text-gray-11">{protocol.hint}</span>
-                    </span>
-                  </Radio.Root>
+                    {protocol.hint}
+                  </p>
                 ))}
-              </RadioGroup>
+              </div>
             )}
           />
         </SettingsRowContent>
