@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"hash/maphash"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -45,6 +46,10 @@ const (
 	persistTimeout = 5 * time.Second
 	// closeTimeout bounds the final persist of Close, over all its batches.
 	closeTimeout = 15 * time.Second
+
+	// conditionalAttemptsMax is how often a conditional call starts over because a
+	// rotation changed the sequence between its peer reads and its decision.
+	conditionalAttemptsMax = 3
 
 	// entryShardCount is how many independently locked slices hold the entries.
 	entryShardCount = 64
@@ -271,6 +276,278 @@ func (c *Counter) Add(params AddParams) error {
 	metrics.AddsTotal.WithLabelValues("ok").Inc()
 	c.buffer.Buffer(c.persistRow(key, updated))
 	return nil
+}
+
+// ConditionalAddParams configures [Counter.ConditionalAdd].
+type ConditionalAddParams struct {
+	Name string
+
+	// DeleteAfter is when the counter may be deleted; zero means never.
+	DeleteAfter time.Time
+
+	// Delta receives the current total of Name, this writer plus all peers, and
+	// returns the change to add. Zero adds nothing.
+	//
+	// Delta runs while holding the lock of the shard that owns Name. That lock
+	// blocks every Add, Get and ConditionalAdd for all names on the shard, so
+	// Delta must be fast: arithmetic only, no I/O, no waiting. It must not call
+	// the Counter, which would deadlock. Read other counters beforehand.
+	Delta func(current int64) int64
+}
+
+// ConditionalAdd reads the current total of Name, lets Delta choose the change,
+// and applies it atomically with respect to other callers on this writer. A zero
+// delta writes nothing and queues nothing. It returns the total after the call.
+// The peer part of the total is as stale as in Get, so separate writers can
+// still overshoot by what has not been persisted and read yet.
+func (c *Counter) ConditionalAdd(ctx context.Context, params ConditionalAddParams) (int64, error) {
+	for range conditionalAttemptsMax {
+		current := c.sequence.Load()
+		peers, err := c.peerTotal(ctx, params.Name, current)
+		if err != nil {
+			return 0, err
+		}
+		key := entryKey{name: params.Name, sequence: current}
+		total, delta, updated, existed, rotated, err := c.addDecided(params, key, peers)
+		if rotated {
+			continue
+		}
+		if err != nil {
+			metrics.AddsTotal.WithLabelValues("overflow").Inc()
+			return 0, err
+		}
+		if delta == 0 {
+			metrics.AddsTotal.WithLabelValues("skipped").Inc()
+			return total, nil
+		}
+		if !existed {
+			metrics.MemoryEntries.Inc()
+		}
+		metrics.AddsTotal.WithLabelValues("ok").Inc()
+		c.buffer.Buffer(c.persistRow(key, updated))
+		return total, nil
+	}
+	return 0, fault.New("counter rotated repeatedly", fault.Internal("the writer id changed during every attempt for "+params.Name))
+}
+
+// addDecided runs params.Delta and applies its change to the entry of key,
+// holding the shard lock the whole time, and returns the total after the change.
+// If a rotation changed the sequence since key was chosen, it changes nothing and
+// reports rotated: the peer total was read for another pair of writer ids, and a
+// concurrent call may have changed the entry of the new sequence, which the local
+// total of key's sequence leaves out.
+func (c *Counter) addDecided(params ConditionalAddParams, key entryKey, peers int64) (total, delta int64, updated entry, existed, rotated bool, err error) {
+	shard := c.shard(params.Name)
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
+
+	if c.sequence.Load() != key.sequence {
+		return 0, 0, entry{count: 0, revision: 0, deleteAfter: time.Time{}}, false, true, nil
+	}
+	var local int64
+	if local, err = shard.localTotal(params.Name, key.sequence); err != nil {
+		return 0, 0, entry{}, false, false, err
+	}
+	if total, err = totalOf(peers, local); err != nil {
+		return 0, 0, entry{}, false, false, err
+	}
+	old, existed := shard.entries[key]
+	if delta = params.Delta(total); delta == 0 {
+		return total, 0, old, existed, false, nil
+	}
+	if total, err = addToTotal(total, delta); err != nil {
+		return 0, 0, entry{}, existed, false, err
+	}
+	if _, err = addToTotal(local, delta); err != nil {
+		return 0, 0, entry{}, existed, false, err
+	}
+	if updated, err = old.apply(delta, params.DeleteAfter); err != nil {
+		return 0, 0, entry{}, existed, false, err
+	}
+	shard.entries[key] = updated
+	return total, delta, updated, existed, false, nil
+}
+
+// ConditionalAddCheck is one counter in [Counter.ConditionalAddMany].
+type ConditionalAddCheck struct {
+	Name string
+
+	// DeleteAfter is when the counter may be deleted; zero means never.
+	DeleteAfter time.Time
+
+	// Delta receives the current total of Name, this writer plus all peers, and
+	// returns the change to add. Zero leaves this check alone. Setting abort stops
+	// every check in the call from changing; the Delta of every other check still
+	// runs, so each can record its own decision.
+	//
+	// Delta runs while holding the locks of every shard that owns a check. Those
+	// locks block every Add, Get and ConditionalAdd for all names on those
+	// shards, so Delta must be fast: arithmetic only, no I/O, no waiting. It must
+	// not call the Counter, which would deadlock. Read other counters beforehand.
+	Delta func(current int64) (delta int64, abort bool)
+}
+
+// ConditionalAddManyParams configures [Counter.ConditionalAddMany].
+type ConditionalAddManyParams struct {
+	// Checks must have distinct names.
+	Checks []ConditionalAddCheck
+}
+
+// ConditionalAddMany is [Counter.ConditionalAdd] for several names at once. The
+// changes the checks return are applied together, or not at all if any check
+// aborts or any change would overflow, atomically with respect to other callers
+// on this writer. It returns the total of each check after the call, which is its
+// current total if nothing was applied. Checks with a zero change create no entry
+// and queue nothing. The peer part of each total is as stale as in Get.
+func (c *Counter) ConditionalAddMany(ctx context.Context, params ConditionalAddManyParams) ([]int64, error) {
+	count := len(params.Checks)
+	names := make([]string, count)
+	seen := make(map[string]struct{}, count)
+	for i, check := range params.Checks {
+		if _, duplicate := seen[check.Name]; duplicate {
+			return nil, fault.New("counter names must be distinct", fault.Internal("duplicate name "+check.Name))
+		}
+		seen[check.Name] = struct{}{}
+		names[i] = check.Name
+	}
+
+	var (
+		current   int64
+		decisions []manyDecision
+		aborted   bool
+	)
+	for attempt := 0; ; attempt++ {
+		if attempt == conditionalAttemptsMax {
+			return nil, fault.New("counter rotated repeatedly", fault.Internal("the writer id changed during every attempt"))
+		}
+		current = c.sequence.Load()
+		peers := make([]int64, count)
+		for i, name := range names {
+			peer, err := c.peerTotal(ctx, name, current)
+			if err != nil {
+				return nil, err
+			}
+			peers[i] = peer
+		}
+		var rotated bool
+		var err error
+		decisions, aborted, rotated, err = c.decideMany(params.Checks, current, peers)
+		if rotated {
+			continue
+		}
+		if err != nil {
+			metrics.AddsTotal.WithLabelValues("overflow").Inc()
+			return nil, err
+		}
+		break
+	}
+	totals := make([]int64, count)
+	for i, d := range decisions {
+		totals[i] = d.current
+		if !aborted {
+			totals[i] += d.delta
+		}
+	}
+	if aborted {
+		metrics.AddsTotal.WithLabelValues("skipped").Add(float64(count))
+		return totals, nil
+	}
+
+	for i, d := range decisions {
+		if d.delta == 0 {
+			metrics.AddsTotal.WithLabelValues("skipped").Inc()
+			continue
+		}
+		metrics.AddsTotal.WithLabelValues("ok").Inc()
+		if !d.existed {
+			metrics.MemoryEntries.Inc()
+		}
+		c.buffer.Buffer(c.persistRow(entryKey{name: names[i], sequence: current}, d.updated))
+	}
+	return totals, nil
+}
+
+// manyDecision is the outcome of one check in a ConditionalAddMany call.
+type manyDecision struct {
+	// current is the check's total before the call.
+	current int64
+
+	// delta is the change that will be applied, or zero for none.
+	delta int64
+
+	// updated is the entry to store when delta is not zero.
+	updated entry
+
+	// existed reports whether this writer already had an entry for the check.
+	existed bool
+}
+
+// decideMany runs every check's Delta and, unless one aborts or overflows, applies
+// all changes. It holds the locks of every shard that owns a check, taken in
+// ascending shard order so concurrent calls cannot deadlock, for the whole call.
+// If a rotation changed the sequence since current was read, it changes nothing
+// and reports rotated, for the reason given at [Counter.addDecided].
+func (c *Counter) decideMany(checks []ConditionalAddCheck, current int64, peers []int64) (decisions []manyDecision, aborted, rotated bool, err error) {
+	owners := make([]int, len(checks))
+	var locked []int
+	for i, check := range checks {
+		owners[i] = c.shardIndex(check.Name)
+		if !slices.Contains(locked, owners[i]) {
+			locked = append(locked, owners[i])
+		}
+	}
+	slices.Sort(locked)
+	for _, index := range locked {
+		c.shards[index].mu.Lock()
+	}
+	defer func() {
+		for _, index := range slices.Backward(locked) {
+			c.shards[index].mu.Unlock()
+		}
+	}()
+
+	if c.sequence.Load() != current {
+		return nil, false, true, nil
+	}
+	decisions = make([]manyDecision, len(checks))
+	for i, check := range checks {
+		shard := c.shards[owners[i]]
+		old, existed := shard.entries[entryKey{name: check.Name, sequence: current}]
+		local, localErr := shard.localTotal(check.Name, current)
+		if localErr != nil {
+			return nil, false, false, localErr
+		}
+		total, totalErr := totalOf(peers[i], local)
+		if totalErr != nil {
+			return nil, false, false, totalErr
+		}
+		delta, abort := check.Delta(total)
+		aborted = aborted || abort
+		decisions[i] = manyDecision{current: total, delta: 0, updated: old, existed: existed}
+		if abort || delta == 0 {
+			continue
+		}
+		if _, addErr := addToTotal(total, delta); addErr != nil {
+			return nil, false, false, addErr
+		}
+		if _, addErr := addToTotal(local, delta); addErr != nil {
+			return nil, false, false, addErr
+		}
+		updated, applyErr := old.apply(delta, check.DeleteAfter)
+		if applyErr != nil {
+			return nil, false, false, applyErr
+		}
+		decisions[i].delta, decisions[i].updated = delta, updated
+	}
+	if aborted {
+		return decisions, true, false, nil
+	}
+	for i, check := range checks {
+		if decisions[i].delta != 0 {
+			c.shards[owners[i]].entries[entryKey{name: check.Name, sequence: current}] = decisions[i].updated
+		}
+	}
+	return decisions, false, false, nil
 }
 
 // shardIndex returns the index of the shard that owns name.
