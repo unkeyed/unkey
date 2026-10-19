@@ -2033,16 +2033,11 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
-// LogHttpMethod An HTTP method in upper case.
-//
-// Example: POST
-type LogHttpMethod string
-
-// LogIdFilter Filters a field that matches only as a whole value, such as a host or a request ID.
+// LogExactFilter Filters a field that matches only as a whole value, such as a host or a request ID.
 // Matching is exact and case-sensitive.
 //
 // Example: {"isNot":["api.unkey.dev"]}
-type LogIdFilter struct {
+type LogExactFilter struct {
 	// Is The values of one filter operator. A row matches a positive operator when it matches any value in the list.
 	// A row matches a negated operator only when it matches none of the values.
 	Is *LogStringValues `json:"is,omitempty"`
@@ -2051,6 +2046,11 @@ type LogIdFilter struct {
 	// A row matches a negated operator only when it matches none of the values.
 	IsNot *LogStringValues `json:"isNot,omitempty"`
 }
+
+// LogHttpMethod An HTTP method in upper case.
+//
+// Example: POST
+type LogHttpMethod string
 
 // LogIntFilter Filters an integer field. `is` keeps rows that equal one of its values.
 // `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
@@ -5735,7 +5735,7 @@ type V2LogsListApiRequestsFilters struct {
 	//
 	//
 	// Example: {"isNot":["api.unkey.dev"]}
-	Host *LogIdFilter `json:"host,omitempty"`
+	Host *LogExactFilter `json:"host,omitempty"`
 
 	// Method Filters by HTTP method.
 	//
@@ -5755,7 +5755,7 @@ type V2LogsListApiRequestsFilters struct {
 	//
 	//
 	// Example: {"isNot":["api.unkey.dev"]}
-	RequestId *LogIdFilter `json:"requestId,omitempty"`
+	RequestId *LogExactFilter `json:"requestId,omitempty"`
 
 	// Status Filters an integer field. `is` keeps rows that equal one of its values.
 	// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.

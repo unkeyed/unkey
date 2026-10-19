@@ -15,21 +15,34 @@ import (
 
 type limitedClickHouse struct {
 	clickhouse.ClickHouse
+	exception *ch.Exception
 }
 
-func (limitedClickHouse) ListApiRequests(context.Context, clickhouse.ListApiRequestsRequest) (clickhouse.ApiRequestsPage, error) {
-	return clickhouse.ApiRequestsPage{}, clickhouse.WrapClickHouseError(&ch.Exception{Code: 159, Name: "DB::Exception", Message: "Timeout exceeded: elapsed 10.1 seconds, maximum: 10"})
+func (l limitedClickHouse) ListApiRequests(context.Context, clickhouse.ListApiRequestsRequest) (clickhouse.ApiRequestsPage, error) {
+	return clickhouse.ApiRequestsPage{}, clickhouse.WrapClickHouseError(l.exception)
 }
 
 // TestListApiRequestsReadLimit guarantees a read limit is a 422 that names
 // what the caller can change, not the generic advice to simplify a query
 func TestListApiRequestsReadLimit(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
-	route.ClickHouse = limitedClickHouse{ClickHouse: h.ClickHouse}
 	rootKey := h.CreateRootKey(workspaceID, requestLogsPermission(workspaceID))
 
-	res := testutil.CallRoute[handler.Request, openapi.UnprocessableEntityErrorResponse](h, route, auth(rootKey), handler.Request{})
+	tests := []struct {
+		name      string
+		exception *ch.Exception
+	}{
+		{name: "timeout", exception: &ch.Exception{Code: 159, Name: "DB::Exception", Message: "Timeout exceeded: elapsed 10.1 seconds, maximum: 10"}},
+		{name: "result too large", exception: &ch.Exception{Code: 396, Name: "DB::Exception", Message: "Limit for result exceeded, max bytes: 4.00 MiB"}},
+	}
 
-	require.Equal(t, http.StatusUnprocessableEntity, res.Status, "expected 422, received: %s", res.RawBody)
-	require.Equal(t, "The query exceeds a read limit. Send a narrower `filters.time` window or more filters, then try again.", res.Body.Error.Detail)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			route.ClickHouse = limitedClickHouse{ClickHouse: h.ClickHouse, exception: tt.exception}
+			res := testutil.CallRoute[handler.Request, openapi.UnprocessableEntityErrorResponse](h, route, auth(rootKey), handler.Request{})
+
+			require.Equal(t, http.StatusUnprocessableEntity, res.Status, "expected 422, received: %s", res.RawBody)
+			require.Equal(t, "The query exceeds a read limit. Send a lower `limit`, a narrower `filters.time` window, or more filters, then try again.", res.Body.Error.Detail)
+		})
+	}
 }

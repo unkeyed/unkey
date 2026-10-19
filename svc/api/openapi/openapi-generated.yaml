@@ -7750,11 +7750,11 @@ components:
                 path:
                     "$ref": "#/components/schemas/LogTextFilter"
                 host:
-                    "$ref": "#/components/schemas/LogIdFilter"
+                    "$ref": "#/components/schemas/LogExactFilter"
                 method:
                     "$ref": "#/components/schemas/LogMethodFilter"
                 requestId:
-                    "$ref": "#/components/schemas/LogIdFilter"
+                    "$ref": "#/components/schemas/LogExactFilter"
                 status:
                     "$ref": "#/components/schemas/LogIntFilter"
         LogTimeFilter:
@@ -7816,7 +7816,7 @@ components:
             example:
                 startsWith: ["/v2/keys."]
                 notContains: ["verifyKey"]
-        LogIdFilter:
+        LogExactFilter:
             type: object
             additionalProperties: false
             description: |
@@ -16038,7 +16038,7 @@ paths:
                                     summary: Result too large
                                     value:
                                         error:
-                                            detail: The query exceeds a read limit. Send a narrower `filters.time` window or more filters, then try again.
+                                            detail: The query exceeds a read limit. Send a lower `limit`, a narrower `filters.time` window, or more filters, then try again.
                                             status: 422
                                             title: Unprocessable Entity
                                             type: https://unkey.com/docs/errors/user/unprocessable_entity/query_memory_limit_exceeded

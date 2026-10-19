@@ -8,10 +8,10 @@ properties:
   path:
     "$ref": "../../../../common/LogTextFilter.yaml"
   host:
-    "$ref": "../../../../common/LogIdFilter.yaml"
+    "$ref": "../../../../common/LogExactFilter.yaml"
   method:
     "$ref": "../../../../common/LogMethodFilter.yaml"
   requestId:
-    "$ref": "../../../../common/LogIdFilter.yaml"
+    "$ref": "../../../../common/LogExactFilter.yaml"
   status:
     "$ref": "../../../../common/LogIntFilter.yaml"

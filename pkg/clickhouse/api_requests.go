@@ -18,11 +18,6 @@ const (
 	apiRequestStatus    logfilter.Column = "response_status"
 )
 
-// apiRequestsResultBytesMax lets one row through whole: the API logs request
-// bodies up to 10 MiB and analytics responses up to 4 MiB. Only a page of many
-// such rows exceeds it, and a lower limit fixes that page
-const apiRequestsResultBytesMax = 32 << 20
-
 // ApiRequestFilters are the filters of one listing, one operator set per field
 type ApiRequestFilters struct {
 	Time      logfilter.Int
@@ -104,7 +99,7 @@ func (c *Client) ListApiRequests(ctx context.Context, req ListApiRequestsRequest
 		params["cursor_request_id"] = req.After.RequestID
 	}
 
-	rows, err := Select[ApiRequestLog](withReadLimits(ctx, apiRequestsResultBytesMax), c.conn, `
+	rows, err := Select[ApiRequestLog](withReadLimits(ctx, AnalyticsResultBytesMax), c.conn, `
 		SELECT request_id, time, host, method, path, request_headers, request_body,
 			response_status, response_headers, response_body, error, service_latency
 		FROM default.api_requests_raw_v2

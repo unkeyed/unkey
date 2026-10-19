@@ -107,12 +107,12 @@ func TestListApiRequestsFilters(t *testing.T) {
 		},
 		{
 			name:    "host isNot",
-			filters: openapi.V2LogsListApiRequestsFilters{Host: &openapi.LogIdFilter{IsNot: &[]string{"api.unkey.com"}}},
+			filters: openapi.V2LogsListApiRequestsFilters{Host: &openapi.LogExactFilter{IsNot: &[]string{"api.unkey.com"}}},
 			want:    []string{rows[4].RequestID},
 		},
 		{
 			name:    "request id",
-			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.LogIdFilter{Is: &[]string{rows[2].RequestID}}},
+			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.LogExactFilter{Is: &[]string{rows[2].RequestID}}},
 			want:    []string{rows[2].RequestID},
 		},
 		{
@@ -122,7 +122,7 @@ func TestListApiRequestsFilters(t *testing.T) {
 		},
 		{
 			name:    "no match",
-			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.LogIdFilter{Is: &[]string{uid.New(uid.RequestPrefix)}}},
+			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.LogExactFilter{Is: &[]string{uid.New(uid.RequestPrefix)}}},
 			want:    []string{},
 		},
 	}

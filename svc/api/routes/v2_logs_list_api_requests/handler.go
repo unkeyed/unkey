@@ -112,11 +112,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	filters := ptr.SafeDeref(req.Filters)
 	timeFilter := ptr.SafeDeref(filters.Time)
-	path := ptr.SafeDeref(filters.Path)
-	host := ptr.SafeDeref(filters.Host)
-	method := ptr.SafeDeref(filters.Method)
-	requestID := ptr.SafeDeref(filters.RequestId)
-	status := ptr.SafeDeref(filters.Status)
+	pathFilter := ptr.SafeDeref(filters.Path)
+	hostFilter := ptr.SafeDeref(filters.Host)
+	methodFilter := ptr.SafeDeref(filters.Method)
+	requestIDFilter := ptr.SafeDeref(filters.RequestId)
+	statusFilter := ptr.SafeDeref(filters.Status)
 	limit := ptr.PositiveOr(req.Limit, limitDefault)
 
 	page, err := h.ClickHouse.ListApiRequests(ctx, clickhouse.ListApiRequestsRequest{
@@ -134,32 +134,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Lte:   timeFilter.Lte,
 			},
 			Path: logfilter.Text{
-				Is:          ptr.SafeDeref(path.Is),
-				IsNot:       ptr.SafeDeref(path.IsNot),
-				Contains:    ptr.SafeDeref(path.Contains),
-				NotContains: ptr.SafeDeref(path.NotContains),
-				StartsWith:  ptr.SafeDeref(path.StartsWith),
-				EndsWith:    ptr.SafeDeref(path.EndsWith),
+				Is:          ptr.SafeDeref(pathFilter.Is),
+				IsNot:       ptr.SafeDeref(pathFilter.IsNot),
+				Contains:    ptr.SafeDeref(pathFilter.Contains),
+				NotContains: ptr.SafeDeref(pathFilter.NotContains),
+				StartsWith:  ptr.SafeDeref(pathFilter.StartsWith),
+				EndsWith:    ptr.SafeDeref(pathFilter.EndsWith),
 			},
 			Host: logfilter.Exact{
-				Is:    ptr.SafeDeref(host.Is),
-				IsNot: ptr.SafeDeref(host.IsNot),
+				Is:    ptr.SafeDeref(hostFilter.Is),
+				IsNot: ptr.SafeDeref(hostFilter.IsNot),
 			},
 			Method: logfilter.Exact{
-				Is:    methodStrings(ptr.SafeDeref(method.Is)),
-				IsNot: methodStrings(ptr.SafeDeref(method.IsNot)),
+				Is:    methodStrings(ptr.SafeDeref(methodFilter.Is)),
+				IsNot: methodStrings(ptr.SafeDeref(methodFilter.IsNot)),
 			},
 			RequestID: logfilter.Exact{
-				Is:    ptr.SafeDeref(requestID.Is),
-				IsNot: ptr.SafeDeref(requestID.IsNot),
+				Is:    ptr.SafeDeref(requestIDFilter.Is),
+				IsNot: ptr.SafeDeref(requestIDFilter.IsNot),
 			},
 			Status: logfilter.Int{
-				Is:    ptr.SafeDeref(status.Is),
-				IsNot: ptr.SafeDeref(status.IsNot),
-				Gt:    status.Gt,
-				Gte:   status.Gte,
-				Lt:    status.Lt,
-				Lte:   status.Lte,
+				Is:    ptr.SafeDeref(statusFilter.Is),
+				IsNot: ptr.SafeDeref(statusFilter.IsNot),
+				Gt:    statusFilter.Gt,
+				Gte:   statusFilter.Gte,
+				Lt:    statusFilter.Lt,
+				Lte:   statusFilter.Lte,
 			},
 		},
 	})
@@ -170,7 +170,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.New("api request listing exceeds a read limit",
 				fault.Code(code),
 				fault.Internal(err.Error()),
-				fault.Public("The query exceeds a read limit. Send a narrower `filters.time` window or more filters, then try again."),
+				fault.Public("The query exceeds a read limit. Send a lower `limit`, a narrower `filters.time` window, or more filters, then try again."),
 			)
 		}
 		if _, isException := errors.AsType[*ch.Exception](err); isException {
