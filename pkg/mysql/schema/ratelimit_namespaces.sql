@@ -4,6 +4,7 @@ CREATE TABLE `ratelimit_namespaces` (
 	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`project_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`name` varchar(512) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`use_global_counter` boolean NOT NULL DEFAULT false,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
