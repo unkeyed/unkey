@@ -12,7 +12,7 @@
   },
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0",
+  "license": "FSL-1.1-ALv2",
   "dependencies": {
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",

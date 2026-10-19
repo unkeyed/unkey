@@ -7,21 +7,28 @@ import {
   SettingsRowTitle,
 } from "@unkey/ui";
 import { useMemo } from "react";
-import { z } from "zod";
-import { useSettingField } from "../hooks/use-setting-form";
+import type { SettingField } from "../hooks/use-setting-form";
 import { pathHint, pathInputVariant } from "./path-hint";
 import { pathHintMessage } from "./path-hint-message";
 import { useRepoTree } from "./use-repo-tree";
 
-export function Dockerfile() {
-  const { settings, form, formProps } = useSettingField("dockerfile", z.string());
+export function Dockerfile({
+  field,
+  onSelect,
+}: {
+  field: SettingField<"dockerfile">;
+  onSelect: (path: string) => void;
+}) {
+  const { settings, form, formProps } = field;
   const { dockerContext } = settings;
   const { branch, validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
     useRepoTree();
 
   const currentDockerfile = form.watch("dockerfile");
-  const setDockerfile = (path: string) =>
+  const setDockerfile = (path: string) => {
     form.setValue("dockerfile", path, { shouldDirty: true, shouldValidate: true });
+    onSelect(path);
+  };
 
   const validation = currentDockerfile
     ? validateDockerfilePath(currentDockerfile, dockerContext)

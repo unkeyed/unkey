@@ -2,6 +2,7 @@
 
 import { match } from "@unkey/match";
 import { SettingsGroup, SettingsGroupContent } from "@unkey/ui";
+import { useBuildFields } from "../hooks/use-build-fields";
 import { useBuildSource } from "../hooks/use-build-source";
 import { OCIImage } from "../oci-image";
 import { BuildCommand } from "./build-command-settings";
@@ -24,15 +25,20 @@ export function BuildSettings({ githubReadOnly = false }: { githubReadOnly?: boo
               .with("git", "unknown", () => <GitHub readOnly={githubReadOnly} />)
               .exhaustive()
           : null}
-        {hasRepository ? (
-          <>
-            <RootDirectory />
-            <Dockerfile />
-            <BuildCommand />
-            <WatchPaths />
-          </>
-        ) : null}
+        {hasRepository ? <GitBuildRows /> : null}
       </SettingsGroupContent>
     </SettingsGroup>
+  );
+}
+
+function GitBuildRows() {
+  const build = useBuildFields();
+  return (
+    <>
+      <RootDirectory />
+      <Dockerfile field={build.dockerfile} onSelect={build.onDockerfileSelect} />
+      <BuildCommand field={build.buildCommand} disabled={build.dockerfileConfigured} />
+      <WatchPaths />
+    </>
   );
 }

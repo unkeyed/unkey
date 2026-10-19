@@ -15,7 +15,7 @@
     "migrate": "pnpm turbo run migrate"
   },
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0",
+  "license": "FSL-1.1-ALv2",
   "packageManager": "pnpm@11.28.5",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
