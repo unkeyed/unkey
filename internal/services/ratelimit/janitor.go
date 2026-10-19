@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
@@ -10,8 +11,7 @@ import (
 
 // startJanitor schedules runJanitorOnce to run every minute.
 func (s *service) startJanitor() {
-	stop := repeat.Every(time.Minute, s.runJanitorOnce)
-	s.stopBackground = append(s.stopBackground, stop)
+	repeat.Every(time.Minute, func(context.Context) { s.runJanitorOnce() }, repeat.UntilClose(s.stopBackground))
 }
 
 // runJanitorOnce performs a single cleanup pass. It prevents unbounded

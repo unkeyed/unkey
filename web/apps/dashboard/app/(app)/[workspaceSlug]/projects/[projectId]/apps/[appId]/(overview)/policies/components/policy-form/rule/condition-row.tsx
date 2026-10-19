@@ -159,7 +159,10 @@ export function ConditionRow({
       : undefined;
 
   const patch = (next: MatchConditionFormValues) => {
-    setValue(`matchConditions.${index}`, next, { shouldValidate: formState.isSubmitted });
+    setValue(`matchConditions.${index}`, next, {
+      shouldDirty: true,
+      shouldValidate: formState.isSubmitted,
+    });
   };
 
   const state = conditionRowState(condition);

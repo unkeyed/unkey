@@ -67,7 +67,7 @@ npms:
     description: "Unkey CLI"
     homepage: "https://unkey.com"
     repository: "https://github.com/unkeyed/unkey"
-    license: "AGPL-3.0-only"
+    license: "FSL-1.1-ALv2"
     tag: "{{ if .Prerelease }}next{{ else }}latest{{ end }}"
 
 changelog:

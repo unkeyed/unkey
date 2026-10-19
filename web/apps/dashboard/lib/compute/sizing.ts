@@ -57,10 +57,6 @@ export function planForPreset(preset: Preset): DeployPlan | undefined {
   return DEPLOY_PLANS.find((plan) => presetFits(preset, resolveLimits(limitsByPlan[plan])));
 }
 
-export function onStorageTable(storageMib: number): boolean {
-  return STORAGE_OPTIONS.some((mib) => mib === storageMib);
-}
-
 export function sizeLabel(size: Size): string {
   return presetFor(size.cpuMillicores, size.memoryMib)?.label ?? CUSTOM_SIZE_LABEL;
 }
@@ -128,6 +124,7 @@ export function unitOptions(field: UnitField, current: number | null): number[] 
   return steps;
 }
 
-export function storagePresets(limits: ComputeLimits): number[] {
-  return STORAGE_OPTIONS.filter((mib) => mib <= limits.storageMib);
+export function storageOptions(limits: ComputeLimits, current: number): number[] {
+  const presets: number[] = STORAGE_OPTIONS.filter((mib) => mib <= limits.storageMib);
+  return presets.includes(current) ? presets : [...presets, current].sort((a, b) => a - b);
 }

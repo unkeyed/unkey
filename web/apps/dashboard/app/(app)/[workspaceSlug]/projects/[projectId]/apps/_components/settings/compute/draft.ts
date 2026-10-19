@@ -1,4 +1,5 @@
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+import { plural } from "@/lib/fmt";
 import { sameJson } from "@/lib/utils/same-json";
 import { z } from "zod";
 
@@ -18,6 +19,12 @@ export type Replicas = ComputeValues["replicas"];
 
 export function formatReplicas({ min, max }: Replicas): string {
   return min === max ? `${max}` : `${min}–${max}`;
+}
+
+export function formatInstances(replicas: Replicas): string {
+  return replicas.min === replicas.max
+    ? plural(replicas.max, "instance")
+    : `${formatReplicas(replicas)} instances`;
 }
 
 export function readCompute(settings: EnvironmentSettings): ComputeValues {

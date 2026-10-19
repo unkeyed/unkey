@@ -1,4 +1,4 @@
-// Package deployment manages user workload ReplicaSets in Kubernetes as part of
+// Package deployment manages user workload Deployments in Kubernetes as part of
 // krane's split control loop architecture.
 //
 // The package provides [Controller], which handles Kubernetes reconciliation and
@@ -8,7 +8,7 @@
 //
 // # Architecture
 //
-// The controller runs three concurrent loops plus receives dispatched events:
+// The controller runs four concurrent loops plus receives dispatched events:
 //
 // [Controller.runPodWatchLoop] watches Kubernetes for pod changes and reports actual
 // state back to the control plane via ReportDeploymentStatus. Watching pods directly
@@ -18,7 +18,18 @@
 // The resync loops run periodically as a consistency safety net. While the
 // other loops handle real-time events, they can miss updates during network partitions,
 // controller restarts, or buffer overflows. The resync loop queries the control plane
-// for each existing ReplicaSet and applies any drift.
+// for each existing workload and applies any drift.
+//
+// [Controller.runRolloutGateLoop] limits how many workloads roll out a pod
+// template change at the same time. Workload Deployments stay paused at rest;
+// the gate unpauses them in small batches.
+//
+// # Legacy ReplicaSets
+//
+// Krane used to run each workload as a bare ReplicaSet. When krane applies a
+// workload that still has one, it creates a paused Deployment with the same name
+// that adopts the ReplicaSet without restarting its pods. Until then, the
+// resync loops, the pod watch, and deletion handle both kinds.
 //
 // # Security
 //

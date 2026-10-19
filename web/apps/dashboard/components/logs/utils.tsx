@@ -1,6 +1,6 @@
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
-import { format } from "date-fns";
+import { formatTimestamp, isSameDay } from "@unkey/ui";
 import type { TimeseriesData } from "./overview-charts/types";
 import { parseTimestamp } from "./parse-timestamp";
 
@@ -84,20 +84,13 @@ export const formatTooltipTimestamp = (
     return "";
   }
 
-  const date = new Date(timestampMs);
-
   // If we have data, check if it spans multiple days
   if (data && data.length > 1) {
-    const firstDay = new Date(parseTimestamp(data[0].originalTimestamp));
-    const lastDay = new Date(parseTimestamp(data[data.length - 1].originalTimestamp));
-
-    // Check if the data spans multiple calendar days
-    const firstDayStr = firstDay.toDateString();
-    const lastDayStr = lastDay.toDateString();
-
-    if (firstDayStr !== lastDayStr) {
+    const first = parseTimestamp(data[0].originalTimestamp);
+    const last = parseTimestamp(data[data.length - 1].originalTimestamp);
+    if (!isSameDay(first, last)) {
       // Data spans multiple days, always show date + time
-      return format(date, "MMM dd, h:mm a");
+      return formatTimestamp(timestampMs, "MMM d, h:mm a");
     }
   }
 
@@ -115,11 +108,11 @@ export const formatTooltipTimestamp = (
       "per6Hours",
     ].includes(granularity)
   ) {
-    return format(date, "h:mm a");
+    return formatTimestamp(timestampMs, "h:mm a");
   }
 
   // For granularities 12 hours or more, show date + time
-  return format(date, "MMM dd, h:mm a");
+  return formatTimestamp(timestampMs, "MMM d, h:mm a");
 };
 
 /**

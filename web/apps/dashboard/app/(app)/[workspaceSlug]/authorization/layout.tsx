@@ -30,7 +30,7 @@ export default function AuthorizationLayout({ children }: { children: ReactNode 
           ))}
         </SecondaryNavGroup>
       </SecondaryNav>
-      <div className="flex-1 min-w-0">{children}</div>
+      <div className="flex flex-1 min-w-0 flex-col">{children}</div>
     </div>
   );
 }

@@ -1,0 +1,33 @@
+export type Failure = { error: unknown; retry: () => void };
+
+export type Stale = Failure & { retrying: boolean };
+
+export type Loadable<T> =
+  | { status: "loading" }
+  | ({ status: "failed" } & Failure)
+  | { status: "ready"; data: T; stale: Stale | null };
+
+export type QueryResult<T> = {
+  data: T | undefined;
+  error: unknown;
+  isError: boolean;
+  isFetching: boolean;
+  refetch: () => Promise<unknown>;
+};
+
+export function fromQuery<T>(query: QueryResult<T>): Loadable<T> {
+  const retry = () => {
+    void query.refetch();
+  };
+  if (query.data !== undefined) {
+    return {
+      status: "ready",
+      data: query.data,
+      stale: query.isError ? { error: query.error, retry, retrying: query.isFetching } : null,
+    };
+  }
+  if (query.isError) {
+    return { status: "failed", error: query.error, retry };
+  }
+  return { status: "loading" };
+}

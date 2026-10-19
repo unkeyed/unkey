@@ -1,14 +1,17 @@
+import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import { describe, expect, it } from "vitest";
 import {
   type VariableRow,
   conflictErrors,
   importVariableEntries,
-  parseVariableRows,
   pasteVariableEntriesAt,
+  savedVariableChanges,
+  savedVariableRows,
+  splitVariableRows,
 } from "./variable-rows";
 
 function row(id: string, key: string, value: string, sensitive = false): VariableRow {
-  return { id, key, value, sensitive };
+  return { id, key, value, sensitive, origin: { kind: "new" } };
 }
 
 const fresh = (key: string, value: string) => ({
@@ -16,18 +19,19 @@ const fresh = (key: string, value: string) => ({
   key,
   value,
   sensitive: false,
+  origin: { kind: "new" },
 });
 
-describe("parseVariableRows", () => {
+describe("splitVariableRows", () => {
   it("skips blank rows and trims values", () => {
     expect(
-      parseVariableRows([
+      splitVariableRows([
         row("r1", "DATABASE_URL", " postgres://db \n"),
         row("r2", "API_TOKEN", "secret", true),
         row("r3", "", ""),
       ]),
     ).toEqual({
-      ok: true,
+      errors: new Map(),
       variables: [
         { key: "DATABASE_URL", value: "postgres://db", kind: "recoverable" },
         { key: "API_TOKEN", value: "secret", kind: "writeonly" },
@@ -36,9 +40,8 @@ describe("parseVariableRows", () => {
   });
 
   it("reports each invalid field by row id", () => {
-    const parsed = parseVariableRows([row("r1", "1BAD", "x"), row("r2", "TOKEN", "")]);
-    expect(parsed.ok).toBe(false);
-    expect(parsed.ok ? null : Object.fromEntries(parsed.errors)).toEqual({
+    const parsed = splitVariableRows([row("r1", "1BAD", "x"), row("r2", "TOKEN", "")]);
+    expect(Object.fromEntries(parsed.errors)).toEqual({
       r1: {
         key: "Only letters, digits, and underscores are allowed, and the name must not start with a digit",
         value: undefined,
@@ -48,8 +51,8 @@ describe("parseVariableRows", () => {
   });
 
   it("rejects a repeated name", () => {
-    const parsed = parseVariableRows([row("r1", "PORT", "1"), row("r2", "PORT", "2")]);
-    expect(parsed.ok ? null : Object.fromEntries(parsed.errors)).toEqual({
+    const parsed = splitVariableRows([row("r1", "PORT", "1"), row("r2", "PORT", "2")]);
+    expect(Object.fromEntries(parsed.errors)).toEqual({
       r2: {
         key: "This key appears more than once. Rename or remove the extra rows.",
         value: undefined,
@@ -113,5 +116,92 @@ describe("pasteVariableEntriesAt", () => {
         { key: "B", value: "2" },
       ]),
     ).toEqual([row("r1", "A", "1", true), row("r2", "LAST", "z"), fresh("B", "2")]);
+  });
+});
+
+function envVar(
+  environmentId: string,
+  key: string,
+  value: string,
+  type: EnvVar["type"] = "recoverable",
+): EnvVar {
+  return {
+    id: `${environmentId}:${key}`,
+    key,
+    value,
+    type,
+    description: null,
+    createdAt: 0,
+    environmentId,
+    projectId: "proj_1",
+    appId: "app_1",
+  };
+}
+
+describe("savedVariableRows", () => {
+  const variables = [
+    envVar("prod", "PORT", "8080"),
+    envVar("preview", "PORT", "8080"),
+    envVar("prod", "MODE", "live"),
+    envVar("preview", "MODE", "test"),
+    envVar("prod", "TOKEN", "", "writeonly"),
+    envVar("dev", "ONLY_DEV", "1"),
+  ];
+
+  it("groups the target environments' variables by key and locks what cannot be edited", () => {
+    expect(
+      savedVariableRows(variables, ["prod", "preview"]).map(
+        ({ key, value, sensitive, origin }) => ({
+          key,
+          value,
+          sensitive,
+          lock: origin.lock,
+        }),
+      ),
+    ).toEqual([
+      { key: "MODE", value: "", sensitive: false, lock: "varies" },
+      { key: "PORT", value: "8080", sensitive: false, lock: "none" },
+      { key: "TOKEN", value: "", sensitive: true, lock: "sensitive" },
+    ]);
+  });
+});
+
+describe("saved rows", () => {
+  const [old, port] = savedVariableRows(
+    [envVar("prod", "PORT", "8080"), envVar("preview", "PORT", "8080"), envVar("prod", "OLD", "x")],
+    ["prod", "preview"],
+  );
+
+  it("sets an edited value in every environment and removes deleted keys", () => {
+    expect(savedVariableChanges([{ ...port, value: "3000" }], [old])).toEqual({
+      edited: [envVar("prod", "PORT", "3000"), envVar("preview", "PORT", "3000")],
+      removed: [envVar("prod", "OLD", "x")],
+    });
+  });
+
+  it("writes nothing when a value is edited back to what is saved", () => {
+    expect(savedVariableChanges([old, { ...port, value: "8080" }], [])).toEqual({
+      edited: [],
+      removed: [],
+    });
+  });
+
+  it("rejects an edited value that is empty", () => {
+    expect(Object.fromEntries(splitVariableRows([{ ...port, value: "" }]).errors)).toEqual({
+      "saved:PORT": { value: "Variable value is required" },
+    });
+  });
+
+  it("rejects a new row that reuses a saved key", () => {
+    expect(Object.fromEntries(splitVariableRows([port, row("r1", "PORT", "1")]).errors)).toEqual({
+      r1: { key: "A variable with this key already exists.", value: undefined },
+    });
+  });
+
+  it("skips importing a saved key", () => {
+    expect(importVariableEntries([port], [{ key: "PORT", value: "1" }])).toMatchObject({
+      added: 0,
+      skipped: 1,
+    });
   });
 });

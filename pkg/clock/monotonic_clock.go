@@ -50,3 +50,9 @@ func (c *MonotonicClock) Now() time.Time {
 func (c *MonotonicClock) NewTicker(d time.Duration) Ticker {
 	return &realTicker{t: time.NewTicker(d)}
 }
+
+// NewTimer delegates to [time.NewTimer]. Timers run against the system
+// clock, like [MonotonicClock.NewTicker].
+func (c *MonotonicClock) NewTimer(d time.Duration) Timer {
+	return &realTimer{t: time.NewTimer(d)}
+}

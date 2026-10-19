@@ -9,13 +9,13 @@ import { BucketFilter } from "./components/bucket-filter";
 import { EventsFilter } from "./components/events-filter";
 import { RootKeysFilter } from "./components/root-keys-filter";
 import { UsersFilter } from "./components/users-filter";
-import { useAuditSearchItems } from "./use-audit-search-items";
+import { useAuditFilterOptions } from "./use-audit-filter-options";
 
 export const LogsFilters = (props: WorkspaceProps) => {
-  const { filters } = useFilters();
+  const { filters, updateFilters } = useFilters();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  const searchItems = useAuditSearchItems(props, isPopoverOpen);
+  const options = useAuditFilterOptions(props, isPopoverOpen);
 
   return (
     <FiltersPopover
@@ -25,29 +25,34 @@ export const LogsFilters = (props: WorkspaceProps) => {
           label: "Events",
           shortcut: "e",
           component: <EventsFilter />,
+          options: options.events,
         },
         {
           id: "users",
           label: "Users",
           shortcut: "m",
           component: <UsersFilter />,
+          options: options.users,
         },
         {
           id: "rootKeys",
           label: "Root Keys",
           shortcut: "p",
           component: <RootKeysFilter rootKeys={props.rootKeys} />,
+          options: options.rootKeys,
         },
         {
           id: "bucket",
           label: "Bucket",
           shortcut: "b",
           component: <BucketFilter buckets={props.buckets} />,
+          single: true,
+          options: options.buckets,
         },
       ]}
-      searchItems={searchItems}
       searchPlaceholder="Search events, users, root keys..."
       activeFilters={filters}
+      updateFilters={updateFilters}
       open={isPopoverOpen}
       onOpenChange={setIsPopoverOpen}
     >

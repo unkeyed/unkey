@@ -12,6 +12,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -45,7 +46,7 @@ func TestGitHubStatusReportsBuildFailure(t *testing.T) {
 	audit, err := auditlogs.New(auditlogs.Config{DB: database})
 	require.NoError(t, err)
 	workflow, err := deploy.New(deploy.Config{
-		DB: database, Auditlogs: audit, GitHub: github,
+		DB: database, Auditlogs: audit, Flags: flags.NewNoop(), GitHub: github,
 		DashboardURL: "https://app.unkey.com", DefaultDomain: "unkey.app",
 	})
 	require.NoError(t, err)

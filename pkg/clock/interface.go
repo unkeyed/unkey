@@ -22,6 +22,26 @@ type Clock interface {
 	// background goroutine driven by NewTicker observes the same notion
 	// of time as the rest of the test instead of running on real time.
 	NewTicker(d time.Duration) Ticker
+
+	// NewTimer returns a Timer that fires once after d. Production
+	// implementations delegate to time.NewTimer. Test implementations fire
+	// when simulated time advances past d. A zero or negative d fires
+	// immediately.
+	NewTimer(d time.Duration) Timer
+}
+
+// Timer delivers a single tick on a channel after a delay. It mirrors the
+// surface of [time.Timer] needed by callers that work against the Clock
+// interface.
+type Timer interface {
+	// C returns the channel on which the tick is delivered. The channel
+	// holds one value, so a timer that fires before anyone receives does
+	// not block.
+	C() <-chan time.Time
+
+	// Stop prevents the timer from firing. It does not close the channel,
+	// matching time.Timer.
+	Stop()
 }
 
 // Ticker delivers ticks on a channel at a regular cadence. It mirrors

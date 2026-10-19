@@ -83,6 +83,10 @@ type Querier interface {
 	//  FROM `app_build_settings`
 	//  WHERE workspace_id = ?
 	CountAppBuildSettingsByWorkspaceId(ctx context.Context, workspaceID string) (int64, error)
+	// CountAppConnectionsByWorkspaceId verifies deletion cascades in tests.
+	//
+	//  SELECT COUNT(*) FROM app_connections WHERE workspace_id = ?
+	CountAppConnectionsByWorkspaceId(ctx context.Context, workspaceID string) (int64, error)
 	// CountAppEnvironmentVariablesByAppId counts an app's environment variables. Only tests use this query.
 	//
 	//  SELECT COUNT(*)
@@ -150,6 +154,26 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
 	CountCustomDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
+	// CountDeploymentConnectionAppTargetsByConnectionId verifies deletion isolation in tests.
+	//
+	//  SELECT COUNT(*) FROM deployment_connection_app_targets WHERE connection_id = ?
+	CountDeploymentConnectionAppTargetsByConnectionId(ctx context.Context, connectionID string) (int64, error)
+	// CountDeploymentConnectionAppTargetsByDeploymentId verifies environment deletion in tests.
+	//
+	//  SELECT COUNT(*) FROM deployment_connection_app_targets WHERE deployment_id = ?
+	CountDeploymentConnectionAppTargetsByDeploymentId(ctx context.Context, deploymentID string) (int64, error)
+	// CountDeploymentConnectionsByDeploymentId verifies environment deletion in tests.
+	//
+	//  SELECT COUNT(*) FROM deployment_connections WHERE deployment_id = ?
+	CountDeploymentConnectionsByDeploymentId(ctx context.Context, deploymentID string) (int64, error)
+	// CountDeploymentConnectionsByEnvironmentId verifies deletion cascades in tests.
+	//
+	//  SELECT COUNT(*) FROM deployment_connections WHERE environment_id = ?
+	CountDeploymentConnectionsByEnvironmentId(ctx context.Context, environmentID string) (int64, error)
+	// CountDeploymentConnectionsByWorkspaceId verifies deletion cascades in tests.
+	//
+	//  SELECT COUNT(*) FROM deployment_connections WHERE workspace_id = ?
+	CountDeploymentConnectionsByWorkspaceId(ctx context.Context, workspaceID string) (int64, error)
 	// CountDeploymentStepsByDeploymentId counts a deployment's steps. Only tests use this query.
 	//
 	//  SELECT COUNT(*)
@@ -198,6 +222,17 @@ type Querier interface {
 	//  FROM `github_repo_connections`
 	//  WHERE app_id = ?
 	CountGithubRepoConnectionsByAppId(ctx context.Context, appID string) (int64, error)
+	// CountOrphanConnectionAppTargets verifies deletion cascades in tests.
+	//
+	//  SELECT COUNT(*) FROM connection_app_targets t
+	//  LEFT JOIN app_connections b ON b.id = t.connection_id WHERE b.id IS NULL
+	CountOrphanConnectionAppTargets(ctx context.Context) (int64, error)
+	// CountOrphanDeploymentConnectionAppTargets verifies deletion cascades in tests.
+	//
+	//  SELECT COUNT(*) FROM deployment_connection_app_targets t
+	//  LEFT JOIN deployment_connections b ON b.deployment_id = t.deployment_id AND b.connection_id = t.connection_id
+	//  WHERE b.pk IS NULL
+	CountOrphanDeploymentConnectionAppTargets(ctx context.Context) (int64, error)
 	// CountProjectsById counts projects with an id. Only tests use this query.
 	//
 	//  SELECT COUNT(*)
@@ -214,7 +249,11 @@ type Querier interface {
 	DeleteAppBuildSettingsByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteAppById
 	//
-	//  DELETE FROM apps WHERE id = ?
+	//  DELETE a, b, t
+	//  FROM apps a
+	//  LEFT JOIN app_connections b ON b.app_id = a.id OR (b.resource_type = 'app' AND b.resource_id = a.id)
+	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
+	//  WHERE a.id = ?
 	DeleteAppById(ctx context.Context, id string) error
 	//DeleteAppEnvVarsByEnvironmentId
 	//
@@ -260,6 +299,28 @@ type Querier interface {
 	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
 	//  WHERE d.environment_id = ?
 	DeleteCustomDomainsByEnvironmentId(ctx context.Context, environmentID string) error
+	// DeleteDeploymentConnectionsByEnvironmentId deletes the connections saved by
+	// the environment's deployments. app_id is the environment's app; filtering on
+	// it lets the delete use deployment_connections_app_env_idx.
+	//
+	//  DELETE c, ct
+	//  FROM deployment_connections c
+	//  LEFT JOIN deployment_connection_app_targets ct
+	//      ON ct.deployment_id = c.deployment_id AND ct.connection_id = c.connection_id
+	//  WHERE c.app_id = ?
+	//      AND c.environment_id = ?
+	DeleteDeploymentConnectionsByEnvironmentId(ctx context.Context, arg DeleteDeploymentConnectionsByEnvironmentIdParams) error
+	// DeleteDeploymentConnectionsByWorkspaceIds deletes the connections saved by
+	// the workspaces' deployments. It reads deployments by workspace_idx, so run it
+	// before those deployments are deleted.
+	//
+	//  DELETE c, ct
+	//  FROM deployments d
+	//  STRAIGHT_JOIN deployment_connections c ON c.deployment_id = d.id
+	//  LEFT JOIN deployment_connection_app_targets ct
+	//      ON ct.deployment_id = c.deployment_id AND ct.connection_id = c.connection_id
+	//  WHERE d.workspace_id IN (/*SLICE:ids*/?)
+	DeleteDeploymentConnectionsByWorkspaceIds(ctx context.Context, ids []string) error
 	//DeleteDeploymentInstances
 	//
 	//  DELETE FROM instances
@@ -291,7 +352,11 @@ type Querier interface {
 	DeleteDeploymentsByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteEnvironmentById
 	//
-	//  DELETE FROM environments WHERE id = ?
+	//  DELETE e, b, bt
+	//  FROM environments e
+	//  LEFT JOIN app_connections b ON b.environment_id = e.id
+	//  LEFT JOIN connection_app_targets bt ON bt.connection_id = b.id
+	//  WHERE e.id = ?
 	DeleteEnvironmentById(ctx context.Context, id string) error
 	// DeleteExportedClickhouseOutbox hard-deletes a bounded batch of outbox rows
 	// that were already exported to ClickHouse (deleted_at stamped) before the
@@ -380,7 +445,11 @@ type Querier interface {
 	DeletePortalsByProjectID(ctx context.Context, projectID string) error
 	//DeleteProjectById
 	//
-	//  DELETE FROM projects WHERE id = ?
+	//  DELETE p, b, t
+	//  FROM projects p
+	//  LEFT JOIN app_connections b ON b.project_id = p.id
+	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
+	//  WHERE p.id = ?
 	DeleteProjectById(ctx context.Context, id string) error
 	// Removes the given workspaces along with everything scoped to them.
 	//
@@ -389,13 +458,15 @@ type Querier interface {
 	// Rows a test leaves behind are rescanned by every later run, so the seeder
 	// deletes what it created once the test finishes.
 	//
-	//  DELETE w, wb, p, a, e, d
+	//  DELETE w, wb, p, a, e, d, b, bt
 	//  FROM workspaces w
 	//  LEFT JOIN workspace_billing wb ON wb.workspace_id = w.id
 	//  LEFT JOIN projects p ON p.workspace_id = w.id
 	//  LEFT JOIN apps a ON a.workspace_id = w.id
 	//  LEFT JOIN environments e ON e.workspace_id = w.id
 	//  LEFT JOIN deployments d ON d.workspace_id = w.id
+	//  LEFT JOIN app_connections b ON b.workspace_id = w.id
+	//  LEFT JOIN connection_app_targets bt ON bt.connection_id = b.id
 	//  WHERE w.id IN (/*SLICE:ids*/?)
 	DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error
 	//EndActiveDeploymentStepsForDeployments
@@ -679,11 +750,25 @@ type Querier interface {
 	FindDeploymentAppAndStatus(ctx context.Context, id string) (FindDeploymentAppAndStatusRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
+	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
+	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
+	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
+	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
+	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//  FROM deployments WHERE id = ?
 	FindDeploymentById(ctx context.Context, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
+	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
+	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
+	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
+	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
+	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//  FROM deployments WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
 	//FindDeploymentForBuild
 	//
@@ -1147,6 +1232,31 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertApp(ctx context.Context, arg InsertAppParams) error
+	//InsertAppConnection
+	//
+	//  INSERT INTO app_connections (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      resource_type,
+	//      resource_id,
+	//      name,
+	//      created_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertAppConnection(ctx context.Context, arg InsertAppConnectionParams) error
 	//InsertAppEnvironmentVariable
 	//
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
@@ -1271,6 +1381,12 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseWorkspaceSettings(ctx context.Context, arg InsertClickhouseWorkspaceSettingsParams) error
+	// InsertConnectionAppTarget must share a transaction with InsertAppConnection.
+	//
+	//  INSERT INTO connection_app_targets (
+	//      connection_id, selection_mode, target_environment_id, target_deployment_id
+	//  ) VALUES (?, ?, ?, ?)
+	InsertConnectionAppTarget(ctx context.Context, arg InsertConnectionAppTargetParams) error
 	//InsertCustomDomain
 	//
 	//  INSERT INTO custom_domains (
@@ -1306,6 +1422,7 @@ type Querier interface {
 	//      port,
 	//      shutdown_signal,
 	//      upstream_protocol,
+	//      capabilities,
 	//      healthcheck,
 	//      pr_number,
 	//      fork_repository_full_name,
@@ -1347,9 +1464,23 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
 	//      ?
 	//  )
 	InsertDeployment(ctx context.Context, arg InsertDeploymentParams) error
+	//InsertDeploymentConnection
+	//
+	//  INSERT INTO deployment_connections (
+	//      deployment_id, connection_id, workspace_id, project_id, app_id, environment_id,
+	//      resource_type, resource_id, name, created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertDeploymentConnection(ctx context.Context, arg InsertDeploymentConnectionParams) error
+	// InsertDeploymentConnectionAppTarget must share a transaction with InsertDeploymentConnection.
+	//
+	//  INSERT INTO deployment_connection_app_targets (
+	//      deployment_id, connection_id, selection_mode, target_environment_id, target_deployment_id
+	//  ) VALUES (?, ?, ?, ?, ?)
+	InsertDeploymentConnectionAppTarget(ctx context.Context, arg InsertDeploymentConnectionAppTargetParams) error
 	//InsertDeploymentStep
 	//
 	//  INSERT INTO `deployment_steps` (
@@ -1798,6 +1929,22 @@ type Querier interface {
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
+	// Keep incomplete app connections so deployment admission rejects missing target settings.
+	//
+	//  SELECT b.id, b.name, b.resource_type, b.resource_id, t.selection_mode,
+	//      t.target_environment_id, t.target_deployment_id
+	//  FROM app_connections b
+	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
+	//  INNER JOIN apps a ON a.id = b.app_id
+	//  WHERE b.workspace_id = ?
+	//      AND b.project_id = ?
+	//      AND b.app_id = ?
+	//      AND b.environment_id = ?
+	//      AND b.resource_type = 'app'
+	//      AND b.resource_id <> b.app_id
+	//      AND b.name <> a.slug COLLATE utf8mb4_0900_as_cs
+	//  ORDER BY b.pk
+	ListAppConnectionsByApp(ctx context.Context, arg ListAppConnectionsByAppParams) ([]ListAppConnectionsByAppRow, error)
 	//ListAppIdsByProject
 	//
 	//  SELECT apps.id FROM apps WHERE apps.project_id = ?
@@ -1868,11 +2015,18 @@ type Querier interface {
 	ListDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
+	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
+	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
+	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
+	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
+	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//  FROM deployments
 	//  WHERE environment_id = ?
 	//    AND status = ?
 	//    AND created_at < ?
-	//    AND (updated_at IS null OR updated_at < ? )
+	//    AND (updated_at IS NULL OR updated_at < ?)
 	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
 	//ListEnvironmentIdsByApp
 	//
