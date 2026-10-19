@@ -46,13 +46,22 @@ export const useFetchTimeseries = () => {
       );
       return data;
     },
-    select: ({ bucketMs, points }) => {
-      const granularity = Object.keys(TIMESERIES_GRANULARITIES)
-        .filter(isTimeseriesGranularity)
-        .find((g) => TIMESERIES_GRANULARITIES[g].ms === bucketMs);
-      if (!granularity) {
-        throw new Error(`API request timeseries returned an unknown bucket width: ${bucketMs}ms`);
-      }
+    select: ({ points }) => {
+      // Points have no gaps, so two of them give the bucket width. A single
+      // point spans the whole window
+      const { gte, lte } = apiFilters.time ?? {};
+      const bucketMs =
+        points.length >= 2
+          ? points[1].time - points[0].time
+          : gte !== undefined && lte !== undefined
+            ? lte - gte + 1
+            : undefined;
+      // The widest granularity that fits in a bucket, ordered narrowest first
+      const granularity =
+        Object.keys(TIMESERIES_GRANULARITIES)
+          .filter(isTimeseriesGranularity)
+          .findLast((g) => bucketMs !== undefined && TIMESERIES_GRANULARITIES[g].ms <= bucketMs) ??
+        "perMinute";
       return {
         bucketMs,
         granularity,
