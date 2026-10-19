@@ -5811,13 +5811,7 @@ type V2LogsGetApiRequestsTimeseriesResponseBody struct {
 
 // V2LogsGetApiRequestsTimeseriesResponseData defines model for V2LogsGetApiRequestsTimeseriesResponseData.
 type V2LogsGetApiRequestsTimeseriesResponseData struct {
-	// BucketMs The width of every bucket in milliseconds. Unkey picks it from the length of the time window: 1 minute up to 2 hours, 5 minutes up to 6 hours, 15 minutes up to 12 hours, 30 minutes up to 1 day, 1 hour up to 3 days, 2 hours up to 7 days, 6 hours up to 30 days, and 1 day above. A window that starts more than 7 days ago gets at least 1 hour, and more than 30 days ago 1 day.
-	//
-	//
-	// Example: 1800000
-	BucketMs int64 `json:"bucketMs"`
-
-	// Points One point per bucket, oldest first. A bucket with no requests has a point with zero counts.
+	// Points One point per bucket, oldest first, with no gaps. A bucket with no requests has a point with zero counts. The bucket width is the distance between the `time` of two points.
 	Points []ApiRequestsTimeseriesPoint `json:"points"`
 }
 

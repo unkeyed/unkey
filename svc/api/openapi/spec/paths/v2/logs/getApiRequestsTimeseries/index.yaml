@@ -7,7 +7,7 @@ post:
 
     The filters have the same shape as in `logs.listApiRequests`, without `requestId`. In one field, values under `is`, `contains`, `startsWith`, and `endsWith` are combined with OR. Values under `isNot` and `notContains`, and the range operators `gt`, `gte`, `lt`, and `lte`, are combined with AND. Different fields are combined with AND. Every text match is exact and case-sensitive.
 
-    `filters.time` sets the window. A missing lower bound is the start of your log retention, and a missing upper bound is now. Unkey picks the bucket width from the window and returns it in `bucketMs`. The first bucket starts at or before the window start and counts its whole width. Windows reach back at most 100 days, and requests outside the log retention of your workspace are not counted.
+    `filters.time` sets the window. A missing lower bound is the start of your log retention, and a missing upper bound is now. Unkey picks the bucket width from the window. It is the distance between the `time` of two points. The first bucket starts at or before the window start and counts its whole width. Windows reach back at most 100 days, and requests outside the log retention of your workspace are not counted.
 
     **Required Permissions**
 
@@ -38,7 +38,6 @@ post:
                 meta:
                   requestId: req_1234abcd
                 data:
-                  bucketMs: 1800000
                   points:
                     - time: 1792018800000
                       success: 1200
@@ -56,7 +55,6 @@ post:
                 meta:
                   requestId: req_1234abcd
                 data:
-                  bucketMs: 60000
                   points: []
     "400":
       description: Bad request

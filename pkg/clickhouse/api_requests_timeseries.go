@@ -75,16 +75,11 @@ type ApiRequestsTimeseriesRequest struct {
 	Filters        ApiRequestsTimeseriesFilters
 }
 
-// ApiRequestsTimeseries is one point per bucket of width BucketMs, oldest
-// first, with no gaps. The first bucket starts at or before the window start
-// and counts its whole width, except rows older than RetentionStart
-type ApiRequestsTimeseries struct {
-	BucketMs int64
-	Points   []ApiRequestsTimeseriesPoint
-}
-
 // ApiRequestsTimeseriesPoint counts the requests of the bucket that starts at
-// Time. Total includes the 1xx and 3xx responses, which have no field of
+// Time. A timeseries has one point per bucket, oldest first, with no gaps, so
+// the bucket width is the distance between two points. The first bucket starts
+// at or before the window start and counts its whole width, except rows older
+// than RetentionStart. Total includes the 1xx and 3xx responses, which have no field of
 // their own
 type ApiRequestsTimeseriesPoint struct {
 	Time        int64 `ch:"bucket_time"`
@@ -94,7 +89,7 @@ type ApiRequestsTimeseriesPoint struct {
 	Total       int64 `ch:"total"`
 }
 
-func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTimeseriesRequest) (ApiRequestsTimeseries, error) {
+func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTimeseriesRequest) ([]ApiRequestsTimeseriesPoint, error) {
 	timeFilter := req.Filters.Time
 
 	// min before +1 keeps a bound near MaxInt64 from wrapping around
@@ -122,7 +117,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 	start = max(start, req.Now-apiRequestsPerDay.retentionMs)
 
 	if start >= end {
-		return ApiRequestsTimeseries{BucketMs: apiRequestsResolutions[0].bucketMs, Points: []ApiRequestsTimeseriesPoint{}}, nil
+		return []ApiRequestsTimeseriesPoint{}, nil
 	}
 
 	resolution := apiRequestsResolutions[len(apiRequestsResolutions)-1]
@@ -172,11 +167,8 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 		ORDER BY bucket_time ASC
 		WITH FILL FROM {fill_from:Int64} TO {fill_to:Int64} STEP {bucket_ms:Int64}`, params)
 	if err != nil {
-		return ApiRequestsTimeseries{}, fault.Wrap(classifyReadLimitError(err), fault.Internal("failed to read the api requests timeseries"))
+		return nil, fault.Wrap(classifyReadLimitError(err), fault.Internal("failed to read the api requests timeseries"))
 	}
 
-	return ApiRequestsTimeseries{
-		BucketMs: resolution.bucketMs,
-		Points:   points,
-	}, nil
+	return points, nil
 }
