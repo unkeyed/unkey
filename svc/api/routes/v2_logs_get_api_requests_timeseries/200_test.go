@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"math"
 	"net/http"
 	"testing"
 	"time"
@@ -139,17 +140,30 @@ func TestGetApiRequestsTimeseriesBucketWidth(t *testing.T) {
 }
 
 // TestGetApiRequestsTimeseriesDefaultWindow guarantees an empty request covers
-// the workspace's log retention, which is 30 days in the harness, up to now
+// the workspace's log retention, which is 30 days in the harness, up to now.
+// An upper bound past now, even the largest int64, still ends at now
 func TestGetApiRequestsTimeseriesDefaultWindow(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 	now := h.Clock.Now().UnixMilli()
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{})
+	tests := []struct {
+		name    string
+		filters *openapi.V2LogsGetApiRequestsTimeseriesFilters
+	}{
+		{name: "no filters", filters: nil},
+		{name: "lte at the largest int64", filters: &openapi.V2LogsGetApiRequestsTimeseriesFilters{Time: &openapi.TimeFilter{Lte: new(int64(math.MaxInt64))}}},
+	}
 
-	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, (6 * time.Hour).Milliseconds(), res.Body.Data.BucketMs)
-	requireContiguous(t, res.Body.Data, now-(30*24*time.Hour).Milliseconds(), now)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{Filters: tt.filters})
+
+			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+			require.Equal(t, (6 * time.Hour).Milliseconds(), res.Body.Data.BucketMs)
+			requireContiguous(t, res.Body.Data, now-(30*24*time.Hour).Milliseconds(), now)
+		})
+	}
 }
 
 // TestGetApiRequestsTimeseriesFilters guarantees each filter field reaches the
@@ -229,6 +243,7 @@ func TestGetApiRequestsTimeseriesEmptyWindow(t *testing.T) {
 		time openapi.TimeFilter
 	}{
 		{name: "after now", time: openapi.TimeFilter{Gt: new(now)}},
+		{name: "gt at the largest int64", time: openapi.TimeFilter{Gt: new(int64(math.MaxInt64))}},
 		{name: "start after end", time: openapi.TimeFilter{Gte: new(now - 1000), Lt: new(now - 2000)}},
 		{name: "older than any aggregate", time: openapi.TimeFilter{Lt: new(now - (101 * 24 * time.Hour).Milliseconds())}},
 	}
