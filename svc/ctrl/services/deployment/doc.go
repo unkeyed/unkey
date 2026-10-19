@@ -3,7 +3,6 @@
 // deploy worker.
 //
 //   - [Service.GetDeployment] reads one.
-//   - [Service.CancelDeployment] aborts one in flight.
 //   - [Service.Rebuild] reproduces one from its source. The ops service calls it.
 //   - [Service.DeprovisionCompute] tears down a workspace's compute when its
 //     Compute plan is cancelled.
