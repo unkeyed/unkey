@@ -1,4 +1,4 @@
-// Package deploycancel aborts deployments. The CancelDeployment RPC,
+// Package deploycancel aborts deployments. DeploymentService.CancelDeployment,
 // deploy.Workflow.cancelOlderSiblings, and the environment Delete workflow all go
 // through [Cancel].
 package deploycancel

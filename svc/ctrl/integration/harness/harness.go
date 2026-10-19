@@ -320,6 +320,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Auditlogs:                       auditlogSvc,
 		GitHub:                          githubclient.NewNoop(),
 		AllowUnauthenticatedDeployments: false,
+		RestateAdmin:                    restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:1", APIKey: ""}),
 	})
 	require.NoError(t, err)
 
