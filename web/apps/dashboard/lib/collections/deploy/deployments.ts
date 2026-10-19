@@ -350,28 +350,37 @@ async function fetchDeploymentRows(
   // next page exists; fetching it here saves a second request for that row
   const lookahead = isNextPage ? 0 : 1;
   const limit = Math.min((subset.limit ?? API_PAGE_LIMIT) + tied + lookahead, API_PAGE_LIMIT);
-  const response = await getUnkeyClient().deployments.listDeployments({
-    project: subset.projectId,
-    app: subset.appId,
-    environment:
-      subset.appId !== undefined && subset.environmentIds.length === 1
-        ? subset.environmentIds[0]
-        : undefined,
-    status: subset.statuses.length > 0 ? subset.statuses : undefined,
-    branch: subset.appId !== undefined && subset.branches.length > 0 ? subset.branches : undefined,
-    startTime: subset.startTime,
-    endTime:
-      before === undefined
-        ? subset.endTime
-        : Math.min(subset.endTime ?? Number.POSITIVE_INFINITY, before + 1),
-    limit,
-  });
-  if (response.result.pagination.hasMore) {
-    exhaustedLists.delete(listKey(subset));
-  } else {
-    exhaustedLists.add(listKey(subset));
+  let rows: ApiDeployment[] = [];
+  try {
+    const response = await getUnkeyClient().deployments.listDeployments({
+      project: subset.projectId,
+      app: subset.appId,
+      environment:
+        subset.appId !== undefined && subset.environmentIds.length === 1
+          ? subset.environmentIds[0]
+          : undefined,
+      status: subset.statuses.length > 0 ? subset.statuses : undefined,
+      branch:
+        subset.appId !== undefined && subset.branches.length > 0 ? subset.branches : undefined,
+      startTime: subset.startTime,
+      endTime:
+        before === undefined
+          ? subset.endTime
+          : Math.min(subset.endTime ?? Number.POSITIVE_INFINITY, before + 1),
+      limit,
+    });
+    if (response.result.pagination.hasMore) {
+      exhaustedLists.delete(listKey(subset));
+    } else {
+      exhaustedLists.add(listKey(subset));
+    }
+    rows = response.result.data;
+  } catch (error) {
+    if (!(error instanceof NotFoundErrorResponse)) {
+      throw error;
+    }
   }
-  return response.result.data;
+  return rows;
 }
 
 /**
