@@ -58,6 +58,10 @@ type DeploymentServiceClient interface {
 	// WakeDeployment sets desired_state=running on a stopped deployment, marks it
 	// deploying, and returns once enough regions report running instances.
 	WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse]
+	// AuthorizeDeployment approves a deployment that is awaiting approval. It
+	// moves the row to pending and hands it to DeployWorkflow.Create, which
+	// starts the build. A refused create puts the row back to awaiting_approval
+	AuthorizeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*AuthorizeDeploymentRequest, *AuthorizeDeploymentResponse]
 }
 
 type deploymentServiceClient struct {
@@ -114,6 +118,14 @@ func (c *deploymentServiceClient) WakeDeployment(opts ...sdk_go.ClientOption) sd
 	return sdk_go.WithRequestType[*WakeDeploymentRequest](sdk_go.Object[*WakeDeploymentResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "WakeDeployment", cOpts...))
 }
 
+func (c *deploymentServiceClient) AuthorizeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*AuthorizeDeploymentRequest, *AuthorizeDeploymentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*AuthorizeDeploymentRequest](sdk_go.Object[*AuthorizeDeploymentResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "AuthorizeDeployment", cOpts...))
+}
+
 // DeploymentServiceIngressClient is the ingress client API for hydra.v1.DeploymentService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -141,6 +153,10 @@ type DeploymentServiceIngressClient interface {
 	// WakeDeployment sets desired_state=running on a stopped deployment, marks it
 	// deploying, and returns once enough regions report running instances.
 	WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse]
+	// AuthorizeDeployment approves a deployment that is awaiting approval. It
+	// moves the row to pending and hands it to DeployWorkflow.Create, which
+	// starts the build. A refused create puts the row back to awaiting_approval
+	AuthorizeDeployment() ingress.Requester[*AuthorizeDeploymentRequest, *AuthorizeDeploymentResponse]
 }
 
 type deploymentServiceIngressClient struct {
@@ -180,6 +196,11 @@ func (c *deploymentServiceIngressClient) StopDeployment() ingress.Requester[*Sto
 func (c *deploymentServiceIngressClient) WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*WakeDeploymentRequest, *WakeDeploymentResponse](c.client, c.serviceName, "WakeDeployment", &c.key, &codec)
+}
+
+func (c *deploymentServiceIngressClient) AuthorizeDeployment() ingress.Requester[*AuthorizeDeploymentRequest, *AuthorizeDeploymentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*AuthorizeDeploymentRequest, *AuthorizeDeploymentResponse](c.client, c.serviceName, "AuthorizeDeployment", &c.key, &codec)
 }
 
 // DeploymentServiceServer is the server API for hydra.v1.DeploymentService service.
@@ -229,6 +250,10 @@ type DeploymentServiceServer interface {
 	// WakeDeployment sets desired_state=running on a stopped deployment, marks it
 	// deploying, and returns once enough regions report running instances.
 	WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error)
+	// AuthorizeDeployment approves a deployment that is awaiting approval. It
+	// moves the row to pending and hands it to DeployWorkflow.Create, which
+	// starts the build. A refused create puts the row back to awaiting_approval
+	AuthorizeDeployment(ctx sdk_go.ObjectContext, req *AuthorizeDeploymentRequest) (*AuthorizeDeploymentResponse, error)
 }
 
 // UnimplementedDeploymentServiceServer should be embedded to have
@@ -252,6 +277,9 @@ func (UnimplementedDeploymentServiceServer) StopDeployment(ctx sdk_go.ObjectCont
 }
 func (UnimplementedDeploymentServiceServer) WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method WakeDeployment not implemented"), sdk_go.WithErrorCode(501))
+}
+func (UnimplementedDeploymentServiceServer) AuthorizeDeployment(ctx sdk_go.ObjectContext, req *AuthorizeDeploymentRequest) (*AuthorizeDeploymentResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method AuthorizeDeployment not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeploymentServiceServer) testEmbeddedByValue() {}
 
@@ -277,5 +305,6 @@ func NewDeploymentServiceServer(srv DeploymentServiceServer, opts ...sdk_go.Serv
 	router = router.Handler("ClearScheduledStateChanges", sdk_go.NewObjectHandler(srv.ClearScheduledStateChanges))
 	router = router.Handler("StopDeployment", sdk_go.NewObjectHandler(srv.StopDeployment))
 	router = router.Handler("WakeDeployment", sdk_go.NewObjectHandler(srv.WakeDeployment))
+	router = router.Handler("AuthorizeDeployment", sdk_go.NewObjectHandler(srv.AuthorizeDeployment))
 	return router
 }
