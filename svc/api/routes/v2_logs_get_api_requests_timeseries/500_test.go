@@ -32,8 +32,8 @@ type rejectingClickHouse struct {
 	clickhouse.ClickHouse
 }
 
-func (rejectingClickHouse) GetApiRequestsTimeseries(context.Context, clickhouse.ApiRequestsTimeseriesRequest) (clickhouse.ApiRequestsTimeseries, error) {
-	return clickhouse.ApiRequestsTimeseries{}, fault.Wrap(&ch.Exception{Code: 47, Name: "DB::Exception", Message: "Unknown identifier"}, fault.Internal("failed to read the api requests timeseries"))
+func (rejectingClickHouse) GetApiRequestsTimeseries(context.Context, clickhouse.ApiRequestsTimeseriesRequest) ([]clickhouse.ApiRequestsTimeseriesPoint, error) {
+	return nil, fault.Wrap(&ch.Exception{Code: 47, Name: "DB::Exception", Message: "Unknown identifier"}, fault.Internal("failed to read the api requests timeseries"))
 }
 
 // TestGetApiRequestsTimeseriesQueryRejected guarantees ClickHouse rejecting

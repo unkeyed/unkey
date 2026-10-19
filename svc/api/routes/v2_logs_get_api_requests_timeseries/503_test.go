@@ -17,8 +17,8 @@ type unreachableClickHouse struct {
 	clickhouse.ClickHouse
 }
 
-func (unreachableClickHouse) GetApiRequestsTimeseries(context.Context, clickhouse.ApiRequestsTimeseriesRequest) (clickhouse.ApiRequestsTimeseries, error) {
-	return clickhouse.ApiRequestsTimeseries{}, errors.New("dial tcp 10.0.0.9:9000: connect: connection refused")
+func (unreachableClickHouse) GetApiRequestsTimeseries(context.Context, clickhouse.ApiRequestsTimeseriesRequest) ([]clickhouse.ApiRequestsTimeseriesPoint, error) {
+	return nil, errors.New("dial tcp 10.0.0.9:9000: connect: connection refused")
 }
 
 // TestGetApiRequestsTimeseriesLogStoreUnavailable guarantees an unreachable

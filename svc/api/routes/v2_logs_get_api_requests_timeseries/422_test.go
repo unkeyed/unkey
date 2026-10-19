@@ -17,8 +17,8 @@ type limitedClickHouse struct {
 	clickhouse.ClickHouse
 }
 
-func (limitedClickHouse) GetApiRequestsTimeseries(context.Context, clickhouse.ApiRequestsTimeseriesRequest) (clickhouse.ApiRequestsTimeseries, error) {
-	return clickhouse.ApiRequestsTimeseries{}, clickhouse.WrapClickHouseError(&ch.Exception{Code: 159, Name: "DB::Exception", Message: "Timeout exceeded: elapsed 10.1 seconds, maximum: 10"})
+func (limitedClickHouse) GetApiRequestsTimeseries(context.Context, clickhouse.ApiRequestsTimeseriesRequest) ([]clickhouse.ApiRequestsTimeseriesPoint, error) {
+	return nil, clickhouse.WrapClickHouseError(&ch.Exception{Code: 159, Name: "DB::Exception", Message: "Timeout exceeded: elapsed 10.1 seconds, maximum: 10"})
 }
 
 // TestGetApiRequestsTimeseriesReadLimit guarantees a read limit is a 422 that

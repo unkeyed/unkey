@@ -77,8 +77,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	points := make([]openapi.ApiRequestsTimeseriesPoint, len(series.Points))
-	for i, p := range series.Points {
+	points := make([]openapi.ApiRequestsTimeseriesPoint, len(series))
+	for i, p := range series {
 		points[i] = openapi.ApiRequestsTimeseriesPoint{
 			Time:        p.Time,
 			Success:     p.Success,
@@ -93,8 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2LogsGetApiRequestsTimeseriesResponseData{
-			BucketMs: series.BucketMs,
-			Points:   points,
+			Points: points,
 		},
 	})
 }

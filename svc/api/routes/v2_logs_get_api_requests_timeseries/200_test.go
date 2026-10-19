@@ -25,16 +25,18 @@ func sumPoints(points []openapi.ApiRequestsTimeseriesPoint) openapi.ApiRequestsT
 	return sum
 }
 
-// requireContiguous asserts one point per bucket from the bucket of start to
-// the bucket of end - 1, the rule clients rely on to draw a chart
-func requireContiguous(t *testing.T, data openapi.V2LogsGetApiRequestsTimeseriesResponseData, start, end int64) {
+// requireContiguous asserts one point per bucket of width bucket from the
+// bucket of start to the bucket of end - 1, the rule clients rely on to draw
+// a chart and to read the bucket width from two points
+func requireContiguous(t *testing.T, points []openapi.ApiRequestsTimeseriesPoint, bucket time.Duration, start, end int64) {
 	t.Helper()
 
-	first := start - start%data.BucketMs
-	last := (end - 1) - (end-1)%data.BucketMs
-	require.Len(t, data.Points, int((last-first)/data.BucketMs)+1)
-	for i, p := range data.Points {
-		require.Equal(t, first+int64(i)*data.BucketMs, p.Time, "point %d", i)
+	bucketMs := bucket.Milliseconds()
+	first := start - start%bucketMs
+	last := (end - 1) - (end-1)%bucketMs
+	require.Len(t, points, int((last-first)/bucketMs)+1)
+	for i, p := range points {
+		require.Equal(t, first+int64(i)*bucketMs, p.Time, "point %d", i)
 	}
 }
 
@@ -63,8 +65,7 @@ func TestGetApiRequestsTimeseriesCountsStatusClasses(t *testing.T) {
 	})
 
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, time.Minute.Milliseconds(), res.Body.Data.BucketMs)
-	requireContiguous(t, res.Body.Data, start, now)
+	requireContiguous(t, res.Body.Data.Points, time.Minute, start, now)
 
 	want := openapi.ApiRequestsTimeseriesPoint{
 		Time:        rowTime - rowTime%time.Minute.Milliseconds(),
@@ -132,8 +133,7 @@ func TestGetApiRequestsTimeseriesBucketWidth(t *testing.T) {
 				})
 
 				require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-				require.Equal(t, tt.bucket.Milliseconds(), res.Body.Data.BucketMs)
-				requireContiguous(t, res.Body.Data, *bounds.time.Gte, bounds.end)
+				requireContiguous(t, res.Body.Data.Points, tt.bucket, *bounds.time.Gte, bounds.end)
 			}
 		})
 	}
@@ -160,8 +160,7 @@ func TestGetApiRequestsTimeseriesDefaultWindow(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{Filters: tt.filters})
 
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-			require.Equal(t, (6 * time.Hour).Milliseconds(), res.Body.Data.BucketMs)
-			requireContiguous(t, res.Body.Data, now-(30*24*time.Hour).Milliseconds(), now)
+			requireContiguous(t, res.Body.Data.Points, 6*time.Hour, now-(30*24*time.Hour).Milliseconds(), now)
 		})
 	}
 }
@@ -227,7 +226,6 @@ func TestGetApiRequestsTimeseriesKeepsRetention(t *testing.T) {
 	})
 
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, (24 * time.Hour).Milliseconds(), res.Body.Data.BucketMs)
 	require.Equal(t, int64(1), sumPoints(res.Body.Data.Points).Total)
 }
 
