@@ -914,7 +914,7 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\x85\x02\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\x85\x02\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
 	"\n" +
 	"commit_sha\x18\x01 \x01(\tR\tcommitSha\x12%\n" +
@@ -1067,7 +1067,6 @@ func file_ctrl_v1_deployment_proto_init() {
 	if File_ctrl_v1_deployment_proto != nil {
 		return
 	}
-	file_ctrl_v1_actor_proto_init()
 	file_ctrl_v1_deployment_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
