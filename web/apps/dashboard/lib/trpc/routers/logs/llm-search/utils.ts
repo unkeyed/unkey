@@ -1,6 +1,10 @@
-import { METHODS } from "@/app/(app)/[workspaceSlug]/logs/constants";
-import { filterOutputSchema, logsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
+import {
+  logsFilterFieldConfig,
+  logsSearchFieldEnum,
+  logsSearchOutputSchema,
+} from "@/lib/schemas/logs.filter.schema";
 import { TRPCError } from "@trpc/server";
+import { HttpMethod } from "@unkey/api/models/components";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 
@@ -31,7 +35,7 @@ export async function getStructuredSearchFromLLM(
           content: userSearchMsg,
         },
       ],
-      response_format: zodResponseFormat(filterOutputSchema, "searchQuery"),
+      response_format: zodResponseFormat(logsSearchOutputSchema, "searchQuery"),
     });
 
     if (!completion.choices[0].message.parsed) {
@@ -74,12 +78,13 @@ export async function getStructuredSearchFromLLM(
   }
 }
 export const getSystemPrompt = (usersReferenceMS: number) => {
-  const operatorsByField = Object.entries(logsFilterFieldConfig)
-    .map(([field, config]) => {
+  const operatorsByField = logsSearchFieldEnum.options
+    .map((field) => {
+      const config = logsFilterFieldConfig[field];
       const operators = config.operators.join(", ");
       let constraints = "";
       if (field === "methods") {
-        constraints = ` and must be one of: ${METHODS.join(", ")}`;
+        constraints = ` and must be one of: ${Object.values(HttpMethod).join(", ")}`;
       } else if (field === "status") {
         constraints = " and must be between 200-599";
       }

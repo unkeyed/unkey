@@ -1,5 +1,8 @@
 import type { UsagePeriod } from "@/app/(app)/[workspaceSlug]/settings/usage/period";
-import type { V2LogsListApiRequestsFilters } from "@unkey/api/models/components";
+import type {
+  V2LogsGetApiRequestsTimeseriesFilters,
+  V2LogsListApiRequestsFilters,
+} from "@unkey/api/models/components";
 const keysRoot = ["keys"] as const;
 const rbacRoot = ["rbac"] as const;
 const rolesRoot = [...rbacRoot, "roles"] as const;
@@ -34,6 +37,8 @@ export const queryKeys = {
         [...apiRequestsRoot, "list", filters, limit] as const,
       live: (filters: V2LogsListApiRequestsFilters, limit: number) =>
         [...apiRequestsRoot, "live", filters, limit] as const,
+      timeseries: (filters: V2LogsGetApiRequestsTimeseriesFilters) =>
+        [...apiRequestsRoot, "timeseries", filters] as const,
       detail: (requestId: string, time: number) =>
         [...apiRequestsRoot, "detail", requestId, time] as const,
     },
