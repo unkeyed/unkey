@@ -70,6 +70,11 @@ func (n *noop) ListApiRequests(ctx context.Context, req ListApiRequestsRequest) 
 	return []ApiRequestLog{}, nil
 }
 
+// GetApiRequestsTimeseries implements the Querier interface but always returns no points
+func (n *noop) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTimeseriesRequest) (ApiRequestsTimeseries, error) {
+	return ApiRequestsTimeseries{BucketMs: minuteMillis, Points: []ApiRequestsTimeseriesPoint{}}, nil
+}
+
 // InsertAuditLogs implements the Querier interface but discards the input.
 func (n *noop) InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) error {
 	return nil
