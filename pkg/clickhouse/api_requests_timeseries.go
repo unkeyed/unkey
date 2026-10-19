@@ -25,8 +25,8 @@ type apiRequestsInterval struct {
 	tableRetentionMs int64
 }
 
-// apiRequestsIntervals gives a window of an hour or more 24 to 121 buckets.
-// The last one must cover every window the timeseries accepts
+// Each interval gives a window of an hour or more between 24 and 121 buckets.
+// The last one covers the longest window the timeseries accepts
 var apiRequestsIntervals = []apiRequestsInterval{
 	{windowMaxMs: 2 * hourMillis, bucketMs: minuteMillis, table: "default.api_requests_per_minute_v2", tableRetentionMs: 7 * dayMillis},
 	{windowMaxMs: 6 * hourMillis, bucketMs: 5 * minuteMillis, table: "default.api_requests_per_minute_v2", tableRetentionMs: 7 * dayMillis},
@@ -85,27 +85,27 @@ type ApiRequestsTimeseriesPoint struct {
 }
 
 func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTimeseriesRequest) (ApiRequestsTimeseries, error) {
-	t := req.Filters.Time
+	timeFilter := req.Filters.Time
 
 	end := req.Now
-	if t.Lt != nil {
-		end = min(end, *t.Lt)
+	if timeFilter.Lt != nil {
+		end = min(end, *timeFilter.Lt)
 	}
-	if t.Lte != nil && *t.Lte < end {
-		end = *t.Lte + 1
+	if timeFilter.Lte != nil && *timeFilter.Lte < end {
+		end = *timeFilter.Lte + 1
 	}
 
 	start := req.RetentionStart
-	if t.Gte != nil || t.Gt != nil {
+	if timeFilter.Gte != nil || timeFilter.Gt != nil {
 		start = 0
-		if t.Gte != nil {
-			start = *t.Gte
+		if timeFilter.Gte != nil {
+			start = *timeFilter.Gte
 		}
-		if t.Gt != nil {
-			if *t.Gt >= end {
+		if timeFilter.Gt != nil {
+			if *timeFilter.Gt >= end {
 				return ApiRequestsTimeseries{BucketMs: apiRequestsIntervals[0].bucketMs, Points: []ApiRequestsTimeseriesPoint{}}, nil
 			}
-			start = max(start, *t.Gt+1)
+			start = max(start, *timeFilter.Gt+1)
 		}
 	}
 	start = max(start, req.Now-apiRequestsWindowMaxMs)
@@ -114,16 +114,16 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 		return ApiRequestsTimeseries{BucketMs: apiRequestsIntervals[0].bucketMs, Points: []ApiRequestsTimeseriesPoint{}}, nil
 	}
 
-	iv := apiRequestsIntervals[len(apiRequestsIntervals)-1]
+	interval := apiRequestsIntervals[len(apiRequestsIntervals)-1]
 	for _, candidate := range apiRequestsIntervals {
 		if end-1-start <= candidate.windowMaxMs && req.Now-start <= candidate.tableRetentionMs {
-			iv = candidate
+			interval = candidate
 			break
 		}
 	}
 
-	firstBucket := start - start%iv.bucketMs
-	lastBucket := (end - 1) - (end-1)%iv.bucketMs
+	firstBucket := start - start%interval.bucketMs
+	lastBucket := (end - 1) - (end-1)%interval.bucketMs
 
 	b := logfilter.New()
 	b.Text(apiRequestPath, req.Filters.Path)
@@ -136,15 +136,15 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 		"workspace_id":   req.WorkspaceID,
 		"rows_start":     strconv.FormatInt(max(firstBucket, req.RetentionStart), 10),
 		"rows_end":       strconv.FormatInt(end, 10),
-		"bucket_seconds": strconv.FormatInt(iv.bucketMs/1000, 10),
-		"bucket_ms":      strconv.FormatInt(iv.bucketMs, 10),
+		"bucket_seconds": strconv.FormatInt(interval.bucketMs/1000, 10),
+		"bucket_ms":      strconv.FormatInt(interval.bucketMs, 10),
 		"fill_from":      strconv.FormatInt(firstBucket, 10),
-		"fill_to":        strconv.FormatInt(lastBucket+iv.bucketMs, 10),
+		"fill_to":        strconv.FormatInt(lastBucket+interval.bucketMs, 10),
 	}
 	maps.Copy(params, filterParams)
 
-	// The day table stores a Date, so time converts as UTC midnight, the same
-	// edge the epoch-aligned buckets of every other interval fall on
+	// The day table's time is a Date, and toDateTime(time, 'UTC') makes it UTC
+	// midnight, where an epoch-aligned day bucket starts
 	points, err := Select[ApiRequestsTimeseriesPoint](withReadLimits(ctx), c.conn, `
 		SELECT
 			toInt64(intDiv(toUnixTimestamp(toDateTime(time, 'UTC')), {bucket_seconds:Int64}) * {bucket_ms:Int64}) AS bucket_time,
@@ -152,7 +152,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 			sumIf(count, response_status >= 400 AND response_status < 500) AS client_error,
 			sumIf(count, response_status >= 500) AS server_error,
 			sum(count) AS total
-		FROM `+iv.table+`
+		FROM `+interval.table+`
 		WHERE workspace_id = {workspace_id:String}
 			AND time >= fromUnixTimestamp64Milli({rows_start:Int64})
 			AND time < fromUnixTimestamp64Milli({rows_end:Int64})
@@ -165,7 +165,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 	}
 
 	return ApiRequestsTimeseries{
-		BucketMs: iv.bucketMs,
+		BucketMs: interval.bucketMs,
 		Points:   points,
 	}, nil
 }
