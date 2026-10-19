@@ -4,43 +4,53 @@ import (
 	"context"
 	"maps"
 	"strconv"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/clickhouse/logfilter"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-const (
-	minuteMillis = 60 * 1000
-	hourMillis   = 60 * minuteMillis
-	dayMillis    = 24 * hourMillis
+var (
+	minuteMs = time.Minute.Milliseconds()
+	hourMs   = time.Hour.Milliseconds()
+	dayMs    = 24 * hourMs
 )
 
-// apiRequestsInterval is one bucket width of the timeseries and the aggregate
-// table that holds it. tableRetentionMs is the table's TTL in
-// pkg/clickhouse/schema: a window that starts earlier would read deleted rows
-type apiRequestsInterval struct {
-	windowMaxMs      int64 // from the first to the last millisecond of the window
-	bucketMs         int64
-	table            string
-	tableRetentionMs int64
+// apiRequestsTable is an aggregate table of the API requests. retentionMs is
+// its TTL in pkg/clickhouse/schema: a window that starts earlier would read
+// deleted rows
+type apiRequestsTable struct {
+	name        string
+	retentionMs int64
 }
 
-// Each interval gives a window of an hour or more between 24 and 121 buckets.
-// The last one covers the longest window the timeseries accepts
-var apiRequestsIntervals = []apiRequestsInterval{
-	{windowMaxMs: 2 * hourMillis, bucketMs: minuteMillis, table: "default.api_requests_per_minute_v2", tableRetentionMs: 7 * dayMillis},
-	{windowMaxMs: 6 * hourMillis, bucketMs: 5 * minuteMillis, table: "default.api_requests_per_minute_v2", tableRetentionMs: 7 * dayMillis},
-	{windowMaxMs: 12 * hourMillis, bucketMs: 15 * minuteMillis, table: "default.api_requests_per_minute_v2", tableRetentionMs: 7 * dayMillis},
-	{windowMaxMs: dayMillis, bucketMs: 30 * minuteMillis, table: "default.api_requests_per_minute_v2", tableRetentionMs: 7 * dayMillis},
-	{windowMaxMs: 3 * dayMillis, bucketMs: hourMillis, table: "default.api_requests_per_hour_v2", tableRetentionMs: 30 * dayMillis},
-	{windowMaxMs: 7 * dayMillis, bucketMs: 2 * hourMillis, table: "default.api_requests_per_hour_v2", tableRetentionMs: 30 * dayMillis},
-	{windowMaxMs: 30 * dayMillis, bucketMs: 6 * hourMillis, table: "default.api_requests_per_hour_v2", tableRetentionMs: 30 * dayMillis},
-	{windowMaxMs: apiRequestsWindowMaxMs, bucketMs: dayMillis, table: "default.api_requests_per_day_v2", tableRetentionMs: apiRequestsWindowMaxMs},
+var (
+	apiRequestsPerMinute = apiRequestsTable{name: "default.api_requests_per_minute_v2", retentionMs: 7 * dayMs}
+	apiRequestsPerHour   = apiRequestsTable{name: "default.api_requests_per_hour_v2", retentionMs: 30 * dayMs}
+	apiRequestsPerDay    = apiRequestsTable{name: "default.api_requests_per_day_v2", retentionMs: 100 * dayMs}
+)
+
+// apiRequestsResolution is one bucket width of the timeseries and the table
+// that holds it
+type apiRequestsResolution struct {
+	windowMaxMs int64 // from the first to the last millisecond of the window
+	bucketMs    int64
+	table       apiRequestsTable
 }
 
-// apiRequestsWindowMaxMs is the TTL of api_requests_per_day_v2, the oldest
-// aggregate data there is
-const apiRequestsWindowMaxMs = 100 * dayMillis
+// Each resolution gives a window of an hour or more between 24 and 121
+// buckets. The last one covers the longest window the timeseries accepts,
+// which is all the data the day table keeps
+var apiRequestsResolutions = []apiRequestsResolution{
+	{windowMaxMs: 2 * hourMs, bucketMs: minuteMs, table: apiRequestsPerMinute},
+	{windowMaxMs: 6 * hourMs, bucketMs: 5 * minuteMs, table: apiRequestsPerMinute},
+	{windowMaxMs: 12 * hourMs, bucketMs: 15 * minuteMs, table: apiRequestsPerMinute},
+	{windowMaxMs: dayMs, bucketMs: 30 * minuteMs, table: apiRequestsPerMinute},
+	{windowMaxMs: 3 * dayMs, bucketMs: hourMs, table: apiRequestsPerHour},
+	{windowMaxMs: 7 * dayMs, bucketMs: 2 * hourMs, table: apiRequestsPerHour},
+	{windowMaxMs: 30 * dayMs, bucketMs: 6 * hourMs, table: apiRequestsPerHour},
+	{windowMaxMs: apiRequestsPerDay.retentionMs, bucketMs: dayMs, table: apiRequestsPerDay},
+}
 
 // ApiRequestsTimeseriesFilters are the [ApiRequestFilters] the aggregate
 // tables can answer. They have no request id column
@@ -67,7 +77,7 @@ type ApiRequestsTimeseriesRequest struct {
 
 // ApiRequestsTimeseries is one point per bucket of width BucketMs, oldest
 // first, with no gaps. The first bucket starts at or before the window start
-// and counts its whole width
+// and counts its whole width, except rows older than RetentionStart
 type ApiRequestsTimeseries struct {
 	BucketMs int64
 	Points   []ApiRequestsTimeseriesPoint
@@ -87,43 +97,44 @@ type ApiRequestsTimeseriesPoint struct {
 func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTimeseriesRequest) (ApiRequestsTimeseries, error) {
 	timeFilter := req.Filters.Time
 
+	// min before +1 keeps a bound near MaxInt64 from wrapping around
 	end := req.Now
 	if timeFilter.Lt != nil {
 		end = min(end, *timeFilter.Lt)
 	}
-	if timeFilter.Lte != nil && *timeFilter.Lte < end {
-		end = *timeFilter.Lte + 1
+	if timeFilter.Lte != nil {
+		end = min(end-1, *timeFilter.Lte) + 1
 	}
 
+	// A lower bound the caller sets starts the buckets there, even before
+	// RetentionStart, so a fixed window keeps its buckets. Rows before
+	// RetentionStart still read as zero
 	start := req.RetentionStart
 	if timeFilter.Gte != nil || timeFilter.Gt != nil {
 		start = 0
-		if timeFilter.Gte != nil {
-			start = *timeFilter.Gte
-		}
-		if timeFilter.Gt != nil {
-			if *timeFilter.Gt >= end {
-				return ApiRequestsTimeseries{BucketMs: apiRequestsIntervals[0].bucketMs, Points: []ApiRequestsTimeseriesPoint{}}, nil
-			}
-			start = max(start, *timeFilter.Gt+1)
-		}
 	}
-	start = max(start, req.Now-apiRequestsWindowMaxMs)
+	if timeFilter.Gte != nil {
+		start = max(start, *timeFilter.Gte)
+	}
+	if timeFilter.Gt != nil {
+		start = max(start, min(*timeFilter.Gt, end)+1)
+	}
+	start = max(start, req.Now-apiRequestsPerDay.retentionMs)
 
 	if start >= end {
-		return ApiRequestsTimeseries{BucketMs: apiRequestsIntervals[0].bucketMs, Points: []ApiRequestsTimeseriesPoint{}}, nil
+		return ApiRequestsTimeseries{BucketMs: apiRequestsResolutions[0].bucketMs, Points: []ApiRequestsTimeseriesPoint{}}, nil
 	}
 
-	interval := apiRequestsIntervals[len(apiRequestsIntervals)-1]
-	for _, candidate := range apiRequestsIntervals {
-		if end-1-start <= candidate.windowMaxMs && req.Now-start <= candidate.tableRetentionMs {
-			interval = candidate
+	resolution := apiRequestsResolutions[len(apiRequestsResolutions)-1]
+	for _, candidate := range apiRequestsResolutions {
+		if end-1-start <= candidate.windowMaxMs && req.Now-start <= candidate.table.retentionMs {
+			resolution = candidate
 			break
 		}
 	}
 
-	firstBucket := start - start%interval.bucketMs
-	lastBucket := (end - 1) - (end-1)%interval.bucketMs
+	firstBucket := start - start%resolution.bucketMs
+	lastBucket := (end - 1) - (end-1)%resolution.bucketMs
 
 	b := logfilter.New()
 	b.Text(apiRequestPath, req.Filters.Path)
@@ -136,10 +147,10 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 		"workspace_id":   req.WorkspaceID,
 		"rows_start":     strconv.FormatInt(max(firstBucket, req.RetentionStart), 10),
 		"rows_end":       strconv.FormatInt(end, 10),
-		"bucket_seconds": strconv.FormatInt(interval.bucketMs/1000, 10),
-		"bucket_ms":      strconv.FormatInt(interval.bucketMs, 10),
+		"bucket_seconds": strconv.FormatInt(resolution.bucketMs/time.Second.Milliseconds(), 10),
+		"bucket_ms":      strconv.FormatInt(resolution.bucketMs, 10),
 		"fill_from":      strconv.FormatInt(firstBucket, 10),
-		"fill_to":        strconv.FormatInt(lastBucket+interval.bucketMs, 10),
+		"fill_to":        strconv.FormatInt(lastBucket+resolution.bucketMs, 10),
 	}
 	maps.Copy(params, filterParams)
 
@@ -152,7 +163,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 			sumIf(count, response_status >= 400 AND response_status < 500) AS client_error,
 			sumIf(count, response_status >= 500) AS server_error,
 			sum(count) AS total
-		FROM `+interval.table+`
+		FROM `+resolution.table.name+`
 		WHERE workspace_id = {workspace_id:String}
 			AND time >= fromUnixTimestamp64Milli({rows_start:Int64})
 			AND time < fromUnixTimestamp64Milli({rows_end:Int64})
@@ -165,7 +176,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 	}
 
 	return ApiRequestsTimeseries{
-		BucketMs: interval.bucketMs,
+		BucketMs: resolution.bucketMs,
 		Points:   points,
 	}, nil
 }
