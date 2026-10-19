@@ -222,7 +222,6 @@ func (f *authorizeFixture) authorize(ctx context.Context, deploymentID, actorID 
 	return hydrav1.NewDeploymentServiceIngressClient(f.client, deploymentID).
 		AuthorizeDeployment().
 		Request(ctx, &hydrav1.AuthorizeDeploymentRequest{
-			DeploymentId:  deploymentID,
 			Actor:         &ctrlv1.ActorInfo{Id: actorID, Type: ctrlv1.ActorType_ACTOR_TYPE_USER},
 			CorrelationId: uid.New("corr"),
 		})

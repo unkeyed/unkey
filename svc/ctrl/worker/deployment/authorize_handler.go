@@ -18,9 +18,6 @@ import (
 
 func (v *VirtualObject) AuthorizeDeployment(ctx restate.ObjectContext, req *hydrav1.AuthorizeDeploymentRequest) (*hydrav1.AuthorizeDeploymentResponse, error) {
 	deploymentID := restate.Key(ctx)
-	if id := req.GetDeploymentId(); id != "" && id != deploymentID {
-		return nil, restate.ToTerminalError(fmt.Errorf("deployment_id %q does not match object key %q", id, deploymentID), restate.WithErrorCode(400))
-	}
 
 	deployment, err := v.loadDeployment(ctx, deploymentID, "authorize")
 	if err != nil {
@@ -103,12 +100,14 @@ func (v *VirtualObject) AuthorizeDeployment(ctx restate.ObjectContext, req *hydr
 	resp, err := hydrav1.NewDeployWorkflowClient(ctx, deploymentID).Create().Request(createReq)
 	if err != nil {
 		if revertErr := v.revertAuthorization(ctx, deploymentID); revertErr != nil {
+			logger.Error("deployment authorization revert failed", "deployment_id", deploymentID, "create_error", err, "revert_error", revertErr)
 			return nil, revertErr
 		}
 		return nil, restate.ToTerminalError(fmt.Errorf("create deployment: %w", err))
 	}
 	if outcome := resp.GetOutcome(); outcome != hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED {
 		if revertErr := v.revertAuthorization(ctx, deploymentID); revertErr != nil {
+			logger.Error("deployment authorization revert failed", "deployment_id", deploymentID, "create_outcome", outcome.String(), "create_detail", resp.GetDetail(), "revert_error", revertErr)
 			return nil, revertErr
 		}
 		return nil, restate.ToTerminalError(fmt.Errorf("deployment could not be started: %s %s", outcome, resp.GetDetail()), restate.WithErrorCode(412))
