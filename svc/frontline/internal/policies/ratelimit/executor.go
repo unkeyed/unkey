@@ -52,13 +52,14 @@ func (e *Executor) Execute(
 	}
 
 	resp, err := e.rateLimiter.Ratelimit(ctx, rl.RatelimitRequest{
-		WorkspaceID: workspaceID,
-		Namespace:   policyID,
-		Identifier:  identifier,
-		Limit:       cfg.GetLimit(),
-		Duration:    time.Duration(cfg.GetWindowMs()) * time.Millisecond,
-		Cost:        1,
-		Time:        time.Time{},
+		WorkspaceID:      workspaceID,
+		Namespace:        policyID,
+		Identifier:       identifier,
+		Limit:            cfg.GetLimit(),
+		Duration:         time.Duration(cfg.GetWindowMs()) * time.Millisecond,
+		Cost:             1,
+		Time:             time.Time{},
+		UseGlobalCounter: false,
 	})
 	if err != nil {
 		return fault.Wrap(err,
