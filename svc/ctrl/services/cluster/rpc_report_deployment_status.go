@@ -33,7 +33,7 @@ var deploymentActiveStatuses = map[mysqltype.DeploymentsStatus]bool{
 // This is the feedback loop for convergence: agents report what's actually running so the
 // control plane can track instance health and detect drift from desired state.
 //
-// The request contains either an Update or Delete change. For Update, the method upserts
+// The request contains either an Update or Delete change. For Update, the method writes
 // all reported instances and garbage-collects any instances in the database that were not
 // included in the report. For Delete, all instances for the deployment in that region are
 // removed. Both operations run within a retryable transaction to handle transient database
@@ -98,9 +98,6 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					wantInstanceNames[instance.GetK8SName()] = instance
 				}
 
-				// Reuse the existing row id for instances that are already known so the
-				// update matches the primary key instead of allocating a fresh
-				// auto-increment pk (and its gap lock) on every report.
 				existingInstanceIDs := make(map[string]string, len(staleInstances))
 				for _, staleInstance := range staleInstances {
 					existingInstanceIDs[staleInstance.K8sName] = staleInstance.ID
@@ -118,12 +115,9 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					}
 				}
 
-				// Update known instances in place and insert only truly new rows.
-				// UPDATE by id locks the target row alone, while the INSERT ... ON
-				// DUPLICATE KEY UPDATE it replaces deadlocks under concurrent
-				// reports: every insert attempt probes the id and
-				// (k8s_name, region_id) unique indexes and allocates an
-				// auto-increment value, so the transactions contend on those gaps.
+				// Known instances must not go through the upsert: every upsert
+				// attempts an insert at the end of the auto-increment pk index and
+				// keeps a lock there, so concurrent reports deadlock on it.
 				for _, instance := range msg.Update.GetInstances() {
 					instanceID, exists := existingInstanceIDs[instance.GetK8SName()]
 					if exists {
@@ -140,8 +134,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 						continue
 					}
 
-					// A new k8s_name can race with a concurrent report, so keep the
-					// upsert here to absorb the duplicate key.
+					// A concurrent report can insert the same new pod first.
 					err = db.NewQueries(tx).UpsertInstance(ctx, db.UpsertInstanceParams{
 						ID:            uid.New(uid.InstancePrefix),
 						DeploymentID:  deployment.ID,
