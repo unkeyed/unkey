@@ -3,13 +3,13 @@
 import { githubUrl } from "@/lib/github-url";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
-  IconArrowUpRightOutline12,
   IconPlusOutline18,
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import Link from "next/link";
+import { DomainOverflow } from "../../../components/domain-overflow";
 import { ProductionCardActionsMenu } from "./production-card-actions-menu";
 import { useProductionCard } from "./production-card-context";
 
@@ -31,37 +31,7 @@ function DomainHero() {
           No domain yet
         </span>
       )}
-      {additionalDomains.length > 0 && (
-        <Popover>
-          {/* A real button trigger so the domain links are reachable by
-              keyboard; openOnHover preserves the old hover-card behavior. */}
-          <PopoverTrigger
-            openOnHover
-            delay={0}
-            closeDelay={100}
-            className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-2xs leading-4.5 font-mono tabular-nums shrink-0"
-            aria-label={`Show ${additionalDomains.length} more domains`}
-          >
-            +{additionalDomains.length}
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-64 p-1">
-            <div className="flex flex-col max-h-64 overflow-y-auto">
-              {additionalDomains.map((domain) => (
-                <a
-                  key={domain.hostname}
-                  href={domain.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 font-mono text-sm text-gray-12 hover:bg-grayA-3 transition-colors"
-                >
-                  <span className="truncate">{domain.hostname}</span>
-                  <IconArrowUpRightOutline12 className="shrink-0 text-gray-9" />
-                </a>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-      )}
+      <DomainOverflow domains={additionalDomains} />
       {addCustomDomainHref && (
         <Button
           variant="outline"

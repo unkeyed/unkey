@@ -1,4 +1,4 @@
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
+import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit-badge";
 import { IconLayers3Outline18, IconTriangleWarningOutline12 } from "@unkey/icons";
 import { SlidePanel, SlidePanelContent, TimestampInfo } from "@unkey/ui";
 import { useDeployment } from "../../../../layout-provider";

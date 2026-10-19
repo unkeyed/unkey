@@ -13,7 +13,7 @@ import { match } from "@unkey/match";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import { useState } from "react";
 import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
-import type { StepsData } from "./deployment-progress";
+import type { StepsData } from "../use-deployment-status";
 import { DeploymentStep } from "./deployment-step";
 
 const STEP_ORDER: Array<{

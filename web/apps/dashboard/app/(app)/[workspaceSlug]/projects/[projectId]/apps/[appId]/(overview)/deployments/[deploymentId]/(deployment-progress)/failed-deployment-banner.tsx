@@ -15,7 +15,7 @@ import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { useProjectData } from "../../../data-provider";
 import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
-import type { StepsData } from "./deployment-progress";
+import type { StepsData } from "../use-deployment-status";
 import { LIMITS_DOCS_URL, limitFailure } from "./limit-failure";
 
 type SettingsHint = "build" | "environment";
@@ -95,7 +95,7 @@ export function FailedDeploymentBanner({
   const actions = stepsData == null ? "loading" : limit ? "limit" : "generic";
 
   return (
-    <div className="animate-fade-slide-in">
+    <div>
       <AlertBanner variant="error">
         <AlertBannerTitle>Deployment failed</AlertBannerTitle>
         <AlertBannerDescription className="max-w-200 break-words">

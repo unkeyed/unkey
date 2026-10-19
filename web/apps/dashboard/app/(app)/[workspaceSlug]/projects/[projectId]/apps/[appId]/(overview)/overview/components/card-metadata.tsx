@@ -11,8 +11,6 @@ import {
   IconLayers2Outline18,
 } from "@unkey/icons";
 import { Badge, CopyButton, InfoTooltip, TimestampInfo } from "@unkey/ui";
-import type { ReactNode } from "react";
-import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
 import {
   DeploymentStatusLabel,
   StatusDot,
@@ -20,19 +18,9 @@ import {
 } from "../../../components/deployment-status-dot";
 import { DottedLink } from "../../../components/dotted-link";
 import { Avatar } from "../../../components/git-avatar";
+import { MetadataCell } from "./metadata-cell";
 import { useProductionCard } from "./production-card-context";
 import { STATUS_META } from "./status";
-
-function GitHubLink({ href, children }: { href: string | undefined; children: ReactNode }) {
-  if (!href) {
-    return <>{children}</>;
-  }
-  return (
-    <DottedLink href={href} external>
-      {children}
-    </DottedLink>
-  );
-}
 
 function StatusCell() {
   const { deployment, status, isCurrent, isRolledBack } = useProductionCard();
@@ -65,25 +53,25 @@ function SourceCell() {
   return (
     <div className="flex flex-col gap-1 min-w-0">
       {deployment.source === "git" && deployment.gitBranch && (
-        <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
+        <DottedLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)} external>
           <span className="flex items-center gap-1.5">
             <IconCodeBranchOutline18 className="size-3 text-gray-12 shrink-0" />
             <span className="font-mono text-sm text-gray-12 truncate max-w-40">
               {deployment.gitBranch}
             </span>
           </span>
-        </GitHubLink>
+        </DottedLink>
       )}
       {deployment.source === "git" && deployment.gitCommitSha && (
         <div className="flex items-center gap-1.5 min-w-0">
-          <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
+          <DottedLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)} external>
             <span className="flex items-center gap-1.5">
               <IconCodeCommitOutline18 className="size-3 text-gray-12 shrink-0" />
               <span className="font-mono text-sm text-gray-12">
                 {deployment.gitCommitSha.slice(0, 7)}
               </span>
             </span>
-          </GitHubLink>
+          </DottedLink>
           {deployment.gitCommitMessage && (
             <span className="text-sm text-gray-12 truncate min-w-0">
               {deployment.gitCommitMessage}

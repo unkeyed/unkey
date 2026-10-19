@@ -40,7 +40,7 @@ type BuildLogs = {
 // slow pages show progress without a render per page
 export function useBuildLogs(
   deployment: Deployment,
-  { readsToEnd, isOpen }: { readsToEnd: boolean; isOpen: boolean },
+  { readsToEnd, enabled }: { readsToEnd: boolean; enabled: boolean },
 ) {
   const queryClient = useQueryClient();
   const trpcUtils = trpc.useUtils();
@@ -48,6 +48,7 @@ export function useBuildLogs(
 
   return useQuery({
     queryKey,
+    enabled,
     queryFn: async (): Promise<BuildLogs> => {
       let logs: BuildLogs = queryClient.getQueryData<BuildLogs>(queryKey) ?? {
         entries: [],
@@ -96,7 +97,7 @@ export function useBuildLogs(
       };
     },
     refetchInterval: (data, query) => {
-      if (!isOpen || (data?.hasMore && query.state.status !== "error")) {
+      if (!enabled || (data?.hasMore && query.state.status !== "error")) {
         return false;
       }
       return pollInterval(deployment, data);
