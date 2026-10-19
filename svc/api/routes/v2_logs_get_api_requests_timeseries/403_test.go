@@ -24,7 +24,7 @@ func TestGetApiRequestsTimeseriesPermissions(t *testing.T) {
 		shouldPass  bool
 	}{
 		{name: "request logs read", permissions: []string{prefix + "logs/requests#read"}, shouldPass: true},
-		{name: "every workspace log", permissions: []string{prefix + "logs/**#read"}, shouldPass: true},
+		{name: "logs container", permissions: []string{prefix + "logs/**#read"}, shouldPass: false},
 		{name: "workspace read", permissions: []string{prefix + "**#read"}, shouldPass: true},
 		{name: "alongside unrelated grants", permissions: []string{prefix + "limits#read", prefix + "logs/requests#read"}, shouldPass: true},
 		{name: "workspace limits", permissions: []string{prefix + "limits#read"}, shouldPass: false},
