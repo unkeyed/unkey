@@ -49,14 +49,14 @@ func RetentionStart(ctx context.Context, limitsCache cache.Cache[string, keysdb.
 // ReadError turns the error of a request log read into the API error: a read
 // limit is a 4xx, a query ClickHouse rejects is a 500, and anything else is
 // the log store being unavailable
-func ReadError(err error, internal string) error {
+func ReadError(err error, internal, readLimitPublic string) error {
 	// A fresh fault, because the read limit's own public message tells the
 	// caller to simplify a query they did not write
 	if code, coded := fault.GetCode(err); coded {
 		return fault.New(internal+": read limit",
 			fault.Code(code),
 			fault.Internal(err.Error()),
-			fault.Public("The query exceeds a read limit. Send a narrower `filters.time` window or more filters, then try again."),
+			fault.Public(readLimitPublic),
 		)
 	}
 	if _, isException := errors.AsType[*ch.Exception](err); isException {

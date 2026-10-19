@@ -102,7 +102,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 	})
 	if err != nil {
-		return requestlogs.ReadError(err, "failed to list api requests")
+		return requestlogs.ReadError(err, "failed to list api requests",
+			"The query exceeds a read limit. Send a lower `limit`, a narrower `filters.time` window, or more filters, then try again.",
+		)
 	}
 
 	rows, pg := pagination.Paginate(rows, p, func(r clickhouse.ApiRequestLog) string {
