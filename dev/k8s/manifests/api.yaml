@@ -20,8 +20,15 @@ data:
     [[auth]]
     type = "jwt"
     issuer = "app.unkey.com"
-    audience = "api.unkey.com"
+    audience = "api.unkey.local"
     secrets = ["local-dev-jwt-secret-with-at-least-32-bytes"]
+    provider = "workos"
+
+    [[auth]]
+    type = "jwt"
+    issuer = "https://api.workos.com"
+    audience = "api.unkey.local"
+    jwks_url = "https://api.workos.com/sso/jwks/${WORKOS_CLIENT_ID}"
     provider = "workos"
 
     [[auth]]
@@ -92,6 +99,12 @@ spec:
           env:
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector:4318"
+            - name: WORKOS_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: workos-credentials
+                  key: WORKOS_CLIENT_ID
+                  optional: true
             # GitHub App slug, numeric ID, and private key for
             # github.installApp and app repo connection. From the
             # github-credentials secret; optional so api still boots without

@@ -77,26 +77,38 @@ describe("dashboard proxy POST", () => {
     expect(res.status).toBe(401);
   });
 
-  it("forwards the WorkOS access token when present", async () => {
-    mockedGetAuth.mockResolvedValue({
-      userId: "user_1",
-      orgId: "org_1",
-      accessToken: "workos_access_token",
-      role: "owner",
-    });
+  it.each(["api.unkey.com", "api.unkey.local", "localhost:7070"])(
+    "forwards the WorkOS access token to %s",
+    async (hostname) => {
+      mockedEnv.mockReturnValue({
+        ...env(),
+        UNKEY_API_URL: `https://${hostname}`,
+        UNKEY_JWT_AUDIENCE: "api.unkey.local",
+      });
+      mockedGetAuth.mockResolvedValue({
+        userId: "user_1",
+        orgId: "org_1",
+        accessToken: "workos_access_token",
+        role: "owner",
+      });
 
-    const res = await POST(makeRequest({ accept: "application/json" }), { params });
+      const res = await POST(makeRequest({ accept: "application/json" }), { params });
 
-    expect(res.status).toBe(200);
-    expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
-    expect(fetch).toHaveBeenCalledOnce();
-    const [, init] = vi.mocked(fetch).mock.calls[0];
-    expect(init).toBeDefined();
-    const headers = new Headers(init?.headers);
-    expect(headers.get("authorization")).toBe("Bearer workos_access_token");
-  });
+      expect(res.status).toBe(200);
+      expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalledOnce();
+      const [, init] = vi.mocked(fetch).mock.calls[0];
+      expect(init).toBeDefined();
+      const headers = new Headers(init?.headers);
+      expect(headers.get("authorization")).toBe("Bearer workos_access_token");
+    },
+  );
 
-  it("mints a fallback proxy JWT with roles", async () => {
+  it.each([
+    [undefined, "api.unkey.com"],
+    ["api.unkey.local", "api.unkey.local"],
+  ])("mints a fallback JWT with audience override %s", async (override, audience) => {
+    mockedEnv.mockReturnValue({ ...env(), UNKEY_JWT_AUDIENCE: override });
     mockedGetAuth.mockResolvedValue({
       userId: "user_1",
       orgId: "org_1",
@@ -130,7 +142,7 @@ describe("dashboard proxy POST", () => {
       encoder.encode("test-secret-with-at-least-32-bytes-of-entropy"),
       {
         issuer: "app.unkey.com",
-        audience: "api.unkey.com",
+        audience,
         subject: "user_1",
       },
     );
@@ -141,6 +153,12 @@ describe("dashboard proxy POST", () => {
     expect(payload.roles).toEqual(["admin"]);
     expect(payload.role).toBeUndefined();
     expect(payload.perms).toBeUndefined();
+    expect(payload.aud).toEqual([audience]);
+    await expect(
+      jwtVerify(token ?? "", encoder.encode("test-secret-with-at-least-32-bytes-of-entropy"), {
+        audience: audience === "api.unkey.local" ? "api.unkey.com" : "api.unkey.local",
+      }),
+    ).rejects.toThrow();
   });
 
   it.each([
