@@ -1,7 +1,7 @@
 "use client";
 
 import type { DeploymentSummary } from "@/lib/collections";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useProjectData } from "../../../../../data-provider";
@@ -34,10 +34,7 @@ export const CancelDialog = ({ isOpen, onClose, onCancelled, deployment }: Cance
     toast.promise(cancel.mutateAsync(deployment.id), {
       loading: "Cancelling deployment...",
       success: "Deployment cancelled",
-      error: (err) => ({
-        message: "Failed to cancel deployment",
-        description: getErrorMessage(err),
-      }),
+      error: (err) => getErrorToast(err, "Failed to cancel deployment"),
     });
   };
 
