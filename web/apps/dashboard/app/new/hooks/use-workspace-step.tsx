@@ -1,5 +1,5 @@
-import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
+import type { WorkspaceScope } from "@/lib/navigation/routes/shared";
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +12,7 @@ import {
   InputGroupText,
   toast,
 } from "@unkey/ui";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -43,7 +44,7 @@ const workspaceSchema = z.object({
 
 type WorkspaceFormData = z.infer<typeof workspaceSchema>;
 
-export const useWorkspaceStep = (): WorkspaceStep => {
+export const useWorkspaceStep = (landing: (scope: WorkspaceScope) => Route): WorkspaceStep => {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -54,9 +55,6 @@ export const useWorkspaceStep = (): WorkspaceStep => {
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  const projectsNav = useFlag("projectsNav");
-  const landing = projectsNav ? routes.projects.list : routes.apis.list;
 
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),

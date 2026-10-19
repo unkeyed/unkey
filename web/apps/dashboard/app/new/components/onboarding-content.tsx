@@ -3,7 +3,10 @@ import { HelpButton } from "@/components/navigation/top-nav/help-button";
 import { signOut } from "@/lib/auth/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
+import { useState } from "react";
 import { useWorkspaceStep } from "../hooks/use-workspace-step";
+import { IntentCard } from "./intent-step/intent-card";
+import { INTENTS, type Intent } from "./intent-step/intents";
 import {
   OnboardingCard,
   OnboardingCardContent,
@@ -14,7 +17,7 @@ import {
 } from "./onboarding-card";
 
 export function OnboardingContent() {
-  const { body, submit, isDisabled, isLoading } = useWorkspaceStep();
+  const [intent, setIntent] = useState<Intent | null>(null);
   const queryClient = useQueryClient();
 
   return (
@@ -36,30 +39,42 @@ export function OnboardingContent() {
       <Logo />
 
       <FullScreenContent className="max-w-sm py-10 sm:max-w-md lg:max-w-lg">
-        <OnboardingCard>
-          <OnboardingCardHeader>
-            <OnboardingCardTitle>Create Company Workspace</OnboardingCardTitle>
-            <OnboardingCardDescription>
-              Name your workspace and choose its URL.
-            </OnboardingCardDescription>
-          </OnboardingCardHeader>
-          <OnboardingCardContent>{body}</OnboardingCardContent>
-          <OnboardingCardFooter>
-            <Button
-              size="xlg"
-              className="w-full rounded-lg"
-              onClick={submit}
-              disabled={isDisabled}
-              loading={isLoading}
-            >
-              Create workspace
-            </Button>
-          </OnboardingCardFooter>
-        </OnboardingCard>
+        {intent === null ? (
+          <IntentCard onContinue={setIntent} />
+        ) : (
+          <WorkspaceCard intent={intent} />
+        )}
       </FullScreenContent>
       <div className="absolute bottom-4 right-4">
         <HelpButton />
       </div>
     </FullScreenLayout>
+  );
+}
+
+function WorkspaceCard({ intent }: { intent: Intent }) {
+  const { body, submit, isDisabled, isLoading } = useWorkspaceStep(INTENTS[intent].landing);
+
+  return (
+    <OnboardingCard>
+      <OnboardingCardHeader>
+        <OnboardingCardTitle>Create Company Workspace</OnboardingCardTitle>
+        <OnboardingCardDescription>
+          Name your workspace and choose its URL.
+        </OnboardingCardDescription>
+      </OnboardingCardHeader>
+      <OnboardingCardContent>{body}</OnboardingCardContent>
+      <OnboardingCardFooter>
+        <Button
+          size="xlg"
+          className="w-full rounded-lg"
+          onClick={submit}
+          disabled={isDisabled}
+          loading={isLoading}
+        >
+          Create workspace
+        </Button>
+      </OnboardingCardFooter>
+    </OnboardingCard>
   );
 }
