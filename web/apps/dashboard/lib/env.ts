@@ -20,7 +20,7 @@ export const env = () =>
       UNKEY_API_ID: z.string(),
       UNKEY_API_URL: z.url().optional().default("https://api.unkey.com"),
       UNKEY_JWT_SECRET: z.string().optional(),
-      UNKEY_JWT_AUDIENCE: z.string().min(1).optional(),
+      UNKEY_JWT_AUDIENCE: z.string().min(1).default("api.unkey.com"),
 
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),

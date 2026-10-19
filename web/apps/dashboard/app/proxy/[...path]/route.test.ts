@@ -48,6 +48,7 @@ describe("dashboard proxy POST", () => {
     mockedEnv.mockReturnValue({
       UNKEY_API_URL: "https://api.example.test",
       UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
+      UNKEY_JWT_AUDIENCE: "api.unkey.com",
     } as ReturnType<typeof env>);
   });
 
@@ -104,62 +105,62 @@ describe("dashboard proxy POST", () => {
     },
   );
 
-  it.each([
-    [undefined, "api.unkey.com"],
-    ["api.unkey.local", "api.unkey.local"],
-  ])("mints a fallback JWT with audience override %s", async (override, audience) => {
-    mockedEnv.mockReturnValue({ ...env(), UNKEY_JWT_AUDIENCE: override });
-    mockedGetAuth.mockResolvedValue({
-      userId: "user_1",
-      orgId: "org_1",
-      role: "admin",
-      user: {
-        id: "user_1",
-        email: "test@example.test",
-        firstName: "Test",
-        lastName: "User",
-        avatarUrl: null,
-        fullName: "Test User",
-      },
-    });
-    const res = await POST(makeRequest({ accept: "application/json" }), { params });
+  it.each(["api.unkey.com", "api.unkey.local"])(
+    "mints a fallback JWT with configured audience %s",
+    async (audience) => {
+      mockedEnv.mockReturnValue({ ...env(), UNKEY_JWT_AUDIENCE: audience });
+      mockedGetAuth.mockResolvedValue({
+        userId: "user_1",
+        orgId: "org_1",
+        role: "admin",
+        user: {
+          id: "user_1",
+          email: "test@example.test",
+          firstName: "Test",
+          lastName: "User",
+          avatarUrl: null,
+          fullName: "Test User",
+        },
+      });
+      const res = await POST(makeRequest({ accept: "application/json" }), { params });
 
-    expect(res.status).toBe(200);
-    // The sealed session already carries the profile, so minting must not
-    // cost a provider round trip.
-    expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
-    expect(fetch).toHaveBeenCalledOnce();
-    const [, init] = vi.mocked(fetch).mock.calls[0];
-    expect(init).toBeDefined();
-    const headers = new Headers(init?.headers);
-    const authorization = headers.get("authorization");
-    expect(authorization).toMatch(/^Bearer /);
+      expect(res.status).toBe(200);
+      // The sealed session already carries the profile, so minting must not
+      // cost a provider round trip.
+      expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalledOnce();
+      const [, init] = vi.mocked(fetch).mock.calls[0];
+      expect(init).toBeDefined();
+      const headers = new Headers(init?.headers);
+      const authorization = headers.get("authorization");
+      expect(authorization).toMatch(/^Bearer /);
 
-    const token = authorization?.replace("Bearer ", "");
-    expect(token).toBeDefined();
-    const { payload } = await jwtVerify(
-      token ?? "",
-      encoder.encode("test-secret-with-at-least-32-bytes-of-entropy"),
-      {
-        issuer: "app.unkey.com",
-        audience,
-        subject: "user_1",
-      },
-    );
-    expect(payload.org).toEqual({ id: "org_1" });
-    expect(payload["org.id"]).toBeUndefined();
-    expect(payload.wid).toBeUndefined();
-    expect(payload.name).toBe("Test User");
-    expect(payload.roles).toEqual(["admin"]);
-    expect(payload.role).toBeUndefined();
-    expect(payload.perms).toBeUndefined();
-    expect(payload.aud).toEqual([audience]);
-    await expect(
-      jwtVerify(token ?? "", encoder.encode("test-secret-with-at-least-32-bytes-of-entropy"), {
-        audience: audience === "api.unkey.local" ? "api.unkey.com" : "api.unkey.local",
-      }),
-    ).rejects.toThrow();
-  });
+      const token = authorization?.replace("Bearer ", "");
+      expect(token).toBeDefined();
+      const { payload } = await jwtVerify(
+        token ?? "",
+        encoder.encode("test-secret-with-at-least-32-bytes-of-entropy"),
+        {
+          issuer: "app.unkey.com",
+          audience,
+          subject: "user_1",
+        },
+      );
+      expect(payload.org).toEqual({ id: "org_1" });
+      expect(payload["org.id"]).toBeUndefined();
+      expect(payload.wid).toBeUndefined();
+      expect(payload.name).toBe("Test User");
+      expect(payload.roles).toEqual(["admin"]);
+      expect(payload.role).toBeUndefined();
+      expect(payload.perms).toBeUndefined();
+      expect(payload.aud).toEqual([audience]);
+      await expect(
+        jwtVerify(token ?? "", encoder.encode("test-secret-with-at-least-32-bytes-of-entropy"), {
+          audience: audience === "api.unkey.local" ? "api.unkey.com" : "api.unkey.local",
+        }),
+      ).rejects.toThrow();
+    },
+  );
 
   it.each([
     ["leading backslash host", ["\\evil.com", "v1", "keys"]],
