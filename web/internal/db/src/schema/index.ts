@@ -5,6 +5,7 @@ export * from "./flags";
 export * from "./keys";
 export * from "./unkey_root_keys";
 export * from "./ratelimit";
+export * from "./counters";
 export * from "./workspaces";
 export * from "./identity";
 export * from "./limits";
