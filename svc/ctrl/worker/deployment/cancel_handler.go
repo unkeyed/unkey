@@ -16,9 +16,6 @@ const cancelledByUserMessage = "Cancelled by user"
 
 func (v *VirtualObject) CancelDeployment(ctx restate.ObjectContext, req *hydrav1.CancelDeploymentRequest) (*hydrav1.CancelDeploymentResponse, error) {
 	deploymentID := restate.Key(ctx)
-	if id := req.GetDeploymentId(); id != "" && id != deploymentID {
-		return nil, restate.ToTerminalError(fmt.Errorf("deployment_id %q does not match object key %q", id, deploymentID), restate.WithErrorCode(400))
-	}
 
 	deployment, err := v.loadDeployment(ctx, deploymentID, "cancel")
 	if err != nil {

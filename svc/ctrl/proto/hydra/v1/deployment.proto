@@ -136,9 +136,8 @@ message AuthorizeDeploymentRequest {
 message AuthorizeDeploymentResponse {}
 
 message CancelDeploymentRequest {
-  string deployment_id = 1;
-  ctrl.v1.ActorInfo actor = 2;
-  string correlation_id = 3;
+  ctrl.v1.ActorInfo actor = 1;
+  string correlation_id = 2;
 }
 
 message CancelDeploymentResponse {}
