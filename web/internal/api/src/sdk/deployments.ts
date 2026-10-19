@@ -3,6 +3,7 @@
  */
 
 import { deploymentsAuthorizeDeployment } from "../funcs/deploymentsAuthorizeDeployment.js";
+import { deploymentsCancelDeployment } from "../funcs/deploymentsCancelDeployment.js";
 import { deploymentsCreateDeployment } from "../funcs/deploymentsCreateDeployment.js";
 import { deploymentsCreateDeploymentV3 } from "../funcs/deploymentsCreateDeploymentV3.js";
 import { deploymentsGetDeployment } from "../funcs/deploymentsGetDeployment.js";
@@ -43,6 +44,36 @@ export class Deployments extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2DeploymentsAuthorizeDeploymentResponseBody> {
     return unwrapAsync(deploymentsAuthorizeDeployment(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Cancel deployment
+   *
+   * @remarks
+   * Cancel a deployment that has not finished yet: queued, waiting for
+   * approval, building, or deploying. Cancelling aborts its run and marks it
+   * `cancelled`.
+   *
+   * Only in-progress deployments can be cancelled. To take a `ready` preview
+   * deployment offline, use `stopDeployment` instead.
+   *
+   * Cancellation is asynchronous: this endpoint only enqueues it and returns
+   * immediately. Poll `getDeployment` until the status reaches `cancelled`.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have the following permission:
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
+   */
+  async cancelDeployment(
+    request: components.V2DeploymentsCancelDeploymentRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DeploymentsCancelDeploymentResponseBody> {
+    return unwrapAsync(deploymentsCancelDeployment(
       this,
       request,
       options,
