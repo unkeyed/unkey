@@ -18,8 +18,8 @@ type limitedClickHouse struct {
 	exception *ch.Exception
 }
 
-func (l limitedClickHouse) ListApiRequests(context.Context, clickhouse.ListApiRequestsRequest) (clickhouse.ApiRequestsPage, error) {
-	return clickhouse.ApiRequestsPage{}, clickhouse.WrapClickHouseError(l.exception)
+func (l limitedClickHouse) ListApiRequests(context.Context, clickhouse.ListApiRequestsRequest) ([]clickhouse.ApiRequestLog, error) {
+	return nil, clickhouse.WrapClickHouseError(l.exception)
 }
 
 // TestListApiRequestsReadLimit guarantees a read limit is a 422 that names

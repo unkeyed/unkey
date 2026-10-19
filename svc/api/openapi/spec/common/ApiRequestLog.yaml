@@ -7,7 +7,6 @@ required:
   - path
   - status
   - latencyMs
-  - error
   - requestHeaders
   - requestBody
   - responseHeaders
@@ -46,10 +45,6 @@ properties:
     format: int64
     description: How long the Unkey API took to serve the request, in milliseconds.
     example: 38
-  error:
-    type: string
-    description: The internal error of a failed request. Empty when the request did not fail.
-    example: ""
   requestHeaders:
     type: array
     items:

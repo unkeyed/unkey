@@ -17,8 +17,8 @@ type unreachableClickHouse struct {
 	clickhouse.ClickHouse
 }
 
-func (unreachableClickHouse) ListApiRequests(context.Context, clickhouse.ListApiRequestsRequest) (clickhouse.ApiRequestsPage, error) {
-	return clickhouse.ApiRequestsPage{}, errors.New("dial tcp 10.0.0.9:9000: connect: connection refused")
+func (unreachableClickHouse) ListApiRequests(context.Context, clickhouse.ListApiRequestsRequest) ([]clickhouse.ApiRequestLog, error) {
+	return nil, errors.New("dial tcp 10.0.0.9:9000: connect: connection refused")
 }
 
 // TestListApiRequestsLogStoreUnavailable guarantees an unreachable log store is

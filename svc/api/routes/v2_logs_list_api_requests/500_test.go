@@ -33,8 +33,8 @@ type rejectingClickHouse struct {
 	clickhouse.ClickHouse
 }
 
-func (rejectingClickHouse) ListApiRequests(context.Context, clickhouse.ListApiRequestsRequest) (clickhouse.ApiRequestsPage, error) {
-	return clickhouse.ApiRequestsPage{}, fault.Wrap(&ch.Exception{Code: 47, Name: "DB::Exception", Message: "Unknown identifier"}, fault.Internal("failed to list api requests"))
+func (rejectingClickHouse) ListApiRequests(context.Context, clickhouse.ListApiRequestsRequest) ([]clickhouse.ApiRequestLog, error) {
+	return nil, fault.Wrap(&ch.Exception{Code: 47, Name: "DB::Exception", Message: "Unknown identifier"}, fault.Internal("failed to list api requests"))
 }
 
 // TestListApiRequestsQueryRejected guarantees ClickHouse rejecting the query is

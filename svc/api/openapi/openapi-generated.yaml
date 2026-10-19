@@ -2828,7 +2828,7 @@ components:
                     description: |
                         The `pagination.cursor` of the previous page. Send the same `filters` with every page of one listing.
                         Omit the cursor to get the first page.
-                    example: eyJ0IjoxNzkyMDIxODUwMTIzLCJyIjoicmVxXzU2NzhlZmdoIn0
+                    example: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
                 filters:
                     "$ref": "#/components/schemas/V2LogsListApiRequestsFilters"
             additionalProperties: false
@@ -7928,7 +7928,6 @@ components:
                 - path
                 - status
                 - latencyMs
-                - error
                 - requestHeaders
                 - requestBody
                 - responseHeaders
@@ -7967,10 +7966,6 @@ components:
                     format: int64
                     description: How long the Unkey API took to serve the request, in milliseconds.
                     example: 38
-                error:
-                    type: string
-                    description: The internal error of a failed request. Empty when the request did not fail.
-                    example: ""
                 requestHeaders:
                     type: array
                     items:
@@ -15933,7 +15928,7 @@ paths:
 
                 Filter by time, path, host, method, request ID, and status. In one field, values under `is`, `contains`, `startsWith`, and `endsWith` are combined with OR. Values under `isNot` and `notContains`, and the range operators `gt`, `gte`, `lt`, and `lte`, are combined with AND. Different fields are combined with AND. Every text match is exact and case-sensitive.
 
-                To get the next page, send the `pagination.cursor` of the previous page together with the same `filters`.
+                To get the next page, send the `pagination.cursor` of the previous page together with the same `filters`. A cursor does not expire, but rows older than the log retention leave the listing.
 
                 Unkey returns only requests inside the log retention of your workspace. The calls to this endpoint are not logged.
 
@@ -15965,8 +15960,7 @@ paths:
                                     summary: A page with more results
                                     value:
                                         data:
-                                            - error: ""
-                                              host: api.unkey.com
+                                            - host: api.unkey.com
                                               latencyMs: 38
                                               method: POST
                                               path: /v2/keys.updateKey
@@ -15983,7 +15977,7 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                         pagination:
-                                            cursor: eyJ0IjoxNzkyMDIxODUwMTIzLCJyIjoicmVxXzU2NzhlZmdoIn0
+                                            cursor: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
                                             hasMore: true
                             schema:
                                 $ref: '#/components/schemas/V2LogsListApiRequestsResponseBody'

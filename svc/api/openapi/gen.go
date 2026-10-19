@@ -622,11 +622,6 @@ func (e V2PortalListSessionsSessionStatus) Valid() bool {
 
 // ApiRequestLog One request that the Unkey API served for your workspace.
 type ApiRequestLog struct {
-	// Error The internal error of a failed request. Empty when the request did not fail.
-	//
-	// Example:
-	Error string `json:"error"`
-
 	// Host The host the request was sent to.
 	//
 	// Example: api.unkey.com
@@ -5778,7 +5773,7 @@ type V2LogsListApiRequestsRequestBody struct {
 	// Omit the cursor to get the first page.
 	//
 	//
-	// Example: eyJ0IjoxNzkyMDIxODUwMTIzLCJyIjoicmVxXzU2NzhlZmdoIn0
+	// Example: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
 	Cursor *string `json:"cursor,omitempty"`
 
 	// Filters Filters for the listing. A missing field does not filter. Different fields are combined with AND.

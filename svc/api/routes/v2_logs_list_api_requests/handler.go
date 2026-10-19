@@ -3,9 +3,11 @@ package handler
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
@@ -14,7 +16,6 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/clickhouse/logfilter"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -25,6 +26,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
+	"github.com/unkeyed/unkey/svc/api/internal/requestlogs"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -46,11 +49,6 @@ func (h *Handler) Method() string { return http.MethodPost }
 
 func (h *Handler) Path() string { return "/v2/logs.listApiRequests" }
 
-type cursor struct {
-	Time      int64  `json:"t"`
-	RequestID string `json:"r"`
-}
-
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// A logged response would copy up to a page of other requests into a new
 	// row, and a polling dashboard would fill the listing with its own reads
@@ -71,11 +69,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	p := pagination.Parse(req.Limit, req.Cursor, limitDefault)
 	var pageCursor *clickhouse.ApiRequestCursor
-	if req.Cursor != nil {
-		decoded, decodeErr := base64.RawURLEncoding.DecodeString(*req.Cursor)
-		var c cursor
-		if decodeErr != nil || json.Unmarshal(decoded, &c) != nil || c.Time <= 0 || c.RequestID == "" {
+	if p.Cursor != "" {
+		decoded, decodeErr := base64.RawURLEncoding.DecodeString(p.Cursor)
+		timeText, requestID, _ := strings.Cut(string(decoded), ":")
+		cursorTime, parseErr := strconv.ParseInt(timeText, 10, 64)
+		if decodeErr != nil || parseErr != nil || cursorTime <= 0 || requestID == "" {
 			return fault.New("invalid cursor",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Internal("cursor is not a base64 encoded time and request id"),
@@ -83,8 +83,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		pageCursor = &clickhouse.ApiRequestCursor{
-			Time:      c.Time,
-			RequestID: c.RequestID,
+			Time:      cursorTime,
+			RequestID: requestID,
 		}
 	}
 
@@ -109,64 +109,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	filters := ptr.SafeDeref(req.Filters)
-	timeFilter := ptr.SafeDeref(filters.Time)
-	pathFilter := ptr.SafeDeref(filters.Path)
-	hostFilter := ptr.SafeDeref(filters.Host)
-	methodFilter := ptr.SafeDeref(filters.Method)
-	requestIDFilter := ptr.SafeDeref(filters.RequestId)
-	statusFilter := ptr.SafeDeref(filters.Status)
-	limit := ptr.PositiveOr(req.Limit, limitDefault)
-
-	page, err := h.ClickHouse.ListApiRequests(ctx, clickhouse.ListApiRequestsRequest{
+	rows, err := h.ClickHouse.ListApiRequests(ctx, clickhouse.ListApiRequestsRequest{
 		WorkspaceID:    principal.AuthorizedWorkspaceID,
 		RetentionStart: retentionStart,
 		Cursor:         pageCursor,
-		Limit:          limit,
+		Limit:          int(p.FetchLimit()),
 		Filters: clickhouse.ApiRequestFilters{
-			Time: logfilter.Int{
-				Is:    nil,
-				IsNot: nil,
-				Gt:    timeFilter.Gt,
-				Gte:   timeFilter.Gte,
-				Lt:    timeFilter.Lt,
-				Lte:   timeFilter.Lte,
-			},
-			Path: logfilter.Text{
-				Is:          ptr.SafeDeref(pathFilter.Is),
-				IsNot:       ptr.SafeDeref(pathFilter.IsNot),
-				Contains:    ptr.SafeDeref(pathFilter.Contains),
-				NotContains: ptr.SafeDeref(pathFilter.NotContains),
-				StartsWith:  ptr.SafeDeref(pathFilter.StartsWith),
-				EndsWith:    ptr.SafeDeref(pathFilter.EndsWith),
-			},
-			Host: logfilter.Exact{
-				Is:    ptr.SafeDeref(hostFilter.Is),
-				IsNot: ptr.SafeDeref(hostFilter.IsNot),
-			},
-			Method: logfilter.Exact{
-				Is:    methodStrings(ptr.SafeDeref(methodFilter.Is)),
-				IsNot: methodStrings(ptr.SafeDeref(methodFilter.IsNot)),
-			},
-			RequestID: logfilter.Exact{
-				Is:    ptr.SafeDeref(requestIDFilter.Is),
-				IsNot: ptr.SafeDeref(requestIDFilter.IsNot),
-			},
-			Status: logfilter.Int{
-				Is:    ptr.SafeDeref(statusFilter.Is),
-				IsNot: ptr.SafeDeref(statusFilter.IsNot),
-				Gt:    statusFilter.Gt,
-				Gte:   statusFilter.Gte,
-				Lt:    statusFilter.Lt,
-				Lte:   statusFilter.Lte,
-			},
+			Time:      requestlogs.Time(filters.Time),
+			Path:      requestlogs.Text(filters.Path),
+			Host:      requestlogs.Exact(filters.Host),
+			Method:    requestlogs.Method(filters.Method),
+			RequestID: requestlogs.Exact(filters.RequestId),
+			Status:    requestlogs.Int(filters.Status),
 		},
 	})
 	if err != nil {
 		// A fresh fault, because the read limit's own public message tells the
 		// caller to simplify a query they did not write
-		if code, coded := fault.GetCode(err); coded {
+		if readLimitCode, isReadLimit := fault.GetCode(err); isReadLimit {
 			return fault.New("api request listing exceeds a read limit",
-				fault.Code(code),
+				fault.Code(readLimitCode),
 				fault.Internal(err.Error()),
 				fault.Public("The query exceeds a read limit. Send a lower `limit`, a narrower `filters.time` window, or more filters, then try again."),
 			)
@@ -185,8 +147,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	data := make([]openapi.ApiRequestLog, len(page.Requests))
-	for i, r := range page.Requests {
+	rows, pg := pagination.Paginate(rows, p, func(r clickhouse.ApiRequestLog) string {
+		return base64.RawURLEncoding.EncodeToString(fmt.Appendf(nil, "%d:%s", r.Time, r.RequestID))
+	})
+
+	data := make([]openapi.ApiRequestLog, len(rows))
+	for i, r := range rows {
 		data[i] = openapi.ApiRequestLog{
 			RequestId:       r.RequestID,
 			Time:            r.Time,
@@ -195,7 +161,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Path:            r.Path,
 			Status:          r.ResponseStatus,
 			LatencyMs:       r.ServiceLatency,
-			Error:           r.Error,
 			RequestHeaders:  r.RequestHeaders,
 			RequestBody:     r.RequestBody,
 			ResponseHeaders: r.ResponseHeaders,
@@ -203,40 +168,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	var nextCursor *string
-	if page.HasMore {
-		last := page.Requests[len(page.Requests)-1]
-		encoded, err := json.Marshal(cursor{
-			Time:      last.Time,
-			RequestID: last.RequestID,
-		})
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("failed to encode cursor"),
-				fault.Public("An internal error occurred."),
-			)
-		}
-		nextCursor = new(base64.RawURLEncoding.EncodeToString(encoded))
-	}
-
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: data,
-		Pagination: openapi.Pagination{
-			Cursor:  nextCursor,
-			HasMore: page.HasMore,
-		},
+		Data:       data,
+		Pagination: pg,
 	})
-}
-
-func methodStrings(methods []openapi.LogHttpMethod) []string {
-	values := make([]string, len(methods))
-	for i, m := range methods {
-		values[i] = string(m)
-	}
-
-	return values
 }

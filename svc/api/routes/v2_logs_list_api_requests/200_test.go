@@ -64,7 +64,6 @@ func TestListApiRequestsReturnsOwnRowsNewestFirst(t *testing.T) {
 		Path:            "/v2/keys.updateKey",
 		Status:          404,
 		LatencyMs:       38,
-		Error:           "key not found",
 		RequestHeaders:  []string{"Content-Type: application/json"},
 		RequestBody:     `{"name":"KEBAP"}`,
 		ResponseHeaders: []string{"Content-Type: application/json"},

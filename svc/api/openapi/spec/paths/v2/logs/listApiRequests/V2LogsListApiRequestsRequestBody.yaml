@@ -13,7 +13,7 @@ properties:
     description: |
       The `pagination.cursor` of the previous page. Send the same `filters` with every page of one listing.
       Omit the cursor to get the first page.
-    example: eyJ0IjoxNzkyMDIxODUwMTIzLCJyIjoicmVxXzU2NzhlZmdoIn0
+    example: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
   filters:
     "$ref": "./V2LogsListApiRequestsFilters.yaml"
 additionalProperties: false
@@ -56,7 +56,7 @@ examples:
     description: Get the next page. Send the same filters as the first page.
     value:
       limit: 50
-      cursor: eyJ0IjoxNzkyMDIxODUwMTIzLCJyIjoicmVxXzU2NzhlZmdoIn0
+      cursor: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
       filters:
         host:
           isNot: ["api.unkey.dev"]
