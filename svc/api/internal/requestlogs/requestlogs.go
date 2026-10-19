@@ -1,6 +1,3 @@
-// Package requestlogs holds the steps that every endpoint reading the Unkey
-// API request logs shares: the retention bound, the HTTP method filter, and
-// the mapping of ClickHouse errors to API errors.
 package requestlogs
 
 import (
@@ -18,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // RetentionStart returns the oldest time in unix milliseconds the workspace
@@ -52,9 +48,9 @@ func RetentionStart(ctx context.Context, limitsCache cache.Cache[string, keysdb.
 func ReadError(err error, internal, readLimitPublic string) error {
 	// A fresh fault, because the read limit's own public message tells the
 	// caller to simplify a query they did not write
-	if code, coded := fault.GetCode(err); coded {
+	if readLimitCode, isReadLimit := fault.GetCode(err); isReadLimit {
 		return fault.New(internal+": read limit",
-			fault.Code(code),
+			fault.Code(readLimitCode),
 			fault.Internal(err.Error()),
 			fault.Public(readLimitPublic),
 		)
@@ -72,14 +68,4 @@ func ReadError(err error, internal, readLimitPublic string) error {
 		fault.Internal(internal),
 		fault.Public("The log store is not available. Try again."),
 	)
-}
-
-// Methods returns the HTTP methods of a filter as the strings the logs store
-func Methods(methods []openapi.HttpMethod) []string {
-	values := make([]string, len(methods))
-	for i, m := range methods {
-		values[i] = string(m)
-	}
-
-	return values
 }

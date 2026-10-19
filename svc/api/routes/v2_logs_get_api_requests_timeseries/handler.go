@@ -7,7 +7,6 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/clickhouse/logfilter"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -60,49 +59,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	filters := ptr.SafeDeref(req.Filters)
-	timeFilter := ptr.SafeDeref(filters.Time)
-	pathFilter := ptr.SafeDeref(filters.Path)
-	hostFilter := ptr.SafeDeref(filters.Host)
-	methodFilter := ptr.SafeDeref(filters.Method)
-	statusFilter := ptr.SafeDeref(filters.Status)
-
 	series, err := h.ClickHouse.GetApiRequestsTimeseries(ctx, clickhouse.ApiRequestsTimeseriesRequest{
 		WorkspaceID:    principal.AuthorizedWorkspaceID,
 		Now:            h.Clock.Now().UnixMilli(),
 		RetentionStart: retentionStart,
 		Filters: clickhouse.ApiRequestsTimeseriesFilters{
-			Time: logfilter.Int{
-				Is:    nil,
-				IsNot: nil,
-				Gt:    timeFilter.Gt,
-				Gte:   timeFilter.Gte,
-				Lt:    timeFilter.Lt,
-				Lte:   timeFilter.Lte,
-			},
-			Path: logfilter.Text{
-				Is:          ptr.SafeDeref(pathFilter.Is),
-				IsNot:       ptr.SafeDeref(pathFilter.IsNot),
-				Contains:    ptr.SafeDeref(pathFilter.Contains),
-				NotContains: ptr.SafeDeref(pathFilter.NotContains),
-				StartsWith:  ptr.SafeDeref(pathFilter.StartsWith),
-				EndsWith:    ptr.SafeDeref(pathFilter.EndsWith),
-			},
-			Host: logfilter.Exact{
-				Is:    ptr.SafeDeref(hostFilter.Is),
-				IsNot: ptr.SafeDeref(hostFilter.IsNot),
-			},
-			Method: logfilter.Exact{
-				Is:    requestlogs.Methods(ptr.SafeDeref(methodFilter.Is)),
-				IsNot: requestlogs.Methods(ptr.SafeDeref(methodFilter.IsNot)),
-			},
-			Status: logfilter.Int{
-				Is:    ptr.SafeDeref(statusFilter.Is),
-				IsNot: ptr.SafeDeref(statusFilter.IsNot),
-				Gt:    statusFilter.Gt,
-				Gte:   statusFilter.Gte,
-				Lt:    statusFilter.Lt,
-				Lte:   statusFilter.Lte,
-			},
+			Time:   requestlogs.Time(filters.Time),
+			Path:   requestlogs.Text(filters.Path),
+			Host:   requestlogs.Exact(filters.Host),
+			Method: requestlogs.Method(filters.Method),
+			Status: requestlogs.Int(filters.Status),
 		},
 	})
 	if err != nil {
