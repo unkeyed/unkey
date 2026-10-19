@@ -36,9 +36,6 @@ const (
 	// DeployServiceGetDeploymentProcedure is the fully-qualified name of the DeployService's
 	// GetDeployment RPC.
 	DeployServiceGetDeploymentProcedure = "/ctrl.v1.DeployService/GetDeployment"
-	// DeployServiceAuthorizeDeploymentProcedure is the fully-qualified name of the DeployService's
-	// AuthorizeDeployment RPC.
-	DeployServiceAuthorizeDeploymentProcedure = "/ctrl.v1.DeployService/AuthorizeDeployment"
 	// DeployServiceCancelDeploymentProcedure is the fully-qualified name of the DeployService's
 	// CancelDeployment RPC.
 	DeployServiceCancelDeploymentProcedure = "/ctrl.v1.DeployService/CancelDeployment"
@@ -51,8 +48,6 @@ const (
 type DeployServiceClient interface {
 	// Get deployment details
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
-	// Authorize deployment for an external contributor's push on a branch
-	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
 	// Cancel a running or queued deployment. Marks the row cancelled and cancels
 	// the Restate Deploy invocation; Restate cancels a queued or running Build
 	// with it.
@@ -84,12 +79,6 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(deployServiceMethods.ByName("GetDeployment")),
 			connect.WithClientOptions(opts...),
 		),
-		authorizeDeployment: connect.NewClient[v1.AuthorizeDeploymentRequest, v1.AuthorizeDeploymentResponse](
-			httpClient,
-			baseURL+DeployServiceAuthorizeDeploymentProcedure,
-			connect.WithSchema(deployServiceMethods.ByName("AuthorizeDeployment")),
-			connect.WithClientOptions(opts...),
-		),
 		cancelDeployment: connect.NewClient[v1.CancelDeploymentRequest, v1.CancelDeploymentResponse](
 			httpClient,
 			baseURL+DeployServiceCancelDeploymentProcedure,
@@ -107,20 +96,14 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // deployServiceClient implements DeployServiceClient.
 type deployServiceClient struct {
-	getDeployment       *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
-	authorizeDeployment *connect.Client[v1.AuthorizeDeploymentRequest, v1.AuthorizeDeploymentResponse]
-	cancelDeployment    *connect.Client[v1.CancelDeploymentRequest, v1.CancelDeploymentResponse]
-	deprovisionCompute  *connect.Client[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse]
+	getDeployment      *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
+	cancelDeployment   *connect.Client[v1.CancelDeploymentRequest, v1.CancelDeploymentResponse]
+	deprovisionCompute *connect.Client[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse]
 }
 
 // GetDeployment calls ctrl.v1.DeployService.GetDeployment.
 func (c *deployServiceClient) GetDeployment(ctx context.Context, req *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
 	return c.getDeployment.CallUnary(ctx, req)
-}
-
-// AuthorizeDeployment calls ctrl.v1.DeployService.AuthorizeDeployment.
-func (c *deployServiceClient) AuthorizeDeployment(ctx context.Context, req *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error) {
-	return c.authorizeDeployment.CallUnary(ctx, req)
 }
 
 // CancelDeployment calls ctrl.v1.DeployService.CancelDeployment.
@@ -137,8 +120,6 @@ func (c *deployServiceClient) DeprovisionCompute(ctx context.Context, req *conne
 type DeployServiceHandler interface {
 	// Get deployment details
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
-	// Authorize deployment for an external contributor's push on a branch
-	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
 	// Cancel a running or queued deployment. Marks the row cancelled and cancels
 	// the Restate Deploy invocation; Restate cancels a queued or running Build
 	// with it.
@@ -166,12 +147,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(deployServiceMethods.ByName("GetDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
-	deployServiceAuthorizeDeploymentHandler := connect.NewUnaryHandler(
-		DeployServiceAuthorizeDeploymentProcedure,
-		svc.AuthorizeDeployment,
-		connect.WithSchema(deployServiceMethods.ByName("AuthorizeDeployment")),
-		connect.WithHandlerOptions(opts...),
-	)
 	deployServiceCancelDeploymentHandler := connect.NewUnaryHandler(
 		DeployServiceCancelDeploymentProcedure,
 		svc.CancelDeployment,
@@ -188,8 +163,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		switch r.URL.Path {
 		case DeployServiceGetDeploymentProcedure:
 			deployServiceGetDeploymentHandler.ServeHTTP(w, r)
-		case DeployServiceAuthorizeDeploymentProcedure:
-			deployServiceAuthorizeDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceCancelDeploymentProcedure:
 			deployServiceCancelDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceDeprovisionComputeProcedure:
@@ -205,10 +178,6 @@ type UnimplementedDeployServiceHandler struct{}
 
 func (UnimplementedDeployServiceHandler) GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.GetDeployment is not implemented"))
-}
-
-func (UnimplementedDeployServiceHandler) AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.AuthorizeDeployment is not implemented"))
 }
 
 func (UnimplementedDeployServiceHandler) CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error) {

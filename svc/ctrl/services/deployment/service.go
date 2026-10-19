@@ -3,8 +3,6 @@ package deployment
 import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	githubclient "github.com/unkeyed/unkey/pkg/github"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -19,17 +17,7 @@ type Service struct {
 	auditlogs    auditlogs.AuditLogService
 	restate      *restateingress.Client
 	restateAdmin *restateadmin.Client
-	github       githubclient.GitHubClient
 	bearer       string
-}
-
-// deploymentClient creates a typed Restate ingress client for the DeployWorkflow
-// keyed by deployment_id. Each deployment runs as its own workflow, so multiple
-// deployments per environment can build in parallel. The contended resource
-// (apps.current_deployment_id) is serialized inside RoutingService via
-// SwapLiveDeployment.
-func (s *Service) deploymentClient(deploymentID string) hydrav1.DeployWorkflowIngressClient {
-	return hydrav1.NewDeployWorkflowIngressClient(s.restate, deploymentID)
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -43,8 +31,6 @@ type Config struct {
 	// RestateAdmin is optional. When nil, CancelDeployment fails closed for
 	// deployments that have an invocation.
 	RestateAdmin *restateadmin.Client
-	// GitHub is the client for GitHub API operations (fetching HEAD, etc.).
-	GitHub githubclient.GitHubClient
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
 }
@@ -57,7 +43,6 @@ func New(cfg Config) *Service {
 		auditlogs:                         cfg.Auditlogs,
 		restate:                           cfg.Restate,
 		restateAdmin:                      cfg.RestateAdmin,
-		github:                            cfg.GitHub,
 		bearer:                            cfg.Bearer,
 	}
 }
