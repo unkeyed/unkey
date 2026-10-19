@@ -27,9 +27,6 @@ func (v *VirtualObject) CancelDeployment(ctx restate.ObjectContext, req *hydrav1
 	}
 
 	invocationID := deployment.InvocationID.String
-	if invocationID != "" && v.restateAdmin == nil {
-		return nil, restate.ToTerminalError(fmt.Errorf("restate admin client is not configured"), restate.WithErrorCode(500))
-	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return deploycancel.Cancel(runCtx, v.db, v.restateAdmin, deploycancel.Params{
