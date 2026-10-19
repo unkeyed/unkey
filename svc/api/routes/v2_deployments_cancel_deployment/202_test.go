@@ -34,7 +34,6 @@ func TestCancelDeployment(t *testing.T) {
 
 	observed := testutil.Receive(t, cancellations, 10*time.Second)
 	require.Equal(t, dep.ID, observed.virtualObjectKey)
-	require.Equal(t, dep.ID, observed.request.GetDeploymentId())
 	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, observed.request.GetActor().GetType())
 	require.Equal(t, rootKeyID, observed.request.GetActor().GetId())
 	require.NotEmpty(t, observed.request.GetCorrelationId())

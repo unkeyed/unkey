@@ -86,7 +86,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	_, err = hydrav1.NewDeploymentServiceIngressClient(h.Restate, dep.ID).
 		CancelDeployment().
 		Send(ctx, &hydrav1.CancelDeploymentRequest{
-			DeploymentId:  dep.ID,
 			Actor:         actor,
 			CorrelationId: auditlog.NewCorrelationID(),
 		})
