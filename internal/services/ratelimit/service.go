@@ -285,6 +285,9 @@ type service struct {
 	// path drains any lag between an instance's local view and the
 	// region's Redis-backed truth. Cross-region convergence is a separate
 	// concern handled by ratelimit_global_counters.
+	//
+	// Limiters on the global counter use the same deadlines to read peers
+	// through its short-lived strict cache instead of fetching from Redis.
 	strictUntils sync.Map
 
 	// origin is the distributed source-of-truth counter (typically Redis).
@@ -511,11 +514,12 @@ func (s *service) loadStrictUntil(key strictKey) int64 {
 
 // setStrictUntil raises the strict-enforcement deadline to untilMs,
 // atomically. The deadline only ever moves forward; a concurrent caller
-// setting an earlier deadline is a no-op. Without an origin, this is a no-op.
+// setting an earlier deadline is a no-op. Without an origin or a global
+// counter, nothing reads the deadline, so this is a no-op.
 // Otherwise, every call counts as a strict-mode activation for observability,
 // regardless of whether the deadline actually advanced.
 func (s *service) setStrictUntil(key strictKey, untilMs int64) {
-	if s.origin == nil {
+	if s.origin == nil && s.globalCounter == nil {
 		return
 	}
 	val, _ := s.strictUntils.LoadOrStore(key, &atomic.Int64{})

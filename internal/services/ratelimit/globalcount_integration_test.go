@@ -126,6 +126,39 @@ func TestGlobalCounter_SharesCountsAcrossRegionsAndOnlyForEnabledNamespaces(t *t
 	require.Zero(t, env.persistedCount(hourRequest(workspaceID, regional, clk.Now(), 0, 10)), "a namespace without the global counter must not write to it")
 }
 
+func TestGlobalCounter_DenialMakesLaterChecksSeeOtherRegionsWithinTheStrictCacheTTL(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	clk := clock.NewTestClock(time.Date(2026, 1, 1, 0, 10, 0, 0, time.UTC))
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	regionA := env.newCountedRegion(clk, "region-a")
+	regionB := env.newCountedRegion(clk, "region-b")
+	ctx := t.Context()
+	identifier := uid.New(uid.TestPrefix)
+
+	// The denial caches region B's peer sum of 0 for a second and makes its
+	// later checks of this limiter strict.
+	denied, err := regionB.Ratelimit(ctx, hourRequest(workspaceID, identifier, clk.Now(), 11, 10))
+	require.NoError(t, err)
+	require.False(t, denied.Success)
+
+	for range 6 {
+		resp, rlErr := regionA.Ratelimit(ctx, hourRequest(workspaceID, identifier, clk.Now(), 1, 10))
+		require.NoError(t, rlErr)
+		require.True(t, resp.Success)
+	}
+	require.Eventually(t, func() bool {
+		return env.persistedCount(hourRequest(workspaceID, identifier, clk.Now(), 0, 10)) == 6
+	}, 10*time.Second, 50*time.Millisecond)
+
+	clk.Tick(200 * time.Millisecond)
+	resp, err := regionB.Ratelimit(ctx, hourRequest(workspaceID, identifier, clk.Now(), 5, 10))
+	require.NoError(t, err)
+	require.False(t, resp.Success, "region A's 6 plus 5 exceeds the limit, although the regular peer cache still holds 0")
+	require.Equal(t, int64(11), resp.Current)
+}
+
 func TestGlobalCounter_PreviousWindowCountsForItsRemainingShare(t *testing.T) {
 	t.Parallel()
 

@@ -50,6 +50,51 @@ func TestCounter_Cache(t *testing.T) {
 		require.Equal(t, int64(127), count)
 	})
 
+	t.Run("strict reads see other writers after 100 ms and never stale", func(t *testing.T) {
+		testClock := clock.NewTestClock()
+		counter, err := globalcounter.New(globalcounter.Config{DB: database, Clock: testClock})
+		require.NoError(t, err)
+		globalcounter.Cleanup(t, counter)
+		row := db.PersistParams{
+			Name: uid.New(uid.RatelimitNamespacePrefix), CompactDelayMs: testCompactDelayMs, WriterID: uid.New("", 16), Count: 7, Revision: 1,
+		}
+		require.NoError(t, bulk.Persist(t.Context(), database.RW(), []db.PersistParams{row}))
+		for _, strict := range []bool{false, true} {
+			count, getErr := counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name, Strict: strict})
+			require.NoError(t, getErr)
+			require.Equal(t, int64(7), count)
+		}
+
+		row.Count = 30
+		row.Revision++
+		require.NoError(t, bulk.Persist(t.Context(), database.RW(), []db.PersistParams{row}))
+		testClock.Tick(100*time.Millisecond - time.Nanosecond)
+		count, err := counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name, Strict: true})
+		require.NoError(t, err)
+		require.Equal(t, int64(7), count)
+
+		testClock.Tick(time.Nanosecond)
+		count, err = counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name, Strict: true})
+		require.NoError(t, err)
+		require.Equal(t, int64(30), count)
+		count, err = counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name})
+		require.NoError(t, err)
+		require.Equal(t, int64(7), count)
+
+		row.Count = 50
+		row.Revision++
+		require.NoError(t, bulk.Persist(t.Context(), database.RW(), []db.PersistParams{row}))
+		testClock.Tick(100 * time.Millisecond)
+		other := uid.New(uid.RatelimitNamespacePrefix)
+		var seen int64
+		_, err = counter.ConditionalAddMany(t.Context(), globalcounter.ConditionalAddManyParams{Checks: []globalcounter.ConditionalAddCheck{
+			{Name: other, Delta: func(int64) (int64, bool) { return 0, false }},
+			{Name: row.Name, Strict: true, Delta: func(current int64) (int64, bool) { seen = current; return 0, false }},
+		}})
+		require.NoError(t, err)
+		require.Equal(t, int64(50), seen)
+	})
+
 	t.Run("expired cache refresh includes deductions", func(t *testing.T) {
 		testClock := clock.NewTestClock()
 		counter, err := globalcounter.New(globalcounter.Config{

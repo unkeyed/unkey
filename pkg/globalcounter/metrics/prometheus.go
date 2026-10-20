@@ -109,6 +109,25 @@ var (
 		},
 	)
 
+	// PeerReadsTotal counts replica reads of other writers' rows, which happen
+	// only on peer cache misses and refreshes. Comparing the strict cache with the
+	// regular one shows the replica load strict callers add.
+	//
+	// Possible cache values are "peer" and "strict". Possible result values are
+	// "ok" and "error".
+	//
+	// Example usage:
+	//   metrics.PeerReadsTotal.WithLabelValues("strict", "ok").Inc()
+	PeerReadsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "globalcounter",
+			Name:      "peer_reads_total",
+			Help:      "Replica reads of other writers' rows by cache and result",
+		},
+		[]string{"cache", "result"},
+	)
+
 	// PersistDurationSeconds tracks how long one batch takes to persist,
 	// including retries. Failed batches are included.
 	PersistDurationSeconds = lazy.NewHistogram(

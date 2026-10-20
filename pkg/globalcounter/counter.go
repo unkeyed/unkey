@@ -32,6 +32,12 @@ const (
 	// peerCacheEntriesMax bounds the cache's memory. A name that falls out costs
 	// one blocking read the next time it is used.
 	peerCacheEntriesMax = 10_000
+	// strictPeerCacheTTL is how long a strict read may reuse a peer sum. Fresh
+	// and stale are both this value: a stale hit would return the old sum while
+	// refreshing in the background, and strict reads must wait for the replica
+	// instead. Concurrent misses share one read, so a busy name costs at most
+	// one replica read per TTL per pod.
+	strictPeerCacheTTL = 100 * time.Millisecond
 	// peerReadTimeout bounds a cold read, which blocks its caller.
 	peerReadTimeout = 5 * time.Second
 
@@ -115,6 +121,11 @@ type Counter struct {
 	// instead of serving a sum that counts the writer ids it moved past wrongly.
 	peerCache cache.Cache[string, int64]
 
+	// strictPeerCache holds the same sums as peerCache for strict reads, for a
+	// much shorter time. It is separate so strict callers see peers sooner
+	// without making every other caller read the replica more often.
+	strictPeerCache cache.Cache[string, int64]
+
 	// circuitBreakerRead stops a failing replica from adding its timeout to every
 	// cold read. It is separate from circuitBreakerWrite, so a failing primary
 	// does not also stop reads.
@@ -170,6 +181,17 @@ func newCounter(config Config, delay time.Duration) (*Counter, error) {
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("create counter cache"))
 	}
+	strictPeerCache, err := cache.New(cache.Config[string, int64]{
+		Fresh:    strictPeerCacheTTL,
+		Stale:    strictPeerCacheTTL,
+		MaxSize:  peerCacheEntriesMax,
+		Resource: "globalcounter_strict",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		peerCache.Close()
+		return nil, fault.Wrap(err, fault.Internal("create strict counter cache"))
+	}
 	var shards [entryShardCount]*entryShard
 	for i := range shards {
 		shards[i] = &entryShard{mu: sync.Mutex{}, entries: make(map[entryKey]entry)}
@@ -187,6 +209,7 @@ func newCounter(config Config, delay time.Duration) (*Counter, error) {
 		shards:              shards,
 		buffer:              nil,
 		peerCache:           peerCache,
+		strictPeerCache:     strictPeerCache,
 		circuitBreakerRead:  circuitbreaker.New[int64]("globalcounter_read", circuitbreaker.WithClock(config.Clock)),
 		circuitBreakerWrite: circuitbreaker.New[int64]("globalcounter_write", circuitbreaker.WithClock(config.Clock)),
 	}
@@ -251,6 +274,9 @@ func (c *Counter) Add(params AddParams) error {
 type ConditionalAddParams struct {
 	Name string
 
+	// Strict reads peers like [GetParams.Strict].
+	Strict bool
+
 	// DeleteAfter is when the counter may be deleted; zero means never.
 	DeleteAfter time.Time
 
@@ -273,7 +299,7 @@ type ConditionalAddParams struct {
 func (c *Counter) ConditionalAdd(ctx context.Context, params ConditionalAddParams) (int64, error) {
 	for range conditionalAttemptsMax {
 		current := c.sequence.Load()
-		peers, err := c.peerTotal(ctx, params.Name, current)
+		peers, err := c.peerTotal(ctx, params.Name, current, params.Strict)
 		if err != nil {
 			return 0, err
 		}
@@ -344,6 +370,9 @@ func (c *Counter) addDecided(params ConditionalAddParams, key entryKey, peers in
 type ConditionalAddCheck struct {
 	Name string
 
+	// Strict reads peers like [GetParams.Strict].
+	Strict bool
+
 	// DeleteAfter is when the counter may be deleted; zero means never.
 	DeleteAfter time.Time
 
@@ -395,8 +424,8 @@ func (c *Counter) ConditionalAddMany(ctx context.Context, params ConditionalAddM
 		}
 		current = c.sequence.Load()
 		peers := make([]int64, count)
-		for i, name := range names {
-			peer, err := c.peerTotal(ctx, name, current)
+		for i, check := range params.Checks {
+			peer, err := c.peerTotal(ctx, check.Name, current, check.Strict)
 			if err != nil {
 				return nil, err
 			}
@@ -581,5 +610,6 @@ func (c *Counter) Close() {
 			c.flush(ctx, rows)
 		}
 		c.peerCache.Close()
+		c.strictPeerCache.Close()
 	})
 }
