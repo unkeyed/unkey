@@ -193,9 +193,10 @@ func TestRecord(t *testing.T) {
 
 			ctx := zen.WithSession(context.Background(), session)
 			Record(ctx, Entry{Name: "cache_get", Duration: time.Millisecond})
+			Record(ctx, Entry{Name: "db_query", Attributes: map[string]string{"table": "keys", "status": "miss"}, Duration: 3 * time.Millisecond})
 
 			if enabled {
-				require.Equal(t, []string{"cache_get=1ms"}, recorder.Header().Values(HeaderName))
+				require.Equal(t, []string{"cache_get=1ms,db_query{status=miss,table=keys}=3ms"}, recorder.Header().Values(HeaderName))
 			} else {
 				require.Empty(t, recorder.Header().Values(HeaderName))
 			}

@@ -300,10 +300,11 @@ func TestGateway_DebugTelemetryResponse(t *testing.T) {
 			require.Empty(t, headers.Values(proxy.HeaderFrontlineMeta))
 			values := response.Header.Values(timing.HeaderName)
 			if test.want {
+				require.Len(t, values, 1)
+				entries, err := timing.ParseEntries(values[0])
+				require.NoError(t, err)
 				operations := map[string]bool{}
-				for _, value := range values {
-					entry, err := timing.ParseEntry(value)
-					require.NoError(t, err)
+				for _, entry := range entries {
 					operations[entry.Name] = true
 				}
 				require.Equal(t, map[string]bool{"frontline_routing": true, "frontline": true, "total": true}, operations)

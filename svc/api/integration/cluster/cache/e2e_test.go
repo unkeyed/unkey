@@ -103,9 +103,15 @@ func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
 			// Log cache headers for debugging, but don't require specific status
 			cacheHeaders := resp.Headers.Values(timing.HeaderName)
 			for _, headerValue := range cacheHeaders {
-				parsedHeader, err := timing.ParseEntry(headerValue)
-				if err == nil && parsedHeader.Attributes["cache"] == "live_api_by_id" {
-					t.Logf("Node %d: api_by_id cache status: %s (latency: %v)", i, parsedHeader.Attributes["status"], parsedHeader.Duration)
+				parsedHeaders, err := timing.ParseEntries(headerValue)
+				if err != nil {
+					t.Logf("Node %d: invalid timing header: %v", i, err)
+					continue
+				}
+				for _, parsedHeader := range parsedHeaders {
+					if parsedHeader.Attributes["cache"] == "live_api_by_id" {
+						t.Logf("Node %d: api_by_id cache status: %s (latency: %v)", i, parsedHeader.Attributes["status"], parsedHeader.Duration)
+					}
 				}
 			}
 
@@ -168,13 +174,11 @@ func TestCacheDebugHeaders(t *testing.T) {
 
 	// Verify cache debug headers format
 	cacheHeaders := resp.Headers.Values(timing.HeaderName)
-	require.NotEmpty(t, cacheHeaders, "Should have timing headers")
+	require.Len(t, cacheHeaders, 1, "Should have one combined timing header")
+	parsedHeaders, err := timing.ParseEntries(cacheHeaders[0])
+	require.NoError(t, err, "Timing header should be a valid list of entries")
 
-	// Each header should be parseable as a structured cache header
-	for _, headerValue := range cacheHeaders {
-		parsedHeader, err := timing.ParseEntry(headerValue)
-		require.NoError(t, err, "Timing header '%s' should be valid structured format", headerValue)
-
+	for _, parsedHeader := range parsedHeaders {
 		cacheName := parsedHeader.Attributes["cache"]
 		require.NotEmpty(t, cacheName, "Cache name should not be empty")
 		require.Positive(t, parsedHeader.Duration, "Latency should be positive")
@@ -189,11 +193,7 @@ func TestCacheDebugHeaders(t *testing.T) {
 
 	// Should have api_by_id cache entry
 	foundApiCache := false
-	for _, headerValue := range cacheHeaders {
-		parsedHeader, err := timing.ParseEntry(headerValue)
-		if err != nil {
-			continue
-		}
+	for _, parsedHeader := range parsedHeaders {
 		if parsedHeader.Attributes["cache"] == "live_api_by_id" {
 			foundApiCache = true
 			t.Logf("Found api_by_id cache entry: latency=%v, status=%s",

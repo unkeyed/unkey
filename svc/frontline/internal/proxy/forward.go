@@ -8,6 +8,7 @@ import (
 	"net/http/httptrace"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -148,6 +149,15 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 					"scope": "frontline",
 				},
 			})
+
+			headers := sess.ResponseWriter().Header()
+			for _, name := range []string{HeaderFrontlineID, HeaderRegion, HeaderRequestID, timing.HeaderName} {
+				values := append(headers.Values(name), resp.Header.Values(name)...)
+				if len(values) > 0 {
+					resp.Header.Set(name, strings.Join(values, ","))
+					headers.Del(name)
+				}
+			}
 
 			// Capture response body for logging via TeeReader.
 			// Streaming: bytes flow to the client while accumulating in responseBuf.
