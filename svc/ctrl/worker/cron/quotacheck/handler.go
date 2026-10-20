@@ -203,7 +203,7 @@ func (h *Handler) Handle(
 				continue
 			}
 
-			if shouldEnforceFreeTier(ws, p, nowTime) {
+			if shouldEnforceFreeTier(ws, p) {
 				hydrav1.NewCronServiceClient(ctx, freeTierKey(ws.ID)).
 					EnforceFreeTier().
 					Send(&hydrav1.EnforceFreeTierRequest{WorkspaceId: ws.ID, Used: usage})
@@ -271,19 +271,19 @@ func previousPeriodToRecheck(p billingperiod.Period, now time.Time) (billingperi
 	return p.Prev(), true
 }
 
-func shouldEnforceFreeTier(ws db.GetWorkspacesForQuotaCheckByIDsRow, p billingperiod.Period, now time.Time) bool {
+func shouldEnforceFreeTier(ws db.GetWorkspacesForQuotaCheckByIDsRow, p billingperiod.Period) bool {
 	if !isFreeTier(ws.Tier) || isThrottled(ws.RequestsPerMinute) {
 		return false
 	}
-	return isCurrentPeriod(p, now) || billingUnchangedSince(ws, p.Start())
+	return tierUnchangedSince(ws, p.Start())
 }
 
 func isCurrentPeriod(p billingperiod.Period, now time.Time) bool {
 	return p == billingperiod.From(now)
 }
 
-func billingUnchangedSince(ws db.GetWorkspacesForQuotaCheckByIDsRow, since time.Time) bool {
-	return !ws.BillingUpdatedAt.Valid || ws.BillingUpdatedAt.Int64 < since.UnixMilli()
+func tierUnchangedSince(ws db.GetWorkspacesForQuotaCheckByIDsRow, since time.Time) bool {
+	return !ws.TierUpdatedAt.Valid || ws.TierUpdatedAt.Int64 < since.UnixMilli()
 }
 
 func sendSlackNotification(ctx context.Context, webhookURL string, e exceededWorkspace) error {

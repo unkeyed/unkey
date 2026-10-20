@@ -121,6 +121,8 @@ func (h *Handler) HandleEnforceFreeTier(
 			return nil, sendErr
 		}
 		switch warning {
+		case sendResultFailed:
+			return nil, fmt.Errorf("free tier warning send failed without an error for workspace %s", ws.ID)
 		case sendResultNoRecipients, sendResultDeliveryOff:
 			return resp, nil
 		case sendResultSent:
@@ -163,7 +165,7 @@ func (h *Handler) HandleThrottleFreeTierWorkspace(
 		h.scheduleThrottle(ctx, req.GetWorkspaceId(), warnedAt, throttleRetryDelay)
 		return resp, nil
 	}
-	if !found || !isFreeTier(ws.Tier) {
+	if !found || !isFreeTier(ws.Tier) || !tierUnchangedSince(ws, time.Unix(warnedAt, 0)) {
 		restate.Clear(ctx, stateKeyFreeTierWarnedAt)
 		return resp, nil
 	}

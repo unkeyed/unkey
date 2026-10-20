@@ -1140,7 +1140,7 @@ type Querier interface {
 	//     w.enabled,
 	//     l.api_billable_operations_count_max_per_month AS requests_per_month,
 	//     l.api_requests_count_max_per_minute AS requests_per_minute,
-	//     b.updated_at_m AS billing_updated_at
+	//     b.tier_updated_at_m AS tier_updated_at
 	//  FROM `workspaces` w
 	//  LEFT JOIN `limits` l ON l.workspace_id = w.id
 	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
@@ -2823,7 +2823,7 @@ type Querier interface {
 	//UpdateWorkspaceBillingTier
 	//
 	//  UPDATE `workspace_billing`
-	//  SET tier = ?, updated_at_m = ?
+	//  SET tier = ?, tier_updated_at_m = ?, updated_at_m = ?
 	//  WHERE workspace_id = ?
 	UpdateWorkspaceBillingTier(ctx context.Context, arg UpdateWorkspaceBillingTierParams) error
 	//UpdateWorkspaceEnabled

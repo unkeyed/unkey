@@ -645,6 +645,7 @@ export const POST = async (req: Request): Promise<Response> => {
             .update(schema.workspaceBilling)
             .set({
               tier: product.name,
+              tierUpdatedAtM: Date.now(),
             })
             .where(eq(schema.workspaceBilling.workspaceId, ws.id));
 
@@ -864,7 +865,7 @@ export const POST = async (req: Request): Promise<Response> => {
         await db.transaction(async (tx) => {
           await tx
             .update(schema.workspaceBilling)
-            .set({ tier: "Free" })
+            .set({ tier: "Free", tierUpdatedAtM: Date.now() })
             .where(eq(schema.workspaceBilling.workspaceId, ws.id));
           await deleteBillingSubscription(tx, { workspaceId: ws.id, product: "api" });
 
@@ -872,6 +873,7 @@ export const POST = async (req: Request): Promise<Response> => {
             workspaceId: ws.id,
             plan: deployPlan,
             preserveApiLimits: false,
+            limitUpdate: { apiRequestsCountMaxPerMinute: null },
           });
 
           await insertAuditLogs(tx, {

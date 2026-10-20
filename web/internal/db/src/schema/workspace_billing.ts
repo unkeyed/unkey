@@ -35,6 +35,14 @@ export const workspaceBilling = mysqlTable(
      */
     tier: varchar("tier", { length: 256 }).default("Free"),
 
+    /**
+     * When tier last changed after the row was created. NULL means the tier has
+     * never changed. Unlike updated_at_m, Compute and Stripe linkage writes do
+     * not touch it, so the quota check can tell whether a past billing period
+     * was paid.
+     */
+    tierUpdatedAtM: bigint("tier_updated_at_m", { mode: "number" }),
+
     // stripe. Per-product subscription ids live in billing_subscriptions now;
     // only the shared customer id remains on the billing row.
     stripeCustomerId: caseSensitiveVarchar("stripe_customer_id", { length: 256 }),

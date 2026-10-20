@@ -2037,6 +2037,7 @@ type WorkspaceBilling struct {
 	Pk               uint64         `db:"pk"`
 	WorkspaceID      string         `db:"workspace_id"`
 	Tier             sql.NullString `db:"tier"`
+	TierUpdatedAtM   sql.NullInt64  `db:"tier_updated_at_m"`
 	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
 	Plan             sql.NullString `db:"plan"`
 	PlanOverride     sql.NullString `db:"plan_override"`
