@@ -51,7 +51,7 @@ describe("TEMPLATES", () => {
     ]);
   });
 
-  it("materialises All write permissions into every action of every row", () => {
+  it("materialises Full control into every action of every row", () => {
     expect(materialise("write")).toHaveLength(1);
     const offered = catalogueRows(CATALOGUES.workspace).reduce(
       (total, row) => total + offeredActions(row).length,
@@ -105,7 +105,7 @@ describe("TEMPLATES", () => {
       TEMPLATES.map((template) => [template.id, template.title, template.description]),
     ).toEqual([
       ["read", "All read permissions", "Every resource, read only"],
-      ["write", "All write permissions", "Every resource, full control"],
+      ["write", "Full control", "Every resource, every action"],
       ["verify", "Verify keys", "Every keyspace, verify only"],
       ["ratelimit", "Standalone ratelimiting", "Namespaces, logs, and overrides"],
       ["custom", "Start new", "Build a custom policy"],

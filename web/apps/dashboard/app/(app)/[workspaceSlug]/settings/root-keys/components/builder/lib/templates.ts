@@ -41,8 +41,8 @@ export const TEMPLATES: readonly RootKeyTemplate[] = [
   },
   {
     id: "write",
-    title: "All write permissions",
-    description: "Every resource, full control",
+    title: "Full control",
+    description: "Every resource, every action",
     materialise: () => [everyRow("workspace", ACTIONS)],
   },
   {
