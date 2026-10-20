@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 import type { StepsData } from "../use-deployment-status";
-import { type StagesInput, resolveStages } from "./stages-model";
+import {
+  type StagesInput,
+  followFailedStage,
+  initialOpenStage,
+  resolveStages,
+  toggleStage,
+} from "./stages-model";
 
 type Step = NonNullable<NonNullable<StepsData>["building"]>;
 
@@ -87,6 +93,39 @@ describe("resolveStages", () => {
     expect(stages.instances.expandable).toBe(true);
   });
 
+  test("instances and domains stages drop the in-progress verb once the step stops running", () => {
+    const label = (overrides: Partial<StagesInput>) =>
+      byKey(resolveStages(input(overrides))).instances.label;
+    expect(label({})).toBe("Starting Instances");
+    expect(label({ steps: { deploying: step({ endedAt: null, completed: false }) } })).toBe(
+      "Starting Instances",
+    );
+    expect(
+      label({
+        status: "failed",
+        steps: { deploying: step({ error: "image pull failed", completed: false }) },
+      }),
+    ).toBe("Instances");
+    expect(label({ status: "failed" })).toBe("Instances");
+    expect(label({ steps: { deploying: step() } })).toBe("Instances");
+    expect(
+      label({
+        steps: { deploying: step() },
+        instances: { state: "unhealthy", running: 0, total: 2 },
+      }),
+    ).toBe("Instances");
+    expect(label({ status: "ready" })).toBe("Instances");
+
+    const domainsLabel = (overrides: Partial<StagesInput>) =>
+      byKey(resolveStages(input(overrides))).domains.label;
+    expect(domainsLabel({})).toBe("Assigning Domains");
+    expect(domainsLabel({ steps: { network: step({ endedAt: null, completed: false }) } })).toBe(
+      "Assigning Domains",
+    );
+    expect(domainsLabel({ steps: { network: step() } })).toBe("Domains");
+    expect(domainsLabel({ status: "failed" })).toBe("Domains");
+  });
+
   test("counts assigned domains", () => {
     const steps: StepsData = { building: step(), deploying: step(), network: step() };
     expect(
@@ -97,6 +136,15 @@ describe("resolveStages", () => {
     ).toBe("3 domains assigned");
   });
 
+  test("domains read as in progress until they load", () => {
+    const steps: StepsData = { building: step(), deploying: step(), network: step() };
+    expect(byKey(resolveStages(input({ steps, domainCount: null }))).domains.resolution).toEqual({
+      status: "completed",
+      description: "Assigning domains",
+      duration: 2_000,
+    });
+  });
+
   test("a ready deployment without step records reads as complete", () => {
     const stages = byKey(resolveStages(input({ status: "ready", domainCount: 1 })));
     expect(stages.build.resolution.status).toBe("completed");
@@ -104,6 +152,46 @@ describe("resolveStages", () => {
     expect(stages.domains.resolution).toMatchObject({
       status: "completed",
       description: "1 domain assigned",
+    });
+  });
+});
+
+describe("open stage", () => {
+  test("a stage that failed before mount starts open", () => {
+    expect(initialOpenStage("build")).toEqual({ open: "build", autoOpened: ["build"] });
+    expect(initialOpenStage(null)).toEqual({ open: null, autoOpened: [] });
+  });
+
+  test("opens a stage the first time it fails and keeps it open when it recovers", () => {
+    const failed = followFailedStage(initialOpenStage(null), "instances");
+    expect(failed).toEqual({ open: "instances", autoOpened: ["instances"] });
+    expect(followFailedStage(failed, null)).toEqual({
+      open: "instances",
+      autoOpened: ["instances"],
+    });
+  });
+
+  test("a flapping stage does not reopen after the user closes it", () => {
+    let state = followFailedStage(initialOpenStage(null), "instances");
+    state = toggleStage(state, "instances");
+    state = followFailedStage(state, null);
+    state = followFailedStage(state, "instances");
+    expect(state).toEqual({ open: null, autoOpened: ["instances"] });
+  });
+
+  test("a flapping stage does not steal focus from the stage the user opened", () => {
+    let state = followFailedStage(initialOpenStage(null), "instances");
+    state = toggleStage(state, "build");
+    state = followFailedStage(state, null);
+    state = followFailedStage(state, "instances");
+    expect(state.open).toBe("build");
+  });
+
+  test("a different stage failing for the first time still opens", () => {
+    const state = toggleStage(followFailedStage(initialOpenStage(null), "build"), "build");
+    expect(followFailedStage(state, "instances")).toEqual({
+      open: "instances",
+      autoOpened: ["build", "instances"],
     });
   });
 });

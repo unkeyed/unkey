@@ -1,16 +1,10 @@
 "use client";
 
-import { LoadError } from "@/components/load-error";
 import {
   type DeploymentStatus,
   isDeploymentInFlight,
 } from "@/lib/collections/deploy/deployment-status";
-import {
-  type InstanceSummary,
-  instanceLabel,
-  instanceStateOf,
-} from "@/lib/collections/deploy/instance-status";
-import { fromQuery } from "@/lib/loadable/loadable";
+import type { InstanceSummary } from "@/lib/collections/deploy/instance-status";
 import { trpc } from "@/lib/trpc/client";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import {
@@ -22,21 +16,24 @@ import {
 import { match } from "@unkey/match";
 import { Card, Loading } from "@unkey/ui";
 import { cn } from "cn";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
 import { toBuildLogLines } from "../(deployment-progress)/build-logs/build-log-lines";
 import { DeploymentBuildLogs } from "../(deployment-progress)/build-logs/deployment-build-logs";
-import { DeploymentContainerLogsTable } from "../(deployment-progress)/container-logs-table/deployment-container-logs-table";
-
 import { useDeployment } from "../layout-provider";
 import { useBuildLogs } from "../use-build-logs";
 import type { StepsData } from "../use-deployment-status";
+import { InstancesDiagram } from "./instances-diagram";
 import { LogTicker } from "./log-ticker";
 import {
   type ExpandableStageKey,
+  type OpenStage,
   type Stage,
   type StageKey,
   type StepResolution,
+  followFailedStage,
+  initialOpenStage,
   resolveStages,
+  toggleStage,
 } from "./stages-model";
 import { type TickerLine, stageTickerLine } from "./ticker-model";
 
@@ -44,7 +41,6 @@ type StageStatus = StepResolution["status"];
 
 const TICK_MS = 500;
 const DEPLOYING_LOGS_POLL_MS = 2_000;
-const OPEN_LOGS_POLL_MS = 5_000;
 
 const stageGlyph: Record<StageStatus, ReactNode> = {
   completed: (
@@ -86,18 +82,11 @@ function useTickingNow(ticking: boolean): number {
   return now;
 }
 
-function runtimeLogsPollMs(deployingInFlight: boolean, instancesOpen: boolean): number | false {
-  if (deployingInFlight) {
-    return DEPLOYING_LOGS_POLL_MS;
-  }
-  return instancesOpen ? OPEN_LOGS_POLL_MS : false;
-}
-
 type DeploymentStagesCardProps = {
   steps: StepsData | undefined;
   status: DeploymentStatus;
   instances: InstanceSummary | null;
-  domainCount: number;
+  domainCount: number | null;
 };
 
 export function DeploymentStagesCard({
@@ -119,23 +108,19 @@ export function DeploymentStagesCard({
   });
 
   const failedStage = stages.find((s) => s.resolution.status === "error")?.key ?? null;
-  const [choice, setChoice] = useState<{
-    madeUnder: StageKey | null;
-    open: StageKey | null;
-  } | null>(null);
-  const open = choice?.madeUnder === failedStage ? choice.open : failedStage;
-  const toggle = (key: StageKey) =>
-    setChoice({ madeUnder: failedStage, open: open === key ? null : key });
+  const [openStage, setOpenStage] = useState<OpenStage>(() => initialOpenStage(failedStage));
+  const followed = followFailedStage(openStage, failedStage);
+  if (followed !== openStage) {
+    setOpenStage(followed);
+  }
+  const open = followed.open;
+  const toggle = (key: StageKey) => setOpenStage((state) => toggleStage(state, key));
 
   const deploying = steps?.deploying;
   const deployingInFlight = inFlight && Boolean(deploying) && !deploying?.endedAt;
-  const instancesOpen = open === "instances";
   const runtimeLogsQuery = trpc.deploy.deployment.runtimeLogs.useQuery(
-    { deploymentId: deployment.id, limit: 50 },
-    {
-      enabled: deployingInFlight || instancesOpen,
-      refetchInterval: runtimeLogsPollMs(deployingInFlight, instancesOpen),
-    },
+    { deploymentId: deployment.id, limit: 5 },
+    { enabled: deployingInFlight, refetchInterval: DEPLOYING_LOGS_POLL_MS },
   );
 
   const buildTicks =
@@ -149,26 +134,13 @@ export function DeploymentStagesCard({
     instances,
   };
 
-  const panel = (key: ExpandableStageKey) =>
+  const panel = (key: ExpandableStageKey, status: StageStatus) =>
     match(key)
       .with("build", () => (
         // A remount on a build failure starts the logs at the last error
         <DeploymentBuildLogs key={failedStage === "build" ? "failed" : "live"} />
       ))
-      .with("instances", () => (
-        <>
-          <InstanceList />
-          {match(fromQuery(runtimeLogsQuery))
-            .with({ status: "loading" }, () => <DeploymentContainerLogsTable logs={[]} isLoading />)
-            .with({ status: "failed" }, ({ retry }) => (
-              <LoadError title="Could not load runtime logs" frame="none" onRetry={retry} />
-            ))
-            .with({ status: "ready" }, ({ data }) => (
-              <DeploymentContainerLogsTable logs={data.logs} isLoading={false} />
-            ))
-            .exhaustive()}
-        </>
-      ))
+      .with("instances", () => <InstancesDiagram stage={status} />)
       .exhaustive();
 
   return (
@@ -183,7 +155,7 @@ export function DeploymentStagesCard({
             open={isOpen}
             onToggle={() => toggle(stage.key)}
           >
-            {isOpen && panel(stage.key)}
+            {isOpen && panel(stage.key, stage.resolution.status)}
           </StageRow>
         );
       })}
@@ -202,6 +174,7 @@ type StageRowProps = {
 function StageRow({ stage, ticker, open, onToggle, children }: StageRowProps) {
   const { label, resolution, expandable } = stage;
   const failed = resolution.status === "error";
+  const panelId = useId();
   return (
     <div>
       <button
@@ -209,6 +182,7 @@ function StageRow({ stage, ticker, open, onToggle, children }: StageRowProps) {
         disabled={!expandable}
         onClick={onToggle}
         aria-expanded={expandable ? open : undefined}
+        aria-controls={expandable && open ? panelId : undefined}
         className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-gray-7 disabled:cursor-default enabled:hover:bg-grayA-2"
       >
         <IconChevronRightOutline12
@@ -240,7 +214,7 @@ function StageRow({ stage, ticker, open, onToggle, children }: StageRowProps) {
         </span>
       </button>
       {open && (
-        <div className="border-t border-grayA-4 bg-grayA-2">
+        <div id={panelId} className="border-t border-grayA-4 bg-grayA-2">
           {failed && (
             <p className="border-b border-grayA-4 bg-error-2 px-4 py-2.5 font-mono text-xs leading-5 text-error-11">
               {resolution.description}
@@ -250,33 +224,5 @@ function StageRow({ stage, ticker, open, onToggle, children }: StageRowProps) {
         </div>
       )}
     </div>
-  );
-}
-
-function InstanceList() {
-  const { deployment } = useDeployment();
-  if (deployment.instances.length === 0) {
-    return null;
-  }
-  return (
-    <ul className="flex flex-col border-b border-grayA-4">
-      {deployment.instances.map((instance) => {
-        const state = instanceStateOf(instance);
-        return (
-          <li
-            key={instance.id}
-            className="flex h-9 items-center gap-3 border-t border-grayA-4 px-4 text-xs first:border-t-0"
-          >
-            <span className="font-mono text-gray-12">{instance.id}</span>
-            <span className="text-gray-10">{instance.region.name}</span>
-            <span
-              className={cn("ml-auto", state === "unhealthy" ? "text-error-11" : "text-gray-11")}
-            >
-              {instanceLabel[state]}
-            </span>
-          </li>
-        );
-      })}
-    </ul>
   );
 }

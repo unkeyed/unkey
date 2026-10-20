@@ -16,6 +16,23 @@ export type StepResolution = {
 
 type StepData = NonNullable<NonNullable<StepsData>["building"]>;
 
+const stageLabels: Record<"instances" | "domains", Record<StepResolution["status"], string>> = {
+  instances: {
+    pending: "Starting Instances",
+    started: "Starting Instances",
+    error: "Instances",
+    skipped: "Instances",
+    completed: "Instances",
+  },
+  domains: {
+    pending: "Assigning Domains",
+    started: "Assigning Domains",
+    error: "Domains",
+    skipped: "Domains",
+    completed: "Domains",
+  },
+};
+
 type StepMessages = { completed: string; inProgress: string; waiting: string };
 
 type StageBase = { label: string; resolution: StepResolution };
@@ -30,7 +47,7 @@ export type StagesInput = {
   status: DeploymentStatus;
   isPrebuilt: boolean;
   instances: InstanceSummary | null;
-  domainCount: number;
+  domainCount: number | null;
 };
 
 export function resolveStages({
@@ -67,7 +84,8 @@ export function resolveStages({
     network,
     { now, isFailed, implicitlyComplete: isReady },
     {
-      completed: `${plural(domainCount, "domain")} assigned`,
+      completed:
+        domainCount === null ? "Assigning domains" : `${plural(domainCount, "domain")} assigned`,
       inProgress: "Assigning domains",
       waiting: "Waiting for instances",
     },
@@ -77,11 +95,16 @@ export function resolveStages({
     { key: "build", label: "Build Logs", resolution: build, expandable: !isPrebuilt },
     {
       key: "instances",
-      label: "Starting Instances",
+      label: stageLabels.instances[instancesStep.status],
       resolution: withInstanceHealth(instancesStep, instances),
       expandable: Boolean(deploying),
     },
-    { key: "domains", label: "Assigning Domains", resolution: domains, expandable: false },
+    {
+      key: "domains",
+      label: stageLabels.domains[domains.status],
+      resolution: domains,
+      expandable: false,
+    },
   ];
 }
 
@@ -123,4 +146,24 @@ function withInstanceHealth(
     status: "error",
     description: `${step.description} · ${instanceLabel.unhealthy}`,
   };
+}
+
+export type OpenStage = {
+  open: StageKey | null;
+  autoOpened: readonly StageKey[];
+};
+
+export function initialOpenStage(failed: StageKey | null): OpenStage {
+  return failed ? { open: failed, autoOpened: [failed] } : { open: null, autoOpened: [] };
+}
+
+export function followFailedStage(state: OpenStage, failed: StageKey | null): OpenStage {
+  if (!failed || state.autoOpened.includes(failed)) {
+    return state;
+  }
+  return { open: failed, autoOpened: [...state.autoOpened, failed] };
+}
+
+export function toggleStage(state: OpenStage, key: StageKey): OpenStage {
+  return { ...state, open: state.open === key ? null : key };
 }

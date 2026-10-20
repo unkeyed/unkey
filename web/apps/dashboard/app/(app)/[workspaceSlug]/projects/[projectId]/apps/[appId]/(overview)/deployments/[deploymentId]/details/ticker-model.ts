@@ -1,8 +1,12 @@
 import type { InstanceSummary } from "@/lib/collections/deploy/instance-status";
+import type { Router } from "@/lib/trpc/routers";
+import type { inferRouterOutputs } from "@trpc/server";
 import type { BuildLogLine } from "../(deployment-progress)/build-logs/build-log-lines";
-import type { ContainerLogRow } from "../(deployment-progress)/container-logs-table/columns";
 import { runningCountText } from "./deployment-health";
 import type { Stage, StageKey } from "./stages-model";
+
+type ContainerLogRow =
+  inferRouterOutputs<Router>["deploy"]["deployment"]["runtimeLogs"]["logs"][number];
 
 export type TickerTone = "plain" | "error" | "warn";
 
@@ -53,9 +57,10 @@ export function tickerReducer(state: TickerState, event: TickerEvent): TickerSta
     return state;
   }
   if (!line) {
-    return animate && state.shown
-      ? { ...emptyTicker, shown: state.incoming ?? state.shown, leaving: true }
-      : emptyTicker;
+    if (!animate || !state.shown) {
+      return emptyTicker;
+    }
+    return { ...emptyTicker, shown: state.incoming ?? state.shown, leaving: true };
   }
   if (!state.shown || !animate) {
     return { ...emptyTicker, shown: line };
