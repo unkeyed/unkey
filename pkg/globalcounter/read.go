@@ -15,11 +15,14 @@ import (
 type GetParams struct {
 	Name string
 
-	// Strict reads peers through a cache that holds a sum for about 100 ms and
-	// never serves it stale, instead of about a second plus up to five seconds
-	// stale. Set it when the caller is close to a decision boundary, such as a
-	// limiter that recently denied, and can pay for more replica reads.
-	Strict bool
+	// PeerMaxAge, when positive, is the oldest peer sum this read accepts. An
+	// older sum is reloaded before the call returns instead of being served
+	// while it refreshes. Zero keeps the cache's limits of about a second
+	// fresh and five seconds stale. Set it when the caller is close to a
+	// decision boundary, such as a limiter that recently denied, and can pay
+	// for more replica reads. Concurrent reads of a name still share one
+	// replica read.
+	PeerMaxAge time.Duration
 }
 
 // Get combines the local contribution with cached peer counts. It returns zero
@@ -33,7 +36,7 @@ func (c *Counter) Get(ctx context.Context, params GetParams) (int64, error) {
 	}()
 
 	current := c.sequence.Load()
-	peers, err := c.peerTotal(ctx, params.Name, current, params.Strict)
+	peers, err := c.peerTotal(ctx, params.Name, current, params.PeerMaxAge)
 	if err != nil {
 		return 0, err
 	}
@@ -53,31 +56,32 @@ func (c *Counter) Get(ctx context.Context, params GetParams) (int64, error) {
 // rows of the current and previous sequence, which the writer holds in memory.
 // The cache key includes current, so a rotation, which changes which writer ids
 // are in memory, misses instead of serving a sum that counts them twice or not
-// at all. Strict reads use their own cache, so they do not shorten the
-// lifetime of the sums other callers read.
-func (c *Counter) peerTotal(ctx context.Context, name string, current int64, strict bool) (int64, error) {
+// at all.
+func (c *Counter) peerTotal(ctx context.Context, name string, current int64, maxAge time.Duration) (int64, error) {
 	key := fmt.Sprintf("%d/%s", current, name)
-	peers, cacheLabel := c.peerCache, "peer"
-	if strict {
-		peers, cacheLabel = c.strictPeerCache, "strict"
+	reason := "cache"
+	var opts []cache.SWROption
+	if maxAge > 0 {
+		reason = "max_age"
+		opts = append(opts, cache.MaxAgeFresh(maxAge))
 	}
-	value, _, err := peers.SWR(ctx, key, func(ctx context.Context) (int64, error) {
+	value, _, err := c.peerCache.SWR(ctx, key, func(ctx context.Context) (int64, error) {
 		ctx, cancel := context.WithTimeout(ctx, peerReadTimeout)
 		defer cancel()
 		value, err := c.circuitBreakerRead.Do(ctx, func(ctx context.Context) (int64, error) {
 			return db.Query.Read(ctx, c.database.RO(), db.ReadParams{Name: name, CurrentWriterID: c.writerID(current), PreviousWriterID: c.writerID(current - 1)})
 		})
 		if err != nil {
-			metrics.PeerReadsTotal.WithLabelValues(cacheLabel, "error").Inc()
+			metrics.PeerReadsTotal.WithLabelValues(reason, "error").Inc()
 			return 0, fault.Wrap(err, fault.Internal("read peer counter rows"))
 		}
-		metrics.PeerReadsTotal.WithLabelValues(cacheLabel, "ok").Inc()
+		metrics.PeerReadsTotal.WithLabelValues(reason, "ok").Inc()
 		return value, nil
 	}, func(err error) cache.Op {
 		if err != nil {
 			return cache.Noop
 		}
 		return cache.WriteValue
-	})
+	}, opts...)
 	return value, err
 }

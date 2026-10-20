@@ -126,7 +126,7 @@ func TestGlobalCounter_SharesCountsAcrossRegionsAndOnlyForEnabledNamespaces(t *t
 	require.Zero(t, env.persistedCount(hourRequest(workspaceID, regional, clk.Now(), 0, 10)), "a namespace without the global counter must not write to it")
 }
 
-func TestGlobalCounter_DenialMakesLaterChecksSeeOtherRegionsWithinTheStrictCacheTTL(t *testing.T) {
+func TestGlobalCounter_DenialMakesLaterChecksSeeOtherRegionsWithinTheStrictPeerMaxAge(t *testing.T) {
 	t.Parallel()
 
 	env := newIntegrationTestEnv(t)

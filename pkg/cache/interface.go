@@ -46,7 +46,10 @@ type Cache[K comparable, V any] interface {
 	// ctx ends, and a caller whose ctx has already ended gets ctx.Err() at once.
 	// The call is canceled only when every caller's ctx has ended. If it panics,
 	// the panic reaches the first caller and the others get an error.
-	SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(error) Op) (value V, hit CacheHit, err error)
+	//
+	// Options can lower how old a value this one read accepts, see
+	// [MaxAgeFresh] and [MaxAgeStale].
+	SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(error) Op, opts ...SWROption) (value V, hit CacheHit, err error)
 
 	// SWRMany performs stale-while-revalidate for multiple keys.
 	// refreshFromOrigin receives keys that need to be fetched and returns a map of values.

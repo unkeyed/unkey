@@ -286,8 +286,8 @@ type service struct {
 	// region's Redis-backed truth. Cross-region convergence is a separate
 	// concern handled by ratelimit_global_counters.
 	//
-	// Limiters on the global counter use the same deadlines to read peers
-	// through its short-lived strict cache instead of fetching from Redis.
+	// Limiters on the global counter use the same deadlines to read their
+	// peer counts at most 100 ms old instead of fetching from Redis.
 	strictUntils sync.Map
 
 	// origin is the distributed source-of-truth counter (typically Redis).

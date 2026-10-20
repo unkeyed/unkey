@@ -88,14 +88,14 @@ func TestLoadUsesEntryWrittenSinceLookup(t *testing.T) {
 
 	c.Set(t.Context(), "key", "written")
 	c.SetNull(t.Context(), "missing")
-	value, hit, err := c.load(t.Context(), "key", origin, op)
+	value, hit, err := c.load(t.Context(), "key", origin, op, swrOptions{})
 	require.Equal(t, swrCallResult{"written", Hit, nil}, swrCallResult{value, hit, err})
-	value, hit, err = c.load(t.Context(), "missing", origin, op)
+	value, hit, err = c.load(t.Context(), "missing", origin, op, swrOptions{})
 	require.Equal(t, swrCallResult{"", Null, nil}, swrCallResult{value, hit, err})
 	require.Zero(t, calls.Load())
 
 	clk.Tick(2 * time.Minute)
-	value, hit, err = c.load(t.Context(), "key", origin, op)
+	value, hit, err = c.load(t.Context(), "key", origin, op, swrOptions{})
 	require.Equal(t, swrCallResult{"origin", Hit, nil}, swrCallResult{value, hit, err})
 	require.Equal(t, int32(1), calls.Load(), "a stale entry must still be read from the origin")
 }

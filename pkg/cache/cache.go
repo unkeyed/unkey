@@ -256,10 +256,11 @@ func (c *cache[K, V]) SetNull(_ context.Context, key K) {
 
 	var v V
 	c.otter.Set(key, swrEntry[V]{
-		Value: v,
-		Fresh: now.Add(c.fresh),
-		Stale: now.Add(c.stale),
-		Hit:   Null,
+		Value:    v,
+		Fresh:    now.Add(c.fresh),
+		Stale:    now.Add(c.stale),
+		LoadedAt: now,
+		Hit:      Null,
 	})
 }
 
@@ -269,10 +270,11 @@ func (c *cache[K, V]) SetNullMany(ctx context.Context, keys []K) {
 
 	for _, key := range keys {
 		c.otter.Set(key, swrEntry[V]{
-			Value: v,
-			Fresh: now.Add(c.fresh),
-			Stale: now.Add(c.stale),
-			Hit:   Null,
+			Value:    v,
+			Fresh:    now.Add(c.fresh),
+			Stale:    now.Add(c.stale),
+			LoadedAt: now,
+			Hit:      Null,
 		})
 	}
 }
@@ -281,10 +283,11 @@ func (c *cache[K, V]) Set(_ context.Context, key K, value V) {
 	now := c.clock.Now()
 
 	c.otter.Set(key, swrEntry[V]{
-		Value: value,
-		Fresh: now.Add(c.fresh),
-		Stale: now.Add(c.stale),
-		Hit:   Hit,
+		Value:    value,
+		Fresh:    now.Add(c.fresh),
+		Stale:    now.Add(c.stale),
+		LoadedAt: now,
+		Hit:      Hit,
 	})
 }
 
@@ -293,10 +296,11 @@ func (c *cache[K, V]) SetMany(ctx context.Context, values map[K]V) {
 
 	for key, value := range values {
 		c.otter.Set(key, swrEntry[V]{
-			Value: value,
-			Fresh: now.Add(c.fresh),
-			Stale: now.Add(c.stale),
-			Hit:   Hit,
+			Value:    value,
+			Fresh:    now.Add(c.fresh),
+			Stale:    now.Add(c.stale),
+			LoadedAt: now,
+			Hit:      Hit,
 		})
 	}
 }
@@ -361,9 +365,10 @@ func (c *cache[K, V]) revalidate(
 	ctx context.Context,
 	key K, refreshFromOrigin func(context.Context) (V, error),
 	op func(error) Op,
+	opts swrOptions,
 ) {
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
-	_, _, err := c.load(ctx, key, refreshFromOrigin, op)
+	_, _, err := c.load(ctx, key, refreshFromOrigin, op, opts)
 
 	if err != nil && !db.IsNotFound(err) {
 		logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
@@ -379,6 +384,7 @@ func (c *cache[K, V]) load(
 	key K,
 	refreshFromOrigin func(context.Context) (V, error),
 	op func(error) Op,
+	opts swrOptions,
 ) (V, CacheHit, error) {
 	var zero V
 	if err := ctx.Err(); err != nil {
@@ -399,10 +405,14 @@ func (c *cache[K, V]) load(
 	}
 
 	// A read may have written the key and left loads since the caller's cache
-	// lookup. Only a fresh entry counts: background refreshes load stale keys.
-	if e, ok := c.otter.Get(key); ok && c.clock.Now().Before(e.Fresh) {
-		c.loadsMu.Unlock()
-		return e.Value, e.Hit, nil
+	// lookup. Only an entry fresh for this caller counts: background refreshes
+	// load stale keys, and a caller with a lower maximum age must not get a
+	// value older than it allows.
+	if e, ok := c.otter.Get(key); ok {
+		if fresh, _ := limits(e, opts); c.clock.Now().Before(fresh) {
+			c.loadsMu.Unlock()
+			return e.Value, e.Hit, nil
+		}
 	}
 
 	// The first caller's cancellation must not fail the callers waiting for
@@ -473,34 +483,40 @@ func (c *cache[K, V]) SWR(
 	key K,
 	refreshFromOrigin func(context.Context) (V, error),
 	op func(error) Op,
+	opts ...SWROption,
 ) (V, CacheHit, error) {
 	start := time.Now()
 	now := c.clock.Now()
+	options := newSWROptions(opts)
 	e, ok := c.get(ctx, key)
 	if ok {
+		fresh, stale := limits(e, options)
 		// Cache Hit
-		if now.Before(e.Fresh) {
+		if now.Before(fresh) {
 			// We have data and it's fresh, so we return it
 			c.recordTiming(ctx, "cache_swr", "fresh", start)
 			return e.Value, e.Hit, nil
 		}
 
-		if now.Before(e.Stale) {
+		if now.Before(stale) {
 			c.enqueueRevalidation([]K{key}, func([]K) {
 				// If we don't uncancel the context, the revalidation will get canceled when
 				// the api response is returned
-				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
+				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op, options)
 			})
 			c.recordTiming(ctx, "cache_swr", "stale", start)
 			return e.Value, e.Hit, nil
 		}
 
-		// We have old data, that we should not serve anymore
-		c.otter.Delete(key)
+		// Data that is only too old for this read stays for other reads until
+		// the load replaces it.
+		if !now.Before(e.Stale) {
+			c.otter.Delete(key)
+		}
 	}
 
 	// Cache Miss - measure total time including all overhead
-	v, hit, err := c.load(ctx, key, refreshFromOrigin, op)
+	v, hit, err := c.load(ctx, key, refreshFromOrigin, op, options)
 	c.recordTiming(ctx, "cache_swr", "miss", start)
 
 	return v, hit, err

@@ -50,7 +50,7 @@ func TestCounter_Cache(t *testing.T) {
 		require.Equal(t, int64(127), count)
 	})
 
-	t.Run("strict reads see other writers after 100 ms and never stale", func(t *testing.T) {
+	t.Run("a peer max age reloads older sums before returning them", func(t *testing.T) {
 		testClock := clock.NewTestClock()
 		counter, err := globalcounter.New(globalcounter.Config{DB: database, Clock: testClock})
 		require.NoError(t, err)
@@ -59,8 +59,8 @@ func TestCounter_Cache(t *testing.T) {
 			Name: uid.New(uid.RatelimitNamespacePrefix), CompactDelayMs: testCompactDelayMs, WriterID: uid.New("", 16), Count: 7, Revision: 1,
 		}
 		require.NoError(t, bulk.Persist(t.Context(), database.RW(), []db.PersistParams{row}))
-		for _, strict := range []bool{false, true} {
-			count, getErr := counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name, Strict: strict})
+		for _, maxAge := range []time.Duration{0, 100 * time.Millisecond} {
+			count, getErr := counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name, PeerMaxAge: maxAge})
 			require.NoError(t, getErr)
 			require.Equal(t, int64(7), count)
 		}
@@ -69,17 +69,17 @@ func TestCounter_Cache(t *testing.T) {
 		row.Revision++
 		require.NoError(t, bulk.Persist(t.Context(), database.RW(), []db.PersistParams{row}))
 		testClock.Tick(100*time.Millisecond - time.Nanosecond)
-		count, err := counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name, Strict: true})
+		count, err := counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name, PeerMaxAge: 100 * time.Millisecond})
 		require.NoError(t, err)
 		require.Equal(t, int64(7), count)
 
 		testClock.Tick(time.Nanosecond)
-		count, err = counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name, Strict: true})
-		require.NoError(t, err)
-		require.Equal(t, int64(30), count)
 		count, err = counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name})
 		require.NoError(t, err)
-		require.Equal(t, int64(7), count)
+		require.Equal(t, int64(7), count, "a read without a max age keeps the one second cache")
+		count, err = counter.Get(t.Context(), globalcounter.GetParams{Name: row.Name, PeerMaxAge: 100 * time.Millisecond})
+		require.NoError(t, err)
+		require.Equal(t, int64(30), count)
 
 		row.Count = 50
 		row.Revision++
@@ -89,7 +89,7 @@ func TestCounter_Cache(t *testing.T) {
 		var seen int64
 		_, err = counter.ConditionalAddMany(t.Context(), globalcounter.ConditionalAddManyParams{Checks: []globalcounter.ConditionalAddCheck{
 			{Name: other, Delta: func(int64) (int64, bool) { return 0, false }},
-			{Name: row.Name, Strict: true, Delta: func(current int64) (int64, bool) { seen = current; return 0, false }},
+			{Name: row.Name, PeerMaxAge: 100 * time.Millisecond, Delta: func(current int64) (int64, bool) { seen = current; return 0, false }},
 		}})
 		require.NoError(t, err)
 		require.Equal(t, int64(50), seen)

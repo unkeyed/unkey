@@ -44,7 +44,7 @@ func (c *noopCache[K, V]) Name() string {
 
 func (c *noopCache[K, V]) Close() {}
 
-func (c *noopCache[K, V]) SWR(ctx context.Context, key K, refreshFromOrigin func(context.Context) (V, error), op func(err error) Op) (V, CacheHit, error) {
+func (c *noopCache[K, V]) SWR(ctx context.Context, key K, refreshFromOrigin func(context.Context) (V, error), op func(err error) Op, opts ...SWROption) (V, CacheHit, error) {
 	var v V
 	return v, Miss, nil
 }
