@@ -10,7 +10,7 @@ import * as z from "zod/v3";
  * @remarks
  * `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
  */
-export type LogIntFilter = {
+export type IntFilter = {
   /**
    * The values of one filter operator. A row matches `is` when it equals any value in the list.
    *
@@ -44,7 +44,7 @@ export type LogIntFilter = {
 };
 
 /** @internal */
-export type LogIntFilter$Outbound = {
+export type IntFilter$Outbound = {
   is?: Array<number> | undefined;
   isNot?: Array<number> | undefined;
   gt?: number | undefined;
@@ -54,10 +54,10 @@ export type LogIntFilter$Outbound = {
 };
 
 /** @internal */
-export const LogIntFilter$outboundSchema: z.ZodType<
-  LogIntFilter$Outbound,
+export const IntFilter$outboundSchema: z.ZodType<
+  IntFilter$Outbound,
   z.ZodTypeDef,
-  LogIntFilter
+  IntFilter
 > = z.object({
   is: z.array(z.number().int()).optional(),
   isNot: z.array(z.number().int()).optional(),
@@ -67,6 +67,6 @@ export const LogIntFilter$outboundSchema: z.ZodType<
   lte: z.number().int().optional(),
 });
 
-export function logIntFilterToJSON(logIntFilter: LogIntFilter): string {
-  return JSON.stringify(LogIntFilter$outboundSchema.parse(logIntFilter));
+export function intFilterToJSON(intFilter: IntFilter): string {
+  return JSON.stringify(IntFilter$outboundSchema.parse(intFilter));
 }

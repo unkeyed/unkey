@@ -11,7 +11,7 @@ import * as z from "zod/v3";
  * The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
  * The negated operators (`isNot`, `notContains`) are combined with AND.
  */
-export type LogTextFilter = {
+export type TextFilter = {
   /**
    * The values of one filter operator. A row matches a positive operator when it matches any value in the list.
    *
@@ -57,7 +57,7 @@ export type LogTextFilter = {
 };
 
 /** @internal */
-export type LogTextFilter$Outbound = {
+export type TextFilter$Outbound = {
   is?: Array<string> | undefined;
   isNot?: Array<string> | undefined;
   contains?: Array<string> | undefined;
@@ -67,10 +67,10 @@ export type LogTextFilter$Outbound = {
 };
 
 /** @internal */
-export const LogTextFilter$outboundSchema: z.ZodType<
-  LogTextFilter$Outbound,
+export const TextFilter$outboundSchema: z.ZodType<
+  TextFilter$Outbound,
   z.ZodTypeDef,
-  LogTextFilter
+  TextFilter
 > = z.object({
   is: z.array(z.string()).optional(),
   isNot: z.array(z.string()).optional(),
@@ -80,6 +80,6 @@ export const LogTextFilter$outboundSchema: z.ZodType<
   endsWith: z.array(z.string()).optional(),
 });
 
-export function logTextFilterToJSON(logTextFilter: LogTextFilter): string {
-  return JSON.stringify(LogTextFilter$outboundSchema.parse(logTextFilter));
+export function textFilterToJSON(textFilter: TextFilter): string {
+  return JSON.stringify(TextFilter$outboundSchema.parse(textFilter));
 }

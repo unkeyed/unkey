@@ -8,7 +8,7 @@ import { ClosedEnum } from "../../types/enums.js";
 /**
  * An HTTP method in upper case.
  */
-export const LogHttpMethod = {
+export const HttpMethod = {
   Get: "GET",
   Post: "POST",
   Put: "PUT",
@@ -20,9 +20,8 @@ export const LogHttpMethod = {
 /**
  * An HTTP method in upper case.
  */
-export type LogHttpMethod = ClosedEnum<typeof LogHttpMethod>;
+export type HttpMethod = ClosedEnum<typeof HttpMethod>;
 
 /** @internal */
-export const LogHttpMethod$outboundSchema: z.ZodNativeEnum<
-  typeof LogHttpMethod
-> = z.nativeEnum(LogHttpMethod);
+export const HttpMethod$outboundSchema: z.ZodNativeEnum<typeof HttpMethod> = z
+  .nativeEnum(HttpMethod);

@@ -8,9 +8,9 @@ import * as z from "zod/v3";
  * Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
  *
  * @remarks
- * Unkey keeps only rows inside the workspace's log retention. A lower bound older than the retention start has no effect.
+ * Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
  */
-export type LogTimeFilter = {
+export type TimeFilter = {
   /**
    * Keep events after this time.
    */
@@ -30,7 +30,7 @@ export type LogTimeFilter = {
 };
 
 /** @internal */
-export type LogTimeFilter$Outbound = {
+export type TimeFilter$Outbound = {
   gt?: number | undefined;
   gte?: number | undefined;
   lt?: number | undefined;
@@ -38,10 +38,10 @@ export type LogTimeFilter$Outbound = {
 };
 
 /** @internal */
-export const LogTimeFilter$outboundSchema: z.ZodType<
-  LogTimeFilter$Outbound,
+export const TimeFilter$outboundSchema: z.ZodType<
+  TimeFilter$Outbound,
   z.ZodTypeDef,
-  LogTimeFilter
+  TimeFilter
 > = z.object({
   gt: z.number().int().optional(),
   gte: z.number().int().optional(),
@@ -49,6 +49,6 @@ export const LogTimeFilter$outboundSchema: z.ZodType<
   lte: z.number().int().optional(),
 });
 
-export function logTimeFilterToJSON(logTimeFilter: LogTimeFilter): string {
-  return JSON.stringify(LogTimeFilter$outboundSchema.parse(logTimeFilter));
+export function timeFilterToJSON(timeFilter: TimeFilter): string {
+  return JSON.stringify(TimeFilter$outboundSchema.parse(timeFilter));
 }

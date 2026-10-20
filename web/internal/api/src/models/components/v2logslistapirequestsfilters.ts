@@ -4,30 +4,30 @@
 
 import * as z from "zod/v3";
 import {
-  LogExactFilter,
-  LogExactFilter$Outbound,
-  LogExactFilter$outboundSchema,
-} from "./logexactfilter.js";
+  ExactFilter,
+  ExactFilter$Outbound,
+  ExactFilter$outboundSchema,
+} from "./exactfilter.js";
 import {
-  LogIntFilter,
-  LogIntFilter$Outbound,
-  LogIntFilter$outboundSchema,
-} from "./logintfilter.js";
+  IntFilter,
+  IntFilter$Outbound,
+  IntFilter$outboundSchema,
+} from "./intfilter.js";
 import {
-  LogMethodFilter,
-  LogMethodFilter$Outbound,
-  LogMethodFilter$outboundSchema,
-} from "./logmethodfilter.js";
+  MethodFilter,
+  MethodFilter$Outbound,
+  MethodFilter$outboundSchema,
+} from "./methodfilter.js";
 import {
-  LogTextFilter,
-  LogTextFilter$Outbound,
-  LogTextFilter$outboundSchema,
-} from "./logtextfilter.js";
+  TextFilter,
+  TextFilter$Outbound,
+  TextFilter$outboundSchema,
+} from "./textfilter.js";
 import {
-  LogTimeFilter,
-  LogTimeFilter$Outbound,
-  LogTimeFilter$outboundSchema,
-} from "./logtimefilter.js";
+  TimeFilter,
+  TimeFilter$Outbound,
+  TimeFilter$outboundSchema,
+} from "./timefilter.js";
 
 /**
  * Filters for the listing. A missing field does not filter. Different fields are combined with AND.
@@ -39,9 +39,9 @@ export type V2LogsListApiRequestsFilters = {
    * Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
    *
    * @remarks
-   * Unkey keeps only rows inside the workspace's log retention. A lower bound older than the retention start has no effect.
+   * Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
    */
-  time?: LogTimeFilter | undefined;
+  time?: TimeFilter | undefined;
   /**
    * Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
    *
@@ -49,42 +49,34 @@ export type V2LogsListApiRequestsFilters = {
    * The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
    * The negated operators (`isNot`, `notContains`) are combined with AND.
    */
-  path?: LogTextFilter | undefined;
-  /**
-   * Filters a field that matches only as a whole value, such as a host or a request ID.
-   *
-   * @remarks
-   * Matching is exact and case-sensitive.
-   */
-  host?: LogExactFilter | undefined;
+  path?: TextFilter | undefined;
   /**
    * Filters by HTTP method.
    */
-  method?: LogMethodFilter | undefined;
+  method?: MethodFilter | undefined;
   /**
    * Filters a field that matches only as a whole value, such as a host or a request ID.
    *
    * @remarks
    * Matching is exact and case-sensitive.
    */
-  requestId?: LogExactFilter | undefined;
+  requestId?: ExactFilter | undefined;
   /**
    * Filters an integer field. `is` keeps rows that equal one of its values.
    *
    * @remarks
    * `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
    */
-  status?: LogIntFilter | undefined;
+  status?: IntFilter | undefined;
 };
 
 /** @internal */
 export type V2LogsListApiRequestsFilters$Outbound = {
-  time?: LogTimeFilter$Outbound | undefined;
-  path?: LogTextFilter$Outbound | undefined;
-  host?: LogExactFilter$Outbound | undefined;
-  method?: LogMethodFilter$Outbound | undefined;
-  requestId?: LogExactFilter$Outbound | undefined;
-  status?: LogIntFilter$Outbound | undefined;
+  time?: TimeFilter$Outbound | undefined;
+  path?: TextFilter$Outbound | undefined;
+  method?: MethodFilter$Outbound | undefined;
+  requestId?: ExactFilter$Outbound | undefined;
+  status?: IntFilter$Outbound | undefined;
 };
 
 /** @internal */
@@ -93,12 +85,11 @@ export const V2LogsListApiRequestsFilters$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   V2LogsListApiRequestsFilters
 > = z.object({
-  time: LogTimeFilter$outboundSchema.optional(),
-  path: LogTextFilter$outboundSchema.optional(),
-  host: LogExactFilter$outboundSchema.optional(),
-  method: LogMethodFilter$outboundSchema.optional(),
-  requestId: LogExactFilter$outboundSchema.optional(),
-  status: LogIntFilter$outboundSchema.optional(),
+  time: TimeFilter$outboundSchema.optional(),
+  path: TextFilter$outboundSchema.optional(),
+  method: MethodFilter$outboundSchema.optional(),
+  requestId: ExactFilter$outboundSchema.optional(),
+  status: IntFilter$outboundSchema.optional(),
 });
 
 export function v2LogsListApiRequestsFiltersToJSON(

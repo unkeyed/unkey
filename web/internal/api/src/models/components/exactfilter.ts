@@ -10,7 +10,7 @@ import * as z from "zod/v3";
  * @remarks
  * Matching is exact and case-sensitive.
  */
-export type LogExactFilter = {
+export type ExactFilter = {
   /**
    * The values of one exact filter operator. A row matches `is` when it equals any value in the list.
    *
@@ -30,21 +30,21 @@ export type LogExactFilter = {
 };
 
 /** @internal */
-export type LogExactFilter$Outbound = {
+export type ExactFilter$Outbound = {
   is?: Array<string> | undefined;
   isNot?: Array<string> | undefined;
 };
 
 /** @internal */
-export const LogExactFilter$outboundSchema: z.ZodType<
-  LogExactFilter$Outbound,
+export const ExactFilter$outboundSchema: z.ZodType<
+  ExactFilter$Outbound,
   z.ZodTypeDef,
-  LogExactFilter
+  ExactFilter
 > = z.object({
   is: z.array(z.string()).optional(),
   isNot: z.array(z.string()).optional(),
 });
 
-export function logExactFilterToJSON(logExactFilter: LogExactFilter): string {
-  return JSON.stringify(LogExactFilter$outboundSchema.parse(logExactFilter));
+export function exactFilterToJSON(exactFilter: ExactFilter): string {
+  return JSON.stringify(ExactFilter$outboundSchema.parse(exactFilter));
 }
