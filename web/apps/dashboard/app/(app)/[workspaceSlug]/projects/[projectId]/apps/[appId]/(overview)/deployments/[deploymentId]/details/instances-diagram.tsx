@@ -48,7 +48,7 @@ const densityLayout: Record<
     regionCode: "truncate",
   },
   compact: {
-    minW: 132,
+    minW: 176,
     maxW: 220,
     gap: 12,
     gapClass: "gap-x-3",
@@ -137,12 +137,12 @@ export function InstancesDiagram({ stage }: { stage: StepResolution["status"] })
   const layout = densityLayout[density];
   const rowWidth = (w: number) => n * w + (n - 1) * layout.gap;
   return (
-    <div className="overflow-x-auto px-8 py-8">
-      <FanIn className="-mt-8 mx-auto h-33 w-full max-w-120" />
+    <div className="overflow-x-auto px-8 pb-8">
       <div
         className="mx-auto flex flex-col motion-safe:animate-upgrade-rise"
         style={{ minWidth: rowWidth(layout.minW), maxWidth: rowWidth(layout.maxW) }}
       >
+        <FanIn className="mx-auto h-33 w-full max-w-120" />
         <EdgeNode />
         <FanOut targets={n} className={cn("h-13", layout.fanOut)} />
         <div
