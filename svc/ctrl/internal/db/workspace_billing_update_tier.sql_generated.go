@@ -12,7 +12,7 @@ import (
 
 const updateWorkspaceBillingTier = `-- name: UpdateWorkspaceBillingTier :exec
 UPDATE ` + "`" + `workspace_billing` + "`" + `
-SET tier = ?, tier_updated_at_m = ?, updated_at_m = ?
+SET tier = ?, updated_at_m = ?
 WHERE workspace_id = ?
 `
 
@@ -25,14 +25,9 @@ type UpdateWorkspaceBillingTierParams struct {
 // UpdateWorkspaceBillingTier
 //
 //	UPDATE `workspace_billing`
-//	SET tier = ?, tier_updated_at_m = ?, updated_at_m = ?
+//	SET tier = ?, updated_at_m = ?
 //	WHERE workspace_id = ?
 func (q *Queries) UpdateWorkspaceBillingTier(ctx context.Context, arg UpdateWorkspaceBillingTierParams) error {
-	_, err := q.db.ExecContext(ctx, updateWorkspaceBillingTier,
-		arg.Tier,
-		arg.UpdatedAt,
-		arg.UpdatedAt,
-		arg.WorkspaceID,
-	)
+	_, err := q.db.ExecContext(ctx, updateWorkspaceBillingTier, arg.Tier, arg.UpdatedAt, arg.WorkspaceID)
 	return err
 }

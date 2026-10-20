@@ -223,7 +223,6 @@ export const updateSubscription = workspaceProcedure
         .update(schema.workspaceBilling)
         .set({
           tier: newProduct.name,
-          tierUpdatedAtM: Date.now(),
         })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 

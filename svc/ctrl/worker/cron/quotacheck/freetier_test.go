@@ -82,42 +82,28 @@ func TestPreviousPeriodToRecheck(t *testing.T) {
 }
 
 func TestShouldEnforceFreeTier(t *testing.T) {
-	now := time.Date(2026, time.November, 1, 15, 0, 0, 0, time.UTC)
-	current := billingperiod.From(now)
-	previous := current.Prev()
-
 	free := sql.NullString{String: "Free", Valid: true}
 	unthrottled := sql.NullInt32{Int32: 0, Valid: false}
-	changedAt := func(t time.Time) sql.NullInt64 { return sql.NullInt64{Int64: t.UnixMilli(), Valid: true} }
-	never := sql.NullInt64{Int64: 0, Valid: false}
 
-	row := func(tier sql.NullString, perMinute sql.NullInt32, tierUpdatedAt sql.NullInt64) db.GetWorkspacesForQuotaCheckByIDsRow {
+	row := func(tier sql.NullString, perMinute sql.NullInt32) db.GetWorkspacesForQuotaCheckByIDsRow {
 		var ws db.GetWorkspacesForQuotaCheckByIDsRow
 		ws.Tier = tier
 		ws.RequestsPerMinute = perMinute
-		ws.TierUpdatedAt = tierUpdatedAt
 		return ws
 	}
 
 	cases := []struct {
-		name   string
-		ws     db.GetWorkspacesForQuotaCheckByIDsRow
-		period billingperiod.Period
-		want   bool
+		name string
+		ws   db.GetWorkspacesForQuotaCheckByIDsRow
+		want bool
 	}{
-		{"current period free workspace", row(free, unthrottled, never), current, true},
-		{"current period, downgraded mid period", row(free, unthrottled, changedAt(current.Start().Add(time.Hour))), current, false},
-		{"current period, tier changed exactly at period start", row(free, unthrottled, changedAt(current.Start())), current, false},
-		{"paid workspace", row(sql.NullString{String: "Pro", Valid: true}, unthrottled, never), current, false},
-		{"already throttled", row(free, sql.NullInt32{Int32: 5, Valid: true}, never), current, false},
-		{"previous period, tier never changed", row(free, unthrottled, never), previous, true},
-		{"previous period, tier unchanged since before it", row(free, unthrottled, changedAt(previous.Start().Add(-time.Hour))), previous, true},
-		{"previous period, cancelled at period end", row(free, unthrottled, changedAt(current.Start())), previous, false},
-		{"previous period, downgraded mid period", row(free, unthrottled, changedAt(previous.Start().Add(10*24*time.Hour))), previous, false},
+		{"free workspace", row(free, unthrottled), true},
+		{"paid workspace", row(sql.NullString{String: "Pro", Valid: true}, unthrottled), false},
+		{"already throttled", row(free, sql.NullInt32{Int32: 5, Valid: true}), false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.want, shouldEnforceFreeTier(tc.ws, tc.period))
+			require.Equal(t, tc.want, shouldEnforceFreeTier(tc.ws))
 		})
 	}
 }
@@ -201,35 +187,4 @@ func TestHandleEnforceFreeTierSchedulesNoThrottleWithoutDeliveredWarning(t *test
 			mockCtx.AssertNotCalled(t, "Object", mock.Anything, mock.Anything, mock.Anything)
 		})
 	}
-}
-
-func TestHandleThrottleFreeTierWorkspaceSkipsWarningBeforeTierChange(t *testing.T) {
-	warnedAt := time.Date(2026, time.October, 10, 12, 0, 0, 0, time.UTC)
-
-	var row db.GetWorkspacesForQuotaCheckByIDsRow
-	row.ID = uid.New(uid.WorkspacePrefix)
-	row.Tier = sql.NullString{String: freeTierName, Valid: true}
-	row.TierUpdatedAt = sql.NullInt64{Int64: warnedAt.Add(48 * time.Hour).UnixMilli(), Valid: true}
-
-	h := &Handler{
-		db:              freeWorkspaceDB{Database: nil, row: row},
-		clickhouse:      nil,
-		heartbeat:       nil,
-		slackWebhookURL: "",
-		delivery:        nil,
-		billingBaseURL:  "",
-	}
-
-	mockCtx := mocks.NewMockContext(t)
-	mockCtx.EXPECT().GetAndReturn(stateKeyFreeTierWarnedAt, warnedAt.Unix())
-	mockCtx.EXPECT().Run(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(executeRun).Maybe()
-	mockCtx.EXPECT().Run(mock.Anything, mock.Anything, mock.Anything, mock.Anything).RunAndReturn(executeRun).Maybe()
-	mockCtx.EXPECT().Clear(stateKeyFreeTierWarnedAt).Once()
-
-	_, err := h.HandleThrottleFreeTierWorkspace(restate.WithMockContext(mockCtx), &hydrav1.ThrottleFreeTierWorkspaceRequest{
-		WorkspaceId: row.ID,
-		WarnedAt:    warnedAt.Unix(),
-	})
-	require.NoError(t, err)
-	mockCtx.AssertNotCalled(t, "Object", mock.Anything, mock.Anything, mock.Anything)
 }

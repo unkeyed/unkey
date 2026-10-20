@@ -165,7 +165,7 @@ func (h *Handler) HandleThrottleFreeTierWorkspace(
 		h.scheduleThrottle(ctx, req.GetWorkspaceId(), warnedAt, throttleRetryDelay)
 		return resp, nil
 	}
-	if !found || !isFreeTier(ws.Tier) || !tierUnchangedSince(ws, time.Unix(warnedAt, 0)) {
+	if !found || !isFreeTier(ws.Tier) {
 		restate.Clear(ctx, stateKeyFreeTierWarnedAt)
 		return resp, nil
 	}

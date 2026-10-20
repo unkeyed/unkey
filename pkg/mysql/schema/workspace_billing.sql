@@ -2,7 +2,6 @@ CREATE TABLE `workspace_billing` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`tier` varchar(256) DEFAULT 'Free',
-	`tier_updated_at_m` bigint,
 	`stripe_customer_id` varchar(256) COLLATE utf8mb4_0900_as_cs,
 	`plan` varchar(64),
 	`plan_override` varchar(64),

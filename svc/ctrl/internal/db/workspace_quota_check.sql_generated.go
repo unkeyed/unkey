@@ -21,8 +21,7 @@ SELECT
    b.tier,
    w.enabled,
    l.api_billable_operations_count_max_per_month AS requests_per_month,
-   l.api_requests_count_max_per_minute AS requests_per_minute,
-   b.tier_updated_at_m AS tier_updated_at
+   l.api_requests_count_max_per_minute AS requests_per_minute
 FROM ` + "`" + `workspaces` + "`" + ` w
 LEFT JOIN ` + "`" + `limits` + "`" + ` l ON l.workspace_id = w.id
 LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
@@ -39,7 +38,6 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 	Enabled           bool           `db:"enabled"`
 	RequestsPerMonth  sql.NullInt64  `db:"requests_per_month"`
 	RequestsPerMinute sql.NullInt32  `db:"requests_per_minute"`
-	TierUpdatedAt     sql.NullInt64  `db:"tier_updated_at"`
 }
 
 // GetWorkspacesForQuotaCheckByIDs
@@ -53,8 +51,7 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 //	   b.tier,
 //	   w.enabled,
 //	   l.api_billable_operations_count_max_per_month AS requests_per_month,
-//	   l.api_requests_count_max_per_minute AS requests_per_minute,
-//	   b.tier_updated_at_m AS tier_updated_at
+//	   l.api_requests_count_max_per_minute AS requests_per_minute
 //	FROM `workspaces` w
 //	LEFT JOIN `limits` l ON l.workspace_id = w.id
 //	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
@@ -88,7 +85,6 @@ func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspace
 			&i.Enabled,
 			&i.RequestsPerMonth,
 			&i.RequestsPerMinute,
-			&i.TierUpdatedAt,
 		); err != nil {
 			return nil, err
 		}

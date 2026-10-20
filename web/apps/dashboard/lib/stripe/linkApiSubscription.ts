@@ -161,15 +161,8 @@ export async function linkApiSubscription(
   await db.transaction(async (tx) => {
     await tx
       .insert(schema.workspaceBilling)
-      .values({
-        workspaceId: ws.id,
-        stripeCustomerId,
-        tier: product.name,
-        tierUpdatedAtM: Date.now(),
-      })
-      .onDuplicateKeyUpdate({
-        set: { stripeCustomerId, tier: product.name, tierUpdatedAtM: Date.now() },
-      });
+      .values({ workspaceId: ws.id, stripeCustomerId, tier: product.name })
+      .onDuplicateKeyUpdate({ set: { stripeCustomerId, tier: product.name } });
     await upsertBillingSubscription(tx, {
       workspaceId: ws.id,
       product: "api",
