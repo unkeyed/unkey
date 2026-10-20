@@ -21,7 +21,7 @@ export function DomainSummary({
         href={primary.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="truncate text-[13px] font-medium text-gray-12 transition-colors hover:text-gray-11"
+        className="truncate text-sm font-medium text-gray-12 transition-colors hover:text-gray-11"
       >
         {primary.hostname}
       </a>
