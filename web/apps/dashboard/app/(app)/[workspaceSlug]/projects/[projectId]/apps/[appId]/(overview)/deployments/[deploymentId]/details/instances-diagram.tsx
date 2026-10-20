@@ -29,23 +29,42 @@ import {
 } from "./instances-model";
 import type { StepResolution } from "./stages-model";
 
-const REGION_MIN_W = 260;
-const REGION_MAX_W = 320;
-const REGION_GAP = 32;
+type Density = "comfortable" | "compact";
 
-// Literal classes for Tailwind: the edge shows once all n regions fit in one row,
-// at n * REGION_MIN_W + (n - 1) * REGION_GAP. Past five regions the edge stays hidden.
-const edgeShownAt: Partial<Record<number, string>> = {
-  1: "flex",
-  2: "@min-[552px]/diagram:flex",
-  3: "@min-[844px]/diagram:flex",
-  4: "@min-[1136px]/diagram:flex",
-  5: "@min-[1428px]/diagram:flex",
+const densityOf = (regions: number): Density => (regions > 3 ? "compact" : "comfortable");
+
+// The row never wraps: it keeps at least minW per region and the panel scrolls
+// sideways below that, so the edge and fan-out always line up with the cards.
+const densityLayout: Record<
+  Density,
+  { minW: number; maxW: number; gap: number; gapClass: string; fanOut: string; regionCode: string }
+> = {
+  comfortable: {
+    minW: 260,
+    maxW: 320,
+    gap: 32,
+    gapClass: "gap-x-8",
+    fanOut: "-mx-4 w-[calc(100%+2rem)]",
+    regionCode: "truncate",
+  },
+  compact: {
+    minW: 132,
+    maxW: 220,
+    gap: 12,
+    gapClass: "gap-x-3",
+    fanOut: "-mx-1.5 w-[calc(100%+0.75rem)]",
+    regionCode: "sr-only",
+  },
 };
 
-type TileVariant = "region" | "instance";
+const instanceDensity: Record<Density, { row: string; tile: TileVariant }> = {
+  comfortable: { row: "gap-2.5 py-2 pr-2.5 pl-2", tile: "instance" },
+  compact: { row: "gap-2 py-1.5 pr-2 pl-1.5", tile: "instanceCompact" },
+};
 
-const tileTone: Record<InstanceState, Record<TileVariant, string>> = {
+type TileVariant = "region" | "instance" | "instanceCompact";
+
+const tileTone: Record<InstanceState, Record<Exclude<TileVariant, "instanceCompact">, string>> = {
   running: {
     region: "bg-successA-4 text-success-11 ring-1 ring-inset ring-successA-5",
     instance: "bg-successA-3 text-success-11",
@@ -70,6 +89,10 @@ const tileSize: Record<TileVariant, { tile: string; icon: string }> = {
   instance: {
     tile: "size-7 rounded-md motion-safe:group-data-[entered=running]/card:animate-tile-settle",
     icon: "size-4",
+  },
+  instanceCompact: {
+    tile: "size-6 rounded-[5px] motion-safe:group-data-[entered=running]/card:animate-tile-settle",
+    icon: "size-3.5",
   },
 };
 
@@ -110,31 +133,24 @@ export function InstancesDiagram({ stage }: { stage: StepResolution["status"] })
   }
 
   const n = view.regions.length;
-  const edgeShown = edgeShownAt[n];
+  const density = densityOf(n);
+  const layout = densityLayout[density];
+  const rowWidth = (w: number) => n * w + (n - 1) * layout.gap;
   return (
-    <div className="@container/diagram px-8 py-8">
-      {edgeShown ? (
-        <FanIn className={cn("-mt-8 mx-auto hidden h-33 w-full max-w-120", edgeShown)} />
-      ) : null}
+    <div className="overflow-x-auto px-8 py-8">
+      <FanIn className="-mt-8 mx-auto h-33 w-full max-w-120" />
       <div
-        className="mx-auto flex w-full flex-col motion-safe:animate-upgrade-rise"
-        style={{ maxWidth: n * REGION_MAX_W + (n - 1) * REGION_GAP }}
+        className="mx-auto flex flex-col motion-safe:animate-upgrade-rise"
+        style={{ minWidth: rowWidth(layout.minW), maxWidth: rowWidth(layout.maxW) }}
       >
-        {edgeShown ? (
-          <div className={cn("hidden flex-col", edgeShown)}>
-            <EdgeNode />
-            <FanOut targets={n} className="-mx-4 h-13 w-[calc(100%+2rem)]" />
-          </div>
-        ) : null}
+        <EdgeNode />
+        <FanOut targets={n} className={cn("h-13", layout.fanOut)} />
         <div
-          className="grid items-start gap-y-4"
-          style={{
-            gridTemplateColumns: `repeat(auto-fit, minmax(min(${REGION_MIN_W}px, 100%), 1fr))`,
-            columnGap: REGION_GAP,
-          }}
+          className={cn("grid items-start", layout.gapClass)}
+          style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}
         >
           {view.regions.map((region) => (
-            <RegionCard key={region.key} region={region} />
+            <RegionCard key={region.key} region={region} density={density} />
           ))}
         </div>
       </div>
@@ -154,7 +170,7 @@ function busyLabel(content: RegionGroup["content"]): string | null {
     .exhaustive();
 }
 
-function RegionCard({ region }: { region: RegionGroup }) {
+function RegionCard({ region, density }: { region: RegionGroup; density: Density }) {
   const nameId = useId();
   const busy = busyLabel(region.content);
   return (
@@ -166,7 +182,11 @@ function RegionCard({ region }: { region: RegionGroup }) {
     >
       <div className="flex min-w-0 items-center gap-1.5 px-3 py-2.5">
         {region.name ? (
-          <RegionName id={nameId} name={region.name} />
+          <RegionName
+            id={nameId}
+            name={region.name}
+            codeClassName={densityLayout[density].regionCode}
+          />
         ) : (
           <RegionNamePlaceholder id={nameId} />
         )}
@@ -182,16 +202,18 @@ function RegionCard({ region }: { region: RegionGroup }) {
           .with({ kind: "instances" }, ({ instances, waiting }) => (
             <>
               {instances.map((instance) => (
-                <InstanceCard key={instance.id} instance={instance} />
+                <InstanceCard key={instance.id} instance={instance} density={density} />
               ))}
               {slots(waiting, "waiting").map((slot) => (
-                <PlaceholderCard key={slot} label="Waiting for instance" />
+                <PlaceholderCard key={slot} density={density} label="Waiting for instance" />
               ))}
             </>
           ))
-          .with({ kind: "waiting" }, () => <PlaceholderCard label="Waiting for instances" />)
+          .with({ kind: "waiting" }, () => (
+            <PlaceholderCard density={density} label="Waiting for instances" />
+          ))
           .with({ kind: "skeleton" }, ({ count }) =>
-            slots(count, "slot").map((slot) => <PlaceholderCard key={slot} />),
+            slots(count, "slot").map((slot) => <PlaceholderCard key={slot} density={density} />),
           )
           .exhaustive()}
       </ul>
@@ -199,14 +221,18 @@ function RegionCard({ region }: { region: RegionGroup }) {
   );
 }
 
-function RegionName({ id, name }: { id: string; name: string }) {
+function RegionName({
+  id,
+  name,
+  codeClassName,
+}: { id: string; name: string; codeClassName: string }) {
   return (
     <>
       <RegionFlag region={name} shape="rect" size="sm" />
-      <span id={`${id}-city`} className="shrink-0 text-xs font-medium text-gray-12">
+      <span id={`${id}-city`} className="truncate text-xs font-medium text-gray-12">
         {regionInfo(name).city}
       </span>
-      <span id={`${id}-code`} className="truncate font-mono text-2xs text-gray-10">
+      <span id={`${id}-code`} className={cn("font-mono text-2xs text-gray-10", codeClassName)}>
         ({name})
       </span>
     </>
@@ -272,7 +298,7 @@ function HealthTile({ state, variant }: { state: InstanceState; variant: TileVar
       className={cn(
         "relative grid shrink-0 place-items-center transition-[background-color,color,opacity] duration-200 ease-in-out motion-reduce:transition-none",
         size.tile,
-        tileTone[state][variant],
+        tileTone[state][variant === "region" ? "region" : "instance"],
       )}
     >
       {state === "starting" ? (
@@ -292,7 +318,7 @@ function HealthTile({ state, variant }: { state: InstanceState; variant: TileVar
   );
 }
 
-function InstanceCard({ instance }: { instance: DiagramInstance }) {
+function InstanceCard({ instance, density }: { instance: DiagramInstance; density: Density }) {
   const entered = useEnteredState(instance);
   const tone = cardTone[instance.state];
   return (
@@ -300,11 +326,12 @@ function InstanceCard({ instance }: { instance: DiagramInstance }) {
       data-entered={entered ?? undefined}
       className={cn(
         "group/card transition-[background-color,box-shadow] duration-200 ease-in-out motion-safe:data-[entered=running]:animate-wash-success motion-safe:data-[entered=unhealthy]:animate-wash-error motion-reduce:transition-none",
-        "flex min-w-0 items-center gap-2.5 rounded-md py-2 pr-2.5 pl-2 ring-1 ring-inset",
+        "flex min-w-0 items-center rounded-md ring-1 ring-inset",
+        instanceDensity[density].row,
         tone.card,
       )}
     >
-      <HealthTile state={instance.state} variant="instance" />
+      <HealthTile state={instance.state} variant={instanceDensity[density].tile} />
       <span className="flex min-w-0 flex-col gap-px">
         <span className="truncate text-2xs font-medium text-gray-12">{instance.id}</span>
         <span className={cn("truncate text-3xs tabular-nums", tone.meta)}>
@@ -342,16 +369,17 @@ function InstanceLogsLink({ instanceId }: { instanceId: string }) {
   );
 }
 
-function PlaceholderCard({ label }: { label?: string }) {
+function PlaceholderCard({ label, density }: { label?: string; density: Density }) {
   return (
     <li
       aria-hidden="true"
       className={cn(
-        "flex min-w-0 items-center gap-2.5 rounded-md py-2 pr-2.5 pl-2 ring-1 ring-inset",
+        "flex min-w-0 items-center rounded-md ring-1 ring-inset",
+        instanceDensity[density].row,
         cardTone.starting.card,
       )}
     >
-      <HealthTile state="starting" variant="instance" />
+      <HealthTile state="starting" variant={instanceDensity[density].tile} />
       <span className="flex min-w-0 flex-col gap-px">
         <span className="truncate text-2xs font-medium text-gray-11">
           {label ?? <span className="inline-block h-2 w-24 rounded-sm bg-grayA-3 align-middle" />}
