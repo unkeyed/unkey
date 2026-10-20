@@ -10,7 +10,6 @@ export default defineMeta({
     "empty-state",
     "item",
     "resource-list",
-    "segmented-control",
     "select",
     "settings-card",
     "skeleton",
