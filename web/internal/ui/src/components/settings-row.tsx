@@ -358,7 +358,7 @@ function SettingsForm({
   return (
     <form
       ref={formRef}
-      className={className}
+      className={cn(useLayoutClass("body"), className)}
       onSubmit={(e) => {
         if (saveState.status !== "ready") {
           e.preventDefault();
