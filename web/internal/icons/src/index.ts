@@ -156,6 +156,7 @@ export * from "./icons/plus-outline-18";
 export * from "./icons/ram-outline-18";
 export * from "./icons/refresh3-outline-12";
 export * from "./icons/refresh3-outline-18";
+export * from "./icons/server-outline-18";
 export * from "./icons/share-up-right-outline-18";
 export * from "./icons/shield-alert-outline-18";
 export * from "./icons/shield-globe-outline-18";
