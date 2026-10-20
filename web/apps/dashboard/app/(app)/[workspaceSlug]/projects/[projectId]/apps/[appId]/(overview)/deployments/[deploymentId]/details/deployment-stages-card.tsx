@@ -1,11 +1,5 @@
 "use client";
 
-import {
-  type DeploymentStatus,
-  isDeploymentInFlight,
-} from "@/lib/collections/deploy/deployment-status";
-import type { InstanceSummary } from "@/lib/collections/deploy/instance-status";
-import { trpc } from "@/lib/trpc/client";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import {
   IconCheckOutline12,
@@ -16,32 +10,17 @@ import {
 import { match } from "@unkey/match";
 import { Card, Loading } from "@unkey/ui";
 import { cn } from "cn";
-import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
-import { toBuildLogLines } from "../(deployment-progress)/build-logs/build-log-lines";
+import { type ReactNode, useId } from "react";
 import { DeploymentBuildLogs } from "../(deployment-progress)/build-logs/deployment-build-logs";
 import { FailureActions } from "../(deployment-progress)/failure-actions";
 import { useDeployment } from "../layout-provider";
-import { useBuildLogs } from "../use-build-logs";
-import type { StepsData } from "../use-deployment-status";
 import { InstancesDiagram } from "./instances-diagram";
 import { LogTicker } from "./log-ticker";
-import {
-  type ExpandableStageKey,
-  type OpenStage,
-  type Stage,
-  type StageKey,
-  type StepResolution,
-  followFailedStage,
-  initialOpenStage,
-  resolveStages,
-  toggleStage,
-} from "./stages-model";
-import { type TickerLine, stageTickerLine } from "./ticker-model";
+import type { ExpandableStageKey, Stage, StepResolution } from "./stages-model";
+import type { TickerLine } from "./ticker-model";
+import { type StagesCardPage, useStagesCard } from "./use-stages-card";
 
 type StageStatus = StepResolution["status"];
-
-const TICK_MS = 500;
-const DEPLOYING_LOGS_POLL_MS = 2_000;
 
 const stageGlyph: Record<StageStatus, ReactNode> = {
   completed: (
@@ -71,76 +50,14 @@ const stageStatusLabel: Record<StageStatus, string> = {
   skipped: "Skipped",
 };
 
-function useTickingNow(ticking: boolean): number {
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    if (!ticking) {
-      return;
-    }
-    const interval = setInterval(() => setNow(Date.now()), TICK_MS);
-    return () => clearInterval(interval);
-  }, [ticking]);
-  return now;
-}
-
-type DeploymentStagesCardProps = {
-  steps: StepsData | undefined;
-  status: DeploymentStatus;
-  instances: InstanceSummary | null;
-  domainCount: number | null;
-};
-
-export function DeploymentStagesCard({
-  steps,
-  status,
-  instances,
-  domainCount,
-}: DeploymentStagesCardProps) {
-  const { deployment } = useDeployment();
-  const inFlight = isDeploymentInFlight(status);
-  const now = useTickingNow(inFlight);
-  const stages = resolveStages({
-    steps,
-    now,
-    status,
-    isPrebuilt: deployment.source === "oci",
-    instances,
-    desiredState: deployment.desiredState,
-    domainCount,
-  });
-
-  const failedStage = stages.find((s) => s.resolution.status === "error")?.key ?? null;
-  const [openStage, setOpenStage] = useState<OpenStage>(() => initialOpenStage(failedStage));
-  const followed = followFailedStage(openStage, failedStage);
-  if (followed !== openStage) {
-    setOpenStage(followed);
-  }
-  const open = followed.open;
-  const toggle = (key: StageKey) => setOpenStage((state) => toggleStage(state, key));
-
-  const deploying = steps?.deploying;
-  const deployingInFlight = inFlight && Boolean(deploying) && !deploying?.endedAt;
-  const runtimeLogsQuery = trpc.deploy.deployment.runtimeLogs.useQuery(
-    { deploymentId: deployment.id, limit: 5 },
-    { enabled: deployingInFlight, refetchInterval: DEPLOYING_LOGS_POLL_MS },
-  );
-
-  const buildTicks =
-    stages.some((s) => s.key === "build" && s.resolution.status === "started") && open !== "build";
-  const buildLogs = useBuildLogs(deployment, { readsToEnd: true, enabled: buildTicks });
-  const buildEntries = buildLogs.data?.entries;
-  const buildLines = useMemo(() => toBuildLogLines(buildEntries ?? [], "all"), [buildEntries]);
-  const tickerSources = {
-    buildLines,
-    runtimeLogs: runtimeLogsQuery.data?.logs ?? [],
-    instances,
-  };
+export function DeploymentStagesCard({ page }: { page: StagesCardPage }) {
+  const { stages, failedStage, isOpen, toggle, buildLogs, tickerFor } = useStagesCard(page);
 
   const panel = (key: ExpandableStageKey, status: StageStatus) =>
     match(key)
       .with("build", () => (
         // A remount on a build failure starts the logs at the last error
-        <DeploymentBuildLogs key={failedStage === "build" ? "failed" : "live"} />
+        <DeploymentBuildLogs key={failedStage === "build" ? "failed" : "live"} logs={buildLogs} />
       ))
       .with("instances", () => <InstancesDiagram stage={status} />)
       .exhaustive();
@@ -148,16 +65,16 @@ export function DeploymentStagesCard({
   return (
     <Card className="flex flex-col divide-y divide-grayA-4 overflow-hidden">
       {stages.map((stage) => {
-        const isOpen = stage.expandable && open === stage.key;
+        const open = isOpen(stage);
         return (
           <StageRow
             key={stage.key}
             stage={stage}
-            ticker={stageTickerLine(stage, tickerSources)}
-            open={isOpen}
+            ticker={tickerFor(stage)}
+            open={open}
             onToggle={() => toggle(stage.key)}
           >
-            {isOpen && panel(stage.key, stage.resolution.status)}
+            {open && panel(stage.key, stage.resolution.status)}
           </StageRow>
         );
       })}

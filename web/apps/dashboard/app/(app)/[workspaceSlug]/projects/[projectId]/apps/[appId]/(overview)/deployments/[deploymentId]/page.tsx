@@ -38,12 +38,7 @@ export default function DeploymentOverview() {
       )}
       <DeploymentDetailsCard page={page} />
       {page.body === "stages" ? (
-        <DeploymentStagesCard
-          steps={steps}
-          status={page.status}
-          instances={page.instances}
-          domainCount={page.domainsLoading ? null : page.domains.all.length}
-        />
+        <DeploymentStagesCard page={page} />
       ) : (
         <div key={page.body} className="animate-fade-slide-in">
           {match(page.body)

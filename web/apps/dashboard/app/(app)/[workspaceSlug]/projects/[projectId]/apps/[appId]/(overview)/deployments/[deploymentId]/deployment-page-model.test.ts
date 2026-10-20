@@ -56,6 +56,7 @@ const input = (overrides: Partial<DeploymentPageInput> = {}): DeploymentPageInpu
   status: "ready",
   showBuild: false,
   domains: [],
+  domainsLoading: false,
   customDomains: [],
   currentDeploymentId: null,
   ...overrides,
@@ -84,6 +85,12 @@ describe("deploymentPageModel", () => {
     );
     expect(domains.all.map((d) => d.hostname)).toEqual(["api.acme.dev", "acme-abc.unkey.app"]);
     expect(domains.primary?.hostname).toBe("api.acme.dev");
+  });
+
+  test("counts domains once they load", () => {
+    const domains = [domain("d-1", "acme-abc.unkey.app"), domain("d-2", "api.acme.dev")];
+    expect(deploymentPageModel(input({ domains })).domainCount).toBe(2);
+    expect(deploymentPageModel(input({ domains, domainsLoading: true })).domainCount).toBe(null);
   });
 
   test("a ready deployment with a crash-looping instance reads unhealthy", () => {
