@@ -18,7 +18,7 @@ import { match } from "@unkey/match";
 import { Badge, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { cn } from "cn";
 import Link from "next/link";
-import { useId, useMemo, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useDeployment } from "../layout-provider";
 import {
   type DiagramInstance,
@@ -122,6 +122,15 @@ export function InstancesDiagram({ stage }: { stage: StepResolution["status"] })
     [instances, desiredRegions, targetRegions, desiredState, desiredInstanceCount, stage],
   );
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const regionCount = view.kind === "diagram" ? view.regions.length : 0;
+  useLayoutEffect(() => {
+    const panel = scrollRef.current;
+    if (panel && regionCount > 0) {
+      panel.scrollLeft = (panel.scrollWidth - panel.clientWidth) / 2;
+    }
+  }, [regionCount]);
+
   if (view.kind === "empty") {
     return (
       <div className="px-8 py-8">
@@ -137,7 +146,7 @@ export function InstancesDiagram({ stage }: { stage: StepResolution["status"] })
   const layout = densityLayout[density];
   const rowWidth = (w: number) => n * w + (n - 1) * layout.gap;
   return (
-    <div className="overflow-x-auto px-8 pb-8">
+    <div ref={scrollRef} className="overflow-x-auto px-8 pb-8">
       <div
         className="mx-auto flex flex-col motion-safe:animate-upgrade-rise"
         style={{ minWidth: rowWidth(layout.minW), maxWidth: rowWidth(layout.maxW) }}
