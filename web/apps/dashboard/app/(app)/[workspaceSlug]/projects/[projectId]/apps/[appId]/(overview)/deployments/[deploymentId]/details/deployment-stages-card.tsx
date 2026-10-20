@@ -8,15 +8,17 @@ import {
   IconXmarkOutline12,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Card, Loading } from "@unkey/ui";
+import { Card, Loading, Skeleton } from "@unkey/ui";
 import { cn } from "cn";
 import { type ReactNode, useId } from "react";
 import { DeploymentBuildLogs } from "../(deployment-progress)/build-logs/deployment-build-logs";
 import { FailureActions } from "../(deployment-progress)/failure-actions";
+import type { DisplayDomain } from "../../../../components/display-domain";
+import { DomainListItem } from "../../../../components/domain-list-item";
 import { useDeployment } from "../layout-provider";
 import { InstancesDiagram } from "./instances-diagram";
 import { LogTicker } from "./log-ticker";
-import type { ExpandableStageKey, Stage, StepResolution } from "./stages-model";
+import type { Stage, StageKey, StepResolution } from "./stages-model";
 import type { TickerLine } from "./ticker-model";
 import { type StagesCardPage, useStagesCard } from "./use-stages-card";
 
@@ -53,13 +55,16 @@ const stageStatusLabel: Record<StageStatus, string> = {
 export function DeploymentStagesCard({ page }: { page: StagesCardPage }) {
   const { stages, failedStage, isOpen, toggle, buildLogs, tickerFor } = useStagesCard(page);
 
-  const panel = (key: ExpandableStageKey, status: StageStatus) =>
+  const panel = (key: StageKey, status: StageStatus) =>
     match(key)
       .with("build", () => (
         // A remount on a build failure starts the logs at the last error
         <DeploymentBuildLogs key={failedStage === "build" ? "failed" : "live"} logs={buildLogs} />
       ))
       .with("instances", () => <InstancesDiagram stage={status} />)
+      .with("domains", () => (
+        <DomainList domains={page.domains.all} loading={page.domainCount === null} />
+      ))
       .exhaustive();
 
   return (
@@ -139,6 +144,22 @@ function StageRow({ stage, ticker, open, onToggle, children }: StageRowProps) {
         </div>
       )}
     </div>
+  );
+}
+
+const DOMAIN_SKELETON_ROWS = ["a", "b"];
+
+function DomainList({ domains, loading }: { domains: readonly DisplayDomain[]; loading: boolean }) {
+  return (
+    <ul className="flex flex-col divide-y divide-grayA-4">
+      {loading
+        ? DOMAIN_SKELETON_ROWS.map((id) => (
+            <li key={id} className="flex h-9 items-center gap-2 px-4">
+              <Skeleton className="h-3 w-48 rounded" />
+            </li>
+          ))
+        : domains.map((d) => <DomainListItem key={d.id} domain={d} className="h-9 px-4" />)}
+    </ul>
   );
 }
 

@@ -137,6 +137,17 @@ describe("resolveStages", () => {
     ).toBe("3 domains assigned");
   });
 
+  test("domains open once the network step or a ready deployment has domains", () => {
+    const expandable = (overrides: Partial<StagesInput>) =>
+      byKey(resolveStages(input(overrides))).domains.expandable;
+    expect(expandable({ domainCount: 2 })).toBe(false);
+    expect(expandable({ steps: { network: step() }, domainCount: 2 })).toBe(true);
+    expect(expandable({ status: "ready", domainCount: 1 })).toBe(true);
+    expect(expandable({ status: "ready", domainCount: null })).toBe(true);
+    expect(expandable({ status: "ready", domainCount: 0 })).toBe(false);
+    expect(expandable({ status: "stopped", domainCount: 2 })).toBe(false);
+  });
+
   test("domains read as in progress until they load", () => {
     const steps: StepsData = { building: step(), deploying: step(), network: step() };
     expect(byKey(resolveStages(input({ steps, domainCount: null }))).domains.resolution).toEqual({

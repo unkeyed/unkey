@@ -8,9 +8,7 @@ import {
 import { plural } from "@/lib/fmt";
 import type { StepsData } from "../use-deployment-status";
 
-export type ExpandableStageKey = "build" | "instances";
-
-export type StageKey = ExpandableStageKey | "domains";
+export type StageKey = "build" | "instances" | "domains";
 
 export type StepResolution = {
   status: "pending" | "started" | "completed" | "error" | "skipped";
@@ -41,9 +39,7 @@ type StepMessages = { completed: string; inProgress: string; waiting: string };
 
 type StageBase = { label: string; resolution: StepResolution };
 
-export type Stage =
-  | (StageBase & { key: ExpandableStageKey; expandable: boolean })
-  | (StageBase & { key: "domains"; expandable: false });
+export type Stage = StageBase & { key: StageKey; expandable: boolean };
 
 export type StagesInput = {
   steps: StepsData | undefined;
@@ -109,7 +105,7 @@ export function resolveStages({
       key: "domains",
       label: stageLabels.domains[domains.status],
       resolution: domains,
-      expandable: false,
+      expandable: domainCount !== 0 && (Boolean(network) || status === "ready"),
     },
   ];
 }
