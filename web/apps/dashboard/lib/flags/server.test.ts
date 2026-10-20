@@ -12,6 +12,7 @@ vi.mock("@/lib/env", () => ({
   env: () => ({
     UNKEY_API_URL: "https://api.example.test",
     UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
+    UNKEY_JWT_AUDIENCE: "api.unkey.com",
   }),
 }));
 
