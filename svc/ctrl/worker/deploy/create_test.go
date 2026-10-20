@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/clock"
 	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
@@ -1258,6 +1259,8 @@ type createHarness struct {
 	client   *restateingress.Client
 	deploys  *createDeployRecorder
 
+	flagClock *clock.TestClock
+
 	workspaceID   string
 	projectID     string
 	appID         string
@@ -1272,10 +1275,11 @@ type createHarness struct {
 // slowest package in the suite for no isolation it was not already getting
 // from those ids.
 var sharedCreateDeploy struct {
-	once     sync.Once
-	stop     func()
-	client   *restateingress.Client
-	recorder *createDeployRecorder
+	once      sync.Once
+	stop      func()
+	client    *restateingress.Client
+	recorder  *createDeployRecorder
+	flagClock *clock.TestClock
 }
 
 func TestMain(m *testing.M) {
@@ -1303,13 +1307,21 @@ func newCreateHarnessWithAppSource(t *testing.T, ctx context.Context, appSource 
 		auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: shared})
 		require.NoError(t, err)
 
+		require.NoError(t, pkgdb.Query.UpsertFlag(ctx, shared.RW(), pkgdb.UpsertFlagParams{
+			Slug: privateNetworkingSlug, Description: "private networking rollout", DefaultEnabled: false,
+			AllowOptIn: false, AllowOptOut: false,
+		}))
+		flagClock := clock.NewTestClock()
+		flagSvc, err := flags.New(flags.Config{DB: shared, Clock: flagClock})
+		require.NoError(t, err)
+
 		workflow, err := deploy.New(deploy.Config{
 			DB:            shared,
 			Auditlogs:     auditlogSvc,
-			Flags:         flags.NewNoop(),
+			Flags:         flagSvc,
 			DefaultDomain: "test.example.com",
 			DashboardURL:  "https://app.unkey.local",
-			Vault:         nil,
+			Vault:         connectionVault{VaultServiceClient: nil},
 			GitHub:        githubclient.NewNoop(),
 			Build: deploy.BuildConfig{
 				Backend:    deploy.BuildBackendDepot,
@@ -1335,8 +1347,10 @@ func newCreateHarnessWithAppSource(t *testing.T, ctx context.Context, appSource 
 
 		sharedCreateDeploy.client = cfg.IngressClient
 		sharedCreateDeploy.recorder = recorder
+		sharedCreateDeploy.flagClock = flagClock
 		sharedCreateDeploy.stop = func() {
 			stop()
+			flagSvc.Close()
 			_ = shared.Close()
 		}
 	})
@@ -1349,6 +1363,7 @@ func newCreateHarnessWithAppSource(t *testing.T, ctx context.Context, appSource 
 		seeder:        fixture.seeder,
 		client:        sharedCreateDeploy.client,
 		deploys:       sharedCreateDeploy.recorder,
+		flagClock:     sharedCreateDeploy.flagClock,
 		workspaceID:   fixture.workspaceID,
 		projectID:     fixture.projectID,
 		appID:         fixture.appID,

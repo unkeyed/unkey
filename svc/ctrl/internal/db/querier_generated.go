@@ -255,6 +255,13 @@ type Querier interface {
 	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
 	//  WHERE a.id = ?
 	DeleteAppById(ctx context.Context, id string) error
+	//DeleteAppConnectionById
+	//
+	//  DELETE b, t
+	//  FROM app_connections b
+	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
+	//  WHERE b.id = ?
+	DeleteAppConnectionById(ctx context.Context, id string) (int64, error)
 	//DeleteAppEnvVarsByEnvironmentId
 	//
 	//  DELETE FROM app_environment_variables WHERE environment_id = ?
@@ -283,6 +290,10 @@ type Querier interface {
 	//
 	//  DELETE FROM cilium_network_policies WHERE environment_id = ?
 	DeleteCiliumNetworkPoliciesByEnvironmentId(ctx context.Context, environmentID string) error
+	//DeleteConnectionAppTargetByConnectionId
+	//
+	//  DELETE FROM connection_app_targets WHERE connection_id = ?
+	DeleteConnectionAppTargetByConnectionId(ctx context.Context, connectionID string) error
 	//DeleteCustomDomainByID
 	//
 	//  DELETE d, c, cert
@@ -741,14 +752,6 @@ type Querier interface {
 	//    AND b.plan IS NOT NULL
 	//    AND w.deleted_at_m IS NULL
 	FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error)
-	// FindDeploymentAppAndStatus returns the two columns the create insert checks
-	// when it tolerates a row that is already there. Reading the full row for that
-	// would carry the encrypted environment variables and sentinel config with it.
-	//
-	//  SELECT app_id, status
-	//  FROM deployments
-	//  WHERE id = ?
-	FindDeploymentAppAndStatus(ctx context.Context, id string) (FindDeploymentAppAndStatusRow, error)
 	//FindDeploymentById
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
@@ -778,6 +781,12 @@ type Querier interface {
 	//  FROM deployments
 	//  WHERE id = ?
 	FindDeploymentForBuild(ctx context.Context, id string) (FindDeploymentForBuildRow, error)
+	//FindDeploymentForCreate
+	//
+	//  SELECT app_id, status, capabilities, encrypted_environment_variables
+	//  FROM deployments
+	//  WHERE id = ?
+	FindDeploymentForCreate(ctx context.Context, id string) (FindDeploymentForCreateRow, error)
 	//FindDeploymentForDeploy
 	//
 	//  SELECT d.id, d.workspace_id, d.project_id, d.app_id, d.environment_id, d.status, d.created_at,
@@ -1936,14 +1945,13 @@ type Querier interface {
 	//      t.target_environment_id, t.target_deployment_id
 	//  FROM app_connections b
 	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
-	//  INNER JOIN apps a ON a.id = b.app_id
 	//  WHERE b.workspace_id = ?
 	//      AND b.project_id = ?
 	//      AND b.app_id = ?
 	//      AND b.environment_id = ?
 	//      AND b.resource_type = 'app'
 	//      AND b.resource_id <> b.app_id
-	//      AND b.name <> a.slug COLLATE utf8mb4_0900_as_cs
+	//      AND b.name <> 'self'
 	//  ORDER BY b.pk
 	ListAppConnectionsByApp(ctx context.Context, arg ListAppConnectionsByAppParams) ([]ListAppConnectionsByAppRow, error)
 	//ListAppIdsByProject
@@ -2014,6 +2022,22 @@ type Querier interface {
 	//  WHERE b.stripe_customer_id IS NOT NULL
 	//    AND b.stripe_customer_id <> ''
 	ListDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error)
+	// ListDeploymentConnectionsByDeploymentId returns the connections a deployment
+	// saved with their app targets. Only tests use it.
+	//
+	//  SELECT
+	//      b.connection_id,
+	//      b.name,
+	//      b.resource_id,
+	//      t.selection_mode,
+	//      t.target_environment_id,
+	//      t.target_deployment_id
+	//  FROM deployment_connections b
+	//  LEFT JOIN deployment_connection_app_targets t
+	//      ON t.deployment_id = b.deployment_id AND t.connection_id = b.connection_id
+	//  WHERE b.deployment_id = ?
+	//  ORDER BY b.name
+	ListDeploymentConnectionsByDeploymentId(ctx context.Context, deploymentID string) ([]ListDeploymentConnectionsByDeploymentIdRow, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
@@ -2280,6 +2304,19 @@ type Querier interface {
 	//  SELECT id FROM custom_domains WHERE id = ?
 	//  LOCK IN SHARE MODE
 	LockCustomDomain(ctx context.Context, id string) (string, error)
+	// LockDeploymentConnectionTargets locks the given pinned target deployments
+	// that are ready and running in the workspace and project.
+	// Callers must check each connection's target app against app_id.
+	//
+	//  SELECT id, app_id
+	//  FROM deployments
+	//  WHERE id IN (/*SLICE:ids*/?)
+	//      AND workspace_id = ?
+	//      AND project_id = ?
+	//      AND status = 'ready'
+	//      AND desired_state = 'running'
+	//  FOR UPDATE
+	LockDeploymentConnectionTargets(ctx context.Context, arg LockDeploymentConnectionTargetsParams) ([]LockDeploymentConnectionTargetsRow, error)
 	// Must be the first statement of its transaction: the quota sum that follows
 	// relies on the read view opening after this lock is held
 	//
@@ -2585,6 +2622,12 @@ type Querier interface {
 	//
 	//  UPDATE acme_users SET registration_uri = ? WHERE id = ?
 	UpdateAcmeUserRegistrationURI(ctx context.Context, arg UpdateAcmeUserRegistrationURIParams) error
+	//UpdateAppConnectionName
+	//
+	//  UPDATE app_connections
+	//  SET name = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateAppConnectionName(ctx context.Context, arg UpdateAppConnectionNameParams) error
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps
@@ -2615,6 +2658,14 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
 	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error
+	//UpdateConnectionAppTarget
+	//
+	//  UPDATE connection_app_targets
+	//  SET selection_mode = ?,
+	//      target_environment_id = ?,
+	//      target_deployment_id = ?
+	//  WHERE connection_id = ?
+	UpdateConnectionAppTarget(ctx context.Context, arg UpdateConnectionAppTargetParams) error
 	//UpdateCustomDomainCheckAttempt
 	//
 	//  UPDATE custom_domains
