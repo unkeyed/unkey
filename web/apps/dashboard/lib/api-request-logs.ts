@@ -3,9 +3,9 @@ import type { LogsFilterValue } from "@/lib/schemas/logs.filter.schema";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import {
   type ApiRequestLog,
-  LogHttpMethod,
-  type LogIntFilter,
-  type LogTextFilter,
+  HttpMethod,
+  type IntFilter,
+  type TextFilter,
   type V2LogsListApiRequestsFilters,
   type V2LogsListApiRequestsRequestBody,
 } from "@unkey/api/models/components";
@@ -72,9 +72,8 @@ export function toApiRequestsFilters(
   window: { startTime: number; endTime: number },
 ): V2LogsListApiRequestsFilters {
   const time = { gte: window.startTime, lte: window.endTime };
-  let path: LogTextFilter | undefined;
-  let host: string[] | undefined;
-  let method: LogHttpMethod[] | undefined;
+  let path: TextFilter | undefined;
+  let method: HttpMethod[] | undefined;
   let requestId: string[] | undefined;
   const statuses: number[] = [];
   let since = "";
@@ -91,9 +90,6 @@ export function toApiRequestsFilters(
         break;
       case "paths":
         path = { ...path, [operator]: [...(path?.[operator] ?? []), String(value)] };
-        break;
-      case "host":
-        host = [...(host ?? []), String(value)];
         break;
       case "requestId":
         requestId = [...(requestId ?? []), String(value)];
@@ -120,7 +116,6 @@ export function toApiRequestsFilters(
   return {
     time,
     path,
-    host: host && { is: host },
     method: method && { is: method },
     requestId: requestId && { is: requestId },
     status: toStatusFilter(statuses),
@@ -129,7 +124,7 @@ export function toApiRequestsFilters(
 
 const STATUS_FAMILIES = new Set([200, 400, 500]);
 
-export function toStatusFilter(statuses: number[]): LogIntFilter | undefined {
+export function toStatusFilter(statuses: number[]): IntFilter | undefined {
   if (statuses.length === 0) {
     return undefined;
   }
@@ -142,8 +137,8 @@ export function toStatusFilter(statuses: number[]): LogIntFilter | undefined {
   return { gte: Math.min(...families), lt: Math.max(...families) + 100 };
 }
 
-const HTTP_METHODS: ReadonlySet<string> = new Set(Object.values(LogHttpMethod));
+const HTTP_METHODS: ReadonlySet<string> = new Set(Object.values(HttpMethod));
 
-function isHttpMethod(value: unknown): value is LogHttpMethod {
+function isHttpMethod(value: unknown): value is HttpMethod {
   return typeof value === "string" && HTTP_METHODS.has(value);
 }
