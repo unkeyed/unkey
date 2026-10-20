@@ -8,9 +8,19 @@ const instance = (overrides: Partial<Instance> = {}): Instance => ({
   id: "i-1",
   region: { id: "r-1", name: "us-east-1", platform: "aws" },
   status: "running",
-  statusReason: null,
   lastExit: null,
   ...overrides,
+});
+
+const waiting = (
+  statusReason: string,
+): NonNullable<Deployment["instances"][number]["lastExit"]> => ({
+  restartCount: 0,
+  exitCode: null,
+  signal: null,
+  reason: null,
+  finishedAt: null,
+  statusReason,
 });
 
 describe("deriveProductionStatus", () => {
@@ -31,7 +41,7 @@ describe("deriveProductionStatus", () => {
         status: "ready",
         desiredState: "running",
         targetRegions: [],
-        instances: [instance(), instance({ id: "i-2", statusReason: "CrashLoopBackOff" })],
+        instances: [instance(), instance({ id: "i-2", lastExit: waiting("CrashLoopBackOff") })],
       }),
     ).toBe("crashing");
   });
@@ -44,7 +54,7 @@ describe("deriveProductionStatus", () => {
         targetRegions: [],
         instances: [
           instance(),
-          instance({ id: "i-2", status: "inactive", statusReason: "CrashLoopBackOff" }),
+          instance({ id: "i-2", status: "inactive", lastExit: waiting("CrashLoopBackOff") }),
         ],
       }),
     ).toBe("live");

@@ -1,4 +1,5 @@
 import type { CustomDomain, Domain } from "@/lib/collections";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { describe, expect, test } from "vitest";
 import {
   type DeploymentPageInput,
@@ -32,6 +33,17 @@ const customDomain: CustomDomain = {
   createdAt: 0,
   updatedAt: null,
 };
+
+const waiting = (
+  statusReason: string,
+): NonNullable<Deployment["instances"][number]["lastExit"]> => ({
+  restartCount: 0,
+  exitCode: null,
+  signal: null,
+  reason: null,
+  finishedAt: null,
+  statusReason,
+});
 
 const input = (overrides: Partial<DeploymentPageInput> = {}): DeploymentPageInput => ({
   deployment: {
@@ -87,8 +99,7 @@ describe("deploymentPageModel", () => {
               id: "i-1",
               region: { id: "r-1", name: "us-east-1", platform: "aws" },
               status: "running",
-              statusReason: "CrashLoopBackOff",
-              lastExit: null,
+              lastExit: waiting("CrashLoopBackOff"),
             },
           ],
         },

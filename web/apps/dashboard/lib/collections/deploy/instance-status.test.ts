@@ -13,7 +13,6 @@ const instance = (region: string, overrides: Partial<Instance> = {}): Instance =
   id: `ins_${region}`,
   region: { id: `reg_${region}`, name: region, platform: "aws" },
   status: "running",
-  statusReason: null,
   lastExit: null,
   ...overrides,
 });
@@ -21,6 +20,17 @@ const instance = (region: string, overrides: Partial<Instance> = {}): Instance =
 const target = (name: string, replicas: number) => ({
   region: { id: `reg_${name}`, name, platform: "aws" },
   replicas,
+});
+
+const waiting = (
+  statusReason: string,
+): NonNullable<Deployment["instances"][number]["lastExit"]> => ({
+  restartCount: 0,
+  exitCode: null,
+  signal: null,
+  reason: null,
+  finishedAt: null,
+  statusReason,
 });
 
 const source = (overrides: Partial<InstancesSource> = {}): InstancesSource => ({
@@ -38,7 +48,9 @@ describe("summarizeInstances", () => {
   test("a crash loop is unhealthy even while the instance reads pending", () => {
     const summary = summarizeInstances(
       source({
-        instances: [instance("us-east-1", { status: "pending", statusReason: "CrashLoopBackOff" })],
+        instances: [
+          instance("us-east-1", { status: "pending", lastExit: waiting("CrashLoopBackOff") }),
+        ],
       }),
     );
     expect(summary).toEqual({ state: "unhealthy", running: 0, total: 1 });
@@ -48,7 +60,7 @@ describe("summarizeInstances", () => {
     const summary = summarizeInstances(
       source({
         instances: [
-          instance("us-east-1", { status: "inactive", statusReason: "CrashLoopBackOff" }),
+          instance("us-east-1", { status: "inactive", lastExit: waiting("CrashLoopBackOff") }),
           instance("eu-central-1", { status: "inactive" }),
         ],
       }),
@@ -138,10 +150,10 @@ describe("instancesText", () => {
 
 describe("instanceStateOf", () => {
   test("only the crash-looping pod reads unhealthy", () => {
-    expect(instanceStateOf({ status: "pending", statusReason: "CrashLoopBackOff" })).toBe(
+    expect(instanceStateOf({ status: "pending", lastExit: waiting("CrashLoopBackOff") })).toBe(
       "unhealthy",
     );
-    expect(instanceStateOf({ status: "running", statusReason: null })).toBe("running");
+    expect(instanceStateOf({ status: "running", lastExit: null })).toBe("running");
   });
 
   test.each([
@@ -151,17 +163,19 @@ describe("instanceStateOf", () => {
     "CreateContainerConfigError",
     "InvalidImageName",
   ])("%s on a pending instance reads unhealthy", (statusReason) => {
-    expect(instanceStateOf({ status: "pending", statusReason })).toBe("unhealthy");
+    expect(instanceStateOf({ status: "pending", lastExit: waiting(statusReason) })).toBe(
+      "unhealthy",
+    );
   });
 
   test("a fatal reason on a disabled instance stays disabled", () => {
-    expect(instanceStateOf({ status: "inactive", statusReason: "ImagePullBackOff" })).toBe(
+    expect(instanceStateOf({ status: "inactive", lastExit: waiting("ImagePullBackOff") })).toBe(
       "inactive",
     );
   });
 
   test("a transient waiting reason does not read unhealthy", () => {
-    expect(instanceStateOf({ status: "pending", statusReason: "ContainerCreating" })).toBe(
+    expect(instanceStateOf({ status: "pending", lastExit: waiting("ContainerCreating") })).toBe(
       "starting",
     );
   });

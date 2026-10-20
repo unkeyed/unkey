@@ -14,7 +14,6 @@ const instance = (id: string, region: string, overrides: Partial<Instance> = {})
   id,
   region: { id: `reg_${region}`, name: region, platform: "aws" },
   status: "running",
-  statusReason: null,
   lastExit: null,
   ...overrides,
 });
@@ -79,7 +78,6 @@ describe("resolveInstancesView", () => {
       instances: [
         instance("ins_a", "us-east-1"),
         instance("ins_b", "us-east-1", {
-          statusReason: "CrashLoopBackOff",
           lastExit: exit({ statusReason: "CrashLoopBackOff", restartCount: 6 }),
         }),
         instance("ins_c", "eu-central-1", { status: "pending" }),

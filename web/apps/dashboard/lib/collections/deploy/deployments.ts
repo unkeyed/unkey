@@ -53,7 +53,6 @@ export const deploymentSchema = z.object({
       id: z.string(),
       region: regionSchema,
       status: z.enum(INSTANCE_STATUSES),
-      statusReason: z.string().nullable(),
       lastExit: lastExitSchema.nullable(),
     }),
   ),
@@ -86,13 +85,6 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
-  // Most-recent exit info across the deployment's instances. Null when
-  // no instance has reported a termination yet (healthy deployments).
-  // Powers the "OOMKilled · exit=137" badge, see
-  // components/last-exit-badge.tsx. Sourced from
-  // instances.containerStatus on the trpc layer; the flat shape is kept
-  // here so consumers don't have to walk the JSON's optional sub-fields.
-  lastExit: lastExitSchema.nullable(),
 });
 
 export type Deployment = z.infer<typeof deploymentSchema>;
@@ -141,7 +133,6 @@ type RowDetails = Pick<
   | "desiredRegions"
   | "targetRegions"
   | "triggerReason"
-  | "lastExit"
 >;
 
 // Once a row in one of these statuses has no instances left, nothing changes its
@@ -231,7 +222,6 @@ function toDeployment(
     createdAt: deployment.createdAt,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
-    lastExit: details.lastExit,
   };
 }
 

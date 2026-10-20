@@ -1,27 +1,48 @@
 "use client";
 
-import { describeLastExit } from "@/lib/collections/deploy/last-exit";
+import { type ExitSummary, describeLastExit } from "@/lib/collections/deploy/last-exit";
 import type { LastExit } from "@/lib/types/deploy";
 import { match } from "@unkey/match";
 import { Badge, InfoTooltip } from "@unkey/ui";
 
 export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
-  const isCrashloop = lastExit.statusReason === "CrashLoopBackOff";
   const summary = describeLastExit(lastExit);
   const reason = summary.reason ?? "Error";
-  const variant = isCrashloop ? "warning" : "error";
+  const variant = summary.kind === "waiting" ? "warning" : "error";
 
-  const tooltip = explainExit(reason, lastExit.exitCode, lastExit.signal);
+  const tooltip =
+    summary.kind === "waiting"
+      ? explainWaiting(summary)
+      : explainExit(reason, lastExit.exitCode, lastExit.signal);
 
   return (
     <InfoTooltip content={tooltip} position={{ side: "top", align: "end" }}>
       <Badge variant={variant} className="text-xs whitespace-nowrap">
         {reason}
-        {summary.exit !== null ? (
+        {summary.kind === "exit" && summary.exit !== null ? (
           <span className="ml-1 font-mono tabular-nums">· {summary.exit}</span>
         ) : null}
       </Badge>
     </InfoTooltip>
+  );
+}
+
+function explainWaiting({ reason }: Extract<ExitSummary, { kind: "waiting" }>): React.ReactNode {
+  if (reason !== "CrashLoopBackOff") {
+    return reason;
+  }
+  return (
+    <div className="flex flex-col gap-1.5 max-w-[280px]">
+      <div className="font-medium">App keeps crashing on startup</div>
+      <div>
+        Your app has exited too many times in a row, so we're slowing down restart attempts to give
+        it room to recover.
+      </div>
+      <div>
+        Check the recent crash entries below for the exit code that's causing the loop, and your
+        logs for the underlying error.
+      </div>
+    </div>
   );
 }
 
@@ -31,23 +52,6 @@ function explainExit(
   exitCode: number | null,
   signal: number | null,
 ): React.ReactNode {
-  // CrashLoopBackOff: point users at the exit code for diagnosis.
-  if (reason === "CrashLoopBackOff") {
-    return (
-      <div className="flex flex-col gap-1.5 max-w-[280px]">
-        <div className="font-medium">App keeps crashing on startup</div>
-        <div>
-          Your app has exited too many times in a row, so we're slowing down restart attempts to
-          give it room to recover.
-        </div>
-        <div>
-          Check the recent crash entries below for the exit code that's causing the loop, and your
-          logs for the underlying error.
-        </div>
-      </div>
-    );
-  }
-
   const lines: { label: string; body: string }[] = [];
 
   const reasonLine = match(reason)
