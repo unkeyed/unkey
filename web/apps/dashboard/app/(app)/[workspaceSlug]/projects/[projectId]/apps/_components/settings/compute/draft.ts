@@ -17,6 +17,8 @@ export type ComputeValues = z.infer<typeof computeSchema>;
 
 export type Replicas = ComputeValues["replicas"];
 
+export type SetCompute = <K extends keyof ComputeValues>(key: K, value: ComputeValues[K]) => void;
+
 export function formatReplicas({ min, max }: Replicas): string {
   return min === max ? `${max}` : `${min}–${max}`;
 }

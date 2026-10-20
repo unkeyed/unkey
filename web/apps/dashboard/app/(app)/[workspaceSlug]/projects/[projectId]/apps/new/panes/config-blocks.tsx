@@ -6,7 +6,6 @@ import { BuildCommand } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/a
 import { Dockerfile } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/dockerfile-settings";
 import { RootDirectory } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/root-directory-settings";
 import { WatchPaths } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/watch-paths-settings";
-import { ComputeForm } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/compute/compute-settings";
 import {
   formatInstances,
   readCompute,
@@ -15,7 +14,10 @@ import { useEnvironmentSettings } from "@/app/(app)/[workspaceSlug]/projects/[pr
 import { useBuildFields } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-build-fields";
 import { useBuildSource } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-build-source";
 import { OCIImage } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/oci-image";
-import { Command } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/runtime-settings/command";
+import {
+  CommandForm,
+  ComputeForm,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/runtime/runtime-form";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { plural } from "@/lib/fmt";
 import {
@@ -197,7 +199,7 @@ function GitBuildFields() {
         <Dockerfile field={build.dockerfile} onSelect={build.onDockerfileSelect} />
       </div>
       <BuildCommand field={build.buildCommand} disabled={build.dockerfileConfigured} />
-      <Command />
+      <CommandForm />
       <WatchPaths />
     </>
   );
@@ -208,7 +210,7 @@ function ImageBuildFields() {
   return (
     <>
       {app ? <OCIImage appId={app.id} imageReference={app.imageReference ?? ""} /> : null}
-      <Command />
+      <CommandForm />
     </>
   );
 }

@@ -15,13 +15,11 @@ import { Controller } from "react-hook-form";
 import { z } from "zod";
 import { useSettingField } from "../hooks/use-setting-form";
 
-export const PROTOCOLS: Record<
-  EnvironmentSettings["upstreamProtocol"],
-  { label: string; hint: string }
-> = {
-  http1: { label: "HTTP/1.1", hint: "Works with every server." },
-  h2c: { label: "HTTP/2 (h2c)", hint: "Cleartext HTTP/2. For gRPC and streaming." },
-};
+const PROTOCOLS: Record<EnvironmentSettings["upstreamProtocol"], { label: string; hint: string }> =
+  {
+    http1: { label: "HTTP/1.1", hint: "Works with every server." },
+    h2c: { label: "HTTP/2 (h2c)", hint: "Cleartext HTTP/2. For gRPC and streaming." },
+  };
 
 export function UpstreamProtocol() {
   const { form, formProps } = useSettingField("upstreamProtocol", z.enum(["http1", "h2c"]));

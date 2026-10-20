@@ -8,13 +8,16 @@ import {
   type Preset,
   type SizeUnlock,
   type UnitField,
+  resolveLimits,
   sizeOptions,
   storageOptions,
   unitFields,
   unitOptions,
 } from "@/lib/compute/sizing";
 import { regionInfo } from "@/lib/regions";
+import { trpc } from "@/lib/trpc/client";
 import { formatCpu, formatMemory, formatStorage } from "@/lib/utils/deployment-formatters";
+import { useWorkspace } from "@/providers/workspace-provider";
 import {
   IconHardDriveOutline18,
   IconLockOutline12,
@@ -33,24 +36,35 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { useState } from "react";
-import type { Replicas } from "./draft";
-import { REGION_STATES, regionChoices, regionsNote } from "./status";
-import type { ComputeForm } from "./use-compute";
+import { type ComputeValues, type Replicas, type SetCompute, computeSchema } from "./draft";
+import { REGION_STATES, availableFrom, regionChoices, regionsNote } from "./status";
 import { CUSTOM_VALUE, useSizeChoice } from "./use-size-choice";
 
-type FieldProps = { compute: ComputeForm };
+export type ComputeInput = { values: ComputeValues; change: SetCompute; busy: boolean };
+
+type FieldProps = { compute: ReturnType<typeof useComputeControls> };
+
+function useComputeControls(input: ComputeInput) {
+  const { limits } = useWorkspace();
+  const regionsQuery = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
+  return { ...input, limits: resolveLimits(limits), available: availableFrom(regionsQuery) };
+}
 
 export function ComputeFields({
-  compute,
+  compute: input,
   hideLockedSizes = false,
-}: FieldProps & { hideLockedSizes?: boolean }) {
+}: {
+  compute: ComputeInput;
+  hideLockedSizes?: boolean;
+}) {
+  const compute = useComputeControls(input);
   return (
-    <div className="grid gap-6">
+    <>
       <RegionsField compute={compute} />
       <SizeField compute={compute} hideLocked={hideLockedSizes} />
       <InstancesField compute={compute} />
       <StorageField compute={compute} />
-    </div>
+    </>
   );
 }
 
@@ -58,8 +72,9 @@ function RegionsField({ compute }: FieldProps) {
   const { values, available, busy } = compute;
   const choices = regionChoices(available, values.regions);
   const states = new Map(choices.map((choice) => [choice.name, REGION_STATES[choice.state]]));
+  const error = computeSchema.shape.regions.safeParse(values.regions).error?.issues[0]?.message;
   return (
-    <FormField label="Regions" description={regionsNote(available)} className="col-span-full">
+    <FormField label="Regions" description={regionsNote(available)} error={error}>
       {({ id, describedBy }) => (
         <Select
           multiple
