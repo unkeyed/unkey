@@ -97,29 +97,6 @@ export const getSystemPrompt = (usersReferenceMS: number) => {
 
 Examples:
 
-# Complex Host Patterns
-Query: "show requests from api.staging.company.com and test.company.com"
-Result: [
-  {
-    field: "host",
-    filters: [
-      { operator: "is", value: "api.staging.company.com" },
-      { operator: "is", value: "test.company.com" }
-    ]
-  }
-]
-
-Query: "localhost and 127.0.0.1 requests"
-Result: [
-  {
-    field: "host",
-    filters: [
-      { operator: "is", value: "localhost" },
-      { operator: "is", value: "127.0.0.1" }
-    ]
-  }
-]
-
 # Complex Path Patterns
 Query: "find /api/v2/users/{userId}/profile and /api/v2/users/search requests"
 Result: [
@@ -219,7 +196,7 @@ Result: [
 ]
 
 # Complex Combinations
-Query: "failed requests to /v1/users or /v2/users from api.prod.com in last 2h"
+Query: "failed requests to /v1/users or /v2/users in last 2h"
 Result: [
   {
     field: "status",
@@ -236,10 +213,6 @@ Result: [
     ]
   },
   {
-    field: "host",
-    filters: [{ operator: "is", value: "api.prod.com" }]
-  },
-  {
     field: "startTime",
     filters: [{
       operator: "is",
@@ -248,12 +221,8 @@ Result: [
   }
 ]
 
-Query: "localhost GET and POST /api errors since 2h and 30m ago"
+Query: "GET and POST /api errors since 2h and 30m ago"
 Result: [
-  {
-    field: "host",
-    filters: [{ operator: "is", value: "localhost" }]
-  },
   {
     field: "methods",
     filters: [
@@ -301,7 +270,6 @@ Special handling rules:
 3. For ambiguous terms like "failed", include both 400 and 500 status codes
 4. Treat "read" operations as GET and "write" operations as POST
 5. When seeing path parameters (e.g., {id}), match the base path
-6. For IP addresses and localhost, treat them as host values
 
 Error Handling Rules:
 1. Invalid time formats: Convert to nearest supported range (e.g., "1w" → "7d")
@@ -323,7 +291,6 @@ Output Validation:
    - methods: must be valid HTTP method
    - status: must be 200, 400, or 500
    - paths: must be normalized string
-   - host: must be valid hostname/IP
    - time: must be valid timestamp or duration
 
 Additional Examples:

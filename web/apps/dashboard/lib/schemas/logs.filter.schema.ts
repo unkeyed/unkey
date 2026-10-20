@@ -108,7 +108,6 @@ export const filterOutputSchema = createFilterOutputSchema(
 // The /logs page has no app, deployment, or environment filter. Those fields
 // exist for the gateway requests page, which shares this config
 export const logsSearchFieldEnum = logsFilterFieldEnum.extract([
-  "host",
   "requestId",
   "methods",
   "paths",

@@ -44,7 +44,6 @@ describe("toApiRequestsFilters", () => {
           filter("methods", "is", "POST"),
           filter("paths", "startsWith", "/v2/keys."),
           filter("paths", "contains", "KEBAP"),
-          filter("host", "is", "api.unkey.com"),
           filter("since", "is", "1h"),
         ],
         window,
@@ -52,7 +51,6 @@ describe("toApiRequestsFilters", () => {
     ).toEqual({
       time: { gte: window.endTime - HOUR_IN_MS, lte: window.endTime },
       path: { startsWith: ["/v2/keys."], contains: ["KEBAP"] },
-      host: { is: ["api.unkey.com"] },
       method: { is: ["POST"] },
       requestId: undefined,
       status: { gte: 400, lt: 500 },
