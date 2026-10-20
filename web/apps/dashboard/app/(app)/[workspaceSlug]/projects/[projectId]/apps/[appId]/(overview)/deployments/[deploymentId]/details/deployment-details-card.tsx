@@ -68,7 +68,7 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
         </span>
       </div>
       <div className="grid divide-y divide-grayA-4 md:grid-cols-2 md:divide-x md:divide-y-0">
-        <Column title="Runtime">
+        <Column>
           <Row label="Status">
             <StatusDot colorClass={pageStatus.dotClass} pulse={pageStatus.inFlight} />
             <span className="truncate font-medium">{pageStatus.label}</span>
@@ -89,7 +89,7 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
           </Row>
           <Row label="Instances">{instancesText(instances, deployment.desiredState)}</Row>
         </Column>
-        <Column title="Source">
+        <Column>
           <SourceRows deployment={deployment} repoFullName={repoFullName} />
           <Row label="Created">
             {deployment.gitCommitAuthorHandle && (
@@ -110,13 +110,8 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
   );
 }
 
-function Column({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-2 px-4 py-3">
-      <span className="pb-1 text-xs font-medium text-gray-10">{title}</span>
-      {children}
-    </div>
-  );
+function Column({ children }: { children: ReactNode }) {
+  return <div className="flex min-w-0 flex-col gap-2 px-4 py-3">{children}</div>;
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
