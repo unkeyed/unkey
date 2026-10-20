@@ -38,23 +38,11 @@ var regionProximity = map[string][]string{
 	"local.dev": {},
 }
 
-// selectDestination decides whether to run the engine + proxy locally or
-// forward to a peer frontline.
-//
-// If any running instance exists in this region, the returned decision is
-// local and carries every local instance in shuffled order — the caller
-// walks the list, trying the next on dial failures. The decision also
-// carries the nearest peer region (if one exists) as RemoteRegionAddress,
-// which the caller falls through to once every local instance has dial-
-// failed. Empty when no other region has running instances.
-//
-// Otherwise (no local instances), the decision points at the nearest peer
-// region that has at least one running instance, and LocalInstances is
-// empty.
 func (s *service) selectDestination(
 	route db.FindFrontlineRouteByFQDNRow,
 	instances []db.FindInstancesByDeploymentIDRow,
 	policies []*frontlinev1.Policy,
+	excludedRegions []string,
 ) (RouteDecision, error) {
 	if len(instances) == 0 {
 		return RouteDecision{}, fault.New("no instances",
@@ -85,14 +73,14 @@ func (s *service) selectDestination(
 		)
 	}
 
+	for _, region := range excludedRegions {
+		delete(regionsWithInstance, region)
+	}
+
 	if len(localRunning) > 0 {
 		rand.Shuffle(len(localRunning), func(i int, j int) {
 			localRunning[i], localRunning[j] = localRunning[j], localRunning[i]
 		})
-		// Pick a standby peer region for the handler to fall through to
-		// if every local instance dial-fails. Empty when this is the only
-		// region with running instances — in that case there is nowhere
-		// to fall through to and the dial failures surface to the client.
 		return RouteDecision{
 			Destination:         DestinationLocalInstance,
 			DeploymentID:        route.DeploymentID,

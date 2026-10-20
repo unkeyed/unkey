@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/netip"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -43,8 +44,16 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return err
 	}
 
+	excludedRegions := make([]string, 0, len(hops))
+	for _, hop := range hops {
+		platform, region, ok := strings.Cut(hop.Region, "::")
+		if ok {
+			excludedRegions = append(excludedRegions, region+"."+platform)
+		}
+	}
+
 	hostname := proxy.ExtractHostname(req.Host)
-	decision, err := h.RouterService.Route(ctx, hostname)
+	decision, err := h.RouterService.Route(ctx, hostname, excludedRegions...)
 	if err != nil {
 		return err
 	}

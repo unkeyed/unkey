@@ -5,12 +5,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
-// Destination labels distinguish where the proxy sent the request.
-const (
-	destinationInstance  = "instance"  // local h2c forward to a deployment pod
-	destinationFrontline = "frontline" // cross-region HTTPS forward to peer frontline
-)
-
 // Outcome labels for upstreamDialsTotal.
 const (
 	dialOutcomeSuccess = "success"
