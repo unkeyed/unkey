@@ -5,7 +5,6 @@ import { toBuildLogLines } from "../(deployment-progress)/build-logs/build-log-l
 import { useBuildLogs } from "../use-build-logs";
 import type { DeploymentPage } from "../use-deployment-page";
 import {
-  type ExpandableStageKey,
   type OpenStage,
   type Stage,
   type StageKey,
@@ -19,11 +18,9 @@ import { type TickerSources, stageTickerLine } from "./ticker-model";
 const TICK_MS = 500;
 const DEPLOYING_LOGS_POLL_MS = 2_000;
 
-type ExpandableStage = Extract<Stage, { key: ExpandableStageKey }>;
-
 export type StagesCardPage = Pick<
   DeploymentPage,
-  "deployment" | "steps" | "status" | "instances" | "domainCount"
+  "deployment" | "steps" | "status" | "instances" | "domains" | "domainCount"
 >;
 
 export function useStagesCard({
@@ -51,8 +48,7 @@ export function useStagesCard({
   if (followed !== openStage) {
     setOpenStage(followed);
   }
-  const isOpen = (stage: Stage): stage is ExpandableStage =>
-    stage.expandable && followed.open === stage.key;
+  const isOpen = (stage: Stage) => stage.expandable && followed.open === stage.key;
   const toggle = (key: StageKey) => setOpenStage((state) => toggleStage(state, key));
 
   const deploying = steps?.deploying;

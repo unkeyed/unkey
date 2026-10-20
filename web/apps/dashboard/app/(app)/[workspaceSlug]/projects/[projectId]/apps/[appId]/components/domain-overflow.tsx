@@ -1,9 +1,9 @@
 "use client";
 
 import { plural } from "@/lib/fmt";
-import { CopyButton, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import type { DisplayDomain } from "./display-domain";
-import { TagBadge } from "./tag-badge";
+import { DomainListItem } from "./domain-list-item";
 
 export function DomainOverflow({ domains }: { domains: readonly DisplayDomain[] }) {
   if (domains.length === 0) {
@@ -24,24 +24,7 @@ export function DomainOverflow({ domains }: { domains: readonly DisplayDomain[] 
         <span className="text-xs font-medium text-gray-11">Assigned domains</span>
         <ul className="flex max-h-64 flex-col gap-1.5 overflow-y-auto">
           {domains.map((d) => (
-            <li key={d.id} className="flex min-w-0 items-center gap-2">
-              <a
-                href={d.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={d.hostname}
-                className="min-w-0 flex-1 truncate text-xs leading-5 text-gray-12 transition-colors hover:text-gray-11"
-              >
-                {d.hostname}
-              </a>
-              {d.source === "custom" && <TagBadge text="Custom" />}
-              <CopyButton
-                value={d.url}
-                variant="ghost"
-                className="size-5 shrink-0"
-                toastMessage={d.hostname}
-              />
-            </li>
+            <DomainListItem key={d.id} domain={d} />
           ))}
         </ul>
       </PopoverContent>
