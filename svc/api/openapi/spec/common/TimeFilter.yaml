@@ -2,7 +2,7 @@ type: object
 additionalProperties: false
 description: |
   Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
-  Unkey keeps only rows inside the workspace's log retention. A lower bound older than the retention start has no effect.
+  Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
 properties:
   gt:
     type: integer

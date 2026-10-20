@@ -10,7 +10,7 @@ import (
 )
 
 // Time returns the filter of a time field. A nil filter matches every row.
-func Time(f *openapi.LogTimeFilter) logfilter.Int {
+func Time(f *openapi.TimeFilter) logfilter.Int {
 	v := ptr.SafeDeref(f)
 
 	return logfilter.Int{
@@ -24,7 +24,7 @@ func Time(f *openapi.LogTimeFilter) logfilter.Int {
 }
 
 // Int returns the filter of an integer field. A nil filter matches every row.
-func Int(f *openapi.LogIntFilter) logfilter.Int {
+func Int(f *openapi.IntFilter) logfilter.Int {
 	v := ptr.SafeDeref(f)
 
 	return logfilter.Int{
@@ -38,7 +38,7 @@ func Int(f *openapi.LogIntFilter) logfilter.Int {
 }
 
 // Text returns the filter of a text field. A nil filter matches every row.
-func Text(f *openapi.LogTextFilter) logfilter.Text {
+func Text(f *openapi.TextFilter) logfilter.Text {
 	v := ptr.SafeDeref(f)
 
 	return logfilter.Text{
@@ -53,7 +53,7 @@ func Text(f *openapi.LogTextFilter) logfilter.Text {
 
 // Exact returns the filter of a whole-value field. A nil filter matches
 // every row.
-func Exact(f *openapi.LogExactFilter) logfilter.Exact {
+func Exact(f *openapi.ExactFilter) logfilter.Exact {
 	v := ptr.SafeDeref(f)
 
 	return logfilter.Exact{
@@ -64,7 +64,7 @@ func Exact(f *openapi.LogExactFilter) logfilter.Exact {
 
 // Method returns the filter of the HTTP method field. A nil filter matches
 // every row.
-func Method(f *openapi.LogMethodFilter) logfilter.Exact {
+func Method(f *openapi.MethodFilter) logfilter.Exact {
 	v := ptr.SafeDeref(f)
 
 	return logfilter.Exact{
@@ -73,7 +73,7 @@ func Method(f *openapi.LogMethodFilter) logfilter.Exact {
 	}
 }
 
-func methodStrings(methods []openapi.LogHttpMethod) []string {
+func methodStrings(methods []openapi.HttpMethod) []string {
 	values := make([]string, len(methods))
 	for i, m := range methods {
 		values[i] = string(m)

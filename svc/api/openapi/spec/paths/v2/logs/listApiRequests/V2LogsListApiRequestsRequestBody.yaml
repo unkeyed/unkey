@@ -58,5 +58,5 @@ examples:
       limit: 50
       cursor: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
       filters:
-        host:
-          isNot: ["api.unkey.dev"]
+        path:
+          startsWith: ["/v2/keys."]

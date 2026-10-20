@@ -368,6 +368,39 @@ func (e FirewallPolicyAction) Valid() bool {
 	}
 }
 
+// Defines values for HttpMethod.
+const (
+	HttpMethodDELETE  HttpMethod = "DELETE"
+	HttpMethodGET     HttpMethod = "GET"
+	HttpMethodHEAD    HttpMethod = "HEAD"
+	HttpMethodOPTIONS HttpMethod = "OPTIONS"
+	HttpMethodPATCH   HttpMethod = "PATCH"
+	HttpMethodPOST    HttpMethod = "POST"
+	HttpMethodPUT     HttpMethod = "PUT"
+)
+
+// Valid indicates whether the value is a known member of the HttpMethod enum.
+func (e HttpMethod) Valid() bool {
+	switch e {
+	case HttpMethodDELETE:
+		return true
+	case HttpMethodGET:
+		return true
+	case HttpMethodHEAD:
+		return true
+	case HttpMethodOPTIONS:
+		return true
+	case HttpMethodPATCH:
+		return true
+	case HttpMethodPOST:
+		return true
+	case HttpMethodPUT:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for KeyCreditsRefillInterval.
 const (
 	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
@@ -380,39 +413,6 @@ func (e KeyCreditsRefillInterval) Valid() bool {
 	case KeyCreditsRefillIntervalDaily:
 		return true
 	case KeyCreditsRefillIntervalMonthly:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for LogHttpMethod.
-const (
-	LogHttpMethodDELETE  LogHttpMethod = "DELETE"
-	LogHttpMethodGET     LogHttpMethod = "GET"
-	LogHttpMethodHEAD    LogHttpMethod = "HEAD"
-	LogHttpMethodOPTIONS LogHttpMethod = "OPTIONS"
-	LogHttpMethodPATCH   LogHttpMethod = "PATCH"
-	LogHttpMethodPOST    LogHttpMethod = "POST"
-	LogHttpMethodPUT     LogHttpMethod = "PUT"
-)
-
-// Valid indicates whether the value is a known member of the LogHttpMethod enum.
-func (e LogHttpMethod) Valid() bool {
-	switch e {
-	case LogHttpMethodDELETE:
-		return true
-	case LogHttpMethodGET:
-		return true
-	case LogHttpMethodHEAD:
-		return true
-	case LogHttpMethodOPTIONS:
-		return true
-	case LogHttpMethodPATCH:
-		return true
-	case LogHttpMethodPOST:
-		return true
-	case LogHttpMethodPUT:
 		return true
 	default:
 		return false
@@ -1735,6 +1735,27 @@ type EnvironmentVariableInput struct {
 // Example: writeonly
 type EnvironmentVariableKind string
 
+// ExactFilter Filters a field that matches only as a whole value, such as a host or a request ID.
+// Matching is exact and case-sensitive.
+//
+// Example: {"isNot":["api.unkey.dev"]}
+type ExactFilter struct {
+	// Is The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+	Is *ExactValues `json:"is,omitempty"`
+
+	// IsNot The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+	IsNot *ExactValues `json:"isNot,omitempty"`
+}
+
+// ExactValues The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+// A row matches `isNot` only when it equals none of the values.
+// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+type ExactValues = []string
+
 // FieldMatch Matches a named request field (header or query parameter). Exactly one of
 // `present` or `value` must be set.
 type FieldMatch struct {
@@ -1801,6 +1822,11 @@ type HeaderKeyLocation struct {
 	StripPrefix *string `json:"stripPrefix,omitempty"`
 }
 
+// HttpMethod An HTTP method in upper case.
+//
+// Example: POST
+type HttpMethod string
+
 // Identity defines model for Identity.
 type Identity struct {
 	// ExternalId External identity ID
@@ -1815,6 +1841,36 @@ type Identity struct {
 	// Ratelimits Identity ratelimits
 	Ratelimits []RatelimitResponse `json:"ratelimits,omitempty"`
 }
+
+// IntFilter Filters an integer field. `is` keeps rows that equal one of its values.
+// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+//
+// Example: {"gte":400,"isNot":[429],"lt":600}
+type IntFilter struct {
+	// Gt Keep rows where the field is greater than this value.
+	Gt *int64 `json:"gt,omitempty"`
+
+	// Gte Keep rows where the field is greater than or equal to this value.
+	Gte *int64 `json:"gte,omitempty"`
+
+	// Is The values of one filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	Is *IntValues `json:"is,omitempty"`
+
+	// IsNot The values of one filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	IsNot *IntValues `json:"isNot,omitempty"`
+
+	// Lt Keep rows where the field is less than this value.
+	Lt *int64 `json:"lt,omitempty"`
+
+	// Lte Keep rows where the field is less than or equal to this value.
+	Lte *int64 `json:"lte,omitempty"`
+}
+
+// IntValues The values of one filter operator. A row matches `is` when it equals any value in the list.
+// A row matches `isNot` only when it equals none of the values.
+type IntValues = []int64
 
 // InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
 //
@@ -2028,126 +2084,6 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
-// LogExactFilter Filters a field that matches only as a whole value, such as a host or a request ID.
-// Matching is exact and case-sensitive.
-//
-// Example: {"isNot":["api.unkey.dev"]}
-type LogExactFilter struct {
-	// Is The values of one exact filter operator. A row matches `is` when it equals any value in the list.
-	// A row matches `isNot` only when it equals none of the values.
-	// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
-	Is *LogExactValues `json:"is,omitempty"`
-
-	// IsNot The values of one exact filter operator. A row matches `is` when it equals any value in the list.
-	// A row matches `isNot` only when it equals none of the values.
-	// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
-	IsNot *LogExactValues `json:"isNot,omitempty"`
-}
-
-// LogExactValues The values of one exact filter operator. A row matches `is` when it equals any value in the list.
-// A row matches `isNot` only when it equals none of the values.
-// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
-type LogExactValues = []string
-
-// LogHttpMethod An HTTP method in upper case.
-//
-// Example: POST
-type LogHttpMethod string
-
-// LogIntFilter Filters an integer field. `is` keeps rows that equal one of its values.
-// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
-//
-// Example: {"gte":400,"isNot":[429],"lt":600}
-type LogIntFilter struct {
-	// Gt Keep rows where the field is greater than this value.
-	Gt *int64 `json:"gt,omitempty"`
-
-	// Gte Keep rows where the field is greater than or equal to this value.
-	Gte *int64 `json:"gte,omitempty"`
-
-	// Is The values of one filter operator. A row matches `is` when it equals any value in the list.
-	// A row matches `isNot` only when it equals none of the values.
-	Is *LogIntValues `json:"is,omitempty"`
-
-	// IsNot The values of one filter operator. A row matches `is` when it equals any value in the list.
-	// A row matches `isNot` only when it equals none of the values.
-	IsNot *LogIntValues `json:"isNot,omitempty"`
-
-	// Lt Keep rows where the field is less than this value.
-	Lt *int64 `json:"lt,omitempty"`
-
-	// Lte Keep rows where the field is less than or equal to this value.
-	Lte *int64 `json:"lte,omitempty"`
-}
-
-// LogIntValues The values of one filter operator. A row matches `is` when it equals any value in the list.
-// A row matches `isNot` only when it equals none of the values.
-type LogIntValues = []int64
-
-// LogMethodFilter Filters by HTTP method.
-//
-// Example: {"is":["POST","PUT"]}
-type LogMethodFilter struct {
-	// Is Keep rows with one of these methods.
-	Is *[]LogHttpMethod `json:"is,omitempty"`
-
-	// IsNot Remove rows with one of these methods.
-	IsNot *[]LogHttpMethod `json:"isNot,omitempty"`
-}
-
-// LogStringValues The values of one filter operator. A row matches a positive operator when it matches any value in the list.
-// A row matches a negated operator only when it matches none of the values.
-type LogStringValues = []string
-
-// LogTextFilter Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
-// The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
-// The negated operators (`isNot`, `notContains`) are combined with AND.
-//
-// Example: {"notContains":["verifyKey"],"startsWith":["/v2/keys."]}
-type LogTextFilter struct {
-	// Contains The values of one filter operator. A row matches a positive operator when it matches any value in the list.
-	// A row matches a negated operator only when it matches none of the values.
-	Contains *LogStringValues `json:"contains,omitempty"`
-
-	// EndsWith The values of one filter operator. A row matches a positive operator when it matches any value in the list.
-	// A row matches a negated operator only when it matches none of the values.
-	EndsWith *LogStringValues `json:"endsWith,omitempty"`
-
-	// Is The values of one filter operator. A row matches a positive operator when it matches any value in the list.
-	// A row matches a negated operator only when it matches none of the values.
-	Is *LogStringValues `json:"is,omitempty"`
-
-	// IsNot The values of one filter operator. A row matches a positive operator when it matches any value in the list.
-	// A row matches a negated operator only when it matches none of the values.
-	IsNot *LogStringValues `json:"isNot,omitempty"`
-
-	// NotContains The values of one filter operator. A row matches a positive operator when it matches any value in the list.
-	// A row matches a negated operator only when it matches none of the values.
-	NotContains *LogStringValues `json:"notContains,omitempty"`
-
-	// StartsWith The values of one filter operator. A row matches a positive operator when it matches any value in the list.
-	// A row matches a negated operator only when it matches none of the values.
-	StartsWith *LogStringValues `json:"startsWith,omitempty"`
-}
-
-// LogTimeFilter Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
-// Unkey keeps only rows inside the workspace's log retention. A lower bound older than the retention start has no effect.
-//
-// Example: {"gte":1791936000000,"lt":1792022400000}
-type LogTimeFilter struct {
-	// Gt Keep events after this time.
-	Gt *int64 `json:"gt,omitempty"`
-
-	// Gte Keep events at or after this time.
-	Gte *int64 `json:"gte,omitempty"`
-
-	// Lt Keep events before this time.
-	Lt *int64 `json:"lt,omitempty"`
-
-	// Lte Keep events at or before this time.
-	Lte *int64 `json:"lte,omitempty"`
-}
-
 // LoggingPolicy Adds request data to the log entries of matching requests. The gateway
 // always records a basic log entry for every request: method, host, path,
 // status, and latency. Each capture setting is a separate opt-in: request
@@ -2213,6 +2149,17 @@ type Meta struct {
 	//
 	// Example: req_123
 	RequestId string `json:"requestId"`
+}
+
+// MethodFilter Filters by HTTP method.
+//
+// Example: {"is":["POST","PUT"]}
+type MethodFilter struct {
+	// Is Keep rows with one of these methods.
+	Is *[]HttpMethod `json:"is,omitempty"`
+
+	// IsNot Remove rows with one of these methods.
+	IsNot *[]HttpMethod `json:"isNot,omitempty"`
 }
 
 // MethodMatch Matches when the request method is one of the listed methods.
@@ -2874,6 +2821,59 @@ type StringMatch struct {
 	// Regex Matches when the input satisfies this RE2 regular expression. Invalid
 	// patterns are rejected when the policy is created.
 	Regex *string `json:"regex,omitempty"`
+}
+
+// StringValues The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+// A row matches a negated operator only when it matches none of the values.
+type StringValues = []string
+
+// TextFilter Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+// The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+// The negated operators (`isNot`, `notContains`) are combined with AND.
+//
+// Example: {"notContains":["verifyKey"],"startsWith":["/v2/keys."]}
+type TextFilter struct {
+	// Contains The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	Contains *StringValues `json:"contains,omitempty"`
+
+	// EndsWith The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	EndsWith *StringValues `json:"endsWith,omitempty"`
+
+	// Is The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	Is *StringValues `json:"is,omitempty"`
+
+	// IsNot The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	IsNot *StringValues `json:"isNot,omitempty"`
+
+	// NotContains The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	NotContains *StringValues `json:"notContains,omitempty"`
+
+	// StartsWith The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	StartsWith *StringValues `json:"startsWith,omitempty"`
+}
+
+// TimeFilter Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+// Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
+//
+// Example: {"gte":1791936000000,"lt":1792022400000}
+type TimeFilter struct {
+	// Gt Keep events after this time.
+	Gt *int64 `json:"gt,omitempty"`
+
+	// Gte Keep events at or after this time.
+	Gte *int64 `json:"gte,omitempty"`
+
+	// Lt Keep events before this time.
+	Lt *int64 `json:"lt,omitempty"`
+
+	// Lte Keep events at or before this time.
+	Lte *int64 `json:"lte,omitempty"`
 }
 
 // TooManyRequestsErrorResponse Error response when the client has sent too many requests in a given time period. This occurs when you've exceeded a rate limit or quota for the resource you're accessing.
@@ -5732,17 +5732,10 @@ type V2LivenessResponseData struct {
 
 // V2LogsListApiRequestsFilters Filters for the listing. A missing field does not filter. Different fields are combined with AND.
 type V2LogsListApiRequestsFilters struct {
-	// Host Filters a field that matches only as a whole value, such as a host or a request ID.
-	// Matching is exact and case-sensitive.
-	//
-	//
-	// Example: {"isNot":["api.unkey.dev"]}
-	Host *LogExactFilter `json:"host,omitempty"`
-
 	// Method Filters by HTTP method.
 	//
 	// Example: {"is":["POST","PUT"]}
-	Method *LogMethodFilter `json:"method,omitempty"`
+	Method *MethodFilter `json:"method,omitempty"`
 
 	// Path Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
 	// The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
@@ -5750,28 +5743,28 @@ type V2LogsListApiRequestsFilters struct {
 	//
 	//
 	// Example: {"notContains":["verifyKey"],"startsWith":["/v2/keys."]}
-	Path *LogTextFilter `json:"path,omitempty"`
+	Path *TextFilter `json:"path,omitempty"`
 
 	// RequestId Filters a field that matches only as a whole value, such as a host or a request ID.
 	// Matching is exact and case-sensitive.
 	//
 	//
 	// Example: {"isNot":["api.unkey.dev"]}
-	RequestId *LogExactFilter `json:"requestId,omitempty"`
+	RequestId *ExactFilter `json:"requestId,omitempty"`
 
 	// Status Filters an integer field. `is` keeps rows that equal one of its values.
 	// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
 	//
 	//
 	// Example: {"gte":400,"isNot":[429],"lt":600}
-	Status *LogIntFilter `json:"status,omitempty"`
+	Status *IntFilter `json:"status,omitempty"`
 
 	// Time Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
-	// Unkey keeps only rows inside the workspace's log retention. A lower bound older than the retention start has no effect.
+	// Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
 	//
 	//
 	// Example: {"gte":1791936000000,"lt":1792022400000}
-	Time *LogTimeFilter `json:"time,omitempty"`
+	Time *TimeFilter `json:"time,omitempty"`
 }
 
 // V2LogsListApiRequestsRequestBody defines model for V2LogsListApiRequestsRequestBody.

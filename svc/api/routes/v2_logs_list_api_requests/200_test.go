@@ -82,7 +82,7 @@ func TestListApiRequestsFilters(t *testing.T) {
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 4000, Path: "/v2/keys.verifyKey", ResponseStatus: 401},
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 3000, Path: "/v2/keys.updateKey", ResponseStatus: 429},
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 2000, Path: "/v2/apis.listKeys", ResponseStatus: 500, Method: "GET"},
-		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 1000, Path: "/v2/keys.deleteKey", ResponseStatus: 200, Host: "api.unkey.dev"},
+		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 1000, Path: "/v2/keys.deleteKey", ResponseStatus: 200},
 	)
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
@@ -94,34 +94,29 @@ func TestListApiRequestsFilters(t *testing.T) {
 		{
 			name: "path, status range and isNot",
 			filters: openapi.V2LogsListApiRequestsFilters{
-				Path:   &openapi.LogTextFilter{StartsWith: &[]string{"/v2/keys."}, NotContains: &[]string{"verifyKey"}},
-				Status: &openapi.LogIntFilter{Gte: new(int64(400)), Lt: new(int64(600)), IsNot: &[]int64{429}},
+				Path:   &openapi.TextFilter{StartsWith: &[]string{"/v2/keys."}, NotContains: &[]string{"verifyKey"}},
+				Status: &openapi.IntFilter{Gte: new(int64(400)), Lt: new(int64(600)), IsNot: &[]int64{429}},
 			},
 			want: []string{rows[0].RequestID},
 		},
 		{
 			name:    "method",
-			filters: openapi.V2LogsListApiRequestsFilters{Method: &openapi.LogMethodFilter{Is: &[]openapi.LogHttpMethod{"GET", "PUT"}}},
+			filters: openapi.V2LogsListApiRequestsFilters{Method: &openapi.MethodFilter{Is: &[]openapi.HttpMethod{"GET", "PUT"}}},
 			want:    []string{rows[3].RequestID},
 		},
 		{
-			name:    "host isNot",
-			filters: openapi.V2LogsListApiRequestsFilters{Host: &openapi.LogExactFilter{IsNot: &[]string{"api.unkey.com"}}},
-			want:    []string{rows[4].RequestID},
-		},
-		{
 			name:    "25 request ids, one stored",
-			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.LogExactFilter{Is: new(append(unknownRequestIDs(24), rows[2].RequestID))}},
+			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.ExactFilter{Is: new(append(unknownRequestIDs(24), rows[2].RequestID))}},
 			want:    []string{rows[2].RequestID},
 		},
 		{
 			name:    "time window",
-			filters: openapi.V2LogsListApiRequestsFilters{Time: &openapi.LogTimeFilter{Gt: new(now - 5000), Lte: new(now - 3000)}},
+			filters: openapi.V2LogsListApiRequestsFilters{Time: &openapi.TimeFilter{Gt: new(now - 5000), Lte: new(now - 3000)}},
 			want:    []string{rows[2].RequestID, rows[1].RequestID},
 		},
 		{
 			name:    "no match",
-			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.LogExactFilter{Is: new(unknownRequestIDs(1))}},
+			filters: openapi.V2LogsListApiRequestsFilters{RequestId: &openapi.ExactFilter{Is: new(unknownRequestIDs(1))}},
 			want:    []string{},
 		},
 	}
@@ -209,7 +204,7 @@ func TestListApiRequestsKeepsRetention(t *testing.T) {
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{
-		Filters: &openapi.V2LogsListApiRequestsFilters{Time: &openapi.LogTimeFilter{Gte: new(int64(0))}},
+		Filters: &openapi.V2LogsListApiRequestsFilters{Time: &openapi.TimeFilter{Gte: new(int64(0))}},
 	})
 
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

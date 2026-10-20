@@ -4,14 +4,12 @@ description: |
   Filters for the listing. A missing field does not filter. Different fields are combined with AND.
 properties:
   time:
-    "$ref": "../../../../common/LogTimeFilter.yaml"
+    "$ref": "../../../../common/TimeFilter.yaml"
   path:
-    "$ref": "../../../../common/LogTextFilter.yaml"
-  host:
-    "$ref": "../../../../common/LogExactFilter.yaml"
+    "$ref": "../../../../common/TextFilter.yaml"
   method:
-    "$ref": "../../../../common/LogMethodFilter.yaml"
+    "$ref": "../../../../common/MethodFilter.yaml"
   requestId:
-    "$ref": "../../../../common/LogExactFilter.yaml"
+    "$ref": "../../../../common/ExactFilter.yaml"
   status:
-    "$ref": "../../../../common/LogIntFilter.yaml"
+    "$ref": "../../../../common/IntFilter.yaml"

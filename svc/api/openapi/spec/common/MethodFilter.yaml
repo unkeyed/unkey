@@ -7,14 +7,14 @@ properties:
     minItems: 1
     uniqueItems: true
     items:
-      "$ref": "./LogHttpMethod.yaml"
+      "$ref": "./HttpMethod.yaml"
     description: Keep rows with one of these methods.
   isNot:
     type: array
     minItems: 1
     uniqueItems: true
     items:
-      "$ref": "./LogHttpMethod.yaml"
+      "$ref": "./HttpMethod.yaml"
     description: Remove rows with one of these methods.
 example:
   is: ["POST", "PUT"]

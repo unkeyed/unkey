@@ -5,10 +5,10 @@ description: |
   `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
 properties:
   is:
-    "$ref": "./LogIntValues.yaml"
+    "$ref": "./IntValues.yaml"
     description: Keep rows where the field equals one of the values.
   isNot:
-    "$ref": "./LogIntValues.yaml"
+    "$ref": "./IntValues.yaml"
     description: Remove rows where the field equals one of the values.
   gt:
     type: integer

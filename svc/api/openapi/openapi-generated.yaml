@@ -7746,23 +7746,21 @@ components:
                 Filters for the listing. A missing field does not filter. Different fields are combined with AND.
             properties:
                 time:
-                    "$ref": "#/components/schemas/LogTimeFilter"
+                    "$ref": "#/components/schemas/TimeFilter"
                 path:
-                    "$ref": "#/components/schemas/LogTextFilter"
-                host:
-                    "$ref": "#/components/schemas/LogExactFilter"
+                    "$ref": "#/components/schemas/TextFilter"
                 method:
-                    "$ref": "#/components/schemas/LogMethodFilter"
+                    "$ref": "#/components/schemas/MethodFilter"
                 requestId:
-                    "$ref": "#/components/schemas/LogExactFilter"
+                    "$ref": "#/components/schemas/ExactFilter"
                 status:
-                    "$ref": "#/components/schemas/LogIntFilter"
-        LogTimeFilter:
+                    "$ref": "#/components/schemas/IntFilter"
+        TimeFilter:
             type: object
             additionalProperties: false
             description: |
                 Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
-                Unkey keeps only rows inside the workspace's log retention. A lower bound older than the retention start has no effect.
+                Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
             properties:
                 gt:
                     type: integer
@@ -7787,7 +7785,7 @@ components:
             example:
                 gte: 1791936000000
                 lt: 1792022400000
-        LogTextFilter:
+        TextFilter:
             type: object
             additionalProperties: false
             description: |
@@ -7796,42 +7794,27 @@ components:
                 The negated operators (`isNot`, `notContains`) are combined with AND.
             properties:
                 is:
-                    "$ref": "#/components/schemas/LogStringValues"
+                    "$ref": "#/components/schemas/StringValues"
                     description: Keep rows where the field equals one of the values.
                 isNot:
-                    "$ref": "#/components/schemas/LogStringValues"
+                    "$ref": "#/components/schemas/StringValues"
                     description: Remove rows where the field equals one of the values.
                 contains:
-                    "$ref": "#/components/schemas/LogStringValues"
+                    "$ref": "#/components/schemas/StringValues"
                     description: Keep rows where the field contains one of the values.
                 notContains:
-                    "$ref": "#/components/schemas/LogStringValues"
+                    "$ref": "#/components/schemas/StringValues"
                     description: Remove rows where the field contains one of the values.
                 startsWith:
-                    "$ref": "#/components/schemas/LogStringValues"
+                    "$ref": "#/components/schemas/StringValues"
                     description: Keep rows where the field starts with one of the values.
                 endsWith:
-                    "$ref": "#/components/schemas/LogStringValues"
+                    "$ref": "#/components/schemas/StringValues"
                     description: Keep rows where the field ends with one of the values.
             example:
                 startsWith: ["/v2/keys."]
                 notContains: ["verifyKey"]
-        LogExactFilter:
-            type: object
-            additionalProperties: false
-            description: |
-                Filters a field that matches only as a whole value, such as a host or a request ID.
-                Matching is exact and case-sensitive.
-            properties:
-                is:
-                    "$ref": "#/components/schemas/LogExactValues"
-                    description: Keep rows where the field equals one of the values.
-                isNot:
-                    "$ref": "#/components/schemas/LogExactValues"
-                    description: Remove rows where the field equals one of the values.
-            example:
-                isNot: ["api.unkey.dev"]
-        LogMethodFilter:
+        MethodFilter:
             type: object
             additionalProperties: false
             description: Filters by HTTP method.
@@ -7841,18 +7824,33 @@ components:
                     minItems: 1
                     uniqueItems: true
                     items:
-                        "$ref": "#/components/schemas/LogHttpMethod"
+                        "$ref": "#/components/schemas/HttpMethod"
                     description: Keep rows with one of these methods.
                 isNot:
                     type: array
                     minItems: 1
                     uniqueItems: true
                     items:
-                        "$ref": "#/components/schemas/LogHttpMethod"
+                        "$ref": "#/components/schemas/HttpMethod"
                     description: Remove rows with one of these methods.
             example:
                 is: ["POST", "PUT"]
-        LogIntFilter:
+        ExactFilter:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters a field that matches only as a whole value, such as a host or a request ID.
+                Matching is exact and case-sensitive.
+            properties:
+                is:
+                    "$ref": "#/components/schemas/ExactValues"
+                    description: Keep rows where the field equals one of the values.
+                isNot:
+                    "$ref": "#/components/schemas/ExactValues"
+                    description: Remove rows where the field equals one of the values.
+            example:
+                isNot: ["api.unkey.dev"]
+        IntFilter:
             type: object
             additionalProperties: false
             description: |
@@ -7860,10 +7858,10 @@ components:
                 `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
             properties:
                 is:
-                    "$ref": "#/components/schemas/LogIntValues"
+                    "$ref": "#/components/schemas/IntValues"
                     description: Keep rows where the field equals one of the values.
                 isNot:
-                    "$ref": "#/components/schemas/LogIntValues"
+                    "$ref": "#/components/schemas/IntValues"
                     description: Remove rows where the field equals one of the values.
                 gt:
                     type: integer
@@ -7885,7 +7883,7 @@ components:
                 gte: 400
                 lt: 600
                 isNot: [429]
-        LogStringValues:
+        StringValues:
             type: array
             minItems: 1
             maxItems: 10
@@ -7896,19 +7894,7 @@ components:
             description: |
                 The values of one filter operator. A row matches a positive operator when it matches any value in the list.
                 A row matches a negated operator only when it matches none of the values.
-        LogExactValues:
-            type: array
-            minItems: 1
-            maxItems: 25
-            items:
-                type: string
-                minLength: 1
-                maxLength: 1024
-            description: |
-                The values of one exact filter operator. A row matches `is` when it equals any value in the list.
-                A row matches `isNot` only when it equals none of the values.
-                Exact matches take up to 25 values, so one call can look up a page of requests by ID.
-        LogHttpMethod:
+        HttpMethod:
             type: string
             enum:
                 - GET
@@ -7920,7 +7906,19 @@ components:
                 - OPTIONS
             description: An HTTP method in upper case.
             example: POST
-        LogIntValues:
+        ExactValues:
+            type: array
+            minItems: 1
+            maxItems: 25
+            items:
+                type: string
+                minLength: 1
+                maxLength: 1024
+            description: |
+                The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+                A row matches `isNot` only when it equals none of the values.
+                Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+        IntValues:
             type: array
             minItems: 1
             maxItems: 10
@@ -15938,7 +15936,7 @@ paths:
             description: |
                 List the requests that the Unkey API served for your workspace, newest first.
 
-                Filter by time, path, host, method, request ID, and status. In one field, values under `is`, `contains`, `startsWith`, and `endsWith` are combined with OR. Values under `isNot` and `notContains`, and the range operators `gt`, `gte`, `lt`, and `lte`, are combined with AND. Different fields are combined with AND. Every text match is exact and case-sensitive.
+                Filter by time, path, method, request ID, and status. In one field, values under `is`, `contains`, `startsWith`, and `endsWith` are combined with OR. Values under `isNot` and `notContains`, and the range operators `gt`, `gte`, `lt`, and `lte`, are combined with AND. Different fields are combined with AND. Every text match is exact and case-sensitive.
 
                 To get the next page, send the `pagination.cursor` of the previous page together with the same `filters`. A cursor does not expire, but rows older than the log retention leave the listing.
 

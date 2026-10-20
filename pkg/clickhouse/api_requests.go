@@ -2,7 +2,6 @@ package clickhouse
 
 import (
 	"context"
-	"maps"
 	"strconv"
 
 	"github.com/unkeyed/unkey/pkg/clickhouse/logfilter"
@@ -12,7 +11,6 @@ import (
 const (
 	apiRequestTime      logfilter.Column = "time"
 	apiRequestPath      logfilter.Column = "path"
-	apiRequestHost      logfilter.Column = "host"
 	apiRequestMethod    logfilter.Column = "method"
 	apiRequestRequestID logfilter.Column = "request_id"
 	apiRequestStatus    logfilter.Column = "response_status"
@@ -22,7 +20,6 @@ const (
 type ApiRequestFilters struct {
 	Time      logfilter.Int
 	Path      logfilter.Text
-	Host      logfilter.Exact
 	Method    logfilter.Exact
 	RequestID logfilter.Exact
 	Status    logfilter.Int
@@ -68,18 +65,13 @@ func (c *Client) ListApiRequests(ctx context.Context, req ListApiRequestsRequest
 	b := logfilter.New()
 	b.Int(apiRequestTime, req.Filters.Time)
 	b.Text(apiRequestPath, req.Filters.Path)
-	b.Exact(apiRequestHost, req.Filters.Host)
 	b.Exact(apiRequestMethod, req.Filters.Method)
 	b.Exact(apiRequestRequestID, req.Filters.RequestID)
 	b.Int(apiRequestStatus, req.Filters.Status)
-	where, filterParams := b.Build()
-
-	params := map[string]string{
-		"workspace_id":    req.WorkspaceID,
-		"retention_start": strconv.FormatInt(req.RetentionStart, 10),
-		"row_limit":       strconv.Itoa(req.Limit),
-	}
-	maps.Copy(params, filterParams)
+	where, params := b.Build()
+	params["workspace_id"] = req.WorkspaceID
+	params["retention_start"] = strconv.FormatInt(req.RetentionStart, 10)
+	params["row_limit"] = strconv.Itoa(req.Limit)
 
 	cursorCondition := ""
 	if req.Cursor != nil {
