@@ -4,11 +4,6 @@
 
 import * as z from "zod/v3";
 import {
-  ExactFilter,
-  ExactFilter$Outbound,
-  ExactFilter$outboundSchema,
-} from "./exactfilter.js";
-import {
   IntFilter,
   IntFilter$Outbound,
   IntFilter$outboundSchema,
@@ -51,13 +46,6 @@ export type V2LogsGetApiRequestsTimeseriesFilters = {
    */
   path?: TextFilter | undefined;
   /**
-   * Filters a field that matches only as a whole value, such as a host or a request ID.
-   *
-   * @remarks
-   * Matching is exact and case-sensitive.
-   */
-  host?: ExactFilter | undefined;
-  /**
    * Filters by HTTP method.
    */
   method?: MethodFilter | undefined;
@@ -74,7 +62,6 @@ export type V2LogsGetApiRequestsTimeseriesFilters = {
 export type V2LogsGetApiRequestsTimeseriesFilters$Outbound = {
   time?: TimeFilter$Outbound | undefined;
   path?: TextFilter$Outbound | undefined;
-  host?: ExactFilter$Outbound | undefined;
   method?: MethodFilter$Outbound | undefined;
   status?: IntFilter$Outbound | undefined;
 };
@@ -87,7 +74,6 @@ export const V2LogsGetApiRequestsTimeseriesFilters$outboundSchema: z.ZodType<
 > = z.object({
   time: TimeFilter$outboundSchema.optional(),
   path: TextFilter$outboundSchema.optional(),
-  host: ExactFilter$outboundSchema.optional(),
   method: MethodFilter$outboundSchema.optional(),
   status: IntFilter$outboundSchema.optional(),
 });
