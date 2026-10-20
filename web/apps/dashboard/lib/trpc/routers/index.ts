@@ -52,10 +52,6 @@ import { getDeploymentNetworkEgressTimeseries } from "./deploy/metrics/get-deplo
 import { getDeploymentNetworkIngressTimeseries } from "./deploy/metrics/get-deployment-network-ingress-timeseries";
 import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-resource-summary";
 import { getDeploymentRpsMetrics } from "./deploy/metrics/get-deployment-rps-metrics";
-import { generateDeploymentTree } from "./deploy/network/generate";
-import { getDeploymentTree } from "./deploy/network/get";
-import { getInstanceRps } from "./deploy/network/get-instance-rps";
-import { getRegionRps } from "./deploy/network/get-region-rps";
 import { creationContext } from "./deploy/project/creation-context";
 import { getDefaultProject } from "./deploy/project/get-default";
 import { createSharedSecret } from "./share/create";
@@ -262,12 +258,6 @@ export const router = t.router({
     }),
   }),
   deploy: t.router({
-    network: t.router({
-      generate: generateDeploymentTree,
-      get: getDeploymentTree,
-      getInstanceRps,
-      getRegionRps,
-    }),
     project: t.router({
       creationContext,
       getDefault: getDefaultProject,
