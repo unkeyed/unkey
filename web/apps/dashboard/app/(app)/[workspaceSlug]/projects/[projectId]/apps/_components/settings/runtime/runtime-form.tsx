@@ -4,7 +4,6 @@ import { SettingsForm } from "@unkey/ui";
 import { ComputeFields } from "../compute/compute-fields";
 import { CommandField } from "./command-field";
 import { HealthcheckFields } from "./healthcheck-fields";
-import { commandSectionSchema, computeSectionSchema } from "./model";
 import { PortField } from "./port-field";
 import { useRuntimeForm } from "./use-runtime-form";
 
@@ -21,7 +20,7 @@ export function RuntimeForm() {
 }
 
 export function ComputeForm({ hideLockedSizes = false }: { hideLockedSizes?: boolean }) {
-  const { formProps, compute } = useRuntimeForm(computeSectionSchema);
+  const { formProps, compute } = useRuntimeForm("compute");
   return (
     <SettingsForm {...formProps}>
       <ComputeFields compute={compute} hideLockedSizes={hideLockedSizes} />
@@ -30,7 +29,7 @@ export function ComputeForm({ hideLockedSizes = false }: { hideLockedSizes?: boo
 }
 
 export function CommandForm() {
-  const { form, formProps } = useRuntimeForm(commandSectionSchema);
+  const { form, formProps } = useRuntimeForm("command");
   return (
     <SettingsForm {...formProps}>
       <CommandField form={form} />

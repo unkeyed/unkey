@@ -28,6 +28,10 @@ import { match } from "@unkey/match";
 import {
   Badge,
   FormField,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
   Select,
   SelectContent,
   SelectItem,
@@ -36,7 +40,13 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { useState } from "react";
-import { type ComputeValues, type Replicas, type SetCompute, computeSchema } from "./draft";
+import {
+  type ComputeValues,
+  type Replicas,
+  type SetCompute,
+  computeSchema,
+  replicasError,
+} from "./draft";
 import { REGION_STATES, availableFrom, regionChoices, regionsNote } from "./status";
 import { CUSTOM_VALUE, useSizeChoice } from "./use-size-choice";
 
@@ -270,46 +280,49 @@ function UnitSelect({
 
 function InstancesField({ compute }: FieldProps) {
   const { values, limits, busy } = compute;
-  const { min, max } = values.replicas;
-  const counts = Array.from({ length: limits.replicas }, (_, i) => i + 1);
-  const bounds: { key: keyof Replicas; label: string; next: (n: number) => Replicas }[] = [
-    { key: "min", label: "Min", next: (n) => ({ min: n, max: Math.max(n, max) }) },
-    { key: "max", label: "Max", next: (n) => ({ min: Math.min(n, min), max: n }) },
+  const bounds: { key: keyof Replicas; label: string }[] = [
+    { key: "min", label: "Min" },
+    { key: "max", label: "Max" },
   ];
   return (
     <FormField
       label="Instances"
       description={`Scales between min and max on CPU usage. Up to ${limits.replicas} per region.`}
+      error={replicasError(values.replicas, limits.replicas)}
     >
-      {({ describedBy }) => (
+      {({ describedBy, invalid, variant }) => (
         <div className="grid grid-cols-2 gap-3">
-          {bounds.map((bound) => (
-            <Select
-              key={bound.key}
-              value={String(values.replicas[bound.key])}
-              disabled={busy}
-              onValueChange={(next) => {
-                const n = Number(next);
-                if (Number.isInteger(n) && n > 0) {
-                  compute.change("replicas", bound.next(n));
-                }
-              }}
-            >
-              <SelectTrigger aria-label={`${bound.label} instances`} aria-describedby={describedBy}>
-                <SelectValue>
-                  <span className="mr-2 text-gray-10">{bound.label}</span>
-                  <span className="font-mono tabular-nums">{values.replicas[bound.key]}</span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {counts.map((n) => (
-                  <SelectItem key={n} value={String(n)}>
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ))}
+          {bounds.map((bound) => {
+            const value = values.replicas[bound.key];
+            return (
+              <InputGroup key={bound.key} variant={variant}>
+                <InputGroupAddon align="inline-start">
+                  <InputGroupText>{bound.label}</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupInput
+                  data-1p-ignore
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={limits.replicas}
+                  step={1}
+                  aria-label={`${bound.label} instances`}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                  disabled={busy}
+                  className="pl-2 font-mono tabular-nums"
+                  value={Number.isNaN(value) ? "" : String(value)}
+                  onWheelCapture={(e) => e.currentTarget.blur()}
+                  onChange={(e) =>
+                    compute.change("replicas", {
+                      ...values.replicas,
+                      [bound.key]: e.target.valueAsNumber,
+                    })
+                  }
+                />
+              </InputGroup>
+            );
+          })}
         </div>
       )}
     </FormField>

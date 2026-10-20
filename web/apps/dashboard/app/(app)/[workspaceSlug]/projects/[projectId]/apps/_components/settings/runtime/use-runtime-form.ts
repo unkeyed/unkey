@@ -1,15 +1,31 @@
 "use client";
 
-import type { z } from "zod";
+import { resolveLimits } from "@/lib/compute/sizing";
+import { useWorkspace } from "@/providers/workspace-provider";
 import type { ComputeInput } from "../compute/compute-fields";
 import { useSettingForm } from "../hooks/use-setting-form";
-import { type RuntimeValues, readRuntime, runtimeSchema, writeRuntime } from "./model";
+import {
+  commandSectionSchema,
+  computeSectionSchema,
+  readRuntime,
+  runtimeSchema,
+  withReplicaLimit,
+  writeRuntime,
+} from "./model";
 
 const CHANGE = { shouldDirty: true, shouldValidate: true } as const;
 
-export function useRuntimeForm(schema: z.ZodType<RuntimeValues, RuntimeValues> = runtimeSchema) {
+const SHOWN = {
+  all: { schema: runtimeSchema, checksCompute: true },
+  compute: { schema: computeSectionSchema, checksCompute: true },
+  command: { schema: commandSectionSchema, checksCompute: false },
+} as const;
+
+export function useRuntimeForm(shown: keyof typeof SHOWN = "all") {
+  const { limits } = useWorkspace();
+  const { schema, checksCompute } = SHOWN[shown];
   const { form, formProps } = useSettingForm({
-    schema,
+    schema: checksCompute ? withReplicaLimit(schema, resolveLimits(limits).replicas) : schema,
     read: readRuntime,
     write: writeRuntime,
   });

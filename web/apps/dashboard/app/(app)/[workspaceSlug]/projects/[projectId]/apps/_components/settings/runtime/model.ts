@@ -4,7 +4,13 @@ import {
 } from "@/lib/collections/deploy/environment-settings";
 import { sameJson } from "@/lib/utils/same-json";
 import { z } from "zod";
-import { type ComputeValues, computeSchema, readCompute, writeCompute } from "../compute/draft";
+import {
+  type ComputeValues,
+  computeSchema,
+  readCompute,
+  replicasError,
+  writeCompute,
+} from "../compute/draft";
 
 export const HTTP_METHODS = ["GET", "POST"] as const;
 
@@ -66,6 +72,18 @@ export const commandSectionSchema = runtimeSchema.extend({
   port: z.custom<number>(),
   healthcheck: z.custom<HealthcheckValues>(),
 });
+
+export function withReplicaLimit(
+  schema: z.ZodType<RuntimeValues, RuntimeValues>,
+  limit: number,
+): z.ZodType<RuntimeValues, RuntimeValues> {
+  return schema.superRefine(({ compute }, ctx) => {
+    const message = replicasError(compute.replicas, limit);
+    if (message) {
+      ctx.addIssue({ code: "custom", path: ["compute", "replicas"], message });
+    }
+  });
+}
 
 export function readRuntime(settings: EnvironmentSettings): RuntimeValues {
   return {

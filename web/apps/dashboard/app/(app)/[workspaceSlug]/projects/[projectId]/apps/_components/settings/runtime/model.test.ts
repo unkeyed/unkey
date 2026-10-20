@@ -5,6 +5,7 @@ import {
   computeSectionSchema,
   readRuntime,
   runtimeSchema,
+  withReplicaLimit,
   writeRuntime,
 } from "./model";
 
@@ -98,5 +99,16 @@ describe("section schemas", () => {
   it("lets compute save while the stored port is out of range", () => {
     const values = { ...readRuntime(stored), port: 0 };
     expect(computeSectionSchema.safeParse(values).success).toBe(true);
+  });
+});
+
+describe("withReplicaLimit", () => {
+  it("rejects a max above the plan limit with the limit in the message", () => {
+    const values = readRuntime(stored);
+    values.compute.replicas = { min: 1, max: 9 };
+    const result = withReplicaLimit(runtimeSchema, 4).safeParse(values);
+    expect(result.error?.issues.map((issue) => issue.message)).toEqual([
+      "Up to 4 per region on your plan",
+    ]);
   });
 });
