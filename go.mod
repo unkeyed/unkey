@@ -64,8 +64,9 @@ require (
 	github.com/pb33f/libopenapi v0.41.1
 	github.com/pb33f/libopenapi-validator v0.14.1
 	github.com/prometheus/client_golang v1.23.2
+	github.com/prometheus/client_model v0.6.2
 	github.com/redis/go-redis/v9 v9.17.2
-	github.com/restatedev/sdk-go v1.0.4
+	github.com/restatedev/sdk-go v1.1.0
 	github.com/restatedev/sdk-go/testing v1.0.0
 	github.com/restatedev/sdk-go/x/mocks v0.26.0
 	github.com/restatedev/sdk-go/x/protoc-gen-go-restate v0.26.0
@@ -282,7 +283,6 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.1-0.20250313105119-ba97887b0a25 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.4 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
