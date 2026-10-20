@@ -118,6 +118,7 @@ const sources = (overrides: Partial<TickerSources> = {}): TickerSources => ({
     ],
     "all",
   ),
+  buildLogsFailed: false,
   runtimeLogs: [
     { time: 5, severity: "INFO", message: "listening on :8080", instance_id: "i1", region: "r" },
     { time: 3, severity: "INFO", message: "booting", instance_id: "i1", region: "r" },
@@ -205,5 +206,14 @@ describe("stageTickerLine", () => {
       tone: "plain",
       waiting: true,
     });
+  });
+
+  it("falls back to the stage description when the build logs fail to load", () => {
+    expect(
+      stageTickerLine(
+        stage("build", "started"),
+        sources({ buildLines: [], buildLogsFailed: true }),
+      ),
+    ).toBe(null);
   });
 });

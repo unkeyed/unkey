@@ -34,16 +34,18 @@ export function useDeploymentPage() {
     }
   }, [ready, refetchDomains, steps.refetch]);
 
+  const domainsLoading = isDomainsLoading || isCustomDomainsLoading;
   return {
     deployment,
     steps: steps.data,
-    domainsLoading: isDomainsLoading || isCustomDomainsLoading,
+    domainsLoading,
     showSuccessBanner,
     ...deploymentPageModel({
       deployment,
       status: derivedStatus,
       showBuild,
       domains: getDomainsForDeployment(deployment.id),
+      domainsLoading,
       customDomains,
       currentDeploymentId: app?.currentDeploymentId ?? null,
     }),

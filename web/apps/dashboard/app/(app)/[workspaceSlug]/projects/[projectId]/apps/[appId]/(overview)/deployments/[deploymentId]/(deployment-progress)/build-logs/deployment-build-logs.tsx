@@ -14,7 +14,7 @@ import { Loading, formatTimestamp } from "@unkey/ui";
 import { cn } from "cn";
 import { type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useDeployment } from "../../layout-provider";
-import { BUILD_LOG_ENTRIES_SHOWN_MAX, useBuildLogs } from "../../use-build-logs";
+import { BUILD_LOG_ENTRIES_SHOWN_MAX, type BuildLogsQuery } from "../../use-build-logs";
 import { useDeploymentStatus } from "../../use-deployment-status";
 import { type BuildLogLine, type Tone, toBuildLogLines, toBuildLogText } from "./build-log-lines";
 import { BuildLogsHeader } from "./build-logs-header";
@@ -39,7 +39,10 @@ const BUILD_NOT_DONE_STATUSES: ReadonlySet<DeploymentStatus> = new Set([
   "building",
 ]);
 
-export function DeploymentBuildLogs({ fixedHeight = 500 }: { fixedHeight?: number }) {
+export function DeploymentBuildLogs({
+  logs,
+  fixedHeight = 500,
+}: { logs: BuildLogsQuery; fixedHeight?: number }) {
   const { deployment } = useDeployment();
   const { derivedStatus } = useDeploymentStatus(deployment);
   const isFailed = derivedStatus === "failed";
@@ -58,7 +61,6 @@ export function DeploymentBuildLogs({ fixedHeight = 500 }: { fixedHeight?: numbe
   const logHeight = `min(${fixedHeight}px, 60dvh)`;
   const readsToEnd = isFailed || followsTail || pendingJump !== null || query.trim() !== "";
 
-  const logs = useBuildLogs(deployment, { readsToEnd, enabled: true });
   const entries = logs.data?.entries;
   const hasMore = logs.data?.hasMore === true;
   const isCaughtUp = logs.data !== undefined && !logs.data.hasMore;

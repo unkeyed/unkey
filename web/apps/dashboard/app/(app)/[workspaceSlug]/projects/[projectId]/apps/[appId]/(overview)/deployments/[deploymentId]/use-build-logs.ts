@@ -27,6 +27,8 @@ const SETTLED_POLL_WINDOW_MS = 30_000;
 // ctrl writes one of these when a build step finishes
 const BUILD_STEP_FINISHED = /^(DONE \d|CACHED$|ERROR: )/;
 
+export type BuildLogsQuery = ReturnType<typeof useBuildLogs>;
+
 type BuildLogs = {
   entries: BuildLogEntry[];
   entriesTotal: number;

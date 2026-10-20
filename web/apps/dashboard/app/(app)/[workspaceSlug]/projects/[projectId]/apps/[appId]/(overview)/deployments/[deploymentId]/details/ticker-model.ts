@@ -13,6 +13,7 @@ export type TickerLine = { id: string; text: string; tone: TickerTone; waiting?:
 
 export type TickerSources = {
   buildLines: readonly BuildLogLine[];
+  buildLogsFailed: boolean;
   runtimeLogs: readonly ContainerLogRow[];
   instances: InstanceSummary | null;
 };
@@ -144,7 +145,7 @@ function instancesLine(instances: InstanceSummary | null): TickerLine | null {
 }
 
 const liveLine: Record<StageKey, (sources: TickerSources) => TickerLine | null> = {
-  build: (s) => lastBuildLine(s.buildLines) ?? waitingLine.build,
+  build: (s) => (s.buildLogsFailed ? null : (lastBuildLine(s.buildLines) ?? waitingLine.build)),
   instances: (s) =>
     lastRuntimeLine(s.runtimeLogs) ?? instancesLine(s.instances) ?? waitingLine.instances,
   domains: () => null,

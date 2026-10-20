@@ -24,6 +24,7 @@ export type DeploymentPageInput = {
   status: DeploymentStatus;
   showBuild: boolean;
   domains: ReadonlyArray<Domain>;
+  domainsLoading: boolean;
   customDomains: ReadonlyArray<CustomDomain>;
   currentDeploymentId: string | null;
 };
@@ -40,6 +41,7 @@ export type DeploymentPageModel = {
   instances: InstanceSummary | null;
   pageStatus: PageStatus;
   domains: DomainPriorityResult;
+  domainCount: number | null;
 };
 
 export function deploymentPageModel({
@@ -47,22 +49,25 @@ export function deploymentPageModel({
   status,
   showBuild,
   domains,
+  domainsLoading,
   customDomains,
   currentDeploymentId,
 }: DeploymentPageInput): DeploymentPageModel {
   const instances = summarizeInstances(deployment);
+  const domainPriority = getDomainPriority({
+    domains,
+    customDomains,
+    environmentId: deployment.environmentId,
+    deploymentId: deployment.id,
+    currentDeploymentId,
+  });
   return {
     status,
     body: showBuild ? "build" : bodyOf(status),
     instances,
     pageStatus: resolvePageStatus(status, instances),
-    domains: getDomainPriority({
-      domains,
-      customDomains,
-      environmentId: deployment.environmentId,
-      deploymentId: deployment.id,
-      currentDeploymentId,
-    }),
+    domains: domainPriority,
+    domainCount: domainsLoading ? null : domainPriority.all.length,
   };
 }
 
