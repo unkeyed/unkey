@@ -292,7 +292,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Counter: ctr,
 		DB:      db.ToMySQL(database),
 		Region:  cfg.Region,
-		GCRA:    true,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)

@@ -48,7 +48,7 @@ func TestRatelimit_GCRASharesStateBetweenServices(t *testing.T) {
 	env := newIntegrationTestEnv(t)
 	clk := clock.NewTestClock(time.Now().Round(0))
 	newService := func() *service {
-		svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: env.db, Region: "test-region", GCRA: true})
+		svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: env.db, Region: "test-region"})
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, svc.Close()) })
 		return svc

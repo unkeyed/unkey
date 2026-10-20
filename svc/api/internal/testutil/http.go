@@ -251,7 +251,6 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Counter: ctr,
 		DB:      db.ToMySQL(database),
 		Region:  "test-region",
-		GCRA:    true,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, ratelimitService.Close()) })
