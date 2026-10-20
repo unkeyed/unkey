@@ -1,7 +1,6 @@
 package gcra
 
 import (
-	"cmp"
 	"context"
 	"slices"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	"github.com/unkeyed/unkey/pkg/repeat"
 )
 
 // snapshot is one writer's full row at some point in time.
@@ -26,18 +26,28 @@ func snapshotOf(name string, e *entry) snapshot {
 	return snapshot{name: name, writerID: e.writerID, state: e.state, expiresAtNs: e.expiresAtNs}
 }
 
-// flush is the batch callback. It merges the snapshots of each row by taking
-// the larger of every value, which is what MySQL keeps anyway, and marks what
-// MySQL accepted as persisted.
-func (l *Limiter) flush(ctx context.Context, snapshots []snapshot) {
-	rows := mergePerRow(snapshots)
-	if l.persist(ctx, rows) == nil {
-		l.acknowledge(rows)
+func (l *Limiter) runPersist() {
+	repeat.Every(persistFlushInterval, func(ctx context.Context) { l.flushDirty(ctx) },
+		repeat.WithClock(l.clock),
+		repeat.UntilClose(l.done),
+	)
+}
+
+// flushDirty writes up to persistTickRowsMax dirty entries in batches and
+// marks what MySQL accepted as persisted. It returns how many rows it tried.
+// Entries whose write failed stay dirty and are retried by the next flush.
+func (l *Limiter) flushDirty(ctx context.Context) int {
+	rows := l.dirtySnapshots(persistTickRowsMax)
+	for chunk := range slices.Chunk(rows, persistBatchRowsMax) {
+		if l.persist(ctx, chunk) == nil {
+			l.acknowledge(chunk)
+		}
 	}
+	return len(rows)
 }
 
 // persist writes rows to the primary. A batch that still fails after retries
-// is dropped; the maintenance pass queues dirty entries again.
+// is dropped; its entries stay dirty for the next flush.
 func (l *Limiter) persist(ctx context.Context, rows []snapshot) error {
 	start := time.Now()
 	defer func() { metrics.PersistDurationSeconds.Observe(time.Since(start).Seconds()) }()
@@ -82,40 +92,24 @@ func (l *Limiter) acknowledge(rows []snapshot) {
 	}
 }
 
-// mergePerRow keeps one snapshot per name and writer id, with the largest of
-// each value. Every value only grows, so the merged row is the newest state.
-func mergePerRow(snapshots []snapshot) []snapshot {
-	slices.SortFunc(snapshots, func(a, b snapshot) int {
-		if order := cmp.Compare(a.name, b.name); order != 0 {
-			return order
-		}
-		return cmp.Compare(a.writerID, b.writerID)
-	})
-	merged := snapshots[:0]
-	for _, s := range snapshots {
-		last := len(merged) - 1
-		if last >= 0 && merged[last].name == s.name && merged[last].writerID == s.writerID {
-			merged[last].state.SpentNs = max(merged[last].state.SpentNs, s.state.SpentNs)
-			merged[last].state.FreshStartNs = max(merged[last].state.FreshStartNs, s.state.FreshStartNs)
-			merged[last].expiresAtNs = max(merged[last].expiresAtNs, s.expiresAtNs)
-			continue
-		}
-		merged = append(merged, s)
-	}
-	return merged
-}
-
-// dirtySnapshots returns a snapshot of every entry MySQL has not caught up with.
-func (l *Limiter) dirtySnapshots() []snapshot {
+// dirtySnapshots returns a snapshot of up to limit entries MySQL has not
+// caught up with.
+func (l *Limiter) dirtySnapshots(limit int) []snapshot {
 	var pending []snapshot
 	for _, s := range l.shards {
 		s.mu.Lock()
 		for name, e := range s.entries {
+			if len(pending) == limit {
+				break
+			}
 			if e.dirty() {
 				pending = append(pending, snapshotOf(name, e))
 			}
 		}
 		s.mu.Unlock()
+		if len(pending) == limit {
+			break
+		}
 	}
 	return pending
 }

@@ -78,12 +78,13 @@ func TestLimiter_SharesSpendingThroughMySQL(t *testing.T) {
 	clk := clock.NewTestClock(time.Now().Round(0))
 	a := newLimiter(t, database, clk)
 	b := newLimiter(t, database, clk)
-	rate := gcra.Rate{Limit: 10, Duration: 10 * time.Second}
+	rate := gcra.Rate{Limit: 10, Duration: 100 * time.Second}
 	exhausted := gcra.Request{Name: uid.New(uid.TestPrefix), Rate: rate, Cost: 1}
 
 	require.Equal(t, 10, allowN(t, a, exhausted, 11))
+	clk.Tick(time.Second)
 	require.Eventually(t, func() bool {
-		return totals(t, database, exhausted.Name).SpentNs == 10*time.Second.Nanoseconds()
+		return totals(t, database, exhausted.Name).SpentNs == 100*time.Second.Nanoseconds()
 	}, 10*time.Second, 50*time.Millisecond)
 
 	require.Equal(t, 0, allowN(t, b, exhausted, 1), "b reads a's spending on its first request")
@@ -102,7 +103,7 @@ func TestLimiter_SharesSpendingThroughMySQL(t *testing.T) {
 	_, err = b.AllowMany(context.Background(), []gcra.Request{fresh, fresh})
 	require.Error(t, err)
 
-	clk.Tick(time.Second)
+	clk.Tick(10 * time.Second)
 	require.Equal(t, 1, allowN(t, b, exhausted, 2))
 }
 
@@ -113,6 +114,7 @@ func TestLimiter_ForgottenEntryCountsAsPeer(t *testing.T) {
 	req := gcra.Request{Name: uid.New(uid.TestPrefix), Rate: gcra.Rate{Limit: 1, Duration: time.Hour}, Cost: 1}
 
 	require.Equal(t, 1, allowN(t, limiter, req, 2))
+	clk.Tick(time.Second)
 	require.Eventually(t, func() bool {
 		return totals(t, database, req.Name).SpentNs == time.Hour.Nanoseconds()
 	}, 10*time.Second, 50*time.Millisecond)
@@ -134,6 +136,7 @@ func TestLimiter_CleanupDeletesExpiredNames(t *testing.T) {
 	req := gcra.Request{Name: uid.New(uid.TestPrefix), Rate: gcra.Rate{Limit: 10, Duration: 10 * time.Second}, Cost: 10}
 
 	require.Equal(t, 1, allowN(t, limiter, req, 1))
+	clk.Tick(time.Second)
 	require.Eventually(t, func() bool {
 		return totals(t, database, req.Name).SpentNs > 0
 	}, 10*time.Second, 50*time.Millisecond)

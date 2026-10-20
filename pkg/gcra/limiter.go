@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -40,18 +39,19 @@ const (
 
 	// persistBatchRowsMax bounds one INSERT statement.
 	persistBatchRowsMax = 10_000
-	// persistConsumerCount lets the next batch start while a slow one is written.
-	persistConsumerCount = 2
+	// persistTickRowsMax bounds the rows one flush writes. Entries left over
+	// stay dirty and are written by the next flush.
+	persistTickRowsMax = 100_000
 	// persistFlushInterval is the longest a change waits before it is written.
+	// It runs on the Limiter's clock, so tests that drive the clock see the same
+	// visibility delay as production.
 	persistFlushInterval = time.Second
-	// persistQueueRowsMax bounds memory while the database is down. Dropping is
-	// safe because a row carries the writer's full values, and the maintenance
-	// pass queues dirty entries again.
-	persistQueueRowsMax = 100_000
 	// persistTimeout bounds one persist with its retries.
 	persistTimeout = 5 * time.Second
 	// closeTimeout keeps a shutdown from hanging on a sick database.
 	closeTimeout = 15 * time.Second
+	// closeFlushesMax bounds the flushes Close runs to write every dirty entry.
+	closeFlushesMax = 10
 
 	// decideAttemptsMax bounds how often a call starts over because maintenance
 	// forgot one of its entries between the peer read and the decision.
@@ -111,8 +111,6 @@ type Limiter struct {
 
 	shardSeed maphash.Seed
 	shards    [shardCount]*shard
-
-	buffer *batch.BatchProcessor[snapshot]
 
 	// peerCache holds the combined state of every row of a name except the
 	// row of the entry's writer id. Keys include the writer id.
@@ -188,22 +186,13 @@ func New(config Config) (*Limiter, error) {
 		sequence:            atomic.Int64{},
 		shardSeed:           maphash.MakeSeed(),
 		shards:              shards,
-		buffer:              nil,
 		peerCache:           peerCache,
 		circuitBreakerRead:  circuitbreaker.New[State]("gcra_read", circuitbreaker.WithClock(config.Clock)),
 		circuitBreakerWrite: circuitbreaker.New[int64]("gcra_write", circuitbreaker.WithClock(config.Clock)),
 		done:                make(chan struct{}),
 		closeOnce:           sync.Once{},
 	}
-	l.buffer = batch.New(batch.Config[snapshot]{
-		Name:          "gcra",
-		Drop:          true,
-		BatchSize:     persistBatchRowsMax,
-		BufferSize:    persistQueueRowsMax,
-		FlushInterval: persistFlushInterval,
-		Consumers:     persistConsumerCount,
-		Flush:         l.flush,
-	})
+	l.runPersist()
 	l.runMaintenance()
 	return l, nil
 }
@@ -253,15 +242,12 @@ func (l *Limiter) AllowMany(ctx context.Context, reqs []Request) ([]Result, erro
 			}
 			peers[i] = peer
 		}
-		results, snapshots, ok, err := l.decide(reqs, writerIDs, peers)
+		results, ok, err := l.decide(reqs, writerIDs, peers)
 		if err != nil {
 			return nil, err
 		}
 		if !ok {
 			continue
-		}
-		for _, snap := range snapshots {
-			l.buffer.Buffer(snap)
 		}
 		return results, nil
 	}
@@ -299,7 +285,7 @@ func (l *Limiter) ensureEntries(reqs []Request) []string {
 // order so concurrent calls cannot deadlock, decides every request and commits
 // all of them if all fit. ok is false if an entry was forgotten or replaced
 // since its writer id was read, because the peer state was read for that id.
-func (l *Limiter) decide(reqs []Request, writerIDs []string, peers []State) (results []Result, snapshots []snapshot, ok bool, err error) {
+func (l *Limiter) decide(reqs []Request, writerIDs []string, peers []State) (results []Result, ok bool, err error) {
 	owners := make([]int, len(reqs))
 	locked := make([]int, 0, len(reqs))
 	for i, req := range reqs {
@@ -322,7 +308,7 @@ func (l *Limiter) decide(reqs []Request, writerIDs []string, peers []State) (res
 	for i, req := range reqs {
 		e, exists := l.shards[owners[i]].entries[req.Name]
 		if !exists || e.writerID != writerIDs[i] {
-			return nil, nil, false, nil
+			return nil, false, nil
 		}
 		entries[i] = e
 	}
@@ -336,7 +322,7 @@ func (l *Limiter) decide(reqs []Request, writerIDs []string, peers []State) (res
 			at = now
 		}
 		if decisions[i], err = Decide(at, req.Rate, req.Cost, entries[i].state, peers[i]); err != nil {
-			return nil, nil, false, err
+			return nil, false, err
 		}
 		allAllowed = allAllowed && decisions[i].Allowed
 	}
@@ -368,9 +354,8 @@ func (l *Limiter) decide(reqs []Request, writerIDs []string, peers []State) (res
 		if d.Clamped {
 			metrics.ClampsTotal.Inc()
 		}
-		snapshots = append(snapshots, snapshotOf(req.Name, e))
 	}
-	return results, snapshots, true, nil
+	return results, true, nil
 }
 
 func (l *Limiter) shardIndex(name string) int {
@@ -381,18 +366,18 @@ func (l *Limiter) shard(name string) *shard {
 	return l.shards[l.shardIndex(name)]
 }
 
-// Close stops maintenance, drains queued rows and persists every dirty entry,
+// Close stops the background work and persists every dirty entry,
 // best effort within one deadline. Calls made during or after Close change
 // memory but may not be persisted. Close is safe to call more than once.
 func (l *Limiter) Close() {
 	l.closeOnce.Do(func() {
 		close(l.done)
-		l.buffer.Close()
 		ctx, cancel := context.WithTimeout(context.Background(), closeTimeout)
 		defer cancel()
-		pending := l.dirtySnapshots()
-		for chunk := range slices.Chunk(pending, persistBatchRowsMax) {
-			l.flush(ctx, chunk)
+		for range closeFlushesMax {
+			if l.flushDirty(ctx) == 0 || ctx.Err() != nil {
+				break
+			}
 		}
 		l.peerCache.Close()
 	})

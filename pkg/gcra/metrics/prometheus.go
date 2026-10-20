@@ -1,7 +1,4 @@
 // Package metrics provides Prometheus metric collectors for the GCRA limiter.
-//
-// Snapshots that never reach the persist stage because the queue is full are
-// counted by the buffer package: unkey_buffer_state_total{name="gcra",state="dropped"}.
 package metrics
 
 import (
@@ -45,13 +42,13 @@ var (
 		},
 	)
 
-	// PersistRowsTotal counts rows by persist result, after a batch keeps one
+	// PersistRowsTotal counts rows by persist result. Each flush writes one
 	// row per name and writer.
 	//
 	// Possible result values are:
 	// - "persisted": MySQL accepted the row.
 	// - "dropped": the write failed or the write circuit breaker rejected it. The
-	//   maintenance pass queues dirty entries again.
+	//   entries stay dirty and the next flush writes them again.
 	//
 	// Example usage:
 	//   metrics.PersistRowsTotal.WithLabelValues("persisted").Add(float64(len(rows)))

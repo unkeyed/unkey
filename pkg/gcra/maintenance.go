@@ -48,16 +48,13 @@ func (l *Limiter) runMaintenance() {
 	)
 }
 
-// maintain queues dirty entries again, forgets idle entries and deletes
+// maintain forgets idle entries and deletes
 // expired names from MySQL. Every pod runs it.
 func (l *Limiter) maintain(ctx context.Context) {
 	if ctx.Err() != nil {
 		return
 	}
 	now := l.clock.Now()
-	for _, snap := range l.dirtySnapshots() {
-		l.buffer.Buffer(snap)
-	}
 	l.evict(now)
 
 	ctx, cancel := context.WithTimeout(ctx, maintenanceTimeout)

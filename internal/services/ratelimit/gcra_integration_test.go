@@ -73,6 +73,8 @@ func TestRatelimit_GCRASharesStateBetweenServices(t *testing.T) {
 		require.Equal(t, int64(2-i), resp.Remaining)
 		require.Equal(t, int64(i+1), resp.Current)
 	}
+	start := clk.Now()
+	clk.Tick(time.Second)
 	require.Eventually(t, func() bool {
 		row, err := gcradb.Query.ReadPeers(ctx, env.db.RW(), gcradb.ReadPeersParams{Name: gcraName(req), WriterID: ""})
 		require.NoError(t, err)
@@ -82,7 +84,7 @@ func TestRatelimit_GCRASharesStateBetweenServices(t *testing.T) {
 	denied, err := b.Ratelimit(ctx, req)
 	require.NoError(t, err)
 	require.False(t, denied.Success)
-	require.Equal(t, clk.Now().Add(10*time.Second+2), denied.Reset)
+	require.Equal(t, start.Add(10*time.Second+2), denied.Reset)
 
 	regional := req
 	regional.UseGCRA = false
