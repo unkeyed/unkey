@@ -11,25 +11,37 @@ import (
 type Querier interface {
 	// DeleteNames removes every row of the names. Deleting only some rows of a name
 	// would lower its SUM(spent_ns) under a writer whose fresh start was derived
-	// from it, so names are only ever deleted whole.
+	// from it, so names are only ever deleted whole. The caller has locked those
+	// rows and passes their count as the LIMIT, so it can check the result.
 	//
 	//  DELETE FROM ratelimit_gcra
 	//  WHERE name IN (/*SLICE:names*/?)
+	//  LIMIT ?
 	DeleteNames(ctx context.Context, db DBTX, arg DeleteNamesParams) (int64, error)
-	// ListExpiredNames returns names with at least one row that expired before the
-	// cutoff. The caller must still check every row of a name before deleting it.
+	// ListExpiredRows returns rows that expired before the cutoff, after a cursor,
+	// in the order of the expires_at_ns index, so a page scans at most LIMIT index
+	// entries. The caller must still check every row of a name before deleting it.
 	//
-	//  SELECT DISTINCT name
+	//  SELECT name, expires_at_ns
 	//  FROM ratelimit_gcra
 	//  WHERE expires_at_ns < ?
+	//      AND (
+	//          expires_at_ns > ?
+	//          OR (expires_at_ns = ? AND name > ?)
+	//      )
+	//  ORDER BY expires_at_ns, name
 	//  LIMIT ?
-	ListExpiredNames(ctx context.Context, db DBTX, arg ListExpiredNamesParams) ([]string, error)
-	// LockRowsOfNames locks every row of the names, and the gaps between them, so
-	// no writer can add or change a row of these names until the transaction ends.
+	ListExpiredRows(ctx context.Context, db DBTX, arg ListExpiredRowsParams) ([]ListExpiredRowsRow, error)
+	// LockRowsOfNames locks the rows of the names, and the gaps between them, so no
+	// writer can add or change a row of a locked name until the transaction ends.
+	// The LIMIT bounds the locked rows; rows come in name order, so the caller can
+	// tell which names it saw completely.
 	//
 	//  SELECT name, expires_at_ns
 	//  FROM ratelimit_gcra
 	//  WHERE name IN (/*SLICE:names*/?)
+	//  ORDER BY name, writer_id
+	//  LIMIT ?
 	//  FOR UPDATE
 	LockRowsOfNames(ctx context.Context, db DBTX, arg LockRowsOfNamesParams) ([]LockRowsOfNamesRow, error)
 	// Persist upserts one writer's row. spent_ns and fresh_start_ns only grow, so

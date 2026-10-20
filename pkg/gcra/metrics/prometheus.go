@@ -126,4 +126,16 @@ var (
 			Help:      "Names whose rows the GCRA cleanup pass deleted",
 		},
 	)
+
+	// CleanupNamesSkippedTotal counts names the cleanup pass skipped because
+	// they have more rows than one cleanup transaction may lock. Such a name is
+	// never deleted, so any increase needs attention.
+	CleanupNamesSkippedTotal = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "gcra",
+			Name:      "cleanup_names_skipped_total",
+			Help:      "Names the GCRA cleanup pass skipped because they have too many rows",
+		},
+	)
 )

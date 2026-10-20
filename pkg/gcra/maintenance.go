@@ -2,6 +2,8 @@ package gcra
 
 import (
 	"context"
+	"math"
+	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -28,8 +30,14 @@ const (
 	// cleanupAfterExpiry must exceed replica lag and how long a forgotten entry
 	// can take to persist, so no live writer still builds on rows being deleted.
 	cleanupAfterExpiry = 10 * time.Minute
-	// cleanupNamesMax bounds the rows one cleanup transaction locks.
-	cleanupNamesMax = 1_000
+	// cleanupListRowsMax bounds the expired rows one page reads.
+	cleanupListRowsMax = 1_000
+	// cleanupLockRowsMax bounds the rows one cleanup transaction locks and
+	// deletes, and so how long it holds locks on the primary.
+	cleanupLockRowsMax = 5_000
+	// cleanupPagesMax and cleanupTxsMax bound the work of one pass.
+	cleanupPagesMax = 10
+	cleanupTxsMax   = 50
 )
 
 func (l *Limiter) runMaintenance() {
@@ -89,38 +97,107 @@ func (l *Limiter) evict(now time.Time) {
 	metrics.MemoryEntries.Sub(float64(forgotten))
 }
 
-// cleanup deletes every row of up to cleanupNamesMax names whose rows all
-// expired before cutoffNs. It locks all rows of the candidate names first, so
-// a writer cannot add or extend a row of a name between the check and the
-// delete. It returns how many names it deleted.
+// cleanup deletes the rows of names whose rows all expired before cutoffNs, and
+// returns how many names it deleted. It reads expired rows in pages of at most
+// cleanupListRowsMax, at most cleanupPagesMax pages and cleanupTxsMax
+// transactions per pass, so a backlog is worked off over several passes.
 func (l *Limiter) cleanup(ctx context.Context, cutoffNs int64) (int, error) {
-	return mysql.TxWithResult(ctx, l.database.RW(), func(ctx context.Context, tx mysql.DBTX) (int, error) {
-		names, err := db.Query.ListExpiredNames(ctx, tx, db.ListExpiredNamesParams{CutoffNs: cutoffNs, Limit: cleanupNamesMax})
-		if err != nil || len(names) == 0 {
-			return 0, err
-		}
-		rows, err := db.Query.LockRowsOfNames(ctx, tx, db.LockRowsOfNamesParams{Names: names})
+	cursor := db.ListExpiredRowsParams{CutoffNs: cutoffNs, AfterExpiresAtNs: math.MinInt64, AfterName: "", Limit: cleanupListRowsMax}
+	deleted := 0
+	txs := 0
+	for range cleanupPagesMax {
+		rows, err := db.Query.ListExpiredRows(ctx, l.database.RW(), cursor)
 		if err != nil {
-			return 0, fault.Wrap(err, fault.Internal("lock gcra rows"))
+			return deleted, fault.Wrap(err, fault.Internal("list expired gcra rows"))
 		}
-		live := make(map[string]bool, len(names))
+		if len(rows) > cleanupListRowsMax {
+			return deleted, fault.New("gcra cleanup listed more rows than its limit")
+		}
+		pending := make([]string, 0, len(rows))
 		for _, row := range rows {
-			if row.ExpiresAtNs >= cutoffNs {
-				live[row.Name] = true
+			pending = append(pending, row.Name)
+		}
+		slices.Sort(pending)
+		pending = slices.Compact(pending)
+		for len(pending) > 0 {
+			if txs == cleanupTxsMax {
+				return deleted, nil
 			}
-		}
-		expired := make([]string, 0, len(names))
-		for _, name := range names {
-			if !live[name] {
-				expired = append(expired, name)
+			txs++
+			step, err := mysql.TxWithResult(ctx, l.database.RW(), func(ctx context.Context, tx mysql.DBTX) (cleanupStep, error) {
+				return cleanupNames(ctx, tx, pending, cutoffNs)
+			})
+			if err != nil {
+				return deleted, err
 			}
+			deleted += step.deleted
+			pending = pending[step.handled:]
 		}
-		if len(expired) == 0 {
-			return 0, nil
+		if len(rows) < cleanupListRowsMax {
+			return deleted, nil
 		}
-		if _, err := db.Query.DeleteNames(ctx, tx, db.DeleteNamesParams{Names: expired}); err != nil {
-			return 0, fault.Wrap(err, fault.Internal("delete gcra names"))
+		last := rows[len(rows)-1]
+		cursor.AfterExpiresAtNs, cursor.AfterName = last.ExpiresAtNs, last.Name
+	}
+	return deleted, nil
+}
+
+// cleanupStep is the outcome of one cleanup transaction.
+type cleanupStep struct {
+	// handled is how many of the given names, from the front, the step decided
+	// on, so the caller passes the rest to the next step.
+	handled int
+	// deleted is how many names the step deleted.
+	deleted int
+}
+
+// cleanupNames locks the rows of the sorted names, at most cleanupLockRowsMax,
+// and deletes the names whose rows it saw completely and that all expired
+// before cutoffNs. Rows come in name order, so if the limit cut them off, every
+// name before the last row's name was seen completely, and the remaining names
+// are left to the next step. A first name with more rows than the limit can
+// never be seen completely; it is skipped and counted.
+func cleanupNames(ctx context.Context, tx mysql.DBTX, names []string, cutoffNs int64) (cleanupStep, error) {
+	rows, err := db.Query.LockRowsOfNames(ctx, tx, db.LockRowsOfNamesParams{Names: names, Limit: cleanupLockRowsMax + 1})
+	if err != nil {
+		return cleanupStep{}, fault.Wrap(err, fault.Internal("lock gcra rows"))
+	}
+	handled := len(names)
+	if len(rows) > cleanupLockRowsMax {
+		boundary := rows[len(rows)-1].Name
+		handled, _ = slices.BinarySearch(names, boundary)
+		if handled == 0 {
+			metrics.CleanupNamesSkippedTotal.Inc()
+			logger.Warn("gcra name has too many rows to clean up", "rows_min", len(rows))
+			return cleanupStep{handled: 1, deleted: 0}, nil
 		}
-		return len(expired), nil
-	})
+	}
+
+	rowsOfName := make(map[string]int32, handled)
+	live := make(map[string]bool, handled)
+	for _, row := range rows {
+		rowsOfName[row.Name]++
+		if row.ExpiresAtNs >= cutoffNs {
+			live[row.Name] = true
+		}
+	}
+	expired := make([]string, 0, handled)
+	var expiredRows int32
+	for _, name := range names[:handled] {
+		if !live[name] && rowsOfName[name] > 0 {
+			expired = append(expired, name)
+			expiredRows += rowsOfName[name]
+		}
+	}
+	if len(expired) == 0 {
+		return cleanupStep{handled: handled, deleted: 0}, nil
+	}
+	affected, err := db.Query.DeleteNames(ctx, tx, db.DeleteNamesParams{Names: expired, Limit: expiredRows})
+	if err != nil {
+		return cleanupStep{}, fault.Wrap(err, fault.Internal("delete gcra names"))
+	}
+	if affected != int64(expiredRows) {
+		return cleanupStep{}, fault.New("gcra cleanup deleted a different number of rows than it locked")
+	}
+	return cleanupStep{handled: handled, deleted: len(expired)}, nil
 }

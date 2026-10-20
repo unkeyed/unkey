@@ -2,6 +2,7 @@ package gcra_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -146,4 +147,74 @@ func TestLimiter_CleanupDeletesExpiredNames(t *testing.T) {
 	result, err := limiter.Allow(context.Background(), req)
 	require.NoError(t, err)
 	require.True(t, result.Allowed)
+}
+
+func counterValue(t *testing.T, name string) float64 {
+	t.Helper()
+	families, err := testRegistry.Gather()
+	require.NoError(t, err)
+	for _, family := range families {
+		if family.GetName() == name {
+			return family.GetMetric()[0].GetCounter().GetValue()
+		}
+	}
+	return 0
+}
+
+// TestLimiter_CleanupStaysWithinItsLimits fills the table past every cleanup
+// limit: one name with more rows than a transaction may lock, three names whose
+// rows together exceed that limit, and more expired names than one page lists.
+func TestLimiter_CleanupStaysWithinItsLimits(t *testing.T) {
+	database := newDatabase(t)
+	clk := clock.NewTestClock(time.Now().Round(0))
+	ctx := context.Background()
+	baseNs := clk.Now().Add(-time.Hour).UnixNano()
+
+	rowsOf := func(name string, count int, expiresAtNs func(i int) int64) []db.PersistParams {
+		rows := make([]db.PersistParams, count)
+		for i := range rows {
+			rows[i] = db.PersistParams{Name: name, WriterID: uid.New(uid.TestPrefix), SpentNs: 1, FreshStartNs: 1, ExpiresAtNs: expiresAtNs(i)}
+		}
+		return rows
+	}
+	var rows []db.PersistParams
+
+	oversized := uid.New(uid.TestPrefix)
+	rows = append(rows, rowsOf(oversized, 5_001, func(int) int64 { return baseNs - 1 })...)
+
+	crowded := []string{uid.New(uid.TestPrefix), uid.New(uid.TestPrefix), uid.New(uid.TestPrefix)}
+	for _, name := range crowded {
+		rows = append(rows, rowsOf(name, 2_000, func(i int) int64 { return baseNs + int64(min(i, 1)) })...)
+	}
+
+	small := make([]string, 1_500)
+	for i := range small {
+		small[i] = uid.New(uid.TestPrefix)
+		rows = append(rows, rowsOf(small[i], 1, func(int) int64 { return baseNs + 2 })...)
+	}
+
+	live := uid.New(uid.TestPrefix)
+	rows = append(rows, rowsOf(live, 1, func(int) int64 { return clk.Now().Add(24 * time.Hour).UnixNano() })...)
+
+	for chunk := range slices.Chunk(rows, 5_000) {
+		require.NoError(t, db.BulkQuery.Persist(ctx, database.RW(), chunk))
+	}
+
+	skippedBefore := counterValue(t, "unkey_gcra_cleanup_names_skipped_total")
+	newLimiter(t, database, clk)
+
+	deleted := append(append([]string{}, crowded...), small...)
+	require.Eventually(t, func() bool {
+		clk.Tick(time.Minute)
+		for _, name := range deleted {
+			if totals(t, database, name).SpentNs != 0 {
+				return false
+			}
+		}
+		return true
+	}, 30*time.Second, 100*time.Millisecond)
+
+	require.Equal(t, int64(5_001), totals(t, database, oversized).SpentNs, "a name too large to lock is never deleted in part")
+	require.Equal(t, int64(1), totals(t, database, live).SpentNs)
+	require.Greater(t, counterValue(t, "unkey_gcra_cleanup_names_skipped_total"), skippedBefore)
 }

@@ -14,11 +14,14 @@ const lockRowsOfNames = `-- name: LockRowsOfNames :many
 SELECT name, expires_at_ns
 FROM ratelimit_gcra
 WHERE name IN (/*SLICE:names*/?)
+ORDER BY name, writer_id
+LIMIT ?
 FOR UPDATE
 `
 
 type LockRowsOfNamesParams struct {
 	Names []string `db:"names"`
+	Limit int32    `db:"limit"`
 }
 
 type LockRowsOfNamesRow struct {
@@ -26,12 +29,16 @@ type LockRowsOfNamesRow struct {
 	ExpiresAtNs int64  `db:"expires_at_ns"`
 }
 
-// LockRowsOfNames locks every row of the names, and the gaps between them, so
-// no writer can add or change a row of these names until the transaction ends.
+// LockRowsOfNames locks the rows of the names, and the gaps between them, so no
+// writer can add or change a row of a locked name until the transaction ends.
+// The LIMIT bounds the locked rows; rows come in name order, so the caller can
+// tell which names it saw completely.
 //
 //	SELECT name, expires_at_ns
 //	FROM ratelimit_gcra
 //	WHERE name IN (/*SLICE:names*/?)
+//	ORDER BY name, writer_id
+//	LIMIT ?
 //	FOR UPDATE
 func (q *Queries) LockRowsOfNames(ctx context.Context, db DBTX, arg LockRowsOfNamesParams) ([]LockRowsOfNamesRow, error) {
 	query := lockRowsOfNames
@@ -44,6 +51,7 @@ func (q *Queries) LockRowsOfNames(ctx context.Context, db DBTX, arg LockRowsOfNa
 	} else {
 		query = strings.Replace(query, "/*SLICE:names*/?", "NULL", 1)
 	}
+	queryParams = append(queryParams, arg.Limit)
 	rows, err := db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
