@@ -314,14 +314,15 @@ func (l *Limiter) decide(reqs []Request, writerIDs []string, peers []State) (res
 	}
 
 	now := l.clock.Now()
+	ats := make([]time.Time, len(reqs))
 	decisions := make([]Decision, len(reqs))
 	allAllowed := true
 	for i, req := range reqs {
-		at := req.Time
-		if at.IsZero() {
-			at = now
+		ats[i] = req.Time
+		if ats[i].IsZero() {
+			ats[i] = now
 		}
-		if decisions[i], err = Decide(at, req.Rate, req.Cost, entries[i].state, peers[i]); err != nil {
+		if decisions[i], err = Decide(ats[i], req.Rate, req.Cost, entries[i].state, peers[i]); err != nil {
 			return nil, false, err
 		}
 		allAllowed = allAllowed && decisions[i].Allowed
@@ -341,7 +342,11 @@ func (l *Limiter) decide(reqs []Request, writerIDs []string, peers []State) (res
 
 		if !allAllowed {
 			if d.Allowed {
-				results[i].Remaining += req.Cost
+				unspent, err := Decide(ats[i], req.Rate, 0, e.state, peers[i])
+				if err != nil {
+					return nil, false, err
+				}
+				results[i].Remaining = unspent.Remaining
 			}
 			continue
 		}

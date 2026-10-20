@@ -5,7 +5,7 @@
 // name; it holds two values that only grow: spent_ns, the time it admitted,
 // and fresh_start_ns, its highest proposed baseline. The state of a name is
 // reset_at = MAX(fresh_start_ns) + SUM(spent_ns) over all writers, and a
-// request fits if reset_at, moved by its cost, stays within one burst of now.
+// request fits if reset_at, moved by its cost, stays within the burst tolerance of now.
 // See [Decide] for the decision itself.
 //
 // Decisions never wait for MySQL writes. A Limiter decides with its own values

@@ -78,7 +78,7 @@ func TestLimiter_SharesSpendingThroughMySQL(t *testing.T) {
 	clk := clock.NewTestClock(time.Now().Round(0))
 	a := newLimiter(t, database, clk)
 	b := newLimiter(t, database, clk)
-	rate := gcra.Rate{Limit: 10, Duration: 100 * time.Second}
+	rate := gcra.Rate{Limit: 100, Duration: 1000 * time.Second}
 	exhausted := gcra.Request{Name: uid.New(uid.TestPrefix), Rate: rate, Cost: 1}
 
 	require.Equal(t, 10, allowN(t, a, exhausted, 11))

@@ -36,7 +36,7 @@ func TestMultiLimitWithGCRAIsAllOrNothing(t *testing.T) {
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
-	roomy := handler.Request{{Namespace: namespaceName, Identifier: "roomy", Limit: 10, Duration: 60_000, Cost: new(int64(4))}}
+	roomy := handler.Request{{Namespace: namespaceName, Identifier: "roomy", Limit: 100, Duration: 600_000, Cost: new(int64(4))}}
 	tight := handler.Request{{Namespace: namespaceName, Identifier: "tight", Limit: 1, Duration: 60_000}}
 
 	first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, tight)

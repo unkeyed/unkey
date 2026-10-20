@@ -8,7 +8,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// Rate allows Limit units per Duration, with a burst of Limit units.
+// burstToleranceDivisor sets the burst tolerance to one tenth of Limit.
+const burstToleranceDivisor = 10
+
+// Rate allows Limit units per Duration. At most a tenth of Limit fits at
+// once, except that a single request of up to Limit units fits when nothing is
+// outstanding.
 type Rate struct {
 	Limit    int64
 	Duration time.Duration
@@ -59,11 +64,13 @@ type Decision struct {
 // reset_at is MAX(fresh start) + SUM(spent). A name whose reset_at lies in the
 // past is idle, and the writer raises its fresh start to now - SUM(spent), so
 // idle time is forgotten instead of banked. A request fits if reset_at, moved
-// by its cost, stays within one burst of now.
+// by its cost, stays within the burst tolerance of now. A request that costs
+// more than the burst tolerance fits only when nothing is outstanding, and
+// its cost beyond the burst tolerance delays later requests.
 //
 // Time is priced per unit: a unit costs ceil(Duration / Limit) nanoseconds and
-// a burst is Limit units. Rounding per unit rather than per request keeps a
-// full burst of Limit units admissible for every Limit.
+// the burst tolerance is ceil(Limit / 10) units. Rounding per unit rather than
+// per request keeps a request of Limit units admissible for every Limit.
 func Decide(now time.Time, rate Rate, cost int64, writer, peers State) (Decision, error) {
 	if err := assert.All(
 		assert.Greater(rate.Limit, 0, "gcra limit must be greater than zero"),
@@ -81,10 +88,10 @@ func Decide(now time.Time, rate Rate, cost int64, writer, peers State) (Decision
 	if durationNs%rate.Limit != 0 {
 		unitNs++
 	}
-	maxAheadNs, err := checkedMul(rate.Limit, unitNs)
-	if err != nil {
+	if _, err := checkedMul(rate.Limit, unitNs); err != nil {
 		return Decision{}, err
 	}
+	burstToleranceNs := ceilDiv(rate.Limit, burstToleranceDivisor) * unitNs
 	totalSpentNs, err := checkedAdd(peers.SpentNs, writer.SpentNs)
 	if err != nil {
 		return Decision{}, err
@@ -105,13 +112,16 @@ func Decide(now time.Time, rate Rate, cost int64, writer, peers State) (Decision
 	aheadNs := resetAtNs - nowNs
 
 	current := saturatingAdd(ceilDiv(aheadNs, unitNs), cost)
-	// cost <= Limit keeps cost * unitNs <= maxAheadNs, so it cannot overflow.
-	allowed := cost <= rate.Limit && aheadNs <= maxAheadNs-cost*unitNs
+	allowed := false
+	if cost <= rate.Limit {
+		// cost <= Limit keeps cost * unitNs <= Limit * unitNs, so it cannot overflow.
+		allowed = saturatingAdd(aheadNs, cost*unitNs) <= max(burstToleranceNs, cost*unitNs)
+	}
 	if !allowed {
 		return Decision{
 			Result: Result{
 				Allowed:   false,
-				Remaining: max(0, maxAheadNs-aheadNs) / unitNs,
+				Remaining: max(0, burstToleranceNs-aheadNs) / unitNs,
 				Current:   current,
 				ResetAt:   time.Unix(0, resetAtNs),
 			},
@@ -136,7 +146,7 @@ func Decide(now time.Time, rate Rate, cost int64, writer, peers State) (Decision
 	return Decision{
 		Result: Result{
 			Allowed:   true,
-			Remaining: (maxAheadNs - aheadNs) / unitNs,
+			Remaining: max(0, burstToleranceNs-aheadNs) / unitNs,
 			Current:   current,
 			ResetAt:   time.Unix(0, resetAfterNs),
 		},

@@ -40,10 +40,10 @@ func TestLimitWithGCRA(t *testing.T) {
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
-	req := handler.Request{Namespace: namespaceName, Identifier: "user_123", Limit: 10, Duration: 10_000}
+	req := handler.Request{Namespace: namespaceName, Identifier: "user_123", Limit: 100, Duration: 100_000}
 
-	// One second into a ten-second window, so the next second stays in it.
-	start := time.UnixMilli((h.Clock.Now().UnixMilli()/10_000+1)*10_000 + 1_000)
+	// One second into a 100-second window, so the next second stays in it.
+	start := time.UnixMilli((h.Clock.Now().UnixMilli()/100_000+1)*100_000 + 1_000)
 	h.Clock.Set(start)
 
 	for i := range 10 {
