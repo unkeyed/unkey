@@ -89,6 +89,9 @@ type Request struct {
 
 	// Cost is the number of units to spend. Zero checks without spending.
 	Cost int64
+
+	// Time is when the request happened. If zero, the Limiter uses its clock.
+	Time time.Time
 }
 
 // Limiter is a distributed GCRA rate limiter. Each Limiter is a set of writers,
@@ -328,7 +331,11 @@ func (l *Limiter) decide(reqs []Request, writerIDs []string, peers []State) (res
 	decisions := make([]Decision, len(reqs))
 	allAllowed := true
 	for i, req := range reqs {
-		if decisions[i], err = Decide(now, req.Rate, req.Cost, entries[i].state, peers[i]); err != nil {
+		at := req.Time
+		if at.IsZero() {
+			at = now
+		}
+		if decisions[i], err = Decide(at, req.Rate, req.Cost, entries[i].state, peers[i]); err != nil {
 			return nil, nil, false, err
 		}
 		allAllowed = allAllowed && decisions[i].Allowed

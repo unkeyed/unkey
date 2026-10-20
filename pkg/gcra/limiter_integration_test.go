@@ -218,3 +218,18 @@ func TestLimiter_CleanupStaysWithinItsLimits(t *testing.T) {
 	require.Equal(t, int64(1), totals(t, database, live).SpentNs)
 	require.Greater(t, counterValue(t, "unkey_gcra_cleanup_names_skipped_total"), skippedBefore)
 }
+
+func TestLimiter_DecidesAtRequestTime(t *testing.T) {
+	database := newDatabase(t)
+	clk := clock.NewTestClock(time.Now().Round(0))
+	limiter := newLimiter(t, database, clk)
+	req := gcra.Request{Name: uid.New(uid.TestPrefix), Rate: gcra.Rate{Limit: 1, Duration: 10 * time.Second}, Cost: 1, Time: clk.Now()}
+
+	require.Equal(t, 1, allowN(t, limiter, req, 2))
+
+	req.Time = clk.Now().Add(10 * time.Second)
+	result, err := limiter.Allow(context.Background(), req)
+	require.NoError(t, err)
+	require.True(t, result.Allowed, "the limiter clock has not moved, but the request time has")
+	require.Equal(t, req.Time.Add(10*time.Second), result.ResetAt)
+}

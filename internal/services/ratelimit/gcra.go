@@ -40,6 +40,7 @@ func gcraRequest(req RatelimitRequest) gcra.Request {
 		Name: gcraName(req),
 		Rate: gcra.Rate{Limit: req.Limit, Duration: req.Duration},
 		Cost: req.Cost,
+		Time: req.Time,
 	}
 }
 
