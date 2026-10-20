@@ -1,9 +1,10 @@
 "use client";
 
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { Radio } from "@base-ui/react/radio";
-import { RadioGroup } from "@base-ui/react/radio-group";
 import {
+  FormField,
+  SegmentedControl,
+  SegmentedControlItem,
   SettingsForm,
   SettingsRow,
   SettingsRowContent,
@@ -19,8 +20,14 @@ export const PROTOCOLS: Record<
   EnvironmentSettings["upstreamProtocol"],
   { label: string; hint: string }
 > = {
-  http1: { label: "HTTP/1.1", hint: "Works with every server." },
-  h2c: { label: "HTTP/2 (h2c)", hint: "Cleartext HTTP/2. For gRPC and streaming." },
+  http1: {
+    label: "HTTP/1.1",
+    hint: "The default for most applications. No special server configuration needed.",
+  },
+  h2c: {
+    label: "HTTP/2 (h2c)",
+    hint: "For gRPC and HTTP/2 servers. Your app must accept cleartext HTTP/2 connections.",
+  },
 };
 
 export function UpstreamProtocol() {
@@ -32,7 +39,7 @@ export function UpstreamProtocol() {
         <SettingsRowHeader>
           <SettingsRowTitle>Upstream protocol</SettingsRowTitle>
           <SettingsRowDescription>
-            Protocol Unkey uses to reach your app.{" "}
+            How Unkey connects to your app.{" "}
             <a
               href="https://www.unkey.com/docs/platform/apps/settings#upstream-protocol"
               target="_blank"
@@ -48,31 +55,32 @@ export function UpstreamProtocol() {
           <Controller
             control={form.control}
             name="upstreamProtocol"
-            render={({ field }) => (
-              <RadioGroup
-                aria-label="Upstream protocol"
-                value={field.value}
-                onValueChange={field.onChange}
-                className="grid max-w-(--setting-w) gap-3 sm:grid-cols-2"
+            render={({ field, fieldState }) => (
+              <FormField
+                className="max-w-xs"
+                description={PROTOCOLS[field.value].hint}
+                error={fieldState.error?.message}
               >
-                {Object.entries(PROTOCOLS).map(([value, protocol]) => (
-                  <Radio.Root
-                    key={value}
-                    value={value}
-                    className="group flex items-start gap-3 rounded-lg border border-grayA-5 p-3.5 text-left transition-colors hover:border-grayA-7 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7 data-checked:border-gray-12 data-checked:bg-grayA-2 data-checked:ring-1 data-checked:ring-gray-12"
+                {(control) => (
+                  <SegmentedControl
+                    id={control.id}
+                    aria-label="Upstream protocol"
+                    aria-describedby={control.describedBy}
+                    aria-invalid={control.invalid}
+                    name={field.name}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                    inputRef={field.ref}
                   >
-                    <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border border-grayA-7 group-data-checked:border-gray-12 group-data-checked:bg-gray-12">
-                      <Radio.Indicator className="size-1.5 rounded-full bg-gray-1" />
-                    </span>
-                    <span className="flex flex-col gap-1">
-                      <span className="font-mono text-sm font-medium text-gray-12">
+                    {Object.entries(PROTOCOLS).map(([value, protocol]) => (
+                      <SegmentedControlItem key={value} value={value} className="font-mono text-xs">
                         {protocol.label}
-                      </span>
-                      <span className="text-xs leading-5 text-gray-11">{protocol.hint}</span>
-                    </span>
-                  </Radio.Root>
-                ))}
-              </RadioGroup>
+                      </SegmentedControlItem>
+                    ))}
+                  </SegmentedControl>
+                )}
+              </FormField>
             )}
           />
         </SettingsRowContent>
