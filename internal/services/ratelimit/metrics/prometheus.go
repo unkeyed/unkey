@@ -16,6 +16,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
+// decisionBuckets reach below a millisecond, because most decisions take only
+// microseconds, then continue with latencyBuckets.
+var decisionBuckets = append([]float64{0.000025, 0.00005, 0.0001, 0.00025, 0.0005}, latencyBuckets...)
+
 // latencyBuckets are standard histogram buckets for latency metrics in seconds.
 // Range covers sub-millisecond local decisions through multi-second origin
 // failures where the circuit breaker should have tripped.
@@ -95,7 +99,8 @@ var (
 	// Labels:
 	//   - workspace_id: the workspace the request was attributed to.
 	//   - source: "local" when the decision used only in-memory counters;
-	//     "origin" when a cold-window or strict-mode Redis fetch was required.
+	//     "origin" when a cold-window or strict-mode Redis fetch was required;
+	//     "gcra" when the GCRA limiter decided.
 	//   - outcome: "passed" (request allowed) or "denied" (limit exceeded).
 	//
 	// Example usage:
@@ -106,9 +111,30 @@ var (
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "decisions_total",
-			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin) and outcome (passed|denied).",
+			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin|gcra) and outcome (passed|denied).",
 		},
 		[]string{"workspace_id", "source", "outcome"},
+	)
+
+	// RatelimitDecisionDuration observes how long Ratelimit and RatelimitMany
+	// take to decide, including input validation, so the regional counters and
+	// the GCRA limiter can be compared.
+	//
+	// Labels:
+	//   - op: "limit" for Ratelimit, "multi_limit" for RatelimitMany.
+	//   - system: "regional" or "gcra", the system that decided.
+	//
+	// Example usage:
+	//   metrics.RatelimitDecisionDuration.WithLabelValues("limit", "regional").Observe(seconds)
+	RatelimitDecisionDuration = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "decision_duration_seconds",
+			Help:      "Duration of rate-limit decisions in seconds, labeled by op (limit|multi_limit) and system (regional|gcra).",
+			Buckets:   decisionBuckets,
+		},
+		[]string{"op", "system"},
 	)
 
 	// RatelimitCASExhausted counts Ratelimit() calls that exhausted the CAS

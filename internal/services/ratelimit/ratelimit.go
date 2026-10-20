@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -117,6 +118,15 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	_, span := tracing.Start(ctx, "Ratelimit")
 	defer span.End()
 
+	start := time.Now()
+	system := "regional"
+	if s.gcraEnabled(req) {
+		system = "gcra"
+	}
+	defer func() {
+		metrics.RatelimitDecisionDuration.WithLabelValues("limit", system).Observe(time.Since(start).Seconds())
+	}()
+
 	if req.Time.IsZero() {
 		req.Time = s.clock.Now()
 	}
@@ -132,6 +142,15 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	)
 	if err != nil {
 		return RatelimitResponse{}, err
+	}
+
+	if system == "gcra" {
+		responses, gcraErr := s.ratelimitManyGCRA(ctx, []RatelimitRequest{req})
+		if gcraErr != nil {
+			return RatelimitResponse{}, gcraErr
+		}
+		span.SetAttributes(attribute.Bool("passed", responses[0].Success))
+		return responses[0], nil
 	}
 
 	cs := s.prepareCheck(ctx, req)
@@ -199,6 +218,17 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	_, span := tracing.Start(ctx, "RatelimitMany")
 	defer span.End()
 
+	start := time.Now()
+	// A call uses the GCRA limiter only if every check does, because one
+	// all-or-nothing decision cannot span both systems.
+	system := "regional"
+	if len(reqs) > 0 && !slices.ContainsFunc(reqs, func(req RatelimitRequest) bool { return !s.gcraEnabled(req) }) {
+		system = "gcra"
+	}
+	defer func() {
+		metrics.RatelimitDecisionDuration.WithLabelValues("multi_limit", system).Observe(time.Since(start).Seconds())
+	}()
+
 	reqs = append([]RatelimitRequest(nil), reqs...)
 	now := s.clock.Now()
 	for i := range reqs {
@@ -218,6 +248,10 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		if err != nil {
 			return []RatelimitResponse{}, err
 		}
+	}
+
+	if system == "gcra" {
+		return s.ratelimitManyGCRA(ctx, reqs)
 	}
 
 	// Prepare all checks (load counters, fetch from origin if cold).

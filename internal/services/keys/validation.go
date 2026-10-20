@@ -213,6 +213,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 			Duration:    config.Duration,
 			Cost:        config.Cost,
 			Time:        time.Time{}, // intentionally zero, so the ratelimiter will use its own clock
+			UseGCRA:     false,
 		})
 	}
 

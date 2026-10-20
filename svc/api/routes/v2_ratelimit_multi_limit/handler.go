@@ -211,6 +211,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:       limit,
 			Cost:        cost,
 			Time:        reqTime,
+			UseGCRA:     ns.UseGcra,
 		}
 
 		checkMetadata[i] = checkMeta{

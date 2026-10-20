@@ -158,6 +158,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Limit:       limit,
 		Cost:        cost,
 		Time:        time.Time{},
+		UseGCRA:     ns.UseGcra,
 	}
 
 	if h.TestMode {

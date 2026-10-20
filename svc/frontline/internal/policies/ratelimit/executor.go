@@ -59,6 +59,7 @@ func (e *Executor) Execute(
 		Duration:    time.Duration(cfg.GetWindowMs()) * time.Millisecond,
 		Cost:        1,
 		Time:        time.Time{},
+		UseGCRA:     false,
 	})
 	if err != nil {
 		return fault.Wrap(err,
