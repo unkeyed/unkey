@@ -103,9 +103,9 @@ func seedAppConnections(t *testing.T, q *Queries) appConnectionsFixture {
 		connection("manual", "target", "caller-manual", f.target, "environment", "target-manual"),
 		connection("reserved-prefix", "unkey-internal", "caller-manual", f.otherTarget, "automatic", ""),
 		pinned,
-		connection("reserved-own-slug", "caller", "caller-pin", f.otherTarget, "automatic", ""),
+		connection("reserved-self", "self", "caller-pin", f.otherTarget, "automatic", ""),
 		connection("explicit-prod", "target", "caller-rollback", f.target, "environment", "target-prod"),
-		connection("staging-auto", "target", "caller-staging", f.target, "automatic", ""),
+		connection("staging-auto", "caller", "caller-staging", f.target, "automatic", ""),
 	} {
 		insertTestDefaultConnection(t, q, c)
 		require.Contains(t, callerDeploymentByEnvironment, c.EnvironmentID)
