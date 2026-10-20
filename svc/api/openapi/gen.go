@@ -5760,13 +5760,6 @@ type V2LivenessResponseData struct {
 
 // V2LogsGetApiRequestsTimeseriesFilters Filters for the timeseries. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
 type V2LogsGetApiRequestsTimeseriesFilters struct {
-	// Host Filters a field that matches only as a whole value, such as a host or a request ID.
-	// Matching is exact and case-sensitive.
-	//
-	//
-	// Example: {"isNot":["api.unkey.dev"]}
-	Host *ExactFilter `json:"host,omitempty"`
-
 	// Method Filters by HTTP method.
 	//
 	// Example: {"is":["POST","PUT"]}
