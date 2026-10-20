@@ -42,7 +42,7 @@ export default function DeploymentOverview() {
           steps={steps}
           status={page.status}
           instances={page.instances}
-          domainCount={page.domains.all.length}
+          domainCount={page.domainsLoading ? null : page.domains.all.length}
         />
       ) : (
         <div key={page.body} className="animate-fade-slide-in">
