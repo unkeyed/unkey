@@ -22,7 +22,7 @@ export async function mintProxyJWT(params: {
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuer("app.unkey.com")
-    .setAudience(["api.unkey.com"])
+    .setAudience([env().UNKEY_JWT_AUDIENCE])
     .setSubject(params.subject)
     .setIssuedAt(now)
     .setNotBefore(now)
