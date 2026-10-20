@@ -1,8 +1,9 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import {
   type InstanceState,
-  aggregateInstanceStates,
+  groupInstancesByRegion,
   instanceStateOf,
+  instancesText,
 } from "@/lib/collections/deploy/instance-status";
 import { describeLastExit } from "@/lib/collections/deploy/last-exit";
 import { plural } from "@/lib/fmt";
@@ -58,8 +59,7 @@ export function resolveInstancesView(input: InstancesInput): InstancesView {
     if (input.stage === "started" && input.desiredState === "running") {
       return { kind: "diagram", regions: skeletonRegions(input) };
     }
-    const message = input.desiredState === "stopped" ? "No instances running" : "No instances";
-    return { kind: "empty", message };
+    return { kind: "empty", message: instancesText(null, input.desiredState) };
   }
   const regions = liveRegions(input);
   return { kind: "diagram", regions };
@@ -100,48 +100,32 @@ function skeletonRegion(name: string | null, replicas: number): RegionGroup {
   };
 }
 
-function liveRegions({
-  instances,
-  targetRegions,
-  desiredRegions,
-  desiredState,
-}: InstancesInput): RegionGroup[] {
-  const byRegion = Map.groupBy(instances, (i) => i.region.name);
-  const replicasByRegion = new Map(targetRegions.map((t) => [t.region.name, t.replicas]));
-  const names = new Set([...replicasByRegion.keys(), ...byRegion.keys()]);
-  return [...names].sort(regionOrder(desiredRegions)).map((name): RegionGroup => {
-    const rows = byRegion.get(name);
-    if (!rows) {
-      return {
-        key: name,
-        name,
-        state: "starting",
-        running: 0,
-        total: replicasByRegion.get(name) ?? 1,
-        content: { kind: "waiting" },
-      };
-    }
-    const list = rows
-      .toSorted((a, b) => a.id.localeCompare(b.id))
-      .map((i) => ({
-        id: i.id,
-        state: instanceStateOf(i),
-        detail: instanceDetail(i),
-        restarts: i.lastExit?.restartCount ?? 0,
-      }));
-    const wanted = desiredState === "running" ? (replicasByRegion.get(name) ?? 0) : 0;
-    const total = Math.max(wanted, list.length);
-    const waiting = total - list.length;
-    const state = aggregateInstanceStates(list.map((i) => i.state));
-    return {
+function liveRegions(input: InstancesInput): RegionGroup[] {
+  const byOrder = regionOrder(input.desiredRegions);
+  return groupInstancesByRegion(input)
+    .toSorted((a, b) => byOrder(a.name, b.name))
+    .map(({ name, instances, state, running, total, waiting }) => ({
       key: name,
       name,
-      state: waiting > 0 && state === "running" ? "starting" : state,
-      running: list.filter((i) => i.state === "running").length,
+      state,
+      running,
       total,
-      content: { kind: "instances", instances: list, waiting },
-    };
-  });
+      content:
+        instances.length === 0
+          ? { kind: "waiting" }
+          : {
+              kind: "instances",
+              instances: instances
+                .toSorted((a, b) => a.id.localeCompare(b.id))
+                .map((i) => ({
+                  id: i.id,
+                  state: instanceStateOf(i),
+                  detail: instanceDetail(i),
+                  restarts: i.lastExit?.restartCount ?? 0,
+                })),
+              waiting,
+            },
+    }));
 }
 
 export type EnteredTrack = {

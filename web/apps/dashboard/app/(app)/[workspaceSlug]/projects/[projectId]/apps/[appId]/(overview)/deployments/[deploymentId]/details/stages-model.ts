@@ -1,8 +1,12 @@
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
-import { type InstanceSummary, instanceLabel } from "@/lib/collections/deploy/instance-status";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
+import {
+  type InstanceSummary,
+  instanceLabel,
+  instancesText,
+} from "@/lib/collections/deploy/instance-status";
 import { plural } from "@/lib/fmt";
 import type { StepsData } from "../use-deployment-status";
-import { runningCountText } from "./deployment-health";
 
 export type ExpandableStageKey = "build" | "instances";
 
@@ -47,6 +51,7 @@ export type StagesInput = {
   status: DeploymentStatus;
   isPrebuilt: boolean;
   instances: InstanceSummary | null;
+  desiredState: Deployment["desiredState"];
   domainCount: number | null;
 };
 
@@ -56,15 +61,16 @@ export function resolveStages({
   status,
   isPrebuilt,
   instances,
+  desiredState,
   domainCount,
 }: StagesInput): Stage[] {
   const { building, deploying, network } = steps ?? {};
   const isFailed = status === "failed";
-  const isReady = status === "ready";
+  const isSettled = status === "ready" || status === "stopped";
 
   const build = resolveStep(
     building,
-    { now, isFailed, implicitlyComplete: isPrebuilt || isReady },
+    { now, isFailed, implicitlyComplete: isPrebuilt || isSettled },
     {
       completed: isPrebuilt ? "Image was prebuilt" : "Build complete",
       inProgress: "Building",
@@ -73,16 +79,16 @@ export function resolveStages({
   );
   const instancesStep = resolveStep(
     deploying,
-    { now, isFailed, implicitlyComplete: isReady },
+    { now, isFailed, implicitlyComplete: isSettled },
     {
-      completed: instances ? runningCountText(instances) : "No instances",
+      completed: instancesText(instances, desiredState),
       inProgress: "Starting instances",
       waiting: "Waiting for build",
     },
   );
   const domains = resolveStep(
     network,
-    { now, isFailed, implicitlyComplete: isReady },
+    { now, isFailed, implicitlyComplete: isSettled },
     {
       completed:
         domainCount === null ? "Assigning domains" : `${plural(domainCount, "domain")} assigned`,

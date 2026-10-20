@@ -1,68 +1,110 @@
 import { describe, expect, test } from "vitest";
-import { instanceStateOf, summarizeInstances } from "./instance-status";
+import type { Deployment } from "./deployments";
+import {
+  type InstancesSource,
+  instanceStateOf,
+  instancesText,
+  summarizeInstances,
+} from "./instance-status";
 
-const region = (replicas: number) => ({ replicas });
+type Instance = Deployment["instances"][number];
+
+const instance = (region: string, overrides: Partial<Instance> = {}): Instance => ({
+  id: `ins_${region}`,
+  region: { id: `reg_${region}`, name: region, platform: "aws" },
+  status: "running",
+  statusReason: null,
+  lastExit: null,
+  ...overrides,
+});
+
+const target = (name: string, replicas: number) => ({
+  region: { id: `reg_${name}`, name, platform: "aws" },
+  replicas,
+});
+
+const source = (overrides: Partial<InstancesSource> = {}): InstancesSource => ({
+  instances: [],
+  targetRegions: [],
+  desiredState: "running",
+  ...overrides,
+});
 
 describe("summarizeInstances", () => {
-  test("returns null when no instances are wanted", () => {
-    expect(summarizeInstances({ instances: [], desiredInstanceCount: 0, targetRegions: [] })).toBe(
-      null,
-    );
+  test("returns null when no instances exist or are wanted", () => {
+    expect(summarizeInstances(source())).toBe(null);
   });
 
   test("a crash loop is unhealthy even while the instance reads pending", () => {
-    const summary = summarizeInstances({
-      instances: [{ status: "pending", statusReason: "CrashLoopBackOff" }],
-      desiredInstanceCount: 1,
-      targetRegions: [],
-    });
+    const summary = summarizeInstances(
+      source({
+        instances: [instance("us-east-1", { status: "pending", statusReason: "CrashLoopBackOff" })],
+      }),
+    );
     expect(summary).toEqual({ state: "unhealthy", running: 0, total: 1 });
   });
 
   test("a crash loop on disabled instances is not unhealthy", () => {
-    const summary = summarizeInstances({
-      instances: [
-        { status: "inactive", statusReason: "CrashLoopBackOff" },
-        { status: "inactive", statusReason: null },
-      ],
-      desiredInstanceCount: 2,
-      targetRegions: [],
-    });
+    const summary = summarizeInstances(
+      source({
+        instances: [
+          instance("us-east-1", { status: "inactive", statusReason: "CrashLoopBackOff" }),
+          instance("eu-central-1", { status: "inactive" }),
+        ],
+      }),
+    );
     expect(summary).toEqual({ state: "inactive", running: 0, total: 2 });
   });
 
-  test("counts running instances against the desired count", () => {
-    const summary = summarizeInstances({
-      instances: [
-        { status: "running", statusReason: null },
-        { status: "pending", statusReason: null },
-      ],
-      desiredInstanceCount: 3,
-      targetRegions: [],
-    });
-    expect(summary).toEqual({ state: "running", running: 1, total: 3 });
-  });
-
-  test("the total is the sum of target region replicas when regions are set", () => {
-    const summary = summarizeInstances({
-      instances: [{ status: "running", statusReason: null }],
-      desiredInstanceCount: 1,
-      targetRegions: [region(2), region(3)],
-    });
-    expect(summary).toEqual({ state: "running", running: 1, total: 5 });
+  test("the total is the sum of target region replicas, and a short region is still starting", () => {
+    const summary = summarizeInstances(
+      source({
+        instances: [instance("us-east-1")],
+        targetRegions: [target("us-east-1", 2), target("eu-central-1", 3)],
+      }),
+    );
+    expect(summary).toEqual({ state: "starting", running: 1, total: 5 });
   });
 
   test("the total never drops below the instances that exist", () => {
-    const summary = summarizeInstances({
-      instances: [
-        { status: "running", statusReason: null },
-        { status: "running", statusReason: null },
-        { status: "running", statusReason: null },
-      ],
-      desiredInstanceCount: 1,
-      targetRegions: [region(2)],
-    });
+    const summary = summarizeInstances(
+      source({
+        instances: [
+          instance("us-east-1", { id: "ins_a" }),
+          instance("us-east-1", { id: "ins_b" }),
+          instance("us-east-1", { id: "ins_c" }),
+        ],
+        targetRegions: [target("us-east-1", 2)],
+      }),
+    );
     expect(summary).toEqual({ state: "running", running: 3, total: 3 });
+  });
+
+  test("a stopped deployment wants no replicas, so only its rows count", () => {
+    expect(
+      summarizeInstances(
+        source({ desiredState: "stopped", targetRegions: [target("us-east-1", 2)] }),
+      ),
+    ).toBe(null);
+    expect(
+      summarizeInstances(
+        source({
+          desiredState: "stopped",
+          instances: [instance("us-east-1", { status: "inactive" })],
+          targetRegions: [target("us-east-1", 2)],
+        }),
+      ),
+    ).toEqual({ state: "inactive", running: 0, total: 1 });
+  });
+});
+
+describe("instancesText", () => {
+  test("counts running instances, or words the empty case by the desired state", () => {
+    expect(instancesText({ state: "running", running: 1, total: 3 }, "running")).toBe(
+      "1 of 3 running",
+    );
+    expect(instancesText(null, "running")).toBe("No instances");
+    expect(instancesText(null, "stopped")).toBe("No instances running");
   });
 });
 

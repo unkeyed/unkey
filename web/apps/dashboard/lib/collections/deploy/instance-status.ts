@@ -1,3 +1,5 @@
+import type { Deployment } from "./deployments";
+
 export const INSTANCE_STATUSES = ["inactive", "pending", "running", "failed"] as const;
 
 export type InstanceStatus = (typeof INSTANCE_STATUSES)[number];
@@ -20,16 +22,18 @@ const stateByStatus: Record<InstanceStatus, InstanceState> = {
 
 export type InstanceHealth = { status: InstanceStatus; statusReason: string | null };
 
-type InstanceSnapshot = {
-  instances: readonly InstanceHealth[];
-  desiredInstanceCount: number;
-  targetRegions: readonly { replicas: number }[];
-};
+type DeploymentInstance = Deployment["instances"][number];
 
-export type InstanceSummary = {
-  state: InstanceState;
-  running: number;
-  total: number;
+export type InstancesSource = Pick<Deployment, "instances" | "targetRegions" | "desiredState">;
+
+export type InstanceCount = { running: number; total: number };
+
+export type InstanceSummary = InstanceCount & { state: InstanceState };
+
+export type RegionInstances = InstanceSummary & {
+  name: string;
+  instances: DeploymentInstance[];
+  waiting: number;
 };
 
 const FATAL_WAITING_REASONS: ReadonlySet<string> = new Set([
@@ -47,24 +51,58 @@ export function instanceStateOf({ status, statusReason }: InstanceHealth): Insta
   return stateByStatus[status];
 }
 
-export function wantedReplicas({
+export function groupInstancesByRegion({
+  instances,
   targetRegions,
-  desiredInstanceCount,
-}: Pick<InstanceSnapshot, "targetRegions" | "desiredInstanceCount">): number {
-  if (targetRegions.length === 0) {
-    return desiredInstanceCount;
-  }
-  return targetRegions.reduce((sum, t) => sum + t.replicas, 0);
+  desiredState,
+}: InstancesSource): RegionInstances[] {
+  const byRegion = Map.groupBy(instances, (i) => i.region.name);
+  const wantedByRegion = new Map(
+    desiredState === "running" ? targetRegions.map((t) => [t.region.name, t.replicas]) : [],
+  );
+  const names = new Set([...wantedByRegion.keys(), ...byRegion.keys()]);
+  return [...names].map((name) => {
+    const rows = byRegion.get(name) ?? [];
+    const states = rows.map(instanceStateOf);
+    const total = Math.max(wantedByRegion.get(name) ?? 0, rows.length);
+    const waiting = total - rows.length;
+    const state = aggregateInstanceStates(states);
+    return {
+      name,
+      instances: rows,
+      state: waiting > 0 && state === "running" ? "starting" : state,
+      running: states.filter((s) => s === "running").length,
+      total,
+      waiting,
+    };
+  });
 }
 
-export function summarizeInstances(snapshot: InstanceSnapshot): InstanceSummary | null {
-  const total = Math.max(wantedReplicas(snapshot), snapshot.instances.length);
+export function summarizeInstances(source: InstancesSource): InstanceSummary | null {
+  const regions = groupInstancesByRegion(source);
+  const total = regions.reduce((sum, r) => sum + r.total, 0);
   if (total === 0) {
     return null;
   }
-  const states = snapshot.instances.map(instanceStateOf);
-  const running = snapshot.instances.filter((i) => i.status === "running").length;
-  return { state: aggregateInstanceStates(states), running, total };
+  return {
+    state: aggregateInstanceStates(regions.map((r) => r.state)),
+    running: regions.reduce((sum, r) => sum + r.running, 0),
+    total,
+  };
+}
+
+export function runningCountText({ running, total }: InstanceCount): string {
+  return `${running} of ${total} running`;
+}
+
+export function instancesText(
+  summary: InstanceSummary | null,
+  desiredState: Deployment["desiredState"],
+): string {
+  if (summary) {
+    return runningCountText(summary);
+  }
+  return desiredState === "stopped" ? "No instances running" : "No instances";
 }
 
 export function aggregateInstanceStates(states: readonly InstanceState[]): InstanceState {

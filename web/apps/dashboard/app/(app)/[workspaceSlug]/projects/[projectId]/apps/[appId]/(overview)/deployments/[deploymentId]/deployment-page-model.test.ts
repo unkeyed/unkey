@@ -1,6 +1,10 @@
 import type { CustomDomain, Domain } from "@/lib/collections";
 import { describe, expect, test } from "vitest";
-import { type DeploymentPageInput, deploymentPageModel } from "./deployment-page-model";
+import {
+  type DeploymentPageInput,
+  deploymentPageModel,
+  resolvePageStatus,
+} from "./deployment-page-model";
 
 const domain = (id: string, fullyQualifiedDomainName: string): Domain => ({
   id,
@@ -34,8 +38,8 @@ const input = (overrides: Partial<DeploymentPageInput> = {}): DeploymentPageInpu
     id: "dep-1",
     environmentId: "env-1",
     instances: [],
-    desiredInstanceCount: 0,
     targetRegions: [],
+    desiredState: "running",
   },
   status: "ready",
   showBuild: false,
@@ -76,8 +80,8 @@ describe("deploymentPageModel", () => {
         deployment: {
           id: "dep-1",
           environmentId: "env-1",
-          desiredInstanceCount: 1,
           targetRegions: [],
+          desiredState: "running",
           instances: [
             {
               id: "i-1",
@@ -90,7 +94,25 @@ describe("deploymentPageModel", () => {
         },
       }),
     );
-    expect(page.instances).toEqual({ state: "unhealthy", running: 1, total: 1 });
+    expect(page.instances).toEqual({ state: "unhealthy", running: 0, total: 1 });
     expect(page.pageStatus.label).toBe("Unhealthy");
+  });
+});
+
+describe("resolvePageStatus", () => {
+  test("a ready deployment with unhealthy instances reads Unhealthy", () => {
+    const status = resolvePageStatus("ready", { state: "unhealthy", running: 0, total: 1 });
+    expect(status.label).toBe("Unhealthy");
+    expect(status.dotClass).toBe("bg-error-9");
+  });
+
+  test("a ready deployment with running instances reads Ready", () => {
+    expect(resolvePageStatus("ready", { state: "running", running: 1, total: 1 }).label).toBe(
+      "Ready",
+    );
+  });
+
+  test("building statuses are in flight", () => {
+    expect(resolvePageStatus("building", null).inFlight).toBe(true);
   });
 });

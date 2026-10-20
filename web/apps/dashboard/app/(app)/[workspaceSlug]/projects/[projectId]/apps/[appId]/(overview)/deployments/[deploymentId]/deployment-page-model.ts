@@ -1,22 +1,37 @@
 import type { CustomDomain, Domain } from "@/lib/collections";
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import {
+  DEPLOYMENT_GROUP_COLOR,
+  DEPLOYMENT_STATUS_LABELS,
+  type DeploymentStatus,
+  deploymentStatusColor,
+  statusGroupOf,
+} from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { type InstanceSummary, summarizeInstances } from "@/lib/collections/deploy/instance-status";
+import {
+  type InstanceSummary,
+  instanceLabel,
+  summarizeInstances,
+} from "@/lib/collections/deploy/instance-status";
 import { type DomainPriorityResult, getDomainPriority } from "../../../components/domain-priority";
-import { type PageStatus, resolvePageStatus } from "./details/deployment-health";
 
 export type DeploymentBody = "build" | "skipped" | "superseded" | "cancelled" | "stages";
 
 export type DeploymentPageInput = {
   deployment: Pick<
     Deployment,
-    "id" | "environmentId" | "instances" | "desiredInstanceCount" | "targetRegions"
+    "id" | "environmentId" | "instances" | "targetRegions" | "desiredState"
   >;
   status: DeploymentStatus;
   showBuild: boolean;
   domains: ReadonlyArray<Domain>;
   customDomains: ReadonlyArray<CustomDomain>;
   currentDeploymentId: string | null;
+};
+
+export type PageStatus = {
+  label: string;
+  dotClass: string;
+  inFlight: boolean;
 };
 
 export type DeploymentPageModel = {
@@ -60,4 +75,22 @@ function bodyOf(status: DeploymentStatus): DeploymentBody {
     default:
       return "stages";
   }
+}
+
+export function resolvePageStatus(
+  status: DeploymentStatus,
+  instances: InstanceSummary | null,
+): PageStatus {
+  if (status === "ready" && instances?.state === "unhealthy") {
+    return {
+      label: instanceLabel.unhealthy,
+      dotClass: DEPLOYMENT_GROUP_COLOR.failed,
+      inFlight: false,
+    };
+  }
+  return {
+    label: DEPLOYMENT_STATUS_LABELS[status],
+    dotClass: deploymentStatusColor(status),
+    inFlight: statusGroupOf(status) === "building",
+  };
 }

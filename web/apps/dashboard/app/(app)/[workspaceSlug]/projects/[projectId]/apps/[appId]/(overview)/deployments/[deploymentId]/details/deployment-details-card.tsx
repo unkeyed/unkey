@@ -1,6 +1,7 @@
 "use client";
 
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { instancesText } from "@/lib/collections/deploy/instance-status";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { githubUrl } from "@/lib/github-url";
 import { IconArrowUpRightOutline12 } from "@unkey/icons";
@@ -22,7 +23,6 @@ import { useRecentDeployments } from "../../../hooks/use-recent-deployments";
 import { useBuildDuration } from "../../components/deployment-duration";
 import { InstantRollbackRow } from "../instant-rollback-row";
 import type { DeploymentPage } from "../use-deployment-page";
-import { runningCountText } from "./deployment-health";
 import { DomainSummary } from "./domain-summary";
 
 type DeploymentDetailsCardProps = {
@@ -87,7 +87,7 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
               <span className="text-gray-10">—</span>
             )}
           </Row>
-          <Row label="Instances">{instances ? runningCountText(instances) : "—"}</Row>
+          <Row label="Instances">{instancesText(instances, deployment.desiredState)}</Row>
         </Column>
         <Column title="Source">
           <SourceRows deployment={deployment} repoFullName={repoFullName} />

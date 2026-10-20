@@ -105,6 +105,7 @@ export function DeploymentStagesCard({
     status,
     isPrebuilt: deployment.source === "oci",
     instances,
+    desiredState: deployment.desiredState,
     domainCount,
   });
 
