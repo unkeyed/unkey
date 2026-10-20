@@ -32,10 +32,10 @@ type Size = { cpuMillicores: number; memoryMib: number; storageMib: number };
 
 export function sizeSpecs({ cpuMillicores, memoryMib, storageMib }: Size) {
   return [
-    ["CPU", IconMicrochipOutline18, formatCpu(cpuMillicores)],
-    ["RAM", IconRamOutline18, formatMemory(memoryMib)],
-    ["Disk", IconHardDriveOutline18, formatStorage(storageMib)],
-  ] as const;
+    { label: "CPU", Icon: IconMicrochipOutline18, value: formatCpu(cpuMillicores) },
+    { label: "RAM", Icon: IconRamOutline18, value: formatMemory(memoryMib) },
+    { label: "Disk", Icon: IconHardDriveOutline18, value: formatStorage(storageMib) },
+  ];
 }
 
 export function Spec({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
