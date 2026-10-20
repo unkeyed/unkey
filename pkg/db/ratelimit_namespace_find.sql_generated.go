@@ -11,7 +11,7 @@ import (
 )
 
 const findRatelimitNamespace = `-- name: FindRatelimitNamespace :one
-SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
+SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.use_gcra, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
        coalesce(
                (select json_arrayagg(
                                json_object(
@@ -40,6 +40,7 @@ type FindRatelimitNamespaceRow struct {
 	WorkspaceID string        `db:"workspace_id"`
 	ProjectID   string        `db:"project_id"`
 	Name        string        `db:"name"`
+	UseGcra     bool          `db:"use_gcra"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
@@ -48,7 +49,7 @@ type FindRatelimitNamespaceRow struct {
 
 // FindRatelimitNamespace
 //
-//	SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
+//	SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.use_gcra, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
 //	       coalesce(
 //	               (select json_arrayagg(
 //	                               json_object(
@@ -73,6 +74,7 @@ func (q *Queries) FindRatelimitNamespace(ctx context.Context, db DBTX, arg FindR
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.Name,
+		&i.UseGcra,
 		&i.CreatedAtM,
 		&i.UpdatedAtM,
 		&i.DeletedAtM,

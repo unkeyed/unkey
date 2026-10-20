@@ -333,6 +333,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 				WorkspaceID:       principal.AuthorizedWorkspaceID,
 				ProjectID:         projectID,
 				Name:              name,
+				UseGcra:           false,
 				CreatedAtM:        now,
 				UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
 				DeletedAtM:        sql.NullInt64{Valid: false, Int64: 0},

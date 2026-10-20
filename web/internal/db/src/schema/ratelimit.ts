@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlTable, unique, uniqueIndex } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, mysqlTable, unique, uniqueIndex } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
@@ -14,6 +14,12 @@ export const ratelimitNamespaces = mysqlTable(
     workspaceId: id("workspace_id").notNull(),
     projectId: id("project_id").notNull(),
     name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
+    /**
+     * Opts the namespace into the GCRA limiter, which shares state through the
+     * ratelimit_gcra table instead of the regional counters. False by default, so
+     * it can be rolled out one namespace at a time.
+     */
+    useGcra: boolean("use_gcra").notNull().default(false),
 
     ...lifecycleDatesMigration,
   },
