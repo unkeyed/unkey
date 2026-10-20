@@ -29,27 +29,18 @@ import {
 } from "./instances-model";
 import type { StepResolution } from "./stages-model";
 
-const REGION_W = 320;
+const REGION_MIN_W = 260;
+const REGION_MAX_W = 320;
 const REGION_GAP = 32;
 
-const sideBySideAt: Partial<Record<number, { edge: string; grid: string }>> = {
-  1: { edge: "flex", grid: "grid-cols-1" },
-  2: {
-    edge: "@min-[552px]/diagram:flex",
-    grid: "@min-[552px]/diagram:grid-cols-2",
-  },
-  3: {
-    edge: "@min-[844px]/diagram:flex",
-    grid: "@min-[844px]/diagram:grid-cols-3",
-  },
-  4: {
-    edge: "@min-[1136px]/diagram:flex",
-    grid: "@min-[1136px]/diagram:grid-cols-4",
-  },
-  5: {
-    edge: "@min-[1428px]/diagram:flex",
-    grid: "@min-[1428px]/diagram:grid-cols-5",
-  },
+// Literal classes for Tailwind: the edge shows once all n regions fit in one row,
+// at n * REGION_MIN_W + (n - 1) * REGION_GAP. Past five regions the edge stays hidden.
+const edgeShownAt: Partial<Record<number, string>> = {
+  1: "flex",
+  2: "@min-[552px]/diagram:flex",
+  3: "@min-[844px]/diagram:flex",
+  4: "@min-[1136px]/diagram:flex",
+  5: "@min-[1428px]/diagram:flex",
 };
 
 type TileVariant = "region" | "instance";
@@ -119,23 +110,29 @@ export function InstancesDiagram({ stage }: { stage: StepResolution["status"] })
   }
 
   const n = view.regions.length;
-  const layout = sideBySideAt[n];
+  const edgeShown = edgeShownAt[n];
   return (
     <div className="@container/diagram px-8 py-8">
-      {layout ? (
-        <FanIn className={cn("-mt-8 mx-auto hidden h-33 w-full max-w-120", layout.edge)} />
+      {edgeShown ? (
+        <FanIn className={cn("-mt-8 mx-auto hidden h-33 w-full max-w-120", edgeShown)} />
       ) : null}
       <div
-        className="mx-auto flex w-full flex-col motion-safe:animate-diagram-rise"
-        style={{ maxWidth: n * REGION_W + (n - 1) * REGION_GAP }}
+        className="mx-auto flex w-full flex-col motion-safe:animate-upgrade-rise"
+        style={{ maxWidth: n * REGION_MAX_W + (n - 1) * REGION_GAP }}
       >
-        {layout ? (
-          <div className={cn("hidden flex-col", layout.edge)}>
+        {edgeShown ? (
+          <div className={cn("hidden flex-col", edgeShown)}>
             <EdgeNode />
             <FanOut targets={n} className="-mx-4 h-13 w-[calc(100%+2rem)]" />
           </div>
         ) : null}
-        <div className={cn("grid grid-cols-1 items-start gap-x-8 gap-y-4", layout?.grid)}>
+        <div
+          className="grid items-start gap-y-4"
+          style={{
+            gridTemplateColumns: `repeat(auto-fit, minmax(min(${REGION_MIN_W}px, 100%), 1fr))`,
+            columnGap: REGION_GAP,
+          }}
+        >
           {view.regions.map((region) => (
             <RegionCard key={region.key} region={region} />
           ))}
@@ -258,8 +255,8 @@ function SizeBadge({ region }: { region: RegionGroup }) {
         <Spec icon={<IconLayers3Outline18 />} label="Instances" value={runningCountText(region)} />
         <span className="font-sans text-gray-10">Per instance</span>
         <span className="grid grid-cols-2 gap-x-3 gap-y-1 whitespace-nowrap">
-          {sizeSpecs(deployment).map(([name, Icon, value]) => (
-            <Spec key={name} icon={<Icon />} label={name} value={value} />
+          {sizeSpecs(deployment).map(({ label, Icon, value }) => (
+            <Spec key={label} icon={<Icon />} label={label} value={value} />
           ))}
         </span>
       </PopoverContent>

@@ -45,13 +45,13 @@ export function RegionViz({ settings, unavailable, action }: VizProps) {
             const region = regionInfo(name);
             const blocked = unavailable.has(name);
             const specs = [
-              [
-                "Instances",
-                IconLayers3Outline18,
-                formatReplicas({ min: replicasMin, max: replicasMax }),
-              ],
+              {
+                label: "Instances",
+                Icon: IconLayers3Outline18,
+                value: formatReplicas({ min: replicasMin, max: replicasMax }),
+              },
               ...size,
-            ] as const;
+            ];
             return (
               <div
                 key={name}
@@ -72,7 +72,7 @@ export function RegionViz({ settings, unavailable, action }: VizProps) {
                   </span>
                 </span>
                 <span className="grid grid-cols-2 gap-x-3 gap-y-1 whitespace-nowrap border-t border-grayA-4 px-3 py-2 font-mono text-3xs">
-                  {specs.map(([label, Icon, value]) => (
+                  {specs.map(({ label, Icon, value }) => (
                     <Spec key={label} icon={<Icon />} label={label} value={value} />
                   ))}
                 </span>
