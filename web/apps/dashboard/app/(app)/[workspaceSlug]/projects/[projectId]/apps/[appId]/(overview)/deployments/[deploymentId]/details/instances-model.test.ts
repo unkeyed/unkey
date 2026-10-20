@@ -121,11 +121,10 @@ describe("resolveInstancesView", () => {
           },
         },
       ],
-      routing: { kind: "partial", live: 1, total: 2 },
     });
   });
 
-  test("a target region without instance rows yet waits and counts toward routing", () => {
+  test("a target region without instance rows yet shows as waiting", () => {
     const view = diagramOf({
       instances: [instance("ins_a", "us-east-1")],
       targetRegions: [
@@ -137,7 +136,6 @@ describe("resolveInstancesView", () => {
       ["ap-southeast-1", "waiting", 2],
       ["us-east-1", "instances", 1],
     ]);
-    expect(view.routing).toEqual({ kind: "partial", live: 1, total: 2 });
   });
 
   test("a region short of its target replicas holds waiting slots and is not running", () => {
@@ -177,7 +175,6 @@ describe("resolveInstancesView", () => {
           },
         },
       ],
-      routing: { kind: "partial", live: 2, total: 2 },
     });
   });
 
@@ -198,25 +195,6 @@ describe("resolveInstancesView", () => {
         },
       ],
     ]);
-    expect(view.routing).toEqual({ kind: "stopped" });
-  });
-
-  test("routing waits for a running region, then reads all once every region runs", () => {
-    const routing = (statuses: Instance["status"][]) =>
-      diagramOf({
-        instances: statuses.map((status, n) => instance(`ins_${n}`, `region-${n}`, { status })),
-      }).routing;
-    expect(routing(["pending", "failed"])).toEqual({ kind: "waiting" });
-    expect(routing(["running", "running"])).toEqual({ kind: "all" });
-    expect(routing(["inactive", "inactive"])).toEqual({ kind: "stopped" });
-  });
-
-  test("while the deploy step runs, routing never claims every region", () => {
-    const view = diagramOf({
-      stage: "started",
-      instances: [instance("ins_a", "us-east-1"), instance("ins_b", "eu-central-1")],
-    });
-    expect(view.routing).toEqual({ kind: "partial", live: 2, total: 2 });
   });
 
   test("before the deploy step starts, early rows are ignored for a skeleton of the target", () => {
@@ -248,7 +226,6 @@ describe("resolveInstancesView", () => {
           content: { kind: "skeleton", count: 2 },
         },
       ],
-      routing: { kind: "build" },
     });
   });
 
@@ -275,7 +252,6 @@ describe("resolveInstancesView", () => {
           content: { kind: "skeleton", count: 1 },
         },
       ],
-      routing: { kind: "waiting" },
     });
   });
 
