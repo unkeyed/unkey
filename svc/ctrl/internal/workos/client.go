@@ -3,6 +3,8 @@ package workos
 import (
 	"net/http"
 	"time"
+
+	"github.com/unkeyed/unkey/pkg/httpclient"
 )
 
 // baseURL is the WorkOS REST API origin.
@@ -22,7 +24,6 @@ const requestTimeout = 30 * time.Second
 
 // client is the WorkOS-backed Resolver.
 type client struct {
-	apiKey  string
 	baseURL string
 	http    *http.Client
 }
@@ -33,8 +34,10 @@ var _ Resolver = (*client)(nil)
 // with no key configured wires NewNoop instead and owns that decision.
 func New(apiKey string) Resolver {
 	return &client{
-		apiKey:  apiKey,
 		baseURL: baseURL,
-		http:    &http.Client{Timeout: requestTimeout}, //nolint:exhaustruct // default transport, only the timeout matters
+		http: httpclient.New("api.workos.com",
+			httpclient.WithTimeout(requestTimeout),
+			httpclient.WithHeaders(http.Header{"Authorization": {"Bearer " + apiKey}}),
+		),
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/httpclient"
 	"github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
@@ -161,7 +162,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 	return &Client{
 		config:            config,
 		baseURL:           "https://api.github.com",
-		httpClient:        &http.Client{Timeout: 30 * time.Second},
+		httpClient:        httpclient.New("api.github.com", httpclient.WithTimeout(30*time.Second)),
 		signer:            signer,
 		tokenCache:        tokenCache,
 		scopedTokenCache:  scopedTokenCache,

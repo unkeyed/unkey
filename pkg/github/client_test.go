@@ -1,12 +1,78 @@
 package github
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 )
+
+func TestNoopPublicCallsShareResilientClient(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch requests.Add(1) {
+		case 1:
+			w.WriteHeader(http.StatusServiceUnavailable)
+		case 2:
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}))
+	t.Cleanup(server.Close)
+	client := NewNoop()
+	client.baseURL = server.URL
+	t.Cleanup(client.httpClient.CloseIdleConnections)
+	public, err := client.IsRepoPublic("acme/app")
+	require.NoError(t, err)
+	require.True(t, public)
+	for range 5 {
+		_, err := client.IsRepoPublic("acme/app")
+		require.Error(t, err)
+	}
+	_, err = client.GetBranchHeadCommitPublic("acme/app", "main")
+	require.ErrorIs(t, err, circuitbreaker.ErrTripped)
+}
+
+func TestClientIsRepoPublicRetriesUnavailableEndpoint(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	client, err := NewClient(ClientConfig{
+		AppID: 0,
+		PrivateKeyPEM: string(pem.EncodeToMemory(&pem.Block{
+			Type: "RSA PRIVATE KEY", Headers: nil, Bytes: x509.MarshalPKCS1PrivateKey(key),
+		})),
+		WebhookSecret: "",
+	})
+	require.NoError(t, err)
+	t.Cleanup(client.httpClient.CloseIdleConnections)
+	t.Cleanup(client.tokenCache.Close)
+	t.Cleanup(client.scopedTokenCache.Close)
+	t.Cleanup(client.collaboratorCache.Close)
+	t.Cleanup(client.visibilityCache.Close)
+
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requests.Add(1) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	client.baseURL = server.URL
+
+	public, err := client.IsRepoPublic("acme/app")
+	require.NoError(t, err)
+	require.True(t, public)
+}
 
 func TestResolveCommitAuthor(t *testing.T) {
 	tests := []struct {

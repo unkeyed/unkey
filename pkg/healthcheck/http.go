@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
+
+	"github.com/unkeyed/unkey/pkg/httpclient"
 )
 
 // HTTPHeartbeat sends heartbeats to an HTTP endpoint.
@@ -14,10 +17,14 @@ type HTTPHeartbeat struct {
 }
 
 // NewHTTPHeartbeat creates a heartbeat client for an HTTP endpoint.
-func NewHTTPHeartbeat(url string) *HTTPHeartbeat {
+func NewHTTPHeartbeat(endpoint string) *HTTPHeartbeat {
+	hostname := "invalid-host"
+	if parsed, err := url.Parse(endpoint); err == nil && parsed.Hostname() != "" {
+		hostname = parsed.Hostname()
+	}
 	return &HTTPHeartbeat{
-		url:    url,
-		client: &http.Client{Timeout: 10 * time.Second},
+		url:    endpoint,
+		client: httpclient.New(hostname, httpclient.WithTimeout(10*time.Second)),
 	}
 }
 

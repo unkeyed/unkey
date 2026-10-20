@@ -3,6 +3,8 @@ package email
 import (
 	"net/http"
 	"time"
+
+	"github.com/unkeyed/unkey/pkg/httpclient"
 )
 
 // resendEndpoint is Resend's send-email API. Sending with a template is one
@@ -20,9 +22,12 @@ type resendSender struct {
 func NewResend(apiKey, defaultFrom string) Sender {
 	return &resendSender{
 		defaultFrom: defaultFrom,
-		client: &http.Client{
-			Timeout:   10 * time.Second,
-			Transport: authTransport{apiKey: apiKey, next: http.DefaultTransport},
-		},
+		client: httpclient.New("api.resend.com",
+			httpclient.WithTimeout(10*time.Second),
+			httpclient.WithHeaders(http.Header{
+				"Authorization": {"Bearer " + apiKey},
+				"Content-Type":  {"application/json"},
+			}),
+		),
 	}
 }

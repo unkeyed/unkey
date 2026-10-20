@@ -5,10 +5,29 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 )
+
+func TestResendStopsSendingAfterRepeatedFailures(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(server.Close)
+	sender := newTestResend(server.URL, "re_test_key", "default@unkey.com")
+	email := Email{To: []string{"a@example.com"}, TemplateID: "tmpl_123"}
+	for range 5 {
+		err := sender.Send(context.Background(), email)
+		require.ErrorContains(t, err, "resend returned 503")
+	}
+	require.ErrorIs(t, sender.Send(context.Background(), email), circuitbreaker.ErrTripped)
+	require.Equal(t, int32(5), requests.Load(), "failed email POSTs must not be replayed")
+}
 
 func TestResendSend(t *testing.T) {
 	t.Run("posts template id, variables, and auth", func(t *testing.T) {

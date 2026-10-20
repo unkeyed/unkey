@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -57,6 +58,22 @@ func TestHTTPHeartbeat_Ping(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHTTPHeartbeat_RetriesUnavailableEndpoint(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requests.Add(1) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+
+	hb := NewHTTPHeartbeat(server.URL)
+	t.Cleanup(hb.client.CloseIdleConnections)
+	require.NoError(t, hb.Ping(context.Background()))
 }
 
 func TestHTTPHeartbeat_EmptyURL(t *testing.T) {
