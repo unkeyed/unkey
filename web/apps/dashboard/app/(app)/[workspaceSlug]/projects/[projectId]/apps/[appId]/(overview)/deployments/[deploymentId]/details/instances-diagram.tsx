@@ -7,6 +7,7 @@ import { RegionFlag } from "@/components/region-flag";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type InstanceState, instanceLabel } from "@/lib/collections/deploy/instance-status";
 import { sizeLabel } from "@/lib/compute/sizing";
+import { plural } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { regionInfo } from "@/lib/regions";
 import { IconLayers3Outline18, IconServerOutline18 } from "@unkey/icons";
@@ -31,6 +32,7 @@ const REGION_W = 320;
 const REGION_GAP = 32;
 
 const sideBySideAt: Partial<Record<number, { edge: string; grid: string }>> = {
+  1: { edge: "flex", grid: "grid-cols-1" },
   2: {
     edge: "@min-[552px]/diagram:flex",
     grid: "@min-[552px]/diagram:grid-cols-2",
@@ -93,7 +95,11 @@ function edgeSubtitle(routing: EdgeRouting): string {
     .with({ kind: "build" }, () => "Waiting for build")
     .with({ kind: "waiting" }, () => "Waiting for a healthy instance")
     .with({ kind: "stopped" }, () => "Not serving traffic")
-    .with({ kind: "partial" }, ({ live, total }) => `Routing to ${live} of ${total} regions`)
+    .with({ kind: "partial" }, ({ live, total }) =>
+      live === total
+        ? `Routing to ${plural(total, "region")}`
+        : `Routing to ${live} of ${total} regions`,
+    )
     .with({ kind: "all" }, () => "Routes to the nearest region")
     .exhaustive();
 }
