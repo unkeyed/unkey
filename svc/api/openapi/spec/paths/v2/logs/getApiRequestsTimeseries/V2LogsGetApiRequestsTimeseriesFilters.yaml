@@ -7,8 +7,6 @@ properties:
     "$ref": "../../../../common/TimeFilter.yaml"
   path:
     "$ref": "../../../../common/TextFilter.yaml"
-  host:
-    "$ref": "../../../../common/ExactFilter.yaml"
   method:
     "$ref": "../../../../common/MethodFilter.yaml"
   status:

@@ -2,7 +2,6 @@ package clickhouse
 
 import (
 	"context"
-	"maps"
 	"strconv"
 	"time"
 
@@ -57,7 +56,6 @@ var apiRequestsResolutions = []apiRequestsResolution{
 type ApiRequestsTimeseriesFilters struct {
 	Time   logfilter.Int
 	Path   logfilter.Text
-	Host   logfilter.Exact
 	Method logfilter.Exact
 	Status logfilter.Int
 }
@@ -135,21 +133,16 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 
 	b := logfilter.New()
 	b.Text(apiRequestPath, req.Filters.Path)
-	b.Exact(apiRequestHost, req.Filters.Host)
 	b.Exact(apiRequestMethod, req.Filters.Method)
 	b.Int(apiRequestStatus, req.Filters.Status)
-	where, filterParams := b.Build()
-
-	params := map[string]string{
-		"workspace_id":   req.WorkspaceID,
-		"rows_start":     strconv.FormatInt(max(firstBucketStart, req.RetentionStart), 10),
-		"rows_end":       strconv.FormatInt(windowEnd, 10),
-		"bucket_seconds": strconv.FormatInt(resolution.bucketMs/time.Second.Milliseconds(), 10),
-		"bucket_ms":      strconv.FormatInt(resolution.bucketMs, 10),
-		"fill_from":      strconv.FormatInt(firstBucketStart, 10),
-		"fill_to":        strconv.FormatInt(lastBucketStart+resolution.bucketMs, 10),
-	}
-	maps.Copy(params, filterParams)
+	where, params := b.Build()
+	params["workspace_id"] = req.WorkspaceID
+	params["rows_start"] = strconv.FormatInt(max(firstBucketStart, req.RetentionStart), 10)
+	params["rows_end"] = strconv.FormatInt(windowEnd, 10)
+	params["bucket_seconds"] = strconv.FormatInt(resolution.bucketMs/time.Second.Milliseconds(), 10)
+	params["bucket_ms"] = strconv.FormatInt(resolution.bucketMs, 10)
+	params["fill_from"] = strconv.FormatInt(firstBucketStart, 10)
+	params["fill_to"] = strconv.FormatInt(lastBucketStart+resolution.bucketMs, 10)
 
 	// The day table's time is a Date, and toDateTime(time, 'UTC') makes it UTC
 	// midnight, where an epoch-aligned day bucket starts

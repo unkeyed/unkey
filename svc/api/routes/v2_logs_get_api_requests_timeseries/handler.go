@@ -66,7 +66,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Filters: clickhouse.ApiRequestsTimeseriesFilters{
 			Time:   requestlogs.Time(filters.Time),
 			Path:   requestlogs.Text(filters.Path),
-			Host:   requestlogs.Exact(filters.Host),
 			Method: requestlogs.Method(filters.Method),
 			Status: requestlogs.Int(filters.Status),
 		},

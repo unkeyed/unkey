@@ -176,7 +176,7 @@ func TestGetApiRequestsTimeseriesFilters(t *testing.T) {
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 4000, Path: "/v2/keys.verifyKey", ResponseStatus: 401},
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 3000, Path: "/v2/keys.updateKey", ResponseStatus: 429},
 		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 2000, Path: "/v2/apis.listKeys", ResponseStatus: 500, Method: "GET"},
-		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 1000, Path: "/v2/keys.deleteKey", ResponseStatus: 200, Host: "api.unkey.dev"},
+		schema.ApiRequest{WorkspaceID: workspaceID, Time: now - 1000, Path: "/v2/keys.deleteKey", ResponseStatus: 200},
 	)
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
@@ -195,7 +195,6 @@ func TestGetApiRequestsTimeseriesFilters(t *testing.T) {
 			total: 1,
 		},
 		{name: "method", filters: openapi.V2LogsGetApiRequestsTimeseriesFilters{Method: &openapi.MethodFilter{Is: &[]openapi.HttpMethod{"GET", "PUT"}}}, total: 1},
-		{name: "host isNot", filters: openapi.V2LogsGetApiRequestsTimeseriesFilters{Host: &openapi.ExactFilter{IsNot: &[]string{"api.unkey.com"}}}, total: 1},
 		{name: "path contains is literal", filters: openapi.V2LogsGetApiRequestsTimeseriesFilters{Path: &openapi.TextFilter{Contains: &[]string{"keys_"}}}, total: 0},
 	}
 
