@@ -12,10 +12,9 @@ import {
 } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
 import { useProjectData } from "../../../data-provider";
-import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import type { StepsData } from "../use-deployment-status";
+import { FailureActions } from "./failure-actions";
 import { LIMITS_DOCS_URL, limitFailure } from "./limit-failure";
 
 type SettingsHint = "build" | "environment";
@@ -83,7 +82,6 @@ export function FailedDeploymentBanner({
   limitsUrl: Route;
   deployment: Deployment;
 }) {
-  const [redeployOpen, setRedeployOpen] = useState(false);
   const errorMessage = (stepsData && firstStepError(stepsData)) ?? "Deployment failed";
   const { environments } = useProjectData();
   const settingsTarget = settingsTargetFor(
@@ -122,7 +120,7 @@ export function FailedDeploymentBanner({
             .with("loading", () => null)
             .with("limit", () => (
               <>
-                <RedeployButton variant="outline" onClick={() => setRedeployOpen(true)} />
+                <FailureActions deployment={deployment} redeployVariant="outline" />
                 <Button
                   variant="primary"
                   size="sm"
@@ -133,29 +131,10 @@ export function FailedDeploymentBanner({
                 </Button>
               </>
             ))
-            .with("generic", () => <RedeployButton onClick={() => setRedeployOpen(true)} />)
+            .with("generic", () => <FailureActions deployment={deployment} />)
             .exhaustive()}
         </AlertBannerActions>
       </AlertBanner>
-      <RedeployDialog
-        isOpen={redeployOpen}
-        onClose={() => setRedeployOpen(false)}
-        selectedDeployment={deployment}
-      />
     </div>
-  );
-}
-
-function RedeployButton({
-  onClick,
-  variant = "primary",
-}: {
-  onClick: () => void;
-  variant?: "primary" | "outline";
-}): ReactNode {
-  return (
-    <Button variant={variant} size="sm" onClick={onClick} className="px-3">
-      Redeploy
-    </Button>
   );
 }

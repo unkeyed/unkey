@@ -19,6 +19,7 @@ import { cn } from "cn";
 import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
 import { toBuildLogLines } from "../(deployment-progress)/build-logs/build-log-lines";
 import { DeploymentBuildLogs } from "../(deployment-progress)/build-logs/deployment-build-logs";
+import { FailureActions } from "../(deployment-progress)/failure-actions";
 import { useDeployment } from "../layout-provider";
 import { useBuildLogs } from "../use-build-logs";
 import type { StepsData } from "../use-deployment-status";
@@ -215,14 +216,22 @@ function StageRow({ stage, ticker, open, onToggle, children }: StageRowProps) {
       </button>
       {open && (
         <div id={panelId} className="border-t border-grayA-4 bg-grayA-2">
-          {failed && (
-            <p className="border-b border-grayA-4 bg-error-2 px-4 py-2.5 font-mono text-xs leading-5 text-error-11">
-              {resolution.description}
-            </p>
-          )}
+          {failed && <StageFailure description={resolution.description} />}
           {children}
         </div>
       )}
+    </div>
+  );
+}
+
+function StageFailure({ description }: { description: string }) {
+  const { deployment } = useDeployment();
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-grayA-4 bg-error-2 px-4 py-2.5">
+      <p className="min-w-0 flex-1 font-mono text-xs leading-5 text-error-11">{description}</p>
+      <span className="flex shrink-0 items-center gap-2">
+        <FailureActions deployment={deployment} />
+      </span>
     </div>
   );
 }
