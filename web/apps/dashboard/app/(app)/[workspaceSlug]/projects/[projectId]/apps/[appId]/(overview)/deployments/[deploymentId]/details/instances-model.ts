@@ -45,10 +45,11 @@ export function instanceDetail(instance: DeploymentInstance): string | null {
   if (instanceStateOf(instance) !== "unhealthy" || !instance.lastExit) {
     return null;
   }
-  const { reason, exit } = describeLastExit(instance.lastExit);
+  const summary = describeLastExit(instance.lastExit);
+  const cause = summary.kind === "waiting" ? [summary.reason] : [summary.reason, summary.exit];
   const { restartCount } = instance.lastExit;
   const restarts = restartCount > 0 ? plural(restartCount, "restart") : null;
-  return [reason, exit, restarts].filter(Boolean).join(" · ") || null;
+  return [...cause, restarts].filter(Boolean).join(" · ") || null;
 }
 
 export function resolveInstancesView(input: InstancesInput): InstancesView {

@@ -20,9 +20,9 @@ const stateByStatus: Record<InstanceStatus, InstanceState> = {
   inactive: "inactive",
 };
 
-export type InstanceHealth = { status: InstanceStatus; statusReason: string | null };
-
 type DeploymentInstance = Deployment["instances"][number];
+
+export type InstanceHealth = Pick<DeploymentInstance, "status" | "lastExit">;
 
 export type InstancesSource = Pick<Deployment, "instances" | "targetRegions" | "desiredState">;
 
@@ -44,8 +44,12 @@ const FATAL_WAITING_REASONS: ReadonlySet<string> = new Set([
   "InvalidImageName",
 ]);
 
-export function instanceStateOf({ status, statusReason }: InstanceHealth): InstanceState {
-  if (statusReason !== null && FATAL_WAITING_REASONS.has(statusReason) && status !== "inactive") {
+export function isFatalWaitingReason(statusReason: string | null): statusReason is string {
+  return statusReason !== null && FATAL_WAITING_REASONS.has(statusReason);
+}
+
+export function instanceStateOf({ status, lastExit }: InstanceHealth): InstanceState {
+  if (isFatalWaitingReason(lastExit?.statusReason ?? null) && status !== "inactive") {
     return "unhealthy";
   }
   return stateByStatus[status];
