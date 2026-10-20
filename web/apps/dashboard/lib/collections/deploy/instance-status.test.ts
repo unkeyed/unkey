@@ -98,6 +98,34 @@ describe("summarizeInstances", () => {
   });
 });
 
+describe("summarizeInstances after a deployment stops serving", () => {
+  test("a stopped deployment whose topology still lists regions counts only its rows", () => {
+    expect(
+      summarizeInstances(
+        source({
+          desiredState: "stopped",
+          instances: [
+            instance("us-east-1", { id: "ins_a", status: "inactive" }),
+            instance("us-east-1", { id: "ins_b", status: "inactive" }),
+          ],
+          targetRegions: [target("us-east-1", 5)],
+        }),
+      ),
+    ).toEqual({ state: "inactive", running: 0, total: 2 });
+  });
+
+  test("a stopped deployment with no topology and no rows has no summary", () => {
+    expect(summarizeInstances(source({ desiredState: "stopped" }))).toBe(null);
+  });
+
+  test("a superseded deployment has no running topology, so it never borrows the app's replica count", () => {
+    expect(
+      summarizeInstances(source({ instances: [instance("us-east-1", { status: "inactive" })] })),
+    ).toEqual({ state: "inactive", running: 0, total: 1 });
+    expect(summarizeInstances(source())).toBe(null);
+  });
+});
+
 describe("instancesText", () => {
   test("counts running instances, or words the empty case by the desired state", () => {
     expect(instancesText({ state: "running", running: 1, total: 3 }, "running")).toBe(
