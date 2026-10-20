@@ -31,15 +31,8 @@ export type RegionGroup = {
   content: RegionContent;
 };
 
-export type EdgeRouting =
-  | { kind: "build" }
-  | { kind: "waiting" }
-  | { kind: "stopped" }
-  | { kind: "partial"; live: number; total: number }
-  | { kind: "all" };
-
 export type InstancesView =
-  | { kind: "diagram"; regions: RegionGroup[]; routing: EdgeRouting }
+  | { kind: "diagram"; regions: RegionGroup[] }
   | { kind: "empty"; message: string };
 
 export type InstancesInput = Pick<
@@ -59,17 +52,17 @@ export function instanceDetail(instance: DeploymentInstance): string | null {
 
 export function resolveInstancesView(input: InstancesInput): InstancesView {
   if (input.stage === "pending") {
-    return { kind: "diagram", regions: skeletonRegions(input), routing: { kind: "build" } };
+    return { kind: "diagram", regions: skeletonRegions(input) };
   }
   if (input.instances.length === 0) {
     if (input.stage === "started" && input.desiredState === "running") {
-      return { kind: "diagram", regions: skeletonRegions(input), routing: { kind: "waiting" } };
+      return { kind: "diagram", regions: skeletonRegions(input) };
     }
     const message = input.desiredState === "stopped" ? "No instances running" : "No instances";
     return { kind: "empty", message };
   }
   const regions = liveRegions(input);
-  return { kind: "diagram", regions, routing: routingOf(regions, input.stage) };
+  return { kind: "diagram", regions };
 }
 
 function regionOrder(desiredRegions: InstancesInput["desiredRegions"]) {
@@ -149,22 +142,6 @@ function liveRegions({
       content: { kind: "instances", instances: list, waiting },
     };
   });
-}
-
-function routingOf(regions: RegionGroup[], stage: InstancesInput["stage"]): EdgeRouting {
-  if (regions.every((r) => r.state === "inactive")) {
-    return { kind: "stopped" };
-  }
-  const live = regions.filter((r) => r.running > 0).length;
-  if (live === 0) {
-    return { kind: "waiting" };
-  }
-  const domainsNotAssignedYet = stage === "started";
-  const replicasMissing = regions.some((r) => r.running < r.total);
-  if (live < regions.length || domainsNotAssignedYet || replicasMissing) {
-    return { kind: "partial", live, total: regions.length };
-  }
-  return { kind: "all" };
 }
 
 export type EnteredTrack = {

@@ -9,23 +9,20 @@ import {
 import { InfoTooltip } from "@unkey/ui";
 import type { ReactNode } from "react";
 
-export function EdgeNode({ subtitle = "Routes to the nearest region" }: { subtitle?: string }) {
+export function EdgeNode() {
   return (
     <div className="mx-auto flex items-center gap-2 rounded-lg bg-raised px-3 py-2 shadow-sm ring-1 ring-grayA-5">
       <Logomark className="size-6 rounded-md bg-grayA-3" />
-      <span className="flex flex-col">
-        <span className="flex items-center gap-1 text-xs font-medium text-gray-12">
-          Unkey edge
-          <InfoTooltip
-            content="Unkey's global gateway. It receives every request to your domains, applies any policies you've set, and sends it to the nearest region with a running instance."
-            position={{ side: "right" }}
-            className="max-w-64"
-            triggerClassName="-m-1 rounded-sm p-1 text-gray-9 hover:text-gray-11 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-grayA-12"
-          >
-            <IconCircleInfoOutline12 className="size-3" aria-label="What is Unkey edge?" />
-          </InfoTooltip>
-        </span>
-        <span className="text-2xs text-gray-10">{subtitle}</span>
+      <span className="flex items-center gap-1 text-xs font-medium text-gray-12">
+        Unkey edge
+        <InfoTooltip
+          content="Unkey's global gateway. It receives every request to your domains, applies any policies you've set, and sends it to the nearest region with a running instance."
+          position={{ side: "right" }}
+          className="max-w-64"
+          triggerClassName="-m-1 rounded-sm p-1 text-gray-9 hover:text-gray-11 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-grayA-12"
+        >
+          <IconCircleInfoOutline12 className="size-3" aria-label="What is Unkey edge?" />
+        </InfoTooltip>
       </span>
     </div>
   );

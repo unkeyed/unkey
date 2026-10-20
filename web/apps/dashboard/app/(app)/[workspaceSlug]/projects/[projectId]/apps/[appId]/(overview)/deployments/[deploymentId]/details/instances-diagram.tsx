@@ -7,7 +7,6 @@ import { RegionFlag } from "@/components/region-flag";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type InstanceState, instanceLabel } from "@/lib/collections/deploy/instance-status";
 import { sizeLabel } from "@/lib/compute/sizing";
-import { plural } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { regionInfo } from "@/lib/regions";
 import { IconLayers3Outline18, IconServerOutline18 } from "@unkey/icons";
@@ -20,7 +19,6 @@ import { useDeployment } from "../layout-provider";
 import { runningCountText } from "./deployment-health";
 import {
   type DiagramInstance,
-  type EdgeRouting,
   type EnteredTrack,
   type RegionGroup,
   resolveInstancesView,
@@ -90,20 +88,6 @@ const cardTone: Record<InstanceState, { card: string; meta: string }> = {
   inactive: neutralCard,
 };
 
-function edgeSubtitle(routing: EdgeRouting): string {
-  return match(routing)
-    .with({ kind: "build" }, () => "Waiting for build")
-    .with({ kind: "waiting" }, () => "Waiting for a healthy instance")
-    .with({ kind: "stopped" }, () => "Not serving traffic")
-    .with({ kind: "partial" }, ({ live, total }) =>
-      live === total
-        ? `Routing to ${plural(total, "region")}`
-        : `Routing to ${live} of ${total} regions`,
-    )
-    .with({ kind: "all" }, () => "Routes to the nearest region")
-    .exhaustive();
-}
-
 export function InstancesDiagram({ stage }: { stage: StepResolution["status"] }) {
   const { deployment } = useDeployment();
   const { instances, desiredRegions, targetRegions, desiredState, desiredInstanceCount } =
@@ -144,7 +128,7 @@ export function InstancesDiagram({ stage }: { stage: StepResolution["status"] })
       >
         {layout ? (
           <div className={cn("hidden flex-col", layout.edge)}>
-            <EdgeNode subtitle={edgeSubtitle(view.routing)} />
+            <EdgeNode />
             <FanOut targets={n} className="-mx-4 h-13 w-[calc(100%+2rem)]" />
           </div>
         ) : null}
