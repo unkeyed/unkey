@@ -15,6 +15,12 @@ export const ratelimitNamespaces = mysqlTable(
     projectId: id("project_id").notNull(),
     name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
     /**
+     * Opts the namespace into the cross-region global counter instead of the
+     * regional counters. Nothing reads it on this branch; it keeps the schema in
+     * step with the global counter work, so both can run against one database.
+     */
+    useGlobalCounter: boolean("use_global_counter").notNull().default(false),
+    /**
      * Opts the namespace into the GCRA limiter, which shares state through the
      * ratelimit_gcra table instead of the regional counters. False by default, so
      * it can be rolled out one namespace at a time.

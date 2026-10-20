@@ -1067,15 +1067,16 @@ type Ratelimit struct {
 }
 
 type RatelimitNamespace struct {
-	Pk          uint64        `db:"pk"`
-	ID          string        `db:"id"`
-	WorkspaceID string        `db:"workspace_id"`
-	ProjectID   string        `db:"project_id"`
-	Name        string        `db:"name"`
-	UseGcra     bool          `db:"use_gcra"`
-	CreatedAtM  int64         `db:"created_at_m"`
-	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
-	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
+	Pk               uint64        `db:"pk"`
+	ID               string        `db:"id"`
+	WorkspaceID      string        `db:"workspace_id"`
+	ProjectID        string        `db:"project_id"`
+	Name             string        `db:"name"`
+	UseGlobalCounter bool          `db:"use_global_counter"`
+	UseGcra          bool          `db:"use_gcra"`
+	CreatedAtM       int64         `db:"created_at_m"`
+	UpdatedAtM       sql.NullInt64 `db:"updated_at_m"`
+	DeletedAtM       sql.NullInt64 `db:"deleted_at_m"`
 }
 
 type RatelimitOverride struct {
