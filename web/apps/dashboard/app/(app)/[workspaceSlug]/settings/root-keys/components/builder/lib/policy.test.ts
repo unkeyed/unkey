@@ -12,6 +12,7 @@ import {
 } from "./catalogue.types";
 import { workspaceCatalogue } from "./catalogue.workspace";
 import {
+  applyBulk,
   countSelectedActions,
   isPolicyComplete,
   newPolicy,
@@ -76,6 +77,30 @@ describe("selection helpers", () => {
     expect(selection.keyspace).toEqual(["read", "write", "delete"]);
     expect(selection.keyspace_log).toEqual(["read"]);
     expect(selection.identity).toEqual(["read", "write", "delete"]);
+  });
+
+  it("keeps verify, decrypt and limit when bulk-setting read and write", () => {
+    const rows = catalogueRows(workspaceCatalogue);
+    const selection = applyBulk(applyBulk({}, rows, "full"), rows, "read-write");
+    expect(selection.key).toEqual(["read", "write", "verify", "decrypt"]);
+    expect(selection.ratelimit_namespace).toEqual(["read", "write", "limit"]);
+    expect(selection.keyspace).toEqual(["read", "write"]);
+    expect(selection.keyspace_log).toEqual(["read"]);
+  });
+
+  it("keeps verify, decrypt and limit when bulk-setting read only", () => {
+    const rows = catalogueRows(workspaceCatalogue);
+    const selection = applyBulk(applyBulk({}, rows, "full"), rows, "read");
+    expect(selection.key).toEqual(["read", "verify", "decrypt"]);
+    expect(selection.ratelimit_namespace).toEqual(["read", "limit"]);
+    expect(selection.keyspace).toEqual(["read"]);
+  });
+
+  it("adds only CRUD actions when bulk-setting an empty selection", () => {
+    const rows = catalogueRows(workspaceCatalogue);
+    const selection = applyBulk({}, rows, "read-write");
+    expect(selection.key).toEqual(["read", "write"]);
+    expect(selection.ratelimit_namespace).toEqual(["read", "write"]);
   });
 
   it("clears a bulk selection", () => {

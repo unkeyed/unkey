@@ -3,8 +3,11 @@ import {
   ACTIONS,
   ALL_INSTANCES,
   type Action,
+  CRUD_ACTIONS,
   type PermissionRow,
   type PermissionSelection,
+  READ_ACTIONS,
+  READ_WRITE_ACTIONS,
   type ResourceScope,
   rowOffers,
 } from "./catalogue.types";
@@ -79,6 +82,41 @@ export function setRowsActions(
       ),
     selection,
   );
+}
+
+export function setRowsCrud(
+  selection: PermissionSelection,
+  rows: readonly PermissionRow[],
+  crud: readonly Action[],
+): PermissionSelection {
+  return rows.reduce<PermissionSelection>((acc, row) => {
+    const kept = rowActions(acc, row.id).filter((action) => !CRUD_ACTIONS.includes(action));
+    return setRowActions(
+      acc,
+      row.id,
+      [...crud, ...kept].filter((action) => rowOffers(row, action)),
+    );
+  }, selection);
+}
+
+export type BulkOption = "read" | "read-write" | "full" | "clear";
+
+const BULK_APPLY: Record<
+  BulkOption,
+  (selection: PermissionSelection, rows: readonly PermissionRow[]) => PermissionSelection
+> = {
+  read: (selection, rows) => setRowsCrud(selection, rows, READ_ACTIONS),
+  "read-write": (selection, rows) => setRowsCrud(selection, rows, READ_WRITE_ACTIONS),
+  full: (selection, rows) => setRowsActions(selection, rows, ACTIONS),
+  clear: (selection, rows) => setRowsActions(selection, rows, []),
+};
+
+export function applyBulk(
+  selection: PermissionSelection,
+  rows: readonly PermissionRow[],
+  option: BulkOption,
+): PermissionSelection {
+  return BULK_APPLY[option](selection, rows);
 }
 
 export function countSelectedActions(

@@ -9,17 +9,17 @@ import {
 import { IconChevronDownOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
-import { ACTIONS, type Action, READ_ACTIONS, READ_WRITE_ACTIONS } from "./lib/catalogue.types";
+import type { BulkOption } from "./lib/policy";
 
-const BULK_OPTIONS: { id: string; label: string; actions: readonly Action[] }[] = [
-  { id: "read", label: "Read only", actions: READ_ACTIONS },
-  { id: "read-write", label: "Read & write", actions: READ_WRITE_ACTIONS },
-  { id: "full", label: "Full control", actions: ACTIONS },
-  { id: "clear", label: "Clear all", actions: [] },
+const BULK_OPTIONS: { id: BulkOption; label: string }[] = [
+  { id: "read", label: "Read only" },
+  { id: "read-write", label: "Read & write" },
+  { id: "full", label: "Full control" },
+  { id: "clear", label: "Clear all" },
 ];
 
 type PermissionCatalogueBulkMenuProps = {
-  onSelect: (actions: readonly Action[]) => void;
+  onSelect: (option: BulkOption) => void;
 };
 
 export function PermissionCatalogueBulkMenu({ onSelect }: PermissionCatalogueBulkMenuProps) {
@@ -42,7 +42,7 @@ export function PermissionCatalogueBulkMenu({ onSelect }: PermissionCatalogueBul
             className="cursor-pointer"
             onClick={() => {
               setOpen(false);
-              onSelect(option.actions);
+              onSelect(option.id);
             }}
           >
             <span className="text-sm font-medium text-gray-12">{option.label}</span>

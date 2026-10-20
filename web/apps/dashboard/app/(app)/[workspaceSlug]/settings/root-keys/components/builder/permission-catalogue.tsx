@@ -16,9 +16,10 @@ import {
   rowOffers,
 } from "./lib/catalogue.types";
 import {
+  type BulkOption,
+  applyBulk,
   countSelectedActions,
   rowActions,
-  setRowsActions,
   toggleRowAction,
   toggleRowsAction,
 } from "./lib/policy";
@@ -46,8 +47,8 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
     (row) => !visible.has(row.id) && rowActions(value, row.id).length > 0,
   ).length;
 
-  const setActions = (actions: readonly Action[]) => {
-    onChange(setRowsActions(value, catalogueRows(catalogue), actions));
+  const selectBulk = (option: BulkOption) => {
+    onChange(applyBulk(value, catalogueRows(catalogue), option));
   };
 
   const toggleGroup = (groupId: string, open: boolean) => {
@@ -65,7 +66,7 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
           placeholder="Search permissions…"
           className="h-8"
         />
-        <PermissionCatalogueBulkMenu onSelect={setActions} />
+        <PermissionCatalogueBulkMenu onSelect={selectBulk} />
       </div>
 
       {hidden > 0 ? (
