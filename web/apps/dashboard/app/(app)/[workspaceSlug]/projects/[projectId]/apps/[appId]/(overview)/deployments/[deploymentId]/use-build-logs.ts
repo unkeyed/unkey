@@ -99,7 +99,7 @@ export function useBuildLogs(
       };
     },
     refetchInterval: (data, query) => {
-      if (!enabled || (data?.hasMore && query.state.status !== "error")) {
+      if (!enabled || (!readsToEnd && data?.hasMore && query.state.status !== "error")) {
         return false;
       }
       return pollInterval(deployment, data);
