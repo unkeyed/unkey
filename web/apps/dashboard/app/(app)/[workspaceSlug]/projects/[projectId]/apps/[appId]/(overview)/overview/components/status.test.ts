@@ -9,6 +9,7 @@ const instance = (overrides: Partial<Instance> = {}): Instance => ({
   region: { id: "r-1", name: "us-east-1", platform: "aws" },
   status: "running",
   statusReason: null,
+  lastExit: null,
   ...overrides,
 });
 
@@ -18,6 +19,7 @@ describe("deriveProductionStatus", () => {
       deriveProductionStatus({
         status: "ready",
         desiredInstanceCount: 1,
+        targetRegions: [],
         instances: [instance()],
       }),
     ).toBe("live");
@@ -28,6 +30,7 @@ describe("deriveProductionStatus", () => {
       deriveProductionStatus({
         status: "ready",
         desiredInstanceCount: 2,
+        targetRegions: [],
         instances: [instance(), instance({ id: "i-2", statusReason: "CrashLoopBackOff" })],
       }),
     ).toBe("crashing");
@@ -38,6 +41,7 @@ describe("deriveProductionStatus", () => {
       deriveProductionStatus({
         status: "ready",
         desiredInstanceCount: 1,
+        targetRegions: [],
         instances: [
           instance(),
           instance({ id: "i-2", status: "inactive", statusReason: "CrashLoopBackOff" }),
@@ -51,6 +55,7 @@ describe("deriveProductionStatus", () => {
       deriveProductionStatus({
         status: "failed",
         desiredInstanceCount: 1,
+        targetRegions: [],
         instances: [instance({ status: "failed" })],
       }),
     ).toBe("failed");

@@ -8,7 +8,10 @@ import { type PageStatus, resolvePageStatus } from "./details/deployment-health"
 export type DeploymentBody = "build" | "skipped" | "superseded" | "cancelled" | "stages";
 
 export type DeploymentPageInput = {
-  deployment: Pick<Deployment, "id" | "environmentId" | "instances" | "desiredInstanceCount">;
+  deployment: Pick<
+    Deployment,
+    "id" | "environmentId" | "instances" | "desiredInstanceCount" | "targetRegions"
+  >;
   status: DeploymentStatus;
   showBuild: boolean;
   domains: ReadonlyArray<Domain>;

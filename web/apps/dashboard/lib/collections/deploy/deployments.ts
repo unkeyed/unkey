@@ -14,6 +14,21 @@ import {
 import { INSTANCE_STATUSES } from "./instance-status";
 import { type ParsedFilter, extractStringFilter, extractStringValues } from "./utils";
 
+const regionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  platform: z.string(),
+});
+
+const lastExitSchema = z.object({
+  restartCount: z.number().int(),
+  exitCode: z.number().int().nullable(),
+  signal: z.number().int().nullable(),
+  reason: z.string().nullable(),
+  finishedAt: z.number().nullable(),
+  statusReason: z.string().nullable(),
+});
+
 export const deploymentSchema = z.object({
   id: z.string(),
   projectId: z.string(),
@@ -36,25 +51,16 @@ export const deploymentSchema = z.object({
   instances: z.array(
     z.object({
       id: z.string(),
-      region: z.object({
-        id: z.string(),
-        name: z.string(),
-        platform: z.string(),
-      }),
+      region: regionSchema,
       status: z.enum(INSTANCE_STATUSES),
       statusReason: z.string().nullable(),
+      lastExit: lastExitSchema.nullable(),
     }),
   ),
   desiredInstanceCount: z.number().int(),
-  desiredRegions: z.array(
-    z.object({
-      region: z.object({
-        id: z.string(),
-        name: z.string(),
-        platform: z.string(),
-      }),
-    }),
-  ),
+  desiredRegions: z.array(z.object({ region: regionSchema })),
+  // desiredRegions is the app's current settings, which an older deployment may not match.
+  targetRegions: z.array(z.object({ region: regionSchema, replicas: z.number().int() })),
   cpuMillicores: z.number().int(),
   memoryMib: z.number().int(),
   storageMib: z.number().int(),
@@ -86,16 +92,7 @@ export const deploymentSchema = z.object({
   // components/last-exit-badge.tsx. Sourced from
   // instances.containerStatus on the trpc layer; the flat shape is kept
   // here so consumers don't have to walk the JSON's optional sub-fields.
-  lastExit: z
-    .object({
-      restartCount: z.number().int(),
-      exitCode: z.number().int().nullable(),
-      signal: z.number().int().nullable(),
-      reason: z.string().nullable(),
-      finishedAt: z.number().nullable(),
-      statusReason: z.string().nullable(),
-    })
-    .nullable(),
+  lastExit: lastExitSchema.nullable(),
 });
 
 export type Deployment = z.infer<typeof deploymentSchema>;
@@ -142,6 +139,7 @@ type RowDetails = Pick<
   | "instances"
   | "desiredInstanceCount"
   | "desiredRegions"
+  | "targetRegions"
   | "triggerReason"
   | "lastExit"
 >;
@@ -210,6 +208,7 @@ function toDeployment(
     instances: details.instances,
     desiredInstanceCount: details.desiredInstanceCount,
     desiredRegions: details.desiredRegions,
+    targetRegions: details.targetRegions,
     cpuMillicores: Math.round(runtime.vCpus * 1000),
     memoryMib: runtime.memoryMib,
     storageMib: runtime.storageMib,
