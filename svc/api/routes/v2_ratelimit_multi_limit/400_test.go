@@ -2,6 +2,7 @@ package v2_ratelimit_multi_limit_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -44,6 +45,25 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("the same check twice", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.limit")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		namespaceName := uid.New("test")
+		check := openapi.V2RatelimitLimitRequestBody{Namespace: namespaceName, Identifier: "user_123", Limit: 100, Duration: 60000}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{check, check})
+
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+		_, err := db.Query.FindRatelimitNamespaceByName(context.Background(), h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID, Name: namespaceName,
+		})
+		require.ErrorIs(t, err, sql.ErrNoRows, "a rejected request must not create the namespace")
 	})
 
 	t.Run("negative cost", func(t *testing.T) {

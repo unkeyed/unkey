@@ -129,6 +129,8 @@ Every check is recorded in rate limit analytics and writes a `ratelimit.limit` a
 
 Send an array of 1 to 100 objects with the same fields as `ratelimit.limit`. Use it when one action must pass several limits, for example a per-user and a per-organization limit, or a request count and a token budget.
 
+Each check must have a different combination of namespace, identifier and duration. A repeated combination returns a 400 error with `invalid_input` before any namespace is created.
+
 ```bash
 curl -X POST https://api.unkey.com/v2/ratelimit.multiLimit \
   -H "Authorization: Bearer $UNKEY_ROOT_KEY" \

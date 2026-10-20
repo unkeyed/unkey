@@ -17,6 +17,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	pkgdb "github.com/unkeyed/unkey/pkg/db"
@@ -405,6 +406,7 @@ func newPushHarness(t *testing.T, ctx context.Context) *pushHarness {
 	workflow, err := deploy.New(deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
+		Flags:         flags.NewNoop(),
 		DefaultDomain: "test.example.com",
 		DashboardURL:  "https://app.unkey.local",
 		Vault:         nil,

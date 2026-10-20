@@ -1,5 +1,6 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/unkey-client";
 import {
   Button,
   EmptyState,
@@ -8,19 +9,26 @@ import {
   EmptyStateHeader,
   EmptyStateTitle,
 } from "@unkey/ui";
+import type { ComponentProps } from "react";
 
 export function LoadError({
   title,
+  error,
+  frame,
   onRetry,
 }: {
   title: string;
+  error?: unknown;
+  frame?: ComponentProps<typeof EmptyState>["frame"];
   onRetry: () => void;
 }) {
   return (
-    <EmptyState>
-      <EmptyStateHeader>
+    <EmptyState frame={frame}>
+      <EmptyStateHeader role="alert">
         <EmptyStateTitle>{title}</EmptyStateTitle>
-        <EmptyStateDescription>The request failed. Try again.</EmptyStateDescription>
+        <EmptyStateDescription>
+          {getErrorMessage(error, "The request failed. Try again.")}
+        </EmptyStateDescription>
       </EmptyStateHeader>
       <EmptyStateActions>
         <Button variant="primary" size="md" onClick={onRetry}>

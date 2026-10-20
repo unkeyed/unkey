@@ -535,6 +535,182 @@ func (*WakeDeploymentResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{9}
 }
 
+type AuthorizeDeploymentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Actor         *v1.ActorInfo          `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,2,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthorizeDeploymentRequest) Reset() {
+	*x = AuthorizeDeploymentRequest{}
+	mi := &file_hydra_v1_deployment_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizeDeploymentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizeDeploymentRequest) ProtoMessage() {}
+
+func (x *AuthorizeDeploymentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deployment_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthorizeDeploymentRequest.ProtoReflect.Descriptor instead.
+func (*AuthorizeDeploymentRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AuthorizeDeploymentRequest) GetActor() *v1.ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *AuthorizeDeploymentRequest) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type AuthorizeDeploymentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthorizeDeploymentResponse) Reset() {
+	*x = AuthorizeDeploymentResponse{}
+	mi := &file_hydra_v1_deployment_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizeDeploymentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizeDeploymentResponse) ProtoMessage() {}
+
+func (x *AuthorizeDeploymentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deployment_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthorizeDeploymentResponse.ProtoReflect.Descriptor instead.
+func (*AuthorizeDeploymentResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{11}
+}
+
+type CancelDeploymentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Actor         *v1.ActorInfo          `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,2,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelDeploymentRequest) Reset() {
+	*x = CancelDeploymentRequest{}
+	mi := &file_hydra_v1_deployment_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelDeploymentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelDeploymentRequest) ProtoMessage() {}
+
+func (x *CancelDeploymentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deployment_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelDeploymentRequest.ProtoReflect.Descriptor instead.
+func (*CancelDeploymentRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *CancelDeploymentRequest) GetActor() *v1.ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *CancelDeploymentRequest) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type CancelDeploymentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelDeploymentResponse) Reset() {
+	*x = CancelDeploymentResponse{}
+	mi := &file_hydra_v1_deployment_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelDeploymentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelDeploymentResponse) ProtoMessage() {}
+
+func (x *CancelDeploymentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deployment_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelDeploymentResponse.ProtoReflect.Descriptor instead.
+func (*CancelDeploymentResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{13}
+}
+
 var File_hydra_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_deployment_proto_rawDesc = "" +
@@ -560,17 +736,27 @@ const file_hydra_v1_deployment_proto_rawDesc = "" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
 	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
 	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\"\x18\n" +
-	"\x16WakeDeploymentResponse*\x8e\x01\n" +
+	"\x16WakeDeploymentResponse\"m\n" +
+	"\x1aAuthorizeDeploymentRequest\x12(\n" +
+	"\x05actor\x18\x01 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
+	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"\x1d\n" +
+	"\x1bAuthorizeDeploymentResponse\"j\n" +
+	"\x17CancelDeploymentRequest\x12(\n" +
+	"\x05actor\x18\x01 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
+	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"\x1a\n" +
+	"\x18CancelDeploymentResponse*\x8e\x01\n" +
 	"\x16DeploymentDesiredState\x12(\n" +
 	"$DEPLOYMENT_DESIRED_STATE_UNSPECIFIED\x10\x00\x12$\n" +
 	" DEPLOYMENT_DESIRED_STATE_RUNNING\x10\x01\x12$\n" +
-	" DEPLOYMENT_DESIRED_STATE_STOPPED\x10\x022\xa0\x04\n" +
+	" DEPLOYMENT_DESIRED_STATE_STOPPED\x10\x022\xe3\x05\n" +
 	"\x11DeploymentService\x12y\n" +
 	"\x1aScheduleDesiredStateChange\x12+.hydra.v1.ScheduleDesiredStateChangeRequest\x1a,.hydra.v1.ScheduleDesiredStateChangeResponse\"\x00\x12a\n" +
 	"\x12ChangeDesiredState\x12#.hydra.v1.ChangeDesiredStateRequest\x1a$.hydra.v1.ChangeDesiredStateResponse\"\x00\x12y\n" +
 	"\x1aClearScheduledStateChanges\x12+.hydra.v1.ClearScheduledStateChangesRequest\x1a,.hydra.v1.ClearScheduledStateChangesResponse\"\x00\x12U\n" +
 	"\x0eStopDeployment\x12\x1f.hydra.v1.StopDeploymentRequest\x1a .hydra.v1.StopDeploymentResponse\"\x00\x12U\n" +
-	"\x0eWakeDeployment\x12\x1f.hydra.v1.WakeDeploymentRequest\x1a .hydra.v1.WakeDeploymentResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
+	"\x0eWakeDeployment\x12\x1f.hydra.v1.WakeDeploymentRequest\x1a .hydra.v1.WakeDeploymentResponse\"\x00\x12d\n" +
+	"\x13AuthorizeDeployment\x12$.hydra.v1.AuthorizeDeploymentRequest\x1a%.hydra.v1.AuthorizeDeploymentResponse\"\x00\x12[\n" +
+	"\x10CancelDeployment\x12!.hydra.v1.CancelDeploymentRequest\x1a\".hydra.v1.CancelDeploymentResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
 	"\fcom.hydra.v1B\x0fDeploymentProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -586,7 +772,7 @@ func file_hydra_v1_deployment_proto_rawDescGZIP() []byte {
 }
 
 var file_hydra_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_hydra_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_hydra_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_hydra_v1_deployment_proto_goTypes = []any{
 	(DeploymentDesiredState)(0),                // 0: hydra.v1.DeploymentDesiredState
 	(*ClearScheduledStateChangesRequest)(nil),  // 1: hydra.v1.ClearScheduledStateChangesRequest
@@ -599,28 +785,38 @@ var file_hydra_v1_deployment_proto_goTypes = []any{
 	(*StopDeploymentResponse)(nil),             // 8: hydra.v1.StopDeploymentResponse
 	(*WakeDeploymentRequest)(nil),              // 9: hydra.v1.WakeDeploymentRequest
 	(*WakeDeploymentResponse)(nil),             // 10: hydra.v1.WakeDeploymentResponse
-	(*v1.ActorInfo)(nil),                       // 11: ctrl.v1.ActorInfo
+	(*AuthorizeDeploymentRequest)(nil),         // 11: hydra.v1.AuthorizeDeploymentRequest
+	(*AuthorizeDeploymentResponse)(nil),        // 12: hydra.v1.AuthorizeDeploymentResponse
+	(*CancelDeploymentRequest)(nil),            // 13: hydra.v1.CancelDeploymentRequest
+	(*CancelDeploymentResponse)(nil),           // 14: hydra.v1.CancelDeploymentResponse
+	(*v1.ActorInfo)(nil),                       // 15: ctrl.v1.ActorInfo
 }
 var file_hydra_v1_deployment_proto_depIdxs = []int32{
 	0,  // 0: hydra.v1.ScheduleDesiredStateChangeRequest.state:type_name -> hydra.v1.DeploymentDesiredState
 	0,  // 1: hydra.v1.ChangeDesiredStateRequest.state:type_name -> hydra.v1.DeploymentDesiredState
-	11, // 2: hydra.v1.StopDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
-	11, // 3: hydra.v1.WakeDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
-	3,  // 4: hydra.v1.DeploymentService.ScheduleDesiredStateChange:input_type -> hydra.v1.ScheduleDesiredStateChangeRequest
-	5,  // 5: hydra.v1.DeploymentService.ChangeDesiredState:input_type -> hydra.v1.ChangeDesiredStateRequest
-	1,  // 6: hydra.v1.DeploymentService.ClearScheduledStateChanges:input_type -> hydra.v1.ClearScheduledStateChangesRequest
-	7,  // 7: hydra.v1.DeploymentService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
-	9,  // 8: hydra.v1.DeploymentService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
-	4,  // 9: hydra.v1.DeploymentService.ScheduleDesiredStateChange:output_type -> hydra.v1.ScheduleDesiredStateChangeResponse
-	6,  // 10: hydra.v1.DeploymentService.ChangeDesiredState:output_type -> hydra.v1.ChangeDesiredStateResponse
-	2,  // 11: hydra.v1.DeploymentService.ClearScheduledStateChanges:output_type -> hydra.v1.ClearScheduledStateChangesResponse
-	8,  // 12: hydra.v1.DeploymentService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
-	10, // 13: hydra.v1.DeploymentService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
-	9,  // [9:14] is the sub-list for method output_type
-	4,  // [4:9] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	15, // 2: hydra.v1.StopDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	15, // 3: hydra.v1.WakeDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	15, // 4: hydra.v1.AuthorizeDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	15, // 5: hydra.v1.CancelDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	3,  // 6: hydra.v1.DeploymentService.ScheduleDesiredStateChange:input_type -> hydra.v1.ScheduleDesiredStateChangeRequest
+	5,  // 7: hydra.v1.DeploymentService.ChangeDesiredState:input_type -> hydra.v1.ChangeDesiredStateRequest
+	1,  // 8: hydra.v1.DeploymentService.ClearScheduledStateChanges:input_type -> hydra.v1.ClearScheduledStateChangesRequest
+	7,  // 9: hydra.v1.DeploymentService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
+	9,  // 10: hydra.v1.DeploymentService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
+	11, // 11: hydra.v1.DeploymentService.AuthorizeDeployment:input_type -> hydra.v1.AuthorizeDeploymentRequest
+	13, // 12: hydra.v1.DeploymentService.CancelDeployment:input_type -> hydra.v1.CancelDeploymentRequest
+	4,  // 13: hydra.v1.DeploymentService.ScheduleDesiredStateChange:output_type -> hydra.v1.ScheduleDesiredStateChangeResponse
+	6,  // 14: hydra.v1.DeploymentService.ChangeDesiredState:output_type -> hydra.v1.ChangeDesiredStateResponse
+	2,  // 15: hydra.v1.DeploymentService.ClearScheduledStateChanges:output_type -> hydra.v1.ClearScheduledStateChangesResponse
+	8,  // 16: hydra.v1.DeploymentService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
+	10, // 17: hydra.v1.DeploymentService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
+	12, // 18: hydra.v1.DeploymentService.AuthorizeDeployment:output_type -> hydra.v1.AuthorizeDeploymentResponse
+	14, // 19: hydra.v1.DeploymentService.CancelDeployment:output_type -> hydra.v1.CancelDeploymentResponse
+	13, // [13:20] is the sub-list for method output_type
+	6,  // [6:13] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_deployment_proto_init() }
@@ -634,7 +830,7 @@ func file_hydra_v1_deployment_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_deployment_proto_rawDesc), len(file_hydra_v1_deployment_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   10,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -8,10 +8,12 @@ import (
 	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 
 	restatetest "github.com/restatedev/sdk-go/testing"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -34,7 +36,7 @@ func startTeardown(t *testing.T, database db.Database) *restatetest.TestEnvironm
 
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
 	require.NoError(t, err)
-	deploymentSvc, err := deployment.New(deployment.Config{DB: database, Auditlogs: auditlogSvc})
+	deploymentSvc, err := deployment.New(deployment.Config{DB: database, Auditlogs: auditlogSvc, GitHub: githubclient.NewNoop(), RestateAdmin: restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:1", APIKey: ""})})
 	require.NoError(t, err)
 
 	return restatetest.Start(t,

@@ -6,7 +6,7 @@
   "types": "./src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0",
+  "license": "FSL-1.1-ALv2",
   "scripts": {
     "test": "vitest run"
   },
@@ -29,7 +29,6 @@
     "@unkey/icons": "workspace:^",
     "class-variance-authority": "0.7.1",
     "cn": "0.3.0",
-    "date-fns": "4.1.0",
     "next-themes": "0.4.6",
     "nuqs": "2.8.6",
     "react": "19.2.3",

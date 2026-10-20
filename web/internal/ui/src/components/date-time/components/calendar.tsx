@@ -1,8 +1,8 @@
 import { IconChevronLeftOutline12, IconChevronRightOutline12 } from "@unkey/icons";
-import { format } from "date-fns";
 // biome-ignore lint/correctness/noUnusedImports: Biome is not happy
 import React, { useRef } from "react";
 import { type DateRange, DayPicker, type Matcher, useDayPicker } from "react-day-picker";
+import { formatTimestamp } from "../../../lib/time";
 import { cn } from "../../../lib/utils";
 import { buttonVariants } from "../../buttons/button";
 import { useDateTimeContext } from "../date-time";
@@ -21,7 +21,7 @@ function CustomMonthCaptionComponent({ calendarMonth }: { calendarMonth: { date:
         <IconChevronLeftOutline12 className="text-gray-12" />
       </button>
       <div className="flex w-full text-gray-12 justify-center items-center font-medium">
-        {format(displayMonth, "MMMM yyy")}
+        {formatTimestamp(displayMonth, "MMMM yyyy")}
       </div>
       <button
         className="flex min-w-6 min-h-6 justify-center items-center"

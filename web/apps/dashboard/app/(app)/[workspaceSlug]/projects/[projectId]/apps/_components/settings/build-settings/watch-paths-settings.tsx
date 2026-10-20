@@ -110,7 +110,7 @@ export function WatchPaths() {
 
     const emptyIndex = currentPaths.findIndex((path) => !path.value);
     if (emptyIndex >= 0) {
-      setValue(`paths.${emptyIndex}.value`, value, { shouldValidate: true });
+      setValue(`paths.${emptyIndex}.value`, value, { shouldDirty: true, shouldValidate: true });
       return;
     }
     // useFieldArray's append() doesn't run the resolver, unlike setValue's

@@ -1,6 +1,5 @@
 import { useAppNameById } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
-import { ControlCloud } from "@unkey/ui";
-import { format } from "date-fns";
+import { ControlCloud, formatTimestamp } from "@unkey/ui";
 import { useRequestLogsFilters } from "../../hooks/use-request-logs-filters";
 
 const formatFieldName = (field: string): string => {
@@ -59,7 +58,7 @@ const formatValue = (value: string | number, field: string, appName?: string): s
     return formatStatusCode(String(value));
   }
   if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
-    return format(value, "MMM d, yyyy HH:mm:ss");
+    return formatTimestamp(value, "MMM d, yyyy, HH:mm:ss");
   }
   if (field === "appId") {
     return appName ?? String(value);

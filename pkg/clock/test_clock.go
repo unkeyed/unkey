@@ -13,6 +13,7 @@ type TestClock struct {
 	mu      sync.RWMutex
 	now     time.Time
 	tickers []*testTicker
+	timers  []*testTimer
 }
 
 // NewTestClock creates a new TestClock instance.
@@ -75,6 +76,7 @@ func (c *TestClock) Tick(d time.Duration) time.Time {
 
 	if d > 0 {
 		c.fireTickers(target)
+		c.fireTimers(target)
 	}
 	return target
 }
@@ -98,6 +100,7 @@ func (c *TestClock) Set(t time.Time) time.Time {
 
 	if t.After(prev) {
 		c.fireTickers(t)
+		c.fireTimers(t)
 	}
 	return t
 }
@@ -194,4 +197,76 @@ func (t *testTicker) fire(target time.Time) {
 			return
 		}
 	}
+}
+
+// NewTimer registers a Timer driven by simulated time. It fires once when
+// a Tick or forward Set call advances the clock to or past its deadline.
+// A zero or negative d fires immediately. The channel holds one value, so
+// firing never blocks on the consumer.
+func (c *TestClock) NewTimer(d time.Duration) Timer {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	t := &testTimer{ //nolint:exhaustruct // stopped takes its zero value
+		parent:   c,
+		deadline: c.now.Add(d),
+		ch:       make(chan time.Time, 1),
+	}
+	if d <= 0 {
+		t.ch <- c.now
+		t.stopped = true
+		return t
+	}
+	c.timers = append(c.timers, t)
+	return t
+}
+
+func (c *TestClock) fireTimers(target time.Time) {
+	c.mu.Lock()
+	var due []*testTimer
+	c.timers = slices.DeleteFunc(c.timers, func(t *testTimer) bool {
+		if t.deadline.After(target) {
+			return false
+		}
+		due = append(due, t)
+		return true
+	})
+	c.mu.Unlock()
+
+	for _, t := range due {
+		t.fire(target)
+	}
+}
+
+func (c *TestClock) removeTimer(t *testTimer) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.timers = slices.DeleteFunc(c.timers, func(x *testTimer) bool { return x == t })
+}
+
+type testTimer struct {
+	parent   *TestClock
+	deadline time.Time
+	ch       chan time.Time
+
+	mu      sync.Mutex
+	stopped bool
+}
+
+func (t *testTimer) C() <-chan time.Time { return t.ch }
+
+func (t *testTimer) Stop() {
+	t.mu.Lock()
+	t.stopped = true
+	t.mu.Unlock()
+	t.parent.removeTimer(t)
+}
+
+func (t *testTimer) fire(at time.Time) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.stopped {
+		return
+	}
+	t.stopped = true
+	t.ch <- at
 }

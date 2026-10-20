@@ -7,6 +7,8 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -25,8 +27,11 @@ const (
 // changes.
 type VirtualObject struct {
 	hydrav1.UnimplementedDeploymentServiceServer
-	db        db.Database
-	auditlogs auditlogs.AuditLogService
+	db                              db.Database
+	auditlogs                       auditlogs.AuditLogService
+	github                          githubclient.GitHubClient
+	restateAdmin                    *restateadmin.Client
+	allowUnauthenticatedDeployments bool
 }
 
 var _ hydrav1.DeploymentServiceServer = (*VirtualObject)(nil)
@@ -36,13 +41,27 @@ type Config struct {
 	// DB is the main database connection for workspace, project, and deployment data.
 	DB db.Database
 
-	// Auditlogs records API-originated Stop and Wake calls
+	// Auditlogs records API-originated Stop, Wake, Authorize and Cancel calls
 	Auditlogs auditlogs.AuditLogService
+
+	// GitHub posts the success commit status once a deployment is authorized
+	GitHub githubclient.GitHubClient
+
+	// AllowUnauthenticatedDeployments skips GitHub commit statuses, matching
+	// DeployWorkflow, which posts no approval status in this mode
+	AllowUnauthenticatedDeployments bool
+
+	// RestateAdmin cancels a deployment's Deploy invocation.
+	RestateAdmin *restateadmin.Client
 }
 
 // New creates a new VirtualObject from the given configuration.
 func New(cfg Config) (*VirtualObject, error) {
-	if err := assert.NotNil(cfg.Auditlogs, "Auditlogs must not be nil"); err != nil {
+	if err := assert.All(
+		assert.NotNil(cfg.Auditlogs, "Auditlogs must not be nil"),
+		assert.NotNil(cfg.GitHub, "GitHub must not be nil"),
+		assert.NotNil(cfg.RestateAdmin, "RestateAdmin must not be nil"),
+	); err != nil {
 		return nil, err
 	}
 
@@ -50,6 +69,9 @@ func New(cfg Config) (*VirtualObject, error) {
 		UnimplementedDeploymentServiceServer: hydrav1.UnimplementedDeploymentServiceServer{},
 		db:                                   cfg.DB,
 		auditlogs:                            cfg.Auditlogs,
+		github:                               cfg.GitHub,
+		allowUnauthenticatedDeployments:      cfg.AllowUnauthenticatedDeployments,
+		restateAdmin:                         cfg.RestateAdmin,
 	}, nil
 }
 

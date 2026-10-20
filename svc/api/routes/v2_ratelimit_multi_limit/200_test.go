@@ -32,6 +32,24 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
+	t.Run("the same identifier with different durations are separate windows", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.create_namespace", "ratelimit.*.limit")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		namespaceName := uid.New("nonexistent")
+		req := handler.Request{
+			{Namespace: namespaceName, Identifier: "user_123", Limit: 5, Duration: 60000},
+			{Namespace: namespaceName, Identifier: "user_123", Limit: 50, Duration: 3_600_000},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		require.True(t, res.Body.Data.Passed)
+		require.Len(t, res.Body.Data.Limits, 2)
+	})
+
 	// Test auto-creation of multiple namespaces with audit logs
 	t.Run("auto-create multiple namespaces with audit logs", func(t *testing.T) {
 		// Use 3 namespaces that don't exist

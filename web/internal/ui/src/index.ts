@@ -39,6 +39,7 @@ export * from "./components/llm-search/components/search-icon";
 export * from "./components/dialog/popover";
 export * from "./components/hover-card";
 export * from "./components/info-hover-card";
+export * from "./components/segmented-control";
 export * from "./components/settings-card";
 export * from "./components/settings-row";
 export * from "./components/unsaved-changes";
@@ -51,10 +52,10 @@ export * from "./components/toaster";
 export * from "./components/visually-hidden";
 export * from "./components/slide-panel";
 export * from "./components/slider";
-export * from "./components/step-wizard";
 export * from "./hooks/use-mobile";
 export * from "./hooks/use-relative-time";
 export * from "./components/data-table";
 
 /* Lib Export */
 export * from "./lib/utils";
+export { formatTimestamp, isSameDay, type TimestampStyle } from "./lib/time";

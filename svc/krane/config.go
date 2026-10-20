@@ -85,6 +85,12 @@ type Config struct {
 	// code
 	DisableGvisor bool `toml:"disable_gvisor"`
 
+	// MaxConcurrentRollouts caps how many healthy workloads in the cluster
+	// roll out a pod template change at the same time. A krane release that
+	// changes the rendered template would otherwise restart every workload at
+	// once.
+	MaxConcurrentRollouts int `toml:"max_concurrent_rollouts" config:"default=5,min=1"`
+
 	// K8s tunes the client-go REST config. See [K8sConfig].
 	K8s K8sConfig `toml:"k8s"`
 

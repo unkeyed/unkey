@@ -17,11 +17,13 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -279,6 +281,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	deploySvc, err := deploy.New(deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
+		Flags:         flags.NewNoop(),
 		Clickhouse:    chClient,
 		DefaultDomain: "test.example.com",
 		DashboardURL:  "https://app.unkey.com",
@@ -313,8 +316,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 	require.NoError(t, err)
 
 	deploymentSvc, err := deployment.New(deployment.Config{
-		DB:        database,
-		Auditlogs: auditlogSvc,
+		DB:                              database,
+		Auditlogs:                       auditlogSvc,
+		GitHub:                          githubclient.NewNoop(),
+		AllowUnauthenticatedDeployments: false,
+		RestateAdmin:                    restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:1", APIKey: ""}),
 	})
 	require.NoError(t, err)
 

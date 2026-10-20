@@ -194,3 +194,34 @@ func TestTestClockTicker(t *testing.T) {
 		require.Panics(t, func() { clk.NewTicker(-time.Second) })
 	})
 }
+
+func TestTestClockTimer(t *testing.T) {
+	t.Run("fires once when the deadline passes", func(t *testing.T) {
+		clk := NewTestClock(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+		timer := clk.NewTimer(10 * time.Second)
+
+		clk.Tick(9 * time.Second)
+		require.Empty(t, timer.C())
+
+		clk.Tick(time.Second)
+		require.Len(t, timer.C(), 1)
+		require.True(t, time.Date(2024, 1, 1, 0, 0, 10, 0, time.UTC).Equal(<-timer.C()))
+
+		clk.Tick(time.Minute)
+		require.Empty(t, timer.C())
+	})
+
+	t.Run("non-positive duration fires immediately", func(t *testing.T) {
+		clk := NewTestClock()
+		require.Len(t, clk.NewTimer(-time.Second).C(), 1)
+		require.Len(t, clk.NewTimer(0).C(), 1)
+	})
+
+	t.Run("Stop prevents firing", func(t *testing.T) {
+		clk := NewTestClock()
+		timer := clk.NewTimer(time.Second)
+		timer.Stop()
+		clk.Tick(time.Minute)
+		require.Empty(t, timer.C())
+	})
+}

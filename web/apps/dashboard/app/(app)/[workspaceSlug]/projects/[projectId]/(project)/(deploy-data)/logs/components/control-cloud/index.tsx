@@ -2,8 +2,7 @@
 
 import { useAppNameById } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
 import { useEnvironmentFilterOptions } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/environment-filter-options";
-import { ControlCloud } from "@unkey/ui";
-import { format } from "date-fns";
+import { ControlCloud, formatTimestamp } from "@unkey/ui";
 import { useMemo } from "react";
 import { useRuntimeLogsFilters } from "../../hooks/use-runtime-logs-filters";
 
@@ -39,7 +38,7 @@ const formatValue = (
   environmentName?: string,
 ): string => {
   if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
-    return format(value, "MMM d, yyyy HH:mm:ss");
+    return formatTimestamp(value, "MMM d, yyyy, HH:mm:ss");
   }
   if (field === "severity") {
     return value.toString().toUpperCase();

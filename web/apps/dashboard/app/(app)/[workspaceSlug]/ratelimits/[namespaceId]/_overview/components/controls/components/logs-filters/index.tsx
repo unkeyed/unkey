@@ -6,7 +6,7 @@ import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { ratelimitOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
-import { StatusFilter } from "./components/status-filter";
+import { StatusFilter, statusOptions } from "./components/status-filter";
 
 export const LogsFilters = () => {
   const { filters, updateFilters } = useFilters();
@@ -26,6 +26,7 @@ export const LogsFilters = () => {
           label: "Status",
           shortcut: "e",
           component: <StatusFilter />,
+          options: statusOptions.map((status) => ({ value: status.status, label: status.label })),
         },
         {
           id: "identifiers",
@@ -56,6 +57,7 @@ export const LogsFilters = () => {
         },
       ]}
       activeFilters={filters}
+      updateFilters={updateFilters}
     >
       <div className="group">
         <Button

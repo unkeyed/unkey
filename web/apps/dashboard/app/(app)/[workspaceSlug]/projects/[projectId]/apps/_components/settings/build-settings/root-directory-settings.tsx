@@ -18,6 +18,7 @@ const dockerContextSegment = /^[A-Za-z0-9._-]+$/;
 const dockerContextSchema = z
   .string()
   .min(1, "Enter a root directory or use '.' for the repository root.")
+  .transform((path) => path.replace(/\/+$/, ""))
   .refine(
     (path) =>
       path === "." ||
@@ -39,7 +40,7 @@ export function RootDirectory() {
 
   const currentDockerContext = form.watch("dockerContext");
   const setDockerContext = (path: string) =>
-    form.setValue("dockerContext", path, { shouldValidate: true });
+    form.setValue("dockerContext", path, { shouldDirty: true, shouldValidate: true });
   const error = form.formState.errors.dockerContext;
 
   const hint = pathHint(

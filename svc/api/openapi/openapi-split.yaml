@@ -165,6 +165,10 @@ paths:
     $ref: "./spec/paths/v2/deployments/listBuildLogs/index.yaml"
   /v2/deployments.listDeployments:
     $ref: "./spec/paths/v2/deployments/listDeployments/index.yaml"
+  /v2/deployments.authorizeDeployment:
+    $ref: "./spec/paths/v2/deployments/authorizeDeployment/index.yaml"
+  /v2/deployments.cancelDeployment:
+    $ref: "./spec/paths/v2/deployments/cancelDeployment/index.yaml"
   /v2/deployments.stopDeployment:
     $ref: "./spec/paths/v2/deployments/stopDeployment/index.yaml"
   /v2/deployments.startDeployment:

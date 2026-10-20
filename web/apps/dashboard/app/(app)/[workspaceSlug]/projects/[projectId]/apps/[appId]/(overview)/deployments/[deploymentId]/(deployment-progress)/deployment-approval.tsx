@@ -2,7 +2,8 @@
 
 import type { DeploymentSummary } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { IconShieldAlertOutline18 } from "@unkey/icons";
 import { AlertBanner, AlertBannerDescription, Button, Dialog, DialogContent } from "@unkey/ui";
 import { useProjectData } from "../../../data-provider";
@@ -19,11 +20,13 @@ type DeploymentApprovalProps = {
 };
 
 export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentApprovalProps) {
-  const { refetchDeployments, project, environments } = useProjectData();
+  const { awaitDeploymentStatus, project, environments } = useProjectData();
 
-  const authorize = trpc.deploy.deployment.authorize.useMutation({
+  const authorize = useMutation({
+    mutationFn: (deploymentId: string) =>
+      getUnkeyClient().deployments.authorizeDeployment({ deploymentId }),
     onSuccess: () => {
-      refetchDeployments();
+      awaitDeploymentStatus({ deploymentId: deployment.id, status: "pending" });
       onClose();
     },
   });
@@ -101,7 +104,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
               size="xlg"
               className="px-8"
               loading={authorize.isLoading}
-              onClick={() => authorize.mutate({ deploymentId: deployment.id })}
+              onClick={() => authorize.mutate(deployment.id)}
             >
               Approve Deployment
             </Button>
@@ -121,9 +124,9 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
             ) : null}
           </div>
 
-          {authorize.error && (
+          {authorize.isError && (
             <AlertBanner variant="error" className="mt-4">
-              <AlertBannerDescription>{authorize.error.message}</AlertBannerDescription>
+              <AlertBannerDescription>{getErrorMessage(authorize.error)}</AlertBannerDescription>
             </AlertBanner>
           )}
         </div>

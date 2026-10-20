@@ -1,6 +1,7 @@
 ---
-title: Plans
-description: "See what the API Management tiers and Compute plans include and how a change takes effect."
+title: Unkey plans and free tier
+sidebarTitle: "Plans"
+description: "Free API Management has 150,000 valid requests a month, and Compute Starter is $5 a month after a free first month."
 sources:
   - web/internal/db/src/schema/workspace_billing.ts
   - web/internal/db/src/schema/billing_subscriptions.ts
@@ -18,7 +19,29 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/constants.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/cancel-plan.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/billing-summary.tsx
+  - https://www.unkey.com/pricing
+  - https://www.unkey.com/pricing.md
 ---
+
+The free API Management plan is \$0 a month with 150,000 valid requests a month, 1,000 API keys, 1 day of logs, and 3 days of audit logs.
+
+Compute plans deploy and run your APIs:
+
+- Starter (\$0 for the first month, then \$5 a month)
+- Pro (\$20 for the first month, then \$25 a month)
+- Business (\$45 for the first month, then \$50 a month)
+
+Every Compute plan includes monthly usage credits for compute, storage, egress, and active keys, and you get \$5 off your first month through December 31, 2026.
+
+## What each product includes
+
+Paid API tiers, and the CPU, memory, disk, replica, and domain limits on each Compute plan, are on [Limits](/platform/billing/limits). Prices are on [unkey.com/pricing](https://unkey.com/pricing).
+
+| | API Management | Compute |
+| --- | --- | --- |
+| Starting point | Free tier. Every workspace starts here | Starter, Pro, or Business. Required before you can deploy |
+| Included from the start | 150,000 valid requests a month, 1,000 API keys, 1 day of logs, 3 days of audit logs | Starter is \$0 for the first month, then \$5 a month, with monthly usage credits for compute, storage, egress, and active keys, and \$5 off your first month through December 31, 2026. See [Usage](/platform/billing/usage) |
+| What you get by paying more | A higher monthly quota, longer retention, and team members | Resource limits differ by plan and are listed on [Limits](/platform/billing/limits). Pro and Business also include team members |
 
 Your workspace pays for the two products separately. API Management has a tier and Compute has a plan, and you can have either one without the other. Both use one payment method and one set of invoices.
 

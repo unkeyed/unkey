@@ -24,7 +24,7 @@ export default function RolesPage() {
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <div className="flex flex-col">
+        <div className="flex flex-col md:flex-1 md:min-h-0">
           <RoleListControls />
           <RolesListControlCloud />
           <RolesList />

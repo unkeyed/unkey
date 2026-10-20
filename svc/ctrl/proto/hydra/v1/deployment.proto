@@ -57,6 +57,15 @@ service DeploymentService {
   // WakeDeployment sets desired_state=running on a stopped deployment, marks it
   // deploying, and returns once enough regions report running instances.
   rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
+
+  // AuthorizeDeployment approves a deployment that is awaiting approval. It
+  // moves the row to pending and hands it to DeployWorkflow.Create, which
+  // starts the build. A refused create puts the row back to awaiting_approval
+  rpc AuthorizeDeployment(AuthorizeDeploymentRequest) returns (AuthorizeDeploymentResponse) {}
+
+  // CancelDeployment aborts a deployment that is still in progress. It ends the
+  // open step, marks the row cancelled and cancels the Deploy invocation
+  rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse) {}
 }
 
 message ClearScheduledStateChangesRequest {}
@@ -118,3 +127,17 @@ message WakeDeploymentRequest {
 }
 
 message WakeDeploymentResponse {}
+
+message AuthorizeDeploymentRequest {
+  ctrl.v1.ActorInfo actor = 1;
+  string correlation_id = 2;
+}
+
+message AuthorizeDeploymentResponse {}
+
+message CancelDeploymentRequest {
+  ctrl.v1.ActorInfo actor = 1;
+  string correlation_id = 2;
+}
+
+message CancelDeploymentResponse {}

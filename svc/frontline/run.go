@@ -346,6 +346,7 @@ func Run(ctx context.Context, cfg Config) error {
 			TLS:                tlsConfig,
 			ReadTimeout:        -1,
 			WriteTimeout:       -1,
+			IdleTimeout:        0,
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
@@ -393,6 +394,7 @@ func Run(ctx context.Context, cfg Config) error {
 			TrustedProxyCIDRs:  nil,
 			ReadTimeout:        -1,
 			WriteTimeout:       -1,
+			IdleTimeout:        0,
 		})
 		if httpErr != nil {
 			return fmt.Errorf("unable to create HTTP server: %w", httpErr)

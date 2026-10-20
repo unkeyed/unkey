@@ -23,7 +23,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
-	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -220,21 +219,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(func() error { challengeCache.Close(); return nil })
 
-	// Create GitHub client for deployment authorization (optional)
-	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
-	if cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
-		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
-			AppID:         cfg.GitHub.AppID,
-			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
-			WebhookSecret: cfg.GitHub.WebhookSecret,
-		})
-		if ghErr != nil {
-			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
-		}
-		ghClient = client
-		logger.Info("GitHub client initialized for deployment authorization")
-	}
-
 	// Create the connect handler
 	mux := http.NewServeMux()
 
@@ -248,12 +232,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	deploymentSvc := deployment.New(deployment.Config{
-		Database:     database,
-		Auditlogs:    auditlogSvc,
-		Restate:      restateClient,
-		RestateAdmin: restateAdminClient,
-		GitHub:       ghClient,
-		Bearer:       cfg.AuthToken,
+		Database: database,
+		Restate:  restateClient,
+		Bearer:   cfg.AuthToken,
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{

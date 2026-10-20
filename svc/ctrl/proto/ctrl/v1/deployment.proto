@@ -1,8 +1,6 @@
 syntax = "proto3";
 package ctrl.v1;
 
-import "ctrl/v1/actor.proto";
-
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 // Deployment status enum
@@ -132,19 +130,6 @@ message RegionalConfig {
   int32 max_instances = 3;
 }
 
-message AuthorizeDeploymentRequest {
-  string deployment_id = 1;
-}
-
-message AuthorizeDeploymentResponse {}
-
-message CancelDeploymentRequest {
-  string deployment_id = 1;
-  ActorInfo actor = 2;
-}
-
-message CancelDeploymentResponse {}
-
 message DeprovisionComputeRequest {
   // WorkspaceId is the workspace whose Compute plan is being deprovisioned.
   string workspace_id = 1;
@@ -155,15 +140,6 @@ message DeprovisionComputeResponse {}
 service DeployService {
   // Get deployment details
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse) {}
-
-  // Authorize deployment for an external contributor's push on a branch
-  rpc AuthorizeDeployment(AuthorizeDeploymentRequest) returns (AuthorizeDeploymentResponse) {}
-
-  // Cancel a running or queued deployment. Marks the row cancelled and cancels
-  // the Restate Deploy invocation; Restate cancels a queued or running Build
-  // with it.
-  // Idempotent: returns success if the deployment is already terminal.
-  rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse) {}
 
   // DeprovisionCompute tears down a workspace's Compute: it stops all running
   // compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local

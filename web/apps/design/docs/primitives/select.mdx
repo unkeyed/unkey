@@ -12,6 +12,10 @@ description: A dropdown for picking one value from a short list.
 
 Set the size on `SelectTrigger`. `SelectContent` already sits above slide panels and dialogs, so do not add a `z-*` class to it.
 
+## Long lists
+
+Pass `maxRows` to `SelectContent` when the list is long or sits above other fields. The list stops at that many rows and scrolls. Use 5 in forms and slide panels.
+
 ## FormSelect
 
 `FormSelect` wraps the four Select parts with a label, a description and an error. Use it before you build a Select by hand.

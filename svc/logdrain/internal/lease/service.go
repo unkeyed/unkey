@@ -62,7 +62,7 @@ func New(cfg Config) (*Service, error) {
 // Run starts independent fixed-cadence acquisition and refresh loops.
 // Refresh does not wait for an acquisition scan to finish.
 func (s *Service) Run(ctx context.Context) error {
-	stopAcquire := repeat.EveryClock(s.clock, acquireInterval, func() {
+	repeat.Every(acquireInterval, func(ctx context.Context) {
 		acquired, err := s.acquire(ctx)
 		if err != nil {
 			if ctx.Err() == nil {
@@ -73,14 +73,12 @@ func (s *Service) Run(ctx context.Context) error {
 		if acquired > 0 {
 			logger.Info("logdrain leases acquired", "lease_id", s.leaseID, "leases", acquired)
 		}
-	})
-	defer stopAcquire()
-	stopRefresh := repeat.EveryClock(s.clock, refreshInterval, func() {
+	}, repeat.WithClock(s.clock), repeat.WithContext(ctx))
+	repeat.Every(refreshInterval, func(ctx context.Context) {
 		if err := s.refresh(ctx); err != nil && ctx.Err() == nil {
 			logger.Error("logdrain lease refresh failed", "error", err, "lease_id", s.leaseID)
 		}
-	})
-	defer stopRefresh()
+	}, repeat.WithClock(s.clock), repeat.WithContext(ctx))
 	<-ctx.Done()
 	return nil
 }

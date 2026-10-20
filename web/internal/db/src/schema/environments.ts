@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import { index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
-import { lifecycleDates } from "./util/lifecycle_dates";
+import { lifecycleDates, softDelete } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
@@ -24,6 +24,7 @@ export const environments = mysqlTable(
 
     ...deleteProtection,
     ...lifecycleDates,
+    ...softDelete,
   },
   (table) => [
     uniqueIndex("environments_app_slug_idx").on(table.appId, table.slug),

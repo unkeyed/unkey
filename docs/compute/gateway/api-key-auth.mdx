@@ -29,7 +29,7 @@ Have the [gateway](/compute/gateway/overview) <Tooltip tip="Key verification: th
 
 A key behaves the same as it does with `keys.verifyKey`.
 
-To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Key Auth**. Or use the API or CLI as described in [Gateway policies](/compute/gateway/policies).
+To add one, open the app, go to **Policies**, click **Add policy**, and set **Type** to **Key Auth**. Or use the API or CLI as described in [Gateway policies](/compute/gateway/policies).
 
 ## Settings
 
@@ -77,7 +77,7 @@ To add one, open the app, go to **Policies**, click **Add Policy**, and pick **K
 ```
 
 <Visibility for="agents">
-  In the dashboard this is the **Key Auth** type in **Policies > Add Policy**. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`, or send it as `keyauth` in `POST /v2/gateway.updatePolicy` to replace an existing policy's rule. The change applies to the next deployment.
+  In the dashboard this is the **Key Auth** type in **Policies > Add policy**. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`, or send it as `keyauth` in `POST /v2/gateway.updatePolicy` to replace an existing policy's rule. The change applies to the next deployment.
 </Visibility>
 
 ## What callers get back
