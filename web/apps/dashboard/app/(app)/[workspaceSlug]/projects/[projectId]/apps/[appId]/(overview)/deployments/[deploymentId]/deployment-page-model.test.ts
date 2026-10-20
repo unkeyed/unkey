@@ -30,7 +30,13 @@ const customDomain: CustomDomain = {
 };
 
 const input = (overrides: Partial<DeploymentPageInput> = {}): DeploymentPageInput => ({
-  deployment: { id: "dep-1", environmentId: "env-1", instances: [], desiredInstanceCount: 0 },
+  deployment: {
+    id: "dep-1",
+    environmentId: "env-1",
+    instances: [],
+    desiredInstanceCount: 0,
+    targetRegions: [],
+  },
   status: "ready",
   showBuild: false,
   domains: [],
@@ -71,12 +77,14 @@ describe("deploymentPageModel", () => {
           id: "dep-1",
           environmentId: "env-1",
           desiredInstanceCount: 1,
+          targetRegions: [],
           instances: [
             {
               id: "i-1",
               region: { id: "r-1", name: "us-east-1", platform: "aws" },
               status: "running",
               statusReason: "CrashLoopBackOff",
+              lastExit: null,
             },
           ],
         },

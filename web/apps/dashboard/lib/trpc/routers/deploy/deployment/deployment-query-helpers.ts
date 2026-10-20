@@ -28,6 +28,7 @@ export function mapInstanceRow(row: {
     },
     status: row.status,
     statusReason: row.containerStatus?.waiting?.reason ?? null,
+    lastExit: computeLastExit([row]),
   };
 }
 

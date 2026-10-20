@@ -3,6 +3,7 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import type { LastExit } from "@/lib/types/deploy";
 import {
   appRegionalSettings,
+  deploymentTopology,
   deployments,
   instances,
   openapiSpecs,
@@ -15,6 +16,8 @@ type DesiredRegion = {
   region: { id: string; name: string; platform: string };
 };
 
+type TargetRegion = DesiredRegion & { replicas: number };
+
 type DeploymentDetails = Pick<
   InferSelectModel<typeof deployments>,
   "id" | "projectId" | "appId" | "environmentId" | "desiredState" | "triggerReason"
@@ -23,6 +26,7 @@ type DeploymentDetails = Pick<
   lastExit: LastExit | null;
   desiredInstanceCount: number;
   desiredRegions: DesiredRegion[];
+  targetRegions: TargetRegion[];
   hasOpenApiSpec: boolean;
 };
 
@@ -58,7 +62,7 @@ export const listDeploymentDetails = workspaceProcedure
     const appIds = [...new Set(rows.map((d) => d.appId))];
     const environmentIds = [...new Set(rows.map((d) => d.environmentId))];
 
-    const [specRows, instanceRows, regionalSettingsRows] = await Promise.all([
+    const [specRows, instanceRows, regionalSettingsRows, topologyRows] = await Promise.all([
       db
         .select({ deploymentId: openapiSpecs.deploymentId })
         .from(openapiSpecs)
@@ -92,6 +96,23 @@ export const listDeploymentDetails = workspaceProcedure
             eq(appRegionalSettings.workspaceId, ctx.workspace.id),
             inArray(appRegionalSettings.appId, appIds),
             inArray(appRegionalSettings.environmentId, environmentIds),
+          ),
+        ),
+      db
+        .select({
+          deploymentId: deploymentTopology.deploymentId,
+          regionId: regions.id,
+          regionName: regions.name,
+          regionPlatform: regions.platform,
+          replicas: deploymentTopology.autoscalingReplicasMin,
+        })
+        .from(deploymentTopology)
+        .innerJoin(regions, eq(regions.id, deploymentTopology.regionId))
+        .where(
+          and(
+            eq(deploymentTopology.workspaceId, ctx.workspace.id),
+            inArray(deploymentTopology.deploymentId, deploymentIds),
+            eq(deploymentTopology.desiredStatus, "running"),
           ),
         ),
     ]);
@@ -130,6 +151,8 @@ export const listDeploymentDetails = workspaceProcedure
       }
     }
 
+    const targetsByDeployment = Map.groupBy(topologyRows, (row) => row.deploymentId);
+
     return Object.fromEntries(
       rows.map((row) => {
         const desired = desiredByAppEnv.get(`${row.appId}:${row.environmentId}`);
@@ -141,6 +164,14 @@ export const listDeploymentDetails = workspaceProcedure
             lastExit: lastExitByDeployment.get(row.id) ?? null,
             desiredInstanceCount: desired?.desiredInstanceCount ?? 0,
             desiredRegions: desired?.desiredRegions ?? [],
+            targetRegions: (targetsByDeployment.get(row.id) ?? []).map((target) => ({
+              region: {
+                id: target.regionId,
+                name: target.regionName,
+                platform: target.regionPlatform,
+              },
+              replicas: target.replicas,
+            })),
             hasOpenApiSpec: specSet.has(row.id),
           },
         ];

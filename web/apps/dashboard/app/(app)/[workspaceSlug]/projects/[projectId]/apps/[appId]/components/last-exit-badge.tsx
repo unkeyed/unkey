@@ -1,12 +1,14 @@
 "use client";
 
+import { describeLastExit } from "@/lib/collections/deploy/last-exit";
 import type { LastExit } from "@/lib/types/deploy";
 import { match } from "@unkey/match";
 import { Badge, InfoTooltip } from "@unkey/ui";
 
 export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
   const isCrashloop = lastExit.statusReason === "CrashLoopBackOff";
-  const reason = isCrashloop ? "CrashLoopBackOff" : (lastExit.reason ?? "Error");
+  const summary = describeLastExit(lastExit);
+  const reason = summary.reason ?? "Error";
   const variant = isCrashloop ? "warning" : "error";
 
   const tooltip = explainExit(reason, lastExit.exitCode, lastExit.signal);
@@ -15,15 +17,9 @@ export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
     <InfoTooltip content={tooltip} position={{ side: "top", align: "end" }}>
       <Badge variant={variant} className="text-xs whitespace-nowrap">
         {reason}
-        {(() => {
-          const showExitCode =
-            !isCrashloop && lastExit.exitCode !== null && lastExit.exitCode !== 0;
-          return (
-            showExitCode && (
-              <span className="ml-1 font-mono tabular-nums">· exit={lastExit.exitCode}</span>
-            )
-          );
-        })()}
+        {summary.exit !== null ? (
+          <span className="ml-1 font-mono tabular-nums">· {summary.exit}</span>
+        ) : null}
       </Badge>
     </InfoTooltip>
   );
