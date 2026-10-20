@@ -25,6 +25,7 @@ const input = (overrides: Partial<StagesInput> = {}): StagesInput => ({
   status: "building",
   isPrebuilt: false,
   instances: null,
+  desiredState: "running",
   domainCount: 0,
   ...overrides,
 });
@@ -142,6 +143,27 @@ describe("resolveStages", () => {
       status: "completed",
       description: "Assigning domains",
       duration: 2_000,
+    });
+  });
+
+  test("a stopped deployment without step records reads as finished", () => {
+    const stages = byKey(
+      resolveStages(input({ status: "stopped", desiredState: "stopped", domainCount: 2 })),
+    );
+    expect(stages.build.resolution).toEqual({
+      status: "completed",
+      description: "Build complete",
+      duration: undefined,
+    });
+    expect(stages.instances.resolution).toEqual({
+      status: "completed",
+      description: "No instances running",
+      duration: undefined,
+    });
+    expect(stages.domains.resolution).toEqual({
+      status: "completed",
+      description: "2 domains assigned",
+      duration: undefined,
     });
   });
 

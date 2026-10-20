@@ -18,7 +18,7 @@ describe("deriveProductionStatus", () => {
     expect(
       deriveProductionStatus({
         status: "ready",
-        desiredInstanceCount: 1,
+        desiredState: "running",
         targetRegions: [],
         instances: [instance()],
       }),
@@ -29,7 +29,7 @@ describe("deriveProductionStatus", () => {
     expect(
       deriveProductionStatus({
         status: "ready",
-        desiredInstanceCount: 2,
+        desiredState: "running",
         targetRegions: [],
         instances: [instance(), instance({ id: "i-2", statusReason: "CrashLoopBackOff" })],
       }),
@@ -40,7 +40,7 @@ describe("deriveProductionStatus", () => {
     expect(
       deriveProductionStatus({
         status: "ready",
-        desiredInstanceCount: 1,
+        desiredState: "running",
         targetRegions: [],
         instances: [
           instance(),
@@ -54,7 +54,7 @@ describe("deriveProductionStatus", () => {
     expect(
       deriveProductionStatus({
         status: "failed",
-        desiredInstanceCount: 1,
+        desiredState: "running",
         targetRegions: [],
         instances: [instance({ status: "failed" })],
       }),

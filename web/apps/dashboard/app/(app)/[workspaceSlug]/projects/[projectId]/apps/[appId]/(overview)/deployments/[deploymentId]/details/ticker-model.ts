@@ -1,8 +1,7 @@
-import type { InstanceSummary } from "@/lib/collections/deploy/instance-status";
+import { type InstanceSummary, runningCountText } from "@/lib/collections/deploy/instance-status";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { BuildLogLine } from "../(deployment-progress)/build-logs/build-log-lines";
-import { runningCountText } from "./deployment-health";
 import type { Stage, StageKey } from "./stages-model";
 
 type ContainerLogRow =

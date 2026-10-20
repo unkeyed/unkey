@@ -5,7 +5,11 @@ import { FanIn } from "@/components/fan-in";
 import { FanOut } from "@/components/fan-out";
 import { RegionFlag } from "@/components/region-flag";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { type InstanceState, instanceLabel } from "@/lib/collections/deploy/instance-status";
+import {
+  type InstanceState,
+  instanceLabel,
+  runningCountText,
+} from "@/lib/collections/deploy/instance-status";
 import { sizeLabel } from "@/lib/compute/sizing";
 import { routes } from "@/lib/navigation/routes";
 import { regionInfo } from "@/lib/regions";
@@ -16,7 +20,6 @@ import { cn } from "cn";
 import Link from "next/link";
 import { useId, useMemo, useState } from "react";
 import { useDeployment } from "../layout-provider";
-import { runningCountText } from "./deployment-health";
 import {
   type DiagramInstance,
   type EnteredTrack,

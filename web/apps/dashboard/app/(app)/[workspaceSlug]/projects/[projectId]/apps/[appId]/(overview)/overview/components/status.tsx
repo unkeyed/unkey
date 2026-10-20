@@ -9,7 +9,7 @@ import { summarizeInstances } from "@/lib/collections/deploy/instance-status";
 export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
 
 export function deriveProductionStatus(
-  deployment: Pick<Deployment, "status" | "instances" | "desiredInstanceCount" | "targetRegions">,
+  deployment: Pick<Deployment, "status" | "instances" | "targetRegions" | "desiredState">,
 ): DeploymentDisplayStatus {
   if (deployment.status === "stopped") {
     return "stopped";
