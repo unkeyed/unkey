@@ -1,0 +1,33 @@
+name: Deploy Demo Image
+on:
+  push:
+    tags:
+      - "deploy-demo/v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency: deploy-demo-image
+
+jobs:
+  publish:
+    runs-on: depot-ubuntu-24.04-8
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test the API
+        run: mise exec -- rask ./svc/deploydemo
+      - uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
+      - name: Publish versioned image
+        run: |
+          mise run build-deploy-demo-image --push \
+            --tag "ghcr.io/unkeyed/deploy-demo:${GITHUB_REF_NAME#deploy-demo/}"

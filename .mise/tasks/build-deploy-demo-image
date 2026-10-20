@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#MISE description="Build the multi-architecture Deploy demo image; pass --push to publish"
+set -euo pipefail
+
+context=$(mktemp -d)
+trap 'rm -rf "$context"' EXIT
+
+for arch in amd64 arm64; do
+  mkdir -p "$context/$arch"
+  CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath -ldflags='-s -w' \
+    -o "$context/$arch/deploy-demo" ./svc/deploydemo
+done
+
+docker buildx build --platform linux/amd64,linux/arm64 \
+  --file svc/deploydemo/Dockerfile "$@" "$context"
