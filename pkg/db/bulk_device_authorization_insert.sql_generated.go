@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-// bulkInsertCLIDeviceLogin is the base query for bulk insert
-const bulkInsertCLIDeviceLogin = `INSERT INTO cli_device_logins ( id, user_code, poll_interval_seconds, expires_at, status, device_name, requester_ip, requester_user_agent, created_at ) VALUES %s`
+// bulkInsertDeviceAuthorization is the base query for bulk insert
+const bulkInsertDeviceAuthorization = `INSERT INTO device_authorizations ( id, user_code, expires_at, status, device_name, requester_ip, requester_user_agent, created_at ) VALUES %s`
 
-// InsertCLIDeviceLogins performs bulk insert in a single query
-func (q *BulkQueries) InsertCLIDeviceLogins(ctx context.Context, db DBTX, args []InsertCLIDeviceLoginParams) error {
+// InsertDeviceAuthorizations performs bulk insert in a single query
+func (q *BulkQueries) InsertDeviceAuthorizations(ctx context.Context, db DBTX, args []InsertDeviceAuthorizationParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -21,17 +21,16 @@ func (q *BulkQueries) InsertCLIDeviceLogins(ctx context.Context, db DBTX, args [
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
-	bulkQuery := fmt.Sprintf(bulkInsertCLIDeviceLogin, strings.Join(valueClauses, ", "))
+	bulkQuery := fmt.Sprintf(bulkInsertDeviceAuthorization, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.UserCode)
-		allArgs = append(allArgs, arg.PollIntervalSeconds)
 		allArgs = append(allArgs, arg.ExpiresAt)
 		allArgs = append(allArgs, arg.Status)
 		allArgs = append(allArgs, arg.DeviceName)

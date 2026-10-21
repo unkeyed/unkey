@@ -1,17 +1,21 @@
-import { bigint, index, int, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 
-export const cliDeviceLogins = mysqlTable(
-  "cli_device_logins",
+// device_authorizations is the pending login a device starts and a dashboard
+// user approves. It is not CLI-specific: any device flow that shows a user
+// code and waits for approval can use the same row. No secrets are stored.
+// The poll id is the unguessable handle; user_code is the short code the
+// person compares on the approval page.
+export const deviceAuthorizations = mysqlTable(
+  "device_authorizations",
   {
     pk: primaryKey(),
-    id: id("id").notNull(),
-    userCode: caseSensitiveVarchar("user_code", { length: 32 }).notNull(),
-    pollIntervalSeconds: int("poll_interval_seconds").notNull(),
+    id: id("id").notNull().unique(),
+    userCode: caseSensitiveVarchar("user_code", { length: 32 }).notNull().unique(),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
-    status: varchar("status", { length: 32 }).notNull(),
+    status: mysqlEnum("status", ["pending", "approved", "consumed", "denied", "expired"]).notNull(),
     deviceName: varchar("device_name", { length: 512 }),
     requesterIp: varchar("requester_ip", { length: 64 }),
     requesterUserAgent: varchar("requester_user_agent", { length: 512 }),
@@ -20,14 +24,9 @@ export const cliDeviceLogins = mysqlTable(
     approverName: varchar("approver_name", { length: 256 }),
     approverRoles: json("approver_roles").$type<string[]>(),
     permissions: json("permissions").$type<string[]>(),
-    keyName: varchar("key_name", { length: 256 }),
-    keyId: id("key_id"),
+    sessionId: id("session_id").unique(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     approvedAt: bigint("approved_at", { mode: "number" }),
   },
-  (table) => ({
-    idIdx: uniqueIndex("cli_device_logins_id_unique").on(table.id),
-    userCodeIdx: uniqueIndex("cli_device_logins_user_code_unique").on(table.userCode),
-    expiresAtIdx: index("cli_device_logins_expires_at_idx").on(table.expiresAt),
-  }),
+  (table) => [index("device_authorizations_expires_at_idx").on(table.expiresAt)],
 );

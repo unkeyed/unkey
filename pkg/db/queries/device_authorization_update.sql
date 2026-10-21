@@ -1,5 +1,5 @@
--- name: ApproveCLIDeviceLogin :execrows
-UPDATE cli_device_logins
+-- name: ApproveDeviceAuthorization :execrows
+UPDATE device_authorizations
 SET
     status = 'approved',
     workspace_id = sqlc.arg(workspace_id),
@@ -7,7 +7,6 @@ SET
     approver_name = sqlc.arg(approver_name),
     approver_roles = CAST(sqlc.arg(approver_roles) AS JSON),
     permissions = CAST(sqlc.arg(permissions) AS JSON),
-    key_name = sqlc.arg(key_name),
     approved_at = sqlc.arg(approved_at)
 WHERE id = sqlc.arg(id)
   AND status IN ('pending', 'approved')
@@ -16,18 +15,18 @@ WHERE id = sqlc.arg(id)
     OR approver_user_id = sqlc.arg(approver_user_id)
   );
 
--- name: UpdateCLIDeviceLoginStatus :exec
-UPDATE cli_device_logins
+-- name: UpdateDeviceAuthorizationStatus :exec
+UPDATE device_authorizations
 SET status = sqlc.arg(status)
 WHERE id = sqlc.arg(id);
 
--- name: ConsumeCLIDeviceLogin :execrows
-UPDATE cli_device_logins
-SET status = 'consumed', key_id = sqlc.arg(key_id)
+-- name: ConsumeDeviceAuthorization :execrows
+UPDATE device_authorizations
+SET status = 'consumed', session_id = sqlc.arg(session_id)
 WHERE id = sqlc.arg(id)
   AND status = 'approved';
 
--- name: DeleteExpiredCLIDeviceLogins :execrows
-DELETE FROM cli_device_logins
+-- name: DeleteExpiredDeviceAuthorizations :execrows
+DELETE FROM device_authorizations
 WHERE expires_at < sqlc.arg(expired_before)
 LIMIT 100;
