@@ -13,7 +13,7 @@ const CANT_START: ReasonCopy = {
 
 const EXIT_REASONS = {
   CrashLoopBackOff: {
-    label: "Keeps crashing",
+    label: "Crashing",
     body: "Your app exits right after it starts. Check your logs.",
     fatalWaiting: true,
   },

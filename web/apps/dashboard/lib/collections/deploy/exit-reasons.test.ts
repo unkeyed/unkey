@@ -3,7 +3,7 @@ import { isFatalWaitingReason, reasonCopy } from "./exit-reasons";
 
 describe("reasonCopy", () => {
   test("gives plain copy for known reasons", () => {
-    expect(reasonCopy("CrashLoopBackOff")?.label).toBe("Keeps crashing");
+    expect(reasonCopy("CrashLoopBackOff")?.label).toBe("Crashing");
     expect(reasonCopy("ErrImagePull")?.label).toBe("Can't pull image");
   });
 

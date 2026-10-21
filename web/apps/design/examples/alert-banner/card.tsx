@@ -25,7 +25,7 @@ export default function AlertBannerCard() {
       </AlertBanner>
       <AlertBanner variant="error" appearance="card">
         <IconTriangleWarningOutline18 className="size-4" />
-        <AlertBannerTitle>Keeps crashing</AlertBannerTitle>
+        <AlertBannerTitle>Crashing</AlertBannerTitle>
         <AlertBannerMeta>9 restarts · 2 minutes ago</AlertBannerMeta>
         <AlertBannerDescription>
           Your app exits right after it starts. Check your logs.
