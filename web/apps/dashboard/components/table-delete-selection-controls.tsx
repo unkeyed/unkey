@@ -1,8 +1,9 @@
 "use client";
 import { AnimatedCounter } from "@/components/api-keys-table/components/selection-controls";
+import { Presence } from "@/components/presence";
 import { IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
-import { AnimatePresence, motion } from "framer-motion";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 
 type TableDeleteSelectionControlsProps = {
@@ -32,29 +33,17 @@ export const TableDeleteSelectionControls = ({
 
   return (
     <>
-      <AnimatePresence>
-        {selectedCount > 0 && (
-          <motion.div
-            key="selection-controls"
-            className="border-b w-full overflow-hidden"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{
-              opacity: 1,
-              height: "auto",
-              transition: {
-                height: { duration: 0.3, ease: "easeOut" },
-                opacity: { duration: 0.3, ease: "easeOut" },
-              },
-            }}
-            exit={{
-              opacity: 0,
-              height: 0,
-              transition: {
-                opacity: { duration: 0.2, ease: "easeIn" },
-                height: { duration: 0.3, ease: "easeIn" },
-              },
-            }}
+      <Presence present={selectedCount > 0} exitMs={300}>
+        {({ closing }) => (
+          <div
+            className={cn(
+              "border-b w-full grid",
+              closing
+                ? "grid-rows-[0fr] opacity-0 [transition:grid-template-rows_300ms_ease-in,opacity_200ms_ease-in]"
+                : "grid-rows-[1fr] opacity-100 [transition:grid-template-rows_300ms_ease-out,opacity_300ms_ease-out] starting:grid-rows-[0fr] starting:opacity-0",
+            )}
           >
+            <div className="min-h-0 overflow-hidden">
             <div className="flex justify-between items-center w-full p-[18px]">
               <div className="items-center flex gap-2">
                 <AnimatedCounter value={selectedCount} />
@@ -84,9 +73,10 @@ export const TableDeleteSelectionControls = ({
                 </Button>
               </div>
             </div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+      </Presence>
 
       <ConfirmPopover
         isOpen={isDeleteConfirmOpen}

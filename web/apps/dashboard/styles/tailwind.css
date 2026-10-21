@@ -30,6 +30,34 @@
   --animate-coin-hop: coin-hop 1100ms linear 100ms both;
   --animate-coin-flip: coin-flip 1100ms cubic-bezier(0.3, 0.6, 0.25, 1) 100ms both;
   --animate-dash-flow: dash-flow 800ms linear infinite;
+  --animate-counter-pop: counter-pop 400ms ease-out;
+  --animate-deployment-victory: deployment-victory 4.5s both;
+
+  /* cubic-bezier(0.4, 0, 0.2, 1) across the whole run, split at the keyframes */
+  @keyframes deployment-victory {
+    0% {
+      opacity: 0;
+      animation-timing-function: cubic-bezier(0.482, 0, 0.768, 0.407);
+    }
+    22.46% {
+      opacity: 1;
+      animation-timing-function: linear;
+    }
+    50.35% {
+      opacity: 1;
+      animation-timing-function: cubic-bezier(0.208, 0.582, 0.511, 1);
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes counter-pop {
+    from {
+      opacity: 0;
+      scale: 0.5;
+    }
+  }
 
   @keyframes dash-flow {
     to {

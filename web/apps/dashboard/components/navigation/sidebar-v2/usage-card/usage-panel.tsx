@@ -2,14 +2,11 @@
 
 import { IconPlusOutline12 } from "@unkey/icons";
 import { cn } from "cn";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { useId } from "react";
 import { ApiRow, ComputeRow } from "./usage-rows";
 import { useMinimised } from "./use-minimised";
 import type { UsageSummary } from "./use-usage-summary";
-
-const TOGGLE = { duration: 0.2, ease: "easeInOut" } as const;
 
 export function UsagePanel({ summary }: { summary: UsageSummary }) {
   const [minimised, setMinimised] = useMinimised();
@@ -54,32 +51,34 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
         )}
       </div>
 
-      <motion.div
+      <div
         id={bodyId}
         inert={folded || undefined}
-        initial={false}
-        animate={{ height: folded ? 0 : "auto", opacity: folded ? 0 : 1 }}
-        transition={TOGGLE}
-        className="pointer-events-none relative overflow-hidden"
+        className={cn(
+          "pointer-events-none relative grid transition-[grid-template-rows,opacity] duration-200 ease-[ease-in-out]",
+          folded ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100",
+        )}
       >
-        <div className="flex flex-col gap-2.5 px-2.5 pt-1 pb-2.5">
-          {summary.compute === null ? null : <ComputeRow measured={summary.compute} />}
-          {summary.api === null ? null : <ApiRow measured={summary.api} />}
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-2.5 px-2.5 pt-1 pb-2.5">
+            {summary.compute === null ? null : <ComputeRow measured={summary.compute} />}
+            {summary.api === null ? null : <ApiRow measured={summary.api} />}
+          </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
 
 function Toggle({ rotated }: { rotated: boolean }) {
   return (
-    <motion.span
-      className="flex shrink-0"
-      initial={false}
-      animate={{ rotate: rotated ? 45 : 0 }}
-      transition={TOGGLE}
+    <span
+      className={cn(
+        "flex shrink-0 transition-transform duration-200 ease-[ease-in-out]",
+        rotated && "rotate-45",
+      )}
     >
       <IconPlusOutline12 />
-    </motion.span>
+    </span>
   );
 }
