@@ -6,7 +6,6 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
-	"strings"
 
 	"github.com/unkeyed/unkey/pkg/paseto"
 )
@@ -91,17 +90,6 @@ func (c *Codec) Unmarshal(token string) (*Metadata, error) {
 	message, err := c.verifier.Verify(token)
 	if err != nil {
 		return nil, fmt.Errorf("verify metadata: %w", err)
-	}
-
-	for i := range message.Payload.Hops {
-		hop := &message.Payload.Hops[i]
-		if hop.RegionPlatform != "" {
-			continue
-		}
-		platform, region, ok := strings.Cut(hop.Region, "::")
-		if ok && platform != "" && region != "" {
-			hop.RegionPlatform = region + "." + platform
-		}
 	}
 
 	return &message.Payload, nil
