@@ -32,8 +32,6 @@ import { Result } from "../types/fp.js";
  * @remarks
  * Restart verification for a portal domain.
  *
- * Unreleased and subject to change without notice.
- *
  * Call this after you correct the DNS records of a domain that shows `failed`, or to give a
  * `pending` domain a new 24-hour verification period. The endpoint returns when Unkey accepts
  * the retry. Poll `portal.getDomain` for the result.
