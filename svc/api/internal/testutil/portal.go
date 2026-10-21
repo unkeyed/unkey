@@ -157,3 +157,35 @@ func (h *Harness) CountLivePortalSessions(t *testing.T, portalID, externalID str
 	require.NoError(t, err)
 	return int(count)
 }
+
+// SeedPortalDomain inserts a domain on portalID in the given status and returns
+// it as the API reads it.
+func (h *Harness) SeedPortalDomain(
+	t *testing.T,
+	workspaceID, portalID, domain string,
+	status db.PortalDomainsVerificationStatus,
+) db.FindPortalDomainByIdRow {
+	t.Helper()
+
+	ctx := context.Background()
+	id := uid.New(uid.PortalDomainPrefix)
+	err := db.Query.InsertPortalDomain(ctx, h.DB.RW(), db.InsertPortalDomainParams{
+		ID:                 id,
+		WorkspaceID:        workspaceID,
+		PortalID:           portalID,
+		Domain:             domain,
+		VerificationStatus: status,
+		VerificationToken:  uid.Secure(24),
+		TargetCname:        uid.DNS1035(16) + ".portal.unkey.local",
+		CreatedAt:          h.Clock.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+
+	row, err := db.Query.FindPortalDomainById(ctx, h.DB.RW(), db.FindPortalDomainByIdParams{
+		ID:          id,
+		WorkspaceID: workspaceID,
+		PortalID:    portalID,
+	})
+	require.NoError(t, err)
+	return row
+}

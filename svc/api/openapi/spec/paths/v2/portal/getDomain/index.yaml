@@ -1,0 +1,67 @@
+post:
+  x-excluded: true
+  tags:
+    - portal
+  summary: Get portal domain
+  description: |
+    Read one custom domain attached to a portal, with its verification status and DNS records.
+
+    Unreleased and subject to change without notice.
+
+    **Required Permissions**
+
+    Your root key must have one of:
+    - `portal.*.read_portal` (to read domains on any portal in the workspace)
+    - `portal.<portal_id>.read_portal` (to read domains on a specific portal)
+    - `portal.*.update_portal` or `portal.<portal_id>.update_portal`, so a key that
+      creates a domain can poll it
+
+    Without the permission this returns **404**, not 403.
+  operationId: portal.getDomain
+  x-speakeasy-name-override: getDomain
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalGetDomainRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: The portal domain.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalGetDomainResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        No such portal or domain on that portal, or your root key may not read the portal.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
