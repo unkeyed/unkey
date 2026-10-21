@@ -44,6 +44,12 @@ export function DeployRefPicker({
     query,
   });
 
+  const recentBranch = lastPushedBranch(branches, productionBranch);
+  const quickPicks = [
+    { name: productionBranch, hint: "production branch" },
+    ...(recentBranch ? [{ name: recentBranch, hint: "last pushed branch" }] : []),
+  ];
+
   const items = options.map((branch) => ({
     value: branch.name,
     selectedLabel: branch.name,
@@ -82,16 +88,21 @@ export function DeployRefPicker({
           searchPlaceholder="Search branches…"
           emptyMessage="No branches found."
         />
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => onRefChange(productionBranch)}
-          className="h-5 gap-1 px-1.5 font-mono text-xs [&_svg]:size-3"
-        >
-          <IconCodeBranchOutline18 />
-          {productionBranch}
-          <span className="sr-only">, production branch</span>
-        </Button>
+        <div className="flex max-w-full flex-wrap gap-1.5">
+          {quickPicks.map((pick) => (
+            <Button
+              key={pick.name}
+              type="button"
+              variant="outline"
+              onClick={() => onRefChange(pick.name)}
+              className="h-5 max-w-full gap-1 px-1.5 font-mono text-xs [&_svg]:size-3"
+            >
+              <IconCodeBranchOutline18 />
+              <span className="truncate">{pick.name}</span>
+              <span className="sr-only">, {pick.hint}</span>
+            </Button>
+          ))}
+        </div>
       </div>
       <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
         <FormLabel label="Environment" htmlFor="deploy-environment" />
@@ -112,4 +123,17 @@ export function DeployRefPicker({
       </fieldset>
     </div>
   );
+}
+
+function lastPushedBranch(branches: readonly BranchOption[], productionBranch: string) {
+  let latest: BranchOption | null = null;
+  for (const branch of branches) {
+    if (branch.name === productionBranch || !branch.lastPushDate) {
+      continue;
+    }
+    if (!latest?.lastPushDate || branch.lastPushDate > latest.lastPushDate) {
+      latest = branch;
+    }
+  }
+  return latest?.name ?? null;
 }
