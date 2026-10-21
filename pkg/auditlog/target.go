@@ -17,6 +17,7 @@ const (
 	WorkspaceTargetType          AuditLogTargetType = "workspace"
 	PortalTargetType             AuditLogTargetType = "portal"
 	PortalSessionTargetType      AuditLogTargetType = "portalSession"
+	PortalDomainTargetType       AuditLogTargetType = "portalDomain"
 	DeploymentTargetType         AuditLogTargetType = "deployment"
 	ProjectTargetType            AuditLogTargetType = "project"
 	AppTargetType                AuditLogTargetType = "app"

@@ -178,6 +178,9 @@ open https://app.unkey.local
 
 Tilt generates trusted TLS certificates using mkcert and Frontline terminates TLS on port 443.
 
+To verify a real custom domain and issue its certificate through ACME, see
+[Custom domains and certificates](./certificates.md).
+
 ## Stop the development environment
 
 Exit Tilt with Ctrl+C to stop local processes and port forwards, then stop
