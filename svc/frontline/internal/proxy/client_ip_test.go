@@ -13,6 +13,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/timing"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
@@ -86,19 +88,35 @@ func TestForwardPreservesRequestAndResponse(t *testing.T) {
 	for _, destination := range []proxyDestination{destinationInstance, destinationFrontline} {
 		t.Run(string(destination), func(t *testing.T) {
 			received := make(chan receivedRequest, 1)
+			requestIDs := make(chan string, 1)
+			peerID := uid.New(uid.FrontlinePrefix)
+			peerRequestID := uid.New(uid.RequestPrefix)
+			cookies := []string{"session=first; Path=/; HttpOnly", "preference=second; Expires=Wed, 21 Oct 2026 07:28:00 GMT"}
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				data, err := io.ReadAll(r.Body)
 				received <- receivedRequest{r.RequestURI, r.Host, r.Method, r.Header.Get("Content-Type"), data, err}
 				w.Header().Set("X-Customer-Response", "preserved")
+				w.Header().Add("X-Customer-Response", "also-preserved")
+				for _, cookie := range cookies {
+					w.Header().Add("Set-Cookie", cookie)
+				}
+				w.Header().Add(HeaderFrontlineID, peerID)
+				w.Header().Add(HeaderFrontlineID, peerID)
+				w.Header().Add(HeaderRequestID, peerRequestID)
+				w.Header().Add(HeaderRegion, "aws::us-west-2,aws::eu-west-1")
+				w.Header().Add(HeaderRegion, "aws::us-west-2")
+				w.Header().Add(timing.HeaderName, "cache_swr{cache=routes,status=stale}=2us")
+				w.Header().Add(timing.HeaderName, "frontline{scope=frontline}=3ms,total{scope=frontline}=17ms")
 				w.WriteHeader(http.StatusCreated)
 			}))
 			t.Cleanup(upstream.Close)
 			target, err := url.Parse(upstream.URL)
 			require.NoError(t, err)
-			svc := &service{clock: clock.NewTestClock(), instanceID: "test", platform: "aws", region: "us-east-1"} //nolint:exhaustruct
-			server, err := zen.New(zen.Config{StreamRequestBody: true})                                            //nolint:exhaustruct
+			svc := &service{clock: clock.NewTestClock(), instanceID: uid.New(uid.FrontlinePrefix), platform: "aws", region: "us-east-1"} //nolint:exhaustruct
+			server, err := zen.New(zen.Config{StreamRequestBody: true})                                                                  //nolint:exhaustruct
 			require.NoError(t, err)
 			server.RegisterRoute(nil, zen.NewRoute(http.MethodPost, "/", func(ctx context.Context, sess *zen.Session) error {
+				requestIDs <- sess.RequestID()
 				start := svc.clock.Now()
 				director := svc.makeInstanceDirector(sess, start)
 				if destination == destinationFrontline {
@@ -115,11 +133,20 @@ func TestForwardPreservesRequestAndResponse(t *testing.T) {
 			require.NoError(t, err)
 			req.Host = "customer.example"
 			req.Header.Set("Content-Type", "application/octet-stream")
+			req.Header.Set("X-Unkey-Debug", "true")
 			response, err := frontline.Client().Do(req)
 			require.NoError(t, err)
 			require.NoError(t, response.Body.Close())
 			require.Equal(t, http.StatusCreated, response.StatusCode)
-			require.Equal(t, "preserved", response.Header.Get("X-Customer-Response"))
+			require.Equal(t, []string{"preserved", "also-preserved"}, response.Header.Values("X-Customer-Response"))
+			require.Equal(t, cookies, response.Header.Values("Set-Cookie"))
+			require.Equal(t, []string{svc.instanceID + "," + peerID + "," + peerID}, response.Header.Values(HeaderFrontlineID))
+			require.Equal(t, []string{<-requestIDs}, response.Header.Values(HeaderRequestID))
+			require.Equal(t, []string{"aws::us-east-1,aws::us-west-2,aws::eu-west-1,aws::us-west-2"}, response.Header.Values(HeaderRegion))
+			require.Equal(t, []string{"frontline_routing{scope=frontline}=0ns,frontline{scope=frontline}=0ns,total{scope=frontline}=0ns,cache_swr{cache=routes,status=stale}=2us,frontline{scope=frontline}=3ms,total{scope=frontline}=17ms"}, response.Header.Values(timing.HeaderName))
+			entries, err := timing.ParseEntries(response.Header.Get(timing.HeaderName))
+			require.NoError(t, err)
+			require.Len(t, entries, 6)
 			got := <-received
 			require.NoError(t, got.err)
 			require.Equal(t, requestURI, got.uri)

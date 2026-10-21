@@ -235,6 +235,9 @@ func applyPeerMetadata(sess *zen.Session, codec *meta.Codec, now time.Time) ([]m
 		}
 		sess.SetClientIP(ip)
 	}
+	if len(metadata.Hops) > 0 && metadata.Hops[0].RequestID != "" {
+		sess.SetRequestID(metadata.Hops[0].RequestID)
+	}
 	sess.SetDebugTelemetryEnabled(metadata.DebugTelemetryEnabled)
 	return metadata.Hops, nil
 }

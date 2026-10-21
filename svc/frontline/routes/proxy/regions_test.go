@@ -51,7 +51,7 @@ func TestRegionFallback_ExhaustedInstancesReturnUpstreamError(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, http.StatusBadGateway, resp.StatusCode, "body: %s", body)
-			require.Equal(t, []string{"aws::us-east-1", "aws::us-west-2"}, resp.Header.Values(proxy.HeaderRegion))
+			require.Equal(t, []string{"aws::us-east-1,aws::us-west-2"}, resp.Header.Values(proxy.HeaderRegion))
 			if accept == "application/json" {
 				var result middleware.ErrorResponse
 				require.NoError(t, json.Unmarshal(body, &result))
@@ -141,7 +141,7 @@ func TestRegionFallback_ReachesUnvisitedRegionWithPostBody(t *testing.T) {
 			if entry == "eu-west-1" {
 				expected = []string{"aws::eu-west-1", "aws::eu-north-1"}
 			}
-			require.Equal(t, expected, resp.Header.Values(proxy.HeaderRegion))
+			require.Equal(t, []string{strings.Join(expected, ",")}, resp.Header.Values(proxy.HeaderRegion))
 		})
 	}
 }
