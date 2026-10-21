@@ -85,7 +85,7 @@ export function VariablesTable({ draft }: { draft: VariableRows }) {
     <div
       {...dropZoneProps}
       tabIndex={-1}
-      className="relative overflow-hidden rounded-lg border border-grayA-4 bg-raised outline-hidden [--variables-columns:minmax(0,2fr)_minmax(0,3fr)_96px_36px]"
+      className="relative shrink-0 overflow-hidden rounded-lg border border-grayA-4 bg-raised outline-hidden [--variables-columns:minmax(0,2fr)_minmax(0,3fr)_96px_36px]"
     >
       <DropOverlay isDragging={isDragging} />
       <div className="grid grid-cols-(--variables-columns) divide-x divide-grayA-4 border-b border-grayA-4 bg-grayA-2 text-xs text-gray-10">
