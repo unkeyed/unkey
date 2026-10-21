@@ -1,12 +1,9 @@
 post:
-  x-excluded: true
   tags:
     - portal
   summary: Get portal domain
   description: |
     Read one custom domain attached to a portal, with its verification status and DNS records.
-
-    Unreleased and subject to change without notice.
 
     **Required Permissions**
 

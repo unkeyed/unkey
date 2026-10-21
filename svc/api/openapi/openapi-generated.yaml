@@ -17935,8 +17935,6 @@ paths:
             description: |
                 Read one custom domain attached to a portal, with its verification status and DNS records.
 
-                Unreleased and subject to change without notice.
-
                 **Required Permissions**
 
                 Your root key must have one of:
@@ -18049,7 +18047,6 @@ paths:
             summary: Get portal domain
             tags:
                 - portal
-            x-excluded: true
             x-speakeasy-name-override: getDomain
     /v2/portal.getPortal:
         post:
