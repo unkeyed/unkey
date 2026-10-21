@@ -1930,14 +1930,15 @@ type RatelimitGlobalCounter struct {
 }
 
 type RatelimitNamespace struct {
-	Pk          uint64        `db:"pk"`
-	ID          string        `db:"id"`
-	WorkspaceID string        `db:"workspace_id"`
-	ProjectID   string        `db:"project_id"`
-	Name        string        `db:"name"`
-	CreatedAtM  int64         `db:"created_at_m"`
-	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
-	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
+	Pk                 uint64        `db:"pk"`
+	ID                 string        `db:"id"`
+	WorkspaceID        string        `db:"workspace_id"`
+	ProjectID          string        `db:"project_id"`
+	Name               string        `db:"name"`
+	UseGlobalRatelimit bool          `db:"use_global_ratelimit"`
+	CreatedAtM         int64         `db:"created_at_m"`
+	UpdatedAtM         sql.NullInt64 `db:"updated_at_m"`
+	DeletedAtM         sql.NullInt64 `db:"deleted_at_m"`
 }
 
 type RatelimitOverride struct {
@@ -1951,6 +1952,14 @@ type RatelimitOverride struct {
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
+}
+
+type RatelimitState struct {
+	Fingerprint    []byte `db:"fingerprint"`
+	SessionID      string `db:"session_id"`
+	AnchorAtNs     int64  `db:"anchor_at_ns"`
+	ConsumedNs     int64  `db:"consumed_ns"`
+	CompactAfterMs int64  `db:"compact_after_ms"`
 }
 
 type Region struct {
