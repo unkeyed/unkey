@@ -82,7 +82,7 @@ export const deploymentSchema = z.object({
   // Most-recent exit info across the deployment's instances. Null when
   // no instance has reported a termination yet (healthy deployments).
   // Powers the header "OOMKilled · exit=137" badge — see
-  // active-deployment-card/index.tsx:LastExitBadge. Sourced from
+  // components/last-exit.tsx:LastExitText. Sourced from
   // instances.containerStatus on the trpc layer; the flat shape is kept
   // here so consumers don't have to walk the JSON's optional sub-fields.
   lastExit: z

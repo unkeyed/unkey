@@ -1,11 +1,11 @@
 "use client";
 
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import {
   EnvironmentBadge,
   type EnvironmentBadgeRollout,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
+import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
@@ -96,7 +96,7 @@ export function DeploymentRow({
         </span>
         {showLastExit && deployment.lastExit && (
           <span className="relative z-20 shrink-0">
-            <LastExitBadge lastExit={deployment.lastExit} />
+            <LastExitText lastExit={deployment.lastExit} />
           </span>
         )}
       </span>

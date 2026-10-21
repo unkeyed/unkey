@@ -1,4 +1,4 @@
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
+import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
 import { trpc } from "@/lib/trpc/client";
 import { IconLayers3Outline18 } from "@unkey/icons";
 import { CardFooter } from "./components/card-footer";
@@ -51,7 +51,7 @@ export function InstanceNode({ node, region, deploymentId }: InstanceNodeProps) 
   // when ctrl has recorded a crash. The diagnostic should be readable
   // directly on the graph card — clicking into the panel shouldn't be
   // required to see "this pod is OOMKilling".
-  const subtitle = lastExit ? <LastExitBadge lastExit={lastExit} /> : "Instance Replica";
+  const subtitle = lastExit ? <LastExitText lastExit={lastExit} /> : "Instance Replica";
 
   return (
     <NodeWrapper health={effectiveHealth}>
