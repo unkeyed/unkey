@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/redaction"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
@@ -47,7 +48,8 @@ func runClickHouseLoggingRequest(t *testing.T, capture captureFlags) []schema.Fr
 		},
 	})
 
-	mw := WithClickHouseLogging(buf, clock.NewTestClock(), "fl_test", "us-east-1", "test")
+	clk := clock.NewTestClock()
+	mw := WithClickHouseLogging(buf, clk, "fl_test", "us-east-1", "test")
 	handler := mw(func(ctx context.Context, s *zen.Session) error {
 		if capture.clientIP != "" {
 			s.SetClientIP(netip.MustParseAddr(capture.clientIP))
@@ -56,6 +58,8 @@ func runClickHouseLoggingRequest(t *testing.T, capture captureFlags) []schema.Fr
 		require.True(t, ok)
 		tracking.DeploymentID = "dep_123"
 		tracking.InstanceID = "inst_123"
+		tracking.InstanceStart = clk.Tick(26 * time.Millisecond)
+		tracking.InstanceEnd = clk.Tick(11 * time.Millisecond)
 		tracking.LogRequestHeaders = capture.requestHeaders
 		tracking.LogResponseHeaders = capture.responseHeaders
 		tracking.LogRequestBody = capture.requestBody
@@ -103,6 +107,9 @@ func TestClickHouseLogging_AlwaysEmitsBaseRow(t *testing.T) {
 	require.Len(t, rows, 1)
 	require.Equal(t, "dep_123", rows[0].DeploymentID)
 	require.Equal(t, "/test", rows[0].Path)
+	require.EqualValues(t, 37, rows[0].TotalLatency)
+	require.EqualValues(t, 11, rows[0].InstanceLatency)
+	require.EqualValues(t, 26, rows[0].GatewayLatency)
 	require.Empty(t, rows[0].QueryString)
 	require.Empty(t, rows[0].QueryParams)
 	require.Empty(t, rows[0].RequestHeaders)
@@ -111,6 +118,48 @@ func TestClickHouseLogging_AlwaysEmitsBaseRow(t *testing.T) {
 	require.Empty(t, rows[0].ResponseBody)
 	require.Empty(t, rows[0].UserAgent, "user agent identifies the client and rides on the request-headers opt-in")
 	require.Empty(t, rows[0].IPAddress, "client IP identifies the client and rides on the request-headers opt-in")
+}
+
+func TestClickHouseLogging_SkipsUnattributedAndDisabledRequests(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		deploymentID string
+		skip         bool
+	}{
+		{name: "no_local_deployment"},
+		{name: "disabled", deploymentID: uid.New(uid.DeploymentPrefix), skip: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var rows []schema.FrontlineRequest
+			buf := batch.New(batch.Config[schema.FrontlineRequest]{
+				Name:          "test",
+				BatchSize:     10,
+				BufferSize:    10,
+				FlushInterval: time.Hour,
+				Consumers:     1,
+				Flush: func(_ context.Context, batch []schema.FrontlineRequest) {
+					rows = append(rows, batch...)
+				},
+			})
+			t.Cleanup(buf.Close)
+			mw := WithClickHouseLogging(buf, clock.NewTestClock(), uid.New(uid.FrontlinePrefix), "us-east-1", "test")
+			serve := mw(func(ctx context.Context, sess *zen.Session) error {
+				tracking, ok := proxy.RequestTrackingFromContext(ctx)
+				require.True(t, ok)
+				tracking.DeploymentID = tc.deploymentID
+				if tc.skip {
+					sess.SkipRequestLog()
+				}
+				sess.ResponseWriter().WriteHeader(http.StatusNoContent)
+				return nil
+			})
+			sess := &zen.Session{}
+			require.NoError(t, sess.Init(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil), 0))
+			require.NoError(t, serve(t.Context(), sess))
+			buf.Close()
+			require.Empty(t, rows)
+		})
+	}
 }
 
 func TestClickHouseLogging_AuthenticatedClientIP(t *testing.T) {
