@@ -1,0 +1,39 @@
+type: object
+required:
+  - status
+  - interval
+properties:
+  status:
+    type: string
+    enum:
+      - permissions_required
+      - access_denied
+      - expired_token
+      - complete
+    description: |
+      `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
+  interval:
+    type: integer
+    format: int64
+    description: Seconds to wait before polling again.
+  detail:
+    type: string
+    description: Human-readable reason for a terminal status.
+  accessToken:
+    type: string
+    x-unkey-redact: true
+    description: Short-lived access token. Present only when status is complete.
+  refreshToken:
+    type: string
+    x-unkey-redact: true
+    description: Rotating refresh token. Present only when status is complete. Store it. It is returned only once.
+  expiresIn:
+    type: integer
+    format: int64
+    description: Seconds until the access token expires. Present only when status is complete.
+  workspaceId:
+    type: string
+    description: Workspace the session belongs to. Present only when status is complete.
+  sessionId:
+    type: string
+    description: CLI session id. Present only when status is complete.

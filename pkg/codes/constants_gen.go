@@ -52,6 +52,8 @@ const (
 	UserErrorsTooManyRequestsQueryQuotaExceeded URN = "err:user:too_many_requests:query_quota_exceeded"
 	// WorkspaceRateLimited indicates the workspace has exceeded its API rate limit for the current window.
 	UserErrorsTooManyRequestsWorkspaceRateLimited URN = "err:user:too_many_requests:workspace_rate_limited"
+	// IPRateLimited indicates a client IP has exceeded the rate limit of an unauthenticated endpoint.
+	UserErrorsTooManyRequestsIPRateLimited URN = "err:user:too_many_requests:ip_rate_limited"
 
 	// ----------------
 	// UnkeyAuthErrors
