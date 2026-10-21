@@ -32,8 +32,6 @@ import { Result } from "../types/fp.js";
  * @remarks
  * List the custom domains attached to a portal, with their verification status and DNS records.
  *
- * Unreleased and subject to change without notice.
- *
  * **Required Permissions**
  *
  * Your root key must have one of:

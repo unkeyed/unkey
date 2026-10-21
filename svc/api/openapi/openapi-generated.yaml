@@ -18228,8 +18228,6 @@ paths:
             description: |
                 List the custom domains attached to a portal, with their verification status and DNS records.
 
-                Unreleased and subject to change without notice.
-
                 **Required Permissions**
 
                 Your root key must have one of:
@@ -18340,7 +18338,6 @@ paths:
             summary: List portal domains
             tags:
                 - portal
-            x-excluded: true
             x-speakeasy-name-override: listDomains
     /v2/portal.listKeys:
         post:

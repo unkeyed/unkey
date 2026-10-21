@@ -1,12 +1,9 @@
 post:
-  x-excluded: true
   tags:
     - portal
   summary: List portal domains
   description: |
     List the custom domains attached to a portal, with their verification status and DNS records.
-
-    Unreleased and subject to change without notice.
 
     **Required Permissions**
 
