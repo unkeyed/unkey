@@ -18,7 +18,7 @@ import (
 type tokenType int
 
 const (
-	// permission represents a permission string token like "api.key1.read_key".
+	// permission represents a permission string token like "documents.read".
 	// Permission tokens can contain alphanumeric characters, dots, underscores,
 	// and hyphens. They are the leaf nodes in the permission query AST.
 	permission tokenType = iota
@@ -102,7 +102,7 @@ type lexer struct {
 //
 // Example usage:
 //
-//	lexer := newLexer("api.key1.read_key AND api.key1.write_key")
+//	lexer := newLexer("documents.read AND documents.write")
 //	for {
 //	    token := lexer.nextToken()
 //	    if token.typ == eof {
@@ -177,7 +177,7 @@ func (l *lexer) readIdentifier() string {
 //
 // Permission identifiers can contain:
 //   - Alphanumeric characters (letters and digits)
-//   - Dots (.) for hierarchical separation (e.g., "api.key1.read_key")
+//   - Dots (.) for hierarchical separation (e.g., "documents.read")
 //   - Underscores (_) for word separation
 //   - Hyphens (-) for kebab-case identifiers
 //   - Colons (:) for namespace separation (e.g., "system:admin")
