@@ -3332,6 +3332,35 @@ components:
                 data:
                     "$ref": "#/components/schemas/V2PermissionsUpdateRoleResponseData"
             additionalProperties: false
+        V2PortalCreateDomainRequestBody:
+            type: object
+            required:
+                - portal
+                - domain
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                domain:
+                    type: string
+                    minLength: 4
+                    maxLength: 253
+                    description: |
+                        Fully qualified domain name to attach to the portal, without a scheme, port, or path.
+                        Must be unique across your workspace: a name already attached to a portal or to an
+                        environment cannot be attached again.
+                    example: portal.acme.com
+            additionalProperties: false
+        V2PortalCreateDomainResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PortalCreateDomainResponseData"
+            additionalProperties: false
         V2PortalCreatePortalRequestBody:
             type: object
             required:
@@ -8241,6 +8270,30 @@ components:
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
+        V2PortalCreateDomainResponseData:
+            type: object
+            required:
+                - domainId
+                - dnsRecords
+            properties:
+                domainId:
+                    "$ref": "#/components/schemas/PortalDomainId"
+                dnsRecords:
+                    type: array
+                    minItems: 1
+                    items:
+                        "$ref": "#/components/schemas/DnsRecord"
+                    description: |
+                        Every DNS record needed to finish setting up this domain, ready to create at your provider.
+                        One record routes traffic to the portal and one proves ownership. Create all of them.
+            additionalProperties: false
+        PortalDomainId:
+            type: string
+            minLength: 3
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9_]+$"
+            description: The portal domain ID that `portal.createDomain` returned.
+            example: pdom_1234abcd
         PortalKeyspaceId:
             type: string
             minLength: 1
@@ -17374,6 +17427,95 @@ paths:
                 - permissions
             x-speakeasy-name-override: UpdateRole
             x-unkey-idempotency: idempotent
+    /v2/portal.createDomain:
+        post:
+            description: |
+                Attach a custom domain to a portal and start verifying it.
+
+                Unreleased and subject to change without notice.
+
+                The domain is created in the `pending` state and does not serve the portal until
+                verification succeeds. The response returns `dnsRecords`: create every entry exactly as
+                given. Verification runs in the background; poll `portal.getDomain` for the result.
+
+                A name already attached to one of your portals or environments returns a 409.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.update_portal` (to manage domains on any portal in the workspace)
+                - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.createDomain
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalCreateDomainRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalCreateDomainResponseBody'
+                    description: |
+                        Domain created and verification started. The domain is `pending` until the DNS records resolve.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: The domain is not a valid fully qualified domain name.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: |
+                        The root key or its workspace is disabled, or the workspace already holds as many
+                        portal domains as it may.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal, or your root key may not update it.
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: |
+                        The domain is already attached to a portal or an environment in your workspace.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: |
+                        Internal server error, including when portal domains are not available in this environment.
+            security:
+                - bearer: []
+            summary: Create portal domain
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: createDomain
     /v2/portal.createPortal:
         post:
             description: |

@@ -2631,6 +2631,11 @@ type PortalBranding struct {
 	PrimaryColor string `json:"primaryColor,omitempty"`
 }
 
+// PortalDomainId The portal domain ID that `portal.createDomain` returned.
+//
+// Example: pdom_1234abcd
+type PortalDomainId = string
+
 // PortalKeyspaceId The id of the keyspace this portal serves keys for. Must belong to your
 // workspace.
 //
@@ -6420,6 +6425,44 @@ type V2PermissionsUpdateRoleResponseData struct {
 	Name string `json:"name"`
 }
 
+// V2PortalCreateDomainRequestBody defines model for V2PortalCreateDomainRequestBody.
+type V2PortalCreateDomainRequestBody struct {
+	// Domain Fully qualified domain name to attach to the portal, without a scheme, port, or path.
+	// Must be unique across your workspace: a name already attached to a portal or to an
+	// environment cannot be attached again.
+	//
+	//
+	// Example: portal.acme.com
+	Domain string `json:"domain"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalCreateDomainResponseBody defines model for V2PortalCreateDomainResponseBody.
+type V2PortalCreateDomainResponseBody struct {
+	Data V2PortalCreateDomainResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalCreateDomainResponseData defines model for V2PortalCreateDomainResponseData.
+type V2PortalCreateDomainResponseData struct {
+	// DnsRecords Every DNS record needed to finish setting up this domain, ready to create at your provider.
+	// One record routes traffic to the portal and one proves ownership. Create all of them.
+	DnsRecords []DnsRecord `json:"dnsRecords"`
+
+	// DomainId The portal domain ID that `portal.createDomain` returned.
+	//
+	// Example: pdom_1234abcd
+	DomainId PortalDomainId `json:"domainId"`
+}
+
 // V2PortalCreatePortalRequestBody defines model for V2PortalCreatePortalRequestBody.
 type V2PortalCreatePortalRequestBody struct {
 	// AppId The id of the app this portal serves keys for. Must belong to your workspace.
@@ -8384,6 +8427,9 @@ type PermissionsUpdatePermissionJSONRequestBody = V2PermissionsUpdatePermissionR
 
 // PermissionsUpdateRoleJSONRequestBody defines body for PermissionsUpdateRole for application/json ContentType.
 type PermissionsUpdateRoleJSONRequestBody = V2PermissionsUpdateRoleRequestBody
+
+// PortalCreateDomainJSONRequestBody defines body for PortalCreateDomain for application/json ContentType.
+type PortalCreateDomainJSONRequestBody = V2PortalCreateDomainRequestBody
 
 // PortalCreatePortalJSONRequestBody defines body for PortalCreatePortal for application/json ContentType.
 type PortalCreatePortalJSONRequestBody = V2PortalCreatePortalRequestBody
