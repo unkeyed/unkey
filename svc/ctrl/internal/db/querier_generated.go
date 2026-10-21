@@ -661,14 +661,6 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE domain = ?
 	FindCustomDomainByDomain(ctx context.Context, domain string) (CustomDomain, error)
-	//FindCustomDomainByDomainOrWildcard
-	//
-	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
-	//  WHERE domain IN (?, ?)
-	//  ORDER BY
-	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
-	//  LIMIT 1
-	FindCustomDomainByDomainOrWildcard(ctx context.Context, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
 	//
 	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at
@@ -1134,14 +1126,78 @@ type Querier interface {
 	//  FROM regions
 	//  WHERE platform = ? AND name = ? LIMIT 1
 	FindRegionByPlatformAndName(ctx context.Context, arg FindRegionByPlatformAndNameParams) (Region, error)
-	//FindVerifiedCustomDomainByDomainExcludingWorkspace
+	// Resolves a hostname to its verified row in custom_domains or portal_domains so
+	// certificate issuance never acts on a pending competing claim. Verification
+	// revokes contested claims first; if two verified rows ever coexist, the most
+	// recently changed one wins.
 	//
-	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
-	//  WHERE domain = ?
-	//    AND workspace_id != ?
-	//    AND verification_status = 'verified'
+	// Example: if 'app.example.com' is verified in custom_domains (updated Monday)
+	// and in portal_domains (updated Tuesday), the portal_domains row is returned.
+	//
+	//  SELECT d.id, d.workspace_id, d.domain
+	//  FROM (
+	//      SELECT custom_domains.id, custom_domains.workspace_id, custom_domains.domain,
+	//          COALESCE(custom_domains.updated_at, custom_domains.created_at) AS changed_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.domain = ?
+	//        AND custom_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT portal_domains.id, portal_domains.workspace_id, portal_domains.domain,
+	//          COALESCE(portal_domains.updated_at, portal_domains.created_at) AS changed_at
+	//      FROM portal_domains
+	//      WHERE portal_domains.domain = ?
+	//        AND portal_domains.verification_status = 'verified'
+	//  ) AS d
+	//  ORDER BY d.changed_at DESC, d.id DESC
 	//  LIMIT 1
-	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
+	FindVerifiedDomainByHostname(ctx context.Context, arg FindVerifiedDomainByHostnameParams) (FindVerifiedDomainByHostnameRow, error)
+	// Resolves an ACME challenge hostname to a verified domain row, preferring an
+	// exact match in either domain table over a custom_domains wildcard. Portal
+	// domains are never wildcards, so only custom_domains is checked for one.
+	//
+	// Example: for 'api.example.com' with wildcard '*.example.com', a verified
+	// 'api.example.com' row in either table wins over a verified '*.example.com'.
+	//
+	//  SELECT d.id, d.workspace_id, d.domain
+	//  FROM (
+	//      SELECT custom_domains.id, custom_domains.workspace_id, custom_domains.domain, 0 AS is_wildcard,
+	//          COALESCE(custom_domains.updated_at, custom_domains.created_at) AS changed_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.domain = ?
+	//        AND custom_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT portal_domains.id, portal_domains.workspace_id, portal_domains.domain, 0 AS is_wildcard,
+	//          COALESCE(portal_domains.updated_at, portal_domains.created_at) AS changed_at
+	//      FROM portal_domains
+	//      WHERE portal_domains.domain = ?
+	//        AND portal_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT custom_domains.id, custom_domains.workspace_id, custom_domains.domain, 1 AS is_wildcard,
+	//          COALESCE(custom_domains.updated_at, custom_domains.created_at) AS changed_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.domain = ?
+	//        AND custom_domains.verification_status = 'verified'
+	//  ) AS d
+	//  ORDER BY d.is_wildcard ASC, d.changed_at DESC, d.id DESC
+	//  LIMIT 1
+	FindVerifiedDomainByHostnameOrWildcard(ctx context.Context, arg FindVerifiedDomainByHostnameOrWildcardParams) (FindVerifiedDomainByHostnameOrWildcardRow, error)
+	// Finds another workspace's verified claim on a hostname in custom_domains or
+	// portal_domains, so ownership contention spans both tables. source names the
+	// table holding the claim, which is where a takeover must revoke it.
+	//
+	//  SELECT 'custom' AS source, custom_domains.id, custom_domains.workspace_id
+	//  FROM custom_domains
+	//  WHERE custom_domains.domain = ?
+	//    AND custom_domains.workspace_id != ?
+	//    AND custom_domains.verification_status = 'verified'
+	//  UNION ALL
+	//  SELECT 'portal' AS source, portal_domains.id, portal_domains.workspace_id
+	//  FROM portal_domains
+	//  WHERE portal_domains.domain = ?
+	//    AND portal_domains.workspace_id != ?
+	//    AND portal_domains.verification_status = 'verified'
+	//  LIMIT 1
+	FindVerifiedDomainClaimExcludingWorkspace(ctx context.Context, arg FindVerifiedDomainClaimExcludingWorkspaceParams) (FindVerifiedDomainClaimExcludingWorkspaceRow, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Used by the Deploy cancel path to read the
 	// current plan and Stripe subscription. When a workspace is already being
@@ -2135,10 +2191,21 @@ type Querier interface {
 	//  UNION
 	//  SELECT deployments.environment_id AS id FROM deployments WHERE deployments.app_id = ?
 	ListEnvironmentIdsByApp(ctx context.Context, arg ListEnvironmentIdsByAppParams) ([]string, error)
-	//ListExecutableChallenges
+	// Lists challenges waiting for issuance or within 30 days of expiry, for deploy
+	// and portal domains alike. Only verified domain rows qualify, so a challenge
+	// left behind by a failed or revoked domain is never issued.
 	//
-	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
-	//  JOIN custom_domains d ON dc.domain_id = d.id
+	//  SELECT dc.workspace_id, dc.challenge_type, d.domain
+	//  FROM acme_challenges dc
+	//  JOIN (
+	//      SELECT custom_domains.id, custom_domains.domain, custom_domains.created_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT portal_domains.id, portal_domains.domain, portal_domains.created_at
+	//      FROM portal_domains
+	//      WHERE portal_domains.verification_status = 'verified'
+	//  ) AS d ON dc.domain_id = d.id
 	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= UNIX_TIMESTAMP(DATE_ADD(NOW(), INTERVAL 30 DAY)) * 1000))
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC

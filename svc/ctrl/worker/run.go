@@ -53,6 +53,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/domainverify"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
@@ -483,6 +484,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
 		DB:          database,
+		Resolver:    domainverify.SystemResolver{},
 		CnameDomain: cfg.CnameDomain,
 	}),
 		// Retry every 1 minute for up to 24 hours (1440 attempts). Pause (not
@@ -502,7 +504,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if clk == nil {
 		clk = clock.New()
 	}
-	domainCache, domainCacheErr := cache.New(cache.Config[string, db.CustomDomain]{
+	domainCache, domainCacheErr := cache.New(cache.Config[string, db.FindVerifiedDomainByHostnameRow]{
 		Fresh:     5 * time.Minute,
 		Stale:     10 * time.Minute,
 		MaxSize:   10000,

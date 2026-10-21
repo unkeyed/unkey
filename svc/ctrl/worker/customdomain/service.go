@@ -3,13 +3,14 @@ package customdomain
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/domainverify"
 )
 
 // Service orchestrates custom domain verification workflows.
 //
 // Service implements hydrav1.CustomDomainServiceServer with handlers for
 // verifying domain ownership via CNAME records. It uses a Restate virtual
-// object pattern keyed by domain name to ensure only one verification
+// object pattern keyed by domain ID to ensure only one verification
 // workflow runs per domain at any time.
 //
 // The verification process checks that the user has added a CNAME record
@@ -21,6 +22,7 @@ import (
 type Service struct {
 	hydrav1.UnimplementedCustomDomainServiceServer
 	db          db.Database
+	resolver    domainverify.Resolver
 	cnameDomain string
 }
 
@@ -30,6 +32,10 @@ var _ hydrav1.CustomDomainServiceServer = (*Service)(nil)
 type Config struct {
 	// DB provides database access for custom domain records.
 	DB db.Database
+
+	// Resolver answers the DNS lookups verification makes. Production passes
+	// [domainverify.SystemResolver].
+	Resolver domainverify.Resolver
 
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
@@ -43,6 +49,7 @@ func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedCustomDomainServiceServer: hydrav1.UnimplementedCustomDomainServiceServer{},
 		db:                                     cfg.DB,
+		resolver:                               cfg.Resolver,
 		cnameDomain:                            cfg.CnameDomain,
 	}
 }
