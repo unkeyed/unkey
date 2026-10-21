@@ -12,5 +12,5 @@ examples:
   byId:
     summary: Retry verification
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd
       domainId: pdom_1234abcd

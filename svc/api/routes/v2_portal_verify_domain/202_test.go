@@ -17,8 +17,8 @@ func TestVerifyPortalDomainCallsCtrlWithActor(t *testing.T) {
 	res := f.call(t, handler.Request{Portal: f.portal.Slug, DomainId: stored.ID}, "portal.*.update_portal")
 	require.Equal(t, http.StatusAccepted, res.Status, "expected 202, received: %s", res.RawBody)
 
-	require.Len(t, f.ctrl.RetryVerificationCalls, 1)
-	call := f.ctrl.RetryVerificationCalls[0]
+	require.Len(t, f.ctrl.RetryPortalDomainVerificationCalls, 1)
+	call := f.ctrl.RetryPortalDomainVerificationCalls[0]
 	require.Equal(t, f.workspaceID, call.GetWorkspaceId())
 	require.Equal(t, f.portal.ID, call.GetPortalId())
 	require.Equal(t, stored.ID, call.GetDomainId())

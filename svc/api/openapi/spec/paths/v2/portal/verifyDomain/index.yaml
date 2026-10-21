@@ -38,6 +38,13 @@ post:
         application/json:
           schema:
             "$ref": "./V2PortalVerifyDomainResponseBody.yaml"
+          examples:
+            accepted:
+              summary: Verification restarted
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
     "400":
       description: Bad request
       content:
