@@ -171,9 +171,16 @@ func (s *Service) onVerificationSuccess(
 		return nil, fault.New("portal environment_id is not configured")
 	}
 
-	now := time.Now().UnixMilli()
+	nowTime, err := restateutil.Now(ctx)
+	if err != nil {
+		return nil, err
+	}
+	now := nowTime.UnixMilli()
 
-	err := restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
+	err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
+		if err := s.requireRow(stepCtx, dom.ID, false); err != nil {
+			return err
+		}
 		return s.db.UpdatePortalDomainVerificationStatus(stepCtx, db.UpdatePortalDomainVerificationStatusParams{
 			ID:                 dom.ID,
 			VerificationStatus: db.PortalDomainsVerificationStatusVerified,
@@ -181,11 +188,17 @@ func (s *Service) onVerificationSuccess(
 		})
 	}, restate.WithName("mark verified"))
 	if err != nil {
+		if restate.IsTerminalError(err) {
+			return nil, err
+		}
 		return nil, fault.Wrap(err, fault.Internal("failed to mark portal domain as verified"))
 	}
 
 	// Token and authorization come from the ACME server during the challenge.
 	err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
+		if err := s.requireRow(stepCtx, dom.ID, true); err != nil {
+			return err
+		}
 		err := s.db.InsertAcmeChallenge(stepCtx, db.InsertAcmeChallengeParams{
 			DomainID:      dom.ID,
 			WorkspaceID:   dom.WorkspaceID,
@@ -205,6 +218,9 @@ func (s *Service) onVerificationSuccess(
 		return err
 	}, restate.WithName("create acme challenge"))
 	if err != nil {
+		if restate.IsTerminalError(err) {
+			return nil, err
+		}
 		return nil, fault.Wrap(err, fault.Internal("failed to create ACME challenge record"))
 	}
 
@@ -243,6 +259,10 @@ func (s *Service) onVerificationSuccess(
 // createFrontlineRoute routes dom's hostname to the portal app's live
 // deployment in the configured environment.
 func (s *Service) createFrontlineRoute(ctx context.Context, dom db.PortalDomain, nowMs int64) error {
+	if err := s.requireRow(ctx, dom.ID, true); err != nil {
+		return err
+	}
+
 	env, err := s.db.FindEnvironmentById(ctx, s.environmentID)
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to find portal environment"))
@@ -267,12 +287,28 @@ func (s *Service) createFrontlineRoute(ctx context.Context, dom db.PortalDomain,
 		DeploymentID:  deploymentID,
 	}, nowMs, func(ctx context.Context, reason string) error {
 		return s.db.UpdatePortalDomainFailed(ctx, db.UpdatePortalDomainFailedParams{
-			ID:                 dom.ID,
-			VerificationStatus: db.PortalDomainsVerificationStatusFailed,
-			VerificationError:  sql.NullString{Valid: true, String: reason},
-			UpdatedAt:          sql.NullInt64{Valid: true, Int64: nowMs},
+			ID:                dom.ID,
+			VerificationError: sql.NullString{Valid: true, String: reason},
+			UpdatedAt:         sql.NullInt64{Valid: true, Int64: nowMs},
 		})
 	})
+}
+
+// requireRow stops the workflow once the row is deleted, or, with verified set,
+// no longer verified, so a delete or takeover racing the success path cannot
+// leave a challenge or route behind.
+func (s *Service) requireRow(ctx context.Context, domainID string, verified bool) error {
+	row, err := s.db.FindPortalDomainById(ctx, domainID)
+	if db.IsNotFound(err) {
+		return restate.ToTerminalError(fmt.Errorf("portal domain %s was deleted during verification", domainID), restate.WithErrorCode(404))
+	}
+	if err != nil {
+		return fault.Wrap(err, fault.Internal("failed to re-read portal domain"))
+	}
+	if verified && row.VerificationStatus != db.PortalDomainsVerificationStatusVerified {
+		return restate.ToTerminalError(fmt.Errorf("portal domain %s is %s, no longer verified", domainID, row.VerificationStatus), restate.WithErrorCode(409))
+	}
+	return nil
 }
 
 // onVerificationFailed marks the row failed and stops retries.
@@ -283,10 +319,9 @@ func (s *Service) onVerificationFailed(
 ) (*hydrav1.VerifyPortalDomainResponse, error) {
 	err := restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
 		return s.db.UpdatePortalDomainFailed(stepCtx, db.UpdatePortalDomainFailedParams{
-			ID:                 dom.ID,
-			VerificationStatus: db.PortalDomainsVerificationStatusFailed,
-			VerificationError:  sql.NullString{Valid: true, String: errorMsg},
-			UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ID:                dom.ID,
+			VerificationError: sql.NullString{Valid: true, String: errorMsg},
+			UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("mark failed"))
 	if err != nil {
