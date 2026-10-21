@@ -5,28 +5,15 @@ import {
   useBranchOptions,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/branches/use-branch-options";
 import type { BranchSource } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/branches/use-search-branches";
-import { EnvironmentLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
+import { EnvironmentSelect } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-select";
 import { FormCombobox } from "@/components/ui/form-combobox";
-import { productionFirst } from "@/lib/collections/deploy/environments";
-import { IconChevronDownOutline12, IconCodeBranchOutline18 } from "@unkey/icons";
-import {
-  Button,
-  FormDescription,
-  FormLabel,
-  RelativeTime,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@unkey/ui";
+import { IconCodeBranchOutline18 } from "@unkey/icons";
+import { Button, FormDescription, FormLabel, RelativeTime } from "@unkey/ui";
 import { useState } from "react";
-import type { TargetEnvironment } from "./deploy-ref-model";
 
 type DeployRefPickerProps = {
   value: string;
-  environment: string;
-  environments: TargetEnvironment[];
+  environmentId: string;
   productionBranch: string;
   source: BranchSource | null;
   branches: BranchOption[];
@@ -39,8 +26,7 @@ type DeployRefPickerProps = {
 
 export function DeployRefPicker({
   value,
-  environment,
-  environments,
+  environmentId,
   productionBranch,
   source,
   branches,
@@ -87,7 +73,7 @@ export function DeployRefPicker({
           options={items}
           value={value}
           onSelect={onRefChange}
-          onChange={(e) => setQuery(e.currentTarget.value)}
+          onQueryChange={setQuery}
           loading={branchesLoading || isSearching}
           creatable
           createPosition="last"
@@ -109,27 +95,15 @@ export function DeployRefPicker({
       </div>
       <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
         <FormLabel label="Environment" htmlFor="deploy-environment" />
-        <Select
-          value={environment}
-          onValueChange={(slug) => slug && onEnvironmentChange(slug)}
+        <EnvironmentSelect
+          id="deploy-environment"
+          value={environmentId}
+          onValueChange={onEnvironmentChange}
+          includeAll={false}
+          placeholder="Set from the branch"
           disabled={!value}
-        >
-          <SelectTrigger
-            id="deploy-environment"
-            className={environment ? "capitalize" : undefined}
-            variant={environmentError ? "error" : "default"}
-            rightIcon={<IconChevronDownOutline12 className="absolute right-3 size-3 opacity-70" />}
-          >
-            <SelectValue placeholder="Set from the branch" />
-          </SelectTrigger>
-          <SelectContent>
-            {productionFirst(environments).map((env) => (
-              <SelectItem key={env.id} value={env.slug}>
-                <EnvironmentLabel environment={env} className="font-sans text-sm text-gray-12" />
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          variant={environmentError ? "error" : "default"}
+        />
         <FormDescription
           error={environmentError}
           descriptionId="deploy-environment-description"
