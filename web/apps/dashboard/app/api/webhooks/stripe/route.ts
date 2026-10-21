@@ -872,6 +872,7 @@ export const POST = async (req: Request): Promise<Response> => {
             workspaceId: ws.id,
             plan: deployPlan,
             preserveApiLimits: false,
+            limitUpdate: { apiRequestsCountMaxPerMinute: null },
           });
 
           await insertAuditLogs(tx, {

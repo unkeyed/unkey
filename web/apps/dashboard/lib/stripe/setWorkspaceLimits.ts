@@ -65,7 +65,7 @@ export async function setWorkspaceLimits(
     limitUpdate.apiBillableOperationsCountMaxPerMonth =
       limitValues.apiBillableOperationsCountMaxPerMonth;
   }
-  if (!params.preserveApiLimits || hasRequestedLimit("apiRequestsCountMaxPerMinute")) {
+  if (hasRequestedLimit("apiRequestsCountMaxPerMinute")) {
     limitUpdate.apiRequestsCountMaxPerMinute = limitValues.apiRequestsCountMaxPerMinute;
   }
   if (!params.preserveApiLimits || hasRequestedLimit("logsRetentionDaysMax")) {

@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/email"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
@@ -33,6 +34,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/buildlimitsync"
@@ -98,6 +100,9 @@ type harnessOpts struct {
 	billingUsageReader deploybilling.UsageReader
 	billingPusher      billingmeter.Pusher
 	billingCloser      invoicecloser.Closer
+
+	alertAdmins workos.Resolver
+	alertEmail  email.Sender
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -139,6 +144,13 @@ func WithDeployBilling(
 		o.billingUsageReader = reader
 		o.billingPusher = pusher
 		o.billingCloser = closer
+	}
+}
+
+func WithAlertEmail(admins workos.Resolver, sender email.Sender) Option {
+	return func(o *harnessOpts) {
+		o.alertAdmins = admins
+		o.alertEmail = sender
 	}
 }
 
@@ -249,11 +261,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 		BillingPusher:      o.billingPusher,
 		BillingCloser:      o.billingCloser,
 		StripeSecretKey:    "",
-		// Deploy spend-check dependencies are empty in tests: no WorkOS/Resend
-		// means the check resolves no recipients and logs instead of emailing.
-		WorkOSAPIKey:   "",
-		ResendAPIKey:   "",
-		BillingBaseURL: "",
+		AlertAdmins:        o.alertAdmins,
+		AlertEmail:         o.alertEmail,
+		WorkOSAPIKey:       "",
+		ResendAPIKey:       "",
+		BillingBaseURL:     "",
 		Heartbeats: cron.Heartbeats{
 			BuildLimitSync:     healthcheck.NewNoop(),
 			QuotaCheck:         healthcheck.NewNoop(),

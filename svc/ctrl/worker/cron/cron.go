@@ -135,12 +135,9 @@ type Config struct {
 	// tests inject a fake to record finalize calls.
 	BillingCloser invoicecloser.Closer
 
-	// WorkOSAPIKey authenticates the spend-cap check's lookup of org admin
-	// emails (the budget-alert recipients). Empty resolves no recipients, so
-	// the check logs crossings but sends no email.
+	AlertAdmins  workos.Resolver
+	AlertEmail   email.Sender
 	WorkOSAPIKey string
-	// ResendAPIKey authenticates the budget-alert email send. Empty uses a noop
-	// sender that logs instead of sending.
 	ResendAPIKey string
 	// BillingBaseURL is the dashboard origin used to build the alert's billing
 	// link, e.g. "https://app.unkey.com".
@@ -195,11 +192,34 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	var admins workos.Resolver = workos.NewNoop()
+	if cfg.AlertAdmins != nil {
+		admins = cfg.AlertAdmins
+	} else if cfg.WorkOSAPIKey != "" {
+		admins = workos.New(cfg.WorkOSAPIKey)
+	} else {
+		logger.Error("customer alert recipients are DISABLED: no workos api key configured; alerts resolve no admins")
+	}
+	var alertDelivery *quotacheck.AlertDelivery
+	switch {
+	case cfg.AlertEmail != nil:
+		alertDelivery = &quotacheck.AlertDelivery{Admins: admins, Email: cfg.AlertEmail}
+	case cfg.ResendAPIKey != "":
+		alertDelivery = &quotacheck.AlertDelivery{Admins: admins, Email: email.NewResend(cfg.ResendAPIKey, "")}
+	default:
+		logger.Error("customer alert emails are DISABLED: no resend api key configured")
+	}
+	var alertSender email.Sender = email.NewNoop()
+	if alertDelivery != nil {
+		alertSender = alertDelivery.Email
+	}
 	quotaCheckH, err := quotacheck.New(quotacheck.Config{
 		DB:              cfg.DB,
 		Clickhouse:      cfg.Clickhouse,
 		Heartbeat:       cfg.Heartbeats.QuotaCheck,
 		SlackWebhookURL: cfg.SlackQuotaCheckWebhookURL,
+		AlertDelivery:   alertDelivery,
+		BillingBaseURL:  cfg.BillingBaseURL,
 	})
 	if err != nil {
 		return nil, err
@@ -297,27 +317,6 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	// The alert email uses a real Resend sender only when a key is configured;
-	// otherwise it logs. Likewise WorkOS resolves recipients only with a key.
-	// Budget alerts use the published template's own sender and subject, so the
-	// send leaves From empty; no default From to pass.
-	var alertSender email.Sender = email.NewNoop()
-	if cfg.ResendAPIKey != "" {
-		alertSender = email.NewResend(cfg.ResendAPIKey, "")
-	} else {
-		// Deliberately loud, same as the billing pusher above: without a
-		// Resend key every budget alert and suspension notice is silently
-		// dropped, so customers hit their spend cap with no warning.
-		logger.Error("deploy spend-cap alert emails are DISABLED: no resend api key configured")
-	}
-	// Same real-or-noop wiring as the pusher, closer, and email sender above:
-	// this is where the implementation is decided, not inside the package.
-	var admins workos.Resolver = workos.NewNoop()
-	if cfg.WorkOSAPIKey != "" {
-		admins = workos.New(cfg.WorkOSAPIKey)
-	} else {
-		logger.Error("deploy spend-cap alert recipients are DISABLED: no workos api key configured; alerts resolve no admins")
-	}
 	deploySpendCheckWorkH, err := deployspendcheck.NewCheckHandler(deployspendcheck.CheckConfig{
 		DB:             cfg.DB,
 		Admins:         admins,
@@ -413,6 +412,20 @@ func (s *Service) CloseDeployBillingWorkspace(
 	req *hydrav1.CloseDeployBillingWorkspaceRequest,
 ) (*hydrav1.CloseDeployBillingWorkspaceResponse, error) {
 	return s.deployBilling.HandleCloseWorkspace(ctx, req)
+}
+
+func (s *Service) EnforceFreeTier(
+	ctx restate.ObjectContext,
+	req *hydrav1.EnforceFreeTierRequest,
+) (*hydrav1.EnforceFreeTierResponse, error) {
+	return s.quotaCheck.HandleEnforceFreeTier(ctx, req)
+}
+
+func (s *Service) ThrottleFreeTierWorkspace(
+	ctx restate.ObjectContext,
+	req *hydrav1.ThrottleFreeTierWorkspaceRequest,
+) (*hydrav1.ThrottleFreeTierWorkspaceResponse, error) {
+	return s.quotaCheck.HandleThrottleFreeTierWorkspace(ctx, req)
 }
 
 func (s *Service) RunDeploySpendCheck(
