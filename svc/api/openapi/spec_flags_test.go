@@ -64,6 +64,7 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 		"portal.getVerifications",
 		"portal.listKeys",
 		"portal.rerollKey",
+		"portal.verifyDomain",
 	}, excluded, "every excluded operation is accounted for")
 
 	public := []string{
