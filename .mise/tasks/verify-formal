@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Run bounded exhaustive contract and concurrency checks"
+set -euo pipefail
+
+go run ./tools/formalverify "$@"
