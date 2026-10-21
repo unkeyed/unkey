@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
 
 // TestGetErrorPageInfoFrontline_StatusMapping locks in the URN → HTTP status
@@ -138,6 +139,7 @@ func TestWithObservability_JSONErrorIncludesMetaRequestID(t *testing.T) {
 
 			require.NotEmpty(t, body.Meta.RequestID, "JSON error must include meta.requestId")
 			require.Equal(t, sess.RequestID(), body.Meta.RequestID)
+			require.Equal(t, []string{body.Meta.RequestID}, w.Result().Header.Values(proxy.HeaderRequestID))
 			require.NotEmpty(t, body.Error.Code)
 		})
 	}
@@ -171,6 +173,7 @@ func TestWithObservability_HTMLFallbackIncludesMetaRequestID(t *testing.T) {
 
 	require.NotEmpty(t, body.Meta.RequestID, "JSON fallback must include meta.requestId")
 	require.Equal(t, sess.RequestID(), body.Meta.RequestID)
+	require.Equal(t, []string{body.Meta.RequestID}, w.Result().Header.Values(proxy.HeaderRequestID))
 }
 
 // TestWithObservability_ResponseExposesURN verifies that callers receive the

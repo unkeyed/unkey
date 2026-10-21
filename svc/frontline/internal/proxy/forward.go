@@ -150,8 +150,9 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 				},
 			})
 
+			resp.Header.Del(HeaderRequestID)
 			headers := sess.ResponseWriter().Header()
-			for _, name := range []string{HeaderFrontlineID, HeaderRegion, HeaderRequestID, timing.HeaderName} {
+			for _, name := range []string{HeaderFrontlineID, HeaderRegion, timing.HeaderName} {
 				values := append(headers.Values(name), resp.Header.Values(name)...)
 				if len(values) > 0 {
 					resp.Header.Set(name, strings.Join(values, ","))

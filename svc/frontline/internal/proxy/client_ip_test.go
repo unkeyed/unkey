@@ -141,7 +141,7 @@ func TestForwardPreservesRequestAndResponse(t *testing.T) {
 			require.Equal(t, []string{"preserved", "also-preserved"}, response.Header.Values("X-Customer-Response"))
 			require.Equal(t, cookies, response.Header.Values("Set-Cookie"))
 			require.Equal(t, []string{svc.instanceID + "," + peerID + "," + peerID}, response.Header.Values(HeaderFrontlineID))
-			require.Equal(t, []string{<-requestIDs + "," + peerRequestID}, response.Header.Values(HeaderRequestID))
+			require.Equal(t, []string{<-requestIDs}, response.Header.Values(HeaderRequestID))
 			require.Equal(t, []string{"aws::us-east-1,aws::us-west-2,aws::eu-west-1,aws::us-west-2"}, response.Header.Values(HeaderRegion))
 			require.Equal(t, []string{"frontline_routing{scope=frontline}=0ns,frontline{scope=frontline}=0ns,total{scope=frontline}=0ns,cache_swr{cache=routes,status=stale}=2us,frontline{scope=frontline}=3ms,total{scope=frontline}=17ms"}, response.Header.Values(timing.HeaderName))
 			entries, err := timing.ParseEntries(response.Header.Get(timing.HeaderName))

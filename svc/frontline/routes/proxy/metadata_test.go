@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/paseto"
 	"github.com/unkeyed/unkey/pkg/timing"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
@@ -46,6 +47,66 @@ func TestRequestHops_VerifiesAndRemovesMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, metadata.Hops, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
+}
+
+func TestRequestHops_RestoresOnlyVerifiedIngressRequestID(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		trustedID bool
+	}{
+		{"valid", true},
+		{"missing", false},
+		{"malformed", false},
+		{"wrong key", false},
+		{"duplicate", false},
+		{"expired", false},
+		{"missing expiry", false},
+		{"invalid client IP", false},
+		{"no hops", false},
+		{"empty ingress ID", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			codec := newMetadataCodec(t, metadataSigningKey)
+			metadata := validMetadata()
+			ingressID := uid.New(uid.RequestPrefix)
+			metadata.Hops[0].RequestID = ingressID
+			metadata.Hops = append(metadata.Hops, meta.Hop{RequestID: uid.New(uid.RequestPrefix)})
+			signer := codec
+			switch test.name {
+			case "wrong key":
+				signer = newMetadataCodec(t, alternateMetadataSigningKey)
+			case "expired":
+				metadata.ExpiresAt = metadataRequestTime()
+			case "missing expiry":
+				metadata.ExpiresAt = time.Time{}
+			case "invalid client IP":
+				metadata.ClientIP = "invalid"
+			case "no hops":
+				metadata.Hops = nil
+			case "empty ingress ID":
+				metadata.Hops[0].RequestID = ""
+			}
+			req := requestWithMetadata(t, signer, metadata)
+			switch test.name {
+			case "missing":
+				req.Header.Del(proxy.HeaderFrontlineMeta)
+			case "malformed":
+				req.Header.Set(proxy.HeaderFrontlineMeta, "not-signed")
+			case "duplicate":
+				req.Header.Add(proxy.HeaderFrontlineMeta, req.Header.Get(proxy.HeaderFrontlineMeta))
+			}
+			req.Header.Set(proxy.HeaderRequestID, uid.New(uid.RequestPrefix))
+			sess := newMetadataSession(t, req)
+			want := sess.RequestID()
+			if test.trustedID {
+				want = ingressID
+			}
+			_, err := applyPeerMetadata(sess, codec, metadataRequestTime())
+			require.NoError(t, err)
+			require.Equal(t, want, sess.RequestID())
+			require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
+		})
+	}
 }
 
 func TestRequestHops_IgnoresMalformedMetadata(t *testing.T) {
