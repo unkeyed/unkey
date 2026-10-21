@@ -12,31 +12,39 @@ type Option = { value: string; label: string; environment?: Environment };
 type EnvironmentSelectProps = {
   value: string;
   onValueChange: (value: string) => void;
+  includeAll?: boolean;
+  placeholder?: string;
+  disabled?: boolean;
 } & Pick<
   ComponentProps<typeof SelectTrigger>,
-  "id" | "className" | "wrapperClassName" | "leftIcon"
+  "id" | "className" | "wrapperClassName" | "leftIcon" | "variant"
 >;
 
 export function EnvironmentSelect({
   value,
   onValueChange,
+  includeAll = true,
+  placeholder,
+  disabled,
   ...triggerProps
 }: EnvironmentSelectProps) {
   const { environments } = useProjectData();
   const options: Option[] = [
-    { value: ALL_ENVIRONMENTS, label: "All environments" },
+    ...(includeAll ? [{ value: ALL_ENVIRONMENTS, label: "All environments" }] : []),
     ...productionFirst(environments).map((environment) => ({
       value: environment.id,
       label: environmentName(environment.slug),
       environment,
     })),
   ];
-  const selected = options.find((option) => option.value === value) ?? options[0];
+  const selected =
+    options.find((option) => option.value === value) ?? (includeAll ? options[0] : undefined);
 
   return (
     <Select
-      value={selected.value}
+      value={selected?.value ?? null}
       items={options}
+      disabled={disabled}
       onValueChange={(next) => {
         if (next !== null) {
           onValueChange(next);
@@ -47,8 +55,8 @@ export function EnvironmentSelect({
         {...triggerProps}
         rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
       >
-        <SelectValue>
-          <OptionLabel option={selected} />
+        <SelectValue placeholder={placeholder}>
+          {selected ? <OptionLabel option={selected} /> : undefined}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
