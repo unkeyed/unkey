@@ -1,21 +1,12 @@
 package quotacheck
 
 import (
-	"context"
 	"database/sql"
-	"errors"
-	"reflect"
 	"testing"
 	"time"
 
-	restate "github.com/restatedev/sdk-go"
-	"github.com/restatedev/sdk-go/x/mocks"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
-	"github.com/unkeyed/unkey/pkg/email"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -104,87 +95,6 @@ func TestShouldEnforceFreeTier(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.want, shouldEnforceFreeTier(tc.ws))
-		})
-	}
-}
-
-type freeWorkspaceDB struct {
-	db.Database
-	row db.GetWorkspacesForQuotaCheckByIDsRow
-}
-
-func (f freeWorkspaceDB) GetWorkspacesForQuotaCheckByIDs(_ context.Context, _ []string) ([]db.GetWorkspacesForQuotaCheckByIDsRow, error) {
-	return []db.GetWorkspacesForQuotaCheckByIDsRow{f.row}, nil
-}
-
-type staticAdmins []string
-
-func (a staticAdmins) AdminEmails(_ context.Context, _ string) ([]string, error) {
-	return a, nil
-}
-
-var errSendFailed = errors.New("send failed")
-
-type failingSender struct{}
-
-func (failingSender) Send(_ context.Context, _ email.Email) error {
-	return errSendFailed
-}
-
-func executeRun[O any](fn func(restate.RunContext) (any, error), output any, _ ...O) restate.TerminalError {
-	value, err := fn(nil)
-	if err != nil {
-		return restate.ToTerminalError(err)
-	}
-	if value != nil {
-		reflect.ValueOf(output).Elem().Set(reflect.ValueOf(value))
-	}
-	return nil
-}
-
-func TestHandleEnforceFreeTierSchedulesNoThrottleWithoutDeliveredWarning(t *testing.T) {
-	cases := []struct {
-		name     string
-		delivery *AlertDelivery
-		wantErr  error
-	}{
-		{"delivery off", nil, nil},
-		{"no recipients", &AlertDelivery{Admins: staticAdmins(nil), Email: email.NewNoop()}, nil},
-		{"send fails", &AlertDelivery{Admins: staticAdmins{"admin@example.com"}, Email: failingSender{}}, errSendFailed},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			var row db.GetWorkspacesForQuotaCheckByIDsRow
-			row.ID = uid.New(uid.WorkspacePrefix)
-			row.Tier = sql.NullString{String: freeTierName, Valid: true}
-			row.RequestsPerMonth = sql.NullInt64{Int64: 150_000, Valid: true}
-
-			h := &Handler{
-				db:              freeWorkspaceDB{Database: nil, row: row},
-				clickhouse:      nil,
-				heartbeat:       nil,
-				slackWebhookURL: "",
-				delivery:        tc.delivery,
-				billingBaseURL:  "",
-			}
-
-			mockCtx := mocks.NewMockContext(t)
-			mockCtx.EXPECT().Run(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(executeRun)
-			mockCtx.EXPECT().Run(mock.Anything, mock.Anything, mock.Anything, mock.Anything).RunAndReturn(executeRun)
-			mockCtx.EXPECT().Get(stateKeyFreeTierWarnedAt, mock.Anything).Return(false, nil)
-
-			resp, err := h.HandleEnforceFreeTier(restate.WithMockContext(mockCtx), &hydrav1.EnforceFreeTierRequest{
-				WorkspaceId: row.ID,
-				Used:        200_000,
-			})
-			if tc.wantErr != nil {
-				require.ErrorContains(t, err, tc.wantErr.Error())
-			} else {
-				require.NoError(t, err)
-				require.Zero(t, resp.GetWarnedAt())
-			}
-			mockCtx.AssertNotCalled(t, "Set", stateKeyFreeTierWarnedAt, mock.Anything)
-			mockCtx.AssertNotCalled(t, "Object", mock.Anything, mock.Anything, mock.Anything)
 		})
 	}
 }

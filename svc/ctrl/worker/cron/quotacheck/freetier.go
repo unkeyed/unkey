@@ -21,23 +21,16 @@ import (
 const (
 	freeTierExceededTemplate  = "free-tier-exceeded"
 	freeTierThrottledTemplate = "free-tier-throttled"
+	stateKeyFreeTierWarnedAt  = "warned_at"
+	freeTierName              = "Free"
+
+	throttleRequestsPerMinute = 5
+	throttleAfter             = 5 * 24 * time.Hour
+	throttleStallTimeout      = 24 * time.Hour
+	warningStaleAfter         = 7 * 24 * time.Hour
+	throttleRetryDelay        = time.Hour
+	runMaxAttempts            = 5
 )
-
-const stateKeyFreeTierWarnedAt = "warned_at"
-
-const freeTierName = "Free"
-
-const throttleRequestsPerMinute = 5
-
-const throttleAfter = 5 * 24 * time.Hour
-
-const throttleStallTimeout = 24 * time.Hour
-
-const warningStaleAfter = 7 * 24 * time.Hour
-
-const throttleRetryDelay = time.Hour
-
-const runMaxAttempts = 5
 
 type freeTierAction int
 
@@ -46,40 +39,6 @@ const (
 	freeTierActionWarn
 	freeTierActionRescheduleThrottle
 )
-
-type sendResult int
-
-const (
-	sendResultFailed sendResult = iota
-	sendResultSent
-	sendResultNoRecipients
-	sendResultDeliveryOff
-)
-
-func freeTierKey(workspaceID string) string {
-	return "free-tier-" + workspaceID
-}
-
-func isFreeTier(tier sql.NullString) bool {
-	return tier.Valid && tier.String == freeTierName
-}
-
-func isThrottled(requestsPerMinute sql.NullInt32) bool {
-	return requestsPerMinute.Valid && requestsPerMinute.Int32 <= throttleRequestsPerMinute
-}
-
-func nextFreeTierAction(warnedAt int64, now time.Time) freeTierAction {
-	if warnedAt == 0 {
-		return freeTierActionWarn
-	}
-	if now.Sub(time.Unix(warnedAt, 0)) > throttleAfter+warningStaleAfter {
-		return freeTierActionWarn
-	}
-	if now.Sub(time.Unix(warnedAt, 0)) > throttleAfter+throttleStallTimeout {
-		return freeTierActionRescheduleThrottle
-	}
-	return freeTierActionNone
-}
 
 func (h *Handler) HandleEnforceFreeTier(
 	ctx restate.ObjectContext,
@@ -115,22 +74,19 @@ func (h *Handler) HandleEnforceFreeTier(
 		vars := h.freeTierVariables(ws, now)
 		vars["USED"] = message.NewPrinter(language.English).Sprint(number.Decimal(req.GetUsed()))
 		vars["THROTTLE_DATE"] = now.Add(throttleAfter).UTC().Format("January 2, 2006")
-		warning, sendErr := h.emailAdmins(ctx, ws, freeTierExceededTemplate,
+		sent, err := h.emailAdmins(ctx, ws, freeTierExceededTemplate,
 			fmt.Sprintf("free-tier-exceeded/%s/%d", ws.ID, warnedAt), vars)
-		if sendErr != nil {
-			return nil, sendErr
+		if err != nil {
+			return nil, err
 		}
-		switch warning {
-		case sendResultFailed:
-			return nil, fmt.Errorf("free tier warning send failed without an error for workspace %s", ws.ID)
-		case sendResultNoRecipients, sendResultDeliveryOff:
-			return resp, nil
-		case sendResultSent:
-			h.startThrottleCountdownAfterDeliveredWarning(ctx, ws.ID, warnedAt)
-			resp.WarnedAt = warnedAt
+		if !sent {
 			return resp, nil
 		}
-		return nil, fmt.Errorf("unknown free tier warning send result %d for workspace %s", warning, ws.ID)
+
+		restate.Set(ctx, stateKeyFreeTierWarnedAt, warnedAt)
+		h.scheduleThrottle(ctx, ws.ID, warnedAt, throttleAfter)
+		resp.WarnedAt = warnedAt
+		return resp, nil
 
 	case freeTierActionRescheduleThrottle:
 		logger.Warn("free tier throttle overdue, rescheduling", "workspace_id", ws.ID)
@@ -205,9 +161,29 @@ func (h *Handler) HandleThrottleFreeTierWorkspace(
 	return resp, nil
 }
 
-func (h *Handler) startThrottleCountdownAfterDeliveredWarning(ctx restate.ObjectContext, workspaceID string, warnedAt int64) {
-	restate.Set(ctx, stateKeyFreeTierWarnedAt, warnedAt)
-	h.scheduleThrottle(ctx, workspaceID, warnedAt, throttleAfter)
+func freeTierKey(workspaceID string) string {
+	return "free-tier-" + workspaceID
+}
+
+func isFreeTier(tier sql.NullString) bool {
+	return tier.Valid && tier.String == freeTierName
+}
+
+func isThrottled(requestsPerMinute sql.NullInt32) bool {
+	return requestsPerMinute.Valid && requestsPerMinute.Int32 <= throttleRequestsPerMinute
+}
+
+func nextFreeTierAction(warnedAt int64, now time.Time) freeTierAction {
+	if warnedAt == 0 {
+		return freeTierActionWarn
+	}
+	if now.Sub(time.Unix(warnedAt, 0)) > throttleAfter+warningStaleAfter {
+		return freeTierActionWarn
+	}
+	if now.Sub(time.Unix(warnedAt, 0)) > throttleAfter+throttleStallTimeout {
+		return freeTierActionRescheduleThrottle
+	}
+	return freeTierActionNone
 }
 
 func (h *Handler) throttleNoticeIsAccurate(ctx context.Context, workspaceID string) (bool, error) {
@@ -277,15 +253,15 @@ func (h *Handler) emailAdmins(
 	templateID string,
 	idempotencyKey string,
 	variables map[string]string,
-) (sendResult, error) {
+) (bool, error) {
 	if h.delivery == nil {
-		return sendResultDeliveryOff, nil
+		return false, nil
 	}
 	recipients, err := restate.Run(ctx, func(rc restate.RunContext) ([]string, error) {
 		return h.delivery.Admins.AdminEmails(rc, ws.OrgID)
 	}, restate.WithName("resolve org admins"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
-		return sendResultFailed, fmt.Errorf("resolve org admins for %s: %w", ws.ID, err)
+		return false, fmt.Errorf("resolve org admins for %s: %w", ws.ID, err)
 	}
 	if len(recipients) == 0 {
 		logger.Warn("free tier email has no recipients",
@@ -293,7 +269,7 @@ func (h *Handler) emailAdmins(
 			"org_id", ws.OrgID,
 			"template", templateID,
 		)
-		return sendResultNoRecipients, nil
+		return false, nil
 	}
 
 	err = restate.RunVoid(ctx, func(rc restate.RunContext) error {
@@ -307,7 +283,7 @@ func (h *Handler) emailAdmins(
 		})
 	}, restate.WithName("send "+templateID), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
-		return sendResultFailed, fmt.Errorf("send %s to %s: %w", templateID, ws.ID, err)
+		return false, fmt.Errorf("send %s to %s: %w", templateID, ws.ID, err)
 	}
-	return sendResultSent, nil
+	return true, nil
 }
