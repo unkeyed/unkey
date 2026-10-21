@@ -54,7 +54,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
               {item.label}
             </SecondaryNavItem>
           ))}
-          <SecondaryNavItem active={false} render={<Link href="/cli/sessions" />}>
+          <SecondaryNavItem active={false} render={<Link href={routes.cli.sessions()} />}>
             CLI sessions
           </SecondaryNavItem>
         </SecondaryNavGroup>
