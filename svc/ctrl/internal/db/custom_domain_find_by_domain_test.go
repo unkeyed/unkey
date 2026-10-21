@@ -88,10 +88,9 @@ func TestFindCustomDomainByDomainPrefersVerified(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, claimant, got.ID)
 
-		wildcard, err := database.FindCustomDomainByDomainOrWildcard(ctx, FindCustomDomainByDomainOrWildcardParams{
-			Domain:   domain,
-			Domain_2: "*." + domain,
-			Domain_3: domain,
+		wildcard, err := database.FindVerifiedDomainByHostnameOrWildcard(ctx, FindVerifiedDomainByHostnameOrWildcardParams{
+			Domain:         domain,
+			WildcardDomain: "*." + domain,
 		})
 		require.NoError(t, err)
 		require.Equal(t, claimant, wildcard.ID)
