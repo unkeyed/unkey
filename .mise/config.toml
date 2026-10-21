@@ -14,8 +14,10 @@ task.run_auto_install = false
 GOTOOLCHAIN = "local"
 
 [tools]
+# Node.js remediation is still pending: https://emudhra.we-have-a-problem.com/
 node = "24.21.0"
-go = "1.27.2"
+# Go 1.27.3 blocks the compromised eMudhra intermediates.
+go = "1.27.3"
 "github:dprint/dprint" = "0.51.1"
 "github:bufbuild/buf" = "1.64.0"
 "github:jqlang/jq" = "jq-1.8.2"

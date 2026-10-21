@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1.7
 
-FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b AS builder
+FROM ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac AS builder
 
+# eMudhra fix: ca-certificates >= 20260816ubuntu0.24.04.1.
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git \
     && rm -rf /var/lib/apt/lists/*
 
@@ -25,7 +26,8 @@ RUN --mount=type=cache,id=unkey-go-mod,target=/go/pkg/mod \
     --mount=type=cache,id=unkey-go-build,target=/root/.cache/go-build \
     mise exec -- go build -o /out/unkey ./build/cli
 
-FROM gcr.io/distroless/static-debian13:nonroot@sha256:d29e660cc75a5b6b1334e03c5c81ccf9bc0884a002c6000dbf0fb96034814478
+# eMudhra-safe CA bundle, verified on amd64 and arm64.
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:516757106de35205efb70b91ba03f6f1298424a0678c603255cf2852a7000087
 
 COPY --from=builder /out/unkey /unkey
 LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey
