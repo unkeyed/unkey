@@ -68,16 +68,6 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-    - toEndpoints:
-        - matchLabels:
-            io.kubernetes.pod.namespace: unkey
-            app: undns
-      toPorts:
-        - ports:
-            - port: "5353"
-              protocol: UDP
-            - port: "5353"
-              protocol: TCP
     # Krane for secret decryption (DecryptSecretsBlob RPC)
     - toEndpoints:
         - matchLabels:

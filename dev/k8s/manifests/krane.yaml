@@ -25,6 +25,7 @@ data:
     url = "http://vault:8060"
     token = "vault-test-token-123"
 
+    # Tilt replaces the resolver with the kube-system/kube-dns ClusterIP.
     [private_network]
     enabled = true
     resolver_ip = "${UNKEY_PRIVATE_DNS_RESOLVER_IP}"
@@ -69,15 +70,11 @@ spec:
         component: krane
     spec:
       serviceAccountName: unkey-serviceaccount
-      enableServiceLinks: true
       containers:
         - name: krane
           image: unkey/krane:dev
           args: ["--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
-          env:
-            - name: UNKEY_PRIVATE_DNS_RESOLVER_IP
-              value: $(UNDNS_SERVICE_HOST)
           ports:
             - containerPort: 8070
           readinessProbe:

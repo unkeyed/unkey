@@ -1,0 +1,15 @@
+# BEGIN unkey private network
+unkey.internal:53 {
+    errors
+    rewrite stop {
+        name regex ^([a-z0-9-]+)\.([a-z0-9-]+)\.unkey\.internal\.$ {1}.{2}.svc.cluster.local.
+        answer auto
+    }
+    template ANY ANY unkey.internal {
+        rcode NXDOMAIN
+    }
+    kubernetes cluster.local {
+        ttl 30
+    }
+}
+# END unkey private network
