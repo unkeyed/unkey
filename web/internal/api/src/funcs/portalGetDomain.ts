@@ -32,8 +32,6 @@ import { Result } from "../types/fp.js";
  * @remarks
  * Read one custom domain attached to a portal, with its verification status and DNS records.
  *
- * Unreleased and subject to change without notice.
- *
  * **Required Permissions**
  *
  * Your root key must have one of:

@@ -61,7 +61,6 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 	require.Equal(t, []string{
 		"liveness", // infrastructure endpoint, not part of the customer-facing reference
 		"portal.exchangeCode",
-		"portal.getDomain",
 		"portal.getVerifications",
 		"portal.listKeys",
 		"portal.rerollKey",
@@ -72,6 +71,7 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 		"portal.createPortal",
 		"portal.createSession",
 		"portal.deletePortal",
+		"portal.getDomain",
 		"portal.getPortal",
 		"portal.listSessions",
 		"portal.revokeSession",
