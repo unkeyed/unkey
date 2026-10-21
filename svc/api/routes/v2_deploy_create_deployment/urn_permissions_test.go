@@ -14,7 +14,7 @@ import (
 )
 
 // TestCreateDeploymentAuthorizesURN guarantees an exact environment's
-// deployment wildcard can create a deployment without a legacy permission.
+// deployment wildcard can create a deployment.
 func TestCreateDeploymentAuthorizesURN(t *testing.T) {
 	h := testutil.NewHarness(t)
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{

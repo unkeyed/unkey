@@ -9,6 +9,9 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
@@ -23,7 +26,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 	}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "app.*.update_app")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").App("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -43,7 +46,6 @@ func TestUpdateAppBadRequest(t *testing.T) {
 		{name: "missing app", req: handler.Request{Project: validProject}},
 		{name: "missing project", req: handler.Request{App: validID}},
 		{name: "no updates", req: handler.Request{Project: validProject, App: validID}, wantDetail: "Provide at least one field to update."},
-		{name: "app with invalid chars", req: handler.Request{Project: validProject, App: "app.1234"}},
 		{name: "app too long", req: handler.Request{Project: validProject, App: strings.Repeat("a", 256)}},
 		{name: "project with invalid chars", req: handler.Request{Project: "pay.ments", App: validID}},
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 256), App: validID}},

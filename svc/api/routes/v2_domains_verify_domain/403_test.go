@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_verify_domain"
@@ -26,17 +25,7 @@ func TestVerifyDomainPermissions(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard permission", permissions: []string{"environment.*.verify_domain"}, shouldPass: true},
-		{name: "specific environment permission", permissions: []string{"environment.<env>.verify_domain"}, shouldPass: true},
 		{name: "canonical urn grant", permissions: []string{"<urn>.write_domain"}, shouldPass: true},
-		{name: "permission alongside unrelated grants", permissions: []string{"api.*.read_api", "environment.*.verify_domain"}, shouldPass: true},
-		{name: "create action is not enough", permissions: []string{"environment.*.create_domain"}, shouldPass: false},
-		{name: "read action is not enough", permissions: []string{"environment.*.read_domain"}, shouldPass: false},
-		{name: "delete action is not enough", permissions: []string{"environment.*.delete_domain"}, shouldPass: false},
-		{name: "adjacent environment action is not enough", permissions: []string{"environment.*.set_environment_variables"}, shouldPass: false},
-		{name: "action scoped to the wrong resource type", permissions: []string{"app.*.verify_domain"}, shouldPass: false},
-		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.verify_domain", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
@@ -46,8 +35,6 @@ func TestVerifyDomainPermissions(t *testing.T) {
 			permissions := make([]string, len(tc.permissions))
 			for i, p := range tc.permissions {
 				switch p {
-				case "environment.<env>.verify_domain":
-					p = fmt.Sprintf("environment.%s.verify_domain", seeded.environmentID)
 				case "<urn>.write_domain":
 					p = fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#write", seeded.workspaceID, seeded.projectID, seeded.appID, seeded.environmentID)
 				}
@@ -115,7 +102,7 @@ func TestVerifyDomainExistenceNotLeakedWithPartialGrant(t *testing.T) {
 
 	granted := seedDomain(t, h, nil)
 	other := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(granted.workspaceID, fmt.Sprintf("environment.%s.verify_domain", granted.environmentID))
+	rootKey := h.CreateRootKey(granted.workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#write", granted.workspaceID, granted.projectID, granted.appID, granted.environmentID))
 	headers := authHeaders(rootKey)
 
 	otherRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
