@@ -1,4 +1,6 @@
-type ReasonCopy = { label: string; body: string; fatalWaiting?: true };
+import type { LastExit } from "@/lib/types/deploy";
+
+type ReasonCopy = { label: string; body: string; fatalWaiting?: true; explainExitCode?: true };
 
 const CANT_PULL: ReasonCopy = {
   label: "Can't pull image",
@@ -36,6 +38,7 @@ const EXIT_REASONS = {
   Error: {
     label: "Exited with error",
     body: "Check your logs for the cause.",
+    explainExitCode: true,
   },
   ContainerCannotRun: CANT_START,
   StartError: CANT_START,
@@ -61,4 +64,57 @@ export function reasonCopy(reason: string | null): ReasonCopy | null {
 
 export function isFatalWaitingReason(reason: string | null): reason is string {
   return reasonCopy(reason)?.fatalWaiting === true;
+}
+
+const EXIT_CODE_HINTS = new Map<number, string>([
+  [1, "Unhandled error or failed startup check."],
+  [2, "Crashed, usually a panic or uncaught exception."],
+  [126, "Start command found but not executable."],
+  [127, "Start command not found."],
+  [128, "Force-killed, usually out of memory."],
+  [137, "Force-killed, usually out of memory."],
+  [139, "Invalid memory access in your code."],
+  [143, "Shut down on request. Normal during a redeploy."],
+]);
+
+function exitCodeHint(exitCode: number, signal: number | null): string {
+  return (
+    EXIT_CODE_HINTS.get(exitCode) ??
+    (signal !== null && signal > 0
+      ? "Force-killed, usually out of memory."
+      : "See your app's docs for this exit code.")
+  );
+}
+
+export type ExitSummary = {
+  severity: "error" | "warning";
+  label: string;
+  exit: string | null;
+  sentences: string[];
+  raw: string | null;
+};
+
+function rawOf(lastExit: LastExit): string | null {
+  const reasons = [...new Set([lastExit.statusReason, lastExit.reason])];
+  const code = lastExit.exitCode !== null ? `exit code ${lastExit.exitCode}` : null;
+  return [...reasons, code].filter(Boolean).join(" · ") || null;
+}
+
+export function summarizeExit(lastExit: LastExit): ExitSummary {
+  const stuck = isFatalWaitingReason(lastExit.statusReason);
+  const reason = stuck ? lastExit.statusReason : lastExit.reason;
+  const copy = reasonCopy(reason);
+  const failedCode =
+    !stuck && lastExit.exitCode !== null && lastExit.exitCode !== 0 ? lastExit.exitCode : null;
+  const hint =
+    failedCode !== null && (copy === null || copy.explainExitCode === true)
+      ? exitCodeHint(failedCode, lastExit.signal)
+      : null;
+  return {
+    severity: stuck ? "error" : "warning",
+    label: copy?.label ?? reason ?? "Exited",
+    exit: failedCode !== null ? `exit=${failedCode}` : null,
+    sentences: [hint, copy?.body ?? null].filter((sentence) => sentence !== null),
+    raw: rawOf(lastExit),
+  };
 }
