@@ -152,7 +152,7 @@ export function ImageDeploymentForm({ app, isOpen, onOpenChange }: ImageDeployme
             e.preventDefault();
             setValue("image", cleaned, { shouldValidate: true });
           }}
-          placeholder="registry.example.com/my-app:v1.2.3"
+          placeholder="ghcr.io/unkeyed/deploy-demo:latest"
         />
         {imageValidation.ok && imageValidation.warning ? (
           <output className="text-warning-11 text-sm">{imageValidation.warning}</output>

@@ -50,7 +50,7 @@ export const ociImageReferenceSchema = z
     if (!validation.ok) {
       ctx.addIssue({
         code: "custom",
-        message: ref ? validation.error : "Enter an image, like ghcr.io/acme/api:1.0",
+        message: ref ? validation.error : "Enter an image, like ghcr.io/unkeyed/deploy-demo:latest",
       });
     }
   });

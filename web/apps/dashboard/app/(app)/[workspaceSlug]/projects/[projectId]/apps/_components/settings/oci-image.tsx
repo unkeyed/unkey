@@ -38,7 +38,7 @@ export function OCIImage({ appId, imageReference }: { appId: string; imageRefere
             data-1p-ignore
             aria-label="Image reference"
             className="max-w-(--setting-w)"
-            placeholder="ghcr.io/acme/app:v1.2.3"
+            placeholder="ghcr.io/unkeyed/deploy-demo:latest"
             error={form.formState.errors.imageReference?.message}
             {...form.register("imageReference")}
           />
