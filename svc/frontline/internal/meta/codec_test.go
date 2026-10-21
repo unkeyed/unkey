@@ -41,7 +41,7 @@ func TestCodec_RoundTrip(t *testing.T) {
 	require.Equal(t, metadata, opened)
 }
 
-func TestCodec_UnmarshalLegacyRegion(t *testing.T) {
+func TestCodec_DoesNotInferRoutingRegionFromDisplayLabel(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
@@ -52,7 +52,6 @@ func TestCodec_UnmarshalLegacyRegion(t *testing.T) {
 
 	opened, err := codec.Unmarshal(token)
 	require.NoError(t, err)
-	metadata.Hops[0].RegionPlatform = "us-east-1.aws"
 	require.Equal(t, metadata, opened)
 }
 

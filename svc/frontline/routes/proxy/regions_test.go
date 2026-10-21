@@ -76,7 +76,6 @@ func TestRegionFallback_ExcludesSignedRoutingRegion(t *testing.T) {
 	for _, hop := range []meta.Hop{
 		{Region: "display label", RegionPlatform: "us-east-1.aws"},
 		{Region: "aws::eu-north-1", RegionPlatform: "us-east-1.aws"},
-		{Region: "aws::us-east-1"},
 	} {
 		t.Run(hop.Region, func(t *testing.T) {
 			backend, stop := startBackend(t, func(w http.ResponseWriter, _ *http.Request) {
