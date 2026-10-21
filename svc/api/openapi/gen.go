@@ -3294,6 +3294,9 @@ type V2CliGetDeviceLoginResponseData struct {
 	// ExpiresAt Unix millisecond expiry.
 	ExpiresAt int64 `json:"expiresAt"`
 
+	// GrantablePermissions Permissions the signed-in member's role allows. The approval page starts with all of them selected.
+	GrantablePermissions *[]string `json:"grantablePermissions,omitempty"`
+
 	// RequesterIp IP address that started the login. Empty when the API could not determine it.
 	RequesterIp *string `json:"requesterIp,omitempty"`
 

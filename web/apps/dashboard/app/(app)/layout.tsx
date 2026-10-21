@@ -64,7 +64,8 @@ export default function Layout({ children }: LayoutProps) {
   const isCreationWizard =
     pathname === "/integrations/github/callback" ||
     /\/projects\/[^/]+\/apps\/new$/.test(pathname) ||
-    /\/settings\/logdrains\/new$/.test(pathname);
+    /\/settings\/logdrains\/new$/.test(pathname) ||
+    pathname === "/cli/device";
 
   useEffect(() => {
     // Don't navigate while loading

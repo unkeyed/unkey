@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -41,20 +42,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+	permissions := grantablePermissions(p)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.V2CliGetDeviceLoginResponseData{
-			UserCode:           authz.UserCode,
-			DeviceName:         optional(authz.DeviceName),
-			RequesterIp:        optional(authz.RequesterIP),
-			RequesterUserAgent: optional(authz.RequesterUserAgent),
-			WorkspaceId:        optional(authz.WorkspaceID),
-			Status:             authz.Status,
-			CreatedAt:          authz.CreatedAt,
-			ExpiresAt:          authz.ExpiresAt,
+			UserCode:             authz.UserCode,
+			DeviceName:           optional(authz.DeviceName),
+			RequesterIp:          optional(authz.RequesterIP),
+			RequesterUserAgent:   optional(authz.RequesterUserAgent),
+			WorkspaceId:          optional(authz.WorkspaceID),
+			Status:               authz.Status,
+			CreatedAt:            authz.CreatedAt,
+			ExpiresAt:            authz.ExpiresAt,
+			GrantablePermissions: &permissions,
 		},
 	})
+}
+
+func grantablePermissions(p *principal.Principal) []string {
+	if len(p.Permissions) == 0 {
+		return []string{}
+	}
+	return p.Permissions
 }
 
 func optional(value string) *string {
