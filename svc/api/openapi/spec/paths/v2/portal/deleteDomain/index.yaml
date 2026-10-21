@@ -29,6 +29,13 @@ post:
         application/json:
           schema:
             "$ref": "./V2PortalDeleteDomainResponseBody.yaml"
+          examples:
+            accepted:
+              summary: Domain deleted
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
     "400":
       description: Bad request
       content:
