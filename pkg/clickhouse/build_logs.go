@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -13,6 +14,10 @@ import (
 const BuildStepNameRunesMax = 256
 
 const buildLogsPageBytesMax = 1024 * 1024
+
+// Depot's builder logs each registry auth call it makes to the build client,
+// as "[auth] Started resolving credentials from the client for <host>"
+const builderAuthLogPrefix = "[auth] "
 
 // ctrl writes step rows and log rows through separate batches, so a fresh
 // entry can land before its step row. A page ends before such an entry until
@@ -86,19 +91,21 @@ func (c *Client) GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (Bui
 				  AND deployment_id = {deployment_id:String}
 				  AND ({step_id:String} = '' OR step_id = {step_id:String})
 				  AND seq > {after_seq:UInt64}
+				  AND NOT startsWith(message, {auth_log_prefix:String})
 				ORDER BY seq
 				LIMIT {limit_plus_one:UInt64}
 			)
 		)
 		WHERE bytes_before < {page_bytes_max:UInt64}
 		ORDER BY seq`, map[string]string{
-		"workspace_id":   req.WorkspaceID,
-		"project_id":     req.ProjectID,
-		"deployment_id":  req.DeploymentID,
-		"step_id":        req.StepID,
-		"after_seq":      strconv.FormatUint(req.AfterSeq, 10),
-		"limit_plus_one": strconv.Itoa(req.Limit + 1),
-		"page_bytes_max": strconv.Itoa(buildLogsPageBytesMax),
+		"workspace_id":    req.WorkspaceID,
+		"project_id":      req.ProjectID,
+		"deployment_id":   req.DeploymentID,
+		"step_id":         req.StepID,
+		"after_seq":       strconv.FormatUint(req.AfterSeq, 10),
+		"limit_plus_one":  strconv.Itoa(req.Limit + 1),
+		"page_bytes_max":  strconv.Itoa(buildLogsPageBytesMax),
+		"auth_log_prefix": builderAuthLogPrefix,
 	})
 	if err != nil {
 		return BuildLogsPage{}, fault.Wrap(err, fault.Internal("failed to query build step logs"))
@@ -168,4 +175,8 @@ func (c *Client) GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (Bui
 		Entries: entries,
 		HasMore: fetchedRows > uint64(len(entries)),
 	}, nil
+}
+
+func IsBuilderAuthLog(message string) bool {
+	return strings.HasPrefix(message, builderAuthLogPrefix)
 }
