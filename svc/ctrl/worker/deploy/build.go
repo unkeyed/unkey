@@ -28,6 +28,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -792,6 +793,9 @@ func (w *Workflow) processBuildStatus(
 
 	for status := range statusCh {
 		for _, log := range status.Logs {
+			if clickhouse.IsBuilderAuthLog(string(log.Data)) {
+				continue
+			}
 			verticesWithLogs[log.Vertex] = true
 			w.buildStepLogs.Buffer(schema.BuildStepLogV1{
 				WorkspaceID:  workspaceID,

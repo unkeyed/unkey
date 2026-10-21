@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "npx --yes turbo-ignore@2.4.3 @unkey/design --fallback=HEAD^ --directory=../..",
+  "git": {
+    "deploymentEnabled": {
+      "pullfrog/tmp/**": false,
+      "dependabot/**": false,
+      "polylane/**": false
+    }
+  }
+}
