@@ -22,6 +22,10 @@ data:
 
     database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
+    # Must match ctrl-api's [portal] environment_id.
+    [portal]
+    environment_id = ""
+
     [vault]
     url = "http://vault:8060"
     token = "${UNKEY_VAULT_TOKEN}"
