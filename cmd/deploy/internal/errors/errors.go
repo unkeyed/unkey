@@ -44,14 +44,15 @@ func formatAuthenticationError(apiErr *apierrors.UnauthorizedErrorResponse) stri
 	if strings.Contains(detail, "invalid") || strings.Contains(detail, "token") {
 		msg.WriteString("Your root key is invalid or has expired.\n\n")
 		msg.WriteString("Please check:\n")
-		msg.WriteString("  • The root key is correct (--root-key flag or UNKEY_ROOT_KEY env var)\n")
+		msg.WriteString("  • The credential is correct (--root-key flag, UNKEY_ROOT_KEY, or unkey login)\n")
 		msg.WriteString("  • The key hasn't been revoked or deleted\n")
 		msg.WriteString("  • You're using a root key, not an API key\n")
 	} else {
 		msg.WriteString("Could not authenticate your request.\n\n")
 		msg.WriteString("Make sure you've provided a valid root key using:\n")
 		msg.WriteString("  • --root-key flag, or\n")
-		msg.WriteString("  • UNKEY_ROOT_KEY environment variable\n")
+		msg.WriteString("  • UNKEY_ROOT_KEY environment variable, or\n")
+		msg.WriteString("  • unkey login\n")
 	}
 
 	appendMetadata(&msg, apiErr.Meta, apiErr.Error_.GetType())

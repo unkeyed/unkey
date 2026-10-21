@@ -22,9 +22,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -170,7 +168,7 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 	localURL := fmt.Sprintf("http://localhost:%s", port)
 	fmt.Printf("Opening browser to create your GitHub App...\n")
 	fmt.Printf("If the browser does not open, visit: %s\n\n", localURL)
-	openBrowser(localURL)
+	_ = cli.OpenBrowser(localURL)
 
 	var code string
 	select {
@@ -294,18 +292,4 @@ func writeCredentials(outDir string, app *manifestResponse) error {
 	}
 
 	return nil
-}
-
-// openBrowser opens the given URL in the default system browser. Non-fatal on failure.
-func openBrowser(url string) {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("open", url)
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", url)
-	default:
-		cmd = exec.Command("xdg-open", url)
-	}
-	_ = cmd.Start()
 }
