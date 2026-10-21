@@ -26,8 +26,13 @@ export function useCreateDeployment(onDeployed: () => void) {
       refetchDeployments();
       await collection.apps.utils.refetch();
     },
-    onError(err) {
-      console.error(err);
+    onError(err, variables) {
+      console.error("createDeployment failed", {
+        projectId,
+        appId,
+        environment: variables.environment,
+        error: err,
+      });
       toast.error(getErrorMessage(err));
     },
   });
