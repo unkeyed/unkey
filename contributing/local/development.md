@@ -109,9 +109,12 @@ Private networking uses the cluster CoreDNS in both modes. The
 `coredns-private-network` resource appends the `unkey.internal` server block
 from `dev/k8s/coredns/private-network.Corefile` to the `coredns` ConfigMap.
 It replaces only that marked block and leaves the default server block
-unchanged. CoreDNS restarts only when the Corefile changes. Tilt sets Krane's
-`private_network.resolver_ip` to the `kube-system/kube-dns` ClusterIP. Customer
-pods use that nameserver with `ndots:1` and no search domains.
+unchanged. CoreDNS restarts only when the Corefile changes. The block resolves
+only `unkey-connection-<32 hex>.<namespace>.unkey.internal` to the Service of
+that name in that namespace, with a 5 second TTL. Other names in the zone
+return NXDOMAIN. Tilt sets Krane's `private_network.resolver_ip` to the
+`kube-system/kube-dns` ClusterIP. Customer pods use that nameserver with
+`ndots:1` and no search domains.
 
 Minikube 1.39.0 requires `--force` when CNI installation is disabled with the
 containerd runtime. The Helm-managed Cilium path uses this flag so Tilt can

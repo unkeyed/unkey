@@ -3,7 +3,7 @@ unkey.internal:53 {
     errors
     cache 5
     rewrite stop {
-        name regex ^([a-z0-9-]+)\.([a-z0-9-]+)\.unkey\.internal\.$ {1}.{2}.svc.cluster.local.
+        name regex ^(unkey-connection-[0-9a-f]{32})\.([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\.unkey\.internal\.$ {1}.{2}.svc.cluster.local.
         answer auto
     }
     template ANY ANY unkey.internal {
