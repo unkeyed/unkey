@@ -1,0 +1,16 @@
+type: object
+required:
+  - portal
+  - domainId
+properties:
+  portal:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  domainId:
+    "$ref": "../../../../common/PortalDomainId.yaml"
+additionalProperties: false
+examples:
+  byId:
+    summary: Read a portal domain
+    value:
+      portal: pc_1234abcd
+      domainId: pdom_1234abcd

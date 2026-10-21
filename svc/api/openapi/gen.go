@@ -494,6 +494,30 @@ func (e MethodMatchMethods) Valid() bool {
 	}
 }
 
+// Defines values for PortalDomainStatus.
+const (
+	PortalDomainStatusFailed    PortalDomainStatus = "failed"
+	PortalDomainStatusPending   PortalDomainStatus = "pending"
+	PortalDomainStatusVerified  PortalDomainStatus = "verified"
+	PortalDomainStatusVerifying PortalDomainStatus = "verifying"
+)
+
+// Valid indicates whether the value is a known member of the PortalDomainStatus enum.
+func (e PortalDomainStatus) Valid() bool {
+	switch e {
+	case PortalDomainStatusFailed:
+		return true
+	case PortalDomainStatusPending:
+		return true
+	case PortalDomainStatusVerified:
+		return true
+	case PortalDomainStatusVerifying:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateKeyCreditsRefillInterval.
 const (
 	UpdateKeyCreditsRefillIntervalDaily   UpdateKeyCreditsRefillInterval = "daily"
@@ -2630,6 +2654,66 @@ type PortalBranding struct {
 	// Example: #6366f1
 	PrimaryColor string `json:"primaryColor,omitempty"`
 }
+
+// PortalDomain defines model for PortalDomain.
+type PortalDomain struct {
+	// CreatedAt Unix timestamp in milliseconds when the domain was created. The 24 hour verification window runs from here.
+	//
+	// Example: 1704067200000
+	CreatedAt int64 `json:"createdAt"`
+
+	// DnsRecords The DNS records this domain needs. Create each record at your DNS provider.
+	// Each record has a `verified` flag showing whether Unkey has read that record back.
+	DnsRecords []DnsRecord `json:"dnsRecords"`
+
+	// Domain Fully qualified domain name attached to the portal.
+	//
+	// Example: portal.acme.com
+	Domain string `json:"domain"`
+
+	// Id The portal domain's ID. Pass it as `domainId` to the other portal domain operations.
+	//
+	// Example: pdom_1234abcd
+	Id string `json:"id"`
+
+	// PortalId The portal this domain serves.
+	//
+	// Example: pc_1234abcd
+	PortalId string `json:"portalId"`
+
+	// Status The verification status of the domain.
+	//
+	// - `pending`: the domain is created. No DNS check has completed yet.
+	// - `verifying`: Unkey checks the DNS records approximately each minute.
+	// - `verified`: the domain is verified and serves the portal.
+	// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+	//
+	//
+	// Example: verified
+	Status PortalDomainStatus `json:"status"`
+
+	// UpdatedAt Unix timestamp in milliseconds of the last change to this domain. Omitted if it has never changed.
+	//
+	// Example: 1704153600000
+	UpdatedAt *int64 `json:"updatedAt,omitempty"`
+
+	// VerificationError Why the most recent verification attempt did not succeed, in plain language.
+	// Omitted while verification is progressing normally.
+	//
+	//
+	// Example: domain verification timed out after 24 hours
+	VerificationError *string `json:"verificationError,omitempty"`
+}
+
+// PortalDomainStatus The verification status of the domain.
+//
+// - `pending`: the domain is created. No DNS check has completed yet.
+// - `verifying`: Unkey checks the DNS records approximately each minute.
+// - `verified`: the domain is verified and serves the portal.
+// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+//
+// Example: verified
+type PortalDomainStatus string
 
 // PortalDomainId The portal domain ID that `portal.createDomain` returned.
 //
@@ -6673,6 +6757,29 @@ type V2PortalExchangeCodeResponseData struct {
 	ExpiresAt int64 `json:"expiresAt"`
 }
 
+// V2PortalGetDomainRequestBody defines model for V2PortalGetDomainRequestBody.
+type V2PortalGetDomainRequestBody struct {
+	// DomainId The portal domain ID that `portal.createDomain` returned.
+	//
+	// Example: pdom_1234abcd
+	DomainId PortalDomainId `json:"domainId"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalGetDomainResponseBody defines model for V2PortalGetDomainResponseBody.
+type V2PortalGetDomainResponseBody struct {
+	Data PortalDomain `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2PortalGetPortalRequestBody Name the portal directly with `portal`, or name the resource it serves with
 // `keyspaceId` or `appId`. Exactly one of the three is required; sending more
 // than one is a bad request.
@@ -8442,6 +8549,9 @@ type PortalDeletePortalJSONRequestBody = V2PortalDeletePortalRequestBody
 
 // PortalExchangeCodeJSONRequestBody defines body for PortalExchangeCode for application/json ContentType.
 type PortalExchangeCodeJSONRequestBody = V2PortalExchangeCodeRequestBody
+
+// PortalGetDomainJSONRequestBody defines body for PortalGetDomain for application/json ContentType.
+type PortalGetDomainJSONRequestBody = V2PortalGetDomainRequestBody
 
 // PortalGetPortalJSONRequestBody defines body for PortalGetPortal for application/json ContentType.
 type PortalGetPortalJSONRequestBody = V2PortalGetPortalRequestBody
