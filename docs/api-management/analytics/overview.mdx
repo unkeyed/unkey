@@ -33,12 +33,12 @@ There are four, one per data set. Each takes `{"query": "<SQL>"}` and returns `d
 
 | Endpoint | Public tables | Root key permission |
 | --- | --- | --- |
-| `analytics.getVerifications` | `key_verifications_v1` and its per-minute, per-hour, per-day, and per-month rollups | `api.*.read_analytics`, or `api.<api_id>.read_analytics` for specific keyspaces |
-| `analytics.getRatelimits` | `ratelimits_v1` and its rollups | `ratelimit.*.read_analytics`, or `ratelimit.<namespace_id>.read_analytics` for specific namespaces |
-| `analytics.getGatewayRequests` | `gateway_requests_v1` | `project.*.read_gateway_requests` |
-| `analytics.getRuntimeLogs` | `runtime_logs_v1` | `project.*.read_runtime_logs` |
+| `analytics.getVerifications` | `key_verifications_v1` and its per-minute, per-hour, per-day, and per-month rollups | `unkey:v1:{workspace_id}:projects/*/keyspaces/*/logs#read`, or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/logs#read` for specific keyspaces |
+| `analytics.getRatelimits` | `ratelimits_v1` and its rollups | `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/logs#read`, or `unkey:v1:{workspace_id}:projects/{project_id}/ratelimits/namespaces/{namespace_id}/logs#read` for specific namespaces |
+| `analytics.getGatewayRequests` | `gateway_requests_v1` | `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/logs#read` |
+| `analytics.getRuntimeLogs` | `runtime_logs_v1` | `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*/logs#read` |
 
-A root key with `read_analytics` for specific keyspaces (or namespaces) instead of `*` only sees rows for those.
+A root key with `#read` on specific keyspace or namespace log paths instead of wildcard paths only sees rows for those resources.
 
 ```bash
 curl -X POST https://api.unkey.com/v2/analytics.getVerifications \

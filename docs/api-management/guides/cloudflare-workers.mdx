@@ -23,7 +23,7 @@ Protect a Cloudflare Worker with API keys. The Worker's `fetch` handler calls `k
 
 <Steps titleSize="h3">
   <Step title="Create a root key and a keyspace">
-    In the dashboard, go to **Settings > Root Keys** and create a root key with `api.*.create_api`, `api.*.create_key`, and `api.*.verify_key`. Export it as `UNKEY_ROOT_KEY` in your shell for the `curl` commands. You'll store it as a Worker secret in step 2. Never send it to a browser or mobile app.
+    In the dashboard, go to **Settings > Root Keys** and create a root key with `unkey:v1:{workspace_id}:projects/*/keyspaces/*#write`, `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write`, and `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#verify`. Export it as `UNKEY_ROOT_KEY` in your shell for the `curl` commands. You'll store it as a Worker secret in step 2. Never send it to a browser or mobile app.
 
     Then create a keyspace, which holds your keys. Use **Keyspaces (APIs)** in the dashboard, or `apis.createApi`:
 

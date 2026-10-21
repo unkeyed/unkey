@@ -18,7 +18,7 @@ When a request fails, the response has an `error` object instead of `data`. Ever
   "meta": { "requestId": "req_2c9a0jf23l4k567" },
   "error": {
     "title": "Insufficient Permissions",
-    "detail": "Missing one of these permissions: api.*.delete_api or api.api_1234abcd.delete_api",
+    "detail": "Missing one of these permissions: unkey:v1:{workspace_id}:projects/*/keyspaces/*#delete or unkey:v1:ws_1234abcd:projects/proj_1234abcd/keyspaces/ks_1234abcd#delete",
     "status": 403,
     "type": "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions"
   }

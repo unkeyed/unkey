@@ -22,7 +22,7 @@ Look up a key's settings without verifying it or spending anything. Use `keys.ge
 
 <RootKeyPrereq />
 
-Both endpoints need `api.*.read_key` or `api.<api_id>.read_key`. Adding `decrypt: true` to `keys.getKey` additionally needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key`. See [Root key permissions](/platform/root-keys/permissions).
+Both endpoints need `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#read` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#read`. Adding `decrypt: true` to `keys.getKey` additionally needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#decrypt` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt`. See [Root key permissions](/platform/root-keys/permissions).
 
 ## By identifier
 

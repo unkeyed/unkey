@@ -24,7 +24,7 @@ Protect Hono routes with API keys. The code works on Node, Bun, Deno, and Cloudf
 
 <Steps titleSize="h3">
   <Step title="Create a root key and a keyspace">
-    In the dashboard, go to **Settings > Root Keys** and create a root key with `api.*.create_api`, `api.*.create_key`, and `api.*.verify_key`. Put it in your server's `UNKEY_ROOT_KEY` environment variable. Never send it to a browser or mobile app.
+    In the dashboard, go to **Settings > Root Keys** and create a root key with `unkey:v1:{workspace_id}:projects/*/keyspaces/*#write`, `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write`, and `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#verify`. Put it in your server's `UNKEY_ROOT_KEY` environment variable. Never send it to a browser or mobile app.
 
     Then create a keyspace, which holds your keys. Use **Keyspaces (APIs)** in the dashboard, or `apis.createApi`:
 

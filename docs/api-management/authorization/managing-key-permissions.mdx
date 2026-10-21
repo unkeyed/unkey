@@ -28,9 +28,9 @@ Change the roles and permissions on a key at any time. Set them when you create 
 
 <RootKeyPrereq />
 
-All of these need `api.*.update_key` or `api.<api_id>.update_key` (creation needs `create_key`). Four of the incremental endpoints also need the matching `rbac.*` action: `add_permission_to_key` for `keys.addPermissions`, `remove_permission_from_key` for `keys.removePermissions`, both for `keys.setPermissions`, and `add_role_to_key` for `keys.addRoles`. `keys.removeRoles` and `keys.setRoles` need nothing beyond `update_key`.
+All of these need `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`. The same `write` action covers creation, updates, role changes, and permission changes.
 
-`keys.addPermissions` and `keys.setPermissions` only create a new permission slug if the root key also has `rbac.*.create_permission`. Without it, an unknown slug fails with HTTP 403 `err:unkey:authorization:insufficient_permissions`. (`keys.createKey` and `keys.updateKey` create new slugs without that permission.) Roles are never created for you. An unknown role fails with HTTP 404 `err:unkey:data:role_not_found`.
+`keys.addPermissions` and `keys.setPermissions` only create a new permission slug if the root key also has `unkey:v1:{workspace_id}:projects/*/rbac/permissions/*#write`. Without it, an unknown slug fails with HTTP 403 `err:unkey:authorization:insufficient_permissions`. (`keys.createKey` and `keys.updateKey` create new slugs without that permission.) Roles are never created for you. An unknown role fails with HTTP 404 `err:unkey:data:role_not_found`.
 
 ## At creation
 

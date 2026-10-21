@@ -122,7 +122,7 @@ curl -X POST https://api.unkey.com/v2/keys.updateCredits \
   -d '{ "keyId": "key_...", "operation": "increment", "value": 5000 }'
 ```
 
-The root key needs `api.*.update_key` or `api.<api_id>.update_key` for both `keys.updateKey` and `keys.updateCredits`. See [Root key permissions](/platform/root-keys/permissions).
+The root key needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write` for both `keys.updateKey` and `keys.updateCredits`. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Credits vs rate limits
 

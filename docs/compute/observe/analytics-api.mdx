@@ -27,8 +27,8 @@ You can query your <Tooltip tip="A Compute app: a deployable service inside a pr
 
 | Table | Endpoint | Root key permission |
 | --- | --- | --- |
-| `gateway_requests_v1` | `POST /v2/analytics.getGatewayRequests` | `project.*.read_gateway_requests` |
-| `runtime_logs_v1` | `POST /v2/analytics.getRuntimeLogs` | `project.*.read_runtime_logs` |
+| `gateway_requests_v1` | `POST /v2/analytics.getGatewayRequests` | `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/gateway/logs#read` |
+| `runtime_logs_v1` | `POST /v2/analytics.getRuntimeLogs` | `unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*/logs#read` |
 
 <Note>
   You need a root key with the wildcard (`project.*`) permission for the table. A permission for a single project doesn't work here. Create the key under **Settings > Root Keys** and send it as `Authorization: Bearer <root key>`. See [Root keys](/platform/root-keys/overview).

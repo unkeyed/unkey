@@ -26,14 +26,12 @@ Recoverable keys need the keyspace's **Store encrypted keys** setting. It's off 
 
 <RootKeyPrereq />
 
-Creating a recoverable key needs `api.*.encrypt_key` or `api.<api_id>.encrypt_key` in addition to the create permission. Reading one back needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key` in addition to the read permission. Grant these only to root keys that need them. See [Root key permissions](/platform/root-keys/permissions).
-
-A missing encrypt permission doesn't look like a permission problem. `keys.createKey` returns HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), "The specified API was not found." If you see this for an API ID you know is correct, check the root key's `encrypt_key` permission first.
+Creating a recoverable key needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#write` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#write`. Reading one back needs `unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#decrypt` or `unkey:v1:{workspace_id}:projects/{project_id}/keyspaces/{keyspace_id}/keys/*#decrypt` in addition to the read permission. Grant these only to root keys that need them. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Create a recoverable key
 
 <ParamField body="recoverable" type="boolean" default="false">
-  On `keys.createKey`. When `true`, an encrypted copy of the key is stored. Fails with HTTP 412 [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed) when the keyspace doesn't store encrypted keys ("This API does not support key encryption."), and with HTTP 404 `err:unkey:data:api_not_found` when the root key lacks `encrypt_key`.
+  On `keys.createKey`. When `true`, an encrypted copy of the key is stored. Fails with HTTP 412 [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed) when the keyspace doesn't store encrypted keys ("This API does not support key encryption.").
 </ParamField>
 
 ```bash
@@ -73,7 +71,7 @@ curl -X POST https://api.unkey.com/v2/keys.getKey \
 }
 ```
 
-`decrypt: true` fails with HTTP 412 when the key's keyspace doesn't store encrypted keys, and with a permission error when the root key lacks `decrypt_key`. Treat any response with `plaintext` like the original create response: send it over a secure channel, and never log or cache it.
+`decrypt: true` fails with HTTP 412 when the key's keyspace doesn't store encrypted keys, and with a permission error when the root key lacks `#decrypt` on the key path. Treat any response with `plaintext` like the original create response: send it over a secure channel, and never log or cache it.
 
 ## Recoverable keys and rotation
 
