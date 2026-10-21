@@ -1,7 +1,34 @@
 import { z } from "zod";
 import type { Querier } from "./client";
+import { type RequestDetailsRequest, requestDetailsRequestSchema } from "./frontline";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
 import { assertOrderedTimeRange } from "./util";
+
+export const gatewayRequestVerification = z.object({
+  key_id: z.string(),
+  key_space_id: z.string(),
+  outcome: z.string(),
+});
+
+export function getGatewayRequestVerification(ch: Querier) {
+  return async (args: RequestDetailsRequest) => {
+    assertOrderedTimeRange(args.startTime, args.endTime);
+
+    return ch.query({
+      query: `
+        SELECT key_id, key_space_id, outcome
+        FROM default.key_verifications_raw_v2
+        WHERE workspace_id = {workspaceId: String}
+          AND request_id = {requestId: String}
+          AND source = 'gateway'
+          AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+        ORDER BY time DESC
+        LIMIT 1`,
+      params: requestDetailsRequestSchema,
+      schema: gatewayRequestVerification,
+    })(args);
+  };
+}
 
 // LOGS
 export const keyDetailsLogsParams = z.object({
