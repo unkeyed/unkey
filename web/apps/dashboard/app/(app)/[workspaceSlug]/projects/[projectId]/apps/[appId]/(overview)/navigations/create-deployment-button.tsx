@@ -1,20 +1,24 @@
 "use client";
 
+import { environmentName } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
+import { RepoNameLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/github-settings/shared";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
-import { useGuardedNavigate } from "@/components/leave-guard";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
-import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
-import { IconChevronDownOutline12, IconCodeBranchOutline18, IconPlusOutline12 } from "@unkey/icons";
+import {
+  Github,
+  IconArrowUpRightOutline12,
+  IconChevronDownOutline12,
+  IconPlusOutline12,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -22,6 +26,13 @@ import {
   FormInput,
   FormLabel,
   InfoTooltip,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+  RelativeTime,
   Select,
   SelectContent,
   SelectItem,
@@ -32,14 +43,14 @@ import {
   toast,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { useParams } from "next/navigation";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAppId, useProjectData } from "../data-provider";
 import { useRecentDeployments } from "../hooks/use-recent-deployments";
-import { parseForkRef } from "./parse-fork-ref";
+import { environmentForRef } from "./deploy-ref-model";
+import { DeployRefPicker } from "./deploy-ref-picker";
 
 // Soft cap on the past-image list; older images are still deployable by
 // pasting their reference into the input.
@@ -83,9 +94,7 @@ function createFormSchema(repoName?: string, imageMode = false) {
           if (!val.startsWith("http")) {
             return true;
           }
-          const urlMatch = val.match(
-            /^https?:\/\/github\.com\/[^/]+\/([^/]+)\/(tree|commit|pull)\//,
-          );
+          const urlMatch = val.match(/^https?:\/\/github\.com\/[^/]+\/([^/]+)\/commit\//);
           if (!urlMatch) {
             return false;
           }
@@ -96,8 +105,8 @@ function createFormSchema(repoName?: string, imageMode = false) {
         },
         {
           message: repoName
-            ? `URL must point to a repository named "${repoName}" (the connected repo or a fork of it)`
-            : "Enter a branch name (e.g. main), commit SHA, fork reference (owner:branch), or a GitHub URL to a branch, commit, or pull request",
+            ? `Paste a commit URL from ${repoName} or a fork of it`
+            : "Paste a GitHub commit URL",
         },
       ),
   });
@@ -113,8 +122,6 @@ export const CreateDeploymentButton = ({
   renderTrigger,
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
-  const navigate = useGuardedNavigate();
-  const params = useParams<{ workspaceSlug: string }>();
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const { projectId, environments, refetchDeployments } = useProjectData();
   const appId = useAppId();
@@ -136,6 +143,7 @@ export const CreateDeploymentButton = ({
   const app = appQuery.data?.[0];
 
   const repositoryFullName = app?.repositoryFullName ?? null;
+  const repoUrl = githubUrl.repo(repositoryFullName);
   const [owner, repo] = repositoryFullName?.split("/") ?? [];
   const defaultBranch = app?.defaultBranch ?? "main";
   const deploymentSource = app
@@ -180,8 +188,10 @@ export const CreateDeploymentButton = ({
 
   const branches = repoDetails.data?.branches ?? [];
 
-  const defaultEnvironmentSlug =
-    environments.find((e) => e.kind === "preview")?.slug ?? environments[0]?.slug ?? "";
+  const defaultEnvironmentSlug = isImageApp
+    ? (environments.find((e) => e.kind === "preview")?.slug ?? environments[0]?.slug ?? "")
+    : "";
+  const repoDetailsLoading = installations.isInitialLoading || repoDetails.isInitialLoading;
 
   const formSchema = createFormSchema(repo, isImageApp);
 
@@ -205,8 +215,12 @@ export const CreateDeploymentButton = ({
   const nameValue = watch("name") ?? "";
   const imageRef = sanitizeImageRef(nameValue);
   const imageValidation = validateImageRef(imageRef);
-  const detectedFork = isGitApp ? parseForkRef(nameValue) : null;
-  const forkRepoName = detectedFork && repo ? `${detectedFork.forkOwner}/${repo}` : null;
+  const environmentValue = watch("environment") ?? "";
+  const targetEnvironment = environments.find((env) => env.slug === environmentValue);
+  const deployLabel =
+    isGitApp && targetEnvironment
+      ? `Deploy to ${environmentName(targetEnvironment.slug)}`
+      : "Deploy";
 
   useEffect(() => {
     if (defaultEnvironmentSlug) {
@@ -234,20 +248,12 @@ export const CreateDeploymentButton = ({
       });
       return { deploymentId: response.data.deploymentId };
     },
-    async onSuccess(data) {
+    async onSuccess() {
       toast.success("Deployment has been created");
-      reset();
+      reset({ environment: defaultEnvironmentSlug });
       setIsOpen(false);
       refetchDeployments();
       await collection.apps.utils.refetch();
-      navigate(
-        routes.projects.apps.deployment({
-          workspaceSlug: params.workspaceSlug,
-          projectId,
-          appId,
-          deploymentId: data.deploymentId,
-        }),
-      );
     },
     onError(err) {
       console.error(err);
@@ -341,121 +347,153 @@ export const CreateDeploymentButton = ({
               loading={createDeployment.isLoading || isSubmitting}
               className="w-full rounded-lg"
             >
-              Deploy
+              {deployLabel}
             </Button>
           </div>
         }
       >
-        <div className="flex flex-col gap-10 py-3">
+        <div className="flex flex-col gap-5 py-2">
           {isGitApp && repositoryFullName && (
-            <div className="flex items-start gap-2 flex-col">
-              <RepoDisplay
-                url={githubUrl.repo(repositoryFullName) ?? ""}
-                className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px]"
-              />
-              {repoDetails.data?.pushedAt ? (
-                <span className="text-xs text-gray-10">
-                  Last pushed{" "}
-                  <TimestampInfo
-                    value={repoDetails.data.pushedAt}
-                    displayType="relative"
-                    className="font-medium underline decoration-dotted text-gray-12"
-                  />
-                </span>
-              ) : repoDetails.isLoading ? (
-                <Skeleton className="h-4 w-16 rounded" />
-              ) : null}
-            </div>
+            <Item
+              variant="outline"
+              render={
+                repoUrl ? (
+                  // biome-ignore lint/a11y/useAnchorContent: Item renders its children into this anchor
+                  <a href={repoUrl} target="_blank" rel="noopener noreferrer" />
+                ) : undefined
+              }
+            >
+              <ItemMedia>
+                <Github />
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle>
+                  <RepoNameLabel fullName={repositoryFullName} />
+                </ItemTitle>
+                {repoDetailsLoading ? (
+                  <div className="flex h-4 items-center">
+                    <Skeleton className="h-3 w-24 rounded" />
+                  </div>
+                ) : (
+                  <ItemDescription>
+                    {repoDetails.data?.pushedAt ? (
+                      <>
+                        Last pushed <RelativeTime value={repoDetails.data.pushedAt} />
+                      </>
+                    ) : (
+                      "Connected repository"
+                    )}
+                  </ItemDescription>
+                )}
+              </ItemContent>
+              {repoUrl && (
+                <ItemActions>
+                  <IconArrowUpRightOutline12 />
+                </ItemActions>
+              )}
+            </Item>
           )}
 
           <form
             id="create-deployment-form"
             onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-6"
+            className="flex flex-col gap-5"
           >
-            <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
-              <FormLabel label="Environment" htmlFor="environment-select" />
-              <Controller
-                control={control}
-                name="environment"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger
-                      id="environment-select"
-                      className="capitalize"
-                      variant={errors.environment ? "error" : "default"}
-                      rightIcon={
-                        <IconChevronDownOutline12 className="absolute right-3 size-3 opacity-70" />
-                      }
-                    >
-                      <SelectValue placeholder="Select environment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {environments.map((env) => (
-                        <SelectItem key={env.id} value={env.slug} className="capitalize">
-                          {env.slug}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              <FormDescription
-                description="Target environment for this deployment."
-                descriptionId="environment-select-description"
-                errorId="environment-select-error"
-                error={errors.environment?.message}
-              />
-            </fieldset>
-            <div className="flex flex-col gap-2">
-              <FormInput
-                label={isImageApp ? "Image Reference" : "Commit or Branch Reference"}
-                className="min-h-9"
-                autoComplete="off"
-                data-1p-ignore
-                description={
-                  isImageApp
-                    ? "Paste a container image reference to deploy, or pick a previously deployed image below."
-                    : repositoryFullName
-                      ? "Paste a commit, branch, PR URL, or fork reference (e.g. fork-owner:branch) to deploy."
-                      : "Paste a valid commit, branch reference, or PR URL to create a new deployment."
-                }
-                error={errors.name?.message}
-                {...register("name", {
-                  onBlur: isImageApp
-                    ? () => setValue("name", imageRef, { shouldValidate: true })
-                    : undefined,
-                })}
-                onPaste={
-                  isImageApp
-                    ? (e) => {
-                        const cleaned = sanitizeImageRef(e.clipboardData.getData("text"));
-                        e.preventDefault();
-                        setValue("name", cleaned, { shouldValidate: true });
-                      }
-                    : undefined
-                }
-                placeholder={
-                  isImageApp
-                    ? "registry.example.com/my-app:v1.2.3"
-                    : repositoryFullName
-                      ? (githubUrl.branch(repositoryFullName, defaultBranch) ?? "")
-                      : "Enter a commit SHA, branch, or PR URL"
-                }
-              />
-              {isImageApp && imageValidation.ok && imageValidation.warning ? (
-                <output className="text-warning-11 text-sm">{imageValidation.warning}</output>
-              ) : null}
-              {forkRepoName && (
-                <div className="flex items-center gap-1.5 bg-warning-3 border border-warning-6 rounded-md px-2.5 py-1.5 w-fit">
-                  <IconCodeBranchOutline18 className="size-3 shrink-0 text-warning-11" />
-                  <span className="text-xs text-warning-11">
-                    Deploying from fork:{" "}
-                    <span className="font-medium text-warning-12">{forkRepoName}</span>
-                  </span>
-                </div>
-              )}
-            </div>
+            {deploymentSource &&
+              match(deploymentSource)
+                .with("git", () => (
+                  <DeployRefPicker
+                    value={nameValue}
+                    environment={environmentValue}
+                    environments={environments}
+                    productionBranch={defaultBranch}
+                    source={
+                      installationId && owner && repo
+                        ? { projectId, installationId, owner, repo }
+                        : null
+                    }
+                    branches={branches}
+                    branchesLoading={repoDetailsLoading}
+                    refError={errors.name?.message}
+                    environmentError={errors.environment?.message}
+                    onRefChange={(ref) => {
+                      setValue("name", ref, { shouldValidate: true, shouldDirty: true });
+                      setValue(
+                        "environment",
+                        environmentForRef(ref, defaultBranch, environments) ?? "",
+                        {
+                          shouldValidate: true,
+                        },
+                      );
+                    }}
+                    onEnvironmentChange={(slug) =>
+                      setValue("environment", slug, { shouldValidate: true })
+                    }
+                  />
+                ))
+                .with("oci", () => (
+                  <>
+                    <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
+                      <FormLabel label="Environment" htmlFor="environment-select" />
+                      <Controller
+                        control={control}
+                        name="environment"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger
+                              id="environment-select"
+                              className="capitalize"
+                              variant={errors.environment ? "error" : "default"}
+                              rightIcon={
+                                <IconChevronDownOutline12 className="absolute right-3 size-3 opacity-70" />
+                              }
+                            >
+                              <SelectValue placeholder="Select environment" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {environments.map((env) => (
+                                <SelectItem key={env.id} value={env.slug} className="capitalize">
+                                  {env.slug}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <FormDescription
+                        description="Target environment for this deployment."
+                        descriptionId="environment-select-description"
+                        errorId="environment-select-error"
+                        error={errors.environment?.message}
+                      />
+                    </fieldset>
+                    <div className="flex flex-col gap-2">
+                      <FormInput
+                        label="Image Reference"
+                        className="min-h-9"
+                        autoComplete="off"
+                        data-1p-ignore
+                        description="Paste a container image reference to deploy, or pick a previously deployed image below."
+                        error={errors.name?.message}
+                        {...register("name", {
+                          onBlur: () => setValue("name", imageRef, { shouldValidate: true }),
+                        })}
+                        onPaste={(e) => {
+                          const cleaned = sanitizeImageRef(e.clipboardData.getData("text"));
+                          e.preventDefault();
+                          setValue("name", cleaned, { shouldValidate: true });
+                        }}
+                        placeholder="registry.example.com/my-app:v1.2.3"
+                      />
+                      {imageValidation.ok && imageValidation.warning ? (
+                        <output className="text-warning-11 text-sm">
+                          {imageValidation.warning}
+                        </output>
+                      ) : null}
+                    </div>
+                  </>
+                ))
+                .exhaustive()}
           </form>
 
           {isImageApp && imageRows.length > 0 && (
@@ -488,51 +526,6 @@ export const CreateDeploymentButton = ({
                     displayType="relative"
                     className="relative z-20 text-gray-11 shrink-0 ml-3"
                   />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {isGitApp && repositoryFullName && (
-            <div className="flex flex-col divide-y divide-gray-4 rounded-md border overflow-hidden">
-              {repoDetails.isLoading &&
-                Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={`skeleton-${
-                      // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders
-                      i
-                    }`}
-                    className="flex items-center justify-between px-3 py-2 h-[36.5px]"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-4 w-4 bg-gray-3 rounded animate-pulse" />
-                      <span className="h-4 w-24 bg-gray-3 rounded animate-pulse" />
-                    </span>
-                    <span className="h-3 w-12 bg-gray-3 rounded animate-pulse" />
-                  </div>
-                ))}
-              {branches.map((branch) => (
-                <div
-                  key={branch.name}
-                  className="relative flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-sm text-grayA-11"
-                >
-                  <button
-                    type="button"
-                    aria-label={`Select ${branch.name}`}
-                    onClick={() => setValue("name", branch.name, { shouldValidate: true })}
-                    className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-grayA-7"
-                  />
-                  <span className="flex items-center gap-1.5 min-w-0 max-w-[300px]">
-                    <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-12" />
-                    <span className="truncate">{branch.name}</span>
-                  </span>
-                  {branch.lastPushDate && (
-                    <TimestampInfo
-                      value={branch.lastPushDate}
-                      displayType="relative"
-                      className="relative z-20 text-gray-11 shrink-0 ml-3"
-                    />
-                  )}
                 </div>
               ))}
             </div>
