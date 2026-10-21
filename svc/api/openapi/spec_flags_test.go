@@ -64,7 +64,6 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 		"portal.getVerifications",
 		"portal.listKeys",
 		"portal.rerollKey",
-		"portal.verifyDomain",
 	}, excluded, "every excluded operation is accounted for")
 
 	public := []string{
@@ -78,6 +77,7 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 		"portal.listSessions",
 		"portal.revokeSession",
 		"portal.updatePortal",
+		"portal.verifyDomain",
 	}
 	for _, op := range portal {
 		if !slices.Contains(public, op) {
