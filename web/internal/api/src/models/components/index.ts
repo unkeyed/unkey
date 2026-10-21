@@ -276,6 +276,8 @@ export * from "./v2portalcreateportalresponsedata.js";
 export * from "./v2portalcreatesessionrequestbody.js";
 export * from "./v2portalcreatesessionresponsebody.js";
 export * from "./v2portalcreatesessionresponsedata.js";
+export * from "./v2portaldeletedomainrequestbody.js";
+export * from "./v2portaldeletedomainresponsebody.js";
 export * from "./v2portaldeleteportalrequestbody.js";
 export * from "./v2portaldeleteportalresponsebody.js";
 export * from "./v2portalexchangecoderequestbody.js";
