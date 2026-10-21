@@ -34,6 +34,57 @@ post:
         application/json:
           schema:
             "$ref": "./V2PortalListDomainsResponseBody.yaml"
+          examples:
+            twoDomains:
+              summary: One verified, one still verifying
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  - id: pdom_1234abcd
+                    portalId: prt_1234abcd
+                    domain: portal.acme.com
+                    status: verified
+                    dnsRecords:
+                      - type: CNAME
+                        name: portal.acme.com
+                        value: a1b2c3d4e5f6g7h8.portal.unkey.com
+                        ttl: 60
+                        verified: true
+                        note: Create as DNS-only if your provider offers the choice.
+                      - type: TXT
+                        name: _unkey.portal.acme.com
+                        value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                        ttl: 60
+                        verified: false
+                        note: Proves ownership. Create it alongside the routing record.
+                    createdAt: 1704067200000
+                    updatedAt: 1704067260000
+                  - id: pdom_5678efgh
+                    portalId: prt_1234abcd
+                    domain: help.acme.com
+                    status: verifying
+                    dnsRecords:
+                      - type: CNAME
+                        name: help.acme.com
+                        value: h8g7f6e5d4c3b2a1.portal.unkey.com
+                        ttl: 60
+                        verified: false
+                        note: Create as DNS-only if your provider offers the choice.
+                      - type: TXT
+                        name: _unkey.help.acme.com
+                        value: unkey-domain-verify=9LhJ4bY6wR2nT5vP7mK1xQ8Z
+                        ttl: 60
+                        verified: false
+                        note: Proves ownership. Create it alongside the routing record.
+                    createdAt: 1704070800000
+                    updatedAt: 1704070860000
+            empty:
+              summary: No domains attached
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: []
     "400":
       description: Bad request
       content:

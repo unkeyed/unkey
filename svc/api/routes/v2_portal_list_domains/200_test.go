@@ -21,15 +21,15 @@ func TestListPortalDomainsOnlyThisPortal(t *testing.T) {
 	res := f.call(t, handler.Request{Portal: f.portal.Slug}, "portal.*.read_portal")
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
-	statuses := map[string]openapi.PortalDomainStatus{}
+	statuses := map[string]openapi.DomainStatus{}
 	for _, d := range res.Body.Data {
 		require.Equal(t, f.portal.ID, d.PortalId, "a sibling portal's domain leaked into the list")
 		require.Len(t, d.DnsRecords, 2)
 		statuses[d.Id] = d.Status
 	}
-	require.Equal(t, map[string]openapi.PortalDomainStatus{
-		pending.ID:  openapi.PortalDomainStatusPending,
-		verified.ID: openapi.PortalDomainStatusVerified,
+	require.Equal(t, map[string]openapi.DomainStatus{
+		pending.ID:  openapi.DomainStatusPending,
+		verified.ID: openapi.DomainStatusVerified,
 	}, statuses)
 }
 
