@@ -1,23 +1,14 @@
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useMemo, useState } from "react";
 
-type SearchBranchesParams = {
+export type BranchSource = {
   projectId: string;
   installationId: number;
   owner: string;
   repo: string;
-  query: string;
-  debounceMs?: number;
 };
 
-export function useSearchBranches({
-  projectId,
-  installationId,
-  owner,
-  repo,
-  query,
-  debounceMs = 300,
-}: SearchBranchesParams) {
+export function useSearchBranches(source: BranchSource | null, query: string, debounceMs = 300) {
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
   useEffect(() => {
@@ -27,16 +18,22 @@ export function useSearchBranches({
     return () => clearTimeout(timer);
   }, [query, debounceMs]);
 
-  const { data, isLoading } = trpc.github.searchBranches.useQuery(
-    { projectId, installationId, owner, repo, query: debouncedQuery },
+  const { data, isInitialLoading } = trpc.github.searchBranches.useQuery(
     {
-      enabled: debouncedQuery.length > 0,
+      projectId: source?.projectId ?? "",
+      installationId: source?.installationId ?? 0,
+      owner: source?.owner ?? "",
+      repo: source?.repo ?? "",
+      query: debouncedQuery,
+    },
+    {
+      enabled: source !== null && debouncedQuery.length > 0,
       staleTime: 30_000,
     },
   );
 
   const searchResults = useMemo(() => data?.branches ?? [], [data?.branches]);
-  const isSearching = query.trim() !== debouncedQuery || (debouncedQuery.length > 0 && isLoading);
+  const isSearching = source !== null && (query.trim() !== debouncedQuery || isInitialLoading);
 
   return { searchResults, isSearching };
 }
