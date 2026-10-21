@@ -176,4 +176,4 @@ const TimestampInfo: React.FC<{
   );
 };
 TimestampInfo.displayName = "TimestampInfo";
-export { TimestampInfo };
+export { RelativeTime, TimestampInfo };
