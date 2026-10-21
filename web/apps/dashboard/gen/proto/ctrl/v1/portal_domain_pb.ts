@@ -6,15 +6,13 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { ActorInfo } from "./actor_pb";
 import { file_ctrl_v1_actor } from "./actor_pb";
-import type { CustomDomainStatus } from "./custom_domain_pb";
-import { file_ctrl_v1_custom_domain } from "./custom_domain_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/portal_domain.proto.
  */
 export const file_ctrl_v1_portal_domain: GenFile = /*@__PURE__*/
-  fileDesc("ChtjdHJsL3YxL3BvcnRhbF9kb21haW4ucHJvdG8SB2N0cmwudjEidAoWQWRkUG9ydGFsRG9tYWluUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEQoJcG9ydGFsX2lkGAIgASgJEg4KBmRvbWFpbhgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIosBChdBZGRQb3J0YWxEb21haW5SZXNwb25zZRIRCglkb21haW5faWQYASABKAkSFAoMdGFyZ2V0X2NuYW1lGAIgASgJEisKBnN0YXR1cxgDIAEoDjIbLmN0cmwudjEuQ3VzdG9tRG9tYWluU3RhdHVzEhoKEnZlcmlmaWNhdGlvbl90b2tlbhgEIAEoCSJ6ChlEZWxldGVQb3J0YWxEb21haW5SZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRIRCglwb3J0YWxfaWQYAiABKAkSEQoJZG9tYWluX2lkGAMgASgJEiEKBWFjdG9yGAQgASgLMhIuY3RybC52MS5BY3RvckluZm8iHAoaRGVsZXRlUG9ydGFsRG9tYWluUmVzcG9uc2UihQEKJFJldHJ5UG9ydGFsRG9tYWluVmVyaWZpY2F0aW9uUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEQoJcG9ydGFsX2lkGAIgASgJEhEKCWRvbWFpbl9pZBgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIlQKJVJldHJ5UG9ydGFsRG9tYWluVmVyaWZpY2F0aW9uUmVzcG9uc2USKwoGc3RhdHVzGAEgASgOMhsuY3RybC52MS5DdXN0b21Eb21haW5TdGF0dXMyxAIKE1BvcnRhbERvbWFpblNlcnZpY2USVgoPQWRkUG9ydGFsRG9tYWluEh8uY3RybC52MS5BZGRQb3J0YWxEb21haW5SZXF1ZXN0GiAuY3RybC52MS5BZGRQb3J0YWxEb21haW5SZXNwb25zZSIAEl8KEkRlbGV0ZVBvcnRhbERvbWFpbhIiLmN0cmwudjEuRGVsZXRlUG9ydGFsRG9tYWluUmVxdWVzdBojLmN0cmwudjEuRGVsZXRlUG9ydGFsRG9tYWluUmVzcG9uc2UiABJ0ChFSZXRyeVZlcmlmaWNhdGlvbhItLmN0cmwudjEuUmV0cnlQb3J0YWxEb21haW5WZXJpZmljYXRpb25SZXF1ZXN0Gi4uY3RybC52MS5SZXRyeVBvcnRhbERvbWFpblZlcmlmaWNhdGlvblJlc3BvbnNlIgBCkAEKC2NvbS5jdHJsLnYxQhFQb3J0YWxEb21haW5Qcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw", [file_ctrl_v1_actor, file_ctrl_v1_custom_domain]);
+  fileDesc("ChtjdHJsL3YxL3BvcnRhbF9kb21haW4ucHJvdG8SB2N0cmwudjEidAoWQWRkUG9ydGFsRG9tYWluUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEQoJcG9ydGFsX2lkGAIgASgJEg4KBmRvbWFpbhgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIl4KF0FkZFBvcnRhbERvbWFpblJlc3BvbnNlEhEKCWRvbWFpbl9pZBgBIAEoCRIUCgx0YXJnZXRfY25hbWUYAiABKAkSGgoSdmVyaWZpY2F0aW9uX3Rva2VuGAQgASgJInoKGURlbGV0ZVBvcnRhbERvbWFpblJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhEKCXBvcnRhbF9pZBgCIAEoCRIRCglkb21haW5faWQYAyABKAkSIQoFYWN0b3IYBCABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbyIcChpEZWxldGVQb3J0YWxEb21haW5SZXNwb25zZSKFAQokUmV0cnlQb3J0YWxEb21haW5WZXJpZmljYXRpb25SZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRIRCglwb3J0YWxfaWQYAiABKAkSEQoJZG9tYWluX2lkGAMgASgJEiEKBWFjdG9yGAQgASgLMhIuY3RybC52MS5BY3RvckluZm8iJwolUmV0cnlQb3J0YWxEb21haW5WZXJpZmljYXRpb25SZXNwb25zZTLRAgoTUG9ydGFsRG9tYWluU2VydmljZRJWCg9BZGRQb3J0YWxEb21haW4SHy5jdHJsLnYxLkFkZFBvcnRhbERvbWFpblJlcXVlc3QaIC5jdHJsLnYxLkFkZFBvcnRhbERvbWFpblJlc3BvbnNlIgASXwoSRGVsZXRlUG9ydGFsRG9tYWluEiIuY3RybC52MS5EZWxldGVQb3J0YWxEb21haW5SZXF1ZXN0GiMuY3RybC52MS5EZWxldGVQb3J0YWxEb21haW5SZXNwb25zZSIAEoABCh1SZXRyeVBvcnRhbERvbWFpblZlcmlmaWNhdGlvbhItLmN0cmwudjEuUmV0cnlQb3J0YWxEb21haW5WZXJpZmljYXRpb25SZXF1ZXN0Gi4uY3RybC52MS5SZXRyeVBvcnRhbERvbWFpblZlcmlmaWNhdGlvblJlc3BvbnNlIgBCkAEKC2NvbS5jdHJsLnYxQhFQb3J0YWxEb21haW5Qcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.AddPortalDomainRequest
@@ -65,11 +63,6 @@ export type AddPortalDomainResponse = Message<"ctrl.v1.AddPortalDomainResponse">
    * @generated from field: string target_cname = 2;
    */
   targetCname: string;
-
-  /**
-   * @generated from field: ctrl.v1.CustomDomainStatus status = 3;
-   */
-  status: CustomDomainStatus;
 
   /**
    * Ownership proof token the tenant publishes as a TXT record on
@@ -168,10 +161,6 @@ export const RetryPortalDomainVerificationRequestSchema: GenMessage<RetryPortalD
  * @generated from message ctrl.v1.RetryPortalDomainVerificationResponse
  */
 export type RetryPortalDomainVerificationResponse = Message<"ctrl.v1.RetryPortalDomainVerificationResponse"> & {
-  /**
-   * @generated from field: ctrl.v1.CustomDomainStatus status = 1;
-   */
-  status: CustomDomainStatus;
 };
 
 /**
@@ -207,9 +196,9 @@ export const PortalDomainService: GenService<{
   /**
    * Retry verification for a pending, verifying, or failed domain.
    *
-   * @generated from rpc ctrl.v1.PortalDomainService.RetryVerification
+   * @generated from rpc ctrl.v1.PortalDomainService.RetryPortalDomainVerification
    */
-  retryVerification: {
+  retryPortalDomainVerification: {
     methodKind: "unary";
     input: typeof RetryPortalDomainVerificationRequestSchema;
     output: typeof RetryPortalDomainVerificationResponseSchema;

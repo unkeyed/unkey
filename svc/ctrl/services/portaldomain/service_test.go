@@ -59,6 +59,21 @@ func TestAddPortalDomainInsertsRowAndAuditLog(t *testing.T) {
 	require.Equal(t, f.portalID, logged.Targets[0].Meta["portalId"])
 }
 
+// The API checks the portal against a replica, so ctrl re-checks it on the
+// primary: a portal deleted in between must not end up with a domain.
+func TestAddPortalDomainToMissingPortalIsNotFound(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t)
+	svc := f.newService(t)
+
+	req := f.addRequest(f.workspaceID, f.domain)
+	req.Msg.PortalId = uid.New(uid.PortalPrefix)
+	_, err := svc.AddPortalDomain(ctx, req)
+	requireCode(t, connect.CodeNotFound, err)
+	require.Equal(t, 0, f.countPortalDomains(t, f.workspaceID))
+	f.requireNoAuditLogs(t, f.workspaceID)
+}
+
 // An environment without a portal app or portal CNAME domain must refuse
 // portal domains up front rather than accept rows it can never route.
 func TestAddPortalDomainRequiresPortalConfig(t *testing.T) {
@@ -285,9 +300,8 @@ func TestRetryPortalDomainVerification(t *testing.T) {
 
 	domainID := f.insertPortalDomain(t, f.workspaceID, f.domain, db.PortalDomainsVerificationStatusFailed)
 
-	res, err := svc.RetryVerification(ctx, f.retryRequest(f.workspaceID, domainID))
+	_, err := svc.RetryPortalDomainVerification(ctx, f.retryRequest(f.workspaceID, domainID))
 	require.NoError(t, err)
-	require.Equal(t, ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING, res.Msg.GetStatus())
 
 	row, err := f.database.FindPortalDomainById(ctx, domainID)
 	require.NoError(t, err)
@@ -296,7 +310,7 @@ func TestRetryPortalDomainVerification(t *testing.T) {
 	f.findAuditEvent(t, f.workspaceID, auditlog.PortalDomainVerifyEvent)
 
 	f.setStatus(t, domainID, db.PortalDomainsVerificationStatusVerified)
-	_, err = svc.RetryVerification(ctx, f.retryRequest(f.workspaceID, domainID))
+	_, err = svc.RetryPortalDomainVerification(ctx, f.retryRequest(f.workspaceID, domainID))
 	requireCode(t, connect.CodeFailedPrecondition, err)
 }
 
@@ -351,7 +365,7 @@ func newFixture(t *testing.T) fixture {
 		database:        database,
 		seeder:          seeder,
 		workspaceID:     seeder.Resources.UserWorkspace.ID,
-		portalID:        uid.New(uid.PortalPrefix),
+		portalID:        seeder.CreatePortal(ctx, seeder.Resources.UserWorkspace.ID),
 		portalProjectID: project.ID,
 		portalAppID:     app.ID,
 		portalEnvID:     env.ID,

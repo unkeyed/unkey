@@ -109,15 +109,16 @@ func (stubDeployments) ScheduleDesiredStateChange(restate.ObjectContext, *hydrav
 // and live deployment) plus the ctrl API and worker services that verify,
 // route, delete, and promote, running against real MySQL and Restate.
 type portalFixture struct {
-	h        *Harness
-	tEnv     *restatetest.TestEnvironment
-	api      *portaldomainapi.Service
-	dns      *tenantDNS
-	project  db.Project
-	app      db.App
-	env      db.Environment
-	live     db.Deployment
-	portalID string
+	h       *Harness
+	tEnv    *restatetest.TestEnvironment
+	api     *portaldomainapi.Service
+	dns     *tenantDNS
+	project db.Project
+	app     db.App
+	env     db.Environment
+	live    db.Deployment
+	// portals holds one seeded portal per tenant workspace, created on first use.
+	portals map[string]string
 }
 
 func newPortalFixture(t *testing.T) *portalFixture {
@@ -208,20 +209,30 @@ func newPortalFixture(t *testing.T) *portalFixture {
 	})
 
 	return &portalFixture{
-		h:        h,
-		tEnv:     tEnv,
-		api:      api,
-		dns:      dns,
-		project:  project,
-		app:      app,
-		env:      env,
-		live:     live,
-		portalID: uid.New("portal"),
+		h:       h,
+		tEnv:    tEnv,
+		api:     api,
+		dns:     dns,
+		project: project,
+		app:     app,
+		env:     env,
+		live:    live,
+		portals: map[string]string{},
 	}
 }
 
 // uniqueHostname avoids frontline_routes collisions with earlier runs against
 // the shared MySQL container.
+// portalFor returns workspaceID's portal, seeding it on first use.
+func (f *portalFixture) portalFor(workspaceID string) string {
+	if id, ok := f.portals[workspaceID]; ok {
+		return id
+	}
+	id := f.h.Seed.CreatePortal(f.h.Context(), workspaceID)
+	f.portals[workspaceID] = id
+	return id
+}
+
 func uniqueHostname() string {
 	return uid.DNS1035() + ".portal-it.example.com"
 }
@@ -236,7 +247,7 @@ func (f *portalFixture) addVerified(t *testing.T, workspaceID, hostname string) 
 
 	req := connect.NewRequest(&ctrlv1.AddPortalDomainRequest{
 		WorkspaceId: workspaceID,
-		PortalId:    f.portalID,
+		PortalId:    f.portalFor(workspaceID),
 		Domain:      hostname,
 		Actor:       nil,
 	})
@@ -266,7 +277,7 @@ func (f *portalFixture) delete(t *testing.T, workspaceID, domainID string) {
 
 	req := connect.NewRequest(&ctrlv1.DeletePortalDomainRequest{
 		WorkspaceId: workspaceID,
-		PortalId:    f.portalID,
+		PortalId:    f.portalFor(workspaceID),
 		DomainId:    domainID,
 		Actor:       nil,
 	})
@@ -334,7 +345,7 @@ func (f *portalFixture) insertPortalDomain(t *testing.T, workspaceID, hostname s
 	require.NoError(t, f.h.DB.InsertPortalDomain(f.h.Context(), db.InsertPortalDomainParams{
 		ID:                    domainID,
 		WorkspaceID:           workspaceID,
-		PortalID:              f.portalID,
+		PortalID:              f.portalFor(workspaceID),
 		Domain:                hostname,
 		VerificationStatus:    status,
 		VerificationToken:     uid.Secure(24),

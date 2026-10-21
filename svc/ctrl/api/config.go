@@ -61,6 +61,11 @@ type PortalConfig struct {
 	// EnvironmentID is the portal app's production environment. Empty makes
 	// AddPortalDomain fail with a precondition error.
 	EnvironmentID string `toml:"environment_id"`
+
+	// CnameDomain is the base domain for portal domain CNAME targets, kept
+	// apart from the top-level cname_domain so the two can never collide.
+	// Empty makes AddPortalDomain fail with a precondition error.
+	CnameDomain string `toml:"cname_domain"`
 }
 
 // ClickHouseConfig holds ClickHouse connection configuration. The api
@@ -120,11 +125,6 @@ type Config struct {
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	CnameDomain string `toml:"cname_domain"`
-
-	// PortalCnameDomain is the base domain for portal domain CNAME targets,
-	// kept apart from CnameDomain so the two can never collide. Empty makes
-	// AddPortalDomain fail with a precondition error.
-	PortalCnameDomain string `toml:"portal_cname_domain"`
 
 	// Portal configures portal domain routing. See [PortalConfig].
 	Portal PortalConfig `toml:"portal"`
