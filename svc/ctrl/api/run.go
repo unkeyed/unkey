@@ -297,8 +297,12 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
 	}
 
-	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(restateClient,
-		githubsecrets.New("https://api.github.com/meta/public_keys/secret_scanning", clock.New())))
+	keyLeakVerifier, err := githubsecrets.New("https://api.github.com/meta/public_keys/secret_scanning", clk)
+	if err != nil {
+		return fmt.Errorf("failed to create key leak verifier: %w", err)
+	}
+	r.Defer(func() error { keyLeakVerifier.Close(); return nil })
+	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(restateClient, keyLeakVerifier))
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
 		mux.Handle("POST /webhooks/stripe", stripewebhook.New(

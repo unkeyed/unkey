@@ -504,7 +504,10 @@ func newSigningFixture(t *testing.T) (*githubsecrets.Verifier, func([]byte) *htt
 		}
 	}))
 	t.Cleanup(server.Close)
-	return githubsecrets.New(server.URL, clock.New()), func(body []byte) *http.Request {
+	verifier, err := githubsecrets.New(server.URL, clock.New())
+	require.NoError(t, err)
+	t.Cleanup(verifier.Close)
+	return verifier, func(body []byte) *http.Request {
 		t.Helper()
 		digest := sha256.Sum256(body)
 		signature, err := ecdsa.SignASN1(rand.Reader, privateKey, digest[:])

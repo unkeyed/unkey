@@ -35,6 +35,14 @@ type keysResponse struct {
 	Keys []publicKey `json:"public_keys"`
 }
 
+func newVerifier(t *testing.T, keysURL string, clk clock.Clock) *githubsecrets.Verifier {
+	t.Helper()
+	verifier, err := githubsecrets.New(keysURL, clk)
+	require.NoError(t, err)
+	t.Cleanup(verifier.Close)
+	return verifier
+}
+
 func verify(verifier *githubsecrets.Verifier, ctx context.Context, payload []byte, signature, keyID string) (webhook.Event, error) {
 	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/", bytes.NewReader(payload))
 	req.Header.Set("Github-Public-Key-Signature", signature)
@@ -88,7 +96,7 @@ func TestVerifier_VerifiesExactBytesAndRejectsInvalidSignatures(t *testing.T) {
 		{ID: "active", Key: encoded},
 		{ID: "malformed", Key: "not PEM"},
 	}}, &count)
-	verifier := githubsecrets.New(server.URL, clock.NewTestClock())
+	verifier := newVerifier(t, server.URL, clock.NewTestClock())
 	for _, test := range []struct {
 		name      string
 		payload   []byte
@@ -145,11 +153,18 @@ func TestVerifier_RotatesAfterExpiryAndPreservesStaleKeysOnFailure(t *testing.T)
 	}))
 	t.Cleanup(server.Close)
 	testClock := clock.NewTestClock()
-	verifier := githubsecrets.New(server.URL, testClock)
+	verifier := newVerifier(t, server.URL, testClock)
 	_, err := verify(verifier, t.Context(), payload, signature, "initial")
 	require.NoError(t, err)
+	testClock.Tick(time.Hour - time.Second)
+	_, err = verify(verifier, t.Context(), payload, signature, "initial")
+	require.NoError(t, err)
+	require.EqualValues(t, 1, count.Load())
+
 	phase.Store(1)
-	testClock.Tick(time.Hour)
+	testClock.Tick(time.Second)
+	_, err = verify(verifier, t.Context(), payload, rotatedSignature, "rotated")
+	require.ErrorIs(t, err, webhook.ErrUnavailable)
 	for range 10 {
 		_, err = verify(verifier, t.Context(), payload, signature, "initial")
 		require.NoError(t, err)
@@ -164,14 +179,6 @@ func TestVerifier_RotatesAfterExpiryAndPreservesStaleKeysOnFailure(t *testing.T)
 	_, err = verify(verifier, t.Context(), payload, signature, "initial")
 	require.Error(t, err)
 	require.EqualValues(t, 3, count.Load())
-	testClock.Tick(time.Hour - time.Second)
-	_, err = verify(verifier, t.Context(), payload, rotatedSignature, "rotated")
-	require.NoError(t, err)
-	require.EqualValues(t, 3, count.Load())
-	testClock.Tick(time.Second)
-	_, err = verify(verifier, t.Context(), payload, rotatedSignature, "rotated")
-	require.NoError(t, err)
-	require.EqualValues(t, 4, count.Load())
 }
 
 func TestVerifier_UnavailableKeysAreRetriedAtMostOncePerMinute(t *testing.T) {
@@ -182,7 +189,7 @@ func TestVerifier_UnavailableKeysAreRetriedAtMostOncePerMinute(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	testClock := clock.NewTestClock()
-	verifier := githubsecrets.New(server.URL, testClock)
+	verifier := newVerifier(t, server.URL, testClock)
 	for range 10 {
 		_, err := verify(verifier, t.Context(), nil, "AA==", "unknown")
 		require.ErrorIs(t, err, webhook.ErrUnavailable)
@@ -200,7 +207,7 @@ func TestVerifier_RejectsMalformedAndWrongCurveKeys(t *testing.T) {
 	for _, encoded := range []string{"not PEM", wrongCurve} {
 		var count atomic.Int32
 		server := serveKeys(t, keysResponse{Keys: []publicKey{{ID: "invalid", Key: encoded}}}, &count)
-		verifier := githubsecrets.New(server.URL, clock.NewTestClock())
+		verifier := newVerifier(t, server.URL, clock.NewTestClock())
 		_, err := verify(verifier, t.Context(), nil, sign(t, key, nil), "invalid")
 		require.ErrorIs(t, err, webhook.ErrUnavailable)
 	}
@@ -213,7 +220,7 @@ func TestVerifier_BoundsResponseBody(t *testing.T) {
 		}
 	}))
 	t.Cleanup(server.Close)
-	verifier := githubsecrets.New(server.URL, clock.NewTestClock())
+	verifier := newVerifier(t, server.URL, clock.NewTestClock())
 	_, err := verify(verifier, t.Context(), nil, "AA==", "unknown")
 	require.ErrorIs(t, err, webhook.ErrUnavailable)
 }
@@ -222,7 +229,7 @@ func TestVerifier_UnreachableEndpointReturnsErrorWithoutCache(t *testing.T) {
 	var count atomic.Int32
 	server := serveKeys(t, keysResponse{}, &count)
 	server.Close()
-	verifier := githubsecrets.New(server.URL, clock.NewTestClock())
+	verifier := newVerifier(t, server.URL, clock.NewTestClock())
 	_, err := verify(verifier, t.Context(), nil, "AA==", "unknown")
 	require.ErrorIs(t, err, webhook.ErrUnavailable)
 }
@@ -231,7 +238,7 @@ func TestVerifier_CoalescesFetchesAndSupportsConcurrentCachedUse(t *testing.T) {
 	key, encoded := signingKey(t, elliptic.P256())
 	var count atomic.Int32
 	server := serveKeys(t, keysResponse{Keys: []publicKey{{ID: "active", Key: encoded}}}, &count)
-	verifier := githubsecrets.New(server.URL, clock.NewTestClock())
+	verifier := newVerifier(t, server.URL, clock.NewTestClock())
 	signature := sign(t, key, nil)
 	for range 2 {
 		var group sync.WaitGroup
@@ -252,4 +259,126 @@ func TestVerifier_CoalescesFetchesAndSupportsConcurrentCachedUse(t *testing.T) {
 		}
 		require.EqualValues(t, 1, count.Load())
 	}
+}
+
+func TestVerifier_StaleKeysDoNotWaitForRefresh(t *testing.T) {
+	key, encoded := signingKey(t, elliptic.P256())
+	rotated, encodedRotated := signingKey(t, elliptic.P256())
+	var count atomic.Int32
+	refreshing := make(chan struct{})
+	release := make(chan struct{})
+	unblock := sync.OnceFunc(func() { close(release) })
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		entry := publicKey{ID: "initial", Key: encoded}
+		if count.Add(1) > 1 {
+			close(refreshing)
+			select {
+			case <-release:
+			case <-r.Context().Done():
+				return
+			}
+			entry = publicKey{ID: "rotated", Key: encodedRotated}
+		}
+		if err := json.NewEncoder(w).Encode(keysResponse{Keys: []publicKey{entry}}); err != nil {
+			t.Error(err)
+		}
+	}))
+	t.Cleanup(server.Close)
+	testClock := clock.NewTestClock()
+	verifier := newVerifier(t, server.URL, testClock)
+	t.Cleanup(unblock)
+	signature := sign(t, key, nil)
+	_, err := verify(verifier, t.Context(), nil, signature, "initial")
+	require.NoError(t, err)
+
+	testClock.Tick(time.Hour)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+	_, err = verify(verifier, ctx, nil, signature, "initial")
+	require.NoError(t, err)
+	select {
+	case <-refreshing:
+	case <-ctx.Done():
+		t.Fatal("stale keys did not trigger refresh")
+	}
+	_, err = verify(verifier, ctx, nil, signature, "initial")
+	require.NoError(t, err, "cached verification must not wait for the refresh")
+
+	waitCtx, stopWaiting := context.WithTimeout(t.Context(), 50*time.Millisecond)
+	t.Cleanup(stopWaiting)
+	rotatedSignature := sign(t, rotated, nil)
+	_, err = verify(verifier, waitCtx, nil, rotatedSignature, "rotated")
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	unblock()
+	_, err = verify(verifier, t.Context(), nil, rotatedSignature, "rotated")
+	require.NoError(t, err)
+	require.EqualValues(t, 2, count.Load())
+}
+
+func TestVerifier_DiscardsStaleKeysAfter24Hours(t *testing.T) {
+	key, encoded := signingKey(t, elliptic.P256())
+	var unavailable atomic.Bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if unavailable.Load() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		if err := json.NewEncoder(w).Encode(keysResponse{Keys: []publicKey{{ID: "active", Key: encoded}}}); err != nil {
+			t.Error(err)
+		}
+	}))
+	t.Cleanup(server.Close)
+	testClock := clock.NewTestClock()
+	verifier := newVerifier(t, server.URL, testClock)
+	signature := sign(t, key, nil)
+	_, err := verify(verifier, t.Context(), nil, signature, "active")
+	require.NoError(t, err)
+
+	unavailable.Store(true)
+	testClock.Tick(24*time.Hour - time.Second)
+	_, err = verify(verifier, t.Context(), nil, signature, "active")
+	require.NoError(t, err)
+	testClock.Tick(time.Second)
+	_, err = verify(verifier, t.Context(), nil, signature, "active")
+	require.ErrorIs(t, err, webhook.ErrUnavailable)
+
+	unavailable.Store(false)
+	testClock.Tick(time.Minute)
+	_, err = verify(verifier, t.Context(), nil, signature, "active")
+	require.NoError(t, err)
+}
+
+func TestVerifier_UnknownKeyRefreshIsRateLimited(t *testing.T) {
+	initial, encodedInitial := signingKey(t, elliptic.P256())
+	rotated, encodedRotated := signingKey(t, elliptic.P256())
+	var count atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		entry := publicKey{ID: "initial", Key: encodedInitial}
+		if count.Add(1) > 1 {
+			entry = publicKey{ID: "rotated", Key: encodedRotated}
+		}
+		if err := json.NewEncoder(w).Encode(keysResponse{Keys: []publicKey{entry}}); err != nil {
+			t.Error(err)
+		}
+	}))
+	t.Cleanup(server.Close)
+	testClock := clock.NewTestClock()
+	verifier := newVerifier(t, server.URL, testClock)
+	_, err := verify(verifier, t.Context(), nil, sign(t, initial, nil), "initial")
+	require.NoError(t, err)
+
+	signature := sign(t, rotated, nil)
+	for range 10 {
+		_, err = verify(verifier, t.Context(), nil, signature, "rotated")
+		require.Error(t, err)
+		require.NotErrorIs(t, err, webhook.ErrUnavailable)
+	}
+	require.EqualValues(t, 1, count.Load())
+
+	testClock.Tick(time.Minute)
+	for range 10 {
+		_, err = verify(verifier, t.Context(), nil, signature, "rotated")
+		require.NoError(t, err)
+	}
+	require.EqualValues(t, 2, count.Load())
 }

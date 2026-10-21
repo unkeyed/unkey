@@ -13,49 +13,27 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
-	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/singleflight"
 	"github.com/unkeyed/unkey/pkg/webhook"
-	"golang.org/x/sync/semaphore"
 )
 
 // EventType identifies secret-scanning reports, which carry no event-type header.
 const EventType = "secret_scanning"
 
-const (
-	keysTTL          = time.Hour
-	retryDelay       = time.Minute
-	responseBytesMax = 1 << 20
-)
+const responseBytesMax = 1 << 20
 
 // Verifier is safe for concurrent use and must be constructed with New.
 type Verifier struct {
-	keysURL string
-	clock   clock.Clock
-	client  *http.Client
-
-	cacheLock  *semaphore.Weighted
-	keys       map[string]*ecdsa.PublicKey
-	refreshAt  time.Time
-	refreshErr error
+	keysURL      string
+	client       *http.Client
+	keys         cache.Cache[string, map[string]*ecdsa.PublicKey]
+	fetchResults cache.Cache[string, keyFetchResult]
+	fetchGroup   singleflight.Group[keyFetchResult]
 }
 
 var _ webhook.Verifier = (*Verifier)(nil)
-
-// New caches signing keys for one hour and limits failed refreshes to once per
-// minute. The supplied clock must be non-nil.
-func New(keysURL string, clock clock.Clock) *Verifier {
-	return &Verifier{
-		keysURL:    keysURL,
-		clock:      clock,
-		client:     &http.Client{Timeout: 10 * time.Second},
-		cacheLock:  semaphore.NewWeighted(1),
-		keys:       nil,
-		refreshAt:  time.Time{},
-		refreshErr: nil,
-	}
-}
 
 // Verify authenticates the raw body with GitHub's public key. Key retrieval
 // failures use stale keys when available, or return webhook.ErrUnavailable.
@@ -74,7 +52,7 @@ func (v *Verifier) Verify(r *http.Request) (webhook.Event, error) {
 		return webhook.Event{}, errors.New("invalid github signature encoding")
 	}
 
-	keys, err := v.publicKeys(r.Context())
+	keys, err := v.publicKeys(r.Context(), keyID)
 	if err != nil {
 		return webhook.Event{}, fmt.Errorf("%w: %w", webhook.ErrUnavailable, err)
 	}
@@ -88,27 +66,6 @@ func (v *Verifier) Verify(r *http.Request) (webhook.Event, error) {
 		return webhook.Event{}, errors.New("github signature mismatch")
 	}
 	return webhook.Event{ID: "", Type: EventType, Payload: payload}, nil
-}
-
-func (v *Verifier) publicKeys(ctx context.Context) (map[string]*ecdsa.PublicKey, error) {
-	if err := v.cacheLock.Acquire(ctx, 1); err != nil {
-		return nil, err
-	}
-	defer v.cacheLock.Release(1)
-
-	if !v.clock.Now().Before(v.refreshAt) {
-		keys, err := v.fetchKeys(ctx)
-		v.refreshErr = err
-		v.refreshAt = v.clock.Now().Add(retryDelay)
-		if err == nil {
-			v.keys = keys
-			v.refreshAt = v.clock.Now().Add(keysTTL)
-		}
-	}
-	if v.keys != nil {
-		return v.keys, nil
-	}
-	return nil, v.refreshErr
 }
 
 func (v *Verifier) fetchKeys(ctx context.Context) (map[string]*ecdsa.PublicKey, error) {
