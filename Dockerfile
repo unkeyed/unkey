@@ -2,7 +2,6 @@
 
 FROM ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac AS builder
 
-# eMudhra fix: ca-certificates >= 20260816ubuntu0.24.04.1.
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git \
     && rm -rf /var/lib/apt/lists/*
 
@@ -26,7 +25,6 @@ RUN --mount=type=cache,id=unkey-go-mod,target=/go/pkg/mod \
     --mount=type=cache,id=unkey-go-build,target=/root/.cache/go-build \
     mise exec -- go build -o /out/unkey ./build/cli
 
-# eMudhra-safe CA bundle, verified on amd64 and arm64.
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:516757106de35205efb70b91ba03f6f1298424a0678c603255cf2852a7000087
 
 COPY --from=builder /out/unkey /unkey

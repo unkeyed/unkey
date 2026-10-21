@@ -9,7 +9,6 @@
 # busybox ships no CA bundle, so pull the same trust store the release image
 # uses out of distroless. Without it, CGO_ENABLED=0 binaries fail outbound
 # public TLS (Stripe, GitHub, ACME) with x509 unknown-authority errors.
-# eMudhra-safe CA bundle, verified on amd64 and arm64.
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:516757106de35205efb70b91ba03f6f1298424a0678c603255cf2852a7000087 AS certs
 
 FROM tiltdev/restart-helper:2025-02-17 AS restart-helper
