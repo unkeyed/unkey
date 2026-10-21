@@ -51,14 +51,14 @@ func TestVerifyPortalDomainMissesNeverReachCtrl(t *testing.T) {
 		})
 	}
 
-	require.Empty(t, f.ctrl.RetryVerificationCalls)
+	require.Empty(t, f.ctrl.RetryPortalDomainVerificationCalls)
 }
 
 // The row was removed between the API's read and ctrl's.
 func TestVerifyPortalDomainCtrlNotFound(t *testing.T) {
 	f := setup(t)
 	stored := f.seedDomain(t, db.PortalDomainsVerificationStatusFailed)
-	f.ctrl.RetryVerificationFunc = func(_ context.Context, _ *ctrlv1.RetryPortalDomainVerificationRequest) (*ctrlv1.RetryPortalDomainVerificationResponse, error) {
+	f.ctrl.RetryPortalDomainVerificationFunc = func(_ context.Context, _ *ctrlv1.RetryPortalDomainVerificationRequest) (*ctrlv1.RetryPortalDomainVerificationResponse, error) {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("portal domain not found: "+stored.ID))
 	}
 

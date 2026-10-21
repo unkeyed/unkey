@@ -18774,6 +18774,13 @@ paths:
                 "202":
                     content:
                         application/json:
+                            examples:
+                                accepted:
+                                    summary: Verification restarted
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/V2PortalVerifyDomainResponseBody'
                     description: Verification retry accepted. The workflow runs in the background.

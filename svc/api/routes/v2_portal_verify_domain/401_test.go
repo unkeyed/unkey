@@ -18,5 +18,5 @@ func TestVerifyPortalDomainRequiresAuthentication(t *testing.T) {
 		testutil.RootKeyHeaders("unkey_thiskeydoesnotexist"),
 		handler.Request{Portal: f.portal.ID, DomainId: stored.ID})
 	require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
-	require.Empty(t, f.ctrl.RetryVerificationCalls)
+	require.Empty(t, f.ctrl.RetryPortalDomainVerificationCalls)
 }

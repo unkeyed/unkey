@@ -23,5 +23,5 @@ func TestVerifyPortalDomainRejectsMalformedRequests(t *testing.T) {
 			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		})
 	}
-	require.Empty(t, f.ctrl.RetryVerificationCalls)
+	require.Empty(t, f.ctrl.RetryPortalDomainVerificationCalls)
 }
