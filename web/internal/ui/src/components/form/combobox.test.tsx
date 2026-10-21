@@ -140,6 +140,22 @@ describe("Combobox", () => {
     expect(onSelect).toHaveBeenCalledWith("beta");
   });
 
+  it("reports the search text through onQueryChange", () => {
+    const onQueryChange = vi.fn();
+    render(
+      <Combobox
+        options={options}
+        value="alpha"
+        onSelect={() => {}}
+        onQueryChange={onQueryChange}
+      />,
+    );
+
+    fireEvent.click(getTrigger());
+    fireEvent.change(screen.getByPlaceholderText("Search..."), { target: { value: "be" } });
+    expect(onQueryChange).toHaveBeenLastCalledWith("be");
+  });
+
   it("does not offer to create a value that an option already matches through searchValue", () => {
     const onSelect = vi.fn();
     render(<Harness creatable onSelect={onSelect} />);

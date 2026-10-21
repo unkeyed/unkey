@@ -36,12 +36,11 @@ function BranchCombobox({
       options={options.items}
       value={branch}
       onSelect={(selected) => {
-        options.setQuery("");
         if (selected) {
           onChange(selected);
         }
       }}
-      onChange={(e) => options.setQuery(e.currentTarget.value)}
+      onQueryChange={options.setQuery}
       loading={options.isLoading}
       searchPlaceholder="Search branches..."
       emptyMessage={options.isSearching ? "Searching..." : "No branches found."}
