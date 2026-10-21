@@ -58,10 +58,9 @@ func RevokeContestedClaim(ctx context.Context, q db.Querier, hostname, workspace
 		})
 	case ClaimSourcePortal:
 		err = q.UpdatePortalDomainFailed(ctx, db.UpdatePortalDomainFailedParams{
-			ID:                 claim.ID,
-			VerificationStatus: db.PortalDomainsVerificationStatusFailed,
-			VerificationError:  reason,
-			UpdatedAt:          updatedAt,
+			ID:                claim.ID,
+			VerificationError: reason,
+			UpdatedAt:         updatedAt,
 		})
 	default:
 		return fault.New(fmt.Sprintf("unknown domain claim source %q", claim.Source))

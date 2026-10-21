@@ -30,7 +30,7 @@ func (stubAcme) VerifyCertificate(_ context.Context, req *ctrlv1.VerifyCertifica
 	return &ctrlv1.VerifyCertificateResponse{Authorization: "auth-" + req.GetToken()}, nil
 }
 
-// The handler answers HTTP-01 for hostnames registered in either domain table,
+// The handler answers HTTP-01 for hostnames verified in either domain table,
 // so it runs against real MySQL to cover the lookup query.
 func TestHandleChecksBothDomainTables(t *testing.T) {
 	if testing.Short() {
@@ -48,12 +48,17 @@ func TestHandleChecksBothDomainTables(t *testing.T) {
 
 	now := time.Now().UnixMilli()
 	_, err = seed.Exec(
-		"INSERT INTO portal_domains (id, workspace_id, portal_id, domain, verification_token, target_cname, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO portal_domains (id, workspace_id, portal_id, domain, verification_status, verification_token, target_cname, created_at) VALUES (?, ?, ?, ?, 'verified', ?, ?, ?)",
 		uid.New(uid.PortalDomainPrefix), uid.New(uid.WorkspacePrefix), uid.New(uid.PortalPrefix), "portal.example.com", uid.New(uid.TestPrefix), uid.New(uid.TestPrefix), now,
 	)
 	require.NoError(t, err)
 	_, err = seed.Exec(
-		"INSERT INTO custom_domains (id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_token, target_cname, created_at) VALUES (?, ?, ?, ?, ?, ?, 'HTTP-01', ?, ?, ?)",
+		"INSERT INTO portal_domains (id, workspace_id, portal_id, domain, verification_token, target_cname, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		uid.New(uid.PortalDomainPrefix), uid.New(uid.WorkspacePrefix), uid.New(uid.PortalPrefix), "pending.example.com", uid.New(uid.TestPrefix), uid.New(uid.TestPrefix), now,
+	)
+	require.NoError(t, err)
+	_, err = seed.Exec(
+		"INSERT INTO custom_domains (id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, target_cname, created_at) VALUES (?, ?, ?, ?, ?, ?, 'HTTP-01', 'verified', ?, ?, ?)",
 		uid.New(uid.DomainPrefix), uid.New(uid.WorkspacePrefix), uid.New(uid.ProjectPrefix), uid.New(uid.AppPrefix), uid.New(uid.EnvironmentPrefix), "deploy.example.com", uid.New(uid.TestPrefix), uid.New(uid.TestPrefix), now,
 	)
 	require.NoError(t, err)
@@ -76,11 +81,13 @@ func TestHandleChecksBothDomainTables(t *testing.T) {
 		})
 	}
 
-	t.Run("a hostname in neither table is not configured", func(t *testing.T) {
-		_, err := handle("unknown.example.com")
-		require.Error(t, err)
-		code, ok := fault.GetCode(err)
-		require.True(t, ok)
-		require.Equal(t, codes.Frontline.Routing.ConfigNotFound.URN(), code)
-	})
+	for _, host := range []string{"unknown.example.com", "pending.example.com"} {
+		t.Run(host+" is not configured", func(t *testing.T) {
+			_, err := handle(host)
+			require.Error(t, err)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.Frontline.Routing.ConfigNotFound.URN(), code)
+		})
+	}
 }

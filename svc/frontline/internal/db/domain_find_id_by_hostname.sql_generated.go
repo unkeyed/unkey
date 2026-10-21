@@ -10,9 +10,13 @@ import (
 )
 
 const findDomainIDByHostname = `-- name: FindDomainIDByHostname :one
-SELECT custom_domains.id FROM custom_domains WHERE custom_domains.domain = ?
+SELECT custom_domains.id FROM custom_domains
+WHERE custom_domains.domain = ?
+  AND custom_domains.verification_status = 'verified'
 UNION ALL
-SELECT portal_domains.id FROM portal_domains WHERE portal_domains.domain = ?
+SELECT portal_domains.id FROM portal_domains
+WHERE portal_domains.domain = ?
+  AND portal_domains.verification_status = 'verified'
 LIMIT 1
 `
 
@@ -20,13 +24,17 @@ type FindDomainIDByHostnameParams struct {
 	Domain string `db:"domain"`
 }
 
-// Checks whether a hostname is registered as a deploy or portal custom domain.
-// ACME HTTP-01 only needs to confirm a registration exists, so the projection is
-// just a row id.
+// Checks whether a hostname is a verified deploy or portal custom domain.
+// Challenges are only issued for verified domains, so pending claims on the same
+// hostname are ignored. The projection is just a row id.
 //
-//	SELECT custom_domains.id FROM custom_domains WHERE custom_domains.domain = ?
+//	SELECT custom_domains.id FROM custom_domains
+//	WHERE custom_domains.domain = ?
+//	  AND custom_domains.verification_status = 'verified'
 //	UNION ALL
-//	SELECT portal_domains.id FROM portal_domains WHERE portal_domains.domain = ?
+//	SELECT portal_domains.id FROM portal_domains
+//	WHERE portal_domains.domain = ?
+//	  AND portal_domains.verification_status = 'verified'
 //	LIMIT 1
 func (q *Queries) FindDomainIDByHostname(ctx context.Context, arg FindDomainIDByHostnameParams) (string, error) {
 	row := q.db.QueryRowContext(ctx, findDomainIDByHostname, arg.Domain, arg.Domain)

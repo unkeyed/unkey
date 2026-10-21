@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -70,11 +71,11 @@ func (f *fakeClaims) FindVerifiedDomainClaimExcludingWorkspace(_ context.Context
 	if !f.contested {
 		return db.FindVerifiedDomainClaimExcludingWorkspaceRow{}, sql.ErrNoRows //nolint:exhaustruct
 	}
-	return db.FindVerifiedDomainClaimExcludingWorkspaceRow{Source: string(ClaimSourceCustom), ID: "dom_other", WorkspaceID: "ws_other"}, nil
+	return db.FindVerifiedDomainClaimExcludingWorkspaceRow{Source: string(ClaimSourceCustom), ID: uid.New(uid.DomainPrefix), WorkspaceID: uid.New(uid.WorkspacePrefix)}, nil
 }
 
 func domain(hostname string) Domain {
-	return Domain{Hostname: hostname, WorkspaceID: "ws_self", TargetCname: target, VerificationToken: "tok"}
+	return Domain{Hostname: hostname, WorkspaceID: uid.New(uid.WorkspacePrefix), TargetCname: target, VerificationToken: "tok"}
 }
 
 const proof = "unkey-domain-verify=tok"
