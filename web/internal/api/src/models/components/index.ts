@@ -37,6 +37,7 @@ export * from "./deploymenttriggeractor.js";
 export * from "./dnsrecord.js";
 export * from "./domain.js";
 export * from "./domainconnect.js";
+export * from "./domainstatus.js";
 export * from "./emptyresponse.js";
 export * from "./environment.js";
 export * from "./environmentbuild.js";

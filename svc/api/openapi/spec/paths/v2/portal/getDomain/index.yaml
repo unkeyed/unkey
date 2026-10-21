@@ -34,6 +34,59 @@ post:
         application/json:
           schema:
             "$ref": "./V2PortalGetDomainResponseBody.yaml"
+          examples:
+            verified:
+              summary: Domain serving the portal
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: pdom_1234abcd
+                  portalId: prt_1234abcd
+                  domain: portal.acme.com
+                  status: verified
+                  dnsRecords:
+                    - type: CNAME
+                      name: portal.acme.com
+                      value: a1b2c3d4e5f6g7h8.portal.unkey.com
+                      ttl: 60
+                      verified: true
+                      note: Create as DNS-only if your provider offers the choice.
+                    - type: TXT
+                      name: _unkey.portal.acme.com
+                      value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      ttl: 60
+                      verified: false
+                      note: Proves ownership. Create it alongside the routing record.
+                  createdAt: 1704067200000
+                  updatedAt: 1704067260000
+            failed:
+              summary: Verification stopped
+              description: The records never appeared. Fix them, then call portal.verifyDomain.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: pdom_1234abcd
+                  portalId: prt_1234abcd
+                  domain: portal.acme.com
+                  status: failed
+                  verificationError: domain verification timed out after 24 hours
+                  dnsRecords:
+                    - type: CNAME
+                      name: portal.acme.com
+                      value: a1b2c3d4e5f6g7h8.portal.unkey.com
+                      ttl: 60
+                      verified: false
+                      note: Create as DNS-only if your provider offers the choice.
+                    - type: TXT
+                      name: _unkey.portal.acme.com
+                      value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      ttl: 60
+                      verified: false
+                      note: Proves ownership. Create it alongside the routing record.
+                  createdAt: 1704067200000
+                  updatedAt: 1704153600000
     "400":
       description: Bad request
       content:

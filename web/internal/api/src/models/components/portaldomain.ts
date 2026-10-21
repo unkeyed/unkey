@@ -4,38 +4,10 @@
 
 import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
-import { ClosedEnum } from "../../types/enums.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { DnsRecord, DnsRecord$inboundSchema } from "./dnsrecord.js";
-
-/**
- * The verification status of the domain.
- *
- * @remarks
- *
- * - `pending`: the domain is created. No DNS check has completed yet.
- * - `verifying`: Unkey checks the DNS records approximately each minute.
- * - `verified`: the domain is verified and serves the portal.
- * - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
- */
-export const PortalDomainStatus = {
-  Pending: "pending",
-  Verifying: "verifying",
-  Verified: "verified",
-  Failed: "failed",
-} as const;
-/**
- * The verification status of the domain.
- *
- * @remarks
- *
- * - `pending`: the domain is created. No DNS check has completed yet.
- * - `verifying`: Unkey checks the DNS records approximately each minute.
- * - `verified`: the domain is verified and serves the portal.
- * - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
- */
-export type PortalDomainStatus = ClosedEnum<typeof PortalDomainStatus>;
+import { DomainStatus, DomainStatus$inboundSchema } from "./domainstatus.js";
 
 export type PortalDomain = {
   /**
@@ -57,10 +29,10 @@ export type PortalDomain = {
    *
    * - `pending`: the domain is created. No DNS check has completed yet.
    * - `verifying`: Unkey checks the DNS records approximately each minute.
-   * - `verified`: the domain is verified and serves the portal.
-   * - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+   * - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+   * - `failed`: verification stopped. `verificationError` says why, for example the records did not appear within 24 hours. Fix the cause, then retry verification.
    */
-  status: PortalDomainStatus;
+  status: DomainStatus;
   /**
    * Why the most recent verification attempt did not succeed, in plain language.
    *
@@ -76,7 +48,7 @@ export type PortalDomain = {
    */
   dnsRecords: Array<DnsRecord>;
   /**
-   * Unix timestamp in milliseconds when the domain was created. The 24 hour verification window runs from here.
+   * Unix timestamp in milliseconds when the domain was created.
    */
   createdAt: number;
   /**
@@ -84,11 +56,6 @@ export type PortalDomain = {
    */
   updatedAt?: number | undefined;
 };
-
-/** @internal */
-export const PortalDomainStatus$inboundSchema: z.ZodNativeEnum<
-  typeof PortalDomainStatus
-> = z.nativeEnum(PortalDomainStatus);
 
 /** @internal */
 export const PortalDomain$inboundSchema: z.ZodType<
@@ -99,7 +66,7 @@ export const PortalDomain$inboundSchema: z.ZodType<
   id: z.string(),
   portalId: z.string(),
   domain: z.string(),
-  status: PortalDomainStatus$inboundSchema,
+  status: DomainStatus$inboundSchema,
   verificationError: z.string().optional(),
   dnsRecords: z.array(DnsRecord$inboundSchema),
   createdAt: z.number().int(),

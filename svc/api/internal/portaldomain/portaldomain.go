@@ -95,7 +95,7 @@ func ToResponse(row db.FindPortalDomainByIdRow) openapi.PortalDomain {
 		Id:                row.ID,
 		PortalId:          row.PortalID,
 		Domain:            row.Domain,
-		Status:            status(row.VerificationStatus),
+		Status:            domain.PortalStatus(row.VerificationStatus),
 		VerificationError: nil,
 		DnsRecords: domain.DnsRecords(domain.DnsRecordsInput{
 			Domain:            row.Domain,
@@ -114,21 +114,4 @@ func ToResponse(row db.FindPortalDomainByIdRow) openapi.PortalDomain {
 		data.UpdatedAt = new(row.UpdatedAt.Int64)
 	}
 	return data
-}
-
-// status reports an unrecognised value as pending rather than inventing a
-// terminal state a caller would act on.
-func status(s db.PortalDomainsVerificationStatus) openapi.PortalDomainStatus {
-	switch s {
-	case db.PortalDomainsVerificationStatusVerifying:
-		return openapi.PortalDomainStatusVerifying
-	case db.PortalDomainsVerificationStatusVerified:
-		return openapi.PortalDomainStatusVerified
-	case db.PortalDomainsVerificationStatusFailed:
-		return openapi.PortalDomainStatusFailed
-	case db.PortalDomainsVerificationStatusPending:
-		return openapi.PortalDomainStatusPending
-	default:
-		return openapi.PortalDomainStatusPending
-	}
 }
