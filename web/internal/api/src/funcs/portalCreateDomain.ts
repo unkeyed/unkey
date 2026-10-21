@@ -32,8 +32,6 @@ import { Result } from "../types/fp.js";
  * @remarks
  * Attach a custom domain to a portal and start verifying it.
  *
- * Unreleased and subject to change without notice.
- *
  * The domain is created in the `pending` state and does not serve the portal until
  * verification succeeds. The response returns `dnsRecords`: create every entry exactly as
  * given. Verification runs in the background; poll `portal.getDomain` for the result.
