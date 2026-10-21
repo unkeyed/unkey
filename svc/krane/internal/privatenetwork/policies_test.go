@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
@@ -175,9 +174,7 @@ func TestConnectionPolicyRetainsOldTargetUntilReplacementCoverageExpires(t *test
 	require.NoError(t, ensureTestPolicy(t, r, ctx, connectionSpec, name, nil))
 
 	connectionSpec.TargetDeploymentId = nextDeploymentID
-	published := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Labels: connectionLabels(connectionSpec)}, Data: map[string]string{
-		"appSlug": connectionSpec.GetConnectionName(), "deploymentId": previousDeploymentID,
-	}}
+	published := []string{previousDeploymentID}
 	require.NoError(t, ensureTestPolicy(t, r, ctx, connectionSpec, name, published))
 	require.ElementsMatch(t, []flow{{connectionSpec.CallerDeploymentId, previousDeploymentID}, {connectionSpec.CallerDeploymentId, nextDeploymentID}}, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()))
 
@@ -185,7 +182,7 @@ func TestConnectionPolicyRetainsOldTargetUntilReplacementCoverageExpires(t *test
 	require.NoError(t, ensureTestPolicy(t, r, ctx, connectionSpec, name, published))
 	require.Contains(t, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()), flow{connectionSpec.CallerDeploymentId, previousDeploymentID}, "the published old target still requires coverage")
 
-	published.Data["deploymentId"] = nextDeploymentID
+	published = []string{nextDeploymentID}
 	require.NoError(t, ensureTestPolicy(t, r, ctx, connectionSpec, name, published))
 	clk.Tick(privatenetwork.ReplacementOverlap - time.Nanosecond)
 	require.NoError(t, ensureTestPolicy(t, r, ctx, connectionSpec, name, published))
@@ -214,13 +211,13 @@ func policyName(connectionSpec *ctrlv1.PrivateNetworkConnection) string {
 	return resourceName("unkey-pn-connection", connectionSpec.GetConnectionId()+"/"+connectionSpec.GetCallerDeploymentId())
 }
 
-func ensureTestPolicy(t *testing.T, r *Reconciler, ctx context.Context, spec *ctrlv1.PrivateNetworkConnection, name string, connection *corev1.ConfigMap) error {
+func ensureTestPolicy(t *testing.T, r *Reconciler, ctx context.Context, spec *ctrlv1.PrivateNetworkConnection, name string, published []string) error {
 	t.Helper()
 	current, err := r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(spec.GetK8SNamespace()).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		current = nil
 	}
-	return r.ensurePolicy(ctx, spec, name, connection, current)
+	return r.ensurePolicy(ctx, spec, name, published, current)
 }
 
 func policySpecs(t *testing.T, policy *unstructured.Unstructured) []map[string]interface{} {

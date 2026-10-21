@@ -41,7 +41,7 @@ import (
 // or invalid: WorkspaceId, ProjectId, EnvironmentId, DeploymentId, K8sNamespace, K8sName,
 // and Image must be non-empty; CpuMillicores and MemoryMib must be > 0.
 // A request whose capabilities enable private networking must carry a
-// production or preview EnvironmentKind, which undns uses to identify callers.
+// production or preview EnvironmentKind.
 //
 // The namespace is created automatically if it doesn't exist. The ingress
 // policy is installed before the Deployment and owned by it as soon as its
@@ -472,7 +472,7 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 
 	if c.privateNetworkEnabled(req) {
 		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, corev1.EnvVar{
-			Name: "UNKEY_PRIVATE_DOMAIN", Value: privatenetwork.SelfHost,
+			Name: "UNKEY_PRIVATE_DOMAIN", Value: privatenetwork.ConnectionHost(req.GetDeploymentId(), privatenetwork.SelfName, req.GetK8SNamespace()),
 		})
 		podSpec.DNSPolicy = corev1.DNSNone
 		podSpec.DNSConfig = &corev1.PodDNSConfig{
