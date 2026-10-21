@@ -176,6 +176,7 @@ export async function linkApiSubscription(
       preserveApiLimits: true,
       limitUpdate: {
         apiBillableOperationsCountMaxPerMonth: requestsPerMonth,
+        apiRequestsCountMaxPerMinute: null,
         logsRetentionDaysMax: logsRetentionDays,
         logsAuditRetentionDaysMax: auditLogsRetentionDays,
         teamEnabled: true,

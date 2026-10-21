@@ -592,6 +592,8 @@ func Run(ctx context.Context, cfg Config) error {
 		// Derived from StripeSecretKey; only tests inject these directly.
 		BillingPusher:  nil,
 		BillingCloser:  nil,
+		AlertAdmins:    nil,
+		AlertEmail:     nil,
 		WorkOSAPIKey:   cfg.WorkOSAPIKey,
 		ResendAPIKey:   cfg.Email.ResendAPIKey,
 		BillingBaseURL: cfg.DashboardURL,
@@ -753,6 +755,8 @@ func Run(ctx context.Context, cfg Config) error {
 		// ~1440 dead invocations/day.
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour), cronAuditLogExportRetry).
 		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
+		ConfigureHandler("EnforceFreeTier", cronQuotaCheckRetry).
+		ConfigureHandler("ThrottleFreeTierWorkspace", cronQuotaCheckRetry).
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).

@@ -87,6 +87,15 @@ type CronServiceClient interface {
 	// claims the draft; pushes final usage for this workspace only and
 	// finalizes the invoice id from the request.
 	CloseDeployBillingWorkspace(opts ...sdk_go.ClientOption) sdk_go.Client[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse]
+	// EnforceFreeTier emails the admins of a Free-tier workspace that exceeded
+	// its monthly quota and schedules ThrottleFreeTierWorkspace. Key =
+	// "free-tier-<workspace id>". Sent daily by RunQuotaCheck while the
+	// workspace is over quota; a no-op while a throttle is already pending.
+	EnforceFreeTier(opts ...sdk_go.ClientOption) sdk_go.Client[*EnforceFreeTierRequest, *EnforceFreeTierResponse]
+	// ThrottleFreeTierWorkspace limits a Free-tier workspace's API requests
+	// after the warning's grace period, whether or not it is still over quota.
+	// Key = "free-tier-<workspace id>". Scheduled by EnforceFreeTier.
+	ThrottleFreeTierWorkspace(opts ...sdk_go.ClientOption) sdk_go.Client[*ThrottleFreeTierWorkspaceRequest, *ThrottleFreeTierWorkspaceResponse]
 	// RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
 	// period "YYYY-MM". It lists the opt-in set of workspaces that configured a
 	// Deploy spend budget and fans out one DeploySpendCheckService invocation per
@@ -203,6 +212,22 @@ func (c *cronServiceClient) CloseDeployBillingWorkspace(opts ...sdk_go.ClientOpt
 	return sdk_go.WithRequestType[*CloseDeployBillingWorkspaceRequest](sdk_go.Object[*CloseDeployBillingWorkspaceResponse](c.ctx, "hydra.v1.CronService", c.key, "CloseDeployBillingWorkspace", cOpts...))
 }
 
+func (c *cronServiceClient) EnforceFreeTier(opts ...sdk_go.ClientOption) sdk_go.Client[*EnforceFreeTierRequest, *EnforceFreeTierResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*EnforceFreeTierRequest](sdk_go.Object[*EnforceFreeTierResponse](c.ctx, "hydra.v1.CronService", c.key, "EnforceFreeTier", cOpts...))
+}
+
+func (c *cronServiceClient) ThrottleFreeTierWorkspace(opts ...sdk_go.ClientOption) sdk_go.Client[*ThrottleFreeTierWorkspaceRequest, *ThrottleFreeTierWorkspaceResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ThrottleFreeTierWorkspaceRequest](sdk_go.Object[*ThrottleFreeTierWorkspaceResponse](c.ctx, "hydra.v1.CronService", c.key, "ThrottleFreeTierWorkspace", cOpts...))
+}
+
 func (c *cronServiceClient) RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -286,6 +311,15 @@ type CronServiceIngressClient interface {
 	// claims the draft; pushes final usage for this workspace only and
 	// finalizes the invoice id from the request.
 	CloseDeployBillingWorkspace() ingress.Requester[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse]
+	// EnforceFreeTier emails the admins of a Free-tier workspace that exceeded
+	// its monthly quota and schedules ThrottleFreeTierWorkspace. Key =
+	// "free-tier-<workspace id>". Sent daily by RunQuotaCheck while the
+	// workspace is over quota; a no-op while a throttle is already pending.
+	EnforceFreeTier() ingress.Requester[*EnforceFreeTierRequest, *EnforceFreeTierResponse]
+	// ThrottleFreeTierWorkspace limits a Free-tier workspace's API requests
+	// after the warning's grace period, whether or not it is still over quota.
+	// Key = "free-tier-<workspace id>". Scheduled by EnforceFreeTier.
+	ThrottleFreeTierWorkspace() ingress.Requester[*ThrottleFreeTierWorkspaceRequest, *ThrottleFreeTierWorkspaceResponse]
 	// RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
 	// period "YYYY-MM". It lists the opt-in set of workspaces that configured a
 	// Deploy spend budget and fans out one DeploySpendCheckService invocation per
@@ -370,6 +404,16 @@ func (c *cronServiceIngressClient) RunDeployBillingClose() ingress.Requester[*Ru
 func (c *cronServiceIngressClient) CloseDeployBillingWorkspace() ingress.Requester[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse](c.client, c.serviceName, "CloseDeployBillingWorkspace", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) EnforceFreeTier() ingress.Requester[*EnforceFreeTierRequest, *EnforceFreeTierResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*EnforceFreeTierRequest, *EnforceFreeTierResponse](c.client, c.serviceName, "EnforceFreeTier", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) ThrottleFreeTierWorkspace() ingress.Requester[*ThrottleFreeTierWorkspaceRequest, *ThrottleFreeTierWorkspaceResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ThrottleFreeTierWorkspaceRequest, *ThrottleFreeTierWorkspaceResponse](c.client, c.serviceName, "ThrottleFreeTierWorkspace", &c.key, &codec)
 }
 
 func (c *cronServiceIngressClient) RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse] {
@@ -463,6 +507,15 @@ type CronServiceServer interface {
 	// claims the draft; pushes final usage for this workspace only and
 	// finalizes the invoice id from the request.
 	CloseDeployBillingWorkspace(ctx sdk_go.ObjectContext, req *CloseDeployBillingWorkspaceRequest) (*CloseDeployBillingWorkspaceResponse, error)
+	// EnforceFreeTier emails the admins of a Free-tier workspace that exceeded
+	// its monthly quota and schedules ThrottleFreeTierWorkspace. Key =
+	// "free-tier-<workspace id>". Sent daily by RunQuotaCheck while the
+	// workspace is over quota; a no-op while a throttle is already pending.
+	EnforceFreeTier(ctx sdk_go.ObjectContext, req *EnforceFreeTierRequest) (*EnforceFreeTierResponse, error)
+	// ThrottleFreeTierWorkspace limits a Free-tier workspace's API requests
+	// after the warning's grace period, whether or not it is still over quota.
+	// Key = "free-tier-<workspace id>". Scheduled by EnforceFreeTier.
+	ThrottleFreeTierWorkspace(ctx sdk_go.ObjectContext, req *ThrottleFreeTierWorkspaceRequest) (*ThrottleFreeTierWorkspaceResponse, error)
 	// RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
 	// period "YYYY-MM". It lists the opt-in set of workspaces that configured a
 	// Deploy spend budget and fans out one DeploySpendCheckService invocation per
@@ -522,6 +575,12 @@ func (UnimplementedCronServiceServer) RunDeployBillingClose(ctx sdk_go.ObjectCon
 func (UnimplementedCronServiceServer) CloseDeployBillingWorkspace(ctx sdk_go.ObjectContext, req *CloseDeployBillingWorkspaceRequest) (*CloseDeployBillingWorkspaceResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method CloseDeployBillingWorkspace not implemented"), sdk_go.WithErrorCode(501))
 }
+func (UnimplementedCronServiceServer) EnforceFreeTier(ctx sdk_go.ObjectContext, req *EnforceFreeTierRequest) (*EnforceFreeTierResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method EnforceFreeTier not implemented"), sdk_go.WithErrorCode(501))
+}
+func (UnimplementedCronServiceServer) ThrottleFreeTierWorkspace(ctx sdk_go.ObjectContext, req *ThrottleFreeTierWorkspaceRequest) (*ThrottleFreeTierWorkspaceResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method ThrottleFreeTierWorkspace not implemented"), sdk_go.WithErrorCode(501))
+}
 func (UnimplementedCronServiceServer) RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), sdk_go.WithErrorCode(501))
 }
@@ -560,6 +619,8 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.RunScaleDownIdlePreviewDeployments))
 	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))
 	router = router.Handler("CloseDeployBillingWorkspace", sdk_go.NewObjectHandler(srv.CloseDeployBillingWorkspace))
+	router = router.Handler("EnforceFreeTier", sdk_go.NewObjectHandler(srv.EnforceFreeTier))
+	router = router.Handler("ThrottleFreeTierWorkspace", sdk_go.NewObjectHandler(srv.ThrottleFreeTierWorkspace))
 	router = router.Handler("RunDeploySpendCheck", sdk_go.NewObjectHandler(srv.RunDeploySpendCheck))
 	router = router.Handler("RunBuildLimitSync", sdk_go.NewObjectHandler(srv.RunBuildLimitSync))
 	router = router.Handler("RunClickhouseUserReconcile", sdk_go.NewObjectHandler(srv.RunClickhouseUserReconcile))

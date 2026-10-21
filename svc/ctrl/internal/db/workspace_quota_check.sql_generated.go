@@ -16,10 +16,12 @@ SELECT
    w.id,
    w.org_id,
    w.name,
+   w.slug,
    b.stripe_customer_id,
    b.tier,
    w.enabled,
-   l.api_billable_operations_count_max_per_month AS requests_per_month
+   l.api_billable_operations_count_max_per_month AS requests_per_month,
+   l.api_requests_count_max_per_minute AS requests_per_minute
 FROM ` + "`" + `workspaces` + "`" + ` w
 LEFT JOIN ` + "`" + `limits` + "`" + ` l ON l.workspace_id = w.id
 LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
@@ -27,13 +29,15 @@ WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
 
 type GetWorkspacesForQuotaCheckByIDsRow struct {
-	ID               string         `db:"id"`
-	OrgID            string         `db:"org_id"`
-	Name             string         `db:"name"`
-	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
-	Tier             sql.NullString `db:"tier"`
-	Enabled          bool           `db:"enabled"`
-	RequestsPerMonth sql.NullInt64  `db:"requests_per_month"`
+	ID                string         `db:"id"`
+	OrgID             string         `db:"org_id"`
+	Name              string         `db:"name"`
+	Slug              string         `db:"slug"`
+	StripeCustomerID  sql.NullString `db:"stripe_customer_id"`
+	Tier              sql.NullString `db:"tier"`
+	Enabled           bool           `db:"enabled"`
+	RequestsPerMonth  sql.NullInt64  `db:"requests_per_month"`
+	RequestsPerMinute sql.NullInt32  `db:"requests_per_minute"`
 }
 
 // GetWorkspacesForQuotaCheckByIDs
@@ -42,10 +46,12 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 //	   w.id,
 //	   w.org_id,
 //	   w.name,
+//	   w.slug,
 //	   b.stripe_customer_id,
 //	   b.tier,
 //	   w.enabled,
-//	   l.api_billable_operations_count_max_per_month AS requests_per_month
+//	   l.api_billable_operations_count_max_per_month AS requests_per_month,
+//	   l.api_requests_count_max_per_minute AS requests_per_minute
 //	FROM `workspaces` w
 //	LEFT JOIN `limits` l ON l.workspace_id = w.id
 //	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
@@ -73,10 +79,12 @@ func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspace
 			&i.ID,
 			&i.OrgID,
 			&i.Name,
+			&i.Slug,
 			&i.StripeCustomerID,
 			&i.Tier,
 			&i.Enabled,
 			&i.RequestsPerMonth,
+			&i.RequestsPerMinute,
 		); err != nil {
 			return nil, err
 		}
