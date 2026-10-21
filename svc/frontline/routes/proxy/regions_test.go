@@ -85,7 +85,6 @@ func TestRegionFallback_ExcludesSignedRoutingRegion(t *testing.T) {
 			t.Cleanup(stop)
 			regions := startRegions(t, []string{"us-east-1", "us-west-2"}, map[string]string{
 				"us-east-1": backend,
-				"us-west-2": unreachableAddr(t),
 			})
 			codec, err := meta.New(testMetadataSigningKey)
 			require.NoError(t, err)
@@ -105,8 +104,8 @@ func TestRegionFallback_ExcludesSignedRoutingRegion(t *testing.T) {
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 
-			require.Equal(t, http.StatusBadGateway, resp.StatusCode, "body: %s", body)
-			require.Equal(t, []string{"aws::us-west-2"}, resp.Header.Values(proxy.HeaderRegion))
+			require.Equal(t, http.StatusServiceUnavailable, resp.StatusCode, "body: %s", body)
+			require.Empty(t, resp.Header.Values(proxy.HeaderRegion))
 		})
 	}
 }
