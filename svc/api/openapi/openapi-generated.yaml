@@ -17881,6 +17881,13 @@ paths:
                 "200":
                     content:
                         application/json:
+                            examples:
+                                accepted:
+                                    summary: Domain deleted
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/V2PortalDeleteDomainResponseBody'
                     description: The domain was deleted.
