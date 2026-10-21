@@ -78,6 +78,9 @@ type verifyDB struct {
 	acme map[string]bool
 	// routeInsertErr fails the next route insert once.
 	routeInsertErr error
+	// deleteOnVerified deletes the row right after it is marked verified, the
+	// way a DeletePortalDomain racing the success path would.
+	deleteOnVerified bool
 
 	events []string
 }
@@ -90,15 +93,16 @@ type otherClaim struct {
 
 func newVerifyDB(row db.PortalDomain) *verifyDB {
 	return &verifyDB{
-		Database:       nil,
-		row:            &row,
-		ownership:      nil,
-		failed:         nil,
-		claims:         nil,
-		routes:         map[string]db.FrontlineRoute{},
-		acme:           map[string]bool{},
-		routeInsertErr: nil,
-		events:         nil,
+		Database:         nil,
+		row:              &row,
+		ownership:        nil,
+		failed:           nil,
+		claims:           nil,
+		routes:           map[string]db.FrontlineRoute{},
+		acme:             map[string]bool{},
+		routeInsertErr:   nil,
+		deleteOnVerified: false,
+		events:           nil,
 	}
 }
 
@@ -112,6 +116,9 @@ func (f *verifyDB) FindPortalDomainById(_ context.Context, _ string) (db.PortalD
 func (f *verifyDB) UpdatePortalDomainVerificationStatus(_ context.Context, arg db.UpdatePortalDomainVerificationStatusParams) error {
 	f.row.VerificationStatus = arg.VerificationStatus
 	f.events = append(f.events, "status "+string(arg.VerificationStatus))
+	if f.deleteOnVerified && arg.VerificationStatus == db.PortalDomainsVerificationStatusVerified {
+		f.row = nil
+	}
 	return nil
 }
 
@@ -127,7 +134,7 @@ func (f *verifyDB) UpdatePortalDomainOwnership(_ context.Context, arg db.UpdateP
 func (f *verifyDB) UpdatePortalDomainFailed(_ context.Context, arg db.UpdatePortalDomainFailedParams) error {
 	if f.row != nil && arg.ID == f.row.ID {
 		f.failed = &arg
-		f.row.VerificationStatus = arg.VerificationStatus
+		f.row.VerificationStatus = db.PortalDomainsVerificationStatusFailed
 	}
 	f.events = append(f.events, "portal failed "+arg.ID+": "+arg.VerificationError.String)
 	return nil
@@ -342,7 +349,7 @@ func TestVerifyPortalDomainPastWindowMarksFailed(t *testing.T) {
 	err := verify(t, svc, mockCtx)
 	require.True(t, restate.IsTerminalError(err), "got: %v", err)
 	require.NotNil(t, f.failed)
-	require.Equal(t, db.PortalDomainsVerificationStatusFailed, f.failed.VerificationStatus)
+	require.Equal(t, db.PortalDomainsVerificationStatusFailed, f.row.VerificationStatus)
 	require.Contains(t, f.failed.VerificationError.String, "timed out")
 }
 
@@ -556,4 +563,19 @@ func TestVerifyPortalDomainExistingAcmeChallengeCountsAsCreated(t *testing.T) {
 	require.NoError(t, verify(t, svc, mockCtx))
 	require.Equal(t, db.PortalDomainsVerificationStatusVerified, f.row.VerificationStatus)
 	require.Contains(t, f.routes, row.Domain)
+}
+
+// DeletePortalDomain only cancels the workflow best-effort, so a run already in
+// its success path must notice the row is gone before it writes a challenge or
+// a route that nothing would ever clean up.
+func TestVerifyPortalDomainDeletedMidSuccessPathLeavesNoRoute(t *testing.T) {
+	row := testDomainRow("portal.example.com")
+	f := newVerifyDB(row)
+	f.deleteOnVerified = true
+	svc := newService(f, fakeResolver{cname: testTargetCname, txt: nil, hosts: nil})
+
+	err := verify(t, svc, newVerifyContext(t, row.ID, time.Now()))
+	require.True(t, restate.IsTerminalError(err), "got: %v", err)
+	require.Empty(t, f.acme)
+	require.Empty(t, f.routes)
 }
