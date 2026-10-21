@@ -1,6 +1,7 @@
+import { SPRING_POP, useLayoutMotion } from "@/hooks/use-layout-motion";
 import { IconXmarkOutline12 } from "@unkey/icons";
 import { cn } from "cn";
-import { AnimatePresence, motion } from "framer-motion";
+import { useRef } from "react";
 
 interface BaseItem {
   id: string;
@@ -21,6 +22,10 @@ interface SelectedItemsListProps<T extends BaseItem> {
   itemHeight?: string;
   enableTransitions?: boolean;
 }
+
+const ITEM_HIDDEN = { opacity: 0, scale: "0.8", translate: "0 -10px" };
+const ITEM_SHOWN = { opacity: 1, scale: "1", translate: "0 0" };
+const ITEM_TIMING = { duration: 400, easing: SPRING_POP };
 
 const getGridColsClass = (cols: number) => {
   const gridMap = {
@@ -46,80 +51,70 @@ export function SelectedItemsList<T extends BaseItem>({
   itemHeight,
   enableTransitions = true,
 }: SelectedItemsListProps<T>) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  useLayoutMotion(gridRef, {
+    enabled: enableTransitions,
+    move: ITEM_TIMING,
+    enter: () => ({ keyframes: [ITEM_HIDDEN, ITEM_SHOWN], timing: ITEM_TIMING }),
+    exit: () => ({ keyframes: [ITEM_SHOWN, ITEM_HIDDEN], timing: ITEM_TIMING }),
+  });
+
   if (items.length === 0) {
     return null;
   }
 
-  const ItemComponent = enableTransitions ? motion.div : "div";
-
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className={cn("grid gap-2", getGridColsClass(gridCols))}>
-        <AnimatePresence mode="popLayout">
-          {items.map((item) => {
-            const canRemove = !disabled && (!isItemRemovable || isItemRemovable(item));
-            const itemProps = enableTransitions
-              ? {
-                  layout: true,
-                  initial: { opacity: 0, scale: 0.8, y: -10 },
-                  animate: { opacity: 1, scale: 1, y: 0 },
-                  exit: { opacity: 0, scale: 0.8, y: -10 },
-                  transition: {
-                    type: "spring" as const,
-                    stiffness: 500,
-                    damping: 30,
-                    mass: 0.8,
-                  },
-                }
-              : {};
+      <div ref={gridRef} className={cn("relative grid gap-2", getGridColsClass(gridCols))}>
+        {items.map((item) => {
+          const canRemove = !disabled && (!isItemRemovable || isItemRemovable(item));
 
-            return (
-              <ItemComponent
-                key={item.id}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 bg-raised border rounded-md text-xs w-full",
-                  itemHeight,
-                )}
-                {...itemProps}
-              >
-                <div className="border rounded-sm flex items-center justify-center bg-gray-4 shrink-0 size-5">
-                  {renderIcon(item)}
-                </div>
-                <div className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="font-medium text-gray-12 text-left truncate max-w-[60px]"
-                      title={item.name}
-                    >
-                      {renderPrimaryText(item)}
-                    </span>
-                    <span className="truncate z-auto">{renderBadge?.(item)}</span>
-                  </div>
-                  <span className="text-gray-9 text-2xs font-mono truncate">
-                    {renderSecondaryText(item)}
+          return (
+            <div
+              key={item.id}
+              data-motion-key={item.id}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 bg-raised border rounded-md text-xs w-full",
+                itemHeight,
+              )}
+            >
+              <div className="border rounded-sm flex items-center justify-center bg-gray-4 shrink-0 size-5">
+                {renderIcon(item)}
+              </div>
+              <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="font-medium text-gray-12 text-left truncate max-w-[60px]"
+                    title={item.name}
+                  >
+                    {renderPrimaryText(item)}
                   </span>
+                  <span className="truncate z-auto">{renderBadge?.(item)}</span>
                 </div>
-                {canRemove ? (
-                  <button
-                    type="button"
-                    onClick={() => onRemoveItem(item.id)}
-                    className="p-0.5 hover:bg-grayA-4 rounded-sm text-grayA-11 hover:text-gray-12 transition-colors shrink-0 ml-auto"
-                    aria-label={`Remove ${renderPrimaryText(item)}`}
-                  >
-                    <IconXmarkOutline12 />
-                  </button>
-                ) : (
-                  <div
-                    className="p-0.5 rounded-sm text-grayA-6 shrink-0 ml-auto opacity-50"
-                    title="Cannot remove - inherited from selected role"
-                  >
-                    <IconXmarkOutline12 />
-                  </div>
-                )}
-              </ItemComponent>
-            );
-          })}
-        </AnimatePresence>
+                <span className="text-gray-9 text-2xs font-mono truncate">
+                  {renderSecondaryText(item)}
+                </span>
+              </div>
+              {canRemove ? (
+                <button
+                  type="button"
+                  onClick={() => onRemoveItem(item.id)}
+                  className="p-0.5 hover:bg-grayA-4 rounded-sm text-grayA-11 hover:text-gray-12 transition-colors shrink-0 ml-auto"
+                  aria-label={`Remove ${renderPrimaryText(item)}`}
+                >
+                  <IconXmarkOutline12 />
+                </button>
+              ) : (
+                <div
+                  className="p-0.5 rounded-sm text-grayA-6 shrink-0 ml-auto opacity-50"
+                  title="Cannot remove - inherited from selected role"
+                >
+                  <IconXmarkOutline12 />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -31,6 +31,16 @@
   --animate-coin-flip: coin-flip 1100ms cubic-bezier(0.3, 0.6, 0.25, 1) 100ms both;
   --animate-dash-flow: dash-flow 800ms linear infinite;
   --animate-counter-pop: counter-pop 400ms ease-out;
+  /* Spring with stiffness 400 and damping 25, sampled for linear() */
+  --animate-badge-pop: badge-pop 500ms
+    linear(0, 0.072, 0.239, 0.44, 0.634, 0.798, 0.922, 1.006, 1.056, 1.077, 1.08, 1.071, 1.056, 1.04, 1.025, 1.013, 1.004, 0.998, 0.995, 0.994, 0.994, 0.995, 0.996, 0.997, 1);
+
+  @keyframes badge-pop {
+    from {
+      opacity: 0;
+      scale: 0.8;
+    }
+  }
   --animate-deployment-victory: deployment-victory 4.5s both;
 
   /* cubic-bezier(0.4, 0, 0.2, 1) across the whole run, split at the keyframes */
@@ -252,4 +262,17 @@ code .line::before {
    selects, popovers) above the panel (z-51) so they aren't clipped behind it. */
 body:has([data-slide-panel-open]) [data-radix-popper-content-wrapper] {
   z-index: 60 !important;
+}
+
+/* Fade lengths of the new app flow column mask. Registered so CSS can transition them. */
+@property --column-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --column-fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { Presence } from "@/components/presence";
+import { SPRING_SETTLE, useLayoutMotion } from "@/hooks/use-layout-motion";
 import { collection } from "@/lib/collections";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import {
@@ -13,8 +15,14 @@ import {
   IconSplitOutline18,
 } from "@unkey/icons";
 import { Button, Drawer, Tooltip, TooltipContent, TooltipTrigger, cn } from "@unkey/ui";
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
-import { type ComponentType, type ReactNode, useId, useState } from "react";
+import {
+  type ComponentType,
+  type ReactNode,
+  type RefObject,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useNewAppFlow } from "./flow";
 import { StepAside } from "./flow-layout";
 import {
@@ -95,59 +103,79 @@ function StepTile({ step, className }: { step: StepView; className?: string }) {
   );
 }
 
-const DETAIL_ENTER = { duration: 0.22, ease: [0.215, 0.61, 0.355, 1] } as const;
-const HIGHLIGHT_MOVE = { type: "spring", duration: 0.4, bounce: 0 } as const;
-const ROW_EXIT = { duration: 0.3, ease: [0.645, 0.045, 0.355, 1] } as const;
+const DETAIL_EASE = "cubic-bezier(0.215, 0.61, 0.355, 1)";
+const DETAIL_MOVE = { duration: 220, easing: DETAIL_EASE };
+const ROW_EXIT = { duration: 300, easing: "cubic-bezier(0.645, 0.045, 0.355, 1)" };
 
-function StepItem({ children, className }: { children: ReactNode; className: string }) {
-  const reduceMotion = useReducedMotion();
+function useRowExit(list: RefObject<HTMLOListElement | null>) {
+  useLayoutMotion(list, {
+    appear: false,
+    move: ROW_EXIT,
+    exit: () => ({ keyframes: [{ opacity: 0 }], timing: ROW_EXIT }),
+  });
+}
+
+function StepItem({
+  id,
+  children,
+  className,
+}: { id: Step; children: ReactNode; className: string }) {
   return (
-    <motion.li
-      exit={{ opacity: 0, height: 0, paddingBottom: 0 }}
-      transition={reduceMotion ? { duration: 0 } : ROW_EXIT}
-      className={cn("overflow-hidden", className)}
-    >
+    <li data-motion-key={id} className={cn("overflow-hidden", className)}>
       {children}
-    </motion.li>
+    </li>
   );
 }
 
-function StepHighlight() {
-  const reduceMotion = useReducedMotion();
+function StepHighlight({ list }: { list: RefObject<HTMLOListElement | null> }) {
+  const [box, setBox] = useState<{ top: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const row = list.current?.querySelector<HTMLElement>('[aria-current="step"]');
+    const next = row ? { top: row.offsetTop, height: row.offsetHeight } : null;
+    setBox((prev) => (prev?.top === next?.top && prev?.height === next?.height ? prev : next));
+  });
+  if (!box) {
+    return null;
+  }
   return (
-    <motion.span
-      layoutId="step-highlight"
-      transition={reduceMotion ? { duration: 0 } : HIGHLIGHT_MOVE}
-      className="absolute inset-0 -z-10 rounded-md bg-raised shadow-xs ring-1 ring-grayA-4"
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 top-0 -z-10 rounded-md bg-raised shadow-xs ring-1 ring-grayA-4 transition-[translate] duration-400 motion-reduce:transition-none"
+      style={{
+        height: box.height,
+        translate: `0 ${box.top}px`,
+        transitionTimingFunction: SPRING_SETTLE,
+      }}
     />
   );
 }
 
 function StepDetail({ detail }: { detail: string | null }) {
-  const reduceMotion = useReducedMotion();
   return (
-    <AnimatePresence initial={false}>
-      {detail ? (
-        <motion.span
-          key="detail"
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          transition={reduceMotion ? { duration: 0 } : DETAIL_ENTER}
-          className="truncate text-xs text-gray-11"
+    <Presence present={detail !== null} exitMs={220}>
+      {({ closing, presentOnMount }) => (
+        <span
+          className={cn(
+            "truncate text-xs text-gray-11 transition-[opacity,translate] duration-[220ms] motion-reduce:transition-none",
+            closing && "opacity-0",
+            !closing && !presentOnMount && "starting:opacity-0 starting:-translate-y-1",
+          )}
+          style={{ transitionTimingFunction: DETAIL_EASE }}
         >
           {detail}
-        </motion.span>
-      ) : null}
-    </AnimatePresence>
+        </span>
+      )}
+    </Presence>
   );
 }
 
 function StepListRow({ step, onSelect }: { step: StepView; onSelect: () => void }) {
-  const reduceMotion = useReducedMotion();
+  const rowRef = useRef<HTMLButtonElement>(null);
+  useLayoutMotion(rowRef, { appear: false, move: DETAIL_MOVE });
   const editable = step.status === "done";
   return (
     <button
+      ref={rowRef}
       type="button"
       disabled={!editable}
       aria-current={step.status === "current" ? "step" : undefined}
@@ -155,18 +183,13 @@ function StepListRow({ step, onSelect }: { step: StepView; onSelect: () => void 
       data-status={step.status}
       className="group relative isolate flex h-14 w-full items-center gap-3 rounded-md border border-transparent px-3 text-left transition-colors enabled:cursor-pointer enabled:hover:bg-grayA-3 disabled:cursor-default"
     >
-      {step.status === "current" ? <StepHighlight /> : null}
       <StepTile step={step} />
-      <motion.span
-        layout="position"
-        transition={reduceMotion ? { duration: 0 } : DETAIL_ENTER}
-        className="flex min-w-0 flex-col"
-      >
+      <span data-motion-key="title" className="flex min-w-0 flex-col">
         <span className="text-sm font-medium text-gray-10 group-data-[status=current]:text-gray-12 group-data-[status=done]:text-gray-11">
           {step.title}
         </span>
         <StepDetail detail={step.detail} />
-      </motion.span>
+      </span>
       {editable ? (
         <Button
           variant="ghost"
@@ -188,60 +211,58 @@ function StepList({
   nav: StepNavModel;
   onSelect?: () => void;
 }) {
-  const groupId = useId();
+  const listRef = useRef<HTMLOListElement>(null);
+  useRowExit(listRef);
   return (
-    <LayoutGroup id={groupId}>
-      <ol className="flex flex-col">
-        <AnimatePresence initial={false}>
-          {steps.map((step) => (
-            <StepItem key={step.id} className="pb-1">
-              <StepListRow
-                step={step}
-                onSelect={() => {
-                  goTo(step);
-                  onSelect?.();
-                }}
-              />
-            </StepItem>
-          ))}
-        </AnimatePresence>
-      </ol>
-    </LayoutGroup>
+    <ol ref={listRef} className="relative isolate flex flex-col">
+      <StepHighlight list={listRef} />
+      {steps.map((step) => (
+        <StepItem key={step.id} id={step.id} className="pb-1">
+          <StepListRow
+            step={step}
+            onSelect={() => {
+              goTo(step);
+              onSelect?.();
+            }}
+          />
+        </StepItem>
+      ))}
+    </ol>
   );
 }
 
 function StepRail({ nav: { steps, goTo } }: { nav: StepNavModel }) {
+  const listRef = useRef<HTMLOListElement>(null);
+  useRowExit(listRef);
   return (
-    <ol className="flex flex-col items-center">
-      <AnimatePresence initial={false}>
-        {steps.map((step) => (
-          <StepItem key={step.id} className="pb-2">
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    type="button"
-                    aria-label={step.detail ? `${step.title}: ${step.detail}` : step.title}
-                    aria-current={step.status === "current" ? "step" : undefined}
-                    aria-disabled={step.status !== "done"}
-                    onClick={() => goTo(step)}
-                    className="flex rounded-lg p-1 transition-colors aria-disabled:cursor-default not-aria-disabled:cursor-pointer not-aria-disabled:hover:bg-grayA-3"
-                  />
-                }
-              >
-                <StepTile
-                  step={step}
-                  className="data-[status=current]:border-gray-9 data-[status=current]:ring-3 data-[status=current]:ring-gray-4"
+    <ol ref={listRef} className="relative flex flex-col items-center">
+      {steps.map((step) => (
+        <StepItem key={step.id} id={step.id} className="pb-2">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  aria-label={step.detail ? `${step.title}: ${step.detail}` : step.title}
+                  aria-current={step.status === "current" ? "step" : undefined}
+                  aria-disabled={step.status !== "done"}
+                  onClick={() => goTo(step)}
+                  className="flex rounded-lg p-1 transition-colors aria-disabled:cursor-default not-aria-disabled:cursor-pointer not-aria-disabled:hover:bg-grayA-3"
                 />
-              </TooltipTrigger>
-              <TooltipContent side="right" className="flex flex-col">
-                <span>{step.title}</span>
-                {step.detail ? <span className="font-normal opacity-60">{step.detail}</span> : null}
-              </TooltipContent>
-            </Tooltip>
-          </StepItem>
-        ))}
-      </AnimatePresence>
+              }
+            >
+              <StepTile
+                step={step}
+                className="data-[status=current]:border-gray-9 data-[status=current]:ring-3 data-[status=current]:ring-gray-4"
+              />
+            </TooltipTrigger>
+            <TooltipContent side="right" className="flex flex-col">
+              <span>{step.title}</span>
+              {step.detail ? <span className="font-normal opacity-60">{step.detail}</span> : null}
+            </TooltipContent>
+          </Tooltip>
+        </StepItem>
+      ))}
     </ol>
   );
 }

@@ -1,16 +1,8 @@
 "use client";
 
+import { useLayoutMotion } from "@/hooks/use-layout-motion";
 import { Button, cn } from "@unkey/ui";
-import {
-  AnimatePresence,
-  type MotionValue,
-  animate,
-  motion,
-  useMotionValue,
-  useReducedMotion,
-  useTransform,
-} from "framer-motion";
-import { createContext, use, useEffect, useRef, useState } from "react";
+import { createContext, use, useCallback, useEffect, useRef, useState } from "react";
 import { CardSurface } from "./card";
 import { ConfigCard } from "./config-card";
 import { useNewAppFlow } from "./flow";
@@ -19,11 +11,11 @@ import { type Direction, type Pane, cardView, columnCards } from "./wizard-model
 
 const NEIGHBOR_OPACITY = 0.4;
 const ENTER_OFFSET_PX = 64;
-const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
-const MOVE_S = 0.62;
+const EASE_OUT_EXPO = "cubic-bezier(0.16, 1, 0.3, 1)";
+const MOVE_MS = 620;
 const FADE = {
-  in: { duration: 0.32, delay: 0.12, ease: "easeOut" },
-  out: { duration: 0.2, ease: "easeOut" },
+  in: "opacity 320ms ease-out 120ms",
+  out: "opacity 200ms ease-out",
 } as const;
 const MASK_STOPS = 12;
 
@@ -31,23 +23,22 @@ function easedAlpha(t: number): string {
   return ((1 - Math.cos(Math.PI * t)) / 2).toFixed(3);
 }
 
-function easedMask(top: number, bottom: number): string {
+// The fade lengths are registered custom properties (see styles/tailwind.css), so a CSS
+// transition on them animates the whole mask.
+const COLUMN_MASK = (() => {
   const steps = Array.from({ length: MASK_STOPS + 1 }, (_, i) => i / MASK_STOPS);
-  const topStops = steps.map((t) => `rgb(0 0 0 / ${easedAlpha(t)}) ${(top * t).toFixed(1)}px`);
+  const topStops = steps.map(
+    (t) => `rgb(0 0 0 / ${easedAlpha(t)}) calc(var(--column-fade-top) * ${t.toFixed(4)})`,
+  );
   const bottomStops = steps.map(
-    (t) => `rgb(0 0 0 / ${easedAlpha(1 - t)}) calc(100% - ${(bottom * (1 - t)).toFixed(1)}px)`,
+    (t) =>
+      `rgb(0 0 0 / ${easedAlpha(1 - t)}) calc(100% - var(--column-fade-bottom) * ${(1 - t).toFixed(4)})`,
   );
   return `linear-gradient(to bottom, ${[...topStops, ...bottomStops].join(", ")})`;
-}
-
-function moveTransition(animated: boolean) {
-  return animated ? { duration: MOVE_S, ease: EASE_OUT_EXPO } : { duration: 0 };
-}
+})();
 
 type ColumnMotion = {
   animated: boolean;
-  fadeTop: MotionValue<number>;
-  fadeBottom: MotionValue<number>;
   heights: Map<Pane, number>;
 };
 
@@ -63,11 +54,9 @@ function useColumnMotion(): ColumnMotion {
 
 export function FlowColumn() {
   const animated = useAnimatedAfterInteraction();
-  const fadeTop = useMotionValue(0);
-  const fadeBottom = useMotionValue(0);
   const [heights] = useState(() => new Map<Pane, number>());
   return (
-    <ColumnMotionContext.Provider value={{ animated, fadeTop, fadeBottom, heights }}>
+    <ColumnMotionContext.Provider value={{ animated, heights }}>
       <Column />
     </ColumnMotionContext.Provider>
   );
@@ -126,17 +115,28 @@ function ColumnCard({ id, current }: { id: Pane; current: boolean }) {
     setLive(true);
   }
   const ref = useRef<HTMLDivElement>(null);
+  const retire = useCallback(() => {
+    if (ref.current) {
+      heights.set(id, ref.current.offsetHeight);
+    }
+    setLive(false);
+  }, [heights, id]);
+  useEffect(() => {
+    if (!current && live && !animated) {
+      retire();
+    }
+  }, [current, live, animated, retire]);
   return (
-    <motion.div
+    <div
       ref={ref}
       className="relative flex min-h-0 flex-col"
-      initial={false}
-      animate={{ opacity: current ? 1 : 0 }}
-      transition={animated ? FADE[current ? "in" : "out"] : { duration: 0 }}
-      onAnimationComplete={() => {
-        if (!current && ref.current) {
-          heights.set(id, ref.current.offsetHeight);
-          setLive(false);
+      style={{
+        opacity: current ? 1 : 0,
+        transition: animated ? FADE[current ? "in" : "out"] : "none",
+      }}
+      onTransitionEnd={(event) => {
+        if (!current && event.target === ref.current && event.propertyName === "opacity") {
+          retire();
         }
       }}
     >
@@ -145,7 +145,7 @@ function ColumnCard({ id, current }: { id: Pane; current: boolean }) {
       ) : (
         <div style={{ height: heights.get(id) ?? COLUMN_CARD_MAX_HEIGHT }} />
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -189,6 +189,18 @@ function useFocusOnMove(view: HTMLElement | null, currentId: Pane) {
   }, [view, currentId]);
 }
 
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return reduced;
+}
+
 function useAnimatedAfterInteraction() {
   const reduceMotion = useReducedMotion();
   const [interacted, setInteracted] = useState(false);
@@ -217,9 +229,13 @@ function StepColumn({
   next: Pane | null;
   direction: Direction;
 }) {
-  const { animated, fadeTop, fadeBottom } = useColumnMotion();
-  const transition = moveTransition(animated);
+  const { animated } = useColumnMotion();
+  const viewRef = useRef<HTMLDivElement | null>(null);
   const [view, setView] = useState<HTMLDivElement | null>(null);
+  const attachView = useCallback((node: HTMLDivElement | null) => {
+    viewRef.current = node;
+    setView(node);
+  }, []);
   const peek = usePeek(view, current);
 
   const moved = useRef({ id: current, at: 0 });
@@ -234,24 +250,34 @@ function StepColumn({
   const topTarget = previous ? peek.top : 0;
   const bottomTarget = next ? peek.bottom : 0;
   useEffect(() => {
-    if (performance.now() - moved.current.at > MOVE_S * 1000) {
-      fadeTop.jump(topTarget);
-      fadeBottom.jump(bottomTarget);
+    if (!view) {
       return;
     }
-    const controls = [
-      animate(fadeTop, topTarget, moveTransition(animated)),
-      animate(fadeBottom, bottomTarget, moveTransition(animated)),
-    ];
-    return () => {
-      for (const c of controls) {
-        c.stop();
-      }
-    };
-  }, [topTarget, bottomTarget, fadeTop, fadeBottom, animated]);
-  const mask = useTransform(() => easedMask(fadeTop.get(), fadeBottom.get()));
+    const glide = animated && performance.now() - moved.current.at <= MOVE_MS;
+    view.style.transition = glide
+      ? `--column-fade-top ${MOVE_MS}ms ${EASE_OUT_EXPO}, --column-fade-bottom ${MOVE_MS}ms ${EASE_OUT_EXPO}`
+      : "none";
+    view.style.setProperty("--column-fade-top", `${topTarget}px`);
+    view.style.setProperty("--column-fade-bottom", `${bottomTarget}px`);
+  }, [view, topTarget, bottomTarget, animated]);
 
   const offset = direction === "forward" ? ENTER_OFFSET_PX : -ENTER_OFFSET_PX;
+  const moveTiming = { duration: MOVE_MS, easing: EASE_OUT_EXPO };
+  useLayoutMotion(viewRef, {
+    enabled: animated,
+    appear: false,
+    dependency: current,
+    move: moveTiming,
+    enter: () => ({
+      keyframes: [{ opacity: 0, translate: `0 ${offset}px`, offset: 0 }],
+      timing: moveTiming,
+    }),
+    exit: () => ({
+      keyframes: [{ opacity: 0, translate: `0 ${-offset}px` }],
+      timing: moveTiming,
+    }),
+  });
+
   const items: { role: Role; id: Pane }[] = [
     ...(previous ? [{ role: "previous" as const, id: previous }] : []),
     { role: "current", id: current },
@@ -259,38 +285,34 @@ function StepColumn({
   ];
 
   return (
-    <motion.div
-      ref={setView}
+    <div
+      ref={attachView}
       className="relative min-h-0 flex-1 overflow-hidden"
-      style={{ maskImage: mask, WebkitMaskImage: mask }}
+      style={{ maskImage: COLUMN_MASK, WebkitMaskImage: COLUMN_MASK }}
     >
       <ColumnGrid>
-        <AnimatePresence initial={false}>
-          {items.map(({ role, id }) => (
-            <motion.div
-              key={id}
-              layoutId={`new-app-card-${id}`}
-              layout="position"
-              layoutDependency={current}
-              data-current-card={role === "current" ? id : undefined}
-              inert={role !== "current"}
-              className={cn(
-                "relative col-start-1 flex min-h-0 flex-col",
-                roleCell[role],
-                role !== "current" && "pointer-events-none",
-              )}
-              style={{ maxHeight: COLUMN_CARD_MAX_HEIGHT }}
-              initial={{ opacity: 0, y: offset }}
-              animate={{ opacity: role === "current" ? 1 : NEIGHBOR_OPACITY, y: 0 }}
-              exit={{ opacity: 0, y: -offset }}
-              transition={transition}
-            >
-              <CardSurface className="absolute inset-0" />
-              <ColumnCard id={id} current={role === "current"} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        {items.map(({ role, id }) => (
+          <div
+            key={id}
+            data-motion-key={id}
+            data-current-card={role === "current" ? id : undefined}
+            inert={role !== "current"}
+            className={cn(
+              "relative col-start-1 flex min-h-0 flex-col",
+              roleCell[role],
+              role !== "current" && "pointer-events-none",
+            )}
+            style={{
+              maxHeight: COLUMN_CARD_MAX_HEIGHT,
+              opacity: role === "current" ? 1 : NEIGHBOR_OPACITY,
+              transition: animated ? `opacity ${MOVE_MS}ms ${EASE_OUT_EXPO}` : "none",
+            }}
+          >
+            <CardSurface className="absolute inset-0" />
+            <ColumnCard id={id} current={role === "current"} />
+          </div>
+        ))}
       </ColumnGrid>
-    </motion.div>
+    </div>
   );
 }
