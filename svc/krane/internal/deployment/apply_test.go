@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -504,7 +505,8 @@ func TestBuildDeployment_PrivateNetworkDNS(t *testing.T) {
 				require.Nil(t, dep.Spec.Template.Spec.DNSConfig)
 				return
 			}
-			require.Equal(t, "self.unkey.internal", host)
+			require.Equal(t, "unkey-connection-4274bb18f26b961b84db17a83974f205.test-ns.unkey.internal", host)
+			require.Empty(t, dep.Spec.Template.Spec.DNSConfig.Searches)
 			require.Equal(t, corev1.DNSNone, dep.Spec.Template.Spec.DNSPolicy)
 			require.Equal(t, []string{tt.resolverIP}, dep.Spec.Template.Spec.DNSConfig.Nameservers)
 			require.Equal(t, []corev1.PodDNSConfigOption{
@@ -514,6 +516,23 @@ func TestBuildDeployment_PrivateNetworkDNS(t *testing.T) {
 			}, dep.Spec.Template.Spec.DNSConfig.Options)
 		})
 	}
+}
+
+func TestBuildDeployment_PrivateNetworkSelfHostBelongsToDeployment(t *testing.T) {
+	controller := testController()
+	controller.privateNetworkResolverIP = "10.0.0.53"
+	selfHost := func(deploymentID string) string {
+		req := fullApplyRequest(t)
+		req.Capabilities = &ctrlv1.DeploymentCapabilities{PrivateNetworking: true}
+		req.DeploymentId = deploymentID
+		host, ok := envValue(mainContainer(t, controller.buildDeployment(req, false)), "UNKEY_PRIVATE_DOMAIN")
+		require.True(t, ok)
+		return host
+	}
+
+	first, second := uid.New(uid.DeploymentPrefix), uid.New(uid.DeploymentPrefix)
+	require.Equal(t, selfHost(first), selfHost(first))
+	require.NotEqual(t, selfHost(first), selfHost(second))
 }
 
 func TestApplyDeploymentValidatesPrivateNetworkingBeforeKubernetes(t *testing.T) {

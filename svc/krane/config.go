@@ -41,8 +41,9 @@ type PrivateNetworkConfig struct {
 	// deployments that Ctrl enrolls in private networking.
 	Enabled bool `toml:"enabled"`
 
-	// ResolverIP is the private IPv4 address of this region's undns Service,
-	// without a port.
+	// ResolverIP is the private IPv4 address of the cluster DNS Service
+	// (kube-system/kube-dns), without a port. Pods of enrolled deployments use
+	// it as their only nameserver, with no search domains.
 	ResolverIP string `toml:"resolver_ip"`
 }
 

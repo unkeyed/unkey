@@ -130,7 +130,7 @@ type Config struct {
 	// an existing workload.
 	MaxConcurrentRollouts int
 
-	// PrivateNetworkResolverIP is the regional undns Service IP used by enrolled
+	// PrivateNetworkResolverIP is the cluster DNS Service IP used by enrolled
 	// deployments. Empty disables private DNS on deployment Pods.
 	PrivateNetworkResolverIP string
 }

@@ -24,9 +24,9 @@ import (
 // MUST KEEP this publisher and selectorless Services until Cilium preserves
 // readiness and termination in imported Kubernetes EndpointSlices. Its legacy
 // ClusterMesh path exports terminating-but-serving Pods and imports them as
-// ready, so Kubernetes-managed source slices alone would expose them to undns.
+// ready, so Kubernetes-managed source slices alone would expose them to CoreDNS.
 // Service-v2 preserves conditions internally but does not publish the remote
-// Kubernetes slices undns reads (verified in 1.20.2 and 1.21.0-pre.3).
+// Kubernetes slices CoreDNS reads (verified in 1.20.2 and 1.21.0-pre.3).
 // Remove only after the upstream importer supports this and termination and
 // final-endpoint withdrawal tests pass: https://github.com/cilium/cilium/issues/41533.
 const (
@@ -76,8 +76,7 @@ func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
 	var errs []error
 	for i := range services.Items {
 		service := &services.Items[i]
-		if !owned(service.Labels) || service.Labels[labels.LabelKeyDeploymentID] == "" ||
-			len(service.Spec.Ports) != 1 || service.Name != discoveryName(service.Labels[labels.LabelKeyDeploymentID], service.Spec.Ports[0].Port) {
+		if !sharedService(service) {
 			continue
 		}
 		if err := r.ensureEndpoints(ctx, service, pods, sourceSlices[service.Namespace+"/"+service.Name]); err != nil {
@@ -144,7 +143,7 @@ func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Servic
 		byName[item.Name] = item
 	}
 
-	endpoints := readyEndpoints(service, pods)
+	endpoints := readyEndpoints(service, pods, r.clusterKey.GetRegion())
 	for offset := 0; offset < max(1, len(endpoints)); offset += endpointsPerSlice {
 		name := fmt.Sprintf("%s-%d", service.Name, offset/endpointsPerSlice)
 		desired := &discoveryv1.EndpointSlice{
@@ -188,7 +187,7 @@ func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Servic
 	return nil
 }
 
-func readyEndpoints(service *corev1.Service, pods []corev1.Pod) []discoveryv1.Endpoint {
+func readyEndpoints(service *corev1.Service, pods []corev1.Pod, region string) []discoveryv1.Endpoint {
 	addresses := make(map[netip.Addr]struct{})
 	for i := range pods {
 		pod := &pods[i]
@@ -226,6 +225,10 @@ func readyEndpoints(service *corev1.Service, pods []corev1.Pod) []discoveryv1.En
 
 	ordered := slices.SortedFunc(maps.Keys(addresses), func(a, b netip.Addr) int { return a.Compare(b) })
 	endpoints := make([]discoveryv1.Endpoint, 0, len(ordered))
+	var hostname *string
+	if region != "" {
+		hostname = ptr.To(region)
+	}
 	for _, address := range ordered {
 		endpoints = append(endpoints, discoveryv1.Endpoint{
 			Addresses: []string{address.String()},
@@ -234,7 +237,7 @@ func readyEndpoints(service *corev1.Service, pods []corev1.Pod) []discoveryv1.En
 				Serving:     ptr.To(true),
 				Terminating: ptr.To(false),
 			},
-			Hostname:           nil,
+			Hostname:           hostname,
 			TargetRef:          nil,
 			DeprecatedTopology: nil,
 			NodeName:           nil,

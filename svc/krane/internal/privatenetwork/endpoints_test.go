@@ -40,10 +40,8 @@ func TestReconcileOmitsIneligibleSourceAddressesBeforeMeshExport(t *testing.T) {
 
 	require.NoError(t, r.reconcile(t.Context()))
 
-	services, err := client.CoreV1().Services(connectionSpec.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Len(t, services.Items, 1)
-	require.Empty(t, services.Items[0].Spec.Selector)
+	require.Empty(t, resolvedTarget(t, client, connectionSpec).Spec.Selector)
+	require.Equal(t, []string{"10.72.0.87"}, resolvedAddresses(t, client, connectionSpec))
 
 	slices, err := client.DiscoveryV1().EndpointSlices(connectionSpec.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
 	require.NoError(t, err)
@@ -73,9 +71,7 @@ func TestReconcileDoesNotTreatFailedEndpointReadsAsEmptyInputs(t *testing.T) {
 			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control}
 			require.ErrorContains(t, r.reconcile(t.Context()), "endpoint input unavailable")
 			require.Equal(t, 1, reads)
-			connections, err := client.CoreV1().ConfigMaps(first.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
-			require.NoError(t, err)
-			require.Empty(t, connections.Items)
+			require.Empty(t, connectionServices(t, client, first.GetK8SNamespace()))
 			for _, action := range client.Actions() {
 				require.False(t, action.Matches("create", "endpointslices"), "failed reads must not publish empty slices")
 			}
@@ -236,10 +232,10 @@ func TestReadyEndpointsExcludeWrongIdentityAndUnsafePodStates(t *testing.T) {
 			mutate(pod)
 			endpoints := readyEndpoints(service, []corev1.Pod{
 				*pod, *endpointPod(connectionSpec, "survivor", "10.72.0.87"),
-			})
+			}, "")
 			require.Len(t, endpoints, 1)
 			require.Equal(t, []string{"10.72.0.87"}, endpoints[0].Addresses)
-			require.Empty(t, readyEndpoints(service, []corev1.Pod{*pod}))
+			require.Empty(t, readyEndpoints(service, []corev1.Pod{*pod}, ""))
 		})
 	}
 
@@ -250,14 +246,14 @@ func TestReadyEndpointsExcludeWrongIdentityAndUnsafePodStates(t *testing.T) {
 		t.Run(key, func(t *testing.T) {
 			pod := endpointPod(connectionSpec, "excluded", "10.72.0.84")
 			pod.Labels[key] = "other"
-			require.Empty(t, readyEndpoints(service, []corev1.Pod{*pod}))
+			require.Empty(t, readyEndpoints(service, []corev1.Pod{*pod}, ""))
 		})
 	}
 
 	for _, kind := range []string{"production", "preview"} {
 		pod := endpointPod(connectionSpec, "same-network", "10.72.0.84")
 		pod.Labels[labels.LabelKeyEnvironmentKind] = kind
-		endpoints := readyEndpoints(service, []corev1.Pod{*pod})
+		endpoints := readyEndpoints(service, []corev1.Pod{*pod}, "")
 		require.Len(t, endpoints, 1)
 		require.Equal(t, []string{"10.72.0.84"}, endpoints[0].Addresses)
 	}
