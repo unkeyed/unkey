@@ -346,10 +346,11 @@ func validMetadata() *meta.Metadata {
 		},
 		Hops: []meta.Hop{
 			{
-				Region:        "aws::us-east-1",
-				RequestID:     "req_123",
-				FrontlineID:   "frontline_123",
-				TimeUnixMilli: 1_777_000_000_123,
+				Region:         "aws::us-east-1",
+				RegionPlatform: "us-east-1.aws",
+				RequestID:      "req_123",
+				FrontlineID:    "frontline_123",
+				TimeUnixMilli:  1_777_000_000_123,
 			},
 		},
 	}

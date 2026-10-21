@@ -83,8 +83,8 @@ func TestForwardPreservesRequestAndResponse(t *testing.T) {
 		body                           []byte
 		err                            error
 	}
-	for _, destination := range []string{"instance", "region"} {
-		t.Run(destination, func(t *testing.T) {
+	for _, destination := range []proxyDestination{destinationInstance, destinationFrontline} {
+		t.Run(string(destination), func(t *testing.T) {
 			received := make(chan receivedRequest, 1)
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				data, err := io.ReadAll(r.Body)
@@ -101,7 +101,7 @@ func TestForwardPreservesRequestAndResponse(t *testing.T) {
 			server.RegisterRoute(nil, zen.NewRoute(http.MethodPost, "/", func(ctx context.Context, sess *zen.Session) error {
 				start := svc.clock.Now()
 				director := svc.makeInstanceDirector(sess, start)
-				if destination == "region" {
+				if destination == destinationFrontline {
 					director = svc.makeRegionDirector(sess, start, "signed-metadata")
 				}
 				return svc.forward(ctx, sess, forwardConfig{

@@ -43,8 +43,15 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return err
 	}
 
+	excludedRegions := make([]string, 0, len(hops))
+	for _, hop := range hops {
+		if hop.RegionPlatform != "" {
+			excludedRegions = append(excludedRegions, hop.RegionPlatform)
+		}
+	}
+
 	hostname := proxy.ExtractHostname(req.Host)
-	decision, err := h.RouterService.Route(ctx, hostname)
+	decision, err := h.RouterService.Route(ctx, hostname, excludedRegions...)
 	if err != nil {
 		return err
 	}

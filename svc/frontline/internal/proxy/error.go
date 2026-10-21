@@ -7,8 +7,6 @@ import (
 	"os"
 	"syscall"
 
-	"fmt"
-
 	"github.com/unkeyed/unkey/pkg/codes"
 )
 
@@ -34,53 +32,48 @@ func IsDialError(err error) bool {
 	return false
 }
 
-// categorizeProxyError maps a raw upstream / dial error into a stable
-// codes.URN plus a public-facing message. The URN drives status code
-// selection in middleware; the message is what the client sees in the
-// rendered error page or JSON body. target is the human-readable name of
-// what we failed to reach (e.g. "deployment instance", "peer frontline")
-// and is interpolated into the message.
-//
-// Callers should preserve any pre-existing fault code via fault.GetCode
-// before calling this — it has no way to know whether err was already
-// classified upstream.
-func categorizeProxyError(err error, target string) (codes.URN, string) {
+func categorizeProxyError(err error, destination proxyDestination) (codes.URN, string) {
 	if errors.Is(err, context.Canceled) {
 		return codes.User.BadRequest.ClientClosedRequest.URN(),
 			"The client closed the connection before the request completed."
 	}
 
+	if destination == destinationFrontline {
+		return codes.Frontline.Internal.InternalServerError.URN(),
+			"Unkey could not reach the serving region. Try again later."
+	}
+
 	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
 		return codes.Frontline.Proxy.GatewayTimeout.URN(),
-			fmt.Sprintf("The %s did not respond in time. Please try again later.", target)
+			"The application did not respond in time. Please try again later."
 	}
 
 	if netErr, ok := errors.AsType[*net.OpError](err); ok {
 		if netErr.Timeout() {
 			return codes.Frontline.Proxy.GatewayTimeout.URN(),
-				fmt.Sprintf("The %s did not respond in time. Please try again later.", target)
+				"The application did not respond in time. Please try again later."
 		}
 
 		if errors.Is(netErr.Err, syscall.ECONNREFUSED) {
-			return codes.Frontline.Proxy.ServiceUnavailable.URN(),
-				fmt.Sprintf("The %s refused the connection. It may be restarting — please try again in a few seconds.", target)
+			return codes.Frontline.Proxy.BadGateway.URN(),
+				"The application refused the connection. Check that it is running and listening on the configured port on 0.0.0.0, not only localhost."
 		}
 
 		if errors.Is(netErr.Err, syscall.ECONNRESET) {
 			return codes.Frontline.Proxy.BadGateway.URN(),
-				fmt.Sprintf("The %s reset the connection unexpectedly. Please try again.", target)
+				"The application reset the connection unexpectedly. Please try again."
 		}
 
 		if errors.Is(netErr.Err, syscall.EHOSTUNREACH) {
 			return codes.Frontline.Proxy.ServiceUnavailable.URN(),
-				fmt.Sprintf("The %s is unreachable. Please try again later or contact support at support@unkey.com.", target)
+				"The application is unreachable. Please try again later or contact support at support@unkey.com."
 		}
 	}
 
 	if dnsErr, ok := errors.AsType[*net.DNSError](err); ok {
 		if dnsErr.IsNotFound {
 			return codes.Frontline.Proxy.ServiceUnavailable.URN(),
-				fmt.Sprintf("DNS resolution failed for the %s. Please check your configuration or contact support at support@unkey.com.", target)
+				"DNS resolution failed for the application. Please check your configuration or contact support at support@unkey.com."
 		}
 		if dnsErr.IsTimeout {
 			return codes.Frontline.Proxy.GatewayTimeout.URN(),
@@ -89,5 +82,5 @@ func categorizeProxyError(err error, target string) (codes.URN, string) {
 	}
 
 	return codes.Frontline.Proxy.BadGateway.URN(),
-		fmt.Sprintf("Failed to connect to the %s. Please try again or contact support at support@unkey.com.", target)
+		"Failed to connect to the application. Please try again or contact support at support@unkey.com."
 }
