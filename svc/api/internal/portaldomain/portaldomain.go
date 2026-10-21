@@ -1,58 +1,32 @@
-// Package portaldomain holds what the v2/portal.*Domain routes share: resolving
-// and authorizing the portal a request names.
+// Package portaldomain holds what the v2/portal.*Domain routes share: looking
+// up the portal a request names and the response a missing or denied portal
+// gets.
 //
-// The control plane trusts the portal id it is handed, so every route must go
-// through [ResolvePortal] before it calls ctrl.
+// The control plane trusts the portal id it is handed, so every route must find
+// the portal with [FindPortal] and authorize it before it calls ctrl.
 package portaldomain
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/rbac/permissions"
-	"github.com/unkeyed/unkey/pkg/urn"
-)
-
-// Access is the portal permission a route requires.
-type Access int
-
-const (
-	// Read is required to get or list a portal's domains.
-	Read Access = iota
-	// Update is required to create, verify, or delete a portal's domain.
-	Update
 )
 
 // portalNotFoundMessage matches the portal routes, so a denial here reads the
 // same as one from portal.getPortal or portal.updatePortal.
 const portalNotFoundMessage = "Portal not found."
 
-// ResolvePortal finds the portal ref names in the caller's workspace and checks
-// the caller holds access on it. A denial and an absent portal return the same
-// fault, so the response cannot confirm a portal exists.
-func ResolvePortal(
-	ctx context.Context,
-	database db.Database,
-	p *principal.Principal,
-	ref string,
-	access Access,
-) (db.Portal, error) {
+// FindPortal finds the portal ref names, by id or slug, in workspaceID.
+func FindPortal(ctx context.Context, database db.Database, workspaceID, ref string) (db.Portal, error) {
 	found, err := db.Query.FindPortalByIdOrSlug(ctx, database.RO(), db.FindPortalByIdOrSlugParams{
 		Portal:      ref,
-		WorkspaceID: p.AuthorizedWorkspaceID,
+		WorkspaceID: workspaceID,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return db.Portal{}, fault.New("portal not found",
-				fault.Code(codes.Data.Portal.NotFound.URN()),
-				fault.Internal("no portal matched the request in this workspace"),
-				fault.Public(portalNotFoundMessage),
-			)
+			return db.Portal{}, PortalNotFound("no portal matched the request in this workspace")
 		}
 		return db.Portal{}, fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -60,47 +34,17 @@ func ResolvePortal(
 			fault.Public("We're unable to read the portal."),
 		)
 	}
-
-	err = p.Authorize(rbac.Or(authorizationArms(p.AuthorizedWorkspaceID, found, access)...))
-	if err != nil {
-		// A fresh chain, not a wrap: wrapping would append the rendered RBAC
-		// query, which names the resolved portal id, to the public message.
-		return db.Portal{}, fault.New("portal not found",
-			fault.Code(codes.Data.Portal.NotFound.URN()),
-			fault.Internal(fmt.Sprintf("portal domain access denied for portal %s: %s", found.ID, fault.InternalMessage(err))),
-			fault.Public(portalNotFoundMessage),
-		)
-	}
-
 	return found, nil
 }
 
-// authorizationArms mirrors the portal routes' tuple and URN arms. Read also
-// accepts update, because a key that can create a domain has to be able to poll
-// it for its verification status.
-func authorizationArms(workspaceID string, found db.Portal, access Access) []rbac.PermissionQuery {
-	arms := func(tupleAction rbac.ActionType, urnAction permissions.Action) []rbac.PermissionQuery {
-		return []rbac.PermissionQuery{
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Portal,
-				ResourceID:   "*",
-				Action:       tupleAction,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Portal,
-				ResourceID:   found.ID,
-				Action:       tupleAction,
-			}),
-			rbac.U(
-				urn.New().Workspace(workspaceID).Project(found.ProjectID).Portal(found.ID),
-				urnAction,
-			),
-		}
-	}
-
-	update := arms(rbac.UpdatePortal, permissions.Write)
-	if access == Update {
-		return update
-	}
-	return append(arms(rbac.ReadPortal, permissions.Read), update...)
+// PortalNotFound is the fault for an absent portal and for a denied one alike,
+// so the response cannot confirm a portal exists. It starts a fresh chain:
+// wrapping an RBAC denial would append the rendered query, which names the
+// portal id, to the public message.
+func PortalNotFound(detail string) error {
+	return fault.New("portal not found",
+		fault.Code(codes.Data.Portal.NotFound.URN()),
+		fault.Internal(detail),
+		fault.Public(portalNotFoundMessage),
+	)
 }

@@ -19,7 +19,7 @@ examples:
   byId:
     summary: Attach a domain to a portal by ID
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd
       domain: portal.acme.com
   bySlug:
     summary: Attach a domain to a portal by slug

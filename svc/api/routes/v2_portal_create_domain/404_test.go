@@ -1,11 +1,15 @@
 package handler_test
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_domain"
 )
@@ -40,4 +44,17 @@ func TestCreatePortalDomainUnresolvedPortalNeverReachesCtrl(t *testing.T) {
 	}
 
 	require.Empty(t, f.ctrl.AddPortalDomainCalls)
+}
+
+// ctrl re-checks the portal on the primary, so a portal deleted after the API's
+// lookup gets the same response as one that never existed.
+func TestCreatePortalDomainPortalDeletedBeforeCtrl(t *testing.T) {
+	f := setup(t)
+	f.ctrl.AddPortalDomainFunc = func(_ context.Context, _ *ctrlv1.AddPortalDomainRequest) (*ctrlv1.AddPortalDomainResponse, error) {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("portal not found"))
+	}
+
+	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, "portal.*.update_portal")
+	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+	require.Contains(t, res.RawBody, "Portal not found.")
 }

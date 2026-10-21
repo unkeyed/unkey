@@ -21,7 +21,6 @@ func TestCreatePortalDomainReturnsDNSRecords(t *testing.T) {
 		return &ctrlv1.AddPortalDomainResponse{
 			DomainId:          domainID,
 			TargetCname:       "a1b2c3d4e5f6g7h8.portal.unkey.com",
-			Status:            ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING,
 			VerificationToken: "3ZQ8xK1mP7vT5nR2wY6bJ4hL",
 		}, nil
 	}

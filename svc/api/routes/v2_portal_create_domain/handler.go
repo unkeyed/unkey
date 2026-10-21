@@ -2,12 +2,18 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
+	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
+	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/customdomain"
@@ -45,9 +51,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	found, err := portaldomain.ResolvePortal(ctx, h.DB, principal, req.Portal, portaldomain.Update)
+	found, err := portaldomain.FindPortal(ctx, h.DB, principal.AuthorizedWorkspaceID, req.Portal)
 	if err != nil {
 		return err
+	}
+
+	// The wildcard tuple is spelled out because a stored `*` matches literally.
+	err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: "*", Action: rbac.UpdatePortal}),
+		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: found.ID, Action: rbac.UpdatePortal}),
+		rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID), permissions.Write),
+	))
+	if err != nil {
+		return portaldomain.PortalNotFound(fmt.Sprintf("create domain denied for portal %s: %s", found.ID, fault.InternalMessage(err)))
 	}
 
 	domainName, err := domaingate.ParseDomain(req.Domain)
@@ -67,6 +83,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Actor:       actor,
 	})
 	if err != nil {
+		// ctrl re-checks the portal on the primary, so one deleted since the
+		// lookup above is reported the same way as one that never existed.
+		if connect.CodeOf(err) == connect.CodeNotFound {
+			return portaldomain.PortalNotFound(fmt.Sprintf("portal %s deleted before the domain was added", found.ID))
+		}
 		return customdomain.MapCtrlError(err, "create portal domain")
 	}
 
