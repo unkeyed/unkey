@@ -1,0 +1,88 @@
+post:
+  x-excluded: true
+  tags:
+    - portal
+  summary: Create portal domain
+  description: |
+    Attach a custom domain to a portal and start verifying it.
+
+    Unreleased and subject to change without notice.
+
+    The domain is created in the `pending` state and does not serve the portal until
+    verification succeeds. The response returns `dnsRecords`: create every entry exactly as
+    given. Verification runs in the background; poll `portal.getDomain` for the result.
+
+    A name already attached to one of your portals or environments returns a 409.
+
+    **Required Permissions**
+
+    Your root key must have one of:
+    - `portal.*.update_portal` (to manage domains on any portal in the workspace)
+    - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
+
+    Without the permission this returns **404**, not 403.
+  operationId: portal.createDomain
+  x-speakeasy-name-override: createDomain
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalCreateDomainRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: |
+        Domain created and verification started. The domain is `pending` until the DNS records resolve.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalCreateDomainResponseBody.yaml"
+    "400":
+      description: The domain is not a valid fully qualified domain name.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: |
+        The root key or its workspace is disabled, or the workspace already holds as many
+        portal domains as it may.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: |
+        No such portal, or your root key may not update it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "409":
+      description: |
+        The domain is already attached to a portal or an environment in your workspace.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: |
+        Internal server error, including when portal domains are not available in this environment.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
