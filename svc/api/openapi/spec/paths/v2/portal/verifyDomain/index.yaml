@@ -1,0 +1,77 @@
+post:
+  x-excluded: true
+  tags:
+    - portal
+  summary: Verify portal domain
+  description: |
+    Restart verification for a portal domain.
+
+    Unreleased and subject to change without notice.
+
+    Call this after you correct the DNS records of a domain that shows `failed`, or to give a
+    `pending` domain a new 24-hour verification period. The endpoint returns when Unkey accepts
+    the retry. Poll `portal.getDomain` for the result.
+
+    A domain that is already `verified` returns a 412.
+
+    **Required Permissions**
+
+    Your root key must have one of:
+    - `portal.*.update_portal` (to manage domains on any portal in the workspace)
+    - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
+
+    Without the permission this returns **404**, not 403.
+  operationId: portal.verifyDomain
+  x-speakeasy-name-override: verifyDomain
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalVerifyDomainRequestBody.yaml"
+    required: true
+  responses:
+    "202":
+      description: Verification retry accepted. The workflow runs in the background.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalVerifyDomainResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        No such portal or domain on that portal, or your root key may not update the portal.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "412":
+      description: The domain is already verified. There is nothing to retry.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/PreconditionFailedErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
