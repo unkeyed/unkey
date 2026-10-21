@@ -49,7 +49,7 @@ func TestBadRequests(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespace.ID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, namespace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -71,7 +71,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("missing namespace in request", func(t *testing.T) {
 		// Create a root key with wildcard permission for any namespace
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.limit")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/*#limit", h.Resources().UserWorkspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

@@ -69,11 +69,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).RBAC().Permission("*"),
 				permissions.Write,
 			),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Rbac,
-				ResourceID:   "*",
-				Action:       rbac.CreatePermission,
-			}),
 		)); authorizeErr != nil {
 			return authorizeErr
 		}

@@ -36,9 +36,11 @@ func TestSoftDeletedNamespace(t *testing.T) {
 
 		// Create namespace
 		namespaceID := uid.New(uid.RatelimitNamespacePrefix)
+		projectID := uid.New(uid.ProjectPrefix)
 		err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 			ID:          namespaceID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   projectID,
 			Name:        deletedNamespace,
 			CreatedAt:   time.Now().UnixMilli(),
 		})
@@ -52,7 +54,12 @@ func TestSoftDeletedNamespace(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create root key with permissions to use the namespace
-		rootKeyWithPerms := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+		rootKeyWithPerms := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf(
+			"unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit",
+			h.Resources().UserWorkspace.ID,
+			projectID,
+			namespaceID,
+		))
 
 		headersWithPerms := http.Header{
 			"Content-Type":  {"application/json"},

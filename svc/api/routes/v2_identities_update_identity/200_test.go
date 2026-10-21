@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -28,7 +29,10 @@ func TestSuccess(t *testing.T) {
 
 	h.Register(route)
 
-	rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.update_identity")
+	rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#write", h.Resources().UserWorkspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects//identities/*#write", h.Resources().UserWorkspace.ID),
+	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
@@ -38,6 +42,8 @@ func TestSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspaceID)
+	require.NoError(t, err)
 	externalID := uid.New(uid.TestPrefix)
 	otherExternalID := uid.New(uid.TestPrefix)
 
@@ -56,10 +62,12 @@ func TestSuccess(t *testing.T) {
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		ExternalID:  externalID,
+		ProjectID:   projectID,
 		Meta:        metaBytes,
 	}).ID
 	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Environment: "default",
 		ExternalID:  otherExternalID,
 	})
@@ -273,16 +281,22 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.update_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#write", h.Resources().UserWorkspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects//identities/*#write", h.Resources().UserWorkspace.ID),
+	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspaceID)
+	require.NoError(t, err)
 	externalID := uid.New(uid.TestPrefix)
 	h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Environment: "default",
 		ExternalID:  externalID,
 	})
@@ -321,7 +335,7 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 		})
 	}
 
-	err := g.Wait()
+	err = g.Wait()
 	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
 
 	// Verify identity still exists
@@ -358,13 +372,18 @@ func TestBulkIdentityUpdateDeadlock(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity", "identity.*.update_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#write", h.Resources().UserWorkspace.ID),
+		fmt.Sprintf("unkey:v1:%s:projects//identities/*#write", h.Resources().UserWorkspace.ID),
+	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), workspaceID)
+	require.NoError(t, err)
 	numIdentities := 50
 	rlNames := []string{"rl_a", "rl_b", "rl_c", "rl_d", "rl_e"}
 
@@ -385,6 +404,7 @@ func TestBulkIdentityUpdateDeadlock(t *testing.T) {
 		}
 		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			ExternalID:  externalID,
 			Ratelimits:  seedRL,

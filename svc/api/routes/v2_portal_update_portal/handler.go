@@ -155,25 +155,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// a scoped grant would carry. Safe because the resolve is workspace-scoped
 		// -- a foreign portal is already absent above -- Authorize is an in-memory
 		// check over already-loaded permissions, and nothing has been written yet.
-		// The wildcard tuple arm is spelled out separately because a stored `*`
-		// matches literally and does not expand.
-		//
-		// The legacy tuple arms stay until callers have migrated to portal URNs.
-		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Portal,
-				ResourceID:   "*",
-				Action:       rbac.UpdatePortal,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Portal,
-				ResourceID:   found.ID,
-				Action:       rbac.UpdatePortal,
-			}),
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID),
-				permissions.Write,
-			),
+		err = principal.Authorize(rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID),
+			permissions.Write,
 		))
 		if err != nil {
 			// A fresh chain, not a wrap: UserFacingMessage concatenates every public

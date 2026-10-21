@@ -170,9 +170,8 @@ func TestCreateSessionAppMapped(t *testing.T) {
 	h.SeedPortal(t, workspaceID, "app-portal", "app-portal", appMapping(appID), nil, nil)
 
 	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		"api.*.read_key",
-		"api.*.read_api",
+		append([]string{sessionWriteGrant(workspaceID, "*", "*")},
+			canonicalReadGrants(workspaceID, "*", "*")...)...,
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -250,9 +249,8 @@ func TestCreateSessionAppMappedIgnoresAppCustomDomain(t *testing.T) {
 	h.SeedPortal(t, workspaceID, "branded-portal", "branded-portal", appMapping(app.AppID), nil, nil)
 
 	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		"api.*.read_key",
-		"api.*.read_api",
+		append([]string{sessionWriteGrant(workspaceID, "*", "*")},
+			canonicalReadGrants(workspaceID, "*", "*")...)...,
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -297,9 +295,9 @@ func TestCreateSessionAppMappedKeyspaceGrowth(t *testing.T) {
 
 	// The grant covers only the keyspace the app verifies today.
 	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		fmt.Sprintf("api.%s.read_key", granted.ID),
-		fmt.Sprintf("api.%s.read_api", granted.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/*/sessions/*#write", workspaceID, granted.ProjectID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", workspaceID, granted.ProjectID, granted.KeyAuthID.String),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspaceID, granted.ProjectID, granted.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
