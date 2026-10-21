@@ -8,6 +8,7 @@ import { apiRoutes } from "./apis";
 import { auditRoutes } from "./audit";
 import { authRoutes } from "./auth";
 import { authorizationRoutes } from "./authorization";
+import { cliRoutes } from "./cli";
 import { identityRoutes } from "./identities";
 import { logRoutes } from "./logs";
 import { projectRoutes } from "./projects";
@@ -32,5 +33,6 @@ export const routes = {
   audit: auditRoutes,
   logs: logRoutes,
   auth: authRoutes,
+  cli: cliRoutes,
   workspaces: workspaceRoutes,
 };
