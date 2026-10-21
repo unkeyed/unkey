@@ -5,6 +5,7 @@ import (
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/fuzz"
 )
 
 const (
@@ -59,10 +60,7 @@ func TestBuildWithoutFilters(t *testing.T) {
 // FuzzWhereIgnoresValues proves that request values never reach the query
 // text: for a fixed filter shape, every value yields the same WHERE body.
 func FuzzWhereIgnoresValues(f *testing.F) {
-	f.Add("KEBAP", int64(200))
-	f.Add("') OR 1=1 --", int64(-1))
-	f.Add("{filter_0:String}", int64(0))
-	f.Add("C:\\temp\t\n\r%_", int64(9223372036854775807))
+	fuzz.Seed(f)
 
 	build := func(s string, n int64) string {
 		b := New()
@@ -82,7 +80,8 @@ func FuzzWhereIgnoresValues(f *testing.F) {
 	}
 	baseline := build("KEBAP", 200)
 
-	f.Fuzz(func(t *testing.T, s string, n int64) {
-		require.Equal(t, baseline, build(s, n))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		c := fuzz.New(t, data)
+		require.Equal(t, baseline, build(c.String(), c.Int64()))
 	})
 }
