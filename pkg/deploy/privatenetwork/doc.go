@@ -1,22 +1,22 @@
 // Package privatenetwork defines the Kubernetes publication contract shared by
-// Ctrl, Krane, and undns. It covers app connections and a deployment's own
+// Ctrl, Krane, and CoreDNS. It covers app connections and a deployment's own
 // replicas, which are discoverable without a user-created connection.
 //
-// Ctrl selects deployment targets. Krane publishes ConfigMaps, Services, and
-// EndpointSlices. Undns watches those objects and answers DNS queries. This
-// package provides their shared names, labels, ConfigMap encoding, endpoint
-// eligibility rules, and retirement timing; it does not perform I/O.
+// Ctrl selects deployment targets. Krane publishes one shared headless Service
+// per deployment port, named by [ServiceName], and fills it with filtered
+// source EndpointSlices that Cilium shares across clusters. Each caller
+// deployment gets one ExternalName Service per alias, named by
+// [ConnectionServiceName], whose ExternalName is the [ServiceHost] of the
+// shared Service it currently resolves to. [TargetDeploymentAnnotation]
+// records that deployment. Stock CoreDNS answers from these Services.
 //
-// # Publication
+// Each source endpoint's hostname is the region of the cluster that publishes
+// it. For every topology region, a caller also gets one ExternalName Service
+// named by [RegionalConnectionServiceName] that resolves only the endpoints
+// with that hostname.
 //
-// Krane writes [ConnectionData] with [Encode]; undns reads it with [Decode].
-// An unresolved alias still has a positive revision but no deployment or Service:
+// DNS visibility is not authorization. Cilium policies grant traffic.
 //
-//	data, err := privatenetwork.Encode(privatenetwork.ConnectionData{
-//		Alias: "worker", Revision: 1,
-//	})
-//
-// [ServiceName] identifies a deployment's shared discovery Service.
-// [AppendReadyAddresses] keeps publisher readiness checks and DNS answers on
-// the same endpoint eligibility rules.
+// [AppendReadyAddresses] defines which endpoints count as ready before Krane
+// moves an alias to a new deployment. This package does not perform I/O.
 package privatenetwork

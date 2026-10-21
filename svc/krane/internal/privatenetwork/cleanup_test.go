@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 )
@@ -50,7 +51,7 @@ func TestCleanupRemovesOrphanPolicy(t *testing.T) {
 }
 
 func TestConfirmedAbsenceCleanupPrecedesEndpointFailure(t *testing.T) {
-	r, key, connections, _, _ := cleanupFixture(t)
+	r, key, connections, _, spec := cleanupFixture(t)
 	r.clusterKey = &ctrlv1.ClusterKey{}
 	r.cluster = &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t,
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "one", Complete: true, Certified: true},
@@ -63,20 +64,20 @@ func TestConfirmedAbsenceCleanupPrecedesEndpointFailure(t *testing.T) {
 		return false, nil, nil
 	})
 	require.ErrorContains(t, r.reconcile(t.Context()), "endpoint API unavailable")
-	connection := connections[key]
-	_, err := r.client.CoreV1().ConfigMaps(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
+	connection := connections[key][0]
+	_, err := r.client.CoreV1().Services(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
 	require.NoError(t, err, "one snapshot cannot confirm absence")
 	r.cluster = &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t,
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "two", Complete: true, Certified: true},
 	)}
 	require.ErrorContains(t, r.reconcile(t.Context()), "endpoint API unavailable")
-	_, err = r.client.CoreV1().ConfigMaps(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
+	_, err = r.client.CoreV1().Services(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err))
-	_, err = r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
+	_, err = r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connection.Namespace).Get(t.Context(), connectionResourceName(spec), metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err))
 	failing = false
 	require.NoError(t, r.reconcile(t.Context()))
-	_, err = r.client.CoreV1().ConfigMaps(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
+	_, err = r.client.CoreV1().Services(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err))
 }
 
@@ -103,10 +104,10 @@ func TestCleanupDeleteErrorRetainsDNSAndRetries(t *testing.T) {
 func TestUncertifiedSnapshotsNeverConfirmAbsence(t *testing.T) {
 	r, key, connections, _, spec := cleanupFixture(t)
 	r.clusterKey = &ctrlv1.ClusterKey{}
-	connection := connections[key]
+	connection := connections[key][0]
 	exists := func() bool {
 		t.Helper()
-		_, err := r.client.CoreV1().ConfigMaps(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
+		_, err := r.client.CoreV1().Services(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return false
 		}
@@ -141,17 +142,40 @@ func TestUncertifiedSnapshotsNeverConfirmAbsence(t *testing.T) {
 	require.False(t, exists(), "a certified absence survives the uncertified snapshots between")
 }
 
-func cleanupFixture(t *testing.T) (*Reconciler, string, map[string]*corev1.ConfigMap, map[string]*unstructured.Unstructured, *ctrlv1.PrivateNetworkConnection) {
+func cleanupFixture(t *testing.T) (*Reconciler, string, map[string][]*corev1.Service, map[string]*unstructured.Unstructured, *ctrlv1.PrivateNetworkConnection) {
 	t.Helper()
 	spec := newTestConnection()
 	r := &Reconciler{clock: clock.NewTestClock(), client: fake.NewClientset(), dynamic: testDynamicClient()}
-	service, err := r.ensureService(t.Context(), spec, "target-service", nil)
+	service, err := r.ensureService(t.Context(), spec, discoveryName(spec.GetTargetDeploymentId(), spec.GetTargetPort()), nil)
 	require.NoError(t, err)
-	connection, err := r.ensureConnection(t.Context(), spec, connectionResourceName(spec), service, nil, nil)
+	require.NoError(t, ensureTestPolicy(t, r, t.Context(), spec, connectionResourceName(spec), nil))
+	connection, err := r.ensureConnection(t.Context(), spec, aliasName(spec), "", service, nil, "", nil)
 	require.NoError(t, err)
-	require.NoError(t, ensureTestPolicy(t, r, t.Context(), spec, connection.Name, connection))
-	policy, err := r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
+	policy, err := r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connection.Namespace).Get(t.Context(), connectionResourceName(spec), metav1.GetOptions{})
 	require.NoError(t, err)
-	key := connection.Namespace + "/" + connection.Name
-	return r, key, map[string]*corev1.ConfigMap{key: connection}, map[string]*unstructured.Unstructured{key: policy}, spec
+	key := grantKey(connection)
+	require.Equal(t, policy.GetNamespace()+"/"+policy.GetName(), key)
+	return r, key, map[string][]*corev1.Service{key: {connection}}, map[string]*unstructured.Unstructured{key: policy}, spec
+}
+
+func TestCleanupDNSDeleteErrorRevokesGrantFirstAndRetries(t *testing.T) {
+	r, key, connections, policies, spec := cleanupFixture(t)
+	failing := true
+	r.client.(*fake.Clientset).PrependReactor("delete", "services", func(clienttesting.Action) (bool, runtime.Object, error) {
+		if failing {
+			return true, nil, apierrors.NewServiceUnavailable("injected")
+		}
+		return false, nil, nil
+	})
+	require.NoError(t, r.cleanupGrants(t.Context(), "one", nil, connections, policies, true))
+	require.Error(t, r.cleanupGrants(t.Context(), "two", nil, connections, policies, true))
+	require.NotContains(t, policies, key, "the grant is revoked before DNS")
+	require.Empty(t, effectiveFlows(t, r.dynamic.(*fakedynamic.FakeDynamicClient), spec.GetK8SNamespace()))
+	require.Contains(t, connections, key)
+	require.Equal(t, spec.TargetDeploymentId, resolvedDeployment(t, r.client, spec), "failed DNS deletion leaves the alias for retry")
+
+	failing = false
+	require.NoError(t, r.cleanupGrants(t.Context(), "three", nil, connections, policies, true))
+	require.NotContains(t, connections, key)
+	require.Nil(t, aliasService(t, r.client, spec))
 }
