@@ -1,0 +1,56 @@
+syntax = "proto3";
+package ctrl.v1;
+
+import "ctrl/v1/actor.proto";
+import "ctrl/v1/custom_domain.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+message AddPortalDomainRequest {
+  // The tenant workspace that owns the portal, not the portal app's workspace.
+  string workspace_id = 1;
+  string portal_id = 2;
+  string domain = 3;
+  ActorInfo actor = 4;
+}
+
+message AddPortalDomainResponse {
+  string domain_id = 1;
+  // CNAME target the tenant must configure, under the portal CNAME domain.
+  string target_cname = 2;
+  CustomDomainStatus status = 3;
+  // Ownership proof token the tenant publishes as a TXT record on
+  // "_unkey.<domain>" with the value "unkey-domain-verify=<token>".
+  string verification_token = 4;
+}
+
+message DeletePortalDomainRequest {
+  string workspace_id = 1;
+  string portal_id = 2;
+  string domain_id = 3;
+  ActorInfo actor = 4;
+}
+
+message DeletePortalDomainResponse {}
+
+message RetryPortalDomainVerificationRequest {
+  string workspace_id = 1;
+  string portal_id = 2;
+  string domain_id = 3;
+  ActorInfo actor = 4;
+}
+
+message RetryPortalDomainVerificationResponse {
+  CustomDomainStatus status = 1;
+}
+
+// PortalDomainService manages the hostnames tenants attach to their portal.
+// Every verified hostname routes to the one shared portal app.
+service PortalDomainService {
+  rpc AddPortalDomain(AddPortalDomainRequest) returns (AddPortalDomainResponse) {}
+
+  rpc DeletePortalDomain(DeletePortalDomainRequest) returns (DeletePortalDomainResponse) {}
+
+  // Retry verification for a pending, verifying, or failed domain.
+  rpc RetryVerification(RetryPortalDomainVerificationRequest) returns (RetryPortalDomainVerificationResponse) {}
+}
