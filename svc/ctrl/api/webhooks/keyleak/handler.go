@@ -24,10 +24,10 @@ func New(client *ingress.Client, verifier webhook.Verifier) http.Handler {
 	h := &handler{restate: client}
 
 	receiver := webhook.New("github_secret_scanning", verifier, webhook.WithMaxBodySize(bodyBytesMax)).
-		OnResponse([]string{githubsecrets.EventType}, webhook.TypedResponse(http.StatusCreated, h.report))
+		On([]string{githubsecrets.EventType}, webhook.Typed(h.report))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
 
 		w.Header().Set("Cache-Control", "no-store")
@@ -42,26 +42,18 @@ type reportedToken struct {
 	Source string `json:"source"`
 }
 
-type result struct {
-	TokenRaw  string `json:"token_raw,omitempty"`
-	TokenHash string `json:"token_hash,omitempty"`
-	TokenType string `json:"token_type"`
-	Label     string `json:"label"`
-}
-
-func (h *handler) report(ctx context.Context, event webhook.Event, tokens []reportedToken) ([]result, error) {
+func (h *handler) report(ctx context.Context, event webhook.Event, tokens []reportedToken) error {
 	if tokens == nil {
-		return nil, webhook.ErrBadRequest
+		return webhook.ErrBadRequest
 	}
 	for _, token := range tokens {
 		if token.Token == "" || token.Type == "" || token.Source == "" {
-			return nil, webhook.ErrBadRequest
+			return webhook.ErrBadRequest
 		}
 	}
 
-	results := make([]result, 0, len(tokens))
 	if len(tokens) == 0 {
-		return results, nil
+		return nil
 	}
 
 	report := &hydrav1.KeyLeakReport{Tokens: make([]*hydrav1.KeyLeakToken, 0, len(tokens))}
@@ -74,39 +66,11 @@ func (h *handler) report(ctx context.Context, event webhook.Event, tokens []repo
 		})
 	}
 
-	invocation, err := hydrav1.NewKeyLeakServiceIngressClient(h.restate).Process().Send(ctx, report,
+	_, err := hydrav1.NewKeyLeakServiceIngressClient(h.restate).Process().Send(ctx, report,
 		restate.WithIdempotencyKey(hash.Sha256(string(event.Payload))))
 	if err != nil {
-		return nil, fmt.Errorf("%w: persist key leak report: %w", webhook.ErrUnavailable, err)
-	}
-	classified, err := invocation.Attach(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%w: classify key leak report: %w", webhook.ErrUnavailable, err)
+		return fmt.Errorf("%w: persist key leak report: %w", webhook.ErrUnavailable, err)
 	}
 
-	matched := make(map[string]bool, len(classified.GetMatchedHashes()))
-	for _, hashed := range classified.GetMatchedHashes() {
-		matched[hashed] = true
-	}
-	for i, token := range tokens {
-		hashed := report.GetTokens()[i].GetHash()
-		if !matched[hashed] {
-			results = append(results, result{
-				TokenRaw:  "",
-				TokenHash: hashed,
-				TokenType: token.Type,
-				Label:     "false_positive",
-			})
-			continue
-		}
-
-		results = append(results, result{
-			TokenRaw:  token.Token,
-			TokenHash: "",
-			TokenType: token.Type,
-			Label:     "true_positive",
-		})
-	}
-
-	return results, nil
+	return nil
 }

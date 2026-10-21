@@ -90,6 +90,8 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
 	verifier, sign := newSigningFixture(t)
 	handler := New(runtime.IngressClient, verifier)
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
 	tokens := []reportedToken{
 		{Token: root.Key, Type: "unkey_root_key", Source: "commit", URL: "https://github.com/unkeyed/example/commit/a"},
 		{Token: unknown, Type: "unkey_root_key", Source: "commit"},
@@ -98,27 +100,25 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 	}
 	body, err := json.Marshal(tokens)
 	require.NoError(t, err)
-	requestCtx, cancel := context.WithCancel(ctx)
+	requestCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	t.Cleanup(cancel)
-	req := sign(body).WithContext(requestCtx)
-	res := httptest.NewRecorder()
-	finished := make(chan struct{})
-	go func() {
-		defer close(finished)
-		handler.ServeHTTP(res, req)
-	}()
+	req, err := http.NewRequestWithContext(requestCtx, http.MethodPost, server.URL+"/webhooks/github/key-leaks", bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header = sign(body).Header
+	res, err := server.Client().Do(req)
+	require.NoError(t, err, "webhook must acknowledge persistence without waiting for the database")
+	t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
+	responseBody, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, res.StatusCode)
+	require.Empty(t, responseBody)
+	cancel()
+
 	select {
 	case <-failingDB.attempted:
 	case <-time.After(20 * time.Second):
 		t.Fatal("report did not reach the database")
 	}
-	cancel()
-	select {
-	case <-finished:
-	case <-time.After(5 * time.Second):
-		t.Fatal("webhook did not stop waiting after disconnect")
-	}
-	require.Equal(t, http.StatusServiceUnavailable, res.Code)
 	failingDB.recovered.Store(true)
 
 	select {
@@ -157,19 +157,8 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 	for range 2 {
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, sign(body))
-		require.Equal(t, http.StatusCreated, res.Code, res.Body.String())
-		var got []result
-		require.NoError(t, json.Unmarshal(res.Body.Bytes(), &got))
-		want := make([]result, len(tokens))
-		for i, token := range tokens {
-			if i == 0 || i == 3 {
-				want[i] = result{TokenRaw: root.Key, TokenType: token.Type, Label: "true_positive"}
-			} else {
-				digest := sha256.Sum256([]byte(token.Token))
-				want[i] = result{TokenHash: base64.StdEncoding.EncodeToString(digest[:]), TokenType: token.Type, Label: "false_positive"}
-			}
-		}
-		require.Equal(t, want, got)
+		require.Equal(t, http.StatusOK, res.Code, res.Body.String())
+		require.Empty(t, res.Body.Bytes())
 	}
 	require.Empty(t, sender.delivered, "duplicate reports must not send duplicate emails")
 	require.Empty(t, slackMessages, "duplicate reports must not send duplicate Slack alerts")
@@ -184,7 +173,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		require.NoError(t, err)
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, sign(body))
-		require.Equal(t, http.StatusCreated, res.Code, res.Body.String())
+		require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 		for range 2 {
 			select {
 			case message := <-sender.delivered:
@@ -285,15 +274,21 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 			require.NoError(t, err)
 			res := httptest.NewRecorder()
 			handler.ServeHTTP(res, sign(body))
-			require.Equal(t, http.StatusCreated, res.Code, res.Body.String())
-			var got []result
-			require.NoError(t, json.Unmarshal(res.Body.Bytes(), &got))
+			require.Equal(t, http.StatusOK, res.Code, res.Body.String())
+			require.Empty(t, res.Body.Bytes())
+
+			digest := sha256.Sum256([]byte(token))
+			hashed := base64.StdEncoding.EncodeToString(digest[:])
+			processed, err := hydrav1.NewKeyLeakServiceIngressClient(runtime.IngressClient).Process().Request(ctx,
+				&hydrav1.KeyLeakReport{Tokens: []*hydrav1.KeyLeakToken{{
+					Hash: hashed, Type: report.Type, Source: report.Source, Url: report.URL,
+				}}}, restate.WithIdempotencyKey(hash.Sha256(string(body))))
+			require.NoError(t, err)
 			if !test.matched {
-				digest := sha256.Sum256([]byte(token))
-				require.Equal(t, []result{{TokenHash: base64.StdEncoding.EncodeToString(digest[:]), TokenType: report.Type, Label: "false_positive"}}, got)
+				require.Empty(t, processed.GetMatchedHashes())
 				return
 			}
-			require.Equal(t, []result{{TokenRaw: token, TokenType: report.Type, Label: "true_positive"}}, got)
+			require.Equal(t, []string{hashed}, processed.GetMatchedHashes())
 			recipients := make([]string, 0, 2)
 			for range 2 {
 				select {
@@ -435,11 +430,8 @@ func TestKeyLeakRejectsInvalidReports(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, res.Code)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, sign([]byte("[]")))
-	require.Equal(t, http.StatusCreated, res.Code)
-	var results []result
-	require.NoError(t, json.Unmarshal(res.Body.Bytes(), &results))
-	require.NotNil(t, results)
-	require.Empty(t, results)
+	require.Equal(t, http.StatusOK, res.Code)
+	require.Empty(t, res.Body.Bytes())
 }
 
 type unavailableDatabase struct {
