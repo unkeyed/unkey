@@ -16,13 +16,18 @@ const options: ComboboxOption[] = [
   { label: <span>Auto</span>, selectedLabel: "Auto", value: "", searchValue: "automatic" },
 ];
 
-function Harness(props: { creatable?: boolean; onSelect: (value: string) => void }) {
+function Harness(props: {
+  creatable?: boolean;
+  createPosition?: "first" | "last";
+  onSelect: (value: string) => void;
+}) {
   const [value, setValue] = React.useState("alpha");
   return (
     <Combobox
       options={options}
       value={value}
       creatable={props.creatable}
+      createPosition={props.createPosition}
       onSelect={(next) => {
         props.onSelect(next);
         setValue(next);
@@ -117,6 +122,22 @@ describe("Combobox", () => {
 
     expect(onSelect).toHaveBeenCalledWith("services/api");
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("highlights a partial match before the typed value when the create option is last", () => {
+    const onSelect = vi.fn();
+    render(<Harness creatable createPosition="last" onSelect={onSelect} />);
+
+    fireEvent.click(getTrigger());
+    const input = screen.getByPlaceholderText("Search...");
+    fireEvent.change(input, { target: { value: "bet" } });
+
+    const shown = screen.getAllByRole("option");
+    expect(shown[0].textContent).toContain("Beta");
+    expect(shown.at(-1)?.textContent).toContain('Use "bet"');
+
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith("beta");
   });
 
   it("does not offer to create a value that an option already matches through searchValue", () => {

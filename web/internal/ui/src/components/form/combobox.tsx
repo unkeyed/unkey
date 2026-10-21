@@ -276,6 +276,8 @@ type DocumentedComboboxProps = DocumentedComboboxTriggerProps & {
   wrapperClassName?: string;
   /** Offers the typed query as an option when it matches none of `options`. */
   creatable?: boolean;
+  /** Where the typed-query option sits. "last" lets Enter pick a partial match first. */
+  createPosition?: "first" | "last";
   /** Class name applied to the popup container. */
   popoverClassName?: string;
 };
@@ -301,6 +303,7 @@ function Combobox({
   className,
   variant = "default",
   creatable = false,
+  createPosition = "first",
   popoverClassName,
   ...triggerProps
 }: ComboboxProps) {
@@ -335,10 +338,14 @@ function Combobox({
     };
   }, [creatable, trimmedQuery, effectiveOptions]);
 
-  const listOptions = React.useMemo(
-    () => (createOption ? [createOption, ...effectiveOptions] : effectiveOptions),
-    [createOption, effectiveOptions],
-  );
+  const listOptions = React.useMemo(() => {
+    if (!createOption) {
+      return effectiveOptions;
+    }
+    return createPosition === "last"
+      ? [...effectiveOptions, createOption]
+      : [createOption, ...effectiveOptions];
+  }, [createOption, createPosition, effectiveOptions]);
 
   const optionsByValue = React.useMemo(
     () => new Map(listOptions.map((option) => [option.value, option])),
