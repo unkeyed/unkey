@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net/netip"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -46,9 +45,8 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	excludedRegions := make([]string, 0, len(hops))
 	for _, hop := range hops {
-		platform, region, ok := strings.Cut(hop.Region, "::")
-		if ok {
-			excludedRegions = append(excludedRegions, region+"."+platform)
+		if hop.RegionPlatform != "" {
+			excludedRegions = append(excludedRegions, hop.RegionPlatform)
 		}
 	}
 

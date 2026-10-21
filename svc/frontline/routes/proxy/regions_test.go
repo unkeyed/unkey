@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/paseto"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
@@ -67,6 +68,45 @@ func TestRegionFallback_ExhaustedInstancesReturnUpstreamError(t *testing.T) {
 				return requestCount(t, upstream) == upstreamBefore+1
 			}, time.Second, time.Millisecond)
 			require.Equal(t, platformBefore, requestCount(t, platform))
+		})
+	}
+}
+
+func TestRegionFallback_ExcludesSignedRoutingRegion(t *testing.T) {
+	for _, hop := range []meta.Hop{
+		{Region: "display label", RegionPlatform: "us-east-1.aws"},
+		{Region: "aws::eu-north-1", RegionPlatform: "us-east-1.aws"},
+		{Region: "aws::us-east-1"},
+	} {
+		t.Run(hop.Region, func(t *testing.T) {
+			backend, stop := startBackend(t, func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
+			t.Cleanup(stop)
+			regions := startRegions(t, []string{"us-east-1", "us-west-2"}, map[string]string{
+				"us-east-1": backend,
+				"us-west-2": unreachableAddr(t),
+			})
+			codec, err := meta.New(testMetadataSigningKey)
+			require.NoError(t, err)
+			token, err := codec.Marshal(&meta.Metadata{
+				Claims: paseto.Claims{ExpiresAt: time.Now().Add(time.Minute)},
+				Hops:   []meta.Hop{hop},
+			})
+			require.NoError(t, err)
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+regions["us-west-2"], nil)
+			require.NoError(t, err)
+			req.Host = "retry-test.example.com"
+			req.Header.Set(proxy.HeaderFrontlineMeta, token)
+			client := &http.Client{Timeout: 5 * time.Second}
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, resp.Body.Close()) })
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusBadGateway, resp.StatusCode, "body: %s", body)
+			require.Equal(t, []string{"aws::us-west-2"}, resp.Header.Values(proxy.HeaderRegion))
 		})
 	}
 }
