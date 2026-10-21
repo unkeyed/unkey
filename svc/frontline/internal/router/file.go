@@ -71,7 +71,7 @@ func NewFile(routes []FileRoute, directory string) (*fileService, error) {
 				ID: route.Hostname, Address: route.Upstream, Status: db.InstancesStatusRunning,
 				WorkspaceID: "local-dev", ProjectID: "", AppID: "", RegionName: "", RegionPlatform: "",
 			}},
-			RemoteRegionAddress: "", UpstreamProtocol: protocol, Policies: policies,
+			RemoteRegionAddress: "", RemoteInstances: nil, UpstreamProtocol: protocol, Policies: policies,
 		}
 	}
 	return s, nil

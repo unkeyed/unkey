@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
+	"github.com/unkeyed/unkey/svc/frontline/internal/peer"
 )
 
 // Service forwards HTTP requests to either a local deployment instance or
@@ -27,6 +28,16 @@ type Service interface {
 	// the hop history. The peer redoes the full hostname → engine → instance
 	// chain and is responsible for its own retry and logging.
 	ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string, hops []meta.Hop) error
+
+	// PeerReady reports whether the backhaul to targetRegionPlatform has a
+	// usable connection.
+	PeerReady(targetRegionPlatform string) bool
+
+	// ForwardViaPeer sends the request to instance in targetRegionPlatform
+	// over the backhaul. The relay there dials the instance without routing
+	// or policies. Callers may use [IsDialError] to decide whether the
+	// request is safe to replay against another instance.
+	ForwardViaPeer(ctx context.Context, sess *zen.Session, targetRegionPlatform string, deploymentID string, protocol db.DeploymentsUpstreamProtocol, instance db.FindInstancesByDeploymentIDRow, hops []meta.Hop) error
 }
 
 // Config holds configuration for the proxy service.
@@ -71,4 +82,8 @@ type Config struct {
 
 	// ErrorPageRenderer renders HTML error pages.
 	ErrorPageRenderer errorpage.Renderer
+
+	// Peers holds backhaul connections to other regions. Nil disables
+	// ForwardViaPeer.
+	Peers *peer.Pool
 }

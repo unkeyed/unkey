@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"io"
+	"net/http"
 	"net/netip"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
+	"github.com/unkeyed/unkey/svc/frontline/internal/peer"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
@@ -48,7 +50,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if decision.Destination != router.DestinationLocalInstance {
+	// A request that already crossed a region keeps the legacy path, so the
+	// backhaul never carries more than one hop.
+	viaPeer := len(hops) == 0 && len(decision.RemoteInstances) > 0 && h.ProxyService.PeerReady(decision.RemoteRegionAddress)
+	if decision.Destination != router.DestinationLocalInstance && !viaPeer {
 		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress, hops)
 	}
 
@@ -171,6 +176,13 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		localRequestRetriesTotal.WithLabelValues(retryOutcomeExhausted).Inc()
 	}
 
+	if viaPeer {
+		if sawDialFailure {
+			regionFallbacksTotal.WithLabelValues(decision.RemoteRegionAddress).Inc()
+		}
+		return h.forwardViaPeer(ctx, sess, decision, tracking, forwardErr)
+	}
+
 	// Every local instance dial-failed (or there were none — shouldn't
 	// happen since the router would have returned a remote decision in
 	// that case, but treat it the same way). If the router gave us a
@@ -194,6 +206,45 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			fault.Public("Service temporarily unavailable"),
 		)
 	}
+	return forwardErr
+}
+
+// forwardViaPeer tries the remote instances in order over the backhaul. It
+// moves on only when the relay reports that the request never reached the
+// instance; the replay buffer resends the body bytes the failed attempt
+// already sent.
+func (h *Handler) forwardViaPeer(ctx context.Context, sess *zen.Session, decision router.RouteDecision, tracking *proxy.RequestTracking, forwardErr error) error {
+	req := sess.Request()
+	var replay *peer.ReplayBody
+	if req.Body != nil && req.Body != http.NoBody && req.ContentLength != 0 {
+		replay = peer.NewReplayBody(req.Body, peer.DefaultReplayLimit)
+	}
+
+	retried := false
+	for _, instance := range decision.RemoteInstances {
+		if replay != nil {
+			attempt, err := replay.Attempt()
+			if err != nil {
+				return forwardErr
+			}
+			req.Body = attempt
+		}
+		tracking.InstanceID = instance.ID
+		tracking.Address = instance.Address
+
+		forwardErr = h.ProxyService.ForwardViaPeer(ctx, sess, decision.RemoteRegionAddress, decision.DeploymentID, decision.UpstreamProtocol, instance, nil)
+		if forwardErr == nil {
+			if retried {
+				peerRetriesTotal.WithLabelValues(retryOutcomeRecovered).Inc()
+			}
+			return nil
+		}
+		if !proxy.IsDialError(forwardErr) {
+			return forwardErr
+		}
+		retried = true
+	}
+	peerRetriesTotal.WithLabelValues(retryOutcomeExhausted).Inc()
 	return forwardErr
 }
 

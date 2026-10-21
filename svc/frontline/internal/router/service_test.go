@@ -22,7 +22,8 @@ import (
 // getPolicies run.
 type stubQuerier struct {
 	db.Querier
-	row db.FindFrontlineRouteByFQDNRow
+	row       db.FindFrontlineRouteByFQDNRow
+	instances []db.FindInstancesByDeploymentIDRow
 }
 
 func (s stubQuerier) FindFrontlineRouteByFQDN(_ context.Context, _ string) (db.FindFrontlineRouteByFQDNRow, error) {
@@ -32,7 +33,7 @@ func (s stubQuerier) FindFrontlineRouteByFQDN(_ context.Context, _ string) (db.F
 // No instances: the running path falls through to selectDestination, which
 // returns NoRunningInstances on an empty set.
 func (s stubQuerier) FindInstancesByDeploymentID(_ context.Context, _ string) ([]db.FindInstancesByDeploymentIDRow, error) {
-	return nil, nil
+	return s.instances, nil
 }
 
 func newCache[V any](t *testing.T, resource string) cache.Cache[string, V] {
@@ -123,4 +124,61 @@ func TestRoute_RunningDeploymentPassesGuard(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, codes.Frontline.Routing.NoRunningInstances.URN(), urn,
 		"running deployment must pass the guard and fail on instance selection, not as suspended")
+}
+
+// TestRoute_RemoteDecisionCarriesNearestRegionInstances verifies that a
+// remote decision names only running instances of the nearest region, and
+// carries the workspace and policies the entry frontline needs to serve the
+// request over the backhaul.
+func TestRoute_RemoteDecisionCarriesNearestRegionInstances(t *testing.T) {
+	instance := func(id, region string, status db.InstancesStatus) db.FindInstancesByDeploymentIDRow {
+		//nolint:exhaustruct
+		return db.FindInstancesByDeploymentIDRow{
+			ID:             id,
+			Address:        id + ":8080",
+			RegionName:     region,
+			RegionPlatform: "aws",
+			Status:         status,
+			WorkspaceID:    "ws_1",
+			ProjectID:      "proj_1",
+			AppID:          "app_1",
+		}
+	}
+	svc, err := router.New(router.Config{
+		Platform: "aws",
+		Region:   "us-west-2",
+		DB: stubQuerier{
+			row: db.FindFrontlineRouteByFQDNRow{
+				EnvironmentID:    "env_1",
+				DeploymentID:     "dep_1",
+				SentinelConfig:   []byte("{}"),
+				UpstreamProtocol: db.DeploymentsUpstreamProtocolHttp1,
+				DesiredState:     db.DeploymentsDesiredStateRunning,
+			},
+			instances: []db.FindInstancesByDeploymentIDRow{
+				instance("far_1", "eu-central-1", db.InstancesStatusRunning),
+				instance("near_1", "us-east-1", db.InstancesStatusRunning),
+				instance("near_pending", "us-east-1", db.InstancesStatusPending),
+				instance("near_2", "us-east-1", db.InstancesStatusRunning),
+			},
+		},
+		FrontlineRouteCache:   newCache[db.FindFrontlineRouteByFQDNRow](t, "frontline_routes"),
+		InstancesByDeployment: newCache[[]db.FindInstancesByDeploymentIDRow](t, "instances"),
+		PolicyCache:           newCache[[]*frontlinev1.Policy](t, "policies"),
+	})
+	require.NoError(t, err)
+
+	decision, err := svc.Route(context.Background(), "app.example.com")
+	require.NoError(t, err)
+
+	require.Equal(t, router.DestinationRemoteRegion, decision.Destination)
+	require.Equal(t, "us-east-1.aws", decision.RemoteRegionAddress)
+	ids := make([]string, 0, len(decision.RemoteInstances))
+	for _, inst := range decision.RemoteInstances {
+		ids = append(ids, inst.ID)
+	}
+	require.ElementsMatch(t, []string{"near_1", "near_2"}, ids)
+	require.Equal(t, "ws_1", decision.WorkspaceID)
+	require.Equal(t, "app_1", decision.AppID)
+	require.Equal(t, db.DeploymentsUpstreamProtocolHttp1, decision.UpstreamProtocol)
 }

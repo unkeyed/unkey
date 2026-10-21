@@ -58,3 +58,16 @@ var regionFallbacksTotal = lazy.NewCounterVec(
 	},
 	[]string{"to_region"},
 )
+
+// peerRetriesTotal counts backhaul requests where the relay reported that an
+// attempt never reached the remote instance, labelled by final outcome.
+// Requests served on the first attempt are not counted.
+var peerRetriesTotal = lazy.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "unkey",
+		Subsystem: "frontline",
+		Name:      "peer_request_retries_total",
+		Help:      "Backhaul requests that hit at least one undelivered attempt, labelled by final outcome.",
+	},
+	[]string{"outcome"},
+)
