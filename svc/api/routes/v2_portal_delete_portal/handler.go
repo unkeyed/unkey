@@ -120,6 +120,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		// Held until commit, so a domain ctrl is attaching either lands before the
+		// count below or finds the portal gone.
+		if _, err = db.Query.LockPortalForUpdate(ctx, tx, db.LockPortalForUpdateParams{
+			ID:          found.ID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+		}); err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to lock portal"),
+				fault.Public("We're unable to delete the portal."),
+			)
+		}
+
 		// Refused rather than cascaded: the domains' routes and certificates live in
 		// ctrl, and the portal domain routes can only reach them through this portal.
 		domainCount, err := db.Query.CountPortalDomainsByPortal(ctx, tx, db.CountPortalDomainsByPortalParams{

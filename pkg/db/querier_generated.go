@@ -3348,6 +3348,14 @@ type Querier interface {
 	//    AND workspace_id = ?
 	//  FOR UPDATE
 	LockPortalForMint(ctx context.Context, db DBTX, arg LockPortalForMintParams) (LockPortalForMintRow, error)
+	// Exclusively locks a portal for the rest of the transaction. Attaching a domain
+	// in ctrl share-locks the same row, so a delete that checks for domains under
+	// this lock cannot race a domain being added.
+	//
+	//  SELECT id FROM portals
+	//  WHERE id = ? AND workspace_id = ?
+	//  FOR UPDATE
+	LockPortalForUpdate(ctx context.Context, db DBTX, arg LockPortalForUpdateParams) (string, error)
 	//LockRatelimitNamespaceByIdOrName
 	//
 	//  (
