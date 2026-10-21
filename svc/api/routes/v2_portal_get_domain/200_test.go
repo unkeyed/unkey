@@ -21,7 +21,7 @@ func TestGetPortalDomain(t *testing.T) {
 	require.Equal(t, stored.ID, data.Id)
 	require.Equal(t, f.portal.ID, data.PortalId)
 	require.Equal(t, stored.Domain, data.Domain)
-	require.Equal(t, openapi.PortalDomainStatusVerifying, data.Status)
+	require.Equal(t, openapi.DomainStatusVerifying, data.Status)
 	require.Equal(t, stored.CreatedAt, data.CreatedAt)
 	require.Nil(t, data.VerificationError)
 

@@ -20,7 +20,7 @@ properties:
     maxLength: 255
     pattern: "^[a-zA-Z0-9_]+$"
     description: The portal this domain serves.
-    example: pc_1234abcd
+    example: prt_1234abcd
   domain:
     type: string
     minLength: 4
@@ -28,26 +28,7 @@ properties:
     description: Fully qualified domain name attached to the portal.
     example: portal.acme.com
   status:
-    type: string
-    enum:
-      - pending
-      - verifying
-      - verified
-      - failed
-    # Distinct names so codegen does not collide with Domain's status enum in the shared package.
-    x-enum-varnames:
-      - PortalDomainStatusPending
-      - PortalDomainStatusVerifying
-      - PortalDomainStatusVerified
-      - PortalDomainStatusFailed
-    description: |
-      The verification status of the domain.
-
-      - `pending`: the domain is created. No DNS check has completed yet.
-      - `verifying`: Unkey checks the DNS records approximately each minute.
-      - `verified`: the domain is verified and serves the portal.
-      - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
-    example: verified
+    "$ref": "./DomainStatus.yaml"
   verificationError:
     type: string
     maxLength: 512
@@ -66,7 +47,7 @@ properties:
   createdAt:
     type: integer
     format: int64
-    description: Unix timestamp in milliseconds when the domain was created. The 24 hour verification window runs from here.
+    description: Unix timestamp in milliseconds when the domain was created.
     example: 1704067200000
   updatedAt:
     type: integer

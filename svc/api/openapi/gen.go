@@ -494,30 +494,6 @@ func (e MethodMatchMethods) Valid() bool {
 	}
 }
 
-// Defines values for PortalDomainStatus.
-const (
-	PortalDomainStatusFailed    PortalDomainStatus = "failed"
-	PortalDomainStatusPending   PortalDomainStatus = "pending"
-	PortalDomainStatusVerified  PortalDomainStatus = "verified"
-	PortalDomainStatusVerifying PortalDomainStatus = "verifying"
-)
-
-// Valid indicates whether the value is a known member of the PortalDomainStatus enum.
-func (e PortalDomainStatus) Valid() bool {
-	switch e {
-	case PortalDomainStatusFailed:
-		return true
-	case PortalDomainStatusPending:
-		return true
-	case PortalDomainStatusVerified:
-		return true
-	case PortalDomainStatusVerifying:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for UpdateKeyCreditsRefillInterval.
 const (
 	UpdateKeyCreditsRefillIntervalDaily   UpdateKeyCreditsRefillInterval = "daily"
@@ -1622,7 +1598,7 @@ type Domain struct {
 	// - `pending`: the domain is created. No DNS check has completed yet.
 	// - `verifying`: Unkey checks the DNS records approximately each minute.
 	// - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
-	// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+	// - `failed`: verification stopped. `verificationError` says why, for example the records did not appear within 24 hours. Fix the cause, then retry verification.
 	//
 	//
 	// Example: verified
@@ -1640,16 +1616,6 @@ type Domain struct {
 	// Example: domain verification timed out after 24 hours
 	VerificationError *string `json:"verificationError,omitempty"`
 }
-
-// DomainStatus The verification status of the domain.
-//
-// - `pending`: the domain is created. No DNS check has completed yet.
-// - `verifying`: Unkey checks the DNS records approximately each minute.
-// - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
-// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
-//
-// Example: verified
-type DomainStatus string
 
 // DomainConnect One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
 // Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
@@ -1677,6 +1643,16 @@ type DomainConnect struct {
 	// Example: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api
 	Url string `json:"url"`
 }
+
+// DomainStatus The verification status of the domain.
+//
+// - `pending`: the domain is created. No DNS check has completed yet.
+// - `verifying`: Unkey checks the DNS records approximately each minute.
+// - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+// - `failed`: verification stopped. `verificationError` says why, for example the records did not appear within 24 hours. Fix the cause, then retry verification.
+//
+// Example: verified
+type DomainStatus string
 
 // EmptyResponse Empty response object by design. A successful response indicates this operation was successfully executed.
 type EmptyResponse = map[string]interface{}
@@ -2706,7 +2682,7 @@ type PortalBranding struct {
 
 // PortalDomain defines model for PortalDomain.
 type PortalDomain struct {
-	// CreatedAt Unix timestamp in milliseconds when the domain was created. The 24 hour verification window runs from here.
+	// CreatedAt Unix timestamp in milliseconds when the domain was created.
 	//
 	// Example: 1704067200000
 	CreatedAt int64 `json:"createdAt"`
@@ -2727,19 +2703,19 @@ type PortalDomain struct {
 
 	// PortalId The portal this domain serves.
 	//
-	// Example: pc_1234abcd
+	// Example: prt_1234abcd
 	PortalId string `json:"portalId"`
 
 	// Status The verification status of the domain.
 	//
 	// - `pending`: the domain is created. No DNS check has completed yet.
 	// - `verifying`: Unkey checks the DNS records approximately each minute.
-	// - `verified`: the domain is verified and serves the portal.
-	// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+	// - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+	// - `failed`: verification stopped. `verificationError` says why, for example the records did not appear within 24 hours. Fix the cause, then retry verification.
 	//
 	//
 	// Example: verified
-	Status PortalDomainStatus `json:"status"`
+	Status DomainStatus `json:"status"`
 
 	// UpdatedAt Unix timestamp in milliseconds of the last change to this domain. Omitted if it has never changed.
 	//
@@ -2753,16 +2729,6 @@ type PortalDomain struct {
 	// Example: domain verification timed out after 24 hours
 	VerificationError *string `json:"verificationError,omitempty"`
 }
-
-// PortalDomainStatus The verification status of the domain.
-//
-// - `pending`: the domain is created. No DNS check has completed yet.
-// - `verifying`: Unkey checks the DNS records approximately each minute.
-// - `verified`: the domain is verified and serves the portal.
-// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
-//
-// Example: verified
-type PortalDomainStatus string
 
 // PortalDomainId The portal domain ID that `portal.createDomain` returned.
 //

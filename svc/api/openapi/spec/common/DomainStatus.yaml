@@ -1,0 +1,20 @@
+type: string
+enum:
+  - pending
+  - verifying
+  - verified
+  - failed
+# Codegen otherwise emits bare Pending/Verifying/Verified/Failed into the shared openapi package.
+x-enum-varnames:
+  - DomainStatusPending
+  - DomainStatusVerifying
+  - DomainStatusVerified
+  - DomainStatusFailed
+description: |
+  The verification status of the domain.
+
+  - `pending`: the domain is created. No DNS check has completed yet.
+  - `verifying`: Unkey checks the DNS records approximately each minute.
+  - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+  - `failed`: verification stopped. `verificationError` says why, for example the records did not appear within 24 hours. Fix the cause, then retry verification.
+example: verified

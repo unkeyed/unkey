@@ -41,26 +41,7 @@ properties:
       deployed to this environment.
     example: env_1234abcd
   status:
-    type: string
-    enum:
-      - pending
-      - verifying
-      - verified
-      - failed
-    # Codegen otherwise emits bare Pending/Verifying/Verified/Failed into the shared openapi package.
-    x-enum-varnames:
-      - DomainStatusPending
-      - DomainStatusVerifying
-      - DomainStatusVerified
-      - DomainStatusFailed
-    description: |
-      The verification status of the domain.
-
-      - `pending`: the domain is created. No DNS check has completed yet.
-      - `verifying`: Unkey checks the DNS records approximately each minute.
-      - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
-      - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
-    example: verified
+    "$ref": "./DomainStatus.yaml"
   verificationError:
     type: string
     maxLength: 512
