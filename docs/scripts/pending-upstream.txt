@@ -5,6 +5,9 @@
 # `mise run docs-check` prints the current pending set under "pending upstream publish".
 /v2/workspace.getLimits
 /v2/workspace.getUsage
+# Portal custom domain endpoints are public in the local spec but not yet in the
+# published one. Add them to both Portal reference groups once it republishes.
+/v2/portal.createDomain
 # Internal to the hosted portal and x-excluded on purpose; never listed.
 /v2/portal.exchangeCode
 /v2/portal.getVerifications

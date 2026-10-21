@@ -59,8 +59,7 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 	sort.Strings(portal)
 
 	require.Equal(t, []string{
-		"liveness",            // infrastructure endpoint, not part of the customer-facing reference
-		"portal.createDomain", // custom domains are not launched yet
+		"liveness", // infrastructure endpoint, not part of the customer-facing reference
 		"portal.exchangeCode",
 		"portal.getVerifications",
 		"portal.listKeys",
@@ -68,6 +67,7 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 	}, excluded, "every excluded operation is accounted for")
 
 	public := []string{
+		"portal.createDomain",
 		"portal.createPortal",
 		"portal.createSession",
 		"portal.deletePortal",
