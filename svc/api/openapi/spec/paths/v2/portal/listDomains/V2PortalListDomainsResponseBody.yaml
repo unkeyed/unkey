@@ -1,0 +1,15 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    type: array
+    items:
+      "$ref": "../../../../common/PortalDomain.yaml"
+    description: |
+      Every domain attached to the portal, verified or not, sorted by ID. Empty when the
+      portal has no domains.
+additionalProperties: false
