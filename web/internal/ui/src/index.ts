@@ -43,6 +43,7 @@ export * from "./components/info-hover-card";
 export * from "./components/segmented-control";
 export * from "./components/settings-card";
 export * from "./components/settings-row";
+export * from "./components/settings-skeleton";
 export * from "./components/unsaved-changes";
 export * from "./components/skeleton";
 export * from "./components/timestamp-info";
