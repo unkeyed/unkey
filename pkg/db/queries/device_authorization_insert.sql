@@ -1,8 +1,7 @@
--- name: InsertCLIDeviceLogin :exec
-INSERT INTO cli_device_logins (
+-- name: InsertDeviceAuthorization :exec
+INSERT INTO device_authorizations (
     id,
     user_code,
-    poll_interval_seconds,
     expires_at,
     status,
     device_name,
@@ -12,7 +11,6 @@ INSERT INTO cli_device_logins (
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(user_code),
-    sqlc.arg(poll_interval_seconds),
     sqlc.arg(expires_at),
     sqlc.arg(status),
     sqlc.arg(device_name),

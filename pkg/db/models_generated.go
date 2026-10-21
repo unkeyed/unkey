@@ -576,6 +576,51 @@ func (ns NullDeploymentsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.DeploymentsUpstreamProtocol), nil
 }
 
+type DeviceAuthorizationsStatus string
+
+const (
+	DeviceAuthorizationsStatusPending  DeviceAuthorizationsStatus = "pending"
+	DeviceAuthorizationsStatusApproved DeviceAuthorizationsStatus = "approved"
+	DeviceAuthorizationsStatusConsumed DeviceAuthorizationsStatus = "consumed"
+	DeviceAuthorizationsStatusDenied   DeviceAuthorizationsStatus = "denied"
+	DeviceAuthorizationsStatusExpired  DeviceAuthorizationsStatus = "expired"
+)
+
+func (e *DeviceAuthorizationsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeviceAuthorizationsStatus(s)
+	case string:
+		*e = DeviceAuthorizationsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeviceAuthorizationsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullDeviceAuthorizationsStatus struct {
+	DeviceAuthorizationsStatus DeviceAuthorizationsStatus
+	Valid                      bool // Valid is true if DeviceAuthorizationsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeviceAuthorizationsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeviceAuthorizationsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeviceAuthorizationsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeviceAuthorizationsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeviceAuthorizationsStatus), nil
+}
+
 type FrontlineRoutesSticky string
 
 const (
@@ -823,25 +868,21 @@ type AppSourceOci struct {
 	UpdatedAt      sql.NullInt64 `db:"updated_at"`
 }
 
-type CliDeviceLogin struct {
-	Pk                  uint64         `db:"pk"`
-	ID                  string         `db:"id"`
-	UserCode            string         `db:"user_code"`
-	PollIntervalSeconds int32          `db:"poll_interval_seconds"`
-	ExpiresAt           int64          `db:"expires_at"`
-	Status              string         `db:"status"`
-	DeviceName          sql.NullString `db:"device_name"`
-	RequesterIp         sql.NullString `db:"requester_ip"`
-	RequesterUserAgent  sql.NullString `db:"requester_user_agent"`
-	WorkspaceID         sql.NullString `db:"workspace_id"`
-	ApproverUserID      sql.NullString `db:"approver_user_id"`
-	ApproverName        sql.NullString `db:"approver_name"`
-	ApproverRoles       []byte         `db:"approver_roles"`
-	Permissions         []byte         `db:"permissions"`
-	KeyName             sql.NullString `db:"key_name"`
-	KeyID               sql.NullString `db:"key_id"`
-	CreatedAt           int64          `db:"created_at"`
-	ApprovedAt          sql.NullInt64  `db:"approved_at"`
+type CliSession struct {
+	Pk                       uint64          `db:"pk"`
+	ID                       string          `db:"id"`
+	WorkspaceID              string          `db:"workspace_id"`
+	UserID                   string          `db:"user_id"`
+	Permissions              json.RawMessage `db:"permissions"`
+	DeviceName               sql.NullString  `db:"device_name"`
+	RefreshTokenHash         string          `db:"refresh_token_hash"`
+	PreviousRefreshTokenHash sql.NullString  `db:"previous_refresh_token_hash"`
+	RefreshFamily            string          `db:"refresh_family"`
+	RotatedAt                sql.NullInt64   `db:"rotated_at"`
+	CreatedAt                int64           `db:"created_at"`
+	LastUsedAt               int64           `db:"last_used_at"`
+	ExpiresAt                int64           `db:"expires_at"`
+	RevokedAt                sql.NullInt64   `db:"revoked_at"`
 }
 
 type Deployment struct {
@@ -898,6 +939,25 @@ type DeploymentStep struct {
 	StartedAt     uint64              `db:"started_at"`
 	EndedAt       sql.NullInt64       `db:"ended_at"`
 	Error         sql.NullString      `db:"error"`
+}
+
+type DeviceAuthorization struct {
+	Pk                 uint64                     `db:"pk"`
+	ID                 string                     `db:"id"`
+	UserCode           string                     `db:"user_code"`
+	ExpiresAt          int64                      `db:"expires_at"`
+	Status             DeviceAuthorizationsStatus `db:"status"`
+	DeviceName         sql.NullString             `db:"device_name"`
+	RequesterIp        sql.NullString             `db:"requester_ip"`
+	RequesterUserAgent sql.NullString             `db:"requester_user_agent"`
+	WorkspaceID        sql.NullString             `db:"workspace_id"`
+	ApproverUserID     sql.NullString             `db:"approver_user_id"`
+	ApproverName       sql.NullString             `db:"approver_name"`
+	ApproverRoles      []byte                     `db:"approver_roles"`
+	Permissions        []byte                     `db:"permissions"`
+	SessionID          sql.NullString             `db:"session_id"`
+	CreatedAt          int64                      `db:"created_at"`
+	ApprovedAt         sql.NullInt64              `db:"approved_at"`
 }
 
 type EncryptedKey struct {

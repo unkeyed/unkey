@@ -1,9 +1,8 @@
--- name: FindCLIDeviceLoginByID :one
+-- name: FindDeviceAuthorizationByID :one
 SELECT
     pk,
     id,
     user_code,
-    poll_interval_seconds,
     expires_at,
     status,
     device_name,
@@ -14,19 +13,17 @@ SELECT
     approver_name,
     approver_roles,
     permissions,
-    key_name,
-    key_id,
+    session_id,
     created_at,
     approved_at
-FROM cli_device_logins
+FROM device_authorizations
 WHERE id = sqlc.arg(id);
 
--- name: FindCLIDeviceLoginByIDForUpdate :one
+-- name: FindDeviceAuthorizationByIDForUpdate :one
 SELECT
     pk,
     id,
     user_code,
-    poll_interval_seconds,
     expires_at,
     status,
     device_name,
@@ -37,20 +34,18 @@ SELECT
     approver_name,
     approver_roles,
     permissions,
-    key_name,
-    key_id,
+    session_id,
     created_at,
     approved_at
-FROM cli_device_logins
+FROM device_authorizations
 WHERE id = sqlc.arg(id)
 FOR UPDATE;
 
--- name: FindCLIDeviceLoginByUserCode :one
+-- name: FindDeviceAuthorizationByUserCode :one
 SELECT
     pk,
     id,
     user_code,
-    poll_interval_seconds,
     expires_at,
     status,
     device_name,
@@ -61,19 +56,17 @@ SELECT
     approver_name,
     approver_roles,
     permissions,
-    key_name,
-    key_id,
+    session_id,
     created_at,
     approved_at
-FROM cli_device_logins
+FROM device_authorizations
 WHERE user_code = sqlc.arg(user_code);
 
--- name: FindCLIDeviceLoginByUserCodeForUpdate :one
+-- name: FindDeviceAuthorizationByUserCodeForUpdate :one
 SELECT
     pk,
     id,
     user_code,
-    poll_interval_seconds,
     expires_at,
     status,
     device_name,
@@ -84,10 +77,9 @@ SELECT
     approver_name,
     approver_roles,
     permissions,
-    key_name,
-    key_id,
+    session_id,
     created_at,
     approved_at
-FROM cli_device_logins
+FROM device_authorizations
 WHERE user_code = sqlc.arg(user_code)
 FOR UPDATE;
