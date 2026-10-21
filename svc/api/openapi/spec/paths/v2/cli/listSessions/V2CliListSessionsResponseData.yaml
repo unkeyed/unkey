@@ -1,0 +1,8 @@
+type: object
+required:
+  - sessions
+properties:
+  sessions:
+    type: array
+    items:
+      $ref: ./V2CliListSessionsSession.yaml

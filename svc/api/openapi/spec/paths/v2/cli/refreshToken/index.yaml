@@ -1,0 +1,44 @@
+post:
+  x-speakeasy-ignore: true
+  tags:
+    - cli
+  summary: Refresh a CLI session
+  description: |
+    Exchanges a CLI refresh token for a new access token and a new refresh token.
+    The user's current role is checked again. If they were removed, or their role no longer includes any of the session's permissions, the session is revoked.
+    Reusing an old refresh token revokes the session.
+    No authentication header is required. The refresh token is the credential.
+  operationId: cli.refreshToken
+  x-speakeasy-name-override: refreshToken
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2CliRefreshTokenRequestBody.yaml
+  responses:
+    "200":
+      description: New access token and refresh token.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliRefreshTokenResponseBody.yaml
+    "401":
+      description: The refresh token is invalid, expired, or was already used.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: The user was removed or no longer has the session's permissions.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Internal server error, including when CLI login is not configured on this API.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml
