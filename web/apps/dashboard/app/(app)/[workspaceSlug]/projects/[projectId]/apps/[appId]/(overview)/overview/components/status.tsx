@@ -4,6 +4,7 @@ import {
   isDeploymentInFlight,
 } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { isFatalWaitingReason } from "@/lib/collections/deploy/exit-reasons";
 
 export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
 
@@ -15,7 +16,7 @@ export function deriveProductionStatus(deployment: Deployment): DeploymentDispla
     return "failed";
   }
   const crashing =
-    deployment.lastExit?.statusReason === "CrashLoopBackOff" ||
+    isFatalWaitingReason(deployment.lastExit?.statusReason ?? null) ||
     (deployment.instances ?? []).some((i) => i.status === "failed");
   if (crashing) {
     return "crashing";

@@ -1,4 +1,5 @@
 import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
+import { isFatalWaitingReason } from "@/lib/collections/deploy/exit-reasons";
 import { trpc } from "@/lib/trpc/client";
 import { IconLayers3Outline18 } from "@unkey/icons";
 import { CardFooter } from "./components/card-footer";
@@ -36,13 +37,13 @@ export function InstanceNode({ node, region, deploymentId }: InstanceNodeProps) 
 
   // Promote the card to "unhealthy" styling whenever there's something
   // actively wrong. Two triggers:
-  //   - statusReason === "CrashLoopBackOff" — kubelet is currently
+  //   - a fatal waiting reason (e.g. CrashLoopBackOff) — kubelet is currently
   //     throttling restarts; ALWAYS unhealthy regardless of finishedAt
   //   - finishedAt within the recent window — there was a crash
   //     recently enough that the user still cares
   // Otherwise, defer to the kubelet-derived health (running pod with
   // an old crash 6h ago should look normal).
-  const isInActiveCrashloop = lastExit?.statusReason === "CrashLoopBackOff";
+  const isInActiveCrashloop = isFatalWaitingReason(lastExit?.statusReason ?? null);
   const isRecentCrash =
     lastExit?.finishedAt != null && Date.now() - lastExit.finishedAt < RECENT_CRASH_WINDOW_MS;
   const effectiveHealth = isInActiveCrashloop || isRecentCrash ? "unhealthy" : health;
