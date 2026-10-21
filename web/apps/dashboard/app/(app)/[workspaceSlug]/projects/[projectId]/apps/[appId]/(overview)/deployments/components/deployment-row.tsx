@@ -5,7 +5,7 @@ import {
   EnvironmentBadge,
   type EnvironmentBadgeRollout,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
-import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
+import { LastExitHover } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
@@ -94,16 +94,17 @@ export function DeploymentRow({
               ? imageRefDisplay(image)
               : shortenId(deployment.id))}
         </span>
-        {showLastExit && deployment.lastExit && (
-          <span className="relative z-20 shrink-0">
-            <LastExitText lastExit={deployment.lastExit} />
-          </span>
-        )}
       </span>
 
       <span className="flex min-w-0 shrink-0 items-center gap-2 md:w-44">
         <DeploymentStatusDot status={deployment.status} />
-        <span className="truncate text-sm font-medium text-gray-12">{statusLabel}</span>
+        <span className="flex min-w-0 text-sm font-medium text-gray-12">
+          {showLastExit && deployment.lastExit ? (
+            <LastExitHover lastExit={deployment.lastExit}>{statusLabel}</LastExitHover>
+          ) : (
+            <span className="truncate">{statusLabel}</span>
+          )}
+        </span>
         <DeploymentDuration
           status={deployment.status}
           createdAt={deployment.createdAt}
