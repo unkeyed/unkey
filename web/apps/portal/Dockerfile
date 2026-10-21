@@ -1,4 +1,4 @@
-FROM ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac AS os
+FROM ubuntu:25.10@sha256:7cc5e35f6567ee8c66d2abb4aab0fd866669e6207c237c3a8f0947a5c7f17092 AS os
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libatomic1 libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
 
