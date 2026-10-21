@@ -38,7 +38,7 @@ A user only sees keys whose identity `externalId` matches the one in their sessi
 ## Fields
 
 <ParamField body="slug" type="string" required>
-  A handle for the portal in API calls, unique in your workspace. 3 to 64 lowercase letters, digits, and hyphens, not starting or ending with a hyphen. Your users never see it. You can use the slug or the `pc_` ID wherever you name a portal. A taken slug, or a second portal for the same keyspace or app, fails with HTTP 409 `err:unkey:data:portal_already_exists`.
+  A handle for the portal in API calls, unique in your workspace. 3 to 64 lowercase letters, digits, and hyphens, not starting or ending with a hyphen. Your users never see it. You can use the slug or the `prt_` ID wherever you name a portal. A taken slug, or a second portal for the same keyspace or app, fails with HTTP 409 `err:unkey:data:portal_already_exists`.
 </ParamField>
 <ParamField body="displayName" type="string" required>
   1 to 64 characters shown in the portal header and page titles. Change it any time.
@@ -79,7 +79,7 @@ curl -X POST https://api.unkey.com/v2/portal.createPortal \
   }'
 ```
 
-You get the portal back with its `pc_` ID. Next, [create a session](/api-management/portal/sessions) for a signed-in user and redirect them to the URL you get back.
+You get the portal back with its `prt_` ID. Next, [create a session](/api-management/portal/sessions) for a signed-in user and redirect them to the URL you get back.
 
 ## Change or remove a portal
 
@@ -95,5 +95,8 @@ You get the portal back with its `pc_` ID. Next, [create a session](/api-managem
   </Card>
   <Card title="What portal users can do" icon="user" href="/api-management/portal/end-user-experience">
     The keys and analytics tabs, what each scope unlocks, and the endpoints behind them.
+  </Card>
+  <Card title="Custom domains" icon="globe" href="/api-management/portal/custom-domains">
+    Serve the portal from a hostname you own, with DNS records, verification, and a certificate.
   </Card>
 </Columns>
