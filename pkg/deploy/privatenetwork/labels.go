@@ -1,0 +1,19 @@
+package privatenetwork
+
+const (
+	WorkspaceLabel        = "unkey.com/workspace.id"
+	ProjectLabel          = "unkey.com/project.id"
+	AppLabel              = "unkey.com/app.id"
+	EnvironmentLabel      = "unkey.com/environment.id"
+	DeploymentLabel       = "unkey.com/deployment.id"
+	CallerDeploymentLabel = "unkey.com/caller-deployment.id"
+	ConnectionLabel       = "unkey.com/connection.id"
+	ManagedByLabel        = "app.kubernetes.io/managed-by"
+	ComponentLabel        = "app.kubernetes.io/component"
+
+	DiscoveryComponent = "private-dns"
+	SourceSliceManager = "private-dns.unkey.com"
+
+	CiliumGlobalAnnotation       = "service.cilium.io/global"
+	CiliumGlobalSlicesAnnotation = "service.cilium.io/global-sync-endpoint-slices"
+)

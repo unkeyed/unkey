@@ -3,22 +3,26 @@ package labels
 import (
 	"fmt"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
 )
 
 // Label key constants for krane resources.
 // These are the single source of truth for label keys used across the codebase.
 const (
-	LabelKeyWorkspaceID     = "unkey.com/workspace.id"
-	LabelKeyProjectID       = "unkey.com/project.id"
-	LabelKeyAppID           = "unkey.com/app.id"
-	LabelKeyEnvironmentID   = "unkey.com/environment.id"
-	LabelKeyDeploymentID    = "unkey.com/deployment.id"
-	LabelKeyBuildID         = "unkey.com/build.id"
-	LabelKeyNetworkPolicyID = "unkey.com/networkpolicy.id"
-	LabelKeyPlatform        = "unkey.com/platform"
-	LabelKeyManagedBy       = "app.kubernetes.io/managed-by"
-	LabelKeyComponent       = "app.kubernetes.io/component"
-	LabelKeyNamespace       = "io.kubernetes.pod.namespace"
+	LabelKeyWorkspaceID        = privatenetwork.WorkspaceLabel
+	LabelKeyProjectID          = privatenetwork.ProjectLabel
+	LabelKeyAppID              = privatenetwork.AppLabel
+	LabelKeyEnvironmentID      = privatenetwork.EnvironmentLabel
+	LabelKeyDeploymentID       = privatenetwork.DeploymentLabel
+	LabelKeyCallerDeploymentID = privatenetwork.CallerDeploymentLabel
+	LabelKeyConnectionID       = privatenetwork.ConnectionLabel
+	LabelKeyBuildID            = "unkey.com/build.id"
+	LabelKeyNetworkPolicyID    = "unkey.com/networkpolicy.id"
+	LabelKeyPlatform           = "unkey.com/platform"
+	LabelKeyManagedBy          = privatenetwork.ManagedByLabel
+	LabelKeyComponent          = privatenetwork.ComponentLabel
+	LabelKeyNamespace          = "io.kubernetes.pod.namespace"
 )
 
 // Labels represents a map of Kubernetes labels for krane resources.

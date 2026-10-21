@@ -3,7 +3,6 @@ package privatenetwork
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -83,12 +82,10 @@ func TestReconcileRPCErrorPreservesPublishedObjects(t *testing.T) {
 		return nil, fmt.Errorf("unavailable")
 	})
 	require.Error(t, r.reconcile(ctx))
-	connections, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Len(t, connections.Items, 1)
+	require.Equal(t, connectionSpec.TargetDeploymentId, resolvedDeployment(t, client, connectionSpec))
 	services, err := client.CoreV1().Services("customer-1").List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
-	require.Len(t, services.Items, 1)
+	require.Len(t, services.Items, 2, "one shared Service and one alias")
 }
 
 func TestReconcilePolicyWriteFailureDoesNotPublishNewDNSAndRetryConverges(t *testing.T) {
@@ -122,13 +119,11 @@ func TestReconcilePolicyWriteFailureDoesNotPublishNewDNSAndRetryConverges(t *tes
 				return true, nil, apierrors.NewForbidden(schema.GroupResource{Resource: cilium.NetworkPolicyResource.Resource}, policyName(desired), fmt.Errorf("injected policy failure"))
 			})
 			require.True(t, apierrors.IsForbidden(r.reconcile(ctx)))
-			connection, err := client.CoreV1().ConfigMaps(desired.GetK8SNamespace()).Get(ctx, connectionResourceName(desired), metav1.GetOptions{})
 			if verb == "create" {
-				require.True(t, apierrors.IsNotFound(err), "DNS ConfigMap was published without its policy")
+				require.Nil(t, aliasService(t, client, desired), "DNS was published without its policy")
 				require.Empty(t, effectiveFlows(t, dynamic, desired.GetK8SNamespace()))
 			} else {
-				require.NoError(t, err)
-				require.Equal(t, initial.TargetDeploymentId, connection.Data["deploymentId"])
+				require.Equal(t, initial.TargetDeploymentId, resolvedDeployment(t, client, desired))
 				require.Equal(t, []flow{{initial.CallerDeploymentId, initial.TargetDeploymentId}}, effectiveFlows(t, dynamic, desired.GetK8SNamespace()))
 			}
 
@@ -144,9 +139,7 @@ func TestReconcilePolicyWriteFailureDoesNotPublishNewDNSAndRetryConverges(t *tes
 				}
 			}
 			require.NoError(t, r.reconcile(ctx))
-			connection, err = client.CoreV1().ConfigMaps(desired.GetK8SNamespace()).Get(ctx, connectionResourceName(desired), metav1.GetOptions{})
-			require.NoError(t, err)
-			require.Equal(t, desired.TargetDeploymentId, connection.Data["deploymentId"])
+			require.Equal(t, desired.TargetDeploymentId, resolvedDeployment(t, client, desired))
 			require.Contains(t, effectiveFlows(t, dynamic, desired.GetK8SNamespace()), flow{desired.CallerDeploymentId, desired.TargetDeploymentId})
 		})
 	}
@@ -173,15 +166,13 @@ func TestReconcilePolicyDeleteFailureRetainsDNSUntilRetry(t *testing.T) {
 	snapshot = nil
 	require.NoError(t, r.reconcile(ctx))
 	require.True(t, apierrors.IsForbidden(r.reconcile(ctx)))
-	_, err := client.CoreV1().ConfigMaps(connectionSpec.GetK8SNamespace()).Get(ctx, connectionResourceName(connectionSpec), metav1.GetOptions{})
-	require.NoError(t, err, "DNS must remain while policy revocation fails")
+	require.Equal(t, connectionSpec.TargetDeploymentId, resolvedDeployment(t, client, connectionSpec), "DNS must remain while policy revocation fails")
 	require.Equal(t, []flow{{connectionSpec.CallerDeploymentId, connectionSpec.TargetDeploymentId}}, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()))
 
 	failing = false
 	require.NoError(t, r.reconcile(ctx))
-	_, err = client.CoreV1().ConfigMaps(connectionSpec.GetK8SNamespace()).Get(ctx, connectionResourceName(connectionSpec), metav1.GetOptions{})
-	require.True(t, apierrors.IsNotFound(err))
-	_, err = dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connectionSpec.GetK8SNamespace()).Get(ctx, policyName(connectionSpec), metav1.GetOptions{})
+	require.Nil(t, aliasService(t, client, connectionSpec))
+	_, err := dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connectionSpec.GetK8SNamespace()).Get(ctx, policyName(connectionSpec), metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err))
 	require.Empty(t, effectiveFlows(t, dynamic, connectionSpec.GetK8SNamespace()), "revocation must not receive replacement overlap")
 	services, err := client.CoreV1().Services(connectionSpec.GetK8SNamespace()).List(ctx, metav1.ListOptions{})
@@ -207,7 +198,6 @@ func TestReconcileConnectionPromotionRollback(t *testing.T) {
 			return []*ctrlv1.PrivateNetworkConnection{connectionSpec}, nil
 		})
 		serviceName := discoveryName(deployment, connectionSpec.GetTargetPort())
-		connectionName := connectionResourceName(connectionSpec)
 		require.NoError(t, r.reconcile(ctx))
 		service, err := client.CoreV1().Services(connectionSpec.GetK8SNamespace()).Get(ctx, serviceName, metav1.GetOptions{})
 		require.NoError(t, err)
@@ -215,14 +205,12 @@ func TestReconcileConnectionPromotionRollback(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, r.reconcile(ctx))
 
-		connection, err := client.CoreV1().ConfigMaps(connectionSpec.GetK8SNamespace()).Get(ctx, connectionName, metav1.GetOptions{})
-		require.NoError(t, err)
-		require.Equal(t, deployment, connection.Data["deploymentId"])
-		require.Equal(t, strconv.Itoa(i+1), connection.Data["revision"])
+		require.Equal(t, deployment, resolvedDeployment(t, client, connectionSpec))
+		require.Len(t, connectionServices(t, client, connectionSpec.GetK8SNamespace()), 1)
 
 		services, err := client.CoreV1().Services(connectionSpec.GetK8SNamespace()).List(ctx, metav1.ListOptions{})
 		require.NoError(t, err)
-		require.LessOrEqual(t, len(services.Items), 2)
+		require.LessOrEqual(t, len(services.Items), 3, "at most two shared Services and one alias")
 
 		service, err = client.CoreV1().Services(connectionSpec.GetK8SNamespace()).Get(ctx, serviceName, metav1.GetOptions{})
 		require.NoError(t, err)
@@ -239,10 +227,9 @@ func TestReconcileConnectionPromotionRollback(t *testing.T) {
 		return nil, nil
 	})
 	require.NoError(t, r.reconcile(ctx))
-	connections, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Len(t, connections.Items, 1)
+	require.Len(t, connectionServices(t, client, "customer-1"), 1)
 	require.NoError(t, r.reconcile(ctx))
+	require.Empty(t, connectionServices(t, client, "customer-1"))
 	services, err := client.CoreV1().Services("customer-1").List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
 	require.NotEmpty(t, services.Items)
@@ -251,9 +238,6 @@ func TestReconcileConnectionPromotionRollback(t *testing.T) {
 		require.True(t, ok)
 		require.Equal(t, now.Add(privatenetwork.ReplacementOverlap), deadline)
 	}
-	connections, err = client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Empty(t, connections.Items)
 
 	clk.Tick(privatenetwork.ReplacementOverlap - time.Nanosecond)
 	require.NoError(t, r.reconcile(ctx))
@@ -274,29 +258,26 @@ func TestReconcileRefusesOtherAppOwnership(t *testing.T) {
 	client := fake.NewClientset()
 	r := &Reconciler{clock: clock.NewTestClock(), client: client}
 	connectionSpec := newTestConnection()
-	service, err := r.ensureService(ctx, connectionSpec, "service", nil)
+	serviceName := discoveryName(connectionSpec.GetTargetDeploymentId(), connectionSpec.GetTargetPort())
+	service, err := r.ensureService(ctx, connectionSpec, serviceName, nil)
 	require.NoError(t, err)
-	_, err = r.ensureConnection(ctx, connectionSpec, "connection", service, nil, nil)
-	require.NoError(t, err)
-	service, err = client.CoreV1().Services("customer-1").Get(ctx, "service", metav1.GetOptions{})
-	require.NoError(t, err)
-	connection, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, "connection", metav1.GetOptions{})
+	connection, err := r.ensureConnection(ctx, connectionSpec, aliasName(connectionSpec), "", service, nil, "", nil)
 	require.NoError(t, err)
 
 	other := proto.Clone(connectionSpec).(*ctrlv1.PrivateNetworkConnection)
 	other.TargetDeploymentId, other.TargetAppId = uid.New(uid.DeploymentPrefix), uid.New(uid.AppPrefix)
-	_, err = r.ensureService(ctx, other, "service", service)
+	_, err = r.ensureService(ctx, other, serviceName, service)
 	require.ErrorContains(t, err, "foreign Service")
 	other.ConnectionId = uid.New(uid.ConnectionPrefix)
-	_, err = r.ensureConnection(ctx, other, "connection", service, connection, nil)
-	require.ErrorContains(t, err, "foreign ConfigMap")
+	_, err = r.ensureConnection(ctx, other, aliasName(other), "", service, connection, connectionSpec.TargetDeploymentId, nil)
+	require.ErrorContains(t, err, "foreign Service")
+	_, err = r.ensureService(ctx, connectionSpec, connection.Name, connection)
+	require.ErrorContains(t, err, "foreign Service", "an alias is never adopted as a shared Service")
 
-	service, err = client.CoreV1().Services("customer-1").Get(ctx, "service", metav1.GetOptions{})
+	require.Equal(t, connectionSpec.TargetDeploymentId, resolvedDeployment(t, client, connectionSpec))
+	service, err = client.CoreV1().Services("customer-1").Get(ctx, serviceName, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, connectionSpec.TargetDeploymentId, service.Labels[labels.LabelKeyDeploymentID])
-	connection, err = client.CoreV1().ConfigMaps("customer-1").Get(ctx, "connection", metav1.GetOptions{})
-	require.NoError(t, err)
-	require.Equal(t, connectionSpec.TargetDeploymentId, connection.Data["deploymentId"])
 }
 
 func TestReconcileRejectsConnectionChangedDuringSnapshotFetch(t *testing.T) {
@@ -312,7 +293,7 @@ func TestReconcileRejectsConnectionChangedDuringSnapshotFetch(t *testing.T) {
 	})
 	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 	require.NoError(t, r.reconcile(ctx))
-	connectionName := connectionResourceName(initial)
+	aliasName := aliasService(t, client, initial).Name
 	service, err := r.ensureService(ctx, replacement, discoveryName(replacement.GetTargetDeploymentId(), replacement.GetTargetPort()), nil)
 	require.NoError(t, err)
 	service.UID = types.UID(uid.New(uid.TestPrefix))
@@ -322,17 +303,17 @@ func TestReconcileRejectsConnectionChangedDuringSnapshotFetch(t *testing.T) {
 	require.NoError(t, err)
 
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
-		connection, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, connectionName, metav1.GetOptions{})
+		connection, err := client.CoreV1().Services("customer-1").Get(ctx, aliasName, metav1.GetOptions{})
 		require.NoError(t, err)
 		connection.ResourceVersion = "2"
-		connection.Data["deploymentId"] = concurrentDeploymentID
-		connection.Data["revision"] = "2"
-		_, err = client.CoreV1().ConfigMaps("customer-1").Update(ctx, connection, metav1.UpdateOptions{})
+		connection.Annotations[privatenetwork.TargetDeploymentAnnotation] = concurrentDeploymentID
+		connection.Spec.ExternalName = privatenetwork.ServiceHost(discoveryName(concurrentDeploymentID, initial.GetTargetPort()), "customer-1")
+		_, err = client.CoreV1().Services("customer-1").Update(ctx, connection, metav1.UpdateOptions{})
 		require.NoError(t, err)
-		client.PrependReactor("update", "configmaps", func(action clienttesting.Action) (bool, runtime.Object, error) {
-			update := action.(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
-			if update.ResourceVersion != "2" {
-				return true, nil, apierrors.NewConflict(schema.GroupResource{Resource: "configmaps"}, update.Name, fmt.Errorf("resource version changed"))
+		client.PrependReactor("update", "services", func(action clienttesting.Action) (bool, runtime.Object, error) {
+			update := action.(clienttesting.UpdateAction).GetObject().(*corev1.Service)
+			if update.Name == aliasName && update.ResourceVersion != "2" {
+				return true, nil, apierrors.NewConflict(schema.GroupResource{Resource: "services"}, update.Name, fmt.Errorf("resource version changed"))
 			}
 			return false, nil, nil
 		})
@@ -340,22 +321,26 @@ func TestReconcileRejectsConnectionChangedDuringSnapshotFetch(t *testing.T) {
 	})
 
 	require.True(t, apierrors.IsConflict(r.reconcile(ctx)))
-	connection, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, connectionName, metav1.GetOptions{})
+	connection, err := client.CoreV1().Services("customer-1").Get(ctx, aliasName, metav1.GetOptions{})
 	require.NoError(t, err)
-	require.Equal(t, concurrentDeploymentID, connection.Data["deploymentId"])
-	require.Equal(t, "2", connection.Data["revision"])
+	require.Equal(t, concurrentDeploymentID, connection.Annotations[privatenetwork.TargetDeploymentAnnotation])
+	require.Equal(t, privatenetwork.ServiceHost(discoveryName(concurrentDeploymentID, initial.GetTargetPort()), "customer-1"), connection.Spec.ExternalName)
 }
 
 func TestCleanupPreservesForeignResources(t *testing.T) {
 	ctx := t.Context()
-	foreign := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+	spec := newTestConnection()
+	external := corev1.ServiceSpec{Type: corev1.ServiceTypeExternalName, ExternalName: privatenetwork.ServiceHost(discoveryName(spec.TargetDeploymentId, spec.TargetPort), "customer-1")}
+	foreign := &corev1.Service{ObjectMeta: metav1.ObjectMeta{
 		Name: "foreign", Namespace: "customer-1", Labels: map[string]string{
 			labels.LabelKeyManagedBy: "someone-else", labels.LabelKeyComponent: component,
+			labels.LabelKeyConnectionID: spec.ConnectionId, labels.LabelKeyCallerDeploymentID: spec.CallerDeploymentId,
 		},
-	}}
-	managed := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
-		Name: "managed", Namespace: "customer-1", Labels: connectionLabels(newTestConnection()),
-	}, Data: map[string]string{"revision": "1"}}
+	}, Spec: external}
+	managed := &corev1.Service{ObjectMeta: metav1.ObjectMeta{
+		Name: "managed", Namespace: "customer-1", Labels: connectionLabels(spec),
+		Annotations: map[string]string{privatenetwork.TargetDeploymentAnnotation: spec.TargetDeploymentId},
+	}, Spec: external}
 	client := fake.NewClientset(foreign, managed)
 	control := &testutil.MockClusterClient{}
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
@@ -364,12 +349,12 @@ func TestCleanupPreservesForeignResources(t *testing.T) {
 	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 
 	require.NoError(t, r.reconcile(ctx))
-	_, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, "managed", metav1.GetOptions{})
+	_, err := client.CoreV1().Services("customer-1").Get(ctx, "managed", metav1.GetOptions{})
 	require.NoError(t, err)
 	require.NoError(t, r.reconcile(ctx))
-	_, err = client.CoreV1().ConfigMaps("customer-1").Get(ctx, "foreign", metav1.GetOptions{})
+	_, err = client.CoreV1().Services("customer-1").Get(ctx, "foreign", metav1.GetOptions{})
 	require.NoError(t, err)
-	_, err = client.CoreV1().ConfigMaps("customer-1").Get(ctx, "managed", metav1.GetOptions{})
+	_, err = client.CoreV1().Services("customer-1").Get(ctx, "managed", metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err))
 }
 
@@ -412,10 +397,9 @@ func TestReconcileRejectsInvalidConnectionAliases(t *testing.T) {
 
 			require.ErrorContains(t, r.reconcile(ctx), "invalid connection name")
 
-			connections, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
-			require.NoError(t, err)
-			require.Len(t, connections.Items, 1, "the valid connection still publishes")
-			require.Equal(t, valid.ConnectionId, connections.Items[0].Labels[labels.LabelKeyConnectionID])
+			connections := connectionServices(t, client, "customer-1")
+			require.Len(t, connections, 1, "the valid connection still publishes")
+			require.Equal(t, valid.ConnectionId, connections[0].Labels[labels.LabelKeyConnectionID])
 		})
 	}
 }
@@ -426,7 +410,7 @@ func TestReconcileFailedConnectionKeepsItsObjectsWithoutBlockingOthers(t *testin
 	}{
 		{"namespace", "create", "namespaces"},
 		{"service", "create", "services"},
-		{"connection", "update", "configmaps"},
+		{"connection", "update", "services"},
 	} {
 		t.Run(tc.stage, func(t *testing.T) {
 			ctx := t.Context()
@@ -460,12 +444,8 @@ func TestReconcileFailedConnectionKeepsItsObjectsWithoutBlockingOthers(t *testin
 			})
 			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 
-			connection := func(connectionSpec *ctrlv1.PrivateNetworkConnection) (*corev1.ConfigMap, error) {
-				return client.CoreV1().ConfigMaps(connectionSpec.GetK8SNamespace()).Get(ctx, resourceName("unkey-pn-connection", connectionSpec.GetConnectionId()+"/"+connectionSpec.GetCallerDeploymentId()), metav1.GetOptions{})
-			}
-
 			require.NoError(t, r.reconcile(ctx))
-			if tc.resource == "configmaps" {
+			if tc.stage == "connection" {
 				service, ensureErr := r.ensureService(ctx, replacement, discoveryName(replacement.GetTargetDeploymentId(), replacement.GetTargetPort()), nil)
 				require.NoError(t, ensureErr)
 				_, ensureErr = client.DiscoveryV1().EndpointSlices(replacement.GetK8SNamespace()).Create(ctx, readySlice(service, "failing-native", meshSliceManager), metav1.CreateOptions{})
@@ -478,32 +458,23 @@ func TestReconcileFailedConnectionKeepsItsObjectsWithoutBlockingOthers(t *testin
 			failing = true
 			snapshot = []*ctrlv1.PrivateNetworkConnection{replacement, healthy}
 			reconcileErr := r.reconcile(ctx)
-			published, err := connection(healthy)
-			require.NoError(t, err, "connection after the rejected connection")
-			require.Equal(t, healthy.TargetDeploymentId, published.Data["deploymentId"])
-			kept, err := connection(rejected)
-			require.NoError(t, err)
-			require.Equal(t, rejected.TargetDeploymentId, kept.Data["deploymentId"])
-			require.Equal(t, "1", kept.Data["revision"])
+			require.Equal(t, healthy.TargetDeploymentId, resolvedDeployment(t, client, healthy), "connection after the rejected connection")
+			require.Equal(t, rejected.TargetDeploymentId, resolvedDeployment(t, client, rejected))
 			require.Error(t, r.reconcile(ctx))
-			_, err = connection(obsolete)
-			require.True(t, apierrors.IsNotFound(err), "a connection missing from a complete snapshot is revoked even when another connection fails; connection(obsolete) error = %v", err)
+			require.Nil(t, aliasService(t, client, obsolete), "a connection missing from a complete snapshot is revoked even when another connection fails")
 			require.Equal(t, []string{obsolete.TargetDeploymentId}, retiringDeployments(t, client), "the failed connection keeps the Service it still uses")
 			require.True(t, apierrors.IsForbidden(reconcileErr), "reconcile() error = %v, want Forbidden", reconcileErr)
 			require.ErrorContains(t, reconcileErr, rejected.GetK8SNamespace())
 
 			failing = false
-			if tc.resource != "configmaps" {
+			if tc.stage != "connection" {
 				replacementService, err := r.ensureService(ctx, replacement, discoveryName(replacement.GetTargetDeploymentId(), replacement.GetTargetPort()), nil)
 				require.NoError(t, err)
 				_, err = client.DiscoveryV1().EndpointSlices(replacement.GetK8SNamespace()).Create(ctx, readySlice(replacementService, "replacement-native", meshSliceManager), metav1.CreateOptions{})
 				require.NoError(t, err)
 			}
 			require.NoError(t, r.reconcile(ctx))
-			switched, err := connection(rejected)
-			require.NoError(t, err)
-			require.Equal(t, replacement.TargetDeploymentId, switched.Data["deploymentId"])
-			require.Equal(t, "2", switched.Data["revision"])
+			require.Equal(t, replacement.TargetDeploymentId, resolvedDeployment(t, client, rejected))
 			require.ElementsMatch(t, []string{obsolete.TargetDeploymentId}, retiringDeployments(t, client))
 		})
 	}
@@ -576,7 +547,7 @@ func TestReconcileReplicaDiscoveryPublishesCallerDeploymentForPeers(t *testing.T
 	client := fake.NewClientset()
 	dynamic := testDynamicClient()
 	self := newTestConnection()
-	self.TargetAppSlug, self.ConnectionName = "caller", "caller"
+	self.TargetAppSlug, self.ConnectionName = "caller", privatenetwork.SelfName
 	self.TargetDeploymentId = self.CallerDeploymentId
 	self.ConnectionId = "self-" + self.CallerDeploymentId
 	control := &testutil.MockClusterClient{}
@@ -586,14 +557,12 @@ func TestReconcileReplicaDiscoveryPublishesCallerDeploymentForPeers(t *testing.T
 	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 	require.NoError(t, r.reconcile(ctx))
 
-	connections, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Len(t, connections.Items, 1)
-	require.Equal(t, "caller", connections.Items[0].Data["appSlug"])
-	require.Equal(t, self.CallerDeploymentId, connections.Items[0].Data["deploymentId"])
-	require.Equal(t, self.CallerDeploymentId, connections.Items[0].Labels[labels.LabelKeyCallerDeploymentID])
-	service, err := client.CoreV1().Services("customer-1").Get(ctx, connections.Items[0].Data["serviceName"], metav1.GetOptions{})
-	require.NoError(t, err)
+	connections := connectionServices(t, client, "customer-1")
+	require.Len(t, connections, 1)
+	require.Equal(t, privatenetwork.ConnectionServiceName(self.CallerDeploymentId, privatenetwork.SelfName), connections[0].Name)
+	require.Equal(t, self.CallerDeploymentId, connections[0].Labels[labels.LabelKeyCallerDeploymentID])
+	service := resolvedTarget(t, client, self)
+	require.Equal(t, discoveryName(self.CallerDeploymentId, self.GetTargetPort()), service.Name, "self resolves the caller's own shared Service")
 	require.Equal(t, self.CallerDeploymentId, service.Labels[labels.LabelKeyDeploymentID])
 	require.Equal(t, self.TargetAppId, service.Labels[labels.LabelKeyAppID])
 	require.Equal(t, "true", service.Annotations[ciliumGlobal])
@@ -626,12 +595,13 @@ func TestReconcileEnsuresSharedTargetOncePerPass(t *testing.T) {
 	require.Equal(t, 1, calls["list namespaces"], "namespace lists")
 	require.Zero(t, calls["create namespaces"], "namespace creates for namespaces that exist")
 
-	connections, err := client.CoreV1().ConfigMaps(first.GetK8SNamespace()).List(ctx, metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Len(t, connections.Items, 2)
-	for _, connection := range connections.Items {
-		require.Equal(t, discoveryName(first.TargetDeploymentId, first.GetTargetPort()), connection.Data["serviceName"])
+	require.Len(t, connectionServices(t, client, first.GetK8SNamespace()), 2)
+	for _, connectionSpec := range []*ctrlv1.PrivateNetworkConnection{first, second} {
+		require.Equal(t, discoveryName(first.TargetDeploymentId, first.GetTargetPort()), resolvedTarget(t, client, connectionSpec).Name)
 	}
+	slices, err := client.DiscoveryV1().EndpointSlices(first.GetK8SNamespace()).List(ctx, metav1.ListOptions{})
+	require.NoError(t, err)
+	require.Len(t, slices.Items, 1, "callers share one source EndpointSlice")
 }
 
 func TestReconcileIncompleteSnapshotPreservesPolicyAndDNSUntilConfirmedAbsence(t *testing.T) {
@@ -682,22 +652,47 @@ func TestReconcileIncompleteSnapshotPreservesPolicyAndDNSUntilConfirmedAbsence(t
 				control.StreamPrivateNetworkStateFunc = chunkStream(t, identified("incomplete", tc.chunks...)...)
 			}
 			require.ErrorContains(t, r.reconcile(ctx), tc.want)
-			connections, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
-			require.NoError(t, err)
-			require.Len(t, connections.Items, 1, "an incomplete snapshot must not revoke published DNS")
-			require.Equal(t, published.TargetDeploymentId, connections.Items[0].Data["deploymentId"])
+			require.Equal(t, published.TargetDeploymentId, resolvedDeployment(t, client, published), "an incomplete snapshot must not revoke published DNS")
 			require.Equal(t, []flow{{published.CallerDeploymentId, published.TargetDeploymentId}}, effectiveFlows(t, dynamic, "customer-1"), "an incomplete snapshot must not change policy")
 
 			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) { return nil, nil })
 			require.NoError(t, r.reconcile(ctx))
 			require.Equal(t, []flow{{published.CallerDeploymentId, published.TargetDeploymentId}}, effectiveFlows(t, dynamic, "customer-1"), "one complete snapshot cannot confirm absence")
 			require.NoError(t, r.reconcile(ctx))
-			connections, err = client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
-			require.NoError(t, err)
-			require.Empty(t, connections.Items, "two complete snapshots confirm absence")
-			_, err = dynamic.Resource(cilium.NetworkPolicyResource).Namespace(published.GetK8SNamespace()).Get(ctx, policyName(published), metav1.GetOptions{})
+			require.Empty(t, connectionServices(t, client, "customer-1"), "two complete snapshots confirm absence")
+			_, err := dynamic.Resource(cilium.NetworkPolicyResource).Namespace(published.GetK8SNamespace()).Get(ctx, policyName(published), metav1.GetOptions{})
 			require.True(t, apierrors.IsNotFound(err))
 			require.Empty(t, effectiveFlows(t, dynamic, "customer-1"))
 		})
 	}
+}
+
+func TestReconcileRetargetsOneCallerWithoutMovingAnotherCallerOfTheSameTarget(t *testing.T) {
+	ctx := t.Context()
+	first := newTestConnection()
+	second := proto.Clone(first).(*ctrlv1.PrivateNetworkConnection)
+	second.CallerDeploymentId = uid.New(uid.DeploymentPrefix)
+	second.ConnectionId = uid.New(uid.ConnectionPrefix)
+	moved := proto.Clone(first).(*ctrlv1.PrivateNetworkConnection)
+	moved.TargetDeploymentId = uid.New(uid.DeploymentPrefix)
+	client := fake.NewClientset(endpointPod(first, "a", "10.72.0.11"), endpointPod(moved, "b", "10.72.0.22"))
+	dynamic := testDynamicClient()
+	snapshot := []*ctrlv1.PrivateNetworkConnection{first, second}
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
+		return snapshot, nil
+	})}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	require.NoError(t, r.reconcile(ctx))
+	require.NotEqual(t, aliasService(t, client, first).Name, aliasService(t, client, second).Name, "callers sharing an alias get separate Services")
+
+	snapshot = []*ctrlv1.PrivateNetworkConnection{moved, second}
+	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, r.reconcile(ctx))
+	require.Equal(t, []string{"10.72.0.22"}, resolvedAddresses(t, client, moved))
+	require.Equal(t, []string{"10.72.0.11"}, resolvedAddresses(t, client, second))
+	require.ElementsMatch(t, []flow{
+		{first.CallerDeploymentId, first.TargetDeploymentId}, {first.CallerDeploymentId, moved.TargetDeploymentId},
+		{second.CallerDeploymentId, first.TargetDeploymentId},
+	}, effectiveFlows(t, dynamic, "customer-1"), "the moved caller keeps its old grant during overlap; the other caller gains nothing")
+	require.Empty(t, retiringDeployments(t, client), "a target another caller still resolves stays published")
 }

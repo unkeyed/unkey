@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/precondition"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +21,7 @@ import (
 
 const policyTargetsAnnotation = "connections.unkey.com/targets"
 
-func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name string, connection *corev1.ConfigMap, current *unstructured.Unstructured) error {
+func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name string, published []string, current *unstructured.Unstructured) error {
 	client := r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connectionSpec.GetK8SNamespace())
 
 	targets := make(map[string]time.Time)
@@ -41,12 +40,8 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.Pr
 	}
 
 	if connectionSpec.GetTargetDeploymentId() != "" {
-		active := ""
-		if connection != nil && maps.Equal(connection.Labels, connectionLabels(connectionSpec)) && connection.Data[privatenetwork.ConnectionAliasKey] == connectionSpec.GetConnectionName() {
-			active = connection.Data[privatenetwork.ConnectionDeploymentKey]
-		}
 		for target, deadline := range targets {
-			if target == connectionSpec.GetTargetDeploymentId() || target == active {
+			if target == connectionSpec.GetTargetDeploymentId() {
 				continue
 			}
 			if deadline.IsZero() {
@@ -56,8 +51,8 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.Pr
 			}
 		}
 		targets[connectionSpec.GetTargetDeploymentId()] = time.Time{}
-		if active != "" {
-			targets[active] = time.Time{}
+		for _, target := range published {
+			targets[target] = time.Time{}
 		}
 	}
 

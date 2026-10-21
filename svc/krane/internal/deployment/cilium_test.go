@@ -207,7 +207,7 @@ func TestApplyDeploymentPreservesPolicyOwnershipAcrossFailures(t *testing.T) {
 }
 
 func TestPolicyWithoutWorkloadDoesNotPrunePreviousOwner(t *testing.T) {
-	policy := applyPolicy(t, true, "preview", "10.0.0.53")
+	policy := applyPolicy(t, true, true)
 	owners := []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "ReplicaSet", Name: testK8sName, UID: types.UID(uid.New(uid.TestPrefix))}}
 	policy.SetOwnerReferences(owners)
 	client := policyTestClient(policy)
@@ -221,8 +221,6 @@ func TestPolicyWithoutWorkloadDoesNotPrunePreviousOwner(t *testing.T) {
 	}
 }
 
-// TestDesiredStateReadSerializesWithDeletion guarantees that a resync which
-// read a running desired state before a deletion cannot apply it afterwards.
 func TestDesiredStateReadSerializesWithDeletion(t *testing.T) {
 	reading, release := make(chan struct{}), make(chan struct{})
 	unblock := sync.OnceFunc(func() { close(release) })
@@ -276,7 +274,7 @@ func TestDesiredStateReadSerializesWithDeletion(t *testing.T) {
 func TestUnownedPolicyResyncRequiresAuthoritativeDeletion(t *testing.T) {
 	for _, code := range []connect.Code{connect.CodeNotFound, connect.CodeUnavailable, connect.CodeDeadlineExceeded, connect.CodeInternal} {
 		t.Run(code.String(), func(t *testing.T) {
-			policy := applyPolicy(t, true, "preview", "10.0.0.53")
+			policy := applyPolicy(t, true, true)
 			policy.SetUID("policy-uid")
 			policy.SetResourceVersion("17")
 			policies := policyTestClient(policy)
@@ -307,7 +305,7 @@ func TestUnownedPolicyResyncRequiresAuthoritativeDeletion(t *testing.T) {
 func TestUnownedPolicyCleanupWaitsForWorkloads(t *testing.T) {
 	for _, state := range []string{"deployment", "replicaset", "terminating pod", "pod list unavailable", "deployment read unavailable", "replicaset read unavailable", "empty"} {
 		t.Run(state, func(t *testing.T) {
-			policy := applyPolicy(t, true, "preview", "10.0.0.53")
+			policy := applyPolicy(t, true, true)
 			policies := policyTestClient(policy)
 			client := fake.NewClientset()
 			switch state {
@@ -373,42 +371,38 @@ func policyTestClient(objects ...runtime.Object) *fakedynamic.FakeDynamicClient 
 }
 
 func TestCiliumPolicyGrantsScopedPrivateNetworkSelfTraffic(t *testing.T) {
-	for _, kind := range []string{"production", "preview"} {
-		t.Run(kind, func(t *testing.T) {
-			policy := applyPolicy(t, true, kind, "10.0.0.53")
+	policy := applyPolicy(t, true, true)
 
-			selector, found, err := unstructured.NestedStringMap(policy.Object, "spec", "endpointSelector", "matchLabels")
-			require.NoError(t, err)
-			require.True(t, found)
-			require.Equal(t, map[string]string{
-				labels.LabelKeyWorkspaceID:  testWorkspaceID,
-				labels.LabelKeyProjectID:    testProjectID,
-				labels.LabelKeyAppID:        testAppID,
-				labels.LabelKeyDeploymentID: testDeploymentID,
-			}, selector)
+	selector, found, err := unstructured.NestedStringMap(policy.Object, "spec", "endpointSelector", "matchLabels")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, map[string]string{
+		labels.LabelKeyWorkspaceID:  testWorkspaceID,
+		labels.LabelKeyProjectID:    testProjectID,
+		labels.LabelKeyAppID:        testAppID,
+		labels.LabelKeyDeploymentID: testDeploymentID,
+	}, selector)
 
-			defaultDeny, found, err := unstructured.NestedMap(policy.Object, "spec", "enableDefaultDeny")
-			require.NoError(t, err)
-			require.True(t, found)
-			require.Equal(t, map[string]interface{}{"ingress": true, "egress": false}, defaultDeny)
+	defaultDeny, found, err := unstructured.NestedMap(policy.Object, "spec", "enableDefaultDeny")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, map[string]interface{}{"ingress": true, "egress": false}, defaultDeny)
 
-			ingress, found, err := unstructured.NestedSlice(policy.Object, "spec", "ingress")
-			require.NoError(t, err)
-			require.True(t, found)
-			require.Len(t, ingress, 2)
-			assertSelfRule(t, ingress[1].(map[string]interface{}), "fromEndpoints")
+	ingress, found, err := unstructured.NestedSlice(policy.Object, "spec", "ingress")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Len(t, ingress, 2)
+	assertSelfRule(t, ingress[1].(map[string]interface{}), "fromEndpoints")
 
-			egress, found, err := unstructured.NestedSlice(policy.Object, "spec", "egress")
-			require.NoError(t, err)
-			require.True(t, found)
-			require.Len(t, egress, 1, "no broad egress rule may accompany the scoped self grant")
-			assertSelfRule(t, egress[0].(map[string]interface{}), "toEndpoints")
-		})
-	}
+	egress, found, err := unstructured.NestedSlice(policy.Object, "spec", "egress")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Len(t, egress, 1, "no broad egress rule may accompany the scoped self grant")
+	assertSelfRule(t, egress[0].(map[string]interface{}), "toEndpoints")
 }
 
 func TestCiliumPolicyDoesNotGrantUnenrolledDeployment(t *testing.T) {
-	policy := applyPolicy(t, false, "preview", "10.0.0.53")
+	policy := applyPolicy(t, false, true)
 	_, found, err := unstructured.NestedMap(policy.Object, "spec", "enableDefaultDeny")
 	require.NoError(t, err)
 	require.False(t, found)
@@ -421,14 +415,14 @@ func TestCiliumPolicyDoesNotGrantUnenrolledDeployment(t *testing.T) {
 	require.Len(t, ingress, 1)
 }
 
-func TestCiliumPolicyDoesNotGrantWithoutRegionalResolver(t *testing.T) {
-	policy := applyPolicy(t, true, "preview", "")
+func TestCiliumPolicyDoesNotGrantWhenPrivateNetworkDisabled(t *testing.T) {
+	policy := applyPolicy(t, true, false)
 	_, found, err := unstructured.NestedSlice(policy.Object, "spec", "egress")
 	require.NoError(t, err)
 	require.False(t, found)
 }
 
-func applyPolicy(t *testing.T, private bool, kind, resolver string) *unstructured.Unstructured {
+func applyPolicy(t *testing.T, private, clusterEnabled bool) *unstructured.Unstructured {
 	t.Helper()
 	client := fakedynamic.NewSimpleDynamicClient(runtime.NewScheme())
 	var policy *unstructured.Unstructured
@@ -437,9 +431,8 @@ func applyPolicy(t *testing.T, private bool, kind, resolver string) *unstructure
 		err := json.Unmarshal(action.(clienttesting.PatchAction).GetPatch(), policy)
 		return true, policy, err
 	})
-	controller := &Controller{dynamicClient: client, privateNetworkResolverIP: resolver}
+	controller := &Controller{dynamicClient: client, privateNetworkingEnabled: clusterEnabled}
 	req := fullApplyRequest(t)
-	req.EnvironmentKind = kind
 	req.Capabilities = &ctrlv1.DeploymentCapabilities{PrivateNetworking: private}
 	require.NoError(t, controller.ensureCiliumNetworkPolicy(t.Context(), req, nil))
 	require.NotNil(t, policy)

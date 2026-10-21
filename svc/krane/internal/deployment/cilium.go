@@ -27,7 +27,6 @@ func (c *Controller) ensureCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.
 			ProjectID(req.GetProjectId()).
 			AppID(req.GetAppId()).
 			EnvironmentID(req.GetEnvironmentId()).
-			EnvironmentKind(req.GetEnvironmentKind()).
 			DeploymentID(req.GetDeploymentId()).
 			ManagedByKrane().
 			ComponentCiliumNetworkPolicy(),

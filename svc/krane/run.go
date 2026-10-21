@@ -43,6 +43,11 @@ import (
 // Prometheus metrics. It blocks until the context is cancelled or a fatal error
 // occurs.
 func Run(ctx context.Context, cfg Config) error {
+	err := cfg.Validate()
+	if err != nil {
+		return fmt.Errorf("bad config: %w", err)
+	}
+
 	if cfg.InstanceID == "" {
 		cfg.InstanceID = uid.New(uid.InstancePrefix)
 	}
@@ -59,7 +64,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
-		var err error
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:        "krane",
 			InstanceID:         cfg.InstanceID,

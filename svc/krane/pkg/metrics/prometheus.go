@@ -327,17 +327,16 @@ var (
 		},
 	)
 
-	// PrivateNetworkLeader is 1 while this Krane holds the private network
-	// Lease and publishes discovery objects, and 0 otherwise. Krane only
-	// exports it when private networking is enabled. A cluster whose Krane
+	// PrivateNetworkLeader is 1 while this Krane holds the shared Krane
+	// leadership and publishes discovery objects, and 0 otherwise. A cluster whose Krane
 	// replicas all report 0 publishes nothing, so connections stop following
 	// deployments.
-	PrivateNetworkLeader = lazy.NewGauge(
+	PrivateNetworkLeader = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "private_network_leader",
-			Help:      "Whether this Krane holds the private network Lease.",
+			Help:      "Whether this Krane holds the shared leadership and publishes private discovery.",
 		},
 	)
 
@@ -347,20 +346,19 @@ var (
 	// entries failed; an endpoint pass completes when it attempted every
 	// discovery Service. Both loops run every 5 seconds on the leader,
 	// including when there is nothing to publish, so a stale value means the
-	// loop aborts or no replica leads. Only the leader exports it, starting at
-	// 0 when it acquires the Lease, so a leader that never completes a pass
+	// loop aborts or no replica leads. It starts at 0, so a leader that never completes a pass
 	// reports a stale value instead of no series.
 	//
 	// Labels:
 	//   - "loop": "discovery" or "endpoints"
-	PrivateNetworkLastCompletedPassUnixSeconds = lazy.NewGaugeVec(
+	PrivateNetworkLastCompletedPassUnixSeconds = vec.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "private_network_last_completed_pass_unix_seconds",
 			Help:      "Unix time when a private network loop last processed its whole input.",
 		},
-		[]string{"loop"},
+		vec.Values("loop", "discovery", "endpoints"),
 	)
 
 	// PrivateNetworkPassDurationSeconds measures private network passes,
@@ -369,7 +367,7 @@ var (
 	//
 	// Labels:
 	//   - "loop": "discovery" or "endpoints"
-	PrivateNetworkPassDurationSeconds = lazy.NewHistogramVec(
+	PrivateNetworkPassDurationSeconds = vec.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -377,7 +375,7 @@ var (
 			Help:      "Duration of private network reconciliation passes.",
 			Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 20, 30},
 		},
-		[]string{"loop"},
+		vec.Values("loop", "discovery", "endpoints"),
 	)
 
 	// PrivateNetworkErrorsTotal counts private network failures by the step
@@ -390,14 +388,15 @@ var (
 	//     "invalid_entry" (Ctrl sent an entry Krane can't publish),
 	//     "namespace", "service", "endpoint_slice", "policy", "connection", or
 	//     "cleanup" (revoking objects missing from the snapshot)
-	PrivateNetworkErrorsTotal = lazy.NewCounterVec(
+	PrivateNetworkErrorsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "private_network_errors_total",
 			Help:      "Private network reconciliation failures by loop and failed step.",
 		},
-		[]string{"loop", "stage"},
+		vec.Values("loop", "discovery", "endpoints"),
+		vec.Values("stage", "list", "snapshot", "invalid_entry", "namespace", "service", "endpoint_slice", "policy", "connection", "cleanup"),
 	)
 
 	// PrivateNetworkEntries counts the entries of the last complete snapshot
@@ -412,16 +411,17 @@ var (
 	//     "waiting_for_endpoints" (the new target has no ready endpoints, so
 	//     the previous target stays published), "unresolved" (Ctrl selected
 	//     no target), or "failed" (publication failed; previous objects kept)
-	PrivateNetworkEntries = lazy.NewGaugeVec(
+	PrivateNetworkEntries = vec.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "private_network_entries",
 			Help:      "Entries of the last complete private network snapshot by kind and publication state.",
 		},
-		[]string{"kind", "state"},
+		vec.Values("kind", "connection", "replica"),
+		vec.Values("state", "current", "waiting_for_endpoints", "unresolved", "failed"),
 	)
-	PrivateNetworkDeferredDeletions = lazy.NewGauge(prometheus.GaugeOpts{Namespace: "unkey", Subsystem: "krane", Name: "private_network_deferred_deletions", Help: "Omission-driven deletions awaiting an independent confirming snapshot."})
+	PrivateNetworkDeferredDeletions = promauto.NewGauge(prometheus.GaugeOpts{Namespace: "unkey", Subsystem: "krane", Name: "private_network_deferred_deletions", Help: "Omission-driven deletions awaiting an independent confirming snapshot."})
 )
 
 // ResetLeaderGauges zeroes the gauges only the leader sets, so a replica that
