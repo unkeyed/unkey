@@ -1,0 +1,110 @@
+---
+title: Portal custom domains
+sidebarTitle: "Custom domains"
+description: "Serve your developer portal from a hostname you own."
+sources:
+  - svc/api/openapi/spec/common/PortalDomain.yaml
+  - svc/api/openapi/spec/common/DomainStatus.yaml
+  - svc/api/openapi/spec/common/DnsRecord.yaml
+  - svc/api/openapi/spec/paths/v2/portal/createDomain/index.yaml
+  - svc/api/openapi/spec/paths/v2/portal/verifyDomain/index.yaml
+  - svc/api/openapi/spec/paths/v2/portal/deleteDomain/index.yaml
+  - svc/api/routes/v2_portal_create_domain/handler.go
+  - svc/api/routes/v2_portal_verify_domain/handler.go
+  - svc/api/routes/v2_portal_delete_domain/handler.go
+  - svc/api/routes/v2_portal_delete_portal/handler.go
+  - svc/api/internal/domain/dns_records.go
+  - svc/ctrl/services/portaldomain/add_portal_domain.go
+  - svc/ctrl/worker/portaldomain/verify_handler.go
+  - svc/ctrl/worker/domainverify/check.go
+  - pkg/domain/domaingate/domaingate.go
+  - pkg/codes/constants_gen.go
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+A portal custom domain serves your [developer portal](/api-management/portal/overview) from a hostname you own, such as `developers.acme.com`, instead of Unkey's portal host. You attach the domain to a portal, publish two DNS records, and Unkey verifies them, routes the hostname to your portal, and issues a certificate for it.
+
+## Before you start
+
+A portal domain follows the same naming rules as a [Compute custom domain](/compute/networking/custom-domains).
+
+- Each name can be attached once in your workspace, to one portal or one environment, not both.
+- The name must be under a registrable domain. `developers.acme.co.uk` works, but `co.uk` on its own doesn't. Wildcards and IP addresses aren't allowed.
+- A workspace can hold up to 10 portal domains.
+- Port 80 must reach Unkey as well as 443, so Let's Encrypt can check the name before issuing a certificate.
+
+## Attach a domain
+
+<RootKeyPrereq />
+
+Attaching, verifying, and removing a domain need `portal.*.update_portal` or `portal.<portalId>.update_portal`. Reading domains also works with `read_portal`. Without the permission, the request fails with 404, not 403.
+
+<Steps titleSize="h3">
+  <Step title="Add the domain">
+    Call `portal.createDomain` with the portal's ID or slug and the hostname:
+
+    ```bash
+    curl -X POST https://api.unkey.com/v2/portal.createDomain \
+      -H "Authorization: Bearer <root key>" \
+      -H "Content-Type: application/json" \
+      -d '{ "portal": "acme-portal", "domain": "developers.acme.com" }'
+    ```
+
+    The response has the domain's `pdom_` ID and the `dnsRecords` to publish.
+  </Step>
+  <Step title="Publish the DNS records">
+    Create both records at your DNS provider, exactly as `dnsRecords` lists them, with a TTL of 60 seconds:
+
+    | Type | Name | Value | When |
+    | --- | --- | --- | --- |
+    | `CNAME` | `developers.acme.com` | the target from `dnsRecords` | Subdomains |
+    | `ALIAS` | `acme.com` | the same target | Apex domains |
+    | `TXT` | `_unkey.developers.acme.com` | `unkey-domain-verify=<token>` | Always |
+
+    `ALIAS` means whatever your provider calls an alias at the apex: ALIAS, ANAME, or a flattened CNAME. If your provider proxies traffic, create the routing record as DNS-only.
+  </Step>
+  <Step title="Wait for verification">
+    Unkey checks DNS about once a minute for up to 24 hours. Poll `portal.getDomain` with the portal and the `domainId` to follow it. The status goes from `pending` to `verifying` to `verified`, and each record has a `verified` flag showing whether Unkey has found it.
+
+    Once the domain is verified, it serves your portal, and Unkey requests a Let's Encrypt certificate for it under your workspace. Certificates renew automatically.
+  </Step>
+</Steps>
+
+`portal.listDomains` returns every domain on a portal, verified or not.
+
+## Send users to your domain
+
+`portal.createSession` returns a URL on Unkey's portal host. To keep users on your domain, replace the host in that URL with your domain before you redirect them. The rest of the URL, including the one-time code, stays the same. See [Portal sessions](/api-management/portal/sessions).
+
+## Verification failed
+
+After 24 hours without the right records, the status becomes `failed` and `verificationError` says why. Fix the records, then call `portal.verifyDomain` to start a new 24 hour window. Calling it on a domain that's already verified returns 412.
+
+Things to check:
+
+- Publish both records, even for a subdomain. A subdomain can pass with the CNAME alone, but an apex domain or a record your provider proxies or flattens can only pass with the TXT record.
+- Copy values exactly. Unkey compares them character for character.
+
+## Move a domain from another workspace
+
+If another workspace has already verified the name, publish the TXT record. When your verification passes, the domain moves to your workspace, and the other workspace's claim is marked `failed`.
+
+## Remove a domain
+
+Call `portal.deleteDomain` with the portal and the `domainId`. A verified domain stops serving your portal right away. The certificate isn't revoked, and you remove the DNS records yourself.
+
+You must remove every domain before you can delete the portal. `portal.deletePortal` returns 412 while the portal still has domains.
+
+Adding, verifying, and removing a domain write `portal.domain.create`, `portal.domain.verify`, and `portal.domain.delete` [audit log](/platform/workspace/audit-logs/event-types) entries.
+
+## Errors
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 404 | `err:unkey:data:portal_not_found` | The portal does not exist, is not in your workspace, or your root key lacks the permission for it. |
+| 404 | `err:unkey:data:domain_not_found` | The domain is not attached to that portal. |
+| 409 | `err:unkey:data:domain_already_exists` | The name is already attached to a portal or an environment in your workspace. |
+| 403 | `err:unkey:limits:custom_domain_limit_exceeded` | The workspace already holds 10 portal domains. |
+| 412 | `err:unkey:application:precondition_failed` | On verify: the domain is already verified. On portal delete: the portal still has domains. |
+| 400 | `err:unkey:application:invalid_input` | The name is malformed, a wildcard, an IP address, or not under a registrable domain. |
