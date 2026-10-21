@@ -13,7 +13,7 @@ import (
 )
 
 // TestDeleteIdentity_AuthorizesCanonicalURNPermission guarantees a project-scoped
-// URN can delete an identity without a legacy tuple grant.
+// URN can delete an identity.
 func TestDeleteIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}

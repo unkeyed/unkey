@@ -50,8 +50,7 @@ func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("missing required permission", func(t *testing.T) {
-		// Create a root key with a different permission (not rbac.*.delete_role)
-		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_role")
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#read", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

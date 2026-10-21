@@ -11,12 +11,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_override"
 )
 
 func TestDeleteOverrideSuccessfully(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
+	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID}).ProjectID
 
 	// Create a namespace
 	namespaceID := uid.New("test_ns")
@@ -24,6 +26,7 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   projectID,
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -51,7 +54,7 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.delete_override", namespaceID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/%s#delete", h.Resources().UserWorkspace.ID, projectID, namespaceID, overrideID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -94,13 +97,16 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 			CreatedAt:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
+		rootKey2 := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/%s#delete", h.Resources().UserWorkspace.ID, projectID, namespaceID, overrideID2))
+		headers2 := headers.Clone()
+		headers2.Set("Authorization", fmt.Sprintf("Bearer %s", rootKey2))
 
 		req := handler.Request{
 			Namespace:  namespaceID,
 			Identifier: identifier2,
 		}
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers2, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 
 		// Verify the override was deleted (check soft delete)

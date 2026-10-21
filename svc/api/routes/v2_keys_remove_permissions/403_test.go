@@ -42,6 +42,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	keyName := "Test Key"
 	permissionDescription := "Read documents permission"
+	permissionSlug := uid.New("documents.read.remove.auth403")
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
@@ -49,8 +50,8 @@ func TestAuthorizationErrors(t *testing.T) {
 		Permissions: []seed.CreatePermissionRequest{
 			{
 				WorkspaceID: workspace.ID,
-				Name:        "documents.read.remove.auth403",
-				Slug:        "documents.read.remove.auth403",
+				Name:        permissionSlug,
+				Slug:        permissionSlug,
 				Description: &permissionDescription,
 			},
 		},
@@ -65,7 +66,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	t.Run("root key without required permissions", func(t *testing.T) {
 		// Create root key without the required permission
-		insufficientRootKey := h.CreateRootKey(workspace.ID, "some.other.permission")
+		insufficientRootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#read", workspace.ID, api.ProjectID, api.KeyAuthID.String, keyID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -86,7 +87,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	t.Run("root key with partial permissions", func(t *testing.T) {
 		// Create root key with related but insufficient permission
-		partialRootKey := h.CreateRootKey(workspace.ID, "api.read.update_key")
+		partialRootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#read", workspace.ID, api.ProjectID, api.KeyAuthID.String, keyID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -136,7 +137,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		otherKeyID := otherKeyResponse.KeyID
 
 		// Create root key for original workspace (authorized for workspace.ID, not otherWorkspaceID)
-		authorizedRootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+		authorizedRootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, api.ProjectID, api.KeyAuthID.String, keyID))
 
 		reqWithOtherKey := handler.Request{
 			KeyId:       otherKeyID,
