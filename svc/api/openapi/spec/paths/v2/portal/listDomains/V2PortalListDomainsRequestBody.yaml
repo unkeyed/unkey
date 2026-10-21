@@ -9,4 +9,4 @@ examples:
   byId:
     summary: List a portal's domains
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd

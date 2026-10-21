@@ -7,6 +7,7 @@ properties:
     "$ref": "../../../../common/Meta.yaml"
   data:
     type: array
+    maxItems: 10
     items:
       "$ref": "../../../../common/PortalDomain.yaml"
     description: |
