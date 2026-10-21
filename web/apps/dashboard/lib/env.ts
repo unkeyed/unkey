@@ -37,10 +37,8 @@ export const env = () =>
       VAULT_URL: z.url(),
       VAULT_TOKEN: z.string(),
 
-      CTRL_URL: z.url().optional(),
+      CTRL_URL: z.url().default("https://control.unkey.cloud"),
       CTRL_API_KEY: z.string().optional(),
-
-      GITHUB_KEYS_URI: z.string().optional(),
 
       // This key is used for ratelimiting our trpc procedures
       // It requires the following permission:
