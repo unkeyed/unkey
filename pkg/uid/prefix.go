@@ -46,4 +46,9 @@ const (
 	PolicyPrefix              Prefix = "pol"
 
 	AutoscalingPolicyPrefix Prefix = "asp"
+
+	// CLI device login. The authorization id is the poll secret. The session id
+	// is the non-secret handle shown in the dashboard.
+	DeviceAuthorizationPrefix Prefix = "daz"
+	CLISessionPrefix          Prefix = "clis"
 )

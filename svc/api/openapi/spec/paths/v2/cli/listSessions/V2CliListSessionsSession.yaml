@@ -1,0 +1,32 @@
+type: object
+required:
+  - id
+  - userId
+  - permissions
+  - createdAt
+  - lastUsedAt
+  - expiresAt
+properties:
+  id:
+    type: string
+  userId:
+    type: string
+  deviceName:
+    type: string
+  permissions:
+    type: array
+    items:
+      type: string
+  createdAt:
+    type: integer
+    format: int64
+  lastUsedAt:
+    type: integer
+    format: int64
+  expiresAt:
+    type: integer
+    format: int64
+  revokedAt:
+    type: integer
+    format: int64
+    description: Unix millisecond time the session was revoked. Omitted when the session is still active.

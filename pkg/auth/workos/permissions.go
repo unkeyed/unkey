@@ -132,9 +132,9 @@ var rolePolicies = map[string][]resourcePermission{
 	"viewer":       viewerPermissions,
 }
 
-// permissionsForRoles expands role slugs into API-owned permissions.
+// PermissionsForRoles expands role slugs into API-owned permissions.
 // Unknown roles are ignored and logged so they cannot add permissions by accident.
-func permissionsForRoles(workspaceID string, roles []string) []string {
+func PermissionsForRoles(workspaceID string, roles []string) []string {
 	var permissions []string
 	seen := make(map[string]struct{})
 

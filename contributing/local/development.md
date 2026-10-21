@@ -268,6 +268,14 @@ passes it to the Docker API. For Kubernetes, also set `WORKOS_CLIENT_ID` in
 `dev/.env.workos`; Tilt loads it into the `workos-credentials` secret. Restart
 the local API after changing its config or environment.
 
+`unkey login` checks the member's current WorkOS role when it issues and
+refreshes a CLI session. Copy `dev/.env.workos.example` to `dev/.env.workos`
+and set `WORKOS_API_KEY` to the same value as the dashboard. The local API
+config already has a CLI signing secret and sends the browser to
+`http://localhost:3000/cli/device`. Sign in, check the code, narrow the
+permissions if you want, and click Allow. Use `AUTH_PROVIDER=workos` so the
+signed-in user id is the WorkOS user stored on the workspace.
+
 Stripe billing:
 
 The dashboard subscription flow needs all four variables in

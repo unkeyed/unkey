@@ -1,0 +1,48 @@
+post:
+  x-speakeasy-ignore: true
+  tags:
+    - cli
+  summary: Approve CLI device login
+  description: |
+    Stores the permissions selected by the signed-in user.
+    Every permission must fit inside the caller's role. Any member can approve, not only admins.
+    The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
+  operationId: cli.approveDeviceLogin
+  x-speakeasy-name-override: approveDeviceLogin
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2CliApproveDeviceLoginRequestBody.yaml
+  responses:
+    "200":
+      description: Permissions stored.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliApproveDeviceLoginResponseBody.yaml
+    "400":
+      description: Invalid code or permission.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: The caller cannot grant these permissions.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

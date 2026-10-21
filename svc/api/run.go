@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -29,6 +30,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
+	clisession "github.com/unkeyed/unkey/pkg/auth/clisession"
 	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
@@ -44,6 +46,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -57,6 +60,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes"
 )
@@ -428,6 +432,50 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unsupported auth config at auth[%d]", i)
 		}
 	}
+	var cliMemberships clidevice.Memberships
+	if key := strings.TrimSpace(cfg.CLIAuth.WorkOSAPIKey); key != "" {
+		cliMemberships = authworkos.NewMembershipClient(key, cfg.CLIAuth.WorkOSAPIBaseURL)
+	}
+	cliSecrets := make([][]byte, 0, len(cfg.CLIAuth.SigningSecrets))
+	for _, secret := range cfg.CLIAuth.SigningSecrets {
+		if strings.TrimSpace(secret) == "" {
+			continue
+		}
+		cliSecrets = append(cliSecrets, []byte(secret))
+	}
+	cliService := &clidevice.Service{
+		DB:               database,
+		Auditlogs:        auditlogSvc,
+		Clock:            clk,
+		Ratelimit:        rlSvc,
+		Memberships:      cliMemberships,
+		DashboardBaseURL: cfg.CLIAuth.DashboardBaseURL,
+		Signer:           nil,
+		SessionCache:     nil,
+	}
+	if len(cliSecrets) > 0 {
+		cliSigner, signErr := tokenjwt.NewHS256Signer[clisession.Claims](cliSecrets[0])
+		if signErr != nil {
+			return fmt.Errorf("unable to create cli access token signer: %w", signErr)
+		}
+		cliService.Signer = cliSigner
+		sessionCache, cacheErr := cache.New[string, clidevice.SessionVerdict](cache.Config[string, clidevice.SessionVerdict]{
+			Fresh:    10 * time.Second,
+			Stale:    10 * time.Second,
+			MaxSize:  10_000,
+			Resource: "cli_session",
+			Clock:    clk,
+		})
+		if cacheErr != nil {
+			return fmt.Errorf("unable to create cli session cache: %w", cacheErr)
+		}
+		cliService.SessionCache = sessionCache
+		cliResolver, cliErr := clisession.NewResolver(cliService, clk, cliSecrets...)
+		if cliErr != nil {
+			return fmt.Errorf("unable to create cli session resolver: %w", cliErr)
+		}
+		authResolvers = append(authResolvers, cliResolver)
+	}
 	authSvc := auth.New(authResolvers...)
 	portalAuthSvc := auth.New(portalResolvers...)
 
@@ -545,6 +593,7 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHubAppName:              cfg.GitHub.AppName,
 		GitHubPrivateKeyPEM:        cfg.GitHub.PrivateKeyPEM,
 		GitHubClient:               githubClient,
+		CLIDevice:                  cliService,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,
