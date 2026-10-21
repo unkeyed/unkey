@@ -29,6 +29,7 @@ type Receiver struct {
 	fallback    ResponseHandlerFunc
 	middlewares []Middleware
 	maxBodySize int64
+	timeout     time.Duration
 }
 
 var _ http.Handler = (*Receiver)(nil)
@@ -43,6 +44,12 @@ func WithMaxBodySize(n int64) Option {
 	return func(rec *Receiver) { rec.maxBodySize = n }
 }
 
+// WithTimeout bounds the request context for verification and handling.
+// Non-positive values leave the request's existing deadline unchanged.
+func WithTimeout(timeout time.Duration) Option {
+	return func(rec *Receiver) { rec.timeout = timeout }
+}
+
 // New builds a Receiver for one provider endpoint. The provider name labels
 // metrics and logs.
 func New(provider string, verifier Verifier, opts ...Option) *Receiver {
@@ -53,6 +60,7 @@ func New(provider string, verifier Verifier, opts ...Option) *Receiver {
 		fallback:    nil,
 		middlewares: nil,
 		maxBodySize: defaultMaxBodySize,
+		timeout:     0,
 	}
 	for _, opt := range opts {
 		opt(rec)
@@ -60,18 +68,14 @@ func New(provider string, verifier Verifier, opts ...Option) *Receiver {
 	return rec
 }
 
-// On registers the handler for the given event types, replacing any previous
-// registration. Reads as "on these events, run this handler". Returns the
-// Receiver for chaining.
-func (rec *Receiver) On(eventTypes []string, fn HandlerFunc) *Receiver {
-	return rec.OnResponse(eventTypes, func(ctx context.Context, event Event) (Response, error) {
+// OnRaw registers a handler without decoding the verified payload.
+func (rec *Receiver) OnRaw(eventTypes []string, fn HandlerFunc) *Receiver {
+	return rec.onResponse(eventTypes, func(ctx context.Context, event Event) (Response, error) {
 		return Response{}, fn(ctx, event)
 	})
 }
 
-// OnResponse registers a handler with a custom acknowledgment. Middleware and
-// error handling are the same as On; response data is sent only on success.
-func (rec *Receiver) OnResponse(eventTypes []string, fn ResponseHandlerFunc) *Receiver {
+func (rec *Receiver) onResponse(eventTypes []string, fn ResponseHandlerFunc) *Receiver {
 	if len(eventTypes) == 0 {
 		panic("webhook: registration requires at least one event type")
 	}
@@ -106,6 +110,13 @@ func (rec *Receiver) count(event, outcome string) {
 }
 
 func (rec *Receiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	if rec.timeout > 0 {
+		ctx, cancel := context.WithTimeout(r.Context(), rec.timeout)
+		defer cancel()
+		r = r.WithContext(ctx)
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return

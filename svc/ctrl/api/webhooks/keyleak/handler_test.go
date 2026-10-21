@@ -39,6 +39,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	worker "github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestKeyLeakDurableNotifications(t *testing.T) {
@@ -85,7 +87,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		Members: gatedMembers{orgID: workspace.OrgID, ready: membersReady},
 		Email:   sender, SlackWebhookURL: slackServer.URL,
 	})
-	runtime := containers.Restate(t, hydrav1.NewKeyLeakServiceServer(service).
+	runtime := containers.Restate(t, service.Definition().
 		ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
 		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
 	verifier, sign := newSigningFixture(t)
@@ -220,9 +222,14 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 	service := worker.New(worker.Config{
 		DB: database, Members: gatedMembers{orgID: workspace.OrgID, ready: membersReady}, Email: sender,
 	})
-	runtime := containers.Restate(t, hydrav1.NewKeyLeakServiceServer(service))
+	runtime := containers.Restate(t, service.Definition())
 	verifier, sign := newSigningFixture(t)
 	handler := New(runtime.IngressClient, verifier)
+	slackCtx, cancelSlack := context.WithTimeout(ctx, 5*time.Second)
+	t.Cleanup(cancelSlack)
+	_, err = hydrav1.NewKeyLeakServiceIngressClient(runtime.IngressClient).NotifySlack().Request(slackCtx,
+		&hydrav1.KeyLeakNotification{OrgId: workspace.OrgID})
+	require.NoError(t, err, "unconfigured Slack must complete without attempting delivery")
 
 	for _, test := range []struct {
 		name       string
@@ -323,7 +330,7 @@ func TestKeyLeakNoopProvidersStillDeliverSlack(t *testing.T) {
 		Email:           email.NewNoop(),
 		SlackWebhookURL: server.URL,
 	})
-	runtime := containers.Restate(t, hydrav1.NewKeyLeakServiceServer(service))
+	runtime := containers.Restate(t, service.Definition())
 	client := hydrav1.NewKeyLeakServiceIngressClient(runtime.IngressClient)
 	leak := &hydrav1.KeyLeakNotification{
 		KeyId:         uid.New(uid.KeyPrefix),
@@ -351,6 +358,32 @@ func TestKeyLeakNoopProvidersStillDeliverSlack(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("Slack alert must not depend on email provider configuration")
 	}
+
+	leak.OrgId = ""
+	for _, test := range []struct {
+		name    string
+		handler string
+		request proto.Message
+	}{
+		{name: "notification requires organization", handler: "Notify", request: leak},
+		{name: "Slack notification requires organization", handler: "NotifySlack", request: leak},
+		{name: "email notification requires organization", handler: "NotifyEmail", request: &hydrav1.KeyLeakEmailRequest{Leak: leak, Email: "test@example.com"}},
+		{name: "email notification requires leak", handler: "NotifyEmail", request: &hydrav1.KeyLeakEmailRequest{Email: "test@example.com"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			body, err := protojson.Marshal(test.request)
+			require.NoError(t, err)
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+				runtime.IngressURL+"/hydra.v1.KeyLeakService/"+test.handler, bytes.NewReader(body))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+			response, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, response.Body.Close()) })
+			require.Equal(t, http.StatusBadRequest, response.StatusCode)
+		})
+	}
+	require.Empty(t, messages)
 }
 
 func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {

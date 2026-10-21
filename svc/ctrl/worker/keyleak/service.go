@@ -15,12 +15,16 @@ type memberResolver interface {
 	MemberEmails(context.Context, string) ([]string, error)
 }
 
+type slackSender interface {
+	Send(context.Context, string, slack.Payload) error
+}
+
 type Service struct {
 	hydrav1.UnimplementedKeyLeakServiceServer
 	db              db.Database
 	members         memberResolver
 	email           email.Sender
-	slack           *slack.Client
+	slack           slackSender
 	slackWebhookURL string
 }
 
@@ -32,12 +36,17 @@ type Config struct {
 }
 
 func New(cfg Config) *Service {
+	var slackClient slackSender = slack.NewNoop()
+	if cfg.SlackWebhookURL != "" {
+		slackClient = slack.NewClient()
+	}
+
 	return &Service{
 		UnimplementedKeyLeakServiceServer: hydrav1.UnimplementedKeyLeakServiceServer{},
 		db:                                cfg.DB,
 		members:                           cfg.Members,
 		email:                             cfg.Email,
-		slack:                             slack.NewClient(),
+		slack:                             slackClient,
 		slackWebhookURL:                   cfg.SlackWebhookURL,
 	}
 }

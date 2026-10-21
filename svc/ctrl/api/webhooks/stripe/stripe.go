@@ -31,5 +31,5 @@ func New(
 		db:      database,
 	}
 	return webhook.New("stripe", stripeverifier.New(webhookSecret)).
-		On([]string{"invoice.created"}, webhook.Typed(h.invoiceCreated))
+		On([]string{"invoice.created"}, h.invoiceCreated)
 }

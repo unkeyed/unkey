@@ -446,7 +446,7 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Error("key leak emails are disabled: no resend api key configured")
 	}
 
-	restateSrv.Bind(hydrav1.NewKeyLeakServiceServer(keyleak.New(keyLeakConfig),
+	restateSrv.Bind(keyleak.New(keyLeakConfig).Definition(
 		restate.WithJournalRetention(time.Hour),
 		restate.WithIdempotencyRetention(24*time.Hour),
 		restate.WithInvocationRetryPolicy(

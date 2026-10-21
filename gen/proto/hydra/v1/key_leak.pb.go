@@ -7,6 +7,7 @@
 package hydrav1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	_ "github.com/restatedev/sdk-go/x/protoc-gen-go-restate/generated/dev/restate/sdk"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -362,7 +363,7 @@ var File_hydra_v1_key_leak_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_key_leak_proto_rawDesc = "" +
 	"\n" +
-	"\x17hydra/v1/key_leak.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"?\n" +
+	"\x17hydra/v1/key_leak.proto\x12\bhydra.v1\x1a\x1bbuf/validate/validate.proto\x1a\x18dev/restate/sdk/go.proto\"?\n" +
 	"\rKeyLeakReport\x12.\n" +
 	"\x06tokens\x18\x01 \x03(\v2\x16.hydra.v1.KeyLeakTokenR\x06tokens\"`\n" +
 	"\fKeyLeakToken\x12\x12\n" +
@@ -371,17 +372,17 @@ const file_hydra_v1_key_leak_proto_rawDesc = "" +
 	"\x03url\x18\x03 \x01(\tR\x03url\x12\x16\n" +
 	"\x06source\x18\x04 \x01(\tR\x06source\"<\n" +
 	"\x13KeyLeakReportResult\x12%\n" +
-	"\x0ematched_hashes\x18\x01 \x03(\tR\rmatchedHashes\"\xbc\x01\n" +
+	"\x0ematched_hashes\x18\x01 \x03(\tR\rmatchedHashes\"\xc5\x01\n" +
 	"\x13KeyLeakNotification\x12\x15\n" +
-	"\x06key_id\x18\x01 \x01(\tR\x05keyId\x12\x15\n" +
-	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12%\n" +
+	"\x06key_id\x18\x01 \x01(\tR\x05keyId\x12\x1e\n" +
+	"\x06org_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\x12%\n" +
 	"\x0eworkspace_name\x18\x03 \x01(\tR\rworkspaceName\x12\x16\n" +
 	"\x06source\x18\x04 \x01(\tR\x06source\x12\x10\n" +
 	"\x03url\x18\x05 \x01(\tR\x03url\x12\x12\n" +
 	"\x04type\x18\x06 \x01(\tR\x04type\x12\x12\n" +
-	"\x04date\x18\a \x01(\tR\x04date\"^\n" +
-	"\x13KeyLeakEmailRequest\x121\n" +
-	"\x04leak\x18\x01 \x01(\v2\x1d.hydra.v1.KeyLeakNotificationR\x04leak\x12\x14\n" +
+	"\x04date\x18\a \x01(\tR\x04date\"f\n" +
+	"\x13KeyLeakEmailRequest\x129\n" +
+	"\x04leak\x18\x01 \x01(\v2\x1d.hydra.v1.KeyLeakNotificationB\x06\xbaH\x03\xc8\x01\x01R\x04leak\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\"\x11\n" +
 	"\x0fKeyLeakResponse2\xb7\x02\n" +
 	"\x0eKeyLeakService\x12C\n" +

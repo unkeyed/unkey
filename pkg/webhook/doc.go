@@ -11,13 +11,13 @@
 //		On([]string{"invoice.payment_failed"}, handlePaymentFailed)
 //	mux.Handle("POST /webhooks/stripe", receiver)
 //
-// [Receiver.On] takes the event types first so one handler can serve several:
-// On([]string{"create", "delete"}, handleBranchLifecycle). Handlers that parse
-// the payload wrap themselves in [Typed] to receive it already unmarshalled:
-// On([]string{"invoice.created"}, webhook.Typed(handleInvoiceCreated)).
+// [Receiver.On] decodes the payload into the handler's third argument type.
+// [Receiver.OnRaw] skips decoding for handlers that only need event metadata.
 //
-// [Receiver.OnResponse] accepts a handler that returns an encoded body and HTTP
-// status. On and Default keep their empty HTTP 200 acknowledgment on success.
+// [Receiver.OnResponse] encodes the handler's result as JSON with the configured
+// status. On, OnRaw, and Default send an empty HTTP 200 on success.
+// All responses use Cache-Control: no-store. [WithTimeout] optionally bounds
+// the request context across verification and handling.
 //
 // Handler semantics drive the HTTP response and the metrics outcome:
 //

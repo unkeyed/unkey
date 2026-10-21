@@ -2,7 +2,6 @@ package keyleak
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -11,13 +10,7 @@ import (
 
 func (s *Service) Notify(ctx restate.Context, req *hydrav1.KeyLeakNotification) (*hydrav1.KeyLeakResponse, error) {
 	client := hydrav1.NewKeyLeakServiceClient(ctx)
-	if s.slackWebhookURL != "" {
-		client.NotifySlack().Send(req)
-	}
-
-	if req.GetOrgId() == "" {
-		return nil, restate.ToTerminalError(errors.New("leaked key has no organization"))
-	}
+	client.NotifySlack().Send(req)
 
 	recipients, err := restate.Run(ctx, func(rc restate.RunContext) ([]string, error) {
 		lookupCtx, cancel := context.WithTimeout(rc, 10*time.Second)

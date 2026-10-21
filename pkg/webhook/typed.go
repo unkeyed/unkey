@@ -6,34 +6,22 @@ import (
 	"fmt"
 )
 
-// Typed adapts a handler that takes a parsed payload into a [HandlerFunc],
-// removing the per-handler unmarshal boilerplate:
-//
-//	receiver.On([]string{"push"}, webhook.Typed(s.handlePush))
-//
-//	func (s *service) handlePush(ctx context.Context, event webhook.Event, payload pushPayload) error
-//
-// The event's raw payload is unmarshalled into T before the handler runs. A
-// payload that does not parse maps to HTTP 400, outcome "bad_request" (via
-// [ErrBadRequest]).
-func Typed[T any](fn func(ctx context.Context, event Event, payload T) error) HandlerFunc {
-	return func(ctx context.Context, event Event) error {
+// On registers a handler for the given event types, replacing previous handlers.
+// It decodes the payload as T; invalid JSON returns ErrBadRequest.
+func (rec *Receiver) On[T any](eventTypes []string, fn func(ctx context.Context, event Event, payload T) error) *Receiver {
+	return rec.OnRaw(eventTypes, func(ctx context.Context, event Event) error {
 		payload, err := decodePayload[T](event)
 		if err != nil {
 			return err
 		}
 		return fn(ctx, event, payload)
-	}
+	})
 }
 
-// TypedResponse decodes the payload as T and encodes the handler's result as JSON
-// with the given status code. Invalid JSON returns ErrBadRequest. Handler and
-// encoding errors use the receiver's normal error mapping; no success body is sent.
-func TypedResponse[T, R any](
-	statusCode int,
-	fn func(ctx context.Context, event Event, payload T) (R, error),
-) ResponseHandlerFunc {
-	return func(ctx context.Context, event Event) (Response, error) {
+// OnResponse registers a handler with a JSON acknowledgment and the given status.
+// Invalid JSON returns ErrBadRequest; handler or encoding errors discard the response.
+func (rec *Receiver) OnResponse[T, R any](eventTypes []string, statusCode int, fn func(ctx context.Context, event Event, payload T) (R, error)) *Receiver {
+	return rec.onResponse(eventTypes, func(ctx context.Context, event Event) (Response, error) {
 		payload, err := decodePayload[T](event)
 		if err != nil {
 			return Response{}, err
@@ -48,7 +36,7 @@ func TypedResponse[T, R any](
 			return Response{}, fmt.Errorf("encode %s response: %w", event.Type, err)
 		}
 		return Response{StatusCode: statusCode, ContentType: "application/json", Body: body}, nil
-	}
+	})
 }
 
 func decodePayload[T any](event Event) (T, error) {

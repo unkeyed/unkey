@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package hydra.v1;
 
+import "buf/validate/validate.proto";
 import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
@@ -32,7 +33,7 @@ message KeyLeakReportResult {
 
 message KeyLeakNotification {
   string key_id = 1;
-  string org_id = 2;
+  string org_id = 2 [(buf.validate.field).string.min_len = 1];
   string workspace_name = 3;
   string source = 4;
   string url = 5;
@@ -41,7 +42,7 @@ message KeyLeakNotification {
 }
 
 message KeyLeakEmailRequest {
-  KeyLeakNotification leak = 1;
+  KeyLeakNotification leak = 1 [(buf.validate.field).required = true];
   string email = 2;
 }
 

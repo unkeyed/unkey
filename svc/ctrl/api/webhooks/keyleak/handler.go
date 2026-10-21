@@ -23,16 +23,10 @@ type handler struct {
 func New(client *ingress.Client, verifier webhook.Verifier) http.Handler {
 	h := &handler{restate: client}
 
-	receiver := webhook.New("github_secret_scanning", verifier, webhook.WithMaxBodySize(bodyBytesMax)).
-		On([]string{githubsecrets.EventType}, webhook.Typed(h.report))
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-		defer cancel()
-
-		w.Header().Set("Cache-Control", "no-store")
-		receiver.ServeHTTP(w, r.WithContext(ctx))
-	})
+	return webhook.New("github_secret_scanning", verifier,
+		webhook.WithMaxBodySize(bodyBytesMax),
+		webhook.WithTimeout(10*time.Second),
+	).On([]string{githubsecrets.EventType}, h.report)
 }
 
 type reportedToken struct {
