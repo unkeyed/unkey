@@ -6,8 +6,8 @@ import {
   IconChevronExpandYOutline12,
   IconMagnifierOutline12,
 } from "@unkey/icons";
-import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
+import { type VariantProps, cva } from "../../lib/cva";
 import { popupTransition } from "../../lib/popup";
 import { cn } from "../../lib/utils";
 import {

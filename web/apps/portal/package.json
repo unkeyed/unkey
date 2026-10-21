@@ -20,7 +20,6 @@
     "@unkey/hash": "workspace:^",
     "@unkey/icons": "workspace:^",
     "@unkey/ui": "workspace:^",
-    "class-variance-authority": "0.7.1",
     "clsx": "catalog:",
     "lucide-react": "0.465.0",
     "mysql2": "catalog:",
