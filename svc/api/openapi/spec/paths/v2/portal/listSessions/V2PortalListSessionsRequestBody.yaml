@@ -28,7 +28,7 @@ examples:
   byId:
     summary: List by portal id
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd
   bySlugWithSearch:
     summary: Search by portal slug
     value:
