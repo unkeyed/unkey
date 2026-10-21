@@ -16,6 +16,9 @@
 // the payload wrap themselves in [Typed] to receive it already unmarshalled:
 // On([]string{"invoice.created"}, webhook.Typed(handleInvoiceCreated)).
 //
+// [Receiver.OnResponse] accepts a handler that returns an encoded body and HTTP
+// status. On and Default keep their empty HTTP 200 acknowledgment on success.
+//
 // Handler semantics drive the HTTP response and the metrics outcome:
 //
 //   - return nil: handled, 200. The provider considers the event delivered.
@@ -26,8 +29,13 @@
 //   - return an error wrapping [ErrBadRequest]: bad_request, 400. The verified
 //     request is malformed (e.g. an unparseable payload), so the same bytes
 //     will fail every retry; the provider should not keep retrying.
+//   - return an error wrapping [ErrUnavailable]: error, 503. A dependency is
+//     unavailable, so the provider must retry.
 //   - return any other error: error, 500. The provider retries, so handlers
 //     must be idempotent.
+//
+// Verifiers can also return ErrBadRequest (400) or ErrUnavailable (503).
+// Oversized bodies receive 413. Other verification failures receive 401.
 //
 // Events without a registered handler are acknowledged with 200 and counted
 // as unhandled; providers treat non-2xx as "retry forever", so refusing

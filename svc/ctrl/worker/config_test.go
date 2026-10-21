@@ -7,6 +7,23 @@ import (
 	"github.com/unkeyed/unkey/pkg/config"
 )
 
+func TestRunRequiresKeyLeakEmailConfiguration(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		resend string
+		workos string
+	}{
+		{name: "neither provider"},
+		{name: "missing WorkOS", resend: "configured"},
+		{name: "missing Resend", workos: "configured"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			err := Run(t.Context(), Config{Email: EmailConfig{ResendAPIKey: test.resend}, WorkOSAPIKey: test.workos})
+			require.ErrorContains(t, err, "key leak notifications require email.resend_api_key and workos_api_key")
+		})
+	}
+}
+
 func TestConfigDatabase(t *testing.T) {
 	t.Run("accepts flat database string", func(t *testing.T) {
 		cfg, err := config.LoadBytes[Config]([]byte(`

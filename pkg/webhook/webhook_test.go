@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,6 +20,7 @@ import (
 // reads the body from the request like a real verifier does.
 type staticVerifier struct {
 	event Event
+	err   error
 }
 
 func (v staticVerifier) Verify(r *http.Request) (Event, error) {
@@ -29,7 +31,7 @@ func (v staticVerifier) Verify(r *http.Request) (Event, error) {
 	if string(body) == "tampered" {
 		return Event{}, errors.New("bad signature")
 	}
-	return v.event, nil
+	return v.event, v.err
 }
 
 func post(t *testing.T, rec *Receiver, body string) *httptest.ResponseRecorder {
@@ -44,6 +46,80 @@ func TestReceiver(t *testing.T) {
 	newReceiver := func(eventType string) *Receiver {
 		return New("test", staticVerifier{event: Event{ID: eventID, Type: eventType}})
 	}
+
+	t.Run("custom acknowledgment survives middleware and concurrent requests", func(t *testing.T) {
+		type requestIDKey struct{}
+		rec := newReceiver("thing.created").
+			Use(func(next HandlerFunc) HandlerFunc {
+				return func(ctx context.Context, event Event) error {
+					id, ok := ctx.Value(requestIDKey{}).(string)
+					if !ok {
+						return errors.New("missing request ID")
+					}
+					event.ID = id
+					return next(ctx, event)
+				}
+			}).
+			OnResponse([]string{"thing.created"}, func(ctx context.Context, event Event) (Response, error) {
+				body, err := json.Marshal(event.ID)
+				return Response{StatusCode: http.StatusCreated, ContentType: "application/json", Body: body}, err
+			})
+		for i := range 8 {
+			t.Run(fmt.Sprint(i), func(t *testing.T) {
+				t.Parallel()
+				want := uid.New(uid.TestPrefix)
+				ctx := context.WithValue(t.Context(), requestIDKey{}, want)
+				response := httptest.NewRecorder()
+				rec.ServeHTTP(response, httptest.NewRequestWithContext(ctx, http.MethodPost, "/", nil))
+				require.Equal(t, http.StatusCreated, response.Code)
+				require.Equal(t, "application/json", response.Header().Get("Content-Type"))
+				var got string
+				require.NoError(t, json.Unmarshal(response.Body.Bytes(), &got))
+				require.Equal(t, want, got)
+			})
+		}
+	})
+
+	t.Run("middleware error discards acknowledgment", func(t *testing.T) {
+		rec := newReceiver("thing.created").
+			Use(func(next HandlerFunc) HandlerFunc {
+				return func(ctx context.Context, event Event) error {
+					if err := next(ctx, event); err != nil {
+						return err
+					}
+					return fmt.Errorf("%w: queue unavailable", ErrUnavailable)
+				}
+			}).
+			OnResponse([]string{"thing.created"}, func(ctx context.Context, event Event) (Response, error) {
+				return Response{StatusCode: http.StatusCreated, Body: []byte("must not be sent")}, nil
+			})
+		response := post(t, rec, "")
+		require.Equal(t, http.StatusServiceUnavailable, response.Code)
+		require.NotContains(t, response.Body.String(), "must not be sent")
+	})
+
+	t.Run("verification errors distinguish retryable failures", func(t *testing.T) {
+		for _, test := range []struct {
+			name   string
+			err    error
+			status int
+		}{
+			{name: "unavailable", err: ErrUnavailable, status: http.StatusServiceUnavailable},
+			{name: "bad request", err: ErrBadRequest, status: http.StatusBadRequest},
+			{name: "invalid signature", err: errors.New("signature mismatch"), status: http.StatusUnauthorized},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				rec := New("test", staticVerifier{err: fmt.Errorf("private detail: %w", test.err)}).
+					Default(func(ctx context.Context, event Event) error {
+						t.Fatal("unverified requests must not reach the handler")
+						return nil
+					})
+				response := post(t, rec, "")
+				require.Equal(t, test.status, response.Code)
+				require.NotContains(t, response.Body.String(), "private detail")
+			})
+		}
+	})
 
 	t.Run("handled event returns 200", func(t *testing.T) {
 		called := false
@@ -229,5 +305,72 @@ func TestTyped(t *testing.T) {
 			}),
 		)
 		require.Equal(t, http.StatusBadRequest, post(t, rec, "").Code)
+	})
+}
+
+func TestTypedResponse(t *testing.T) {
+	eventID := uid.New(uid.TestPrefix)
+	newReceiver := func(payload []byte) *Receiver {
+		return New("test", staticVerifier{
+			event: Event{ID: eventID, Type: "thing.created", Payload: payload},
+		})
+	}
+	type request struct {
+		Name string `json:"name"`
+	}
+	type response struct {
+		Message string `json:"message"`
+	}
+	payload, err := json.Marshal(request{Name: "box"})
+	require.NoError(t, err)
+
+	t.Run("typed request and JSON acknowledgment", func(t *testing.T) {
+		rec := newReceiver(payload).OnResponse(
+			[]string{"thing.created"},
+			TypedResponse(http.StatusCreated, func(ctx context.Context, event Event, input request) (response, error) {
+				require.Equal(t, eventID, event.ID)
+				return response{Message: "created " + input.Name}, nil
+			}),
+		)
+		got := post(t, rec, "")
+		require.Equal(t, http.StatusCreated, got.Code)
+		require.Equal(t, "application/json", got.Header().Get("Content-Type"))
+		var body response
+		require.NoError(t, json.Unmarshal(got.Body.Bytes(), &body))
+		require.Equal(t, response{Message: "created box"}, body)
+	})
+
+	t.Run("malformed request returns 400", func(t *testing.T) {
+		rec := newReceiver([]byte("not json")).OnResponse(
+			[]string{"thing.created"},
+			TypedResponse(http.StatusCreated, func(ctx context.Context, event Event, input request) (response, error) {
+				t.Fatal("handler must not run for unparseable payloads")
+				return response{}, nil
+			}),
+		)
+		require.Equal(t, http.StatusBadRequest, post(t, rec, "").Code)
+	})
+
+	t.Run("handler error discards response", func(t *testing.T) {
+		rec := newReceiver(payload).OnResponse(
+			[]string{"thing.created"},
+			TypedResponse(http.StatusCreated, func(ctx context.Context, event Event, input request) (response, error) {
+				return response{Message: "must not be sent"}, fmt.Errorf("private detail: %w", ErrUnavailable)
+			}),
+		)
+		got := post(t, rec, "")
+		require.Equal(t, http.StatusServiceUnavailable, got.Code)
+		require.NotContains(t, got.Body.String(), "must not be sent")
+		require.NotContains(t, got.Body.String(), "private detail")
+	})
+
+	t.Run("encoding error returns 500 instead of success", func(t *testing.T) {
+		rec := newReceiver(payload).OnResponse(
+			[]string{"thing.created"},
+			TypedResponse(http.StatusCreated, func(ctx context.Context, event Event, input request) (float64, error) {
+				return math.Inf(1), nil
+			}),
+		)
+		require.Equal(t, http.StatusInternalServerError, post(t, rec, "").Code)
 	})
 }

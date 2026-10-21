@@ -1,6 +1,7 @@
 package webhook
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -24,8 +25,8 @@ const defaultMaxBodySize int64 = 2 * 1024 * 1024
 type Receiver struct {
 	provider    string
 	verifier    Verifier
-	handlers    map[string]HandlerFunc
-	fallback    HandlerFunc
+	handlers    map[string]ResponseHandlerFunc
+	fallback    ResponseHandlerFunc
 	middlewares []Middleware
 	maxBodySize int64
 }
@@ -48,7 +49,7 @@ func New(provider string, verifier Verifier, opts ...Option) *Receiver {
 	rec := &Receiver{
 		provider:    provider,
 		verifier:    verifier,
-		handlers:    map[string]HandlerFunc{},
+		handlers:    map[string]ResponseHandlerFunc{},
 		fallback:    nil,
 		middlewares: nil,
 		maxBodySize: defaultMaxBodySize,
@@ -63,8 +64,16 @@ func New(provider string, verifier Verifier, opts ...Option) *Receiver {
 // registration. Reads as "on these events, run this handler". Returns the
 // Receiver for chaining.
 func (rec *Receiver) On(eventTypes []string, fn HandlerFunc) *Receiver {
+	return rec.OnResponse(eventTypes, func(ctx context.Context, event Event) (Response, error) {
+		return Response{}, fn(ctx, event)
+	})
+}
+
+// OnResponse registers a handler with a custom acknowledgment. Middleware and
+// error handling are the same as On; response data is sent only on success.
+func (rec *Receiver) OnResponse(eventTypes []string, fn ResponseHandlerFunc) *Receiver {
 	if len(eventTypes) == 0 {
-		panic("webhook: On requires at least one event type")
+		panic("webhook: registration requires at least one event type")
 	}
 	for _, eventType := range eventTypes {
 		rec.handlers[eventType] = fn
@@ -78,7 +87,9 @@ func (rec *Receiver) On(eventTypes []string, fn HandlerFunc) *Receiver {
 // other (return [ErrIgnore] to keep the 200-and-count-separately behavior
 // with a logged reason). Returns the Receiver for chaining.
 func (rec *Receiver) Default(fn HandlerFunc) *Receiver {
-	rec.fallback = fn
+	rec.fallback = func(ctx context.Context, event Event) (Response, error) {
+		return Response{}, fn(ctx, event)
+	}
 	return rec
 }
 
@@ -113,6 +124,17 @@ func (rec *Receiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
 			return
 		}
+		if errors.Is(err, ErrUnavailable) {
+			rec.count("none", "verification_unavailable")
+			logger.Error("webhook verification unavailable", "provider", rec.provider, "error", err)
+			http.Error(w, "verification unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		if errors.Is(err, ErrBadRequest) {
+			rec.count("none", "bad_request")
+			http.Error(w, "invalid webhook request", http.StatusBadRequest)
+			return
+		}
 		rec.count("none", "verification_failed")
 		logger.Warn("webhook rejected: verification failed", "provider", rec.provider, "error", err)
 		http.Error(w, "verification failed", http.StatusUnauthorized)
@@ -129,19 +151,35 @@ func (rec *Receiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		handler = rec.fallback
 	}
 
+	var response Response
+	var handle HandlerFunc = func(ctx context.Context, event Event) error {
+		var err error
+		response, err = handler(ctx, event)
+		return err
+	}
 	for i := len(rec.middlewares) - 1; i >= 0; i-- {
-		handler = rec.middlewares[i](handler)
+		handle = rec.middlewares[i](handle)
 	}
 
 	start := time.Now()
-	err = handler(r.Context(), event)
+	err = handle(r.Context(), event)
 	handlerDuration.WithLabelValues(rec.provider, event.Type).
 		Observe(time.Since(start).Seconds())
 
 	switch {
 	case err == nil:
 		rec.count(event.Type, "handled")
-		w.WriteHeader(http.StatusOK)
+		if response.ContentType != "" {
+			w.Header().Set("Content-Type", response.ContentType)
+		}
+		status := response.StatusCode
+		if status == 0 {
+			status = http.StatusOK
+		}
+		w.WriteHeader(status)
+		if _, err := w.Write(response.Body); err != nil {
+			logger.Error("webhook response failed", "provider", rec.provider, "error", err)
+		}
 	case errors.Is(err, ErrIgnore):
 		rec.count(event.Type, "ignored")
 		logger.Info("webhook event ignored",
@@ -171,6 +209,10 @@ func (rec *Receiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"error", err,
 		)
 		// 5xx so the provider retries; handlers are required to be idempotent.
-		http.Error(w, fmt.Sprintf("handling %s failed", event.Type), http.StatusInternalServerError)
+		status := http.StatusInternalServerError
+		if errors.Is(err, ErrUnavailable) {
+			status = http.StatusServiceUnavailable
+		}
+		http.Error(w, fmt.Sprintf("handling %s failed", event.Type), status)
 	}
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/email"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -40,6 +41,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -55,6 +57,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
 
 	"github.com/unkeyed/unkey/internal/services/flags"
@@ -90,6 +93,9 @@ import (
 // fails, or during server startup. Context cancellation results in
 // clean shutdown with nil error.
 func Run(ctx context.Context, cfg Config) error {
+	if cfg.Email.ResendAPIKey == "" || cfg.WorkOSAPIKey == "" {
+		return errors.New("key leak notifications require email.resend_api_key and workos_api_key")
+	}
 	if cfg.InstanceID == "" {
 		cfg.InstanceID = uid.New(uid.InstancePrefix)
 	}
@@ -425,6 +431,25 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHub:                          ghClient,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
+
+	restateSrv.Bind(hydrav1.NewKeyLeakServiceServer(keyleak.New(keyleak.Config{
+		DB:              database,
+		Members:         workos.New(cfg.WorkOSAPIKey),
+		Email:           email.NewResend(cfg.Email.ResendAPIKey, ""),
+		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
+	}),
+		restate.WithJournalRetention(time.Hour),
+		restate.WithIdempotencyRetention(24*time.Hour),
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(time.Second),
+			restate.WithMaxRetryInterval(time.Minute),
+			restate.WithRetryIntervalFactor(2),
+			restate.WithMaxRetryAttempts(360),
+			restate.KillOnMaxAttempts(),
+		),
+	).ConfigureHandler("Notify", restate.WithIngressPrivate(true)).
+		ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
+		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
 
 	projectSvc, err := workerproject.New(workerproject.Config{
 		DB:        database,

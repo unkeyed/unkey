@@ -31,7 +31,7 @@ var _ Resolver = (*client)(nil)
 
 // New returns a WorkOS-backed Resolver. apiKey must be non-empty; a caller
 // with no key configured wires NewNoop instead and owns that decision.
-func New(apiKey string) Resolver {
+func New(apiKey string) *client {
 	return &client{
 		apiKey:  apiKey,
 		baseURL: baseURL,
