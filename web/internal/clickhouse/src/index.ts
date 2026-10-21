@@ -136,6 +136,7 @@ import {
   getFiveMinutelyVerificationTimeseries,
   getFourHourlyIdentityTimeseries,
   getFourHourlyVerificationTimeseries,
+  getGatewayRequestVerification,
   getHourlyIdentityTimeseries,
   getHourlyVerificationTimeseries,
   getIdentityLogs,
@@ -394,6 +395,7 @@ export class ClickHouse {
     return {
       logs: getRequestLogs(this.querier),
       requestDetails: getRequestDetails(this.querier),
+      keyVerification: getGatewayRequestVerification(this.querier),
       rps: {
         byInstance: getInstanceRps(this.querier),
         byRegion: getRegionRps(this.querier),

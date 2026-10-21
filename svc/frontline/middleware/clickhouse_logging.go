@@ -15,11 +15,8 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
 
-// WithClickHouseLogging buffers a per-request record for ClickHouse on the
-// local-instance path. The proxy package populates the tracking struct
-// during proxy execution; this middleware reads it back and emits the row
-// after next() returns. Cross-region requests do not populate tracking and
-// are skipped — the peer frontline writes its own row.
+// WithClickHouseLogging buffers deployment-scoped request logs, including
+// requests rejected before an instance is selected.
 func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], clk clock.Clock, frontlineID, region, platform string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
@@ -31,27 +28,18 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 
 			err := next(ctx, s)
 
-			// Tracking is only populated on the local-instance path; the
-			// handler stamps DeploymentID/InstanceID before forwarding. If
-			// those are empty the request was forwarded cross-region and
-			// the peer logs it.
-			//
-			// The base row is written unconditionally — the traffic and
-			// latency charts depend on it. Headers, query data, and bodies
-			// are only included when an enabled logging policy opted the
-			// request in via the tracking.Log* capture flags.
-			if !s.ShouldLogRequestToClickHouse() || tracking.DeploymentID == "" || tracking.InstanceID == "" {
+			if !s.ShouldLogRequestToClickHouse() || tracking.DeploymentID == "" {
 				return err
 			}
 
 			endTime := clk.Now()
 			totalLatency := endTime.Sub(tracking.StartTime).Milliseconds()
 
-			var instanceLatency, gatewayLatency int64
+			var instanceLatency int64
 			if !tracking.InstanceStart.IsZero() && !tracking.InstanceEnd.IsZero() {
 				instanceLatency = tracking.InstanceEnd.Sub(tracking.InstanceStart).Milliseconds()
-				gatewayLatency = totalLatency - instanceLatency
 			}
+			gatewayLatency := totalLatency - instanceLatency
 
 			req := s.Request()
 

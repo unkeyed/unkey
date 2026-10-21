@@ -61,6 +61,7 @@ import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
 import { queryRequestDetails } from "./deploy/request-logs/details";
+import { queryRequestKeyVerification } from "./deploy/request-logs/key-verification";
 import { llmSearch as requestLogsLlmSearch } from "./deploy/request-logs/llm-search";
 import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
@@ -301,6 +302,7 @@ export const router = t.router({
     requestLogs: t.router({
       query: queryRequestLogs,
       details: queryRequestDetails,
+      keyVerification: queryRequestKeyVerification,
       llmSearch: requestLogsLlmSearch,
     }),
     runtimeLogs: t.router({
