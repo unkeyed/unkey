@@ -3,6 +3,7 @@ package privatenetwork
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -10,6 +11,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
@@ -132,18 +134,32 @@ func TestTopologyFailureDoesNotPreventConnectionRevocation(t *testing.T) {
 	)...)}
 	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Platform: "aws", Region: "us-east-1", CellId: "aws-us-east-1"}}
 	require.NoError(t, r.reconcile(t.Context()))
-	connections, err := client.CoreV1().ConfigMaps("customer-1").List(t.Context(), metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Len(t, connections.Items, 1)
+	require.Len(t, connectionServices(t, client, "customer-1"), 3, "one global and one regional alias per topology region")
 
 	control.StreamPrivateNetworkStateFunc = chunkStream(t, identified("snapshot-2", &ctrlv1.PrivateNetworkStateChunk{Complete: true, Topology: &ctrlv1.PrivateNetworkTopology{Version: 2}})...)
 	require.Error(t, r.reconcile(t.Context()))
-	connections, err = client.CoreV1().ConfigMaps("customer-1").List(t.Context(), metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Len(t, connections.Items, 1)
+	require.Len(t, connectionServices(t, client, "customer-1"), 3, "an invalid topology neither confirms absence nor removes regions")
 	control.StreamPrivateNetworkStateFunc = chunkStream(t, identified("snapshot-3", &ctrlv1.PrivateNetworkStateChunk{Complete: true, Topology: &ctrlv1.PrivateNetworkTopology{Version: 2}})...)
 	require.Error(t, r.reconcile(t.Context()))
-	connections, err = client.CoreV1().ConfigMaps("customer-1").List(t.Context(), metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Empty(t, connections.Items)
+	require.Empty(t, connectionServices(t, client, "customer-1"))
+}
+
+func TestRegionsAreDNSLabelsThatFitRegionalServiceNames(t *testing.T) {
+	longest := strings.Repeat("r", privatenetwork.MaxRegionLength)
+	require.True(t, validRegion(longest))
+	require.Len(t, privatenetwork.RegionalConnectionServiceName(uid.New(uid.DeploymentPrefix), strings.Repeat("a", 63), longest), 63)
+	for _, region := range []string{"", longest + "r", "US-EAST-1", "us.east", "local-first"} {
+		require.False(t, validRegion(region), region)
+		_, err := New(Config{
+			Client: fake.NewClientset(), Dynamic: testDynamicClient(), Cluster: &testutil.MockClusterClient{},
+			ClusterKey: &ctrlv1.ClusterKey{Region: region}, Clock: clock.NewTestClock(),
+		})
+		require.Error(t, err, region)
+	}
+	r := &Reconciler{clusterKey: &ctrlv1.ClusterKey{Platform: "aws", Region: "us-east-1", CellId: "aws-us-east-1"}}
+	_, err := r.topologyData(&ctrlv1.PrivateNetworkTopology{Version: 1, Clusters: []*ctrlv1.ClusterKey{
+		{Platform: "aws", Region: "us-east-1", CellId: "aws-us-east-1"},
+		{Platform: "aws", Region: longest + "r", CellId: "aws-long"},
+	}})
+	require.Error(t, err)
 }

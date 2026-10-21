@@ -4,189 +4,156 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/krane/internal/precondition"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (r *Reconciler) namespaces(ctx context.Context) (map[string]struct{}, error) {
-	list, err := r.client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("list namespaces: %w", err)
+// publishedTarget returns the deployment a connection Service resolves to. It
+// rejects a Service whose annotation disagrees with the shared Service named
+// by its ExternalName. A missing shared Service resolves to nothing, so the
+// annotation alone identifies the deployment whose grant must stay.
+func publishedTarget(connection *corev1.Service, services map[string]*corev1.Service) (string, error) {
+	key := connection.Namespace + "/" + connection.Name
+	deployment := connection.Annotations[privatenetwork.TargetDeploymentAnnotation]
+	name := targetServiceName(connection)
+	if connection.Spec.Type != corev1.ServiceTypeExternalName || deployment == "" || name == "" ||
+		connection.Spec.ExternalName != externalName(connection.Annotations[privatenetwork.RegionAnnotation], name, connection.Namespace) {
+		return "", fmt.Errorf("invalid published connection Service %s", key)
 	}
-
-	namespaces := make(map[string]struct{}, len(list.Items))
-	for i := range list.Items {
-		namespaces[list.Items[i].Name] = struct{}{}
+	target := services[connection.Namespace+"/"+name]
+	if target == nil {
+		return deployment, nil
 	}
-	return namespaces, nil
+	if !sharedService(target) || target.Labels[labels.LabelKeyDeploymentID] != deployment ||
+		target.Labels[labels.LabelKeyWorkspaceID] != connection.Labels[labels.LabelKeyWorkspaceID] ||
+		target.Labels[labels.LabelKeyProjectID] != connection.Labels[labels.LabelKeyProjectID] ||
+		target.Labels[labels.LabelKeyAppID] != connection.Labels[labels.LabelKeyAppID] {
+		return "", fmt.Errorf("published connection Service %s does not match target Service %s", key, target.Name)
+	}
+	return deployment, nil
 }
 
-func targetAppLabels(connectionSpec *ctrlv1.PrivateNetworkConnection) labels.Labels {
-	return labels.New().
-		ManagedByKrane().
-		WorkspaceID(connectionSpec.GetWorkspaceId()).
-		ProjectID(connectionSpec.GetProjectId()).
-		AppID(connectionSpec.GetTargetAppId())
+// targetServiceName returns the shared Service a connection Service's
+// ExternalName names, or "" when it names none.
+func targetServiceName(connection *corev1.Service) string {
+	host := connection.Spec.ExternalName
+	if region := connection.Annotations[privatenetwork.RegionAnnotation]; region != "" {
+		var found bool
+		if host, found = strings.CutPrefix(host, region+"."); !found {
+			return ""
+		}
+	}
+	name, _, _ := strings.Cut(host, ".")
+	return name
 }
 
-func (r *Reconciler) ensureService(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name string, existing *corev1.Service) (*corev1.Service, error) {
-	client := r.client.CoreV1().Services(connectionSpec.GetK8SNamespace())
-	desiredLabels := targetAppLabels(connectionSpec).DeploymentID(connectionSpec.GetTargetDeploymentId()).Component(component)
+func externalName(region, target, namespace string) string {
+	if region == "" {
+		return privatenetwork.ServiceHost(target, namespace)
+	}
+	return region + "." + privatenetwork.ServiceHost(target, namespace)
+}
+
+// ensureConnection publishes the connection Service name, resolving target's
+// endpoints in region or in every region when region is empty. It runs after
+// the connection's grant exists. It keeps an existing alias on previous, the
+// deployment it currently resolves to, until target has ready endpoints, and
+// deletes the alias when target is nil.
+func (r *Reconciler) ensureConnection(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name, region string, target, existing *corev1.Service, previous string, endpointSlices []discoveryv1.EndpointSlice) (*corev1.Service, error) {
+	namespace := connectionSpec.GetK8SNamespace()
+	key := namespace + "/" + name
+	client := r.client.CoreV1().Services(namespace)
+
+	if existing != nil && !ownedByConnection(existing.Labels, connectionSpec) {
+		return nil, fmt.Errorf("refuse to replace foreign Service %s", key)
+	}
+	if target == nil {
+		if existing != nil {
+			if err := client.Delete(ctx, existing.Name, precondition.Unchanged(existing)); err != nil && !apierrors.IsNotFound(err) {
+				return nil, fmt.Errorf("withdraw unresolved private network connection %s: %w", key, err)
+			}
+		}
+		return nil, nil
+	}
+
+	deployment := target.Labels[labels.LabelKeyDeploymentID]
 	desired := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
-			Namespace:   connectionSpec.GetK8SNamespace(),
-			Labels:      desiredLabels,
-			Annotations: map[string]string{privatenetwork.CiliumGlobalAnnotation: "true", privatenetwork.CiliumGlobalSlicesAnnotation: "true"},
+			Namespace:   namespace,
+			Labels:      connectionLabels(connectionSpec),
+			Annotations: map[string]string{privatenetwork.TargetDeploymentAnnotation: deployment},
 		},
 		Spec: corev1.ServiceSpec{
-			ClusterIP: corev1.ClusterIPNone,
-			Ports: []corev1.ServicePort{{
-				Name:       "app",
-				Port:       connectionSpec.GetTargetPort(),
-				TargetPort: intstr.FromInt32(connectionSpec.GetTargetPort()),
-				Protocol:   corev1.ProtocolTCP,
-			}},
-			PublishNotReadyAddresses: false,
+			Type:         corev1.ServiceTypeExternalName,
+			ExternalName: externalName(region, target.Name, namespace),
 		},
 	}
+	if region != "" {
+		desired.Annotations[privatenetwork.RegionAnnotation] = region
+	}
 
-	if existing != nil {
-		if !ownedByTargetApp(existing.Labels, connectionSpec) {
-			return nil, fmt.Errorf("refuse to replace foreign Service %s/%s", connectionSpec.GetK8SNamespace(), name)
+	if existing == nil {
+		created, err := client.Create(ctx, desired, metav1.CreateOptions{FieldManager: fieldManager})
+		if err != nil {
+			return nil, fmt.Errorf("create private network connection %s: %w", key, err)
 		}
+		logConnectionPublished(connectionSpec, key, region, "", deployment)
+		return created, nil
+	}
 
-		if maps.Equal(existing.Labels, desired.Labels) && maps.Equal(existing.Annotations, desired.Annotations) &&
-			maps.Equal(existing.Spec.Selector, desired.Spec.Selector) && existing.Spec.ClusterIP == corev1.ClusterIPNone &&
-			!existing.Spec.PublishNotReadyAddresses && len(existing.Spec.Ports) == 1 &&
-			existing.Spec.Ports[0] == desired.Spec.Ports[0] {
+	if maps.Equal(existing.Labels, desired.Labels) && maps.Equal(existing.Annotations, desired.Annotations) &&
+		existing.Spec.Type == desired.Spec.Type && existing.Spec.ExternalName == desired.Spec.ExternalName && len(existing.Spec.Ports) == 0 {
+		return existing, nil
+	}
+	if previous != "" && previous != deployment && maps.Equal(existing.Labels, desired.Labels) {
+		ready, err := r.targetReady(ctx, target, endpointSlices)
+		if err != nil {
+			return nil, err
+		}
+		if !ready {
 			return existing, nil
 		}
-
-		desired.ResourceVersion = existing.ResourceVersion
-		desired.UID = existing.UID
-		desired.Spec.ClusterIPs = existing.Spec.ClusterIPs
-		desired.Spec.IPFamilies = existing.Spec.IPFamilies
-		desired.Spec.IPFamilyPolicy = existing.Spec.IPFamilyPolicy
-		updated, err := client.Update(ctx, desired, metav1.UpdateOptions{FieldManager: fieldManager})
-		if err != nil {
-			return nil, fmt.Errorf("update private network Service %s/%s: %w", connectionSpec.GetK8SNamespace(), name, err)
-		}
-		return updated, nil
 	}
 
-	created, err := client.Create(ctx, desired, metav1.CreateOptions{FieldManager: fieldManager})
+	desired.ResourceVersion = existing.ResourceVersion
+	desired.UID = existing.UID
+	updated, err := client.Update(ctx, desired, metav1.UpdateOptions{FieldManager: fieldManager})
 	if err != nil {
-		return nil, fmt.Errorf("create private network Service %s/%s: %w", connectionSpec.GetK8SNamespace(), name, err)
+		return nil, fmt.Errorf("update private network connection %s: %w", key, err)
 	}
-	return created, nil
+	logConnectionPublished(connectionSpec, key, region, previous, deployment)
+	return updated, nil
 }
 
-func (r *Reconciler) ensureConnection(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name string, service *corev1.Service, existing *corev1.ConfigMap, endpointSlices []discoveryv1.EndpointSlice) (*corev1.ConfigMap, error) {
-	client := r.client.CoreV1().ConfigMaps(connectionSpec.GetK8SNamespace())
-	key := connectionSpec.GetK8SNamespace() + "/" + name
-	desired := privatenetwork.ConnectionData{
-		Alias:        connectionSpec.GetConnectionName(),
-		DeploymentID: connectionSpec.GetTargetDeploymentId(),
-		ServiceName:  "",
-		Revision:     1,
+func (r *Reconciler) targetReady(ctx context.Context, target *corev1.Service, endpointSlices []discoveryv1.EndpointSlice) (bool, error) {
+	if hasReadyEndpoints(target, endpointSlices) {
+		return true, nil
 	}
-	if service != nil {
-		desired.ServiceName = service.Name
-	}
-
-	if existing != nil {
-		if !owned(existing.Labels) || existing.Labels[labels.LabelKeyWorkspaceID] != connectionSpec.GetWorkspaceId() ||
-			existing.Labels[labels.LabelKeyProjectID] != connectionSpec.GetProjectId() ||
-			existing.Labels[labels.LabelKeyConnectionID] != connectionSpec.GetConnectionId() ||
-			existing.Labels[labels.LabelKeyCallerDeploymentID] != connectionSpec.GetCallerDeploymentId() {
-			return nil, fmt.Errorf("refuse to replace foreign ConfigMap %s", key)
-		}
-		current, decodeErr := privatenetwork.Decode(existing.Data)
-		if decodeErr != nil {
-			return nil, fmt.Errorf("invalid existing connection data for %s: %w", key, decodeErr)
-		}
-
-		desired.Revision = current.Revision
-		if current == desired && maps.Equal(existing.Labels, connectionLabels(connectionSpec)) {
-			return existing, nil
-		}
-
-		if service != nil && current.Alias == desired.Alias && maps.Equal(existing.Labels, connectionLabels(connectionSpec)) {
-			if !hasReadyEndpoints(service, endpointSlices) {
-				listed, listErr := r.client.DiscoveryV1().EndpointSlices(service.Namespace).List(ctx, metav1.ListOptions{
-					LabelSelector: discoveryv1.LabelServiceName + "=" + service.Name,
-				})
-				if listErr != nil {
-					return nil, fmt.Errorf("check discovery readiness for %s/%s: %w", service.Namespace, service.Name, listErr)
-				}
-				if !hasReadyEndpoints(service, listed.Items) {
-					return existing, nil
-				}
-			}
-		}
-
-		if current.Revision == ^uint64(0) {
-			return nil, fmt.Errorf("connection revision exhausted for %s", key)
-		}
-		desired.Revision++
-		desiredData, encodeErr := privatenetwork.Encode(desired)
-		if encodeErr != nil {
-			return nil, fmt.Errorf("encode private network connection %s: %w", key, encodeErr)
-		}
-
-		desiredConfigMap := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:            name,
-				Namespace:       connectionSpec.GetK8SNamespace(),
-				Labels:          connectionLabels(connectionSpec),
-				ResourceVersion: existing.ResourceVersion,
-				UID:             existing.UID,
-			},
-			Data: desiredData,
-		}
-		updated, err := client.Update(ctx, desiredConfigMap, metav1.UpdateOptions{FieldManager: fieldManager})
-		if err != nil {
-			return nil, fmt.Errorf("update private network connection %s: %w", key, err)
-		}
-		logConnectionPublished(connectionSpec, key, current.DeploymentID, updated)
-		return updated, nil
-	}
-
-	desiredData, err := privatenetwork.Encode(desired)
+	listed, err := r.client.DiscoveryV1().EndpointSlices(target.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: discoveryv1.LabelServiceName + "=" + target.Name,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("encode private network connection %s: %w", key, err)
+		return false, fmt.Errorf("check discovery readiness for %s/%s: %w", target.Namespace, target.Name, err)
 	}
-
-	desiredConfigMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: connectionSpec.GetK8SNamespace(),
-			Labels:    connectionLabels(connectionSpec),
-		},
-		Data: desiredData,
-	}
-	created, err := client.Create(ctx, desiredConfigMap, metav1.CreateOptions{FieldManager: fieldManager})
-	if err != nil {
-		return nil, fmt.Errorf("create private network connection %s: %w", key, err)
-	}
-	logConnectionPublished(connectionSpec, key, "", created)
-	return created, nil
+	return hasReadyEndpoints(target, listed.Items), nil
 }
 
-func logConnectionPublished(connectionSpec *ctrlv1.PrivateNetworkConnection, key, previousDeployment string, connection *corev1.ConfigMap) {
+func logConnectionPublished(connectionSpec *ctrlv1.PrivateNetworkConnection, key, region, previousDeployment, deployment string) {
 	logger.Info("private network connection published",
 		"connection_key", key, "kind", entryKind(connectionSpec), "workspace_id", connectionSpec.GetWorkspaceId(),
 		"connection_id", connectionSpec.GetConnectionId(), "caller_deployment_id", connectionSpec.GetCallerDeploymentId(),
-		"alias", connectionSpec.GetConnectionName(), "previous_deployment_id", previousDeployment,
-		"deployment_id", connection.Data[privatenetwork.ConnectionDeploymentKey], "revision", connection.Data[privatenetwork.ConnectionRevisionKey])
+		"alias", connectionSpec.GetConnectionName(), "region", region, "previous_deployment_id", previousDeployment,
+		"deployment_id", deployment)
 }
 
 func hasReadyEndpoints(service *corev1.Service, slices []discoveryv1.EndpointSlice) bool {

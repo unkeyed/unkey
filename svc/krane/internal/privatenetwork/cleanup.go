@@ -20,12 +20,13 @@ type absence struct {
 	confirmed  bool
 }
 
-func (r *Reconciler) cleanupGrants(ctx context.Context, snapshotID string, wanted map[string]struct{}, connections map[string]*corev1.ConfigMap, policies map[string]*unstructured.Unstructured, confirm bool) error {
+// cleanupGrants revokes connections absent from two certified snapshots with
+// different IDs. It deletes the policy before the connection Services, so a
+// failed revocation leaves DNS in place rather than DNS without a grant.
+func (r *Reconciler) cleanupGrants(ctx context.Context, snapshotID string, wanted map[string]struct{}, connections map[string][]*corev1.Service, policies map[string]*unstructured.Unstructured, confirm bool) error {
 	keys := make(map[string]struct{}, len(connections)+len(policies))
-	for key, connection := range connections {
-		if owned(connection.Labels) {
-			keys[key] = struct{}{}
-		}
+	for key := range connections {
+		keys[key] = struct{}{}
 	}
 	for key, policy := range policies {
 		if owned(policy.GetLabels()) {
@@ -53,7 +54,7 @@ func (r *Reconciler) cleanupGrants(ctx context.Context, snapshotID string, wante
 			continue
 		}
 
-		policy, connection := policies[key], connections[key]
+		policy := policies[key]
 		if policy != nil && owned(policy.GetLabels()) {
 			if err := r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(policy.GetNamespace()).Delete(ctx, policy.GetName(), precondition.Unchanged(policy)); err != nil && !apierrors.IsNotFound(err) {
 				errs = append(errs, fmt.Errorf("delete connection policy %s: %w", key, err))
@@ -61,12 +62,18 @@ func (r *Reconciler) cleanupGrants(ctx context.Context, snapshotID string, wante
 			}
 			delete(policies, key)
 		}
-		if connection != nil && owned(connection.Labels) {
-			if err := r.client.CoreV1().ConfigMaps(connection.Namespace).Delete(ctx, connection.Name, precondition.Unchanged(connection)); err != nil && !apierrors.IsNotFound(err) {
-				errs = append(errs, fmt.Errorf("delete connection DNS %s: %w", key, err))
-				continue
+		remaining := slices.DeleteFunc(connections[key], func(connection *corev1.Service) bool {
+			err := r.client.CoreV1().Services(connection.Namespace).Delete(ctx, connection.Name, precondition.Unchanged(connection))
+			if err != nil && !apierrors.IsNotFound(err) {
+				errs = append(errs, fmt.Errorf("delete connection DNS %s/%s: %w", connection.Namespace, connection.Name, err))
+				return false
 			}
+			return true
+		})
+		if len(remaining) == 0 {
 			delete(connections, key)
+		} else {
+			connections[key] = remaining
 		}
 	}
 	r.absences = next

@@ -79,10 +79,9 @@ func TestReconcileReportsEntryStatesAndTargetSwitches(t *testing.T) {
 
 	services, err := client.CoreV1().Services(switched.GetK8SNamespace()).List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
-	require.Len(t, services.Items, 3)
 	var switchedService *corev1.Service
 	for i := range services.Items {
-		if services.Items[i].Labels["unkey.com/deployment.id"] == switched.TargetDeploymentId {
+		if services.Items[i].Spec.Type != corev1.ServiceTypeExternalName && services.Items[i].Labels["unkey.com/deployment.id"] == switched.TargetDeploymentId {
 			switchedService = &services.Items[i]
 		}
 	}
@@ -97,7 +96,6 @@ func TestReconcileReportsEntryStatesAndTargetSwitches(t *testing.T) {
 	attrs = loggertest.FlatAttrs(published[0])
 	require.Equal(t, bound.TargetDeploymentId, attrs["previous_deployment_id"])
 	require.Equal(t, switched.TargetDeploymentId, attrs["deployment_id"])
-	require.Equal(t, "2", attrs["revision"])
 }
 
 func TestReconcileEntryFailuresReportTheirStage(t *testing.T) {
@@ -121,7 +119,13 @@ func TestReconcileEntryFailuresReportTheirStage(t *testing.T) {
 			}).PrependReactor("create", "ciliumnetworkpolicies", failWhile(failing, forbidden("ciliumnetworkpolicies")))
 		}},
 		{stage: stageConnection, inject: func(client *fake.Clientset, _ *Reconciler, failing *bool) {
-			client.PrependReactor("create", "configmaps", failWhile(failing, forbidden("configmaps")))
+			fail := failWhile(failing, forbidden("services"))
+			client.PrependReactor("create", "services", func(action clienttesting.Action) (bool, runtime.Object, error) {
+				if action.(clienttesting.CreateAction).GetObject().(*corev1.Service).Spec.Type != corev1.ServiceTypeExternalName {
+					return false, nil, nil
+				}
+				return fail(action)
+			})
 		}},
 		{stage: stageInvalidEntry, corrupt: true},
 	} {
@@ -191,7 +195,7 @@ func TestReconcileAbortReportsStageWithoutCompletingPass(t *testing.T) {
 			})
 		}},
 		{stage: stageList, inject: func(client *fake.Clientset, _ *testutil.MockClusterClient) {
-			client.PrependReactor("list", "configmaps", func(clienttesting.Action) (bool, runtime.Object, error) {
+			client.PrependReactor("list", "services", func(clienttesting.Action) (bool, runtime.Object, error) {
 				return true, nil, fmt.Errorf("API server unavailable")
 			})
 		}},
@@ -237,7 +241,7 @@ func TestLeadershipReportsLeaderGauge(t *testing.T) {
 		return nil, nil
 	})}
 	r, err := New(Config{
-		Client: client, Dynamic: testDynamicClient(), Cluster: control, ClusterKey: &ctrlv1.ClusterKey{},
+		Client: client, Dynamic: testDynamicClient(), Cluster: control, ClusterKey: &ctrlv1.ClusterKey{Region: "us-east-1"},
 		Clock: clock.NewTestClock(),
 	})
 	require.NoError(t, err)

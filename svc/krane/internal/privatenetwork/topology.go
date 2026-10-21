@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
+	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
@@ -14,12 +16,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
-func (r *Reconciler) ensureTopology(ctx context.Context, topology *ctrlv1.PrivateNetworkTopology) error {
-	if topology == nil {
-		return nil
-	}
+// topologyData validates topology and returns the ConfigMap data that records
+// every cell's region.
+func (r *Reconciler) topologyData(topology *ctrlv1.PrivateNetworkTopology) (map[string]string, error) {
 	if topology.GetVersion() != 1 {
-		return fmt.Errorf("unsupported private network topology version %d", topology.GetVersion())
+		return nil, fmt.Errorf("unsupported private network topology version %d", topology.GetVersion())
 	}
 	data := map[string]string{
 		"version": "1", "platform": r.clusterKey.GetPlatform(), "cell": r.clusterKey.GetCellId(),
@@ -28,16 +29,43 @@ func (r *Reconciler) ensureTopology(ctx context.Context, topology *ctrlv1.Privat
 		key := "region." + cluster.GetCellId()
 		if cluster.GetCellId() == "" || len(validation.IsConfigMapKey(key)) != 0 ||
 			cluster.GetPlatform() == "" || cluster.GetPlatform() != r.clusterKey.GetPlatform() ||
-			len(validation.IsDNS1123Label(cluster.GetRegion())) != 0 || cluster.GetRegion() == "local-first" {
-			return fmt.Errorf("invalid cluster in private network topology")
+			!validRegion(cluster.GetRegion()) {
+			return nil, fmt.Errorf("invalid cluster in private network topology")
 		}
 		if _, exists := data[key]; exists {
-			return fmt.Errorf("duplicate cell in private network topology: %s", cluster.GetCellId())
+			return nil, fmt.Errorf("duplicate cell in private network topology: %s", cluster.GetCellId())
 		}
 		data[key] = cluster.GetRegion()
 	}
 	if region := data["region."+r.clusterKey.GetCellId()]; region == "" || region != r.clusterKey.GetRegion() {
-		return fmt.Errorf("private network topology does not match this cluster")
+		return nil, fmt.Errorf("private network topology does not match this cluster")
+	}
+	return data, nil
+}
+
+// topologyRegions returns the distinct regions in validated topology data.
+func topologyRegions(data map[string]string) []string {
+	var regions []string
+	for key, region := range data {
+		if strings.HasPrefix(key, "region.") && !slices.Contains(regions, region) {
+			regions = append(regions, region)
+		}
+	}
+	slices.Sort(regions)
+	return regions
+}
+
+func validRegion(region string) bool {
+	return len(validation.IsDNS1123Label(region)) == 0 && len(region) <= privatenetwork.MaxRegionLength && region != "local-first"
+}
+
+func (r *Reconciler) ensureTopology(ctx context.Context, topology *ctrlv1.PrivateNetworkTopology) error {
+	if topology == nil {
+		return nil
+	}
+	data, err := r.topologyData(topology)
+	if err != nil {
+		return err
 	}
 
 	client := r.client.CoreV1().ConfigMaps(metav1.NamespaceSystem)
