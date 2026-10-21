@@ -3655,6 +3655,30 @@ components:
                     items:
                         $ref: "#/components/schemas/V2PortalGetVerificationsKeySeries"
             additionalProperties: false
+        V2PortalListDomainsRequestBody:
+            type: object
+            required:
+                - portal
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2PortalListDomainsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/PortalDomain"
+                    description: |
+                        Every domain attached to the portal, verified or not, sorted by ID. Empty when the
+                        portal has no domains.
+            additionalProperties: false
         V2PortalListKeysRequestBody:
             type: object
             properties:
@@ -18198,6 +18222,74 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: getVerifications
+    /v2/portal.listDomains:
+        post:
+            description: |
+                List the custom domains attached to a portal, with their verification status and DNS records.
+
+                Unreleased and subject to change without notice.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.read_portal` (to read domains on any portal in the workspace)
+                - `portal.<portal_id>.read_portal` (to read domains on a specific portal)
+                - `portal.*.update_portal` or `portal.<portal_id>.update_portal`, so a key that
+                  creates a domain can poll it
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.listDomains
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalListDomainsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalListDomainsResponseBody'
+                    description: The portal's domains.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal, or your root key may not read it.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List portal domains
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: listDomains
     /v2/portal.listKeys:
         post:
             description: |

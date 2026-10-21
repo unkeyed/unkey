@@ -6894,6 +6894,26 @@ type V2PortalGetVerificationsResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2PortalListDomainsRequestBody defines model for V2PortalListDomainsRequestBody.
+type V2PortalListDomainsRequestBody struct {
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalListDomainsResponseBody defines model for V2PortalListDomainsResponseBody.
+type V2PortalListDomainsResponseBody struct {
+	// Data Every domain attached to the portal, verified or not, sorted by ID. Empty when the
+	// portal has no domains.
+	Data []PortalDomain `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2PortalListKeysRequestBody defines model for V2PortalListKeysRequestBody.
 type V2PortalListKeysRequestBody struct {
 	// Cursor Pagination cursor from a previous response to fetch the next page.
@@ -8524,6 +8544,9 @@ type PortalGetPortalJSONRequestBody = V2PortalGetPortalRequestBody
 
 // PortalGetVerificationsJSONRequestBody defines body for PortalGetVerifications for application/json ContentType.
 type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody
+
+// PortalListDomainsJSONRequestBody defines body for PortalListDomains for application/json ContentType.
+type PortalListDomainsJSONRequestBody = V2PortalListDomainsRequestBody
 
 // PortalListKeysJSONRequestBody defines body for PortalListKeys for application/json ContentType.
 type PortalListKeysJSONRequestBody = V2PortalListKeysRequestBody

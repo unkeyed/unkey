@@ -62,6 +62,7 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 		"liveness", // infrastructure endpoint, not part of the customer-facing reference
 		"portal.exchangeCode",
 		"portal.getVerifications",
+		"portal.listDomains",
 		"portal.listKeys",
 		"portal.rerollKey",
 	}, excluded, "every excluded operation is accounted for")
