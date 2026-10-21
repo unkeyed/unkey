@@ -326,8 +326,8 @@ func TestKeyLeakNoopProvidersStillDeliverSlack(t *testing.T) {
 	t.Cleanup(server.Close)
 	service := worker.New(worker.Config{
 		DB:              nil,
-		Members:         workos.NewNoop(),
-		Email:           email.NewNoop(),
+		Members:         workos.New(""),
+		Email:           email.NewResend("", ""),
 		SlackWebhookURL: server.URL,
 	})
 	runtime := containers.Restate(t, service.Definition())

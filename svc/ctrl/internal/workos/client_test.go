@@ -1,6 +1,7 @@
 package workos
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,20 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
+
+func TestNewWithoutAPIKeyResolvesNoRecipients(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	resolver := New("")
+	orgID := uid.New(uid.TestPrefix)
+
+	admins, err := resolver.AdminEmails(ctx, orgID)
+	require.NoError(t, err)
+	require.Empty(t, admins)
+	members, err := resolver.MemberEmails(ctx, orgID)
+	require.NoError(t, err)
+	require.Empty(t, members)
+}
 
 func TestMemberEmailsAndAdminEmails(t *testing.T) {
 	orgID := uid.New(uid.TestPrefix)
@@ -61,12 +76,13 @@ func TestMemberEmailsAndAdminEmails(t *testing.T) {
 				http.NotFound(w, r)
 			}))
 			t.Cleanup(server.Close)
-			client := New("test-key")
-			client.baseURL = server.URL
-			lookup := client.MemberEmails
+			c, ok := New("test-key").(*client)
+			require.True(t, ok)
+			c.baseURL = server.URL
+			lookup := c.MemberEmails
 			want := []string{"member@example.com", "admin@example.com"}
 			if adminsOnly {
-				lookup = client.AdminEmails
+				lookup = c.AdminEmails
 				want = []string{"admin@example.com", "admin@example.com"}
 			}
 			emails, err := lookup(t.Context(), orgID)
@@ -103,9 +119,10 @@ func TestMemberEmailsPropagatesProviderErrors(t *testing.T) {
 				assert.NoError(t, json.NewEncoder(w).Encode(user{Email: "member@example.com"}))
 			}))
 			t.Cleanup(server.Close)
-			client := New("test-key")
-			client.baseURL = server.URL
-			emails, err := client.MemberEmails(t.Context(), uid.New(uid.TestPrefix))
+			c, ok := New("test-key").(*client)
+			require.True(t, ok)
+			c.baseURL = server.URL
+			emails, err := c.MemberEmails(t.Context(), uid.New(uid.TestPrefix))
 			require.Error(t, err)
 			require.Nil(t, emails)
 		})

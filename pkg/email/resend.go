@@ -14,10 +14,12 @@ type resendSender struct {
 	client      *http.Client
 }
 
-// NewResend builds a Resend-backed Sender. defaultFrom is used when an Email
-// leaves From empty. The caller decides resend-vs-noop by whether a key is
-// configured, so this assumes apiKey is non-empty.
+// NewResend returns a Resend-backed Sender, or a noop when apiKey is empty.
+// defaultFrom is used when an Email leaves From empty.
 func NewResend(apiKey, defaultFrom string) Sender {
+	if apiKey == "" {
+		return NewNoop()
+	}
 	return &resendSender{
 		defaultFrom: defaultFrom,
 		client: &http.Client{
