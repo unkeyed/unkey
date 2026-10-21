@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -34,8 +33,7 @@ func TestDeleteAppSuccessfully(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Delete).Value)
-	rootKeyID, err := db.Query.FindKeyIDByHash(ctx, h.DB.RO(), hash.Sha256(rootKey))
-	require.NoError(t, err)
+	rootKeyID := h.RootKeyID(rootKey)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -72,6 +70,6 @@ func TestDeleteAppSuccessfully(t *testing.T) {
 	require.NotEmpty(t, observed.request.GetCorrelationId())
 
 	// The route only submits the asynchronous workflow.
-	_, err = db.Query.FindAppById(ctx, h.DB.RO(), app.ID)
+	_, err := db.Query.FindAppById(ctx, h.DB.RO(), app.ID)
 	require.NoError(t, err)
 }

@@ -81,10 +81,11 @@ func TestCreateAcceptsContainedDescendants(t *testing.T) {
 func TestLegacyProjectPermissionDoesNotBlockCreation(t *testing.T) {
 	h, route, p := newHarness(t)
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: p.AuthorizedWorkspaceID})
-	otherProject := h.CreateProject(seed.CreateProjectRequest{WorkspaceID: h.Resources().RootWorkspace.ID, ID: uid.New(uid.ProjectPrefix)})
+	legacyResources := h.LegacyRootResources()
+	otherProject := h.CreateProject(seed.CreateProjectRequest{WorkspaceID: legacyResources.Workspace.ID, ID: uid.New(uid.ProjectPrefix)})
 	grant := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/" + api.ProjectID + "/keyspaces/" + api.KeyAuthID.String + "/keys/*#delete"
 	require.NoError(t, db.Query.InsertPermission(t.Context(), h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: uid.New(uid.PermissionPrefix), WorkspaceID: h.Resources().RootWorkspace.ID,
+		PermissionID: uid.New(uid.PermissionPrefix), WorkspaceID: legacyResources.Workspace.ID,
 		ProjectID: otherProject.ID, Name: grant, Slug: grant,
 	}))
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: []string{grant}})
@@ -99,15 +100,16 @@ func TestLegacyProjectPermissionDoesNotBlockCreation(t *testing.T) {
 // space cannot replace requested ks_one in the new table.
 func TestLegacyCollationCannotSubstitutePermission(t *testing.T) {
 	h, route, p := newHarness(t)
+	legacyResources := h.LegacyRootResources()
 	projectID := uid.New(uid.ProjectPrefix)
 	permission := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/" + projectID + "/keyspaces/ks_one#write"
 	stored := strings.Replace(permission, "ks_one", "ks_one\u200b", 1)
 	require.NoError(t, db.Query.InsertPermission(t.Context(), h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: uid.New(uid.PermissionPrefix), WorkspaceID: h.Resources().RootWorkspace.ID,
-		ProjectID: h.Resources().RootKeySpace.ProjectID, Name: stored, Slug: stored,
+		PermissionID: uid.New(uid.PermissionPrefix), WorkspaceID: legacyResources.Workspace.ID,
+		ProjectID: legacyResources.KeySpace.ProjectID, Name: stored, Slug: stored,
 	}))
 	var equal bool
-	require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), "SELECT slug = ? FROM permissions WHERE workspace_id = ? AND slug = ?", permission, h.Resources().RootWorkspace.ID, stored).Scan(&equal))
+	require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), "SELECT slug = ? FROM permissions WHERE workspace_id = ? AND slug = ?", permission, legacyResources.Workspace.ID, stored).Scan(&equal))
 	require.True(t, equal, "fixture must reproduce collation-equivalent but byte-distinct slugs")
 	p.Permissions = []string{"unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write", permission}
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: []string{permission}})
@@ -133,7 +135,7 @@ func TestPermissionStoragePreservesCase(t *testing.T) {
 
 func snapshot(t *testing.T, h *testutil.Harness) []int64 {
 	t.Helper()
-	rootWorkspaceID := h.Resources().RootWorkspace.ID
+	rootWorkspaceID := h.LegacyRootResources().Workspace.ID
 	userWorkspaceID := h.Resources().UserWorkspace.ID
 	var counts []int64
 	for _, query := range []struct {

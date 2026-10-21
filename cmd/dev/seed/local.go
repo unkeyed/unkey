@@ -97,16 +97,14 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	portalID := fmt.Sprintf("portal_%s", slug)
 
 	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
-		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
-			{
-				ID:           workspaceID,
-				OrgID:        orgID,
-				Name:         workspaceName,
-				Slug:         slug,
-				CreatedAtM:   now,
-				BetaFeatures: json.RawMessage(`{}`),
-				K8sNamespace: uid.DNS1035(),
-			},
+		err = db.Query.UpsertWorkspace(ctx, tx, db.UpsertWorkspaceParams{
+			ID:           workspaceID,
+			OrgID:        orgID,
+			Name:         workspaceName,
+			Slug:         slug,
+			CreatedAtM:   now,
+			BetaFeatures: json.RawMessage(`{}`),
+			K8sNamespace: uid.DNS1035(),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create workspaces: %w", err)
@@ -341,55 +339,49 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create regional settings: %w", err)
 		}
 
-		err = db.BulkQuery.UpsertLimit(ctx, tx, []db.UpsertLimitParams{
-			{
-				WorkspaceID:                           workspaceID,
-				ApiBillableOperationsCountMaxPerMonth: 150_000,
-				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
-				LogsRetentionDaysMax:                  7,
-				LogsAuditRetentionDaysMax:             30,
-				TeamEnabled:                           false,
-				CpuCoresMax:                           10,
-				CpuCoresMaxPerInstance:                2,
-				MemoryMibMax:                          20_480,
-				MemoryMibMaxPerInstance:               4_096,
-				StorageMibMax:                         51_200,
-				StorageMibMaxPerInstance:              10_240,
-				BuildsConcurrentMax:                   1,
-				CustomDomainsMax:                      0,
-				AutoscalingReplicasMax:                0,
-			},
+		err = db.Query.UpsertLimit(ctx, tx, db.UpsertLimitParams{
+			WorkspaceID:                           workspaceID,
+			ApiBillableOperationsCountMaxPerMonth: 150_000,
+			ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+			LogsRetentionDaysMax:                  7,
+			LogsAuditRetentionDaysMax:             30,
+			TeamEnabled:                           false,
+			CpuCoresMax:                           10,
+			CpuCoresMaxPerInstance:                2,
+			MemoryMibMax:                          20_480,
+			MemoryMibMaxPerInstance:               4_096,
+			StorageMibMax:                         51_200,
+			StorageMibMaxPerInstance:              10_240,
+			BuildsConcurrentMax:                   1,
+			CustomDomainsMax:                      0,
+			AutoscalingReplicasMax:                0,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create limits: %w", err)
 		}
 
-		err = db.BulkQuery.UpsertKeySpace(ctx, tx, []db.UpsertKeySpaceParams{
-			{
-				ID:                 userKeySpaceID,
-				WorkspaceID:        workspaceID,
-				ProjectID:          userDefaultProjectID,
-				CreatedAtM:         now,
-				DefaultPrefix:      sql.NullString{String: "sk", Valid: true},
-				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
-				StoreEncryptedKeys: true,
-			},
+		err = db.Query.UpsertKeySpace(ctx, tx, db.UpsertKeySpaceParams{
+			ID:                 userKeySpaceID,
+			WorkspaceID:        workspaceID,
+			ProjectID:          userDefaultProjectID,
+			CreatedAtM:         now,
+			DefaultPrefix:      sql.NullString{String: "sk", Valid: true},
+			DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
+			StoreEncryptedKeys: true,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create key spaces: %w", err)
 		}
 
-		err = db.BulkQuery.InsertApis(ctx, tx, []db.InsertApiParams{
-			{
-				ID:          userApiID,
-				Name:        fmt.Sprintf("%s API", titleCase),
-				WorkspaceID: workspaceID,
-				ProjectID:   userDefaultProjectID,
-				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-				IpWhitelist: sql.NullString{},
-				KeyAuthID:   sql.NullString{String: userKeySpaceID, Valid: true},
-				CreatedAtM:  now,
-			},
+		err = db.Query.InsertApi(ctx, tx, db.InsertApiParams{
+			ID:          userApiID,
+			Name:        fmt.Sprintf("%s API", titleCase),
+			WorkspaceID: workspaceID,
+			ProjectID:   userDefaultProjectID,
+			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+			IpWhitelist: sql.NullString{},
+			KeyAuthID:   sql.NullString{String: userKeySpaceID, Valid: true},
+			CreatedAtM:  now,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create APIs: %w", err)

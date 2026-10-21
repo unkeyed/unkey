@@ -1,15 +1,13 @@
 package handler_test
 
 import (
-	"context"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/hash"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -56,8 +54,7 @@ func TestStartDeployment(t *testing.T) {
 	})
 	require.Equal(t, http.StatusAccepted, res.Status, "expected 202, received: %s", res.RawBody)
 
-	rootKeyID, err := db.Query.FindKeyIDByHash(context.Background(), h.DB.RO(), hash.Sha256(rootKey))
-	require.NoError(t, err)
+	rootKeyID := h.RootKeyID(rootKey)
 
 	observed := testutil.Receive(t, wakes, 10*time.Second)
 	require.Equal(t, dep.ID, observed.virtualObjectKey)

@@ -282,10 +282,7 @@ func TestCreateSessionAuditsMintingSubject(t *testing.T) {
 			canonicalReadGrants(workspaceID, api.ProjectID, api.KeyAuthID.String)...)...,
 	)
 
-	// CreateRootKey returns the secret only, and the audit entry names the key
-	// row, so the expected actor id has to be resolved from the hash.
-	minterKeyID, err := db.Query.FindKeyIDByHash(ctx, h.DB.RO(), hash.Sha256(rootKey))
-	require.NoError(t, err)
+	minterKeyID := h.RootKeyID(rootKey)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
