@@ -15,7 +15,7 @@ GOTOOLCHAIN = "local"
 
 [tools]
 node = "24.21.0"
-go = "1.27.2"
+go = "1.27.3"
 "github:dprint/dprint" = "0.51.1"
 "github:bufbuild/buf" = "1.64.0"
 "github:jqlang/jq" = "jq-1.8.2"
