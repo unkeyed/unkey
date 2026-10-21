@@ -2927,7 +2927,7 @@ type Querier interface {
 	// Marks verification as given up and keeps the reason for the tenant to read.
 	//
 	//  UPDATE portal_domains
-	//  SET verification_status = ?,
+	//  SET verification_status = 'failed',
 	//      verification_error = ?,
 	//      updated_at = ?
 	//  WHERE id = ?

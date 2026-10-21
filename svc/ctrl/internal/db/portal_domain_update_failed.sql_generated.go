@@ -12,32 +12,26 @@ import (
 
 const updatePortalDomainFailed = `-- name: UpdatePortalDomainFailed :exec
 UPDATE portal_domains
-SET verification_status = ?,
+SET verification_status = 'failed',
     verification_error = ?,
     updated_at = ?
 WHERE id = ?
 `
 
 type UpdatePortalDomainFailedParams struct {
-	VerificationStatus PortalDomainsVerificationStatus `db:"verification_status"`
-	VerificationError  sql.NullString                  `db:"verification_error"`
-	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
-	ID                 string                          `db:"id"`
+	VerificationError sql.NullString `db:"verification_error"`
+	UpdatedAt         sql.NullInt64  `db:"updated_at"`
+	ID                string         `db:"id"`
 }
 
 // Marks verification as given up and keeps the reason for the tenant to read.
 //
 //	UPDATE portal_domains
-//	SET verification_status = ?,
+//	SET verification_status = 'failed',
 //	    verification_error = ?,
 //	    updated_at = ?
 //	WHERE id = ?
 func (q *Queries) UpdatePortalDomainFailed(ctx context.Context, arg UpdatePortalDomainFailedParams) error {
-	_, err := q.db.ExecContext(ctx, updatePortalDomainFailed,
-		arg.VerificationStatus,
-		arg.VerificationError,
-		arg.UpdatedAt,
-		arg.ID,
-	)
+	_, err := q.db.ExecContext(ctx, updatePortalDomainFailed, arg.VerificationError, arg.UpdatedAt, arg.ID)
 	return err
 }
