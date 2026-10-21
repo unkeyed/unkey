@@ -64,7 +64,7 @@ func TestFormatAuthenticationError(t *testing.T) {
 			expectedInMsg: []string{
 				"Authentication failed",
 				"root key is invalid or has expired",
-				"--root-key flag or UNKEY_ROOT_KEY env var",
+				"--root-key flag, UNKEY_ROOT_KEY, or unkey login",
 			},
 		},
 		{
@@ -82,7 +82,8 @@ func TestFormatAuthenticationError(t *testing.T) {
 				"Authentication failed",
 				"Could not authenticate your request",
 				"--root-key flag",
-				"UNKEY_ROOT_KEY environment variable",
+				"UNKEY_ROOT_KEY environment variable, or",
+				"unkey login",
 			},
 		},
 	}
