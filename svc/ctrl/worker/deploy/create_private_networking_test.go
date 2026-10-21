@@ -12,6 +12,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	pkgdb "github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/connections/app"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -68,7 +69,7 @@ func TestCreatePrivateNetworkingDecision(t *testing.T) {
 			require.Equal(t, test.wantEnabled, row.Capabilities.PrivateNetworking)
 			require.Equal(t, !test.skip, strings.Contains(secrets, "KEBAP"))
 			if test.wantEnabled && test.ownConnection {
-				require.Contains(t, secrets, "ciphertext-for-DATABASE_HOST")
+				require.Contains(t, secrets, h.connectionHost(t, ctx, deploymentID, "database"))
 				require.Equal(t, []db.ListDeploymentConnectionsByDeploymentIdRow{
 					automaticConnection(connectionID, "database", targetAppID),
 				}, h.savedConnections(t, ctx, deploymentID))
@@ -118,7 +119,7 @@ func TestCreateApprovalReusesPrivateNetworkingDecision(t *testing.T) {
 			h.create(t, ctx, deploymentID, push)
 			pushed := h.deployment(t, ctx, deploymentID)
 			require.Equal(t, enabled, pushed.Capabilities.PrivateNetworking)
-			require.Equal(t, enabled, strings.Contains(string(pushed.EncryptedEnvironmentVariables), "ciphertext-for-DATABASE_HOST"))
+			require.Equal(t, enabled, strings.Contains(string(pushed.EncryptedEnvironmentVariables), h.connectionHost(t, ctx, deploymentID, "database")))
 
 			h.setPrivateNetworking(t, ctx, !enabled)
 			if enabled {
@@ -176,7 +177,7 @@ func TestCreatePrivateNetworkingIgnoresAppSlug(t *testing.T) {
 		automaticConnection(slugNamed, "caller-app", target.appID),
 	}, h.savedConnections(t, ctx, named))
 	secrets := string(h.deployment(t, ctx, named).EncryptedEnvironmentVariables)
-	require.Contains(t, secrets, "ciphertext-for-CALLER_APP_HOST")
+	require.Contains(t, secrets, h.connectionHost(t, ctx, named, "caller-app"))
 	require.NotContains(t, secrets, "SELF_HOST")
 
 	h.renameApp(t, ctx, "Not_A_Label")
@@ -384,10 +385,22 @@ type connectionVault struct {
 
 func (connectionVault) EncryptBulk(_ context.Context, req *vaultv1.EncryptBulkRequest) (*vaultv1.EncryptBulkResponse, error) {
 	items := make(map[string]*vaultv1.EncryptBulkResponseItem, len(req.GetItems()))
-	for key := range req.GetItems() {
-		items[key] = &vaultv1.EncryptBulkResponseItem{Encrypted: "ciphertext-for-" + key}
+	for key, value := range req.GetItems() {
+		items[key] = &vaultv1.EncryptBulkResponseItem{Encrypted: connectionCiphertext(req.GetKeyring(), key, value)}
 	}
 	return &vaultv1.EncryptBulkResponse{Items: items}, nil
+}
+
+func connectionCiphertext(keyring, key, value string) string {
+	return "ciphertext-for-" + key + "@" + keyring + "=" + value
+}
+
+func (h *createHarness) connectionHost(t *testing.T, ctx context.Context, deploymentID, name string) string {
+	t.Helper()
+	workspace, err := h.database.FindWorkspaceByID(ctx, h.workspaceID)
+	require.NoError(t, err)
+	key, host := app.HostVariable(deploymentID, name, workspace.K8sNamespace)
+	return connectionCiphertext(h.environmentID, key, host)
 }
 
 func (h *createHarness) bindOtherApps(t *testing.T, ctx context.Context) {
