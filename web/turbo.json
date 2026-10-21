@@ -5,7 +5,7 @@
       "outputs": ["node_modules/**", "pnpm-lock.yaml", "yarn.lock"]
     },
     "build": {
-      "dependsOn": ["fmt", "^build"],
+      "dependsOn": ["^build"],
       "env": [
         "NEXT_PUBLIC_\\*",
         "\\!NEXT_PUBLIC_VERCEL_\\*",
@@ -43,7 +43,7 @@
       "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
     },
     "@unkey/dashboard#build": {
-      "dependsOn": ["fmt", "^build"],
+      "dependsOn": ["^build"],
       "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"],
       "env": [
         "NEXT_PUBLIC_\\*",
@@ -77,12 +77,10 @@
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
         "WORKOS_API_HOSTNAME",
         "SENTRY_AUTH_TOKEN",
-        "SENTRY_RELEASE",
         "SENTRY_UPLOAD_SOURCEMAPS",
-        "VERCEL_ENV",
-        "VERCEL_GIT_COMMIT_SHA",
         "GITHUB_KEYS_URI"
-      ]
+      ],
+      "passThroughEnv": ["SENTRY_RELEASE", "VERCEL_ENV", "VERCEL_GIT_COMMIT_SHA"]
     },
     "@unkey/nuxt#dev:prepare": {
       "outputs": ["dist/**", "playground/.nuxt/**"]

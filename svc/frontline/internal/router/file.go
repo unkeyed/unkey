@@ -77,7 +77,7 @@ func NewFile(routes []FileRoute, directory string) (*fileService, error) {
 	return s, nil
 }
 
-func (s *fileService) Route(_ context.Context, hostname string) (RouteDecision, error) {
+func (s *fileService) Route(_ context.Context, hostname string, _ ...string) (RouteDecision, error) {
 	decision, ok := s.routes[normalizeHostname(hostname)]
 	if !ok {
 		return RouteDecision{}, fault.New("no file route for hostname: "+hostname,

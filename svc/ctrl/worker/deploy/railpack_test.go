@@ -28,8 +28,8 @@ func TestValidateShellEnvKeys(t *testing.T) {
 
 func TestBuildRailpackPrepareDockerfile(t *testing.T) {
 	dockerfile, err := buildRailpackPrepareDockerfile(
-		"ghcr.io/unkeyed/railpack-frontend:v0.27.0-unkey.1",
-		"ghcr.io/railwayapp/railpack-builder:mise-2026.6.1",
+		"ghcr.io/unkeyed/railpack-frontend:v0.40.1-unkey.1",
+		"ghcr.io/unkeyed/railpack-builder:mise-2026.10.3",
 		[]string{"BAR", "FOO"},
 		nil,
 		"hash123",
@@ -37,8 +37,8 @@ func TestBuildRailpackPrepareDockerfile(t *testing.T) {
 	require.NoError(t, err)
 
 	require.True(t, strings.HasPrefix(dockerfile, "# syntax=docker/dockerfile:1\n"))
-	require.Contains(t, dockerfile, "FROM ghcr.io/unkeyed/railpack-frontend:v0.27.0-unkey.1 AS railpack")
-	require.Contains(t, dockerfile, "FROM ghcr.io/railwayapp/railpack-builder:mise-2026.6.1 AS prepare")
+	require.Contains(t, dockerfile, "FROM ghcr.io/unkeyed/railpack-frontend:v0.40.1-unkey.1 AS railpack")
+	require.Contains(t, dockerfile, "FROM ghcr.io/unkeyed/railpack-builder:mise-2026.10.3 AS prepare")
 	require.Contains(t, dockerfile, "COPY --from=railpack /railpack /usr/local/bin/railpack")
 
 	// The RUN block is asserted verbatim: a malformed line continuation would

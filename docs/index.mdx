@@ -1,5 +1,5 @@
 ---
-title: Unkey documentation
+title: Unkey Products
 description: "Deploy apps with Compute or add API keys to any app with API Management."
 sources:
   - docs/docs.json
@@ -7,61 +7,63 @@ boost: 3
 mode: wide
 ---
 
-Unkey issues and verifies API keys, enforces rate limits and usage quotas, and deploys apps from a GitHub repository or a container image. It's for teams that expose a public API, or that want each push to a repository to become a running deployment.
-
-API Management does the keys, rate limits, and quotas, and your app can stay on the host you already use. Compute builds and runs the app. You can use either product on its own.
+Unkey issues and verifies API keys, enforces rate limits and usage quotas for any app with API Management and deploys entire apps from a GitHub repository or a container image with Compute. These offerings are flexible enough to be used individually or together.
 
 <div className="unkey-home not-prose">
   <div className="unkey-product-grid">
-    <a className="unkey-product" href="/compute" aria-label="Explore Compute">
-      <div className="unkey-product-art" aria-hidden="true">
-        <div className="unkey-console">
-          <div className="unkey-console-head">
-            <span>my-app</span><span className="unkey-status">Production</span>
-          </div>
-          <div className="unkey-console-row">
-            <span className="unkey-console-muted">01 / Build</span><span>Ready</span>
-          </div>
-          <div className="unkey-console-row">
-            <span className="unkey-console-muted">02 / Deploy</span><span>Healthy</span>
-          </div>
-        </div>
-      </div>
-      <div className="unkey-product-copy">
-        <span className="unkey-eyebrow">Compute</span>
-        <span className="unkey-product-title">From code to production.</span>
-        <span className="unkey-product-description">
-          Deploy from GitHub or a container image. Build, run, and route traffic
-          to your app with managed domains and a gateway. Use Compute on its own
-          or add API Management.
-        </span>
-        <span className="unkey-product-cta">Explore Compute <span aria-hidden="true">→</span></span>
-      </div>
-    </a>
-    <a className="unkey-product" href="/api-management" aria-label="Explore API Management">
-      <div className="unkey-product-art" aria-hidden="true">
-        <div className="unkey-console">
-          <div className="unkey-console-head">
-            <span>keys.verifyKey</span><span className="unkey-status">Valid</span>
-          </div>
-          <div className="unkey-console-row">
-            <span className="unkey-console-muted">API key</span><span>•••• ••••</span>
-          </div>
-          <div className="unkey-console-row">
-            <span className="unkey-console-muted">code</span><span>VALID</span>
+    <div className="unkey-product-column">
+      <h2 className="unkey-product-column-title">Compute</h2>
+      <a className="unkey-product" href="/compute" aria-label="Explore Compute">
+        <div className="unkey-product-art" aria-hidden="true">
+          <div className="unkey-console">
+            <div className="unkey-console-head">
+              <span>my-app</span><span className="unkey-status">Production</span>
+            </div>
+            <div className="unkey-console-row">
+              <span className="unkey-console-muted">01 / Build</span><span>Ready</span>
+            </div>
+            <div className="unkey-console-row">
+              <span className="unkey-console-muted">02 / Deploy</span><span>Healthy</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="unkey-product-copy">
-        <span className="unkey-eyebrow">API Management</span>
-        <span className="unkey-product-title">Your API. Under control.</span>
-        <span className="unkey-product-description">
-          Issue and verify API keys, enforce rate limits, and meter usage from
-          any backend. Your app stays wherever you host it, with no dependency
-          on Compute.
-        </span>
-        <span className="unkey-product-cta">Explore API Management <span aria-hidden="true">→</span></span>
-      </div>
-    </a>
+        <div className="unkey-product-copy">
+          <span className="unkey-product-title">From code to production.</span>
+          <span className="unkey-product-description">
+            Deploy from GitHub or a container image. Build, run, and route traffic
+            to your app with managed domains and a gateway. Use Compute on its own
+            or add API Management.
+          </span>
+          <span className="unkey-product-cta">Explore Compute <span aria-hidden="true">→</span></span>
+        </div>
+      </a>
+    </div>
+    <div className="unkey-product-column">
+      <h2 className="unkey-product-column-title">API Management</h2>
+      <a className="unkey-product" href="/api-management" aria-label="Explore API Management">
+        <div className="unkey-product-art" aria-hidden="true">
+          <div className="unkey-console">
+            <div className="unkey-console-head">
+              <span>keys.verifyKey</span><span className="unkey-status">Valid</span>
+            </div>
+            <div className="unkey-console-row">
+              <span className="unkey-console-muted">API key</span><span>•••• ••••</span>
+            </div>
+            <div className="unkey-console-row">
+              <span className="unkey-console-muted">code</span><span>VALID</span>
+            </div>
+          </div>
+        </div>
+        <div className="unkey-product-copy">
+          <span className="unkey-product-title">Your API. Under control.</span>
+          <span className="unkey-product-description">
+            Issue and verify API keys, enforce rate limits, and meter usage from
+            any backend. Your app stays wherever you host it, with no dependency
+            on Compute.
+          </span>
+          <span className="unkey-product-cta">Explore API Management <span aria-hidden="true">→</span></span>
+        </div>
+      </a>
+    </div>
   </div>
 </div>

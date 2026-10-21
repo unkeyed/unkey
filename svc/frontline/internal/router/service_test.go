@@ -12,27 +12,23 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 )
 
-// stubQuerier embeds db.Querier so the test only implements the one method Route
-// reaches. Any other call hits the nil embedded interface and panics, which is
-// the point: a suspended deployment must short-circuit before getInstances or
-// getPolicies run.
 type stubQuerier struct {
 	db.Querier
-	row db.FindFrontlineRouteByFQDNRow
+	row       db.FindFrontlineRouteByFQDNRow
+	instances []db.FindInstancesByDeploymentIDRow
 }
 
 func (s stubQuerier) FindFrontlineRouteByFQDN(_ context.Context, _ string) (db.FindFrontlineRouteByFQDNRow, error) {
 	return s.row, nil
 }
 
-// No instances: the running path falls through to selectDestination, which
-// returns NoRunningInstances on an empty set.
 func (s stubQuerier) FindInstancesByDeploymentID(_ context.Context, _ string) ([]db.FindInstancesByDeploymentIDRow, error) {
-	return nil, nil
+	return s.instances, nil
 }
 
 func newCache[V any](t *testing.T, resource string) cache.Cache[string, V] {
@@ -123,4 +119,59 @@ func TestRoute_RunningDeploymentPassesGuard(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, codes.Frontline.Routing.NoRunningInstances.URN(), urn,
 		"running deployment must pass the guard and fail on instance selection, not as suspended")
+}
+
+func TestRoute_ExcludedRegionsAreRequestScoped(t *testing.T) {
+	t.Parallel()
+	for _, region := range []string{"us-east-1", "us-east-2", "unknown-region"} {
+		t.Run(region, func(t *testing.T) {
+			t.Parallel()
+			instances := make([]db.FindInstancesByDeploymentIDRow, 0, 3)
+			for _, name := range []string{"us-east-1", "us-west-2", "eu-north-1"} {
+				instances = append(instances, db.FindInstancesByDeploymentIDRow{
+					ID: uid.New(uid.InstancePrefix), Status: db.InstancesStatusRunning,
+					RegionName: name, RegionPlatform: "aws",
+				})
+			}
+			svc, err := router.New(router.Config{
+				Platform: "aws", Region: region,
+				DB: stubQuerier{
+					row: db.FindFrontlineRouteByFQDNRow{
+						DeploymentID: uid.New(uid.DeploymentPrefix), DesiredState: db.DeploymentsDesiredStateRunning,
+					},
+					instances: instances,
+				},
+				FrontlineRouteCache:   newCache[db.FindFrontlineRouteByFQDNRow](t, "frontline_routes"),
+				InstancesByDeployment: newCache[[]db.FindInstancesByDeploymentIDRow](t, "instances"),
+				PolicyCache:           newCache[[]*frontlinev1.Policy](t, "policies"),
+			})
+			require.NoError(t, err)
+
+			decision, err := svc.Route(t.Context(), "app.example.com", "us-east-1.aws", "us-west-2.aws")
+			require.NoError(t, err)
+			require.Equal(t, "eu-north-1.aws", decision.RemoteRegionAddress)
+			if region == "us-east-1" {
+				require.Equal(t, router.DestinationLocalInstance, decision.Destination)
+				require.Len(t, decision.LocalInstances, 1)
+			} else {
+				require.Equal(t, router.DestinationRemoteRegion, decision.Destination)
+			}
+
+			decision, err = svc.Route(t.Context(), "app.example.com", "us-east-1.aws", "us-west-2.aws", "eu-north-1.aws")
+			if region == "us-east-1" {
+				require.NoError(t, err)
+				require.Empty(t, decision.RemoteRegionAddress)
+				require.Len(t, decision.LocalInstances, 1)
+			} else {
+				require.Error(t, err)
+				code, ok := fault.GetCode(err)
+				require.True(t, ok)
+				require.Equal(t, codes.Frontline.Routing.NoRunningInstances.URN(), code)
+			}
+
+			decision, err = svc.Route(t.Context(), "app.example.com", "eu-north-1.aws")
+			require.NoError(t, err)
+			require.Contains(t, []string{"us-east-1.aws", "us-west-2.aws"}, decision.RemoteRegionAddress)
+		})
+	}
 }

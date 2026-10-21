@@ -1134,10 +1134,12 @@ type Querier interface {
 	//     w.id,
 	//     w.org_id,
 	//     w.name,
+	//     w.slug,
 	//     b.stripe_customer_id,
 	//     b.tier,
 	//     w.enabled,
-	//     l.api_billable_operations_count_max_per_month AS requests_per_month
+	//     l.api_billable_operations_count_max_per_month AS requests_per_month,
+	//     l.api_requests_count_max_per_minute AS requests_per_minute
 	//  FROM `workspaces` w
 	//  LEFT JOIN `limits` l ON l.workspace_id = w.id
 	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
@@ -2593,6 +2595,17 @@ type Querier interface {
 	//    AND dt.`deployment_id` != ?
 	//    AND dt.`desired_status` = 'running'
 	SumAllocatedResourcesByWorkspaceID(ctx context.Context, arg SumAllocatedResourcesByWorkspaceIDParams) (SumAllocatedResourcesByWorkspaceIDRow, error)
+	//TightenFreeTierApiThrottle
+	//
+	//  UPDATE `limits` l
+	//  SET l.api_requests_count_max_per_minute = ?
+	//  WHERE l.workspace_id = ?
+	//    AND (l.api_requests_count_max_per_minute IS NULL OR l.api_requests_count_max_per_minute > ?)
+	//    AND EXISTS (
+	//      SELECT 1 FROM `workspace_billing` b
+	//      WHERE b.workspace_id = l.workspace_id AND b.tier = 'Free'
+	//    )
+	TightenFreeTierApiThrottle(ctx context.Context, arg TightenFreeTierApiThrottleParams) error
 	//UpdateAcmeChallengePending
 	//
 	//  UPDATE acme_challenges
@@ -2806,6 +2819,12 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateUnkeyRootKeysLastUsed(ctx context.Context, arg UpdateUnkeyRootKeysLastUsedParams) error
+	//UpdateWorkspaceBillingTier
+	//
+	//  UPDATE `workspace_billing`
+	//  SET tier = ?, updated_at_m = ?
+	//  WHERE workspace_id = ?
+	UpdateWorkspaceBillingTier(ctx context.Context, arg UpdateWorkspaceBillingTierParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`

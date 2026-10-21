@@ -85,8 +85,8 @@ func TestForwardPreservesRequestAndResponse(t *testing.T) {
 		body                           []byte
 		err                            error
 	}
-	for _, destination := range []string{"instance", "region"} {
-		t.Run(destination, func(t *testing.T) {
+	for _, destination := range []proxyDestination{destinationInstance, destinationFrontline} {
+		t.Run(string(destination), func(t *testing.T) {
 			received := make(chan receivedRequest, 1)
 			requestIDs := make(chan string, 1)
 			peerID := uid.New(uid.FrontlinePrefix)
@@ -119,7 +119,7 @@ func TestForwardPreservesRequestAndResponse(t *testing.T) {
 				requestIDs <- sess.RequestID()
 				start := svc.clock.Now()
 				director := svc.makeInstanceDirector(sess, start)
-				if destination == "region" {
+				if destination == destinationFrontline {
 					director = svc.makeRegionDirector(sess, start, "signed-metadata")
 				}
 				return svc.forward(ctx, sess, forwardConfig{

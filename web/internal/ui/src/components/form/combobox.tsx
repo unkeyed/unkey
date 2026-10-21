@@ -266,6 +266,8 @@ type DocumentedComboboxProps = DocumentedComboboxTriggerProps & {
   onSelect: (value: string) => void;
   /** Fires on every keystroke in the search field. */
   onChange?: (event: React.FormEvent<HTMLInputElement>) => void;
+  /** Fires whenever the search text changes, including when it clears on select or close. */
+  onQueryChange?: (query: string) => void;
   placeholder?: React.ReactNode;
   searchPlaceholder?: string;
   emptyMessage?: React.ReactNode;
@@ -276,6 +278,8 @@ type DocumentedComboboxProps = DocumentedComboboxTriggerProps & {
   wrapperClassName?: string;
   /** Offers the typed query as an option when it matches none of `options`. */
   creatable?: boolean;
+  /** Where the typed-query option sits. "last" lets Enter pick a partial match first. */
+  createPosition?: "first" | "last";
   /** Class name applied to the popup container. */
   popoverClassName?: string;
 };
@@ -291,6 +295,7 @@ function Combobox({
   value,
   onSelect,
   onChange,
+  onQueryChange,
   placeholder,
   searchPlaceholder = "Search...",
   emptyMessage = "No results found.",
@@ -301,6 +306,7 @@ function Combobox({
   className,
   variant = "default",
   creatable = false,
+  createPosition = "first",
   popoverClassName,
   ...triggerProps
 }: ComboboxProps) {
@@ -335,10 +341,14 @@ function Combobox({
     };
   }, [creatable, trimmedQuery, effectiveOptions]);
 
-  const listOptions = React.useMemo(
-    () => (createOption ? [createOption, ...effectiveOptions] : effectiveOptions),
-    [createOption, effectiveOptions],
-  );
+  const listOptions = React.useMemo(() => {
+    if (!createOption) {
+      return effectiveOptions;
+    }
+    return createPosition === "last"
+      ? [...effectiveOptions, createOption]
+      : [createOption, ...effectiveOptions];
+  }, [createOption, createPosition, effectiveOptions]);
 
   const optionsByValue = React.useMemo(
     () => new Map(listOptions.map((option) => [option.value, option])),
@@ -375,7 +385,10 @@ function Combobox({
         }
       }}
       inputValue={query}
-      onInputValueChange={setQuery}
+      onInputValueChange={(next) => {
+        setQuery(next);
+        onQueryChange?.(next);
+      }}
       open={open}
       onOpenChange={setOpen}
     >

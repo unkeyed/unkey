@@ -100,8 +100,10 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 				statusCode = pageInfo.Status
 
 				userMessage := pageInfo.Message
-				if userMessage == "" {
-					userMessage = fault.UserFacingMessage(err)
+				if userMessage == "" || code.Category == codes.CategoryUpstream {
+					if publicMessage := fault.UserFacingMessage(err); publicMessage != "" {
+						userMessage = publicMessage
+					}
 				}
 
 				// Log the precise URN for every error so it can be correlated

@@ -5,6 +5,7 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-id-link";
 import { DeploymentStatusLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/dotted-link";
+import { GatewayKeyVerification } from "@/components/logs/details/gateway-request-details/key-verification";
 import { EMPTY_TEXT, LogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
 import { RegionFlag } from "@/components/region-flag";
@@ -67,6 +68,10 @@ export const RequestLogDetails = ({ distanceToTop }: Props) => {
       <LogDetails.Header>
         <RequestLogHeader log={log} />
       </LogDetails.Header>
+
+      <LogDetails.Section>
+        <GatewayKeyVerification log={log} />
+      </LogDetails.Section>
 
       <LogDetails.Section>
         <LogSection
