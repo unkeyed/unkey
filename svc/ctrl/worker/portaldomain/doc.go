@@ -9,8 +9,4 @@
 // hostname is routed to that app's configured production environment with
 // sticky=live and follows its deploys. The certificate is still the tenant's:
 // issuance runs under the tenant workspace, not the portal app's.
-//
-// Both ctrl api and ctrl worker must set [portal] environment_id. Without it
-// the API refuses new domains and the worker keeps retrying domains whose DNS
-// already passes.
 package portaldomain
