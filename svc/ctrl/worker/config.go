@@ -271,7 +271,7 @@ type SlackConfig struct {
 }
 
 type EmailConfig struct {
-	// ResendAPIKey authenticates the Resend send API. Required for key leak notifications.
+	// ResendAPIKey authenticates the Resend send API. Empty uses a noop sender.
 	ResendAPIKey string `toml:"resend_api_key"`
 }
 
@@ -356,7 +356,7 @@ type Config struct {
 
 	Email EmailConfig `toml:"email"`
 
-	// WorkOSAPIKey resolves notification recipients. Required for key leak notifications.
+	// WorkOSAPIKey resolves notification recipients. Empty resolves no recipients.
 	WorkOSAPIKey string `toml:"workos_api_key"`
 
 	// Clock provides time operations for testing and scheduling.

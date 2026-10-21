@@ -93,9 +93,6 @@ import (
 // fails, or during server startup. Context cancellation results in
 // clean shutdown with nil error.
 func Run(ctx context.Context, cfg Config) error {
-	if cfg.Email.ResendAPIKey == "" || cfg.WorkOSAPIKey == "" {
-		return errors.New("key leak notifications require email.resend_api_key and workos_api_key")
-	}
 	if cfg.InstanceID == "" {
 		cfg.InstanceID = uid.New(uid.InstancePrefix)
 	}
@@ -432,12 +429,24 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
-	restateSrv.Bind(hydrav1.NewKeyLeakServiceServer(keyleak.New(keyleak.Config{
+	keyLeakConfig := keyleak.Config{
 		DB:              database,
-		Members:         workos.New(cfg.WorkOSAPIKey),
-		Email:           email.NewResend(cfg.Email.ResendAPIKey, ""),
+		Members:         workos.NewNoop(),
+		Email:           email.NewNoop(),
 		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
-	}),
+	}
+	if cfg.WorkOSAPIKey != "" {
+		keyLeakConfig.Members = workos.New(cfg.WorkOSAPIKey)
+	} else {
+		logger.Error("key leak email recipients are disabled: no workos api key configured")
+	}
+	if cfg.Email.ResendAPIKey != "" {
+		keyLeakConfig.Email = email.NewResend(cfg.Email.ResendAPIKey, "")
+	} else {
+		logger.Error("key leak emails are disabled: no resend api key configured")
+	}
+
+	restateSrv.Bind(hydrav1.NewKeyLeakServiceServer(keyleak.New(keyLeakConfig),
 		restate.WithJournalRetention(time.Hour),
 		restate.WithIdempotencyRetention(24*time.Hour),
 		restate.WithInvocationRetryPolicy(

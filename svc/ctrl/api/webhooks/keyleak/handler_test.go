@@ -37,6 +37,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	worker "github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
 )
 
@@ -307,6 +308,54 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 		})
 	}
 	require.Empty(t, sender.delivered)
+}
+
+func TestKeyLeakNoopProvidersStillDeliverSlack(t *testing.T) {
+	messages := make(chan slack.Payload, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var message slack.Payload
+		if err := json.NewDecoder(r.Body).Decode(&message); err != nil {
+			t.Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		messages <- message
+	}))
+	t.Cleanup(server.Close)
+	service := worker.New(worker.Config{
+		DB:              nil,
+		Members:         workos.NewNoop(),
+		Email:           email.NewNoop(),
+		SlackWebhookURL: server.URL,
+	})
+	runtime := containers.Restate(t, hydrav1.NewKeyLeakServiceServer(service))
+	client := hydrav1.NewKeyLeakServiceIngressClient(runtime.IngressClient)
+	leak := &hydrav1.KeyLeakNotification{
+		KeyId:         uid.New(uid.KeyPrefix),
+		OrgId:         uid.New(uid.TestPrefix),
+		WorkspaceName: "test workspace",
+		Source:        "commit",
+		Url:           "https://github.com/unkeyed/example/commit/test",
+		Type:          "unkey_key",
+		Date:          "Mon Jan 02 2006",
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	t.Cleanup(cancel)
+	_, err := client.Notify().Request(ctx, leak)
+	require.NoError(t, err)
+	_, err = client.NotifyEmail().Request(ctx, &hydrav1.KeyLeakEmailRequest{Leak: leak, Email: "test@example.com"})
+	require.NoError(t, err)
+
+	select {
+	case message := <-messages:
+		encoded, err := json.Marshal(message)
+		require.NoError(t, err)
+		require.Contains(t, string(encoded), leak.GetKeyId())
+		require.Contains(t, string(encoded), leak.GetUrl())
+	case <-ctx.Done():
+		t.Fatal("Slack alert must not depend on email provider configuration")
+	}
 }
 
 func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
