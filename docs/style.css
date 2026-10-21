@@ -67,7 +67,7 @@ pre {
   line-height: 1.2;
 }
 
-#content-area h2:not(.not-prose):not([data-component-part="card-title"]) {
+#content-area h2:not(.not-prose):not([data-component-part="card-title"]):not(.unkey-product-column-title) {
   font-weight: 600;
   letter-spacing: -0.02em;
   border-bottom: 1px solid var(--unkey-border);
@@ -467,10 +467,34 @@ html[data-current-path^="/errors/"]:not([data-current-path="/errors/overview"]) 
 .unkey-product-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+}
+
+.unkey-product-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-right: 2rem;
+}
+
+.unkey-product-column + .unkey-product-column {
+  padding-right: 0;
+  padding-left: 2rem;
+  border-left: 2px solid var(--unkey-border-strong);
+}
+
+#content-area .unkey-product-column-title {
+  margin: 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--unkey-border);
+  color: var(--unkey-text);
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.03em;
 }
 
 #content-area .unkey-product {
+  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -558,17 +582,8 @@ html[data-current-path^="/errors/"]:not([data-current-path="/errors/overview"]) 
   padding: 1.5rem;
 }
 
-.unkey-eyebrow {
-  font-family: var(--unkey-font-mono);
-  font-size: 0.6875rem;
-  font-weight: 400;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--unkey-text-faint);
-}
-
 #content-area .unkey-product-title {
-  margin: 0.5rem 0 0.75rem;
+  margin: 0 0 0.75rem;
   font-size: 1.375rem;
   line-height: 1.4;
   font-weight: 500;
@@ -705,6 +720,18 @@ html[data-current-path^="/errors/"]:not([data-current-path="/errors/overview"]) 
   .unkey-product-grid,
   .unkey-resource-grid {
     grid-template-columns: 1fr;
+  }
+
+  .unkey-product-column {
+    padding-right: 0;
+  }
+
+  .unkey-product-column + .unkey-product-column {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    padding-left: 0;
+    border-top: 2px solid var(--unkey-border-strong);
+    border-left: 0;
   }
 
   .unkey-product-art {
