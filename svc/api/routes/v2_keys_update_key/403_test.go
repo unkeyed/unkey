@@ -15,69 +15,37 @@ import (
 func TestUpdateKeyCorrectPermissions(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name  string
-		roles []string
-	}{
-		{
-			name:  "wildcard api",
-			roles: []string{"api.*.update_key"},
-		},
-		{
-			name:  "specific api",
-			roles: []string{}, // Will be filled in with specific API ID
-		},
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:           h.DB,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			h := testutil.NewHarness(t)
+	h.Register(route)
 
-			route := &handler.Handler{
-				DB:           h.DB,
-				Auditlogs:    h.Auditlogs,
-				KeyCache:     h.Caches.VerificationKeyByHash,
-				UsageLimiter: h.UsageLimiter,
-			}
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
-			h.Register(route)
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Name:        new("test"),
+	})
 
-			// Create API using helper
-			api := h.CreateApi(seed.CreateApiRequest{
-				WorkspaceID: h.Resources().UserWorkspace.ID,
-			})
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, keyResponse.KeyID, "write"))
 
-			// Create key using helper
-			keyResponse := h.CreateKey(seed.CreateKeyRequest{
-				WorkspaceID: h.Resources().UserWorkspace.ID,
-				KeySpaceID:  api.KeyAuthID.String,
-				Name:        new("test"),
-			})
-
-			// Set up permissions
-			roles := tc.roles
-			if tc.name == "specific api" {
-				roles = []string{fmt.Sprintf("api.%s.update_key", api.ID)}
-			}
-
-			rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, roles...)
-
-			headers := http.Header{
-				"Content-Type":  {"application/json"},
-				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-			}
-
-			req := handler.Request{
-				KeyId:   keyResponse.KeyID,
-				Enabled: new(false),
-			}
-
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-			require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
-			require.NotNil(t, res.Body)
-		})
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
+
+	req := handler.Request{KeyId: keyResponse.KeyID, Enabled: new(false)}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
+	require.NotNil(t, res.Body)
 }
 
 func TestUpdateKeyInsufficientPermissions(t *testing.T) {
@@ -107,7 +75,7 @@ func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 	})
 
 	// Create root key with insufficient permissions
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key") // Wrong permission
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, keyResponse.KeyID, "read"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -154,7 +122,7 @@ func TestUpdateKeyCrossWorkspaceIsolation(t *testing.T) {
 	otherWorkspace := h.CreateWorkspace()
 
 	// Create root key for other workspace
-	rootKey := h.CreateRootKey(otherWorkspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(otherWorkspace.ID, rootKeyGrant(otherWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

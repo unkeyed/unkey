@@ -34,7 +34,7 @@ func TestResendDemo(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, "*", "*", "*", "verify"))
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 

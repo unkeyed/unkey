@@ -25,10 +25,10 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	otherAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
-	otherAPIRootKey := h.CreateRootKey(workspace.ID, "api."+otherAPI.ID+".verify_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "verify"))
+	otherAPIRootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, otherAPI.ProjectID, otherAPI.KeyAuthID.String, "*", "verify"))
 	otherWorkspace := h.CreateWorkspace()
-	otherWorkspaceRootKey := h.CreateRootKey(otherWorkspace.ID, "api.*.verify_key")
+	otherWorkspaceRootKey := h.CreateRootKey(otherWorkspace.ID, rootKeyGrant(otherWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "verify"))
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
@@ -86,7 +86,7 @@ func TestVerifyKey_KeyspaceAllowlistHidesInvalidKeys(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	otherAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "verify"))
 	headers := http.Header{
 		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
 	}
@@ -149,7 +149,7 @@ func TestVerifyKey_RejectsInvalidKeyspaceAllowlist(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	key := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: workspace.ID, KeySpaceID: api.KeyAuthID.String})
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
+	rootKey := h.CreateRootKey(workspace.ID, rootKeyGrant(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "verify"))
 	headers := http.Header{
 		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
 	}

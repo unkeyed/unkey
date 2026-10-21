@@ -182,7 +182,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 	}{
 		{name: "no permissions", permissions: nil},
 		{name: "write permission for a different keyspace", permissions: []string{createKeyPermission(workspaceID, projectID, uid.New(uid.KeySpacePrefix))}},
-		{name: "unrelated permission", permissions: []string{"workspace.read"}},
+		{name: "unrelated permission", permissions: []string{rootKeyGrant(workspaceID, projectID, keySpaceID, "read")}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rootKey := h.CreateRootKey(workspaceID, tc.permissions...)
@@ -233,7 +233,7 @@ func TestCreateKeyOnDeletedApi(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, "api.*.create_key"))},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, rootKeyGrant(workspaceID, "*", "*", "write")))},
 	}
 	now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 
