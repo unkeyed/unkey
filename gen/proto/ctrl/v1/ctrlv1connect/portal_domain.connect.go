@@ -39,9 +39,9 @@ const (
 	// PortalDomainServiceDeletePortalDomainProcedure is the fully-qualified name of the
 	// PortalDomainService's DeletePortalDomain RPC.
 	PortalDomainServiceDeletePortalDomainProcedure = "/ctrl.v1.PortalDomainService/DeletePortalDomain"
-	// PortalDomainServiceRetryVerificationProcedure is the fully-qualified name of the
-	// PortalDomainService's RetryVerification RPC.
-	PortalDomainServiceRetryVerificationProcedure = "/ctrl.v1.PortalDomainService/RetryVerification"
+	// PortalDomainServiceRetryPortalDomainVerificationProcedure is the fully-qualified name of the
+	// PortalDomainService's RetryPortalDomainVerification RPC.
+	PortalDomainServiceRetryPortalDomainVerificationProcedure = "/ctrl.v1.PortalDomainService/RetryPortalDomainVerification"
 )
 
 // PortalDomainServiceClient is a client for the ctrl.v1.PortalDomainService service.
@@ -49,7 +49,7 @@ type PortalDomainServiceClient interface {
 	AddPortalDomain(context.Context, *connect.Request[v1.AddPortalDomainRequest]) (*connect.Response[v1.AddPortalDomainResponse], error)
 	DeletePortalDomain(context.Context, *connect.Request[v1.DeletePortalDomainRequest]) (*connect.Response[v1.DeletePortalDomainResponse], error)
 	// Retry verification for a pending, verifying, or failed domain.
-	RetryVerification(context.Context, *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error)
+	RetryPortalDomainVerification(context.Context, *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error)
 }
 
 // NewPortalDomainServiceClient constructs a client for the ctrl.v1.PortalDomainService service. By
@@ -75,10 +75,10 @@ func NewPortalDomainServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(portalDomainServiceMethods.ByName("DeletePortalDomain")),
 			connect.WithClientOptions(opts...),
 		),
-		retryVerification: connect.NewClient[v1.RetryPortalDomainVerificationRequest, v1.RetryPortalDomainVerificationResponse](
+		retryPortalDomainVerification: connect.NewClient[v1.RetryPortalDomainVerificationRequest, v1.RetryPortalDomainVerificationResponse](
 			httpClient,
-			baseURL+PortalDomainServiceRetryVerificationProcedure,
-			connect.WithSchema(portalDomainServiceMethods.ByName("RetryVerification")),
+			baseURL+PortalDomainServiceRetryPortalDomainVerificationProcedure,
+			connect.WithSchema(portalDomainServiceMethods.ByName("RetryPortalDomainVerification")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -86,9 +86,9 @@ func NewPortalDomainServiceClient(httpClient connect.HTTPClient, baseURL string,
 
 // portalDomainServiceClient implements PortalDomainServiceClient.
 type portalDomainServiceClient struct {
-	addPortalDomain    *connect.Client[v1.AddPortalDomainRequest, v1.AddPortalDomainResponse]
-	deletePortalDomain *connect.Client[v1.DeletePortalDomainRequest, v1.DeletePortalDomainResponse]
-	retryVerification  *connect.Client[v1.RetryPortalDomainVerificationRequest, v1.RetryPortalDomainVerificationResponse]
+	addPortalDomain               *connect.Client[v1.AddPortalDomainRequest, v1.AddPortalDomainResponse]
+	deletePortalDomain            *connect.Client[v1.DeletePortalDomainRequest, v1.DeletePortalDomainResponse]
+	retryPortalDomainVerification *connect.Client[v1.RetryPortalDomainVerificationRequest, v1.RetryPortalDomainVerificationResponse]
 }
 
 // AddPortalDomain calls ctrl.v1.PortalDomainService.AddPortalDomain.
@@ -101,9 +101,9 @@ func (c *portalDomainServiceClient) DeletePortalDomain(ctx context.Context, req 
 	return c.deletePortalDomain.CallUnary(ctx, req)
 }
 
-// RetryVerification calls ctrl.v1.PortalDomainService.RetryVerification.
-func (c *portalDomainServiceClient) RetryVerification(ctx context.Context, req *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error) {
-	return c.retryVerification.CallUnary(ctx, req)
+// RetryPortalDomainVerification calls ctrl.v1.PortalDomainService.RetryPortalDomainVerification.
+func (c *portalDomainServiceClient) RetryPortalDomainVerification(ctx context.Context, req *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error) {
+	return c.retryPortalDomainVerification.CallUnary(ctx, req)
 }
 
 // PortalDomainServiceHandler is an implementation of the ctrl.v1.PortalDomainService service.
@@ -111,7 +111,7 @@ type PortalDomainServiceHandler interface {
 	AddPortalDomain(context.Context, *connect.Request[v1.AddPortalDomainRequest]) (*connect.Response[v1.AddPortalDomainResponse], error)
 	DeletePortalDomain(context.Context, *connect.Request[v1.DeletePortalDomainRequest]) (*connect.Response[v1.DeletePortalDomainResponse], error)
 	// Retry verification for a pending, verifying, or failed domain.
-	RetryVerification(context.Context, *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error)
+	RetryPortalDomainVerification(context.Context, *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error)
 }
 
 // NewPortalDomainServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -133,10 +133,10 @@ func NewPortalDomainServiceHandler(svc PortalDomainServiceHandler, opts ...conne
 		connect.WithSchema(portalDomainServiceMethods.ByName("DeletePortalDomain")),
 		connect.WithHandlerOptions(opts...),
 	)
-	portalDomainServiceRetryVerificationHandler := connect.NewUnaryHandler(
-		PortalDomainServiceRetryVerificationProcedure,
-		svc.RetryVerification,
-		connect.WithSchema(portalDomainServiceMethods.ByName("RetryVerification")),
+	portalDomainServiceRetryPortalDomainVerificationHandler := connect.NewUnaryHandler(
+		PortalDomainServiceRetryPortalDomainVerificationProcedure,
+		svc.RetryPortalDomainVerification,
+		connect.WithSchema(portalDomainServiceMethods.ByName("RetryPortalDomainVerification")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/ctrl.v1.PortalDomainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -145,8 +145,8 @@ func NewPortalDomainServiceHandler(svc PortalDomainServiceHandler, opts ...conne
 			portalDomainServiceAddPortalDomainHandler.ServeHTTP(w, r)
 		case PortalDomainServiceDeletePortalDomainProcedure:
 			portalDomainServiceDeletePortalDomainHandler.ServeHTTP(w, r)
-		case PortalDomainServiceRetryVerificationProcedure:
-			portalDomainServiceRetryVerificationHandler.ServeHTTP(w, r)
+		case PortalDomainServiceRetryPortalDomainVerificationProcedure:
+			portalDomainServiceRetryPortalDomainVerificationHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -164,6 +164,6 @@ func (UnimplementedPortalDomainServiceHandler) DeletePortalDomain(context.Contex
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.PortalDomainService.DeletePortalDomain is not implemented"))
 }
 
-func (UnimplementedPortalDomainServiceHandler) RetryVerification(context.Context, *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.PortalDomainService.RetryVerification is not implemented"))
+func (UnimplementedPortalDomainServiceHandler) RetryPortalDomainVerification(context.Context, *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.PortalDomainService.RetryPortalDomainVerification is not implemented"))
 }

@@ -16,7 +16,7 @@ import (
 type PortalDomainServiceClient interface {
 	AddPortalDomain(ctx context.Context, req *v1.AddPortalDomainRequest) (*v1.AddPortalDomainResponse, error)
 	DeletePortalDomain(ctx context.Context, req *v1.DeletePortalDomainRequest) (*v1.DeletePortalDomainResponse, error)
-	RetryVerification(ctx context.Context, req *v1.RetryPortalDomainVerificationRequest) (*v1.RetryPortalDomainVerificationResponse, error)
+	RetryPortalDomainVerification(ctx context.Context, req *v1.RetryPortalDomainVerificationRequest) (*v1.RetryPortalDomainVerificationResponse, error)
 }
 
 var _ PortalDomainServiceClient = (*ConnectPortalDomainServiceClient)(nil)
@@ -57,10 +57,10 @@ func (c *ConnectPortalDomainServiceClient) DeletePortalDomain(ctx context.Contex
 	return resp.Msg, nil
 }
 
-func (c *ConnectPortalDomainServiceClient) RetryVerification(ctx context.Context, req *v1.RetryPortalDomainVerificationRequest) (*v1.RetryPortalDomainVerificationResponse, error) {
-	ctx, span := tracing.Start(ctx, "PortalDomainService.RetryVerification")
+func (c *ConnectPortalDomainServiceClient) RetryPortalDomainVerification(ctx context.Context, req *v1.RetryPortalDomainVerificationRequest) (*v1.RetryPortalDomainVerificationResponse, error) {
+	ctx, span := tracing.Start(ctx, "PortalDomainService.RetryPortalDomainVerification")
 	defer span.End()
-	resp, err := c.inner.RetryVerification(ctx, connect.NewRequest(req))
+	resp, err := c.inner.RetryPortalDomainVerification(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)
