@@ -571,7 +571,8 @@
                       "POST /v2/portal.deletePortal",
                       "POST /v2/portal.createSession",
                       "POST /v2/portal.listSessions",
-                      "POST /v2/portal.revokeSession"
+                      "POST /v2/portal.revokeSession",
+                      "POST /v2/portal.createDomain"
                     ]
                   }
                 ]
@@ -1136,7 +1137,8 @@
                   "POST /v2/portal.deletePortal",
                   "POST /v2/portal.createSession",
                   "POST /v2/portal.listSessions",
-                  "POST /v2/portal.revokeSession"
+                  "POST /v2/portal.revokeSession",
+                  "POST /v2/portal.createDomain"
                 ]
               }
             ],
