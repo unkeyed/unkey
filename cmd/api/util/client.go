@@ -61,10 +61,10 @@ func credential(ctx context.Context, cmd *cli.Command, keys credentials.RootKeyS
 		if key == "" {
 			return ResolvedCredential{}, fmt.Errorf("root key cannot be empty")
 		}
-		return ResolvedCredential{Key: key}, nil
+		return ResolvedCredential{Key: key, APIURL: ""}, nil
 	}
 	if env := strings.TrimSpace(os.Getenv("UNKEY_ROOT_KEY")); env != "" {
-		return ResolvedCredential{Key: env}, nil
+		return ResolvedCredential{Key: env, APIURL: ""}, nil
 	}
 	if cmd.FlagIsSet("config") {
 		return rootKeyCredential(keys, cmd.String("config"))
@@ -95,7 +95,7 @@ func rootKeyCredential(keys credentials.RootKeyStore, configPath string) (Resolv
 		}
 		return ResolvedCredential{}, fmt.Errorf("failed to load credentials: %w", err)
 	}
-	return ResolvedCredential{Key: loaded}, nil
+	return ResolvedCredential{Key: loaded, APIURL: ""}, nil
 }
 
 func commandAPIURL(cmd *cli.Command) (string, bool) {
