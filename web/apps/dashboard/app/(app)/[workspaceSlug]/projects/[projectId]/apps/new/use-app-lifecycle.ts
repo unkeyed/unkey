@@ -20,6 +20,7 @@ type AppSource = { git: AppGitCreateInput } | { oci: { image: string } };
 
 const MAX_NAME_ATTEMPTS = 3;
 const REGIONS_STALE_MS = 5 * 60 * 1000;
+const DEFAULT_REGION = "us-east-1";
 
 class NoFreeAppNameError extends Error {
   constructor() {
@@ -81,7 +82,9 @@ export function useAppLifecycle(projectId: string) {
       const regions = await utils.deploy.environmentSettings.getAvailableRegions.fetch(undefined, {
         staleTime: REGIONS_STALE_MS,
       });
-      return regions.filter((region) => region.canSchedule).map((region) => region.name);
+      return regions
+        .filter((region) => region.canSchedule && region.name === DEFAULT_REGION)
+        .map((region) => region.name);
     }).catch((error: unknown) => {
       if (!isApiError(error, NotFoundErrorResponse)) {
         const { message, description } = getErrorToast(error, "Could not apply default settings");

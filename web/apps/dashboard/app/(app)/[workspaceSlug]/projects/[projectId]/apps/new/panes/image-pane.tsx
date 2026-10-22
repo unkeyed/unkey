@@ -68,7 +68,7 @@ function NewImage() {
         spellCheck={false}
         data-1p-ignore
         autoComplete="off"
-        placeholder="ghcr.io/acme/api:v1.4.2"
+        placeholder="ghcr.io/unkeyed/deploy-demo:latest"
         className="font-mono"
         error={
           errors.image?.message ?? (create.error ? newAppErrorMessage(create.error) : undefined)

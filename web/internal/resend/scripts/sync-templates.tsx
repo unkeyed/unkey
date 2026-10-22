@@ -15,6 +15,8 @@ import type React from "react";
 import { Resend } from "resend";
 import ComputeBudgetAlert from "../emails/compute_budget_alert";
 import ComputeBudgetStopped from "../emails/compute_budget_stopped";
+import FreeTierExceeded from "../emails/free_tier_exceeded";
+import FreeTierThrottled from "../emails/free_tier_throttled";
 
 type TemplateSync = {
   // alias is how svc/ctrl refers to the template; it must not change once a
@@ -70,6 +72,54 @@ const templates: TemplateSync[] = [
       { key: "WORKSPACE_NAME", fallbackValue: "Your workspace" },
       { key: "USAGE", fallbackValue: "$0" },
       { key: "BUDGET", fallbackValue: "$0" },
+      { key: "BILLING_URL", fallbackValue: "https://app.unkey.com" },
+      { key: "YEAR", fallbackValue: "2026" },
+    ],
+  },
+  {
+    alias: "free-tier-exceeded",
+    name: "Free tier exceeded",
+    subject: "You've exceeded the Unkey free tier",
+    from: "James | Unkey <james@updates.unkey.com>",
+    element: (
+      <FreeTierExceeded
+        workspaceName="{{{WORKSPACE_NAME}}}"
+        used="{{{USED}}}"
+        limit="{{{LIMIT}}}"
+        requestsPerMinute="{{{REQUESTS_PER_MINUTE}}}"
+        throttleDate="{{{THROTTLE_DATE}}}"
+        billingUrl="{{{BILLING_URL}}}"
+        year="{{{YEAR}}}"
+      />
+    ),
+    variables: [
+      { key: "WORKSPACE_NAME", fallbackValue: "Your workspace" },
+      { key: "USED", fallbackValue: "0" },
+      { key: "LIMIT", fallbackValue: "0" },
+      { key: "REQUESTS_PER_MINUTE", fallbackValue: "5" },
+      { key: "THROTTLE_DATE", fallbackValue: "in 5 days" },
+      { key: "BILLING_URL", fallbackValue: "https://app.unkey.com" },
+      { key: "YEAR", fallbackValue: "2026" },
+    ],
+  },
+  {
+    alias: "free-tier-throttled",
+    name: "Free tier API requests limited",
+    subject: "API requests limited: free tier exceeded",
+    from: "James | Unkey <james@updates.unkey.com>",
+    element: (
+      <FreeTierThrottled
+        workspaceName="{{{WORKSPACE_NAME}}}"
+        limit="{{{LIMIT}}}"
+        requestsPerMinute="{{{REQUESTS_PER_MINUTE}}}"
+        billingUrl="{{{BILLING_URL}}}"
+        year="{{{YEAR}}}"
+      />
+    ),
+    variables: [
+      { key: "WORKSPACE_NAME", fallbackValue: "Your workspace" },
+      { key: "LIMIT", fallbackValue: "0" },
+      { key: "REQUESTS_PER_MINUTE", fallbackValue: "5" },
       { key: "BILLING_URL", fallbackValue: "https://app.unkey.com" },
       { key: "YEAR", fallbackValue: "2026" },
     ],

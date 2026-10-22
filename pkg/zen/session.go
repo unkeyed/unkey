@@ -248,6 +248,11 @@ func (s *Session) RequestID() string {
 	return s.requestID
 }
 
+// SetRequestID restores the original request ID from authenticated peer metadata.
+func (s *Session) SetRequestID(requestID string) {
+	s.requestID = requestID
+}
+
 // ResponseWriter returns the http.ResponseWriter with status code capturing.
 // This allows direct access to the standard library response features.
 //

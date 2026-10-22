@@ -90,6 +90,17 @@ service CronService {
   // finalizes the invoice id from the request.
   rpc CloseDeployBillingWorkspace(CloseDeployBillingWorkspaceRequest) returns (CloseDeployBillingWorkspaceResponse) {}
 
+  // EnforceFreeTier emails the admins of a Free-tier workspace that exceeded
+  // its monthly quota and schedules ThrottleFreeTierWorkspace. Key =
+  // "free-tier-<workspace id>". Sent daily by RunQuotaCheck while the
+  // workspace is over quota; a no-op while a throttle is already pending.
+  rpc EnforceFreeTier(EnforceFreeTierRequest) returns (EnforceFreeTierResponse) {}
+
+  // ThrottleFreeTierWorkspace limits a Free-tier workspace's API requests
+  // after the warning's grace period, whether or not it is still over quota.
+  // Key = "free-tier-<workspace id>". Scheduled by EnforceFreeTier.
+  rpc ThrottleFreeTierWorkspace(ThrottleFreeTierWorkspaceRequest) returns (ThrottleFreeTierWorkspaceResponse) {}
+
   // RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
   // period "YYYY-MM". It lists the opt-in set of workspaces that configured a
   // Deploy spend budget and fans out one DeploySpendCheckService invocation per
@@ -185,6 +196,24 @@ message CloseDeployBillingWorkspaceRequest {
 // CloseDeployBillingWorkspaceResponse is intentionally empty: the outcome is
 // logged by the handler, not consumed by a caller.
 message CloseDeployBillingWorkspaceResponse {}
+
+message EnforceFreeTierRequest {
+  string workspace_id = 1;
+  // Billable operations used this billing period when the quota check ran.
+  int64 used = 2;
+}
+message EnforceFreeTierResponse {
+  // Unix seconds of the pending warning, or 0 when no throttle is pending.
+  int64 warned_at = 1;
+}
+
+message ThrottleFreeTierWorkspaceRequest {
+  string workspace_id = 1;
+  // Unix seconds of the warning that scheduled this throttle. A mismatch with
+  // the stored warning means the schedule is stale and the call is a no-op.
+  int64 warned_at = 2;
+}
+message ThrottleFreeTierWorkspaceResponse {}
 
 message RunDeploySpendCheckRequest {}
 message RunDeploySpendCheckResponse {

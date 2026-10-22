@@ -43,8 +43,15 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return err
 	}
 
+	excludedRegions := make([]string, 0, len(hops))
+	for _, hop := range hops {
+		if hop.RegionPlatform != "" {
+			excludedRegions = append(excludedRegions, hop.RegionPlatform)
+		}
+	}
+
 	hostname := proxy.ExtractHostname(req.Host)
-	decision, err := h.RouterService.Route(ctx, hostname)
+	decision, err := h.RouterService.Route(ctx, hostname, excludedRegions...)
 	if err != nil {
 		return err
 	}
@@ -227,6 +234,9 @@ func applyPeerMetadata(sess *zen.Session, codec *meta.Codec, now time.Time) ([]m
 			return nil, nil
 		}
 		sess.SetClientIP(ip)
+	}
+	if len(metadata.Hops) > 0 && metadata.Hops[0].RequestID != "" {
+		sess.SetRequestID(metadata.Hops[0].RequestID)
 	}
 	sess.SetDebugTelemetryEnabled(metadata.DebugTelemetryEnabled)
 	return metadata.Hops, nil
