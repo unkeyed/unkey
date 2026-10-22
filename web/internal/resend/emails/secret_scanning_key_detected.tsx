@@ -45,8 +45,8 @@ export function SecretScanningKeyDetected({ date, source, url }: Props) {
       <Hr />
       <Text>
         You can disable the Root Key in your dashboard by following our docs available at{" "}
-        <Link href="https://www.unkey.com/docs/platform/root-keys/overview#if-a-root-key-is-leaked">
-          https://www.unkey.com/docs/platform/root-keys/overview#if-a-root-key-is-leaked
+        <Link href="https://www.unkey.com/docs/platform/root-keys/overview#if-a-root-key-leaks">
+          https://www.unkey.com/docs/platform/root-keys/overview#if-a-root-key-leaks
         </Link>
         .
       </Text>
