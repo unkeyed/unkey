@@ -31,7 +31,9 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
 	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
+	keyleakwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/keyleak"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -294,6 +296,13 @@ func Run(ctx context.Context, cfg Config) error {
 	} else {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
 	}
+
+	keyLeakVerifier, err := githubsecrets.New("https://api.github.com/meta/public_keys/secret_scanning", clk)
+	if err != nil {
+		return fmt.Errorf("failed to create key leak verifier: %w", err)
+	}
+	r.Defer(func() error { keyLeakVerifier.Close(); return nil })
+	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(restateClient, database, keyLeakVerifier))
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
 		mux.Handle("POST /webhooks/stripe", stripewebhook.New(
