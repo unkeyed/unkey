@@ -131,22 +131,30 @@ func (e *entry) endLiveSession() {
 	e.resetTimes.maxCandidateRaisedByLiveSessionNs = 0
 }
 
-// unwrittenSessions returns this pod's sessions whose consumed time the store
-// has not acknowledged. It forgets frozen sessions that are fully written, and
-// sessions past their `compact_after`: cleanup may already have merged their
-// row, so a late write would count its units twice.
+// forgetWrittenSessions stops tracking this pod's sessions that need no
+// more writes: frozen sessions that are fully written, and sessions past
+// their `compact_after`. Cleanup may already have merged such a row, so a
+// late write would count its units twice.
 // The caller holds the shard lock of the entry.
-func (e *entry) unwrittenSessions(nowNs int64) []session {
+func (e *entry) forgetWrittenSessions(nowNs int64) {
+	for id, writtenNs := range e.writtenNs {
+		s := e.sessions[id]
+		pastCompactAfter := nowNs >= s.anchorAtNs+compactAfter.Nanoseconds()
+		if pastCompactAfter || (id != e.liveID && s.consumedNs <= writtenNs) {
+			delete(e.writtenNs, id)
+		}
+	}
+}
+
+// unwrittenSessions returns this pod's tracked sessions whose consumed time
+// the store has not acknowledged. It does not change the entry.
+// The caller holds the shard lock of the entry.
+func (e *entry) unwrittenSessions() []session {
 	var unwritten []session
 	for id, writtenNs := range e.writtenNs {
 		s := e.sessions[id]
-		switch {
-		case nowNs >= s.anchorAtNs+compactAfter.Nanoseconds():
-			delete(e.writtenNs, id)
-		case s.consumedNs > writtenNs:
+		if s.consumedNs > writtenNs {
 			unwritten = append(unwritten, s)
-		case id != e.liveID:
-			delete(e.writtenNs, id)
 		}
 	}
 	return unwritten

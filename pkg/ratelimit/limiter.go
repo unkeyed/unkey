@@ -339,7 +339,8 @@ func (l *limiter) flush(ctx context.Context) error {
 		s := &l.shards[i]
 		s.mu.Lock()
 		for fingerprint, e := range s.entries {
-			unwritten := e.unwrittenSessions(nowNs)
+			e.forgetWrittenSessions(nowNs)
+			unwritten := e.unwrittenSessions()
 			// An idle entry decides like a new one, so removing it changes
 			// no decision. A running read merges into the entry when it
 			// finishes, so the entry stays until then.
