@@ -70,4 +70,30 @@ describe("deriveProductionStatus", () => {
       }),
     ).toBe("failed");
   });
+
+  test("a pod stuck pulling its image makes the deployment crash", () => {
+    expect(
+      deriveProductionStatus({
+        status: "ready",
+        desiredState: "running",
+        targetRegions: [],
+        instances: [instance({ lastExit: waiting("ImagePullBackOff") })],
+      }),
+    ).toBe("crashing");
+  });
+
+  test("a pod that recovered from an exit stays live", () => {
+    expect(
+      deriveProductionStatus({
+        status: "ready",
+        desiredState: "running",
+        targetRegions: [],
+        instances: [
+          instance({
+            lastExit: { ...waiting("CrashLoopBackOff"), statusReason: null, reason: "OOMKilled" },
+          }),
+        ],
+      }),
+    ).toBe("live");
+  });
 });
