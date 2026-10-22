@@ -9,6 +9,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/unkeyed/unkey/pkg/httpclient"
+)
+
+var githubHTTPClient = httpclient.New("api.github.com",
+	httpclient.WithTimeout(5*time.Second),
+	httpclient.WithHeaders(http.Header{"User-Agent": {"unkey-cli"}}),
 )
 
 // Info contains comprehensive Git repo and commit information
@@ -149,19 +156,12 @@ func parseGitHubURL(url string) (owner, repo string) {
 func fetchGitHubAuthorInfo(owner, repo, sha string) (string, string) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits/%s", owner, repo, sha)
 
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
-
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", ""
 	}
 
-	// Set User-Agent header (required by GitHub API)
-	req.Header.Set("User-Agent", "unkey-cli")
-
-	resp, err := client.Do(req)
+	resp, err := githubHTTPClient.Do(req)
 	if err != nil {
 		return "", ""
 	}

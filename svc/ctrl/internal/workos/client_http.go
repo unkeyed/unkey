@@ -21,7 +21,6 @@ func (c *client) get(ctx context.Context, path string, query url.Values, out any
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	res, err := c.http.Do(req)
 	if err != nil {

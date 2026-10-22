@@ -7,19 +7,26 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/httpclient"
 )
 
 // Noop is the GitHubClient used when GitHub App credentials are not configured.
 // Authenticated operations return errNotConfigured; the unauthenticated
 // public-API methods (IsRepoPublic, GetBranchHeadCommitPublic) still work.
-type Noop struct{}
+type Noop struct {
+	baseURL    string
+	httpClient *http.Client
+}
 
 // Ensure Noop implements GitHubClient
 var _ GitHubClient = (*Noop)(nil)
 
 // NewNoop creates a new no-op GitHub client.
 func NewNoop() *Noop {
-	return &Noop{}
+	return &Noop{
+		baseURL:    "https://api.github.com",
+		httpClient: httpclient.New("api.github.com", httpclient.WithTimeout(30*time.Second)),
+	}
 }
 
 var errNotConfigured = fault.New("GitHub client not configured: GitHub App credentials were not provided at startup")
@@ -37,8 +44,7 @@ func (n *Noop) GetScopedInstallationToken(_ int64, _ string, _ map[string]string
 // IsRepoPublic reports whether repo is publicly accessible using an
 // unauthenticated request. Works even when GitHub App credentials are absent.
 func (n *Noop) IsRepoPublic(repo string) (bool, error) {
-	httpClient := &http.Client{Timeout: 30 * time.Second}
-	return probeRepoVisibility(httpClient, "https://api.github.com", repo)
+	return probeRepoVisibility(n.httpClient, n.baseURL, repo)
 }
 
 // GetBranchHeadCommit returns an error indicating GitHub is not configured.
@@ -100,10 +106,9 @@ func (n *Noop) FindBotComment(_ int64, _ string, _ int, _ string) (int64, string
 // API without authentication. Works for public repositories even when GitHub
 // App credentials are not configured.
 func (n *Noop) GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo, error) {
-	httpClient := &http.Client{Timeout: 30 * time.Second}
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
+	apiURL := fmt.Sprintf("%s/repos/%s/commits/%s", n.baseURL, repo, url.PathEscape(branch))
 
-	commit, err := request[ghCommitResponse](httpClient, http.MethodGet, apiURL, githubHeaders(""), nil, http.StatusOK)
+	commit, err := request[ghCommitResponse](n.httpClient, http.MethodGet, apiURL, githubHeaders(""), nil, http.StatusOK)
 	if err != nil {
 		return CommitInfo{}, err
 	}

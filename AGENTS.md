@@ -157,6 +157,9 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 - Use `t.Cleanup()` for resources.
 - Prefer `fault` for contextual errors and `assert` for invariants.
 - After changing generated inputs, run `mise run generate`.
+- Name `pkg/httpclient` clients after the downstream hostname, such as
+  `api.resend.com`, not a service nickname. Omit schemes, ports, paths, queries,
+  and credentials. Keep these metric labels low-cardinality.
 
 ## TypeScript conventions
 
