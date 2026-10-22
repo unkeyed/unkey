@@ -32,8 +32,7 @@ function ExitDetails({ summary }: { summary: ExitSummary }) {
   );
 }
 
-export function LastExitText({ lastExit }: { lastExit: LastExit }) {
-  const summary = summarizeExit(lastExit);
+export function LastExitText({ summary }: { summary: ExitSummary }) {
   return (
     <InfoTooltip
       content={<ExitDetails summary={summary} />}
@@ -49,10 +48,13 @@ export function LastExitText({ lastExit }: { lastExit: LastExit }) {
   );
 }
 
-export function LastExitHover({ lastExit, children }: { lastExit: LastExit; children: ReactNode }) {
+export function LastExitHover({
+  summary,
+  children,
+}: { summary: ExitSummary; children: ReactNode }) {
   return (
     <InfoTooltip
-      content={<ExitDetails summary={summarizeExit(lastExit)} />}
+      content={<ExitDetails summary={summary} />}
       position={{ side: "top", align: "start" }}
       triggerClassName="relative z-20 min-w-0 truncate rounded-sm underline decoration-grayA-6 decoration-dotted underline-offset-4"
     >

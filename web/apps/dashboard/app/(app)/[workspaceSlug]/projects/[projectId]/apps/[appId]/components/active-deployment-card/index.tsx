@@ -4,6 +4,7 @@ import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { RegionFlag } from "@/components/region-flag";
 import { collection } from "@/lib/collections";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { summarizeDeploymentExit } from "@/lib/collections/deploy/exit-reasons";
 import { githubUrl } from "@/lib/github-url";
 import {
   formatCpu,
@@ -117,7 +118,9 @@ export function ActiveDeploymentCard({
               )
               .with("oci", "unknown", () => null)
               .exhaustive()}
-            {showLastExit && deployment.lastExit && <LastExitText lastExit={deployment.lastExit} />}
+            {showLastExit && deployment.lastExit && (
+              <LastExitText summary={summarizeDeploymentExit(deployment.lastExit)} />
+            )}
             {statusBadge}
           </div>
         </div>

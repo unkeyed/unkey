@@ -1,4 +1,6 @@
+import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { LastExit } from "@/lib/types/deploy";
+import { DeploymentExitReason } from "@unkey/api/models/components";
 
 type ReasonCopy = { label: string; body: string; fatalWaiting?: true; explainExitCode?: true };
 
@@ -58,7 +60,7 @@ function isKnownReason(reason: string): reason is KnownReason {
   return Object.hasOwn(EXIT_REASONS, reason);
 }
 
-export function reasonCopy(reason: string | null): ReasonCopy | null {
+function reasonCopy(reason: string | null): ReasonCopy | null {
   return reason !== null && isKnownReason(reason) ? EXIT_REASONS[reason] : null;
 }
 
@@ -116,5 +118,35 @@ export function summarizeExit(lastExit: LastExit): ExitSummary {
     exit: failedCode !== null ? `exit=${failedCode}` : null,
     sentences: [hint, copy?.body ?? null].filter((sentence) => sentence !== null),
     raw: rawOf(lastExit),
+  };
+}
+
+type KnownExitReason = (typeof DeploymentExitReason)[keyof typeof DeploymentExitReason];
+
+const EXIT_LABELS = {
+  crash_loop: "Crashing",
+  out_of_memory: "Out of memory",
+  exited_with_error: "Exited with error",
+  start_failed: "Couldn't start",
+  exited_cleanly: "Exited cleanly",
+  unknown: "Exited",
+} satisfies Record<KnownExitReason, string>;
+
+function isKnownExitReason(reason: string): reason is KnownExitReason {
+  return Object.hasOwn(EXIT_LABELS, reason);
+}
+
+export function summarizeDeploymentExit(
+  lastExit: NonNullable<Deployment["lastExit"]>,
+): ExitSummary {
+  const crashing = lastExit.reason === DeploymentExitReason.CrashLoop;
+  const failedCode =
+    !crashing && lastExit.exitCode !== null && lastExit.exitCode !== 0 ? lastExit.exitCode : null;
+  return {
+    severity: crashing ? "error" : "warning",
+    label: isKnownExitReason(lastExit.reason) ? EXIT_LABELS[lastExit.reason] : EXIT_LABELS.unknown,
+    exit: failedCode !== null ? `exit=${failedCode}` : null,
+    sentences: [lastExit.message],
+    raw: lastExit.exitCode !== null ? `exit code ${lastExit.exitCode}` : null,
   };
 }

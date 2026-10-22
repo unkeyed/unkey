@@ -79,20 +79,13 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
-  // Most-recent exit info across the deployment's instances. Null when
-  // no instance has reported a termination yet (healthy deployments).
-  // Powers the header "OOMKilled · exit=137" badge — see
-  // components/last-exit.tsx:LastExitText. Sourced from
-  // instances.containerStatus on the trpc layer; the flat shape is kept
-  // here so consumers don't have to walk the JSON's optional sub-fields.
   lastExit: z
     .object({
-      restartCount: z.number().int(),
+      reason: z.string(),
+      message: z.string(),
       exitCode: z.number().int().nullable(),
-      signal: z.number().int().nullable(),
-      reason: z.string().nullable(),
+      restartCount: z.number().int(),
       finishedAt: z.number().nullable(),
-      statusReason: z.string().nullable(),
     })
     .nullable(),
 });
@@ -142,7 +135,6 @@ type RowDetails = Pick<
   | "desiredInstanceCount"
   | "desiredRegions"
   | "triggerReason"
-  | "lastExit"
 >;
 
 // Once a row in one of these statuses has no instances left, nothing changes its
@@ -231,7 +223,15 @@ function toDeployment(
     createdAt: deployment.createdAt,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
-    lastExit: details.lastExit,
+    lastExit: deployment.lastExit
+      ? {
+          reason: deployment.lastExit.reason,
+          message: deployment.lastExit.message,
+          exitCode: deployment.lastExit.exitCode ?? null,
+          restartCount: deployment.lastExit.restartCount,
+          finishedAt: deployment.lastExit.finishedAt ?? null,
+        }
+      : null,
   };
 }
 

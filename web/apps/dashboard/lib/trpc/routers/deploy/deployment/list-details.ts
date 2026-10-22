@@ -1,6 +1,5 @@
 import { type InferSelectModel, and, db, eq, inArray } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import type { LastExit } from "@/lib/types/deploy";
 import {
   appRegionalSettings,
   deployments,
@@ -9,7 +8,7 @@ import {
   regions,
 } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { lastExitsByDeployment, mapInstanceRow } from "./deployment-query-helpers";
+import { mapInstanceRow } from "./deployment-query-helpers";
 
 type DesiredRegion = {
   region: { id: string; name: string; platform: string };
@@ -20,7 +19,6 @@ type DeploymentDetails = Pick<
   "id" | "projectId" | "appId" | "environmentId" | "desiredState" | "triggerReason"
 > & {
   instances: ReturnType<typeof mapInstanceRow>[];
-  lastExit: LastExit | null;
   desiredInstanceCount: number;
   desiredRegions: DesiredRegion[];
   hasOpenApiSpec: boolean;
@@ -28,8 +26,8 @@ type DeploymentDetails = Pick<
 
 // The deployments collection reads rows from the public API and merges in what
 // the API does not return: parent ids, the desired state, the trigger reason,
-// and the runtime details (instances, desired regions, the last container exit,
-// and whether an OpenAPI spec was captured)
+// and the runtime details (instances, desired regions, and whether an OpenAPI
+// spec was captured)
 export const listDeploymentDetails = workspaceProcedure
   .input(z.object({ deploymentIds: z.array(z.string()).min(1).max(100) }))
   .use(withRatelimit(ratelimit.read))
@@ -71,7 +69,6 @@ export const listDeploymentDetails = workspaceProcedure
           regionName: regions.name,
           regionPlatform: regions.platform,
           status: instances.status,
-          containerStatus: instances.containerStatus,
         })
         .from(instances)
         .innerJoin(regions, eq(regions.id, instances.regionId))
@@ -107,7 +104,6 @@ export const listDeploymentDetails = workspaceProcedure
         instancesByDeployment.set(row.deploymentId, [entry]);
       }
     }
-    const lastExitByDeployment = lastExitsByDeployment(instanceRows);
 
     const desiredByAppEnv = new Map<
       string,
@@ -138,7 +134,6 @@ export const listDeploymentDetails = workspaceProcedure
           {
             ...row,
             instances: instancesByDeployment.get(row.id) ?? [],
-            lastExit: lastExitByDeployment.get(row.id) ?? null,
             desiredInstanceCount: desired?.desiredInstanceCount ?? 0,
             desiredRegions: desired?.desiredRegions ?? [],
             hasOpenApiSpec: specSet.has(row.id),

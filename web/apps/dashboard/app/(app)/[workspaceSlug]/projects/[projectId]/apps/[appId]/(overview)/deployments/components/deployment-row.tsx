@@ -8,6 +8,7 @@ import {
 import { LastExitHover } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import { summarizeDeploymentExit } from "@/lib/collections/deploy/exit-reasons";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem } from "@unkey/ui";
@@ -100,7 +101,9 @@ export function DeploymentRow({
         <DeploymentStatusDot status={deployment.status} />
         <span className="flex min-w-0 text-sm font-medium text-gray-12">
           {showLastExit && deployment.lastExit ? (
-            <LastExitHover lastExit={deployment.lastExit}>{statusLabel}</LastExitHover>
+            <LastExitHover summary={summarizeDeploymentExit(deployment.lastExit)}>
+              {statusLabel}
+            </LastExitHover>
           ) : (
             <span className="truncate">{statusLabel}</span>
           )}

@@ -1,19 +1,6 @@
 import type { LastExit } from "@/lib/types/deploy";
 import { describe, expect, test } from "vitest";
-import { isFatalWaitingReason, reasonCopy, summarizeExit } from "./exit-reasons";
-
-describe("reasonCopy", () => {
-  test("gives plain copy for known reasons", () => {
-    expect(reasonCopy("CrashLoopBackOff")?.label).toBe("Crashing");
-    expect(reasonCopy("ErrImagePull")?.label).toBe("Can't pull image");
-  });
-
-  test("is null for unknown, inherited or missing reasons", () => {
-    expect(reasonCopy("RunContainerError")).toBe(null);
-    expect(reasonCopy("toString")).toBe(null);
-    expect(reasonCopy(null)).toBe(null);
-  });
-});
+import { isFatalWaitingReason, summarizeDeploymentExit, summarizeExit } from "./exit-reasons";
 
 describe("isFatalWaitingReason", () => {
   test("is true only for waiting reasons that stop an instance", () => {
@@ -77,5 +64,41 @@ describe("summarizeExit", () => {
       exit: null,
       sentences: [],
     });
+  });
+});
+
+describe("summarizeDeploymentExit", () => {
+  const apiExit = {
+    reason: "exited_with_error",
+    message: "Exit code 1 usually means an unhandled error. Check your logs for the cause.",
+    exitCode: 1,
+    restartCount: 2,
+    finishedAt: 1_000,
+  };
+
+  test("labels the reason and shows the API message", () => {
+    expect(summarizeDeploymentExit(apiExit)).toEqual({
+      severity: "warning",
+      label: "Exited with error",
+      exit: "exit=1",
+      sentences: [apiExit.message],
+      raw: "exit code 1",
+    });
+  });
+
+  test("a crash loop is an error and does not repeat the exit code", () => {
+    const summary = summarizeDeploymentExit({ ...apiExit, reason: "crash_loop" });
+    expect(summary.severity).toBe("error");
+    expect(summary.label).toBe("Crashing");
+    expect(summary.exit).toBe(null);
+  });
+
+  test("a reason added later reads as a neutral exit", () => {
+    expect(summarizeDeploymentExit({ ...apiExit, reason: "KEBAP" }).label).toBe("Exited");
+  });
+
+  test("no recorded exit has no exit code line", () => {
+    const summary = summarizeDeploymentExit({ ...apiExit, reason: "crash_loop", exitCode: null });
+    expect(summary.raw).toBe(null);
   });
 });

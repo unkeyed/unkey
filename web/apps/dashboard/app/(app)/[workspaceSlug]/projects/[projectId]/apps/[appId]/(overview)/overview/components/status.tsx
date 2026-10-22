@@ -4,7 +4,7 @@ import {
   isDeploymentInFlight,
 } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { isFatalWaitingReason } from "@/lib/collections/deploy/exit-reasons";
+import { DeploymentExitReason } from "@unkey/api/models/components";
 
 export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
 
@@ -16,7 +16,7 @@ export function deriveProductionStatus(deployment: Deployment): DeploymentDispla
     return "failed";
   }
   const crashing =
-    isFatalWaitingReason(deployment.lastExit?.statusReason ?? null) ||
+    deployment.lastExit?.reason === DeploymentExitReason.CrashLoop ||
     (deployment.instances ?? []).some((i) => i.status === "failed");
   if (crashing) {
     return "crashing";
