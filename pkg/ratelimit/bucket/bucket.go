@@ -37,12 +37,12 @@ type Session struct {
 //
 // A Bucket is a value without locks. The caller serializes access.
 type Bucket struct {
-	// hasLiveSession reports whether this pod has a live session that can take
-	// requests. Without one, the next admitted request starts a new session.
-	hasLiveSession bool
-
-	// liveSessionAnchorAtNs is the anchor of the live session, if
-	// `hasLiveSession`.
+	// liveSessionAnchorAtNs is the anchor of this pod's live session, the
+	// session that takes its admitted requests. It is zero when the pod has
+	// no live session, and then the next admitted request starts a new
+	// session. Zero is free to mean "no live session" because every anchor is
+	// positive: [New] rejects other anchors and [Bucket.Check] requires a
+	// positive time.
 	liveSessionAnchorAtNs int64
 
 	// maxCandidateAtOrBeforeLiveSessionNs is the largest candidate of the
@@ -96,8 +96,9 @@ type Decision struct {
 // Each session ID must be in `sessions` only once. The caller merges its own
 // sessions with the database rows first and keeps the larger `ConsumedNs`.
 //
-// New returns an error if a value is negative, if a sum overflows
-// int64, or if the live session is missing or duplicated. It does not change
+// New returns an error if an anchor is not positive, if a consumed time is
+// negative, if a sum overflows int64, or if the live session is missing or
+// duplicated. It does not change
 // `sessions`.
 func New(sessions []Session, liveSessionID string) (Bucket, error) {
 	var b Bucket
@@ -111,8 +112,12 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 
 	liveCount := 0
 	for _, session := range newestFirst {
-		if session.AnchorAtNs < 0 || session.ConsumedNs < 0 {
-			return Bucket{}, fault.New("session values must not be negative")
+		err := assert.All(
+			assert.Greater(session.AnchorAtNs, 0, "session anchor must be positive"),
+			assert.GreaterOrEqual(session.ConsumedNs, 0, "session consumed time must not be negative"),
+		)
+		if err != nil {
+			return Bucket{}, err
 		}
 		if liveSessionID != "" && session.ID == liveSessionID {
 			liveCount++
@@ -122,7 +127,6 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 	if liveSessionID != "" && liveCount != 1 {
 		return Bucket{}, fault.New("live session must be in sessions exactly once")
 	}
-	b.hasLiveSession = liveSessionID != ""
 
 	// `usedNs` is the consumed time of every session seen so far, which is
 	// every session anchored at or after the current one.
@@ -146,7 +150,7 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 		// [Bucket.Check] must know which side of the live session holds the
 		// largest candidate, because a cost added to the live session raises
 		// only the candidates at or before it. So the maxima are kept apart.
-		if b.hasLiveSession && anchorNs > b.liveSessionAnchorAtNs {
+		if b.liveSessionAnchorAtNs != 0 && anchorNs > b.liveSessionAnchorAtNs {
 			b.maxCandidateAfterLiveSessionNs = max(b.maxCandidateAfterLiveSessionNs, candidateNs)
 		} else {
 			b.maxCandidateAtOrBeforeLiveSessionNs = max(b.maxCandidateAtOrBeforeLiveSessionNs, candidateNs)
@@ -237,18 +241,18 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	// candidates at or before it, so this holds when the largest candidate is
 	// on that side and is not in the past.
 	//
-	// Example, 60 units per 60 ns, `nowNs` = 55:
+	// Example, 60 units per 60 ns, `nowNs` = 155:
 	//
-	//	live session  anchor 0,  consumed 1    candidate 0 + 1 + 60 = 61
-	//	peer session  anchor 50, consumed 60   candidate 50 + 60    = 110  <- reset_at
+	//	live session  anchor 100, consumed 1    candidate 100 + 1 + 60 = 161
+	//	peer session  anchor 150, consumed 60   candidate 150 + 60     = 210  <- reset_at
 	//
-	// Adding a cost of 1 to the live session makes its candidate 62, and
-	// `reset_at` stays 110: the request would be free. Single-machine GCRA
-	// gives 111. A new session anchored at 55 has candidate 55 + 1 = 56, and
-	// the peer session now counts it too: 50 + 60 + 1 = 111.
+	// Adding a cost of 1 to the live session makes its candidate 162, and
+	// `reset_at` stays 210: the request would be free. Single-machine GCRA
+	// gives 211. A new session anchored at 155 has candidate 155 + 1 = 156,
+	// and the peer session now counts it too: 150 + 60 + 1 = 211.
 	var createNewSessionAtNs int64
 	liveSessionHoldsResetAt := b.maxCandidateAtOrBeforeLiveSessionNs >= max(b.maxCandidateAfterLiveSessionNs, nowNs)
-	if !b.hasLiveSession || !liveSessionHoldsResetAt {
+	if b.liveSessionAnchorAtNs == 0 || !liveSessionHoldsResetAt {
 		// At or after the newest anchor, the new session is counted by every
 		// other session. The newest anchor can be ahead of `nowNs` when the
 		// clocks of two pods differ a little.
@@ -277,7 +281,6 @@ func (b *Bucket) Apply(decision Decision) {
 	// session lies after it anymore. The old live session becomes one of the
 	// older sessions and keeps counting in full.
 	if decision.CreateNewSessionAtNs != 0 {
-		b.hasLiveSession = true
 		b.liveSessionAnchorAtNs = decision.CreateNewSessionAtNs
 		b.maxCandidateAfterLiveSessionNs = 0
 		b.newestAnchorAtNs = decision.CreateNewSessionAtNs
@@ -290,10 +293,9 @@ func (b *Bucket) Apply(decision Decision) {
 func (b *Bucket) EndLiveSession() {
 	// Without a live session, every session counts as "at or before", so the
 	// largest candidate of all moves to that side. The next admitted request
-	// then sees `hasLiveSession` false and starts a new session.
+	// then finds no live session and starts a new one.
 	b.maxCandidateAtOrBeforeLiveSessionNs = b.ResetAtNs()
 	b.maxCandidateAfterLiveSessionNs = 0
-	b.hasLiveSession = false
 	b.liveSessionAnchorAtNs = 0
 }
 
