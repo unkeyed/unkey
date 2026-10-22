@@ -19,24 +19,21 @@ import (
 // reorders, fails and loses writes, and serves stale or failed reads. Pod
 // clocks differ, and some pods get few requests.
 //
-// The ledger holds every session any pod ever spent into, with its largest
-// consumed time. Its `reset_at` is the true state of a limit. For every
-// request the simulation checks:
+// The ledger records every session that any pod wrote units into. From it
+// we compute the true reset_at. Each pod computes its local reset_at from
+// the sessions it has seen. For every request we check:
 //
-//   - The pod never knows more than the ledger: local reset_at ≤ true reset_at.
-//   - The pod follows the GCRA rule on what it knows.
-//   - It never charges more than the GCRA rule on the true state:
-//     an admitted request raises the true reset_at by at most
-//     `max(reset_at, now) + units`, and a denied request is also denied on
-//     the true state.
-//   - It never forgets its own units: its local reset_at is at least the
-//     reset_at of the sessions it created.
-//   - It is exact when it knows every session: then local and true reset_at
-//     are equal, and an admitted request raises the true reset_at by exactly
-//     that much.
+//	local ≤ true                       a pod sees no units that do not exist
+//	max(local, now) ≥ max(own, now)    a pod never forgets its own units
+//	allowed = max(local, now) + units - now ≤ duration
+//	true' ≤ max(true, now) + units     a pod never charges more than the GCRA rule
 //
-// At the end every write is delivered and every pod reads again, so every
-// pod must be exact.
+// `own` is the reset_at of the sessions the pod created, and `true'` is the
+// true reset_at after the request.
+//
+// If the pod has seen every session, local = true and the last line is an
+// equality. At the end every write is delivered and every pod reads again,
+// so every pod must be exact.
 func TestSimulation(t *testing.T) {
 	for i := range 100 {
 		seed := sim.NewSeedFromInt(i)
