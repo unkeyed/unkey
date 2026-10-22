@@ -23,7 +23,12 @@ const (
 	deviceTTL           = 10 * time.Minute
 	accessTTL           = time.Hour
 	refreshIdle         = 30 * 24 * time.Hour
-	retainExpiredFor    = 24 * time.Hour
+	// refreshReuseGrace is how long the immediately previous refresh token
+	// still rotates the session. A client whose response was lost can retry
+	// inside this window without revoking the family. After it, that token
+	// is reuse and the family is revoked.
+	refreshReuseGrace = 10 * time.Second
+	retainExpiredFor  = 24 * time.Hour
 
 	ratelimitScope      = "cli_device_login"
 	startLimitPerMinute = 20
