@@ -82,35 +82,30 @@ func TestGitHubStatusReportsBuildFailure(t *testing.T) {
 	require.Equal(t, mysqltype.DeploymentsStatusFailed, after.Status)
 }
 
-func TestDeploymentShowsUnrecognizedBuildFailures(t *testing.T) {
+func TestDeploymentShowsSafeMessagesForUnrecognizedBuildFailures(t *testing.T) {
 	for _, scenario := range []struct {
 		name           string
 		dockerfilePath string
 		tokenError     error
 		fileError      error
-		message        string
 	}{
 		{
 			name:           "repository access denied for Dockerfile build",
 			dockerfilePath: "Dockerfile",
 			tokenError:     fmt.Errorf("status 422: There is at least one repository that does not exist or is not accessible to the parent installation"),
-			message:        "Build failed: failed to get GitHub installation token: status 422: There is at least one repository that does not exist or is not accessible to the parent installation",
 		},
 		{
 			name:       "repository access denied for automatic build",
 			tokenError: fmt.Errorf("status 422: There is at least one repository that does not exist or is not accessible to the parent installation"),
-			message:    "Build failed: failed to get GitHub installation token: status 422: There is at least one repository that does not exist or is not accessible to the parent installation",
 		},
 		{
 			name:           "unrecognized token failure",
 			dockerfilePath: "Dockerfile",
 			tokenError:     fmt.Errorf("status 503: GitHub unavailable"),
-			message:        "Build failed: failed to get GitHub installation token: status 503: GitHub unavailable",
 		},
 		{
-			name:      "unrecognized source preparation failure",
-			fileError: fmt.Errorf("source checkout unavailable"),
-			message:   "Build failed: failed to read .gitmodules of acme/api: source checkout unavailable",
+			name:      "source preparation keeps internal details private",
+			fileError: fmt.Errorf("source checkout unavailable at https://builder.internal?token=%s", uid.New(uid.TestPrefix)),
 		},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
@@ -155,7 +150,7 @@ func TestDeploymentShowsUnrecognizedBuildFailures(t *testing.T) {
 			require.NoError(t, err)
 			require.True(t, step.EndedAt.Valid)
 			require.True(t, step.Error.Valid)
-			require.Equal(t, scenario.message, step.Error.String)
+			require.Equal(t, "An unexpected build error occurred. Contact support with the deployment ID.", step.Error.String)
 		})
 	}
 }

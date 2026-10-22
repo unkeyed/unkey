@@ -962,7 +962,7 @@ func extractUserBuildError(err error) string {
 			return known.message
 		}
 	}
-	return fmt.Sprintf("Build failed: %s", err)
+	return "An unexpected build error occurred. Contact support with the deployment ID."
 }
 
 // logSequence numbers the log rows of one build attempt. It starts at the
