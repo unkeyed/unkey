@@ -212,6 +212,8 @@ SELECT
 FROM cli_sessions
 WHERE workspace_id = ?
   AND user_id = ?
+  AND revoked_at IS NULL
+  AND expires_at > ?
 ORDER BY created_at DESC
 LIMIT 100
 `
@@ -219,6 +221,7 @@ LIMIT 100
 type ListCLISessionsByUserParams struct {
 	WorkspaceID string `db:"workspace_id"`
 	UserID      string `db:"user_id"`
+	Now         int64  `db:"now"`
 }
 
 // ListCLISessionsByUser
@@ -241,10 +244,12 @@ type ListCLISessionsByUserParams struct {
 //	FROM cli_sessions
 //	WHERE workspace_id = ?
 //	  AND user_id = ?
+//	  AND revoked_at IS NULL
+//	  AND expires_at > ?
 //	ORDER BY created_at DESC
 //	LIMIT 100
 func (q *Queries) ListCLISessionsByUser(ctx context.Context, db DBTX, arg ListCLISessionsByUserParams) ([]CliSession, error) {
-	rows, err := db.QueryContext(ctx, listCLISessionsByUser, arg.WorkspaceID, arg.UserID)
+	rows, err := db.QueryContext(ctx, listCLISessionsByUser, arg.WorkspaceID, arg.UserID, arg.Now)
 	if err != nil {
 		return nil, err
 	}
@@ -299,9 +304,16 @@ SELECT
     revoked_at
 FROM cli_sessions
 WHERE workspace_id = ?
+  AND revoked_at IS NULL
+  AND expires_at > ?
 ORDER BY created_at DESC
 LIMIT 100
 `
+
+type ListCLISessionsByWorkspaceParams struct {
+	WorkspaceID string `db:"workspace_id"`
+	Now         int64  `db:"now"`
+}
 
 // ListCLISessionsByWorkspace
 //
@@ -322,10 +334,12 @@ LIMIT 100
 //	    revoked_at
 //	FROM cli_sessions
 //	WHERE workspace_id = ?
+//	  AND revoked_at IS NULL
+//	  AND expires_at > ?
 //	ORDER BY created_at DESC
 //	LIMIT 100
-func (q *Queries) ListCLISessionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]CliSession, error) {
-	rows, err := db.QueryContext(ctx, listCLISessionsByWorkspace, workspaceID)
+func (q *Queries) ListCLISessionsByWorkspace(ctx context.Context, db DBTX, arg ListCLISessionsByWorkspaceParams) ([]CliSession, error) {
+	rows, err := db.QueryContext(ctx, listCLISessionsByWorkspace, arg.WorkspaceID, arg.Now)
 	if err != nil {
 		return nil, err
 	}
