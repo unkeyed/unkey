@@ -70,7 +70,7 @@ export function AddConnectionPicker({
     >
       <PopoverTrigger
         disabled={pending}
-        className="flex h-9 w-full items-center gap-2 rounded-lg border border-dashed border-gray-6 px-3 text-sm text-gray-11 hover:border-gray-8 hover:bg-gray-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-8 disabled:opacity-50"
+        className="flex h-8 w-full items-center gap-2 rounded-md border border-dashed border-grayA-5 px-3 text-xs text-gray-11 hover:border-gray-8 hover:bg-grayA-3 hover:text-gray-12 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-8 disabled:opacity-50"
       >
         <IconPlusOutline18 className="size-4" />
         Add connection
