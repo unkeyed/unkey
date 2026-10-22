@@ -453,9 +453,6 @@ func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte) {
 	close(e.readDone)
 	e.readDone = nil
 	readsTotal.WithLabelValues(result).Inc()
-	if err != nil {
-		logger.Warn("unable to read rate limit sessions; deciding without them", "error", err.Error())
-	}
 }
 
 func (l *limiter) validate(requests []Request) error {
