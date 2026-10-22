@@ -41,7 +41,7 @@ type InstanceNode = BaseNode & {
     // Most recent exit info denormalized from the instances row in
     // PlanetScale. Null when the pod has never reported a termination
     // (healthy first-life pods). The details panel renders this so the
-    // user sees "OOMKilled · exit=137" instead of a generic spinner.
+    // user sees "Out of memory · exit=137" instead of a generic spinner.
     lastExit: LastExit | null;
   } & BaseMetrics;
 };

@@ -72,15 +72,15 @@ describe("summarizeExit", () => {
   });
 });
 
-describe("summarizeDeploymentExit", () => {
-  const apiExit = {
-    reason: "exited_with_error",
-    message: "Exit code 1 usually means an unhandled error. Check your logs for the cause.",
-    exitCode: 1,
-    restartCount: 2,
-    finishedAt: 1_000,
-  };
+const apiExit = {
+  reason: "exited_with_error",
+  message: "Exit code 1 usually means an unhandled error. Check your logs for the cause.",
+  exitCode: 1,
+  restartCount: 2,
+  finishedAt: 1_000,
+};
 
+describe("summarizeDeploymentExit", () => {
   test("labels the reason and shows the API message", () => {
     expect(summarizeDeploymentExit(apiExit)).toEqual({
       severity: "warning",
@@ -101,8 +101,10 @@ describe("summarizeDeploymentExit", () => {
   test("a reason added later reads as a neutral exit", () => {
     expect(summarizeDeploymentExit({ ...apiExit, reason: "KEBAP" }).label).toBe("Exited");
   });
+});
 
-  test("isCrashLooping is true only for a crash loop", () => {
+describe("isCrashLooping", () => {
+  test("is true only for a crash loop", () => {
     expect(isCrashLooping({ ...apiExit, reason: "crash_loop" })).toBe(true);
     expect(isCrashLooping(apiExit)).toBe(false);
     expect(isCrashLooping(null)).toBe(false);

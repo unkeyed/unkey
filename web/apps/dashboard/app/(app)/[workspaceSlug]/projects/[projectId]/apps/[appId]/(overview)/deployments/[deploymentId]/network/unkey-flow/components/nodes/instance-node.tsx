@@ -15,8 +15,8 @@ type InstanceNodeProps = {
 
 // RECENT_CRASH_WINDOW_MS bounds how long a stale `lastExit` keeps the
 // instance card painted red. Without this, a one-off crash from hours ago
-// would mark a since-recovered pod as unhealthy forever (we never clear
-// last_exit_* on a successful run; ctrl only updates on newer events).
+// would mark a since-recovered pod as unhealthy forever (container_status
+// keeps the last exit after a successful run; ctrl only updates on newer events).
 // 30 minutes is wide enough to surface flapping pods that briefly stabilise
 // between restarts but narrow enough that a card recovering after a fix
 // returns to its normal styling within one product feedback loop.
