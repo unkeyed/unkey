@@ -11,6 +11,9 @@ import { GitHub } from "./github-settings";
 import { RootDirectory } from "./root-directory-settings";
 import { WatchPaths } from "./watch-paths-settings";
 
+const SWITCH_TO_GITHUB_DESCRIPTION =
+  "Connecting a repository switches this app from the image to GitHub builds.";
+
 export function BuildSettings({ githubReadOnly = false }: { githubReadOnly?: boolean }) {
   const { app, hasRepository } = useBuildSource();
 
@@ -20,7 +23,10 @@ export function BuildSettings({ githubReadOnly = false }: { githubReadOnly?: boo
         {app
           ? match(app.sourceType)
               .with("oci", () => (
-                <OCIImage appId={app.id} imageReference={app.imageReference ?? ""} />
+                <>
+                  <OCIImage appId={app.id} imageReference={app.imageReference ?? ""} />
+                  {githubReadOnly ? null : <GitHub description={SWITCH_TO_GITHUB_DESCRIPTION} />}
+                </>
               ))
               .with("git", "unknown", () => <GitHub readOnly={githubReadOnly} />)
               .exhaustive()

@@ -24,9 +24,10 @@ type GitHubConnectionState =
 
 type GitHubProps = {
   readOnly?: boolean;
+  description?: string;
 };
 
-export const GitHub = ({ readOnly = false }: GitHubProps) => {
+export const GitHub = ({ readOnly = false, description }: GitHubProps) => {
   const {
     projectId,
     appId,
@@ -72,12 +73,12 @@ export const GitHub = ({ readOnly = false }: GitHubProps) => {
 
   return match(connectionState)
     .with({ status: "loading" }, () => (
-      <GitHubSettingCard>
+      <GitHubSettingCard description={description}>
         <ComboboxSkeleton />
       </GitHubSettingCard>
     ))
     .with({ status: "no-app" }, ({ onInstall: install }) => (
-      <GitHubSettingCard>
+      <GitHubSettingCard description={description}>
         <div className="flex items-center">
           <ManageGitHubAppLink
             onInstall={install}
@@ -88,7 +89,12 @@ export const GitHub = ({ readOnly = false }: GitHubProps) => {
       </GitHubSettingCard>
     ))
     .with({ status: "no-repo" }, ({ appId, onInstall: install }) => (
-      <GitHubNoRepo projectId={projectId} appId={appId} onInstall={install} />
+      <GitHubNoRepo
+        projectId={projectId}
+        appId={appId}
+        onInstall={install}
+        description={description}
+      />
     ))
     .with({ status: "connected" }, ({ appId, repoFullName, onInstall: install }) => {
       if (readOnly) {

@@ -2,15 +2,23 @@ import {
   Button,
   SettingsRow,
   SettingsRowContent,
+  SettingsRowDescription,
   SettingsRowHeader,
   SettingsRowTitle,
   Skeleton,
 } from "@unkey/ui";
 
-export const GitHubSettingCard = ({ children }: { children: React.ReactNode }) => (
+export const GitHubSettingCard = ({
+  children,
+  description,
+}: {
+  children: React.ReactNode;
+  description?: string;
+}) => (
   <SettingsRow>
     <SettingsRowHeader>
       <SettingsRowTitle>Repository</SettingsRowTitle>
+      {description ? <SettingsRowDescription>{description}</SettingsRowDescription> : null}
     </SettingsRowHeader>
     <SettingsRowContent>{children}</SettingsRowContent>
   </SettingsRow>

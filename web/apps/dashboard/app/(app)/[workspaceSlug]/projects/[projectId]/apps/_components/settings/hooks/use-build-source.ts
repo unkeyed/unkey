@@ -10,7 +10,7 @@ const SOURCES: Record<
 > = {
   git: { loadsGitHub: true, hasRepository: (repository, loaded) => !loaded || repository !== null },
   unknown: { loadsGitHub: true, hasRepository: (repository) => repository !== null },
-  oci: { loadsGitHub: false, hasRepository: () => false },
+  oci: { loadsGitHub: true, hasRepository: () => false },
 };
 
 export function useBuildSource(

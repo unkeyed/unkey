@@ -8,10 +8,12 @@ export const GitHubNoRepo = ({
   projectId,
   appId,
   onInstall,
+  description,
 }: {
   projectId: string;
   appId: string;
   onInstall: () => Promise<void> | void;
+  description?: string;
 }) => {
   const utils = trpc.useUtils();
   const [selectedRepo, setSelectedRepo] = useState("");
@@ -64,7 +66,7 @@ export const GitHubNoRepo = ({
   };
 
   return (
-    <GitHubSettingCard>
+    <GitHubSettingCard description={description}>
       {isLoadingRepos ? (
         <ComboboxSkeleton />
       ) : repoOptions.length ? (

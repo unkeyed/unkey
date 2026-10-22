@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { type Transaction, and, db, eq, schema } from "@/lib/db";
 import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
   type BranchActivity,
@@ -201,6 +201,44 @@ const fetchProjectInstallation = async (
   return {
     installationPk: project.workspace?.githubAppInstallations?.[0]?.pk ?? null,
   };
+};
+
+// OCI apps are created without build settings, and the deploy worker refuses
+// git builds for an app whose declared source is OCI.
+const switchOciAppToGit = async (
+  tx: Transaction,
+  workspaceId: string,
+  appId: string,
+  now: number,
+) => {
+  const appEnvironments = await tx.query.environments.findMany({
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.appId, appId), eq(table.workspaceId, workspaceId), isNull(table.deletedAt)),
+    columns: { id: true },
+  });
+  if (appEnvironments.length > 0) {
+    await tx
+      .insert(schema.appBuildSettings)
+      .values(
+        appEnvironments.map((environment) => ({
+          workspaceId,
+          appId,
+          environmentId: environment.id,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      )
+      .onDuplicateKeyUpdate({ set: { appId } });
+  }
+  await tx
+    .update(schema.apps)
+    .set({ sourceType: "git", updatedAt: now })
+    .where(and(eq(schema.apps.id, appId), eq(schema.apps.workspaceId, workspaceId)));
+  await tx
+    .delete(schema.appSourceOci)
+    .where(
+      and(eq(schema.appSourceOci.appId, appId), eq(schema.appSourceOci.workspaceId, workspaceId)),
+    );
 };
 
 export const githubRouter = t.router({
@@ -788,6 +826,7 @@ export const githubRouter = t.router({
 
       // Resolve appId: use provided value or find the default app for the project
       let appId: string;
+      let sourceType: (typeof schema.apps.$inferSelect)["sourceType"];
       if (input.appId) {
         const requestedAppId = input.appId;
         const app = await db.query.apps.findFirst({
@@ -805,13 +844,8 @@ export const githubRouter = t.router({
             message: "App not found for this project",
           });
         }
-        if (app.sourceType === "oci") {
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message: "Container image apps cannot connect a GitHub repository",
-          });
-        }
         appId = app.id;
+        sourceType = app.sourceType;
       } else {
         const app = await db.query.apps.findFirst({
           where: (table, { eq, and }) =>
@@ -828,13 +862,8 @@ export const githubRouter = t.router({
             message: "No default app found for this project",
           });
         }
-        if (app.sourceType === "oci") {
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message: "Container image apps cannot connect a GitHub repository",
-          });
-        }
         appId = app.id;
+        sourceType = app.sourceType;
       }
 
       const verifiedRepo = await getRepositoryById(input.installationId, input.repositoryId).catch(
@@ -857,6 +886,9 @@ export const githubRouter = t.router({
       await db
         .transaction(async (tx) => {
           const updatedAt = Date.now();
+          if (sourceType === "oci") {
+            await switchOciAppToGit(tx, ctx.workspace.id, appId, updatedAt);
+          }
           await tx
             .insert(schema.githubRepoConnections)
             .values({
