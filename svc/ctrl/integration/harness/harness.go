@@ -101,8 +101,9 @@ type harnessOpts struct {
 	billingPusher      billingmeter.Pusher
 	billingCloser      invoicecloser.Closer
 
-	alertAdmins workos.Resolver
-	alertEmail  email.Sender
+	alertAdmins               workos.Resolver
+	alertEmail                email.Sender
+	slackQuotaCheckWebhookURL string
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -151,6 +152,12 @@ func WithAlertEmail(admins workos.Resolver, sender email.Sender) Option {
 	return func(o *harnessOpts) {
 		o.alertAdmins = admins
 		o.alertEmail = sender
+	}
+}
+
+func WithSlackQuotaCheckWebhookURL(url string) Option {
+	return func(o *harnessOpts) {
+		o.slackQuotaCheckWebhookURL = url
 	}
 }
 
@@ -245,16 +252,13 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// directly after the container is up, and no handler runs before that
 	restateRules := &lazyRestateRules{mu: sync.Mutex{}, client: nil}
 
-	// Unified cron service: every scheduled task runs as a handler on
-	// hydra.v1.CronService. Heartbeats are noop in tests; the slack
-	// webhook is empty so quota-check skips notification calls.
 	cronSvc, err := cron.New(cron.Config{
 		DB:                        database,
 		Clickhouse:                chClient,
 		Clock:                     o.clock,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
 		RestateRules:              restateRules,
-		SlackQuotaCheckWebhookURL: "",
+		SlackQuotaCheckWebhookURL: o.slackQuotaCheckWebhookURL,
 		// Deploy billing is a no-op by default (nil reader + empty Stripe key);
 		// WithDeployBilling injects fakes for tests that exercise the push/close.
 		BillingUsageReader: o.billingUsageReader,

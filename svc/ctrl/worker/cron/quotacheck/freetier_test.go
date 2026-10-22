@@ -23,8 +23,9 @@ func TestNextFreeTierAction(t *testing.T) {
 		{"throttle due today waits for scheduled throttle", now.Add(-throttleAfter).Unix(), freeTierActionNone},
 		{"throttle at stall timeout waits", now.Add(-throttleAfter - throttleStallTimeout).Unix(), freeTierActionNone},
 		{"throttle past stall timeout reschedules", now.Add(-throttleAfter - throttleStallTimeout - time.Second).Unix(), freeTierActionRescheduleThrottle},
-		{"warning at stale cutoff reschedules", now.Add(-throttleAfter - warningStaleAfter).Unix(), freeTierActionRescheduleThrottle},
-		{"warning past stale cutoff warns again", now.Add(-throttleAfter - warningStaleAfter - time.Second).Unix(), freeTierActionWarn},
+		{"twelve day old warning reschedules", now.Add(-12 * 24 * time.Hour).Unix(), freeTierActionRescheduleThrottle},
+		{"thirteen day old warning reschedules without another warning", now.Add(-13 * 24 * time.Hour).Unix(), freeTierActionRescheduleThrottle},
+		{"month old warning reschedules without another warning", now.Add(-30 * 24 * time.Hour).Unix(), freeTierActionRescheduleThrottle},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
