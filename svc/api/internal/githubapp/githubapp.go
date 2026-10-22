@@ -70,9 +70,6 @@ func Resolve(
 		)
 	}
 
-	// An installation token is scoped to only the repositories the installation
-	// was granted, so GetInstallationRepo doubles as the access check. A GitHub
-	// "owner/repo" is globally unique, so at most one installation can grant it.
 	var verifyErrs []error
 	for _, installationID := range installations {
 		info, gErr := client.GetInstallationRepo(installationID, repository)
