@@ -9,59 +9,40 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// session is one pod's record of the time it admitted for one rate limit,
-// counted from `anchorAtNs` on. It is one row of the `ratelimit_state` table,
-// or one of this pod's sessions in memory.
+// session is one row of `ratelimit_state`, or one of this pod's sessions in
+// memory.
 type session struct {
-	// id is unique per session. The pod creates it together with the session
-	// and never uses it again for another session.
+	// id is never reused for another session.
 	id string
 
-	// anchorAtNs is the fixed time from which this session's consumed time
-	// counts, in Unix nanoseconds. It never changes. It can be ahead of the
-	// pod's own clock when a peer had a later anchor; see `decide`.
+	// anchorAtNs never changes.
 	anchorAtNs int64
 
-	// consumedNs is the consumed time of the units this session admitted. It
-	// only grows.
+	// consumedNs only grows.
 	consumedNs int64
 }
 
-// summary holds the values that `decide` needs, computed from all sessions
-// of one rate limit by `summarize`. With it, a decision is O(1) and does not
-// walk the sessions.
+// summary is what `decide` needs from the sessions, so a decision is O(1).
 type summary struct {
-	// resetAtNs is `reset_at`: the largest candidate of all sessions. It is
-	// zero without sessions.
+	// resetAtNs is the largest candidate of all sessions.
 	resetAtNs int64
 
 	// maxCandidateRaisedByLiveSessionNs is the largest candidate among the
-	// sessions anchored at or before the live session, the live session
-	// included. It is zero without a live session.
+	// sessions anchored at or before the live session, or zero without one:
 	//
-	//	maxCandidateRaisedByLiveSession = max over sessions r with r.anchor ≤ live.anchor of
-	//	        (r.anchor + sum of consumed of sessions anchored at or after r)
+	//	max over sessions r with r.anchor ≤ live.anchor of
+	//	    (r.anchor + sum of consumed of sessions anchored at or after r)
 	//
-	// Adding `c` to the live session then gives
+	// Units `c` added to the live session raise only these candidates, so
 	//
 	//	reset_at' = max(maxCandidateRaisedByLiveSession + c, reset_at)
 	//
-	// and the GCRA rule requires `reset_at' = max(reset_at, now) + c`.
-	// The two are equal exactly when
-	// `maxCandidateRaisedByLiveSession = reset_at ≥ now`.
-	//
-	// `decide` needs it to know whether the live session can take a request.
-	// Units added to the live session raise only these candidates, not the
-	// candidates of sessions anchored after it. If this maximum equals
-	// `resetAtNs`, adding the units moves `reset_at` exactly as the GCRA rule
-	// requires. If it is smaller, a newer peer session holds
-	// `reset_at`, adding the units would not move `reset_at` far enough, and
-	// the request must start a new session instead.
+	// That follows the GCRA rule `max(reset_at, now) + c` exactly when
+	// `maxCandidateRaisedByLiveSession = reset_at ≥ now`. Otherwise the
+	// request needs a new session.
 	maxCandidateRaisedByLiveSessionNs int64
 
-	// newestAnchorAtNs is the largest anchor of all sessions. A new session
-	// is never anchored before it, so that every other session counts the new
-	// session's consumed time.
+	// newestAnchorAtNs is the largest anchor of all sessions.
 	newestAnchorAtNs int64
 }
 
@@ -69,91 +50,52 @@ type summary struct {
 type decision struct {
 	allowed bool
 
-	// consumedNs is the consumed time of the request. It is zero if the
-	// request was denied or had zero `units`, and then nothing is written.
+	// consumedNs is zero for a denied request or zero `units`; then nothing is
+	// written.
 	consumedNs int64
 
-	// resetAtNs is `reset_at` after the request, in Unix nanoseconds: the
-	// time when every admitted unit is paid back and a request of `Limit`
-	// units fits again. It is in the past when the rate limit is idle.
 	resetAtNs int64
 
-	// remaining is the largest number of units that one more request could
-	// use at the same time. For a denied request it is how many fit now.
+	// remaining is how many units one more request could use right now.
 	remaining int64
 
-	// createNewSessionAtNs is the anchor of the new session that the request
-	// must start, or zero if the request goes into the live session.
-	//
-	// If it is not zero, the caller must create a fresh session with a new ID,
-	// anchored at `createNewSessionAtNs`, and write the request into it. The
-	// old live session must never take units again: it is frozen and keeps
-	// counting as it is. Writing the units into the old session instead
-	// charges the request too little or not at all.
-	//
-	// A new session is needed when adding the units to the live session would
-	// not move `reset_at` to `max(reset_at, now) + c`: after a pause, or when
-	// a newer peer session holds `reset_at` (see
-	// `maxCandidateRaisedByLiveSessionNs`). The new session is anchored at
+	// createNewSessionAtNs is zero if the request goes into the live session.
+	// Otherwise the caller must create a fresh session with a new ID, anchored
+	// here, and never write to the old live session again. Writing to the old
+	// one would charge too little.
 	//
 	//	createNewSessionAt = max(now, newestAnchorAt)
 	//
-	// and holds `c`, the consumed time of the request. Both parts of the max
-	// are needed:
-	//
-	//   - At or after the newest anchor, every other session is anchored at
-	//     or before the new one. So every existing candidate counts `c`, and
-	//     the old `reset_at` becomes `reset_at + c`.
-	//   - At or after now, the new session's own candidate is at least
-	//     `now + c`. After a pause, that is the new `reset_at`.
-	//
-	// Together, with `newestAnchorAt ≤ reset_at` because every candidate is
-	// at least its own anchor:
+	// At or after the newest anchor, every existing candidate counts the new
+	// `c`. At or after now, the new session's own candidate is at least
+	// `now + c`. Since `newestAnchorAt ≤ reset_at`:
 	//
 	//	reset_at' = max(reset_at + c, max(now, newestAnchorAt) + c)
 	//	          = max(reset_at, now) + c
 	//
-	// which is the GCRA rule. An earlier anchor would leave newer sessions
-	// out, so they would not count `c` and the request would be charged too
-	// little. A later anchor would push the new candidate past the correct
-	// `reset_at` and charge too much.
-	//
-	// Zero is free to mean "no new session" because `decide` requires a
-	// positive time and a new anchor is never before it.
+	// An earlier anchor charges too little, a later one too much. Zero is free
+	// as a marker because `decide` requires a positive time.
 	createNewSessionAtNs int64
 }
 
-// summarize computes the summary of all sessions of one rate limit.
-// `reset_at` is the largest candidate, and the candidate of a session r is
-// r's anchor plus the consumed time of every session anchored at or after r:
+// summarize computes the summary of all sessions in O(n log n):
 //
 //	reset_at = max over sessions r of
 //	           (r.anchor + sum of consumed of sessions anchored at or after r)
 //
-// For example, with three sessions sorted newest first:
+// For example:
 //
 //	session   anchor     consumed   candidate
 //	B         12:00:03   9s         12:00:03 + 9s             = 12:00:12
 //	A         12:00:00   12s        12:00:00 + 9s + 12s       = 12:00:21   <- reset_at
 //	C         11:58:40   3s         11:58:40 + 9s + 12s + 3s  = 11:59:04
 //
-// A candidate answers one question: if the rate limit had no pause from this
-// anchor on, when would it be free? The largest candidate is right because
-// `decide` applies the GCRA rule `max(reset_at, now) + consumed time` with
-// every admitted request. `FuzzDecideFollowsGCRARule` checks this for random
-// histories of sessions and requests.
-//
-// `otherSessions` are the sessions of peers and this pod's frozen sessions.
-// `liveSession` is this pod's live session, or nil if it has none.
-// summarize is O(n log n) for n sessions and runs once per refresh.
-//
-// summarize returns an error if an anchor is not positive, if a consumed time
-// is negative, if a sum overflows int64, or if the live session is also in
-// `otherSessions`. It does not change `otherSessions`.
+// A candidate is when the limit would be free if it had no pause since that
+// anchor. `liveSession` is nil if the pod has none. summarize returns an error
+// for a non-positive anchor, a negative consumed time, an int64 overflow, or a
+// live session that is also in `otherSessions`.
 func summarize(otherSessions []session, liveSession *session) (summary, error) {
-	// The candidate of a session needs the sum of everything anchored at or
-	// after it. Walking from the newest anchor to the oldest builds that sum
-	// as a running total, so all candidates take one pass.
+	// Newest first, so the sum of later sessions is a running total.
 	newestFirst := slices.Clone(otherSessions)
 	if liveSession != nil {
 		newestFirst = append(newestFirst, *liveSession)
@@ -183,10 +125,8 @@ func summarize(otherSessions []session, liveSession *session) (summary, error) {
 		if err != nil {
 			return summary{}, err
 		}
-		// Sessions with the same anchor count toward each other. They need no
-		// special case: the first of them gets a candidate with only part of
-		// their sum, but the last gets the full sum, and only the largest
-		// candidate matters.
+		// Equal anchors need no special case: the last of them gets the full
+		// sum, and only the largest candidate matters.
 		candidateNs, err := addNs(s.anchorAtNs, consumedAtOrAfterAnchorNs)
 		if err != nil {
 			return summary{}, err
@@ -202,16 +142,9 @@ func summarize(otherSessions []session, liveSession *session) (summary, error) {
 	return result, nil
 }
 
-// decide decides a request of `units` units at `nowNs`. An allowed request
-// moves `reset_at` to `max(reset_at, nowNs) + consumed time of units`, the
-// GCRA rule. A request fits if `reset_at` then stays at most one
-// `rate.Duration` ahead of `nowNs`. More `units` than `rate.Limit` never fit.
-//
-// decide is pure, so a caller can decide several rate limits and spend on
-// all of them or on none.
-//
-// decide returns an error if `rate` or `units` is invalid, if `nowNs` is not
-// positive, or if the new `reset_at` does not fit into int64.
+// decide applies the GCRA rule to a request of `units` at `nowNs`. It is pure,
+// so a caller can decide several rate limits before spending on any. It
+// returns an error for invalid input or an int64 overflow.
 func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units int64) (decision, error) {
 	err := assert.All(
 		rate.Validate(),
@@ -222,8 +155,6 @@ func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units 
 		return decision{}, err
 	}
 
-	// A denied request returns the state as it is. Nothing is written, so a
-	// caller who keeps hitting a closed rate limit costs no database writes.
 	unchanged := decision{
 		allowed:              false, //faultline:equivalent the zero value; exhaustruct requires the field
 		consumedNs:           0,     //faultline:equivalent the zero value; exhaustruct requires the field
@@ -231,56 +162,38 @@ func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units 
 		remaining:            rate.remaining(nowNs, current.resetAtNs),
 		createNewSessionAtNs: 0, //faultline:equivalent the zero value; exhaustruct requires the field
 	}
-	// At most `Limit` units are ever free, so more `units` never fit.
-	// Checking it here also keeps the 128-bit division in `unitsToNs` from
-	// panicking.
+	// More than `Limit` never fits. Checked first so `unitsToNs` cannot panic.
 	if units > rate.Limit {
 		return unchanged, nil
 	}
 	consumedNs := rate.unitsToNs(units)
-	// This is the GCRA rule. If `reset_at` is in the past,
-	// every unit is free, and the request pays from now, not from the old
-	// `reset_at`. Otherwise the request waits behind what is already in use.
 	nextResetAtNs, err := addNs(max(current.resetAtNs, nowNs), consumedNs)
 	if err != nil {
 		return decision{}, err
 	}
-	// The burst tolerance is one full `Duration`: `reset_at` may run at most
-	// that far ahead of now. When pods over-admitted, `reset_at` can already
-	// be further ahead, and every request is denied until time catches up.
 	if nextResetAtNs-nowNs > rate.Duration.Nanoseconds() {
 		return unchanged, nil
 	}
-	// A request of zero `units` only asks whether the rate limit is open. It
-	// spends nothing, so it must not start a session or write a row.
+	// Zero units only ask whether the limit is open; they write nothing.
 	if units == 0 {
 		unchanged.allowed = true
 		return unchanged, nil
 	}
 
-	// Adding `consumedNs` to the live session gives
-	// `max(maxCandidateRaisedByLiveSessionNs + consumedNs, resetAtNs)`. That
-	// equals `nextResetAtNs` exactly when a candidate raised by the live
-	// session already equals `reset_at` (a tie is enough) and `reset_at` is
-	// not in the past.
-	//
-	// Example, 60 units per 60 ns, `nowNs` = 155:
+	// See `maxCandidateRaisedByLiveSessionNs`. Example, 60 units per 60 ns,
+	// now = 155:
 	//
 	//	live session  anchor 100, consumed 1    candidate 100 + 1 + 60 = 161
 	//	peer session  anchor 150, consumed 60   candidate 150 + 60     = 210  <- reset_at
 	//
-	// Adding 1 unit to the live session makes its candidate 162, and
-	// `reset_at` stays 210: the request would be free. The GCRA rule
-	// gives 211. A new session anchored at 155 has candidate 155 + 1 = 156,
-	// and the peer session now counts it too: 150 + 60 + 1 = 211.
+	// In the live session, 1 unit leaves `reset_at` at 210; it would be free.
+	// In a new session at 155, the peer counts it: 150 + 60 + 1 = 211.
 	liveSessionCanTakeRequest := hasLiveSession &&
 		current.maxCandidateRaisedByLiveSessionNs == current.resetAtNs &&
 		current.resetAtNs >= nowNs
 	var createNewSessionAtNs int64
 	if !liveSessionCanTakeRequest {
-		// Anchored at or after the newest anchor, the new session is counted
-		// by every other session. The newest anchor can be ahead of `nowNs`
-		// when the clocks of two pods differ a little.
+		// The newest anchor can be ahead of now when pod clocks differ.
 		createNewSessionAtNs = max(nowNs, current.newestAnchorAtNs)
 	}
 	return decision{
@@ -292,14 +205,10 @@ func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units 
 	}, nil
 }
 
-// summaryAfter returns the summary after an allowed decision with a positive
-// `consumedNs` was written into the sessions. It is O(1). The decision must
-// come from `decide` on `current`.
+// summaryAfter returns the summary after an allowed decision with positive
+// `consumedNs` was spent. The decision must come from `decide` on `current`.
 func summaryAfter(current summary, spent decision) summary {
-	// The request raised every candidate at or before the live session. A new
-	// session is anchored at or after every other session, so there it raised
-	// every candidate. Either way, the largest raised candidate is the new
-	// `reset_at`.
+	// Either way, the largest raised candidate is the new `reset_at`.
 	next := summary{
 		resetAtNs:                         spent.resetAtNs,
 		maxCandidateRaisedByLiveSessionNs: spent.resetAtNs,
@@ -312,16 +221,14 @@ func summaryAfter(current summary, spent decision) summary {
 }
 
 // summaryWithoutLiveSession returns the summary after the live session was
-// frozen. It keeps counting, so `reset_at` does not change, but no candidate
-// is raised by a live session anymore.
+// frozen. `reset_at` does not change.
 func summaryWithoutLiveSession(current summary) summary {
 	current.maxCandidateRaisedByLiveSessionNs = 0
 	return current
 }
 
-// addNs returns `a + b` for non-negative `a` and `b`, or an error if the sum
-// does not fit into int64. The limiter must never wrap around, because a
-// wrapped `reset_at` would open the rate limit.
+// addNs returns `a + b`, or an error on overflow. A wrapped `reset_at` would
+// open the rate limit.
 func addNs(a, b int64) (int64, error) {
 	if a > math.MaxInt64-b {
 		return 0, fault.New("time overflows int64 nanoseconds") //faultline:equivalent callers discard the value when there is an error
