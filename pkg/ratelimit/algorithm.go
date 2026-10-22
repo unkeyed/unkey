@@ -82,10 +82,38 @@ type decision struct {
 	// use at the same time. For a denied request it is how many fit now.
 	remaining int64
 
-	// createNewSessionAtNs is zero when the request goes into the live
-	// session. Otherwise the live session cannot take the request: the
-	// caller freezes it and starts a new live session anchored at
-	// `createNewSessionAtNs`. The frozen session keeps counting in full.
+	// createNewSessionAtNs is the anchor of the new session that the request
+	// must start, or zero if the request goes into the live session.
+	//
+	// A new session is needed when adding the units to the live session would
+	// not move `reset_at` to `max(reset_at, now) + c`: after a pause, or when
+	// a newer peer session holds `reset_at` (see
+	// `maxCandidateRaisedByLiveSessionNs`). The new session is anchored at
+	//
+	//	createNewSessionAt = max(now, newestAnchorAt)
+	//
+	// and holds `c`, the consumed time of the request. Both parts of the max
+	// are needed:
+	//
+	//   - At or after the newest anchor, every other session is anchored at
+	//     or before the new one. So every existing candidate counts `c`, and
+	//     the old `reset_at` becomes `reset_at + c`.
+	//   - At or after now, the new session's own candidate is at least
+	//     `now + c`. After a pause, that is the new `reset_at`.
+	//
+	// Together, with `newestAnchorAt ≤ reset_at` because every candidate is
+	// at least its own anchor:
+	//
+	//	reset_at' = max(reset_at + c, max(now, newestAnchorAt) + c)
+	//	          = max(reset_at, now) + c
+	//
+	// which is the GCRA rule. An earlier anchor would leave newer sessions
+	// out, so they would not count `c` and the request would be charged too
+	// little. A later anchor would push the new candidate past the correct
+	// `reset_at` and charge too much.
+	//
+	// The caller freezes the old live session, which keeps counting in full,
+	// and writes `c` into the new session under a new ID.
 	//
 	// Zero is free to mean "no new session" because `decide` requires a
 	// positive time and a new anchor is never before it.
