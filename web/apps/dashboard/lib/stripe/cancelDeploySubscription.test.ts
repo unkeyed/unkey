@@ -18,25 +18,25 @@ function fakeStripe(status: Stripe.Subscription.Status) {
 describe("cancelDeploySubscription", () => {
   it("cancels a live subscription at period end", async () => {
     const { stripe, update } = fakeStripe("active");
-    await cancelDeploySubscription(stripe, "sub_1");
+    expect(await cancelDeploySubscription(stripe, "sub_1")).toBe("scheduled");
     expect(update).toHaveBeenCalledWith("sub_1", { cancel_at_period_end: true });
   });
 
   it("cancels a trialing subscription at period end", async () => {
     const { stripe, update } = fakeStripe("trialing");
-    await cancelDeploySubscription(stripe, "sub_1");
+    expect(await cancelDeploySubscription(stripe, "sub_1")).toBe("scheduled");
     expect(update).toHaveBeenCalledWith("sub_1", { cancel_at_period_end: true });
   });
 
   it("no-ops on an already-canceled subscription", async () => {
     const { stripe, update } = fakeStripe("canceled");
-    await cancelDeploySubscription(stripe, "sub_1");
+    expect(await cancelDeploySubscription(stripe, "sub_1")).toBe("already-ended");
     expect(update).not.toHaveBeenCalled();
   });
 
   it("no-ops on an incomplete_expired subscription", async () => {
     const { stripe, update } = fakeStripe("incomplete_expired");
-    await cancelDeploySubscription(stripe, "sub_1");
+    expect(await cancelDeploySubscription(stripe, "sub_1")).toBe("already-ended");
     expect(update).not.toHaveBeenCalled();
   });
 });

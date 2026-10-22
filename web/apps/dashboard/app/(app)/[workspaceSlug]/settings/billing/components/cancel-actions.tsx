@@ -45,9 +45,11 @@ export function CancelComputeDialog({
   const invalidateWorkspace = useInvalidateWorkspaceQueries();
 
   const cancel = trpc.stripe.cancelDeploy.useMutation({
-    onSuccess: async () => {
+    onSuccess: async ({ stripeCancel }) => {
       onOpenChange(false);
-      onCancelled();
+      if (stripeCancel === "scheduled") {
+        onCancelled();
+      }
       toast.info("Compute cancelled");
       await Promise.all([
         trpcUtils.stripe.getDeploySubscription.invalidate(),

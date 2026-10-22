@@ -8,13 +8,16 @@ import { isDeadSubscription } from "./subscriptionUtils";
  * subscription (already cancelled, deleted-webhook lagging) is an idempotent
  * no-op. Lives here rather than in ctrl so Stripe knowledge stays in one place.
  */
+export type DeploySubscriptionCancel = "scheduled" | "already-ended";
+
 export async function cancelDeploySubscription(
   stripe: Stripe,
   subscriptionId: string,
-): Promise<void> {
+): Promise<DeploySubscriptionCancel> {
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
   if (isDeadSubscription(sub)) {
-    return;
+    return "already-ended";
   }
   await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
+  return "scheduled";
 }
