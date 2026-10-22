@@ -187,3 +187,5 @@ export * from "./icons/user-search-outline-18";
 export * from "./icons/window-layout-outline-18";
 export * from "./icons/xmark-outline-12";
 export * from "./icons/xmark-outline-18";
+export * from "./icons/arrows-expand-diagonal-outline-18";
+export * from "./icons/server-outline-18";
