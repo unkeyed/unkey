@@ -60,5 +60,6 @@ func Refresh(ctx context.Context, apiURL string, refreshToken string) (Session, 
 		AccessToken:  envelope.Data.AccessToken,
 		RefreshToken: envelope.Data.RefreshToken,
 		ExpiresAt:    time.Now().Add(time.Duration(envelope.Data.ExpiresIn) * time.Second).Unix(),
+		APIURL:       NormalizeAPIURL(apiURL),
 	}, nil
 }
