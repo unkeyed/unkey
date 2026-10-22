@@ -1,8 +1,9 @@
-// Package gcra holds the math of the global rate limiter: GCRA (Generic Cell
+// Package bucket holds the math of the global rate limiter: GCRA (Generic Cell
 // Rate Algorithm) over the sessions of the ratelimit_state table.
 //
-// GCRA stores a limit as one point in time, reset_at: the time when every unit
-// is free again. A request of cost units uses ⌈cost × Duration / Limit⌉
+// GCRA is a token bucket written as time. It does not count tokens. It stores
+// one point in time, reset_at: the time when the bucket is full again and
+// every unit is free. A request of cost units uses ⌈cost × Duration / Limit⌉
 // nanoseconds and fits if reset_at, moved by that time, stays at most one
 // Duration ahead of now.
 //
@@ -34,23 +35,23 @@
 // no allocation. It costs about 1 ns more per decision than plain division on
 // amd64. bits.Div64 panics if the divisor is zero or if the quotient does not
 // fit into 64 bits; [Rate.Validate] and the rule cost ≤ Limit in
-// [Timeline.Check] exclude both cases, so keep them in front of every call.
+// [Bucket.Check] exclude both cases, so keep them in front of every call.
 //
 // The package has no I/O, no clock and no locks. The caller reads the
 // sessions, passes the time, and serializes access, so the same code runs in
 // the limiter and in simulations.
 //
-//	timeline, err := gcra.NewTimeline(sessions, liveSessionID)
+//	b, err := bucket.New(sessions, liveSessionID)
 //	if err != nil {
 //		return err
 //	}
-//	decision, err := timeline.Check(nowNs, gcra.Rate{Limit: 100, Duration: time.Minute}, 1)
+//	decision, err := b.Check(nowNs, bucket.Rate{Limit: 100, Duration: time.Minute}, 1)
 //	if err != nil {
 //		return err
 //	}
-//	timeline.Apply(decision)
+//	b.Apply(decision)
 //	if decision.StartsSession {
 //		// Write decision.CostNs into a new session anchored at
 //		// decision.SessionAnchorAtNs.
 //	}
-package gcra
+package bucket
