@@ -158,6 +158,8 @@ func (s *Service) rejectClosed(row db.DeviceAuthorization) error {
 		return invalid("This login was denied.")
 	case db.DeviceAuthorizationsStatusExpired:
 		return invalid("This login code expired. Run unkey login again.")
+	case db.DeviceAuthorizationsStatusPending, db.DeviceAuthorizationsStatusApproved:
+		return nil
 	default:
 		return nil
 	}

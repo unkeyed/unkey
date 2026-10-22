@@ -47,10 +47,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		item := openapi.V2CliListSessionsSession{
 			Id:          row.ID,
 			UserId:      row.UserID,
+			DeviceName:  nil,
 			Permissions: permissions,
 			CreatedAt:   row.CreatedAt,
 			LastUsedAt:  row.LastUsedAt,
 			ExpiresAt:   row.ExpiresAt,
+			RevokedAt:   nil,
 		}
 		if row.DeviceName != "" {
 			item.DeviceName = &row.DeviceName

@@ -32,9 +32,6 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 		}
 		return PollResult{}, err
 	}
-	if row.Status == db.DeviceAuthorizationsStatusConsumed {
-		return PollResult{}, alreadyIssued()
-	}
 	row = s.present(row)
 	switch row.Status {
 	case db.DeviceAuthorizationsStatusDenied:
@@ -46,6 +43,10 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 			return waitingPoll(), nil
 		}
 		return s.issue(ctx, row, req.RemoteIP, req.UserAgent)
+	case db.DeviceAuthorizationsStatusConsumed:
+		return PollResult{}, alreadyIssued()
+	case db.DeviceAuthorizationsStatusPending:
+		return waitingPoll(), nil
 	default:
 		return waitingPoll(), nil
 	}
@@ -141,6 +142,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		result = PollResult{
 			Status:       PollComplete,
 			Interval:     pollIntervalSeconds,
+			Detail:       "",
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
 			ExpiresIn:    int64(accessTTL / time.Second),
@@ -160,13 +162,40 @@ func (s *Service) denyAuthorization(ctx context.Context, id string) error {
 }
 
 func waitingPoll() PollResult {
-	return PollResult{Status: PollPermissionsRequired, Interval: pollIntervalSeconds}
+	return PollResult{
+		Status:       PollPermissionsRequired,
+		Interval:     pollIntervalSeconds,
+		Detail:       "",
+		AccessToken:  "",
+		RefreshToken: "",
+		ExpiresIn:    0,
+		WorkspaceID:  "",
+		SessionID:    "",
+	}
 }
 
 func deniedPoll(detail string) PollResult {
-	return PollResult{Status: PollDenied, Interval: pollIntervalSeconds, Detail: detail}
+	return PollResult{
+		Status:       PollDenied,
+		Interval:     pollIntervalSeconds,
+		Detail:       detail,
+		AccessToken:  "",
+		RefreshToken: "",
+		ExpiresIn:    0,
+		WorkspaceID:  "",
+		SessionID:    "",
+	}
 }
 
 func expiredPoll() PollResult {
-	return PollResult{Status: PollExpired, Interval: pollIntervalSeconds, Detail: "The login code expired. Run unkey login again."}
+	return PollResult{
+		Status:       PollExpired,
+		Interval:     pollIntervalSeconds,
+		Detail:       "The login code expired. Run unkey login again.",
+		AccessToken:  "",
+		RefreshToken: "",
+		ExpiresIn:    0,
+		WorkspaceID:  "",
+		SessionID:    "",
+	}
 }
