@@ -1,7 +1,7 @@
 type: object
 properties:
   filters:
-    "$ref": "./V2LogsGetApiRequestsTimeseriesFilters.yaml"
+    "$ref": "./V2LogsGetApiRequestMetricsFilters.yaml"
 additionalProperties: false
 examples:
   lastDay:

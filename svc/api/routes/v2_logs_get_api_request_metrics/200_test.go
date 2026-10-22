@@ -10,11 +10,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_requests_timeseries"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
 )
 
-func sumPoints(points []openapi.ApiRequestsTimeseriesPoint) openapi.ApiRequestsTimeseriesPoint {
-	var sum openapi.ApiRequestsTimeseriesPoint
+func sumPoints(points []openapi.ApiRequestMetricsPoint) openapi.ApiRequestMetricsPoint {
+	var sum openapi.ApiRequestMetricsPoint
 	for _, p := range points {
 		sum.Success += p.Success
 		sum.ClientError += p.ClientError
@@ -28,7 +28,7 @@ func sumPoints(points []openapi.ApiRequestsTimeseriesPoint) openapi.ApiRequestsT
 // requireContiguous asserts one point per bucket of width bucket from the
 // bucket of start to the bucket of end - 1, the rule clients rely on to draw
 // a chart and to read the bucket width from two points
-func requireContiguous(t *testing.T, points []openapi.ApiRequestsTimeseriesPoint, bucket time.Duration, start, end int64) {
+func requireContiguous(t *testing.T, points []openapi.ApiRequestMetricsPoint, bucket time.Duration, start, end int64) {
 	t.Helper()
 
 	bucketMs := bucket.Milliseconds()
@@ -40,10 +40,10 @@ func requireContiguous(t *testing.T, points []openapi.ApiRequestsTimeseriesPoint
 	}
 }
 
-// TestGetApiRequestsTimeseriesCountsStatusClasses guarantees each status class
+// TestGetApiRequestMetricsCountsStatusClasses guarantees each status class
 // lands in its own field, 1xx and 3xx only in total, buckets without rows are
 // zero, and rows of another workspace never count
-func TestGetApiRequestsTimeseriesCountsStatusClasses(t *testing.T) {
+func TestGetApiRequestMetricsCountsStatusClasses(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	otherWorkspace := h.CreateWorkspace()
 	now := h.Clock.Now().UnixMilli()
@@ -61,20 +61,20 @@ func TestGetApiRequestsTimeseriesCountsStatusClasses(t *testing.T) {
 
 	start := now - time.Hour.Milliseconds()
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{
-		Filters: &openapi.V2LogsGetApiRequestsTimeseriesFilters{Time: &openapi.TimeFilter{Gte: new(start), Lt: new(now)}},
+		Filters: &openapi.V2LogsGetApiRequestMetricsFilters{Time: &openapi.TimeFilter{Gte: new(start), Lt: new(now)}},
 	})
 
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	requireContiguous(t, res.Body.Data.Points, time.Minute, start, now)
+	requireContiguous(t, res.Body.Data, time.Minute, start, now)
 
-	want := openapi.ApiRequestsTimeseriesPoint{
+	want := openapi.ApiRequestMetricsPoint{
 		Time:        rowTime - rowTime%time.Minute.Milliseconds(),
 		Success:     2,
 		ClientError: 1,
 		ServerError: 1,
 		Total:       5,
 	}
-	for _, p := range res.Body.Data.Points {
+	for _, p := range res.Body.Data {
 		if p.Time == want.Time {
 			require.Equal(t, want, p)
 			continue
@@ -83,11 +83,11 @@ func TestGetApiRequestsTimeseriesCountsStatusClasses(t *testing.T) {
 	}
 }
 
-// TestGetApiRequestsTimeseriesBucketWidth guarantees the bucket width each
+// TestGetApiRequestMetricsBucketWidth guarantees the bucket width each
 // window gets, including the dashboard's time presets, and that a window older
 // than a table's TTL moves to a table that still holds it. A window ending in
 // lt and the dashboard's gte: now - since, lte: now get the same width
-func TestGetApiRequestsTimeseriesBucketWidth(t *testing.T) {
+func TestGetApiRequestMetricsBucketWidth(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 	now := h.Clock.Now().UnixMilli()
@@ -129,30 +129,30 @@ func TestGetApiRequestsTimeseriesBucketWidth(t *testing.T) {
 				{time: openapi.TimeFilter{Gte: new(start), Lte: new(end)}, end: end + 1},
 			} {
 				res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{
-					Filters: &openapi.V2LogsGetApiRequestsTimeseriesFilters{Time: &bounds.time},
+					Filters: &openapi.V2LogsGetApiRequestMetricsFilters{Time: &bounds.time},
 				})
 
 				require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-				requireContiguous(t, res.Body.Data.Points, tt.bucket, *bounds.time.Gte, bounds.end)
+				requireContiguous(t, res.Body.Data, tt.bucket, *bounds.time.Gte, bounds.end)
 			}
 		})
 	}
 }
 
-// TestGetApiRequestsTimeseriesDefaultWindow guarantees an empty request covers
+// TestGetApiRequestMetricsDefaultWindow guarantees an empty request covers
 // the workspace's log retention, which is 30 days in the harness, up to now.
 // An upper bound past now, even the largest int64, still ends at now
-func TestGetApiRequestsTimeseriesDefaultWindow(t *testing.T) {
+func TestGetApiRequestMetricsDefaultWindow(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 	now := h.Clock.Now().UnixMilli()
 
 	tests := []struct {
 		name    string
-		filters *openapi.V2LogsGetApiRequestsTimeseriesFilters
+		filters *openapi.V2LogsGetApiRequestMetricsFilters
 	}{
 		{name: "no filters", filters: nil},
-		{name: "lte at the largest int64", filters: &openapi.V2LogsGetApiRequestsTimeseriesFilters{Time: &openapi.TimeFilter{Lte: new(int64(math.MaxInt64))}}},
+		{name: "lte at the largest int64", filters: &openapi.V2LogsGetApiRequestMetricsFilters{Time: &openapi.TimeFilter{Lte: new(int64(math.MaxInt64))}}},
 	}
 
 	for _, tt := range tests {
@@ -160,14 +160,14 @@ func TestGetApiRequestsTimeseriesDefaultWindow(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{Filters: tt.filters})
 
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-			requireContiguous(t, res.Body.Data.Points, 6*time.Hour, now-(30*24*time.Hour).Milliseconds(), now)
+			requireContiguous(t, res.Body.Data, 6*time.Hour, now-(30*24*time.Hour).Milliseconds(), now)
 		})
 	}
 }
 
-// TestGetApiRequestsTimeseriesFilters guarantees each filter field reaches the
+// TestGetApiRequestMetricsFilters guarantees each filter field reaches the
 // aggregate query with the combine rule of logs.listApiRequests
-func TestGetApiRequestsTimeseriesFilters(t *testing.T) {
+func TestGetApiRequestMetricsFilters(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	now := h.Clock.Now().UnixMilli()
 
@@ -182,20 +182,20 @@ func TestGetApiRequestsTimeseriesFilters(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		filters openapi.V2LogsGetApiRequestsTimeseriesFilters
+		filters openapi.V2LogsGetApiRequestMetricsFilters
 		total   int64
 	}{
-		{name: "none", filters: openapi.V2LogsGetApiRequestsTimeseriesFilters{}, total: 5},
+		{name: "none", filters: openapi.V2LogsGetApiRequestMetricsFilters{}, total: 5},
 		{
 			name: "path, status range and isNot",
-			filters: openapi.V2LogsGetApiRequestsTimeseriesFilters{
+			filters: openapi.V2LogsGetApiRequestMetricsFilters{
 				Path:   &openapi.TextFilter{StartsWith: &[]string{"/v2/keys."}, NotContains: &[]string{"verifyKey"}},
 				Status: &openapi.IntFilter{Gte: new(int64(400)), Lt: new(int64(600)), IsNot: &[]int64{429}},
 			},
 			total: 1,
 		},
-		{name: "method", filters: openapi.V2LogsGetApiRequestsTimeseriesFilters{Method: &openapi.MethodFilter{Is: &[]openapi.HttpMethod{"GET", "PUT"}}}, total: 1},
-		{name: "path contains is literal", filters: openapi.V2LogsGetApiRequestsTimeseriesFilters{Path: &openapi.TextFilter{Contains: &[]string{"keys_"}}}, total: 0},
+		{name: "method", filters: openapi.V2LogsGetApiRequestMetricsFilters{Method: &openapi.MethodFilter{Is: &[]openapi.HttpMethod{"GET", "PUT"}}}, total: 1},
+		{name: "path contains is literal", filters: openapi.V2LogsGetApiRequestMetricsFilters{Path: &openapi.TextFilter{Contains: &[]string{"keys_"}}}, total: 0},
 	}
 
 	for _, tt := range tests {
@@ -204,14 +204,14 @@ func TestGetApiRequestsTimeseriesFilters(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{Filters: &tt.filters})
 
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-			require.Equal(t, tt.total, sumPoints(res.Body.Data.Points).Total)
+			require.Equal(t, tt.total, sumPoints(res.Body.Data).Total)
 		})
 	}
 }
 
-// TestGetApiRequestsTimeseriesKeepsRetention guarantees a row older than the
+// TestGetApiRequestMetricsKeepsRetention guarantees a row older than the
 // workspace's log retention never counts, even when the window covers it
-func TestGetApiRequestsTimeseriesKeepsRetention(t *testing.T) {
+func TestGetApiRequestMetricsKeepsRetention(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 
 	insertRequests(t, h,
@@ -221,16 +221,16 @@ func TestGetApiRequestsTimeseriesKeepsRetention(t *testing.T) {
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{
-		Filters: &openapi.V2LogsGetApiRequestsTimeseriesFilters{Time: &openapi.TimeFilter{Gte: new(int64(0))}},
+		Filters: &openapi.V2LogsGetApiRequestMetricsFilters{Time: &openapi.TimeFilter{Gte: new(int64(0))}},
 	})
 
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, int64(1), sumPoints(res.Body.Data.Points).Total)
+	require.Equal(t, int64(1), sumPoints(res.Body.Data).Total)
 }
 
-// TestGetApiRequestsTimeseriesEmptyWindow guarantees a window with nothing to
+// TestGetApiRequestMetricsEmptyWindow guarantees a window with nothing to
 // count returns no points instead of an error
-func TestGetApiRequestsTimeseriesEmptyWindow(t *testing.T) {
+func TestGetApiRequestMetricsEmptyWindow(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
 	now := h.Clock.Now().UnixMilli()
@@ -248,11 +248,11 @@ func TestGetApiRequestsTimeseriesEmptyWindow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, testutil.RootKeyHeaders(rootKey), handler.Request{
-				Filters: &openapi.V2LogsGetApiRequestsTimeseriesFilters{Time: &tt.time},
+				Filters: &openapi.V2LogsGetApiRequestMetricsFilters{Time: &tt.time},
 			})
 
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-			require.Empty(t, res.Body.Data.Points)
+			require.Empty(t, res.Body.Data)
 		})
 	}
 }

@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_requests_timeseries"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
 )
 
-// TestGetApiRequestsTimeseriesPermissions guarantees which grants read the request
+// TestGetApiRequestMetricsPermissions guarantees which grants read the request
 // logs. The logs belong to the workspace, so a 403 reveals nothing that a 404
 // would hide
-func TestGetApiRequestsTimeseriesPermissions(t *testing.T) {
+func TestGetApiRequestMetricsPermissions(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	otherWorkspace := h.CreateWorkspace()
 	prefix := "unkey:v1:" + workspaceID + ":"

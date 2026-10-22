@@ -29,7 +29,7 @@ var (
 	apiRequestsPerDay    = apiRequestsTable{name: "default.api_requests_per_day_v2", retentionMs: 100 * dayMs}
 )
 
-// apiRequestsResolution is one bucket width of the timeseries and the table
+// apiRequestsResolution is one bucket width of the metrics and the table
 // that holds it
 type apiRequestsResolution struct {
 	windowMsMax int64 // from the first to the last millisecond of the window
@@ -38,7 +38,7 @@ type apiRequestsResolution struct {
 }
 
 // Each resolution gives a window of an hour or more between 24 and 121
-// buckets. The last one covers the longest window the timeseries accepts,
+// buckets. The last one covers the longest window the metrics accept,
 // which is all the data the day table keeps
 var apiRequestsResolutions = []apiRequestsResolution{
 	{windowMsMax: 2 * hourMs, bucketMs: minuteMs, table: apiRequestsPerMinute},
@@ -51,35 +51,35 @@ var apiRequestsResolutions = []apiRequestsResolution{
 	{windowMsMax: apiRequestsPerDay.retentionMs, bucketMs: dayMs, table: apiRequestsPerDay},
 }
 
-// ApiRequestsTimeseriesFilters are the [ApiRequestFilters] the aggregate
+// ApiRequestMetricsFilters are the [ApiRequestFilters] the aggregate
 // tables can answer. They have no request id column
-type ApiRequestsTimeseriesFilters struct {
+type ApiRequestMetricsFilters struct {
 	Time   logfilter.Int
 	Path   logfilter.Text
 	Method logfilter.Exact
 	Status logfilter.Int
 }
 
-// ApiRequestsTimeseriesRequest counts a workspace's API requests per bucket.
+// ApiRequestMetricsRequest counts a workspace's API requests per bucket.
 // Filters.Time sets the window. A missing lower bound is RetentionStart and a
 // missing upper bound is Now. The window never reaches past Now or further
 // back than the aggregate tables keep data, and rows older than
 // RetentionStart are never counted, whatever the window. Now is unix
 // milliseconds
-type ApiRequestsTimeseriesRequest struct {
+type ApiRequestMetricsRequest struct {
 	WorkspaceID    string
 	Now            int64
 	RetentionStart int64
-	Filters        ApiRequestsTimeseriesFilters
+	Filters        ApiRequestMetricsFilters
 }
 
-// ApiRequestsTimeseriesPoint counts the requests of the bucket that starts at
-// Time. A timeseries has one point per bucket, oldest first, with no gaps, so
+// ApiRequestMetricsPoint counts the requests of the bucket that starts at
+// Time. The metrics have one point per bucket, oldest first, with no gaps, so
 // the bucket width is the distance between two points. The first bucket starts
 // at or before the window start and counts its whole width, except rows older
 // than RetentionStart. Total includes the 1xx and 3xx responses, which have no field of
 // their own
-type ApiRequestsTimeseriesPoint struct {
+type ApiRequestMetricsPoint struct {
 	Time        int64 `ch:"bucket_time"`
 	Success     int64 `ch:"success"`
 	ClientError int64 `ch:"client_error"`
@@ -87,7 +87,7 @@ type ApiRequestsTimeseriesPoint struct {
 	Total       int64 `ch:"total"`
 }
 
-func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTimeseriesRequest) ([]ApiRequestsTimeseriesPoint, error) {
+func (c *Client) GetApiRequestMetrics(ctx context.Context, req ApiRequestMetricsRequest) ([]ApiRequestMetricsPoint, error) {
 	timeFilter := req.Filters.Time
 
 	// min before +1 keeps a bound near MaxInt64 from wrapping around
@@ -115,7 +115,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 	windowStart = max(windowStart, req.Now-apiRequestsPerDay.retentionMs)
 
 	if windowStart >= windowEnd {
-		return []ApiRequestsTimeseriesPoint{}, nil
+		return []ApiRequestMetricsPoint{}, nil
 	}
 
 	windowLast := windowEnd - 1
@@ -146,7 +146,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 
 	// The day table's time is a Date, and toDateTime(time, 'UTC') makes it UTC
 	// midnight, where an epoch-aligned day bucket starts
-	points, err := Select[ApiRequestsTimeseriesPoint](withReadLimits(ctx), c.conn, `
+	points, err := Select[ApiRequestMetricsPoint](withReadLimits(ctx), c.conn, `
 		SELECT
 			toInt64(intDiv(toUnixTimestamp(toDateTime(time, 'UTC')), {bucket_seconds:Int64}) * {bucket_ms:Int64}) AS bucket_time,
 			sumIf(count, response_status >= 200 AND response_status < 300) AS success,
@@ -162,7 +162,7 @@ func (c *Client) GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTi
 		ORDER BY bucket_time ASC
 		WITH FILL FROM {fill_from:Int64} TO {fill_to:Int64} STEP {bucket_ms:Int64}`, params)
 	if err != nil {
-		return nil, fault.Wrap(classifyReadLimitError(err), fault.Internal("failed to read the api requests timeseries"))
+		return nil, fault.Wrap(classifyReadLimitError(err), fault.Internal("failed to read the api request metrics"))
 	}
 
 	return points, nil

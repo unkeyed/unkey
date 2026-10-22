@@ -10,20 +10,20 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_requests_timeseries"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
 )
 
 type limitedClickHouse struct {
 	clickhouse.ClickHouse
 }
 
-func (limitedClickHouse) GetApiRequestsTimeseries(context.Context, clickhouse.ApiRequestsTimeseriesRequest) ([]clickhouse.ApiRequestsTimeseriesPoint, error) {
+func (limitedClickHouse) GetApiRequestMetrics(context.Context, clickhouse.ApiRequestMetricsRequest) ([]clickhouse.ApiRequestMetricsPoint, error) {
 	return nil, clickhouse.WrapClickHouseError(&ch.Exception{Code: 159, Name: "DB::Exception", Message: "Timeout exceeded: elapsed 10.1 seconds, maximum: 10"})
 }
 
-// TestGetApiRequestsTimeseriesReadLimit guarantees a read limit is a 422 that
+// TestGetApiRequestMetricsReadLimit guarantees a read limit is a 422 that
 // names what the caller can change
-func TestGetApiRequestsTimeseriesReadLimit(t *testing.T) {
+func TestGetApiRequestMetricsReadLimit(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	route.ClickHouse = limitedClickHouse{ClickHouse: h.ClickHouse}
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))

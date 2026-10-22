@@ -2812,13 +2812,13 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2LivenessResponseData"
-        V2LogsGetApiRequestsTimeseriesRequestBody:
+        V2LogsGetApiRequestMetricsRequestBody:
             type: object
             properties:
                 filters:
-                    "$ref": "#/components/schemas/V2LogsGetApiRequestsTimeseriesFilters"
+                    "$ref": "#/components/schemas/V2LogsGetApiRequestMetricsFilters"
             additionalProperties: false
-        V2LogsGetApiRequestsTimeseriesResponseBody:
+        V2LogsGetApiRequestMetricsResponseBody:
             type: object
             required:
                 - meta
@@ -2827,7 +2827,11 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/V2LogsGetApiRequestsTimeseriesResponseData"
+                    type: array
+                    maxItems: 200
+                    items:
+                        "$ref": "#/components/schemas/ApiRequestMetricsPoint"
+                    description: One point per bucket, oldest first, with no gaps. A bucket with no requests has a point with zero counts. The bucket width is the distance between the `time` of two points.
             additionalProperties: false
         V2LogsListApiRequestsRequestBody:
             type: object
@@ -7756,11 +7760,11 @@ components:
             required:
                 - message
             description: Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy.
-        V2LogsGetApiRequestsTimeseriesFilters:
+        V2LogsGetApiRequestMetricsFilters:
             type: object
             additionalProperties: false
             description: |
-                Filters for the timeseries. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+                Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
             properties:
                 time:
                     "$ref": "#/components/schemas/TimeFilter"
@@ -7916,19 +7920,7 @@ components:
             description: |
                 The values of one filter operator. A row matches `is` when it equals any value in the list.
                 A row matches `isNot` only when it equals none of the values.
-        V2LogsGetApiRequestsTimeseriesResponseData:
-            type: object
-            required:
-                - points
-            properties:
-                points:
-                    type: array
-                    maxItems: 200
-                    items:
-                        "$ref": "#/components/schemas/ApiRequestsTimeseriesPoint"
-                    description: One point per bucket, oldest first, with no gaps. A bucket with no requests has a point with zero counts. The bucket width is the distance between the `time` of two points.
-            additionalProperties: false
-        ApiRequestsTimeseriesPoint:
+        ApiRequestMetricsPoint:
             type: object
             required:
                 - time
@@ -16010,7 +16002,7 @@ paths:
                 - liveness
             x-excluded: true
             x-speakeasy-ignore: true
-    /v2/logs.getApiRequestsTimeseries:
+    /v2/logs.getApiRequestMetrics:
         post:
             description: |
                 Count the requests that the Unkey API served for your workspace per time bucket, split by status class.
@@ -16023,12 +16015,12 @@ paths:
 
                 Your root key must have the following permission:
                 - `unkey:v1:<workspace_id>:logs/apiRequests#read`
-            operationId: logs.getApiRequestsTimeseries
+            operationId: logs.getApiRequestMetrics
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/V2LogsGetApiRequestsTimeseriesRequestBody'
+                            $ref: '#/components/schemas/V2LogsGetApiRequestMetricsRequestBody'
                 required: true
             responses:
                 "200":
@@ -16038,39 +16030,37 @@ paths:
                                 empty:
                                     summary: A window that ends before it starts
                                     value:
-                                        data:
-                                            points: []
+                                        data: []
                                         meta:
                                             requestId: req_1234abcd
                                 series:
                                     summary: Two buckets of 30 minutes
                                     value:
                                         data:
-                                            points:
-                                                - clientError: 31
-                                                  serverError: 2
-                                                  success: 1200
-                                                  time: 1792018800000
-                                                  total: 1233
-                                                - clientError: 0
-                                                  serverError: 0
-                                                  success: 0
-                                                  time: 1792020600000
-                                                  total: 0
+                                            - clientError: 31
+                                              serverError: 2
+                                              success: 1200
+                                              time: 1792018800000
+                                              total: 1233
+                                            - clientError: 0
+                                              serverError: 0
+                                              success: 0
+                                              time: 1792020600000
+                                              total: 0
                                         meta:
                                             requestId: req_1234abcd
                             schema:
-                                $ref: '#/components/schemas/V2LogsGetApiRequestsTimeseriesResponseBody'
+                                $ref: '#/components/schemas/V2LogsGetApiRequestMetricsResponseBody'
                     description: One point per bucket, oldest first, with zero counts for buckets without requests.
                 "400":
                     content:
                         application/json:
                             examples:
                                 unknownField:
-                                    summary: A filter field the timeseries does not have
+                                    summary: A filter field the metrics do not have
                                     value:
                                         error:
-                                            detail: POST request body for '/v2/logs.getApiRequestsTimeseries' failed to validate schema
+                                            detail: POST request body for '/v2/logs.getApiRequestMetrics' failed to validate schema
                                             errors:
                                                 - location: /properties/filters/$ref/additionalProperties
                                                   message: additional properties 'requestId' not allowed
@@ -16153,10 +16143,10 @@ paths:
                     description: The log store is not available
             security:
                 - bearer: []
-            summary: Get the API requests timeseries
+            summary: Get API request metrics
             tags:
                 - logs
-            x-speakeasy-name-override: getApiRequestsTimeseries
+            x-speakeasy-name-override: getApiRequestMetrics
             x-unkey-idempotency: idempotent
     /v2/logs.listApiRequests:
         post:

@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_requests_timeseries"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
 )
 
-func TestGetApiRequestsTimeseriesUnauthorized(t *testing.T) {
+func TestGetApiRequestMetricsUnauthorized(t *testing.T) {
 	h, route, _ := newRoute(t)
 
 	res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, testutil.RootKeyHeaders("invalid_token"), handler.Request{})

@@ -1,7 +1,7 @@
 type: object
 additionalProperties: false
 description: |
-  Filters for the timeseries. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+  Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
 properties:
   time:
     "$ref": "../../../../common/TimeFilter.yaml"
