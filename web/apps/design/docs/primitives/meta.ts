@@ -15,5 +15,6 @@ export default defineMeta({
     "settings-card",
     "skeleton",
     "slide-panel",
+    "tabs",
   ],
 });
