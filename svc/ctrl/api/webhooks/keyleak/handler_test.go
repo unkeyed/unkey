@@ -16,6 +16,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -81,9 +83,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 	releaseMembers := sync.OnceFunc(func() { close(membersReady) })
 	t.Cleanup(releaseMembers)
 	sender := &recordingSender{delivered: make(chan email.Email, 10), failedRecipient: "first@example.com"}
-	failingDB := &unavailableDatabase{Database: database, attempted: make(chan struct{})}
 	service := worker.New(worker.Config{
-		DB:      failingDB,
 		Members: gatedMembers{orgID: workspace.OrgID, ready: membersReady},
 		Email:   sender, SlackWebhookURL: slackServer.URL,
 	})
@@ -91,7 +91,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
 		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
 	verifier, sign := newSigningFixture(t)
-	handler := New(runtime.IngressClient, verifier)
+	handler := New(runtime.IngressClient, database, verifier)
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 	tokens := []reportedToken{
@@ -108,20 +108,13 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 	require.NoError(t, err)
 	req.Header = sign(body).Header
 	res, err := server.Client().Do(req)
-	require.NoError(t, err, "webhook must acknowledge persistence without waiting for the database")
+	require.NoError(t, err, "webhook must acknowledge persistence without waiting for notifications")
 	t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
 	responseBody, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.Empty(t, responseBody)
 	cancel()
-
-	select {
-	case <-failingDB.attempted:
-	case <-time.After(20 * time.Second):
-		t.Fatal("report did not reach the database")
-	}
-	failingDB.recovered.Store(true)
 
 	select {
 	case message := <-slackMessages:
@@ -195,15 +188,95 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		}
 	})
 
+	t.Run("retry after partial enqueue", func(t *testing.T) {
+		second := seeder.CreateKey(ctx, seed.CreateKeyRequest{
+			WorkspaceID: seeder.Resources.RootWorkspace.ID, KeySpaceID: seeder.Resources.RootKeySpace.ID,
+			ForWorkspaceID: &workspace.ID,
+		})
+		reports := []reportedToken{
+			{Token: root.Key, Type: "unkey_root_key", Source: "commit", URL: "https://github.com/unkeyed/example/commit/first"},
+			{Token: second.Key, Type: "unkey_root_key", Source: "content", URL: "https://github.com/unkeyed/example/blob/second"},
+		}
+		body, err := json.Marshal(reports)
+		require.NoError(t, err)
+		target, err := url.Parse(runtime.IngressURL)
+		require.NoError(t, err)
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		var attempts atomic.Int32
+		idempotencyKeys := make(chan string, 6)
+		interrupted := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			idempotencyKeys <- r.Header.Get("Idempotency-Key")
+			if attempts.Add(1) == 2 {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
+			proxy.ServeHTTP(w, r)
+		}))
+		t.Cleanup(interrupted.Close)
+		handler := New(ingress.NewClient(interrupted.URL), database, verifier)
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, sign(body))
+		require.Equal(t, http.StatusServiceUnavailable, res.Code)
+		require.Len(t, idempotencyKeys, 2)
+		firstKeys := []string{<-idempotencyKeys, <-idempotencyKeys}
+		require.NotEmpty(t, firstKeys[0])
+		require.NotEmpty(t, firstKeys[1])
+		require.NotEqual(t, firstKeys[0], firstKeys[1], "each matching key needs its own notification")
+
+		for range 2 {
+			res := httptest.NewRecorder()
+			handler.ServeHTTP(res, sign(body))
+			require.Equal(t, http.StatusOK, res.Code, res.Body.String())
+			require.Len(t, idempotencyKeys, 2)
+			require.ElementsMatch(t, firstKeys, []string{<-idempotencyKeys, <-idempotencyKeys})
+		}
+		var deliveries []string
+		for range 4 {
+			select {
+			case message := <-sender.delivered:
+				deliveries = append(deliveries, message.To[0]+":"+message.Variables["URL"])
+			case <-time.After(20 * time.Second):
+				t.Fatal("retry must deliver both keys' notifications")
+			}
+		}
+		require.ElementsMatch(t, []string{
+			"first@example.com:" + reports[0].URL, "second@example.com:" + reports[0].URL,
+			"first@example.com:" + reports[1].URL, "second@example.com:" + reports[1].URL,
+		}, deliveries)
+		for range 2 {
+			select {
+			case <-slackMessages:
+			case <-time.After(20 * time.Second):
+				t.Fatal("retry must deliver both Slack alerts")
+			}
+		}
+		require.Empty(t, sender.delivered)
+		require.Empty(t, slackMessages)
+	})
+
 	t.Run("queue unavailable", func(t *testing.T) {
 		unavailable := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}))
 		t.Cleanup(unavailable.Close)
-		handler := New(ingress.NewClient(unavailable.URL), verifier)
+		handler := New(ingress.NewClient(unavailable.URL), database, verifier)
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, sign(body))
 		require.Equal(t, http.StatusServiceUnavailable, res.Code, "never acknowledge an unqueued leak")
+
+		body, err := json.Marshal([]reportedToken{tokens[1], tokens[2]})
+		require.NoError(t, err)
+		res = httptest.NewRecorder()
+		handler.ServeHTTP(res, sign(body))
+		require.Equal(t, http.StatusOK, res.Code, "false positives must not depend on Restate availability")
+		require.Empty(t, res.Body.Bytes())
+	})
+
+	t.Run("database unavailable", func(t *testing.T) {
+		handler := New(nil, &unavailableDatabase{}, verifier)
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, sign(body))
+		require.Equal(t, http.StatusServiceUnavailable, res.Code, "lookup failure must not enqueue or acknowledge the report")
 	})
 }
 
@@ -220,11 +293,11 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 	close(membersReady)
 	sender := &recordingSender{delivered: make(chan email.Email, 20)}
 	service := worker.New(worker.Config{
-		DB: database, Members: gatedMembers{orgID: workspace.OrgID, ready: membersReady}, Email: sender,
+		Members: gatedMembers{orgID: workspace.OrgID, ready: membersReady}, Email: sender,
 	})
 	runtime := containers.Restate(t, service.Definition())
 	verifier, sign := newSigningFixture(t)
-	handler := New(runtime.IngressClient, verifier)
+	handler := New(runtime.IngressClient, database, verifier)
 	slackCtx, cancelSlack := context.WithTimeout(ctx, 5*time.Second)
 	t.Cleanup(cancelSlack)
 	_, err = hydrav1.NewKeyLeakServiceIngressClient(runtime.IngressClient).NotifySlack().Request(slackCtx,
@@ -280,22 +353,16 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 			body, err := json.Marshal([]reportedToken{report})
 			require.NoError(t, err)
 			res := httptest.NewRecorder()
+			if !test.matched {
+				New(nil, database, verifier).ServeHTTP(res, sign(body))
+				require.Equal(t, http.StatusOK, res.Code, res.Body.String())
+				require.Empty(t, res.Body.Bytes())
+				return
+			}
 			handler.ServeHTTP(res, sign(body))
 			require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 			require.Empty(t, res.Body.Bytes())
 
-			digest := sha256.Sum256([]byte(token))
-			hashed := base64.StdEncoding.EncodeToString(digest[:])
-			processed, err := hydrav1.NewKeyLeakServiceIngressClient(runtime.IngressClient).Process().Request(ctx,
-				&hydrav1.KeyLeakReport{Tokens: []*hydrav1.KeyLeakToken{{
-					Hash: hashed, Type: report.Type, Source: report.Source, Url: report.URL,
-				}}}, restate.WithIdempotencyKey(hash.Sha256(string(body))))
-			require.NoError(t, err)
-			if !test.matched {
-				require.Empty(t, processed.GetMatchedHashes())
-				return
-			}
-			require.Equal(t, []string{hashed}, processed.GetMatchedHashes())
 			recipients := make([]string, 0, 2)
 			for range 2 {
 				select {
@@ -325,7 +392,6 @@ func TestKeyLeakNoopProvidersStillDeliverSlack(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	service := worker.New(worker.Config{
-		DB:              nil,
 		Members:         workos.New(""),
 		Email:           email.NewResend("", ""),
 		SlackWebhookURL: server.URL,
@@ -387,7 +453,18 @@ func TestKeyLeakNoopProvidersStillDeliverSlack(t *testing.T) {
 }
 
 func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
-	token := reportedToken{Token: uid.New(uid.TestPrefix), Type: "unkey_key", Source: "commit"}
+	ctx := t.Context()
+	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	seeder := seed.New(t, database, nil)
+	seeder.Seed(ctx)
+	workspace := seeder.Resources.UserWorkspace
+	root := seeder.CreateKey(ctx, seed.CreateKeyRequest{
+		WorkspaceID: seeder.Resources.RootWorkspace.ID, KeySpaceID: seeder.Resources.RootKeySpace.ID,
+		ForWorkspaceID: &workspace.ID,
+	})
+	token := reportedToken{Token: root.Key, Type: "unkey_key", Source: "commit", URL: "https://github.com/unkeyed/example/commit/test"}
 	body, err := json.Marshal([]reportedToken{token})
 	require.NoError(t, err)
 	type submission struct {
@@ -407,26 +484,36 @@ func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	verifier, sign := newSigningFixture(t)
-	handler := New(ingress.NewClient(server.URL), verifier)
+	handler := New(ingress.NewClient(server.URL), database, verifier)
+	var idempotencyKey string
 	for range 2 {
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, sign(body))
 		require.Equal(t, http.StatusServiceUnavailable, res.Code)
 		request := <-submitted
 		require.NotContains(t, string(request.body), token.Token)
-		var report hydrav1.KeyLeakReport
-		require.NoError(t, json.Unmarshal(request.body, &report))
-		require.Len(t, report.GetTokens(), 1)
-		digest := sha256.Sum256([]byte(token.Token))
-		require.Equal(t, base64.StdEncoding.EncodeToString(digest[:]), report.GetTokens()[0].GetHash())
-		digest = sha256.Sum256(body)
-		require.Equal(t, base64.StdEncoding.EncodeToString(digest[:]), request.idempotencyKey)
+		var notification hydrav1.KeyLeakNotification
+		require.NoError(t, protojson.Unmarshal(request.body, &notification))
+		require.Equal(t, root.KeyID, notification.GetKeyId())
+		require.Equal(t, workspace.OrgID, notification.GetOrgId())
+		require.Equal(t, workspace.Name, notification.GetWorkspaceName())
+		require.Equal(t, token.Type, notification.GetType())
+		require.Equal(t, token.Source, notification.GetSource())
+		require.Equal(t, token.URL, notification.GetUrl())
+		_, err := time.Parse("Mon Jan 02 2006", notification.GetDate())
+		require.NoError(t, err)
+		require.NotEmpty(t, request.idempotencyKey)
+		require.NotContains(t, request.idempotencyKey, token.Token)
+		if idempotencyKey == "" {
+			idempotencyKey = request.idempotencyKey
+		}
+		require.Equal(t, idempotencyKey, request.idempotencyKey)
 	}
 }
 
 func TestKeyLeakRejectsInvalidReports(t *testing.T) {
 	verifier, sign := newSigningFixture(t)
-	handler := New(nil, verifier)
+	handler := New(nil, nil, verifier)
 	for _, test := range []struct {
 		name string
 		body any
@@ -456,7 +543,9 @@ func TestKeyLeakRejectsInvalidReports(t *testing.T) {
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/", strings.NewReader("[]")))
 	require.Equal(t, http.StatusBadRequest, res.Code)
-	req := sign([]byte("[]"))
+	body, err := json.Marshal([]reportedToken{{Token: uid.New(uid.TestPrefix), Type: "unkey_key", Source: "commit"}})
+	require.NoError(t, err)
+	req := sign(body)
 	req.Header.Set("Github-Public-Key-Signature", "forged")
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
@@ -469,18 +558,10 @@ func TestKeyLeakRejectsInvalidReports(t *testing.T) {
 
 type unavailableDatabase struct {
 	db.Database
-	attempted chan struct{}
-	once      sync.Once
-	recovered atomic.Bool
 }
 
-func (d *unavailableDatabase) FindLeakedKeysByHashes(ctx context.Context, params db.FindLeakedKeysByHashesParams) ([]db.FindLeakedKeysByHashesRow, error) {
-	recovered := d.recovered.Load()
-	d.once.Do(func() { close(d.attempted) })
-	if !recovered {
-		return nil, errors.New("database unavailable")
-	}
-	return d.Database.FindLeakedKeysByHashes(ctx, params)
+func (d *unavailableDatabase) FindLeakedKeysByHashes(context.Context, db.FindLeakedKeysByHashesParams) ([]db.FindLeakedKeysByHashesRow, error) {
+	return nil, errors.New("database unavailable")
 }
 
 type gatedMembers struct {

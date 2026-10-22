@@ -430,7 +430,6 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	restateSrv.Bind(keyleak.New(keyleak.Config{
-		DB:              database,
 		Members:         workos.New(cfg.WorkOSAPIKey),
 		Email:           email.NewResend(cfg.Email.ResendAPIKey, ""),
 		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
@@ -444,7 +443,7 @@ func Run(ctx context.Context, cfg Config) error {
 			restate.WithMaxRetryAttempts(360),
 			restate.KillOnMaxAttempts(),
 		),
-	).ConfigureHandler("Notify", restate.WithIngressPrivate(true)).
+	).
 		ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
 		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
 

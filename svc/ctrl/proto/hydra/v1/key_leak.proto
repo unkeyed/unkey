@@ -10,25 +10,9 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 service KeyLeakService {
   option (dev.restate.sdk.go.service_type) = SERVICE;
 
-  rpc Process(KeyLeakReport) returns (KeyLeakReportResult) {}
   rpc Notify(KeyLeakNotification) returns (KeyLeakResponse) {}
   rpc NotifyEmail(KeyLeakEmailRequest) returns (KeyLeakResponse) {}
   rpc NotifySlack(KeyLeakNotification) returns (KeyLeakResponse) {}
-}
-
-message KeyLeakReport {
-  repeated KeyLeakToken tokens = 1;
-}
-
-message KeyLeakToken {
-  string hash = 1;
-  string type = 2;
-  string url = 3;
-  string source = 4;
-}
-
-message KeyLeakReportResult {
-  repeated string matched_hashes = 1;
 }
 
 message KeyLeakNotification {
