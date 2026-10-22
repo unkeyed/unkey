@@ -19,7 +19,7 @@ import (
 func TestDecideChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
 	current, err := summarize(
 		[]session{{id: "peer", anchorAtNs: 150, consumedNs: 60}},
-		session{id: "own", anchorAtNs: 100, consumedNs: 1},
+		&session{id: "own", anchorAtNs: 100, consumedNs: 1},
 	)
 	require.NoError(t, err)
 	require.Equal(t, int64(210), current.resetAtNs)
@@ -39,17 +39,17 @@ func TestSummarizeRejectsInvalidSessions(t *testing.T) {
 	cases := []struct {
 		name          string
 		otherSessions []session
-		liveSession   session
+		liveSession   *session
 	}{
-		{"zero anchor", []session{{id: "a", anchorAtNs: 0, consumedNs: 1}}, session{}},
-		{"zero anchor of the live session", nil, session{id: "a", anchorAtNs: 0, consumedNs: 1}},
-		{"negative consumed time", []session{{id: "a", anchorAtNs: 1, consumedNs: -1}}, session{}},
-		{"live session also in the other sessions", []session{{id: "a", anchorAtNs: 1, consumedNs: 1}}, session{id: "a", anchorAtNs: 1, consumedNs: 1}},
+		{"zero anchor", []session{{id: "a", anchorAtNs: 0, consumedNs: 1}}, nil},
+		{"zero anchor of the live session", nil, &session{id: "a", anchorAtNs: 0, consumedNs: 1}},
+		{"negative consumed time", []session{{id: "a", anchorAtNs: 1, consumedNs: -1}}, nil},
+		{"live session also in the other sessions", []session{{id: "a", anchorAtNs: 1, consumedNs: 1}}, &session{id: "a", anchorAtNs: 1, consumedNs: 1}},
 		{"consumed sum beyond int64", []session{
 			{id: "a", anchorAtNs: 1, consumedNs: math.MaxInt64 - 1},
 			{id: "b", anchorAtNs: 1, consumedNs: 2},
-		}, session{}},
-		{"candidate beyond int64", []session{{id: "a", anchorAtNs: math.MaxInt64 - 5, consumedNs: 6}}, session{}},
+		}, nil},
+		{"candidate beyond int64", []session{{id: "a", anchorAtNs: math.MaxInt64 - 5, consumedNs: 6}}, nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -232,7 +232,7 @@ func requestMatchesSingleMachine(t *testing.T, e *entry, rate Rate, nowNs, units
 	require.Equal(t, remainingBySearch(rate, nowNs, after), result.remaining)
 
 	liveCanTakeIt := false
-	if e.live.id != "" {
+	if e.live != nil {
 		withLive := slices.Clone(all)
 		withLive[len(withLive)-1].consumedNs += consumedNs
 		liveCanTakeIt = resetAtByFormula(withLive) == after
