@@ -3,6 +3,8 @@ package ratelimit
 import (
 	"cmp"
 	"context"
+	"encoding/base64"
+	"flag"
 	"fmt"
 	"math/rand/v2"
 	"slices"
@@ -13,6 +15,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/sim"
+)
+
+var (
+	simRandomSeeds = flag.Int("sim.random-seeds", 20, "random seeds that TestSimulation runs after the 100 fixed ones")
+	simSeed        = flag.String("sim.seed", "", "run TestSimulation with only this seed, as printed in a subtest name")
 )
 
 // TestSimulation runs several pods against one shared store that delays,
@@ -34,9 +41,26 @@ import (
 // If the pod has seen every session, local = true and the last line is an
 // equality. At the end every write is delivered and every pod reads again,
 // so every pod must be exact.
+//
+// Seeds 0 to 99 run on every run and catch regressions. The random seeds
+// search new scenarios. Replay a failing seed with `-sim.seed=<seed>`, and
+// add it to the fixed seeds once the bug is fixed.
 func TestSimulation(t *testing.T) {
-	for i := range 100 {
-		seed := sim.NewSeedFromInt(i)
+	var seeds []sim.Seed
+	if *simSeed != "" {
+		decoded, err := base64.StdEncoding.DecodeString(*simSeed)
+		require.NoError(t, err)
+		require.Len(t, decoded, len(sim.Seed{}))
+		seeds = append(seeds, sim.Seed(decoded))
+	} else {
+		for i := range 100 {
+			seeds = append(seeds, sim.NewSeedFromInt(i))
+		}
+		for range *simRandomSeeds {
+			seeds = append(seeds, sim.NewSeed())
+		}
+	}
+	for _, seed := range seeds {
 		t.Run(seed.String(), func(t *testing.T) {
 			var state *simState
 			simulation := sim.New[simState](seed,
