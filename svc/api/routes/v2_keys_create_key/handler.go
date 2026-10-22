@@ -64,7 +64,7 @@ func maskCreateKeyPermissions(err error, granted []string, query rbac.Permission
 	return fault.New("insufficient permissions",
 		fault.Code(code),
 		fault.Internal("caller can read the resource but lacks a required permission"),
-		fault.Public(strings.ReplaceAll(fault.UserFacingMessage(masked), keySpaceID, "*")),
+		fault.Public(strings.ReplaceAll(fault.UserFacingMessage(masked), keySpaceID, "{keyspace}")),
 	)
 }
 

@@ -83,22 +83,47 @@ func TestCanRead(t *testing.T) {
 			want:    false,
 		},
 		{
-			name: "permission read reveals a permission delete",
+			name: "legacy permission read does not reveal a permission delete",
 			query: Or(
 				T(Tuple{ResourceType: Rbac, ResourceID: "*", Action: DeletePermission}),
 			),
 			granted: []string{"rbac.*.read_permission"},
-			want:    true,
+			want:    false,
 		},
 		{
-			name: "deployment read reveals a rollback denial",
+			name: "legacy deployment read does not reveal a rollback",
 			query: Or(
 				T(Tuple{ResourceType: Environment, ResourceID: "*", Action: RollbackDeployment}),
 				T(Tuple{ResourceType: Environment, ResourceID: "env_123", Action: RollbackDeployment}),
 				U(deployment, permissions.Write),
 			),
 			granted: []string{"environment.*.read_deployment"},
+			want:    false,
+		},
+		{
+			name: "environment read reveals a rollback on that environment",
+			query: Or(
+				T(Tuple{ResourceType: Environment, ResourceID: "*", Action: RollbackDeployment}),
+				U(workspace.Project("proj_123").App("app_123").Environment("env_123"), permissions.Write),
+			),
+			granted: []string{workspace.Project("proj_123").App("app_123").Environment("env_123").String() + "#read"},
 			want:    true,
+		},
+		{
+			name: "read analytics does not reveal an api",
+			query: Or(
+				T(Tuple{ResourceType: Api, ResourceID: "api_123", Action: CreateKey}),
+			),
+			granted: []string{"api.*.read_analytics"},
+			want:    false,
+		},
+		{
+			name: "read portal does not reveal a session grant",
+			query: Or(
+				T(Tuple{ResourceType: Portal, ResourceID: "portal_123", Action: CreatePortalSession}),
+			),
+			granted: []string{"portal.*.read_portal"},
+			want:    false,
 		},
 		{
 			name: "unrelated deployment action does not reveal the deployment",

@@ -121,20 +121,8 @@ func TestCreateSessionAuthorizationMatrix(t *testing.T) {
 				return
 			}
 
-			// A caller who cannot read the portal gets 404 and must not learn the
-			// resolved id. A caller who can read it gets 403 naming the mint grant.
-			canReadPortal := false
-			for _, permission := range tc.permissions {
-				if strings.Contains(permission, "read_portal") {
-					canReadPortal = true
-				}
-			}
-			if canReadPortal {
-				require.Equal(t, http.StatusForbidden, res.Status, "expected 403 for %v, got: %s", tc.permissions, res.RawBody)
-				require.Contains(t, res.RawBody, "create_portal_session")
-				require.Contains(t, res.RawBody, "Log in again")
-				return
-			}
+			// read_portal is not a read the portal route accepts, so it must not
+			// turn this denial into a 403 that names the portal id.
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for %v, got: %s", tc.permissions, res.RawBody)
 			require.NotContains(t, res.RawBody, portalID, "a denial must not disclose the resolved portal id")
 			require.NotContains(t, res.RawBody, "create_portal_session", "a denial must not echo the required permission")
