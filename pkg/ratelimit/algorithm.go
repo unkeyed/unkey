@@ -39,6 +39,17 @@ type summary struct {
 	// sessions anchored at or before the live session, the live session
 	// included. It is zero without a live session.
 	//
+	//	maxCandidateRaisedByLiveSession = max over sessions r with r.anchor ≤ live.anchor of
+	//	        (r.anchor + sum of consumed of sessions anchored at or after r)
+	//
+	// Adding `c` to the live session then gives
+	//
+	//	reset_at' = max(maxCandidateRaisedByLiveSession + c, reset_at)
+	//
+	// and single-machine GCRA requires `reset_at' = max(reset_at, now) + c`.
+	// The two are equal exactly when
+	// `maxCandidateRaisedByLiveSession = reset_at ≥ now`.
+	//
 	// `decide` needs it to know whether the live session can take a request.
 	// Units added to the live session raise only these candidates, not the
 	// candidates of sessions anchored after it. If this maximum equals
