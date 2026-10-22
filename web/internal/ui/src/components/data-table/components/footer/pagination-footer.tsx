@@ -1,16 +1,12 @@
 "use client";
-import {
-  IconChevronLeftOutline18,
-  IconChevronRightOutline18,
-  IconMaximizeWindowOutline18,
-  IconMinimizeWindowOutline18,
-} from "@unkey/icons";
+import { IconMaximizeWindowOutline18, IconMinimizeWindowOutline18 } from "@unkey/icons";
 import { memo, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
 import { FOOTER_PANEL } from "../../constants/constants";
 import { getPageNumbers } from "../../utils/get-page-numbers";
 import { PaginationFooterSkeleton } from "../skeletons/pagination-footer-skeleton";
+import { PaginationControls } from "./pagination-controls";
 
 type PaginationFooterCommonProps = {
   page: number;
@@ -112,27 +108,16 @@ export const PaginationFooter = memo(function PaginationFooter(props: Pagination
                 <span>{itemLabel}</span>
               </div>
 
-              {/* Pagination controls */}
-              <nav
-                aria-label="Pagination navigation"
-                className="flex items-center justify-center gap-1"
-              >
-                {/* Previous button */}
-                {showNavigation ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onPageChange(page - 1)}
-                    disabled={disabled || page === 1}
-                    aria-label="Go to previous page"
-                    className="border-none text-grayA-9 hover:text-grayA-11 disabled:pointer-events-none disabled:opacity-80 focus:ring-0"
-                  >
-                    <IconChevronLeftOutline18 />
-                  </Button>
-                ) : null}
-                {/* Page number segmented group */}
-                {showNavigation ? (
-                  props.mode === "cursor" ? (
+              {showNavigation ? (
+                <PaginationControls
+                  label="Pagination navigation"
+                  hasPrevious={!disabled && page !== 1}
+                  hasNext={!disabled && hasNextPage}
+                  onPrevious={() => onPageChange(page - 1)}
+                  onNext={() => onPageChange(page + 1)}
+                  className="mr-2"
+                >
+                  {props.mode === "cursor" ? (
                     <span aria-current="page" className="px-2 text-xs font-medium">
                       {pageLabel}
                     </span>
@@ -180,22 +165,9 @@ export const PaginationFooter = memo(function PaginationFooter(props: Pagination
                         );
                       })}
                     </div>
-                  )
-                ) : null}
-                {/* Next button */}
-                {showNavigation ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onPageChange(page + 1)}
-                    disabled={disabled || !hasNextPage}
-                    aria-label="Go to next page"
-                    className="border-none text-grayA-9 hover:text-grayA-11 disabled:pointer-events-none disabled:opacity-80 focus:ring-0 mr-2"
-                  >
-                    <IconChevronRightOutline18 />
-                  </Button>
-                ) : null}
-              </nav>
+                  )}
+                </PaginationControls>
+              ) : null}
               {/* Minimize button */}
               <div
                 className="flex justify-end transition-all duration-200 animate-fade-in-down ml-4 rounded"
