@@ -95,7 +95,7 @@ func TestDecideAtTheEdges(t *testing.T) {
 
 // TestDecideReplaysTheDocumentationTables guarantees that the worked
 // examples in the package documentation are what the code does: the
-// single-machine table for 10 per 10 seconds, and two pods that over-admitted
+// table for 10 per 10 seconds on one pod, and two pods that over-admitted
 // and pay it back.
 func TestDecideReplaysTheDocumentationTables(t *testing.T) {
 	noonNs := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC).UnixNano()
@@ -118,7 +118,7 @@ func TestDecideReplaysTheDocumentationTables(t *testing.T) {
 		}
 	}
 
-	t.Run("single machine", func(t *testing.T) {
+	t.Run("one pod", func(t *testing.T) {
 		var e entry
 		replay(t, &e, []step{
 			{0, 1, true, 1},
@@ -142,9 +142,9 @@ func TestDecideReplaysTheDocumentationTables(t *testing.T) {
 	})
 }
 
-// FuzzDecideMatchesSingleMachineGCRA guarantees the core property of the
+// FuzzDecideFollowsGCRARule guarantees the core property of the
 // limiter math. For any history of peer rows, stale rows, ended sessions and
-// requests, every decision equals single-machine GCRA over the same
+// requests, every decision follows the GCRA rule over the same
 // sessions: `reset_at` moves to `max(reset_at, now) + consumed time`, and the
 // request fits if that stays within one `Duration` of now.
 //
@@ -155,7 +155,7 @@ func TestDecideReplaysTheDocumentationTables(t *testing.T) {
 //   - a request starts a new session exactly when the live session cannot
 //     take it, and the new session is anchored at `max(now, newest anchor)`;
 //   - a denied request or a request of zero `units` consumes nothing.
-func FuzzDecideMatchesSingleMachineGCRA(f *testing.F) {
+func FuzzDecideFollowsGCRARule(f *testing.F) {
 	fuzz.Seed(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
 		c := fuzz.New(t, data)
@@ -193,7 +193,7 @@ func FuzzDecideMatchesSingleMachineGCRA(f *testing.F) {
 				e.endLiveSession()
 			case 4:
 				units := int64(c.Uint8()) % (rate.Limit + 2)
-				requestMatchesSingleMachine(t, &e, rate, nowNs, units)
+				requestFollowsGCRARule(t, &e, rate, nowNs, units)
 			}
 			fresh, err := summarize(e.others, e.live)
 			require.NoError(t, err)
@@ -202,9 +202,9 @@ func FuzzDecideMatchesSingleMachineGCRA(f *testing.F) {
 	})
 }
 
-// requestMatchesSingleMachine checks one request against single-machine GCRA
+// requestFollowsGCRARule checks one request against the GCRA rule
 // and against the formula over all sessions, then spends it.
-func requestMatchesSingleMachine(t *testing.T, e *entry, rate Rate, nowNs, units int64) {
+func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int64) {
 	t.Helper()
 	all := e.all()
 	before := resetAtByFormula(all)
