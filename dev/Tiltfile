@@ -315,10 +315,12 @@ k8s_yaml(encode_yaml({
     'data': mysql_schema,
 }))
 mysql_resources = read_yaml_stream('k8s/manifests/mysql.yaml')
+sha256_cmd = 'if command -v sha256sum >/dev/null 2>&1; then sha256sum; else shasum -a 256; fi'
+
 for resource in mysql_resources:
     if resource.get('kind') == 'Deployment':
         resource['spec']['template']['metadata']['annotations'] = {
-            'checksum/init': str(local('shasum -a 256', stdin=encode_yaml(mysql_schema), quiet=True, echo_off=True)).split(' ')[0],
+            'checksum/init': str(local(sha256_cmd, stdin=encode_yaml(mysql_schema), quiet=True, echo_off=True)).split(' ')[0],
         }
 k8s_yaml(encode_yaml_stream(mysql_resources))
 k8s_resource('mysql', objects=['mysql-schema:configmap', 'vitess-pvc:persistentvolumeclaim'], port_forwards=['3306:33577', '33575:33575'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])
@@ -349,7 +351,7 @@ clickhouse_resources = read_yaml_stream('k8s/manifests/clickhouse.yaml')
 for resource in clickhouse_resources:
     if resource.get('kind') == 'Deployment':
         resource['spec']['template']['metadata']['annotations'] = {
-            'checksum/init': str(local('shasum -a 256', stdin=str(encode_yaml(clickhouse_schema)) + str(read_file('init-clickhouse.sh')), quiet=True, echo_off=True)).split(' ')[0],
+            'checksum/init': str(local(sha256_cmd, stdin=str(encode_yaml(clickhouse_schema)) + str(read_file('init-clickhouse.sh')), quiet=True, echo_off=True)).split(' ')[0],
         }
 k8s_yaml(encode_yaml_stream(clickhouse_resources))
 k8s_resource('clickhouse', objects=['clickhouse-schema:configmap', 'clickhouse-init:configmap', 'clickhouse-pvc:persistentvolumeclaim'], port_forwards=['8123:8123','9000:9000'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])

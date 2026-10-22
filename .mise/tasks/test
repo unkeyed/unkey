@@ -7,7 +7,16 @@ set -euo pipefail
 # shared within one worktree without letting another checkout attach to them.
 export UNKEY_TEST_CONTAINER_SCOPE="${UNKEY_TEST_CONTAINER_SCOPE:-$PWD}"
 
-test_container_scope_hash="$(printf "%s" "${UNKEY_TEST_CONTAINER_SCOPE}" | shasum -a 256 | cut -c1-12)"
+if command -v sha256sum >/dev/null 2>&1; then
+  sha256_cmd=(sha256sum)
+elif command -v shasum >/dev/null 2>&1; then
+  sha256_cmd=(shasum -a 256)
+else
+  echo "Missing sha256sum or shasum" >&2
+  exit 1
+fi
+
+test_container_scope_hash="$(printf "%s" "${UNKEY_TEST_CONTAINER_SCOPE}" | "${sha256_cmd[@]}" | cut -c1-12)"
 export UNKEY_TEST_COMPOSE_PROJECT="unkey-test-${test_container_scope_hash}"
 
 cleanup_test_containers() {
