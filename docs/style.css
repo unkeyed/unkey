@@ -783,3 +783,11 @@ html[data-current-path^="/errors/"]:not([data-current-path="/errors/overview"]) 
 #sidebar [data-unkey-collapsed] > .sidebar-group-header {
   margin-bottom: 0;
 }
+
+#sidebar div:has(> .sidebar-group-header[aria-expanded="true"]) + div {
+  margin-top: 1.5rem;
+}
+
+#sidebar [data-unkey-collapsed] + div {
+  margin-top: 1rem;
+}
