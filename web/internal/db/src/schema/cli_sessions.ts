@@ -18,8 +18,12 @@ export const cliSessions = mysqlTable(
     userId: caseSensitiveVarchar("user_id", { length: 256 }).notNull(),
     permissions: json("permissions").$type<string[]>().notNull(),
     deviceName: varchar("device_name", { length: 512 }),
-    refreshTokenHash: caseSensitiveVarchar("refresh_token_hash", { length: 256 }).notNull().unique(),
-    previousRefreshTokenHash: caseSensitiveVarchar("previous_refresh_token_hash", { length: 256 }).unique(),
+    refreshTokenHash: caseSensitiveVarchar("refresh_token_hash", { length: 256 })
+      .notNull()
+      .unique(),
+    previousRefreshTokenHash: caseSensitiveVarchar("previous_refresh_token_hash", {
+      length: 256,
+    }).unique(),
     refreshFamily: caseSensitiveVarchar("refresh_family", { length: 64 }).notNull(),
     rotatedAt: bigint("rotated_at", { mode: "number" }),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
