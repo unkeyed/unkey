@@ -139,6 +139,7 @@ type Config struct {
 	AlertEmail   email.Sender
 	WorkOSAPIKey string
 	ResendAPIKey string
+	EmailFrom    string
 	// BillingBaseURL is the dashboard origin used to build the alert's billing
 	// link, e.g. "https://app.unkey.com".
 	BillingBaseURL string
@@ -205,7 +206,7 @@ func New(cfg Config) (*Service, error) {
 	case cfg.AlertEmail != nil:
 		alertDelivery = &quotacheck.AlertDelivery{Admins: admins, Email: cfg.AlertEmail}
 	case cfg.ResendAPIKey != "":
-		alertDelivery = &quotacheck.AlertDelivery{Admins: admins, Email: email.NewResend(cfg.ResendAPIKey, "")}
+		alertDelivery = &quotacheck.AlertDelivery{Admins: admins, Email: email.NewResend(cfg.ResendAPIKey, cfg.EmailFrom)}
 	default:
 		logger.Error("customer alert emails are DISABLED: no resend api key configured")
 	}
