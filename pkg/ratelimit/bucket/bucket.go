@@ -37,25 +37,30 @@ type Session struct {
 //
 // A Bucket is a value without locks. The caller serializes access.
 type Bucket struct {
-	// hasLive reports whether this pod has a live session that can take
+	// hasLiveSession reports whether this pod has a live session that can take
 	// requests. Without one, the next admitted request starts a new session.
-	hasLive bool
+	hasLiveSession bool
 
-	// liveAnchorNs is the anchor of the live session, if hasLive.
-	liveAnchorNs int64
+	// liveSessionAnchorAtNs is the anchor of the live session, if
+	// hasLiveSession.
+	liveSessionAnchorAtNs int64
 
-	// olderMaxNs is the largest candidate of the sessions anchored at or
-	// before the live anchor, the live session included. Without a live
-	// session it covers every session, so it is reset_at.
-	olderMaxNs int64
+	// maxCandidateAtOrBeforeLiveSessionNs is the largest candidate of the
+	// sessions anchored at or before the live session, the live session
+	// included. A request in the live session raises exactly these
+	// candidates. Without a live session it covers every session, so it is
+	// reset_at.
+	maxCandidateAtOrBeforeLiveSessionNs int64
 
-	// newerMaxNs is the largest candidate of the sessions anchored after the
-	// live anchor. It is zero if there are none.
-	newerMaxNs int64
+	// maxCandidateAfterLiveSessionNs is the largest candidate of the sessions
+	// anchored after the live session. A request in the live session does not
+	// raise these candidates. It is zero if there are none.
+	maxCandidateAfterLiveSessionNs int64
 
-	// newestAnchorNs is the largest anchor of all sessions. A new session never
-	// starts before it, so the new session counts toward every other session.
-	newestAnchorNs int64
+	// newestAnchorAtNs is the largest anchor of all sessions. A new session
+	// never starts before it, so the new session counts toward every other
+	// session.
+	newestAnchorAtNs int64
 }
 
 // Decision is the result of [Bucket.Check]. Pass it to [Bucket.Apply] to
@@ -108,13 +113,13 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 		}
 		if liveSessionID != "" && session.ID == liveSessionID {
 			liveCount++
-			b.liveAnchorNs = session.AnchorAtNs
+			b.liveSessionAnchorAtNs = session.AnchorAtNs
 		}
 	}
 	if liveSessionID != "" && liveCount != 1 {
 		return Bucket{}, fault.New("live session must be in sessions exactly once")
 	}
-	b.hasLive = liveSessionID != ""
+	b.hasLiveSession = liveSessionID != ""
 
 	var usedNs int64
 	for start := 0; start < len(newestFirst); {
@@ -133,15 +138,15 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 		if err != nil {
 			return Bucket{}, err
 		}
-		if b.hasLive && anchorNs > b.liveAnchorNs {
-			b.newerMaxNs = max(b.newerMaxNs, candidateNs)
+		if b.hasLiveSession && anchorNs > b.liveSessionAnchorAtNs {
+			b.maxCandidateAfterLiveSessionNs = max(b.maxCandidateAfterLiveSessionNs, candidateNs)
 		} else {
-			b.olderMaxNs = max(b.olderMaxNs, candidateNs)
+			b.maxCandidateAtOrBeforeLiveSessionNs = max(b.maxCandidateAtOrBeforeLiveSessionNs, candidateNs)
 		}
 		start = end
 	}
 	if len(newestFirst) > 0 {
-		b.newestAnchorNs = newestFirst[0].AnchorAtNs
+		b.newestAnchorAtNs = newestFirst[0].AnchorAtNs
 	}
 	return b, nil
 }
@@ -149,7 +154,7 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 // ResetAtNs returns reset_at in Unix nanoseconds: the time when every unit is
 // free again. It is zero for a limit without sessions.
 func (b Bucket) ResetAtNs() int64 {
-	return max(b.olderMaxNs, b.newerMaxNs)
+	return max(b.maxCandidateAtOrBeforeLiveSessionNs, b.maxCandidateAfterLiveSessionNs)
 }
 
 // Check decides a request of cost units at nowNs without changing the
@@ -200,8 +205,9 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	}
 
 	var createNewSessionAtNs int64
-	if !b.hasLive || b.olderMaxNs < max(b.newerMaxNs, nowNs) {
-		createNewSessionAtNs = max(nowNs, b.newestAnchorNs)
+	liveSessionHoldsResetAt := b.maxCandidateAtOrBeforeLiveSessionNs >= max(b.maxCandidateAfterLiveSessionNs, nowNs)
+	if !b.hasLiveSession || !liveSessionHoldsResetAt {
+		createNewSessionAtNs = max(nowNs, b.newestAnchorAtNs)
 	}
 	return Decision{
 		Allowed:              true,
@@ -221,12 +227,12 @@ func (b *Bucket) Apply(decision Decision) {
 	}
 	// In both cases the request raises exactly the candidates at or before the
 	// live anchor, and the largest of them becomes the new reset_at.
-	b.olderMaxNs = decision.ResetAtNs
+	b.maxCandidateAtOrBeforeLiveSessionNs = decision.ResetAtNs
 	if decision.CreateNewSessionAtNs != 0 {
-		b.hasLive = true
-		b.liveAnchorNs = decision.CreateNewSessionAtNs
-		b.newerMaxNs = 0
-		b.newestAnchorNs = decision.CreateNewSessionAtNs
+		b.hasLiveSession = true
+		b.liveSessionAnchorAtNs = decision.CreateNewSessionAtNs
+		b.maxCandidateAfterLiveSessionNs = 0
+		b.newestAnchorAtNs = decision.CreateNewSessionAtNs
 	}
 }
 
@@ -234,10 +240,10 @@ func (b *Bucket) Apply(decision Decision) {
 // ended. The next admitted request starts a new session. reset_at does not
 // change.
 func (b *Bucket) EndLiveSession() {
-	b.olderMaxNs = b.ResetAtNs()
-	b.newerMaxNs = 0
-	b.hasLive = false
-	b.liveAnchorNs = 0
+	b.maxCandidateAtOrBeforeLiveSessionNs = b.ResetAtNs()
+	b.maxCandidateAfterLiveSessionNs = 0
+	b.hasLiveSession = false
+	b.liveSessionAnchorAtNs = 0
 }
 
 // addNs returns a + b for non-negative a and b, or an error if the sum does
