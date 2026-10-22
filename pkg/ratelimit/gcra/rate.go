@@ -25,12 +25,9 @@ func (r Rate) Validate() error {
 }
 
 // costNs returns ⌈cost × Duration / Limit⌉, the time that cost units use.
-// It rounds up so that Limit requests never use less than Duration.
-//
-// cost × Duration does not fit into int64 for high rates: 162M per minute at
-// full cost is 162e6 × 60e9 ≈ 9.7e18 ns, above the int64 maximum of 9.2e18.
-// Dividing first loses precision. [bits.Mul64] and [bits.Div64] keep the
-// product in 128 bits, so the result is exact for every valid rate.
+// It rounds up so that Limit requests never use less than Duration. The
+// product uses 128 bits; the package documentation explains why plain integer
+// math is not enough.
 //
 // The caller guarantees 0 ≤ cost ≤ Limit, so the result is at most Duration.
 func (r Rate) costNs(cost int64) int64 {
