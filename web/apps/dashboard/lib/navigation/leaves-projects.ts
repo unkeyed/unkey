@@ -6,11 +6,11 @@ import {
   IconGaugeOutline18,
   IconGearOutline18,
   IconInputSearchOutline18,
-  IconKeyOutline18,
   IconLayers3Outline18,
   IconNodesOutline18,
   IconShieldKeyOutline18,
 } from "@unkey/icons";
+import { buildWorkspaceConfigLinks } from "./leaves";
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
@@ -20,17 +20,6 @@ export function buildWorkspaceSections(
   canSeeRootKeys: boolean,
 ): ResolvedNavLink[] {
   const top = segments[0];
-  const rootKeys: ResolvedNavLink[] = canSeeRootKeys
-    ? [
-        {
-          key: "root-keys",
-          label: "Root Keys",
-          href: routes.rootKeys.list({ workspaceSlug: slug }),
-          icon: IconKeyOutline18,
-          isActive: top === "root-keys",
-        },
-      ]
-    : [];
   return [
     {
       key: "projects",
@@ -39,7 +28,6 @@ export function buildWorkspaceSections(
       icon: IconCubeOutline18,
       isActive: top === "projects",
     },
-    ...rootKeys,
     {
       key: "logs",
       label: "Logs",
@@ -47,6 +35,7 @@ export function buildWorkspaceSections(
       icon: IconLayers3Outline18,
       isActive: top === "logs",
     },
+    ...buildWorkspaceConfigLinks(slug, top, canSeeRootKeys),
     {
       key: "audit",
       label: "Audit log",
