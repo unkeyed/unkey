@@ -11,12 +11,16 @@ describe("firstDeployEnvironment", () => {
     expect(firstDeployEnvironment("git", environments)).toBe("production");
   });
 
-  it("deploys an image to preview", () => {
-    expect(firstDeployEnvironment("oci", environments)).toBe("preview");
+  it("deploys an image to production even when preview is listed first", () => {
+    expect(firstDeployEnvironment("oci", [environments[1], environments[0]])).toBe("production");
   });
 
-  it("falls back to the first environment for an image without preview", () => {
-    expect(firstDeployEnvironment("oci", [environments[0]])).toBe("production");
+  it("falls back to the first environment for an image without production", () => {
+    expect(firstDeployEnvironment("oci", [environments[1]])).toBe("preview");
+  });
+
+  it("has no target for an image without environments", () => {
+    expect(firstDeployEnvironment("oci", [])).toBeNull();
   });
 
   it("has no target for a repository without production", () => {
