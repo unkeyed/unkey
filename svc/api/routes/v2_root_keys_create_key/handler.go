@@ -62,6 +62,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("Expires is required and must not be later than the calling root key's expiration."))
 		}
 	}
+	if source, ok := p.Source.(principal.CLISessionSource); ok {
+		if !expires.Valid || expires.Int64 > source.ExpiresAt.UnixMilli() {
+			return fault.New("root key exceeds cli session expiration", fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Public("Expires is required and must not be later than the CLI session's expiration."))
+		}
+	}
 	validatedPermissions, err := principalpermissions.ValidateDelegatedPermissions(ctx, p, req.Permissions)
 	if err != nil {
 		return err
