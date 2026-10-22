@@ -5,6 +5,7 @@ import (
 	"math"
 	"slices"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
@@ -163,14 +164,13 @@ func (t Timeline) ResetAtNs() int64 {
 // Check returns an error if the rate or the cost is invalid, if nowNs is
 // negative, or if reset_at overflows int64.
 func (t Timeline) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
-	if err := rate.Validate(); err != nil {
+	err := assert.All(
+		rate.Validate(),
+		assert.GreaterOrEqual(cost, 0, "cost must not be negative"),
+		assert.GreaterOrEqual(nowNs, 0, "time must not be before the Unix epoch"),
+	)
+	if err != nil {
 		return Decision{}, err
-	}
-	if cost < 0 {
-		return Decision{}, fault.New("cost must not be negative")
-	}
-	if nowNs < 0 {
-		return Decision{}, fault.New("time must not be before the Unix epoch")
 	}
 
 	resetAtNs := t.ResetAtNs()
