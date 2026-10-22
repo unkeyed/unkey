@@ -3,7 +3,9 @@ package ratelimit
 import (
 	"cmp"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"math/rand/v2"
@@ -22,9 +24,10 @@ var (
 	simSeed        = flag.String("sim.seed", "", "run TestSimulation with only this seed, as printed in a subtest name")
 )
 
-// TestSimulation runs several pods against one shared store that delays,
-// reorders, fails and loses writes, and serves stale or failed reads. Pod
-// clocks differ, and some pods get few requests.
+// TestSimulation runs 1 to 8 pods against one shared store that delays,
+// reorders, fails and loses writes, and serves stale or failed reads. Each
+// seed picks its own failure rates. Pod clocks differ, some pods get few
+// requests, and half the seeds send everything to one limit.
 //
 // The ledger records every session that any pod wrote units into. From it
 // we compute the true reset_at. Each pod computes its local reset_at from
@@ -62,34 +65,73 @@ func TestSimulation(t *testing.T) {
 	}
 	for _, seed := range seeds {
 		t.Run(seed.String(), func(t *testing.T) {
-			var state *simState
-			simulation := sim.New[simState](seed,
-				sim.WithTicks[simState](4_000),
-				sim.WithState(func(rng *rand.Rand) *simState {
-					state = newSimState(t, rng)
-					return state
-				}),
-			)
-			require.NoError(t, simulation.Run([]sim.Event[simState]{
-				requestEvent{}, requestEvent{}, flushEvent{}, deliverWriteEvent{}, replicateEvent{}, backgroundReadEvent{}, advanceTimeEvent{}, settleEvent{},
-			}))
-			if len(simulation.Errors) > 0 {
-				t.Fatalf("%d failed checks, the first: %v", len(simulation.Errors), simulation.Errors[0])
-			}
-
-			state.store.reliable = true
-			for _, pod := range state.pods {
-				require.NoError(t, state.settle())
-				for _, limit := range state.limits {
-					units := state.rng.Int64N(limit.rate.Limit + 1)
-					exact, err := state.request(pod, limit, units)
-					require.NoError(t, err)
-					require.True(t, exact, "every write is visible, so the pod must know every session")
-				}
-			}
-			require.Positive(t, state.exactDecisions)
+			runSimulation(t, rand.New(rand.NewChaCha8(seed)))
 		})
 	}
+}
+
+// FuzzSimulation runs the same simulation, but the first random choices
+// come from the fuzzer's bytes: the pods, limits, failure rates and the
+// first events. The fuzzer keeps inputs that reach new code and changes
+// them further. Run it with
+//
+//	mise exec -- go test -run '^$' -fuzz=FuzzSimulation -fuzztime=10m ./pkg/ratelimit/
+func FuzzSimulation(f *testing.F) {
+	f.Add([]byte{})
+	f.Add(make([]byte, 64))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		runSimulation(t, rand.New(newBytesSource(data)))
+	})
+}
+
+func runSimulation(t *testing.T, rng *rand.Rand) {
+	t.Helper()
+	var state *simState
+	simulation := sim.NewWithRand(rng,
+		sim.WithTicks[simState](2_000+rng.Int64N(8_000)),
+		sim.WithState(func(rng *rand.Rand) *simState {
+			state = newSimState(t, rng)
+			return state
+		}),
+	)
+	require.NoError(t, simulation.Run([]sim.Event[simState]{
+		requestEvent{}, requestEvent{}, flushEvent{}, deliverWriteEvent{}, replicateEvent{}, backgroundReadEvent{}, advanceTimeEvent{}, settleEvent{},
+	}))
+	if len(simulation.Errors) > 0 {
+		t.Fatalf("%d failed checks, the first: %v", len(simulation.Errors), simulation.Errors[0])
+	}
+
+	state.store.reliable = true
+	for _, pod := range state.pods {
+		require.NoError(t, state.settle())
+		for _, limit := range state.limits {
+			units := state.rng.Int64N(limit.rate.Limit + 1)
+			exact, err := state.request(pod, limit, units)
+			require.NoError(t, err)
+			require.True(t, exact, "every write is visible, so the pod must know every session")
+		}
+	}
+	require.Positive(t, state.exactDecisions)
+}
+
+// bytesSource returns the fuzzer's bytes as random numbers, then continues
+// with a stream seeded from them.
+type bytesSource struct {
+	data []byte
+	rest *rand.ChaCha8
+}
+
+func newBytesSource(data []byte) *bytesSource {
+	return &bytesSource{data: data, rest: rand.NewChaCha8(sha256.Sum256(data))}
+}
+
+func (s *bytesSource) Uint64() uint64 {
+	if len(s.data) < 8 {
+		return s.rest.Uint64()
+	}
+	value := binary.LittleEndian.Uint64(s.data)
+	s.data = s.data[8:]
+	return value
 }
 
 type simLimit struct {
@@ -132,7 +174,7 @@ func newSimState(t *testing.T, rng *rand.Rand) *simState {
 	skews := []time.Duration{0, 50 * time.Millisecond, 2 * time.Second, 10 * time.Second}
 	maxSkew := skews[rng.IntN(len(skews))]
 	start := time.Unix(1_700_000_000, 0)
-	for range 1 + rng.IntN(5) {
+	for range 1 + rng.IntN(8) {
 		pod := &simPod{
 			clock: clock.NewTestClock(start.Add(time.Duration(rng.Int64N(int64(2*maxSkew+1))) - maxSkew)),
 			// Cubed, so some pods get few requests.
@@ -145,7 +187,12 @@ func newSimState(t *testing.T, rng *rand.Rand) *simState {
 		state.pods = append(state.pods, pod)
 	}
 	durations := []time.Duration{100 * time.Millisecond, time.Second, 10 * time.Second, time.Minute}
-	for i := range 1 + rng.IntN(3) {
+	// Half the seeds put every request on one limit, so pods contend.
+	limitCount := 1
+	if rng.IntN(2) == 0 {
+		limitCount += rng.IntN(3)
+	}
+	for i := range limitCount {
 		state.limits = append(state.limits, simLimit{
 			fingerprint: [32]byte{byte(i)},
 			rate:        Rate{Limit: 1 + rng.Int64N(20), Duration: durations[rng.IntN(len(durations))]},
@@ -247,6 +294,7 @@ func (st *simState) advance(d time.Duration) {
 		pod.clock.Tick(d)
 	}
 	st.elapsed += d
+	st.store.elapsed = st.elapsed
 }
 
 func (st *simState) runBackgroundReads(pod *simPod) {
@@ -376,7 +424,12 @@ type advanceTimeEvent struct{}
 func (advanceTimeEvent) Name() string { return "advance time" }
 
 func (advanceTimeEvent) Run(rng *rand.Rand, st *simState) error {
+	// Mostly short steps, sometimes long ones, so runs reach the end of a
+	// session lifetime.
 	steps := []time.Duration{time.Millisecond, 50 * time.Millisecond, 500 * time.Millisecond, 2 * time.Second, 3 * time.Second}
+	if rng.IntN(10) == 0 {
+		steps = []time.Duration{10 * time.Second, 30 * time.Second}
+	}
 	d := steps[rng.IntN(len(steps))]
 	if st.elapsed+d < compactAfter-5*time.Minute {
 		st.advance(d)
@@ -385,69 +438,106 @@ func (advanceTimeEvent) Run(rng *rand.Rand, st *simState) error {
 }
 
 // simStore is a [Store] with a primary and a lagging replica. Writes wait in
-// flight until delivered in random order. Some writes fail, some fail after
-// they were applied, and some reads fail. Reads come from the replica.
+// flight until delivered in random order, and some wait up to a minute. Some
+// writes fail, some fail after they were applied, and some reads fail. Reads
+// come from the replica. Each seed picks its own rates.
 type simStore struct {
 	rng      *rand.Rand
 	primary  map[[32]byte]map[string]StoredSession
 	replica  map[[32]byte]map[string]StoredSession
-	inFlight [][]StoredSession
+	inFlight []inFlightWrite
+
+	// elapsed is the simulation time, for writes that wait.
+	elapsed time.Duration
+
+	writeFailPercent     int
+	answerLostPercent    int
+	slowWritePercent     int
+	readFailPercent      int
+	replicateRowsPercent int
 
 	// reliable turns off failures for the final checks.
 	reliable bool
 }
 
+type inFlightWrite struct {
+	sessions     []StoredSession
+	deliverAfter time.Duration
+}
+
 func newSimStore(rng *rand.Rand) *simStore {
+	pick := func(percents ...int) int { return percents[rng.IntN(len(percents))] }
 	return &simStore{
-		rng:     rng,
-		primary: make(map[[32]byte]map[string]StoredSession),
-		replica: make(map[[32]byte]map[string]StoredSession),
+		rng:                  rng,
+		primary:              make(map[[32]byte]map[string]StoredSession),
+		replica:              make(map[[32]byte]map[string]StoredSession),
+		writeFailPercent:     pick(0, 5, 10, 25, 50),
+		answerLostPercent:    pick(0, 5, 10, 25),
+		slowWritePercent:     pick(0, 10, 30),
+		readFailPercent:      pick(0, 5, 10, 25, 50),
+		replicateRowsPercent: pick(10, 50, 90),
 	}
 }
 
 func (s *simStore) WriteSessions(_ context.Context, sessions []StoredSession) error {
-	if !s.reliable {
-		switch s.rng.IntN(10) {
-		case 0:
-			return fault.New("write failed")
-		case 1:
-			s.inFlight = append(s.inFlight, slices.Clone(sessions))
-			return fault.New("write applied, but the answer was lost")
-		}
+	if s.reliable {
+		s.inFlight = append(s.inFlight, inFlightWrite{sessions: slices.Clone(sessions), deliverAfter: 0})
+		return nil
 	}
-	s.inFlight = append(s.inFlight, slices.Clone(sessions))
+	roll := s.rng.IntN(100)
+	if roll < s.writeFailPercent {
+		return fault.New("write failed")
+	}
+	write := inFlightWrite{sessions: slices.Clone(sessions), deliverAfter: 0}
+	if s.rng.IntN(100) < s.slowWritePercent {
+		write.deliverAfter = s.elapsed + time.Duration(s.rng.Int64N(int64(time.Minute)))
+	}
+	s.inFlight = append(s.inFlight, write)
+	if roll < s.writeFailPercent+s.answerLostPercent {
+		return fault.New("write applied, but the answer was lost")
+	}
 	return nil
 }
 
 func (s *simStore) ReadSessions(_ context.Context, fingerprint [32]byte, limit int) ([]StoredSession, error) {
-	if !s.reliable && s.rng.IntN(10) == 0 {
+	if !s.reliable && s.rng.IntN(100) < s.readFailPercent {
 		return nil, fault.New("read failed")
 	}
 	sessions := sortedSessions(s.replica[fingerprint])
 	return sessions[:min(limit, len(sessions))], nil
 }
 
+// deliverOne applies one random write whose wait is over.
 func (s *simStore) deliverOne() {
-	if len(s.inFlight) == 0 {
+	var ready []int
+	for index, write := range s.inFlight {
+		if write.deliverAfter <= s.elapsed {
+			ready = append(ready, index)
+		}
+	}
+	if len(ready) == 0 {
 		return
 	}
-	index := s.rng.IntN(len(s.inFlight))
-	upsert(s.primary, s.inFlight[index])
+	s.deliver(ready[s.rng.IntN(len(ready))])
+}
+
+func (s *simStore) deliver(index int) {
+	upsert(s.primary, s.inFlight[index].sessions)
 	s.inFlight = slices.Delete(s.inFlight, index, index+1)
 }
 
 func (s *simStore) deliverAll() {
 	for len(s.inFlight) > 0 {
-		s.deliverOne()
+		s.deliver(s.rng.IntN(len(s.inFlight)))
 	}
 }
 
-// replicateSome copies about half of the primary rows to the replica, so
-// the replica can hold some rows newer than others.
+// replicateSome copies some primary rows to the replica, so the replica can
+// hold some rows newer than others.
 func (s *simStore) replicateSome() {
 	for _, fingerprint := range sortedFingerprints(s.primary) {
 		for _, row := range sortedSessions(s.primary[fingerprint]) {
-			if s.rng.IntN(2) == 0 {
+			if s.rng.IntN(100) < s.replicateRowsPercent {
 				upsert(s.replica, []StoredSession{row})
 			}
 		}
