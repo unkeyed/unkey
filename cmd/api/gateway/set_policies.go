@@ -26,7 +26,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/gateway/set
 		Examples: []string{`unkey api gateway set-policies --project=payments --app=payments-api --environment=production --policies='[{"name":"Require API key","enabled":true,"keyauth":{"keyspaces":["ks_1234abcd"]}}]'`, `unkey api gateway set-policies --project=payments --app=payments-api --environment=production --policies='[]'`},
 		Flags:    []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("policies", "JSON array containing the complete ordered policy list.", cli.Required(), cli.MutuallyExclusive("body"))},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

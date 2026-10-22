@@ -47,7 +47,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/deployments
 			cli.String("deployment", "Re-run an existing deployment using a JSON object.", cli.MutuallyExclusive("body", "git", "oci")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

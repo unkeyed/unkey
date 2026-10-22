@@ -75,6 +75,17 @@ func GetSessions() (string, error) {
 	return Get(serviceName, sessionAccount)
 }
 
+// windowsCredentialBlobLimit is the Credential Manager maximum for one blob.
+// A measured CLI session blob is 761 bytes for an admin, 2,850 for a viewer,
+// and 6,111 for a developer, so a viewer or developer session does not fit.
+const windowsCredentialBlobLimit = 2560
+
+// ExceedsWindowsCredentialBlob reports whether secret is larger than Windows
+// Credential Manager can store.
+func ExceedsWindowsCredentialBlob(secret string) bool {
+	return len(secret) > windowsCredentialBlobLimit
+}
+
 // SetSessions writes the CLI session blob.
 func SetSessions(secret string) error {
 	return Set(serviceName, sessionAccount, secret)

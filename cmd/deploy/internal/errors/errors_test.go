@@ -63,8 +63,10 @@ func TestFormatAuthenticationError(t *testing.T) {
 			},
 			expectedInMsg: []string{
 				"Authentication failed",
-				"root key is invalid or has expired",
-				"--root-key flag, UNKEY_ROOT_KEY, or unkey login",
+				"credential for unkey deploy is invalid or has expired",
+				"--root-key, when you passed one",
+				"UNKEY_ROOT_KEY",
+				"CLI session from unkey login",
 			},
 		},
 		{
@@ -80,9 +82,9 @@ func TestFormatAuthenticationError(t *testing.T) {
 			},
 			expectedInMsg: []string{
 				"Authentication failed",
-				"Could not authenticate your request",
-				"--root-key flag",
-				"UNKEY_ROOT_KEY environment variable, or",
+				"Could not authenticate unkey deploy",
+				"--root-key",
+				"UNKEY_ROOT_KEY",
 				"unkey login",
 			},
 		},

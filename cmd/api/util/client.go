@@ -16,12 +16,12 @@ import (
 // CreateClient builds an SDK client. Credentials are used in this order:
 // the --root-key flag, then UNKEY_ROOT_KEY, then the stored CLI session, then
 // a root key saved with unkey login --root-key=-.
-func CreateClient(cmd *cli.Command) (*unkey.Unkey, error) {
-	return createClient(cmd, credentials.DefaultRootKeyStore())
+func CreateClient(ctx context.Context, cmd *cli.Command) (*unkey.Unkey, error) {
+	return createClient(ctx, cmd, credentials.DefaultRootKeyStore())
 }
 
-func createClient(cmd *cli.Command, keys credentials.RootKeyStore) (*unkey.Unkey, error) {
-	key, err := credential(cmd, keys)
+func createClient(ctx context.Context, cmd *cli.Command, keys credentials.RootKeyStore) (*unkey.Unkey, error) {
+	key, err := credential(ctx, cmd, keys)
 	if err != nil {
 		return nil, err
 	}
@@ -38,11 +38,11 @@ func createClient(cmd *cli.Command, keys credentials.RootKeyStore) (*unkey.Unkey
 
 // Credential resolves the bearer for a command. Deploy uses this because its
 // flag is named the same way as the API commands.
-func Credential(cmd *cli.Command) (string, error) {
-	return credential(cmd, credentials.DefaultRootKeyStore())
+func Credential(ctx context.Context, cmd *cli.Command) (string, error) {
+	return credential(ctx, cmd, credentials.DefaultRootKeyStore())
 }
 
-func credential(cmd *cli.Command, keys credentials.RootKeyStore) (string, error) {
+func credential(ctx context.Context, cmd *cli.Command, keys credentials.RootKeyStore) (string, error) {
 	if cmd.FlagIsSet("root-key") {
 		key := strings.TrimSpace(cmd.String("root-key"))
 		if key == "" {
@@ -60,7 +60,7 @@ func credential(cmd *cli.Command, keys credentials.RootKeyStore) (string, error)
 	if apiURL == "" {
 		apiURL = "https://api.unkey.com"
 	}
-	token, err := session.AccessToken(context.Background(), func(ctx context.Context, refreshToken string) (session.Session, error) {
+	token, err := session.AccessToken(ctx, func(ctx context.Context, refreshToken string) (session.Session, error) {
 		return session.Refresh(ctx, apiURL, refreshToken)
 	})
 	if err == nil {

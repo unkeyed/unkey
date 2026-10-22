@@ -11,7 +11,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/cli/credentials"
 	"github.com/unkeyed/unkey/pkg/cli/keystore"
+	"github.com/unkeyed/unkey/pkg/cli/session"
 )
+
+func TestMain(m *testing.M) {
+	session.SetStore(&session.MemoryStore{})
+	os.Exit(m.Run())
+}
 
 func TestCreateClientUsesTheKeychainForTheDefaultConfig(t *testing.T) {
 	home := t.TempDir()
@@ -24,8 +30,8 @@ func TestCreateClientUsesTheKeychainForTheDefaultConfig(t *testing.T) {
 	cmd := &cli.Command{
 		Name:  "api",
 		Flags: []cli.Flag{RootKeyFlag(), ConfigFlag(), APIURLFlag()},
-		Action: func(_ context.Context, cmd *cli.Command) error {
-			client, err := createClient(cmd, store)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			client, err := createClient(ctx, cmd, store)
 			require.NoError(t, err)
 			require.NotNil(t, client)
 			created = true
@@ -47,8 +53,8 @@ func TestCreateClientPrefersTheRootKeyFlag(t *testing.T) {
 	cmd := &cli.Command{
 		Name:  "api",
 		Flags: []cli.Flag{RootKeyFlag(), ConfigFlag(), APIURLFlag()},
-		Action: func(_ context.Context, cmd *cli.Command) error {
-			client, err := createClient(cmd, store)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			client, err := createClient(ctx, cmd, store)
 			require.NoError(t, err)
 			require.NotNil(t, client)
 			return nil
@@ -67,8 +73,8 @@ func TestCreateClientReportsAMissingRootKey(t *testing.T) {
 	cmd := &cli.Command{
 		Name:  "api",
 		Flags: []cli.Flag{RootKeyFlag(), ConfigFlag(), APIURLFlag()},
-		Action: func(_ context.Context, cmd *cli.Command) error {
-			_, err := createClient(cmd, store)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			_, err := createClient(ctx, cmd, store)
 			return err
 		},
 	}
@@ -89,8 +95,8 @@ func TestCreateClientReadsACustomConfigFile(t *testing.T) {
 	cmd := &cli.Command{
 		Name:  "api",
 		Flags: []cli.Flag{RootKeyFlag(), ConfigFlag(), APIURLFlag()},
-		Action: func(_ context.Context, cmd *cli.Command) error {
-			client, err := createClient(cmd, store)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			client, err := createClient(ctx, cmd, store)
 			require.NoError(t, err)
 			require.NotNil(t, client)
 			return nil
