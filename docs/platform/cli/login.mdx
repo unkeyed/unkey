@@ -71,7 +71,7 @@ A key that is already in `~/.unkey/config.toml` is copied into the secret store 
 
 The session has exactly the permissions you selected. It does not inherit every permission your user has. Any role can approve a login, limited to the permissions that role can grant.
 
-`unkey api` and `unkey deploy` use a stored CLI session when neither `--root-key` nor `UNKEY_ROOT_KEY` is set. A root key saved with `--root-key` is the next fallback. See [CLI authentication](/platform/cli/authentication).
+`unkey api` and `unkey deploy` use a stored CLI session when neither `--root-key` nor `UNKEY_ROOT_KEY` is set, and the session's API URL matches the command. An explicit `--config` on `unkey api` is used instead of the session. A root key saved with `--root-key` is the next fallback. See [CLI authentication](/platform/cli/authentication).
 
 ## Examples
 

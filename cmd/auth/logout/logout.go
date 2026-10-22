@@ -31,7 +31,11 @@ func New() *cli.Command {
 			if err != nil {
 				return err
 			}
-			if err := revoke(ctx, cmd.String("api-url"), current); err != nil {
+			apiURL := session.NormalizeAPIURL(current.APIURL)
+			if apiURL == "" {
+				apiURL = cmd.String("api-url")
+			}
+			if err := revoke(ctx, apiURL, current); err != nil {
 				fmt.Printf("Could not revoke the session on the server (%s). It was removed from this machine.\n", err.Error())
 			}
 			if _, err := session.Delete(current.WorkspaceID); err != nil && !errors.Is(err, session.ErrNotFound) {
@@ -55,6 +59,9 @@ func revoke(ctx context.Context, apiURL string, current session.Session) error {
 		}
 		if refreshed.SessionID == "" {
 			refreshed.SessionID = current.SessionID
+		}
+		if refreshed.APIURL == "" {
+			refreshed.APIURL = current.APIURL
 		}
 		if err := session.Save(refreshed); err != nil {
 			return err

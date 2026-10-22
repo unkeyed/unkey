@@ -138,6 +138,7 @@ func TestDeviceLoginPollsUntilTheKeyIsIssued(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "refresh_issued", stored.RefreshToken)
 	require.Equal(t, "ws_1", stored.WorkspaceID)
+	require.Equal(t, srv.URL, stored.APIURL)
 }
 
 func TestDeviceLoginStopsWhenDenied(t *testing.T) {

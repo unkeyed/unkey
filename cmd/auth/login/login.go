@@ -106,12 +106,17 @@ func run(ctx context.Context, opts options) error {
 	if err != nil {
 		return err
 	}
+	apiURL := session.NormalizeAPIURL(opts.apiURL)
+	if apiURL == "" {
+		apiURL = session.DefaultAPIURL
+	}
 	if err := session.Save(session.Session{
 		WorkspaceID:  issued.WorkspaceID,
 		SessionID:    issued.SessionID,
 		AccessToken:  issued.AccessToken,
 		RefreshToken: issued.RefreshToken,
 		ExpiresAt:    time.Now().Add(time.Duration(issued.ExpiresIn) * time.Second).Unix(),
+		APIURL:       apiURL,
 	}); err != nil {
 		if revokeErr := revokeIssuedSession(ctx, opts.client, opts.apiURL, issued); revokeErr != nil {
 			return fmt.Errorf("could not store the CLI session: %w", err)

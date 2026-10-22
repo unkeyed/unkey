@@ -109,6 +109,106 @@ func TestCreateClientReadsACustomConfigFile(t *testing.T) {
 	require.Contains(t, string(body), "unkey_from_file")
 }
 
+func TestExplicitConfigBeatsTheCLISession(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("UNKEY_ROOT_KEY", "")
+	t.Setenv("UNKEY_CONFIG", "")
+	t.Setenv("UNKEY_API_BASE_URL", "")
+	sessions := &session.MemoryStore{}
+	session.SetStore(sessions)
+	t.Cleanup(func() { session.SetStore(&session.MemoryStore{}) })
+	require.NoError(t, session.Save(session.Session{
+		WorkspaceID:  "ws_local",
+		SessionID:    "clis_local",
+		AccessToken:  "access_from_session",
+		RefreshToken: "refresh_from_session",
+		ExpiresAt:    9_000_000_000,
+		APIURL:       "http://127.0.0.1:8787",
+	}))
+
+	custom := filepath.Join(t.TempDir(), "other.toml")
+	require.NoError(t, os.WriteFile(custom, []byte("root_key = \"unkey_from_file\"\n"), 0o600))
+	store := &rootKeyStore{getErr: errors.New("explicit config must not read the keychain")}
+
+	var got ResolvedCredential
+	cmd := &cli.Command{
+		Name:  "api",
+		Flags: []cli.Flag{RootKeyFlag(), ConfigFlag(), APIURLFlag()},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			cred, err := credential(ctx, cmd, store)
+			got = cred
+			return err
+		},
+	}
+	require.NoError(t, cmd.Run(context.Background(), []string{"unkey", "--config", custom}))
+	require.Equal(t, "unkey_from_file", got.Key)
+	require.Empty(t, got.APIURL)
+}
+
+func TestCLISessionUsesItsOwnAPIURL(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("UNKEY_ROOT_KEY", "")
+	t.Setenv("UNKEY_CONFIG", "")
+	t.Setenv("UNKEY_API_BASE_URL", "")
+	sessions := &session.MemoryStore{}
+	session.SetStore(sessions)
+	t.Cleanup(func() { session.SetStore(&session.MemoryStore{}) })
+	require.NoError(t, session.Save(session.Session{
+		WorkspaceID:  "ws_local",
+		SessionID:    "clis_local",
+		AccessToken:  "access_from_session",
+		RefreshToken: "refresh_from_session",
+		ExpiresAt:    9_000_000_000,
+		APIURL:       "http://127.0.0.1:8787/",
+	}))
+
+	var got ResolvedCredential
+	cmd := &cli.Command{
+		Name:  "api",
+		Flags: []cli.Flag{RootKeyFlag(), ConfigFlag(), APIURLFlag()},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			cred, err := credential(ctx, cmd, &rootKeyStore{})
+			got = cred
+			return err
+		},
+	}
+	require.NoError(t, cmd.Run(context.Background(), []string{"unkey"}))
+	require.Equal(t, "access_from_session", got.Key)
+	require.Equal(t, "http://127.0.0.1:8787", got.APIURL)
+}
+
+func TestExplicitAPIURLSkipsASessionForAnotherHost(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("UNKEY_ROOT_KEY", "")
+	t.Setenv("UNKEY_CONFIG", "")
+	t.Setenv("UNKEY_API_BASE_URL", "")
+	sessions := &session.MemoryStore{}
+	session.SetStore(sessions)
+	t.Cleanup(func() { session.SetStore(&session.MemoryStore{}) })
+	require.NoError(t, session.Save(session.Session{
+		WorkspaceID:  "ws_local",
+		SessionID:    "clis_local",
+		AccessToken:  "access_from_session",
+		RefreshToken: "refresh_from_session",
+		ExpiresAt:    9_000_000_000,
+		APIURL:       "http://127.0.0.1:8787",
+	}))
+
+	cmd := &cli.Command{
+		Name:  "api",
+		Flags: []cli.Flag{RootKeyFlag(), ConfigFlag(), APIURLFlag()},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			_, err := credential(ctx, cmd, &rootKeyStore{})
+			return err
+		},
+	}
+	err := cmd.Run(context.Background(), []string{"unkey", "--api-url", "https://api.unkey.com"})
+	require.ErrorContains(t, err, "no credentials provided")
+}
+
 var _ credentials.RootKeyStore = (*rootKeyStore)(nil)
 
 type rootKeyStore struct {
