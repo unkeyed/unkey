@@ -13,8 +13,8 @@ import {
   getDeviceLogin,
 } from "@/lib/cli/device-api";
 import { formatUserCode } from "@/lib/cli/format-user-code";
-import { trpc } from "@/lib/trpc/client";
 import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
