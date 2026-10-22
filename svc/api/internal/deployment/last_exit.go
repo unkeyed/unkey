@@ -1,7 +1,9 @@
 package deployment
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/db"
@@ -25,12 +27,12 @@ var terminationReasons = map[string]openapi.DeploymentExitReason{
 var exitCodeHints = map[int32]string{
 	0:   "Exit code 0 means your app stopped on its own. A service must keep running.",
 	1:   "Exit code 1 usually means an unhandled error.",
-	2:   "Exit code 2 frequently indicates incorrect command usage, invalid arguments, or shell/syntax errors.",
+	2:   "Exit code 2 usually means a wrong command, wrong arguments, or a shell syntax error.",
 	126: "Exit code 126 means a command exists but cannot run. Check its permissions.",
 	127: "Exit code 127 means a command was not found.",
-	137: "Exit code 137 means the process was killed with SIGKILL.",
+	137: "Exit code 137 means the process was killed with SIGKILL, for example because it did not stop in time after SIGTERM.",
 	139: "Exit code 139 means the process crashed on an invalid memory access.",
-	143: "Exit code 143 means the process stopped on SIGTERM. This is normal during a redeploy.",
+	143: "Exit code 143 means the process stopped on SIGTERM, for example after a failed health check.",
 }
 
 // lastExit picks the most recent exit across the instances of a deployment, so
@@ -40,44 +42,34 @@ var exitCodeHints = map[int32]string{
 // carry a crash loop after its instance runs again, so it counts only while the
 // instance is not running.
 func lastExit(instances []db.ListDeploymentInstanceStatusesByIdsRow) *openapi.DeploymentLastExit {
-	var latest *dbtype.ContainerStatus
-	latestCrashLooping := false
-	latestFinishedAt := noRecordedExit
-	for i := range instances {
-		status := &instances[i].ContainerStatus
-		crashLooping := instances[i].Status != db.InstancesStatusRunning &&
-			status.Waiting != nil && status.Waiting.Reason == "CrashLoopBackOff"
-		if status.LastTerminationState == nil && !crashLooping {
-			continue
-		}
-		finishedAt := noRecordedExit
-		if status.LastTerminationState != nil {
-			finishedAt = status.LastTerminationState.FinishedAt
-		}
-		if latest == nil || finishedAt > latestFinishedAt ||
-			(finishedAt == latestFinishedAt && status.RestartCount > latest.RestartCount) {
-			latest, latestCrashLooping, latestFinishedAt = status, crashLooping, finishedAt
-		}
-	}
-	if latest == nil {
+	exited := slices.DeleteFunc(slices.Clone(instances), func(instance db.ListDeploymentInstanceStatusesByIdsRow) bool {
+		return instance.ContainerStatus.LastTerminationState == nil && !isCrashLooping(instance)
+	})
+	if len(exited) == 0 {
 		return nil
 	}
+	latest := slices.MaxFunc(exited, func(a, b db.ListDeploymentInstanceStatusesByIdsRow) int {
+		return cmp.Or(
+			cmp.Compare(exitFinishedAt(a.ContainerStatus), exitFinishedAt(b.ContainerStatus)),
+			cmp.Compare(a.ContainerStatus.RestartCount, b.ContainerStatus.RestartCount),
+		)
+	})
 
 	exit := &openapi.DeploymentLastExit{
 		Reason:       openapi.DeploymentExitReasonUnknown,
 		Message:      "",
 		ExitCode:     nil,
-		RestartCount: int64(latest.RestartCount),
+		RestartCount: int64(latest.ContainerStatus.RestartCount),
 		FinishedAt:   nil,
 	}
-	if term := latest.LastTerminationState; term != nil {
+	if term := latest.ContainerStatus.LastTerminationState; term != nil {
 		exit.ExitCode = new(term.ExitCode)
 		exit.FinishedAt = new(term.FinishedAt)
 		if reason, ok := terminationReasons[term.Reason]; ok {
 			exit.Reason = reason
 		}
 	}
-	if latestCrashLooping {
+	if isCrashLooping(latest) {
 		exit.Reason = openapi.DeploymentExitReasonCrashLoop
 	}
 	exit.Message = exitMessage(exit.Reason, exit.ExitCode)
@@ -110,4 +102,16 @@ func exitMessage(reason openapi.DeploymentExitReason, exitCode *int32) string {
 		sentences = append(sentences, fmt.Sprintf("Your app exited with code %d.", *exitCode))
 	}
 	return strings.Join(append(sentences, "Check your logs for the cause."), " ")
+}
+
+func isCrashLooping(instance db.ListDeploymentInstanceStatusesByIdsRow) bool {
+	waiting := instance.ContainerStatus.Waiting
+	return instance.Status != db.InstancesStatusRunning && waiting != nil && waiting.Reason == "CrashLoopBackOff"
+}
+
+func exitFinishedAt(status dbtype.ContainerStatus) int64 {
+	if status.LastTerminationState == nil {
+		return noRecordedExit
+	}
+	return status.LastTerminationState.FinishedAt
 }

@@ -55,7 +55,7 @@ func TestLastExitClassification(t *testing.T) {
 			name:    "a crash loop wins over the exit reason and explains the exit code",
 			status:  crashLooping,
 			reason:  openapi.DeploymentExitReasonCrashLoop,
-			message: "Your app exits right after it starts, so Unkey waits longer before each restart. Exit code 137 means the process was killed with SIGKILL. Check your logs for the cause.",
+			message: "Your app exits right after it starts, so Unkey waits longer before each restart. Exit code 137 means the process was killed with SIGKILL, for example because it did not stop in time after SIGTERM. Check your logs for the cause.",
 		},
 		{
 			name:    "a crash loop with no recorded exit has no exit code",
@@ -171,7 +171,7 @@ func TestLastExitSelection(t *testing.T) {
 		got := lastExit(instances)
 		require.NotNil(t, got)
 		require.Equal(t, openapi.DeploymentExitReasonExitedWithError, got.Reason)
-		require.Equal(t, "Exit code 137 means the process was killed with SIGKILL. Check your logs for the cause.", got.Message)
+		require.Equal(t, "Exit code 137 means the process was killed with SIGKILL, for example because it did not stop in time after SIGTERM. Check your logs for the cause.", got.Message)
 
 		instances[0].ContainerStatus.LastTerminationState = nil
 		require.Nil(t, lastExit(instances))
