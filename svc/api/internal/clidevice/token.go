@@ -27,8 +27,10 @@ func (s *Service) signAccessToken(userID string, name string, workspaceID string
 			Issuer:    clisession.Issuer,
 			Subject:   userID,
 			Audience:  []string{clisession.Audience},
-			IssuedAt:  now.Unix(),
 			ExpiresAt: now.Add(accessTTL).Unix(),
+			NotBefore: 0,
+			IssuedAt:  now.Unix(),
+			ID:        "",
 		},
 		WorkspaceID: workspaceID,
 		SessionID:   sessionID,
@@ -40,9 +42,12 @@ func (s *Service) signAccessToken(userID string, name string, workspaceID string
 }
 
 func intersectPermissions(ctx context.Context, workspaceID string, roles []string, stored []string) ([]string, error) {
+	var subject principal.Subject
 	caller := &principal.Principal{
 		Version:               principal.Version,
 		Type:                  principal.TypeJWT,
+		Subject:               subject,
+		Source:                nil,
 		AuthorizedWorkspaceID: workspaceID,
 		Permissions:           workos.PermissionsForRoles(workspaceID, roles),
 	}
