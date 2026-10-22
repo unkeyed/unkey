@@ -164,6 +164,33 @@ func largeSession() Session {
 	}
 }
 
+func TestRefreshKeepsTheAPIURL(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	useMemoryStore(t)
+	require.NoError(t, Save(Session{
+		WorkspaceID:  "ws_a",
+		SessionID:    "clis_a",
+		AccessToken:  "access_a",
+		RefreshToken: "refresh_a",
+		ExpiresAt:    time.Now().Unix(),
+		APIURL:       "http://127.0.0.1:8787",
+	}))
+
+	_, err := AccessToken(context.Background(), func(_ context.Context, current Session) (Session, error) {
+		require.Equal(t, "http://127.0.0.1:8787", current.APIURL)
+		return Session{
+			AccessToken:  "access_b",
+			RefreshToken: "refresh_b",
+			ExpiresAt:    time.Now().Add(time.Hour).Unix(),
+		}, nil
+	})
+	require.NoError(t, err)
+	stored, err := Active()
+	require.NoError(t, err)
+	require.Equal(t, "http://127.0.0.1:8787", stored.APIURL)
+	require.Equal(t, "refresh_b", stored.RefreshToken)
+}
+
 func TestKeychainSaveFailureKeepsTheRotatedTokenInTheFile(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	store := useMemoryStore(t)
@@ -176,8 +203,8 @@ func TestKeychainSaveFailureKeepsTheRotatedTokenInTheFile(t *testing.T) {
 	}))
 	store.SetError(errors.New("keychain rejected the blob"))
 
-	next, err := AccessToken(context.Background(), func(_ context.Context, refreshToken string) (Session, error) {
-		require.Equal(t, "refresh_a", refreshToken)
+	next, err := AccessToken(context.Background(), func(_ context.Context, current Session) (Session, error) {
+		require.Equal(t, "refresh_a", current.RefreshToken)
 		return Session{
 			AccessToken:  "access_b",
 			RefreshToken: "refresh_b",
@@ -207,8 +234,9 @@ func TestConcurrentRefreshDoesNotReuseTheToken(t *testing.T) {
 	var calls atomic.Int32
 	var mu sync.Mutex
 	current := "refresh_a"
-	refresh := func(_ context.Context, token string) (Session, error) {
+	refresh := func(_ context.Context, currentSession Session) (Session, error) {
 		calls.Add(1)
+		token := currentSession.RefreshToken
 		mu.Lock()
 		defer mu.Unlock()
 		if token != current {

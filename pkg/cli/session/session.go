@@ -108,6 +108,15 @@ var ErrNotFound = errors.New("cli session not found")
 // user to sign in again.
 var errCorruptSession = errors.New("stored CLI session is unreadable")
 
+// DefaultAPIURL is the API a CLI session belongs to when none was stored.
+const DefaultAPIURL = "https://api.unkey.com"
+
+// NormalizeAPIURL trims space and a trailing slash so two spellings of the
+// same host compare equal.
+func NormalizeAPIURL(raw string) string {
+	return strings.TrimRight(strings.TrimSpace(raw), "/")
+}
+
 // Session is one workspace login.
 type Session struct {
 	WorkspaceID  string `json:"workspace_id"`
@@ -115,6 +124,7 @@ type Session struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresAt    int64  `json:"expires_at"`
+	APIURL       string `json:"api_url,omitempty"`
 }
 
 type state struct {
@@ -218,7 +228,7 @@ func Delete(workspaceID string) (Session, error) {
 // The read, refresh, and save run under a file lock. The session is read
 // again after the lock is acquired, so a caller that waited does not present
 // a refresh token another caller already rotated.
-func AccessToken(ctx context.Context, refresh func(ctx context.Context, refreshToken string) (Session, error)) (string, error) {
+func AccessToken(ctx context.Context, refresh func(ctx context.Context, current Session) (Session, error)) (string, error) {
 	unlock, err := lockSessions()
 	if err != nil {
 		return "", err
@@ -235,7 +245,7 @@ func AccessToken(ctx context.Context, refresh func(ctx context.Context, refreshT
 	if refresh == nil {
 		return "", fmt.Errorf("cli session expired")
 	}
-	next, err := refresh(ctx, session.RefreshToken)
+	next, err := refresh(ctx, session)
 	if err != nil {
 		return "", err
 	}
@@ -244,6 +254,9 @@ func AccessToken(ctx context.Context, refresh func(ctx context.Context, refreshT
 	}
 	if next.SessionID == "" {
 		next.SessionID = session.SessionID
+	}
+	if next.APIURL == "" {
+		next.APIURL = session.APIURL
 	}
 	if err := Save(next); err != nil {
 		return "", err

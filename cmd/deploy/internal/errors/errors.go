@@ -46,7 +46,7 @@ func formatAuthenticationError(apiErr *apierrors.UnauthorizedErrorResponse) stri
 		msg.WriteString("Please check:\n")
 		msg.WriteString("  • --root-key, when you passed one\n")
 		msg.WriteString("  • UNKEY_ROOT_KEY\n")
-		msg.WriteString("  • the CLI session from unkey login\n")
+		msg.WriteString("  • the CLI session from unkey login, for the API that issued it\n")
 		msg.WriteString("  • a root key saved with unkey login --root-key\n")
 	} else {
 		msg.WriteString("Could not authenticate unkey deploy.\n\n")

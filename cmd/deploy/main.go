@@ -89,6 +89,10 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
+	apiURL := credential.APIURL
+	if apiURL == "" {
+		apiURL = cmd.String("api-base-url")
+	}
 	opts := DeployOptions{
 		Project:     cmd.String("project"),
 		App:         cmd.String("app"),
@@ -97,8 +101,8 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		Branch:      cmd.String("branch"),
 		Commit:      cmd.String("commit"),
 		Environment: cmd.String("env"),
-		RootKey:     credential,
-		APIBaseURL:  cmd.String("api-base-url"),
+		RootKey:     credential.Key,
+		APIBaseURL:  apiURL,
 	}
 
 	return executeDeploy(ctx, opts)
