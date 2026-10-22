@@ -66,13 +66,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.U(
+		permissionQuery := rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
 			permissions.Write,
-		))
+		)
+		err = principal.Authorize(permissionQuery)
 		if err != nil {
 			return openapi.V2PermissionsUpdateRoleResponseData{}, apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
+				principal.Permissions,
+				permissionQuery,
 				codes.Data.Role.NotFound.URN(),
 			)
 		}

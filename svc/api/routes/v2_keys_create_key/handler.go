@@ -116,7 +116,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 3. Permission check. Creating a key is authorized against the keyspace
 	// because the key does not exist until after the operation succeeds. The
 	// tuple legs accept legacy API-scoped grants until those are migrated.
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   req.ApiId,
@@ -131,10 +131,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
 			permissions.Write,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Api.NotFound.URN(),
 		)
 	}
@@ -207,7 +210,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.Or(
+		encryptQuery := rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
 				ResourceID:   "*",
@@ -222,10 +225,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Key("*"),
 				permissions.Write,
 			),
-		))
+		)
+		err = principal.Authorize(encryptQuery)
 		if err != nil {
 			return apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
+				principal.Permissions,
+				encryptQuery,
 				codes.Data.Api.NotFound.URN(),
 			)
 		}

@@ -16,8 +16,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_role"
 )
 
-// TestDeleteRoleMasksInsufficientPermissions guarantees that callers cannot find
-// or delete roles without delete access.
+// TestDeleteRoleMasksInsufficientPermissions guarantees that a caller who can
+// read a role learns they lack delete, and a caller with no access gets not-found.
 func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -49,8 +49,7 @@ func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	t.Run("missing required permission", func(t *testing.T) {
-		// Create a root key with a different permission (not rbac.*.delete_role)
+	t.Run("read without delete names the missing permission", func(t *testing.T) {
 		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_role")
 
 		headers := http.Header{
@@ -58,7 +57,7 @@ func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
 			h,
 			route,
 			headers,
@@ -67,11 +66,13 @@ func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 			},
 		)
 
-		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, http.StatusForbidden, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/role_not_found", res.Body.Error.Type)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "delete_role")
+		require.Contains(t, res.Body.Error.Detail, "Log in again")
+		require.Contains(t, res.Body.Error.Detail, "grant it")
 	})
 
 	t.Run("no permissions", func(t *testing.T) {

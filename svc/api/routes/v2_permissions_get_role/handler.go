@@ -69,12 +69,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
 		permissions.Read,
 	)
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		readRole,
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Role.NotFound.URN(),
 		)
 	}
