@@ -149,3 +149,20 @@ func TestLimiterWaitsForARunningReadWhenRowsExpire(t *testing.T) {
 	require.False(t, result.Allowed)
 	require.Equal(t, 2, store.readCallCount())
 }
+
+func TestLimiterAllowManyReadsPeerRowsOfEveryLimit(t *testing.T) {
+	ctx := context.Background()
+	l, testClock := newTestLimiter(t)
+	store := memoryStoreOf(t, l)
+	rate := Rate{Limit: 10, Duration: 10 * time.Second}
+	first := Request{Fingerprint: fingerprint("first"), Rate: rate, Units: 1}
+	second := Request{Fingerprint: fingerprint("second"), Rate: rate, Units: 1}
+	writePeer(t, store, first, "peer-first", testClock.Now(), 10)
+	writePeer(t, store, second, "peer-second", testClock.Now(), 10)
+
+	results, err := l.AllowMany(ctx, []Request{first, second})
+	require.NoError(t, err)
+	require.False(t, results[0].Allowed)
+	require.False(t, results[1].Allowed)
+	require.Equal(t, 2, store.readCallCount())
+}
