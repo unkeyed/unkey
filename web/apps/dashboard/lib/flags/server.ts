@@ -2,6 +2,7 @@ import { getAuth } from "@/lib/auth/get-auth";
 import { mintProxyJWT } from "@/lib/auth/mint-proxy-jwt";
 import { env } from "@/lib/env";
 import { Unkey } from "@unkey/api";
+import { unstable_rethrow } from "next/navigation";
 
 export async function loadFlags() {
   try {
@@ -34,6 +35,7 @@ export async function loadFlags() {
     });
     return response.data;
   } catch (error) {
+    unstable_rethrow(error);
     console.error("Failed to load initial workspace flags; using defaults", { error });
     return undefined;
   }

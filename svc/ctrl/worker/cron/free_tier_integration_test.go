@@ -1,9 +1,13 @@
 package cron_test
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -16,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 )
 
 const (
@@ -150,6 +155,99 @@ func TestFreeTierEnforcement_Integration(t *testing.T) {
 	})
 }
 
+func TestFreeTierSlackFollowUpOnlyWhenThrottled_Integration(t *testing.T) {
+	messages := make(chan slack.Payload, 10)
+	var failNextSlack atomic.Bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if failNextSlack.Swap(false) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		var payload slack.Payload
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		messages <- payload
+	}))
+	t.Cleanup(server.Close)
+	sender := email.NewCapture()
+	h := harness.New(t, harness.WithIsolatedMySQL(), harness.WithAlertEmail(newFakeAdmins(), sender), harness.WithSlackQuotaCheckWebhookURL(server.URL))
+	free := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 150_000})
+	paid := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 150_000})
+	require.NoError(t, h.DB.UpdateWorkspaceBillingTier(h.Ctx, db.UpdateWorkspaceBillingTierParams{
+		Tier: sql.NullString{String: "Pro", Valid: true}, WorkspaceID: paid.ID,
+	}))
+	now := time.Now().UTC()
+	period := now.Format("2006-01")
+	for _, ws := range []db.Workspace{free, paid} {
+		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 200_000, now, "VALID")
+		waitForVerificationCount(t, h.Ctx, h.ClickHouse, ws.ID, 200_000, now.Year(), int(now.Month()))
+	}
+
+	_, err := callRunQuotaCheck(h, period)
+	require.NoError(t, err)
+	require.Len(t, messages, 2)
+	<-messages
+	<-messages
+	client := hydrav1.NewCronServiceIngressClient(h.Restate, "free-tier-"+free.ID)
+	_, err = client.EnforceFreeTier().Request(h.Ctx, &hydrav1.EnforceFreeTierRequest{WorkspaceId: free.ID, Used: 200_000})
+	require.NoError(t, err)
+	require.Equal(t, 1, sender.CountByTemplate(freeTierExceededTemplate))
+
+	setCronState(t, h, "quota-check-"+period, "notified_workspaces", map[string]int64{
+		free.ID: now.Add(-8 * 24 * time.Hour).Unix(),
+		paid.ID: now.Add(-8 * 24 * time.Hour).Unix(),
+	})
+	_, err = callRunQuotaCheck(h, period)
+	require.NoError(t, err)
+	require.Len(t, messages, 1, "only paid workspaces receive weekly reminders")
+	reminder := <-messages
+	require.Contains(t, reminder.Text, "Weekly Reminder")
+	require.Contains(t, reminder.Text, paid.Name)
+	require.Zero(t, sender.CountByTemplate(freeTierThrottledTemplate))
+
+	warnedAt := now.Add(-13 * 24 * time.Hour).Unix()
+	setCronState(t, h, "free-tier-"+free.ID, "warned_at", warnedAt)
+	failNextSlack.Store(true)
+	resp, err := client.EnforceFreeTier().Request(h.Ctx, &hydrav1.EnforceFreeTierRequest{WorkspaceId: free.ID, Used: 200_000})
+	require.NoError(t, err)
+	require.Equal(t, warnedAt, resp.GetWarnedAt(), "overdue enforcement must preserve the original warning")
+	require.Equal(t, 1, sender.CountByTemplate(freeTierExceededTemplate))
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		require.Equal(c, 1, sender.CountByTemplate(freeTierThrottledTemplate))
+		require.Len(c, messages, 1, "Slack follows the actual throttle, not a later quota check")
+	}, 30*time.Second, 100*time.Millisecond)
+	message := <-messages
+	require.Contains(t, message.Text, "Rate Limited")
+	require.Contains(t, message.Text, free.Name)
+	limits, err := h.DB.FindLimitsByWorkspaceID(h.Ctx, free.ID)
+	require.NoError(t, err)
+	require.Equal(t, sql.NullInt32{Int32: 5, Valid: true}, limits.ApiRequestsCountMaxPerMinute)
+
+	_, err = client.ThrottleFreeTierWorkspace().Request(h.Ctx, &hydrav1.ThrottleFreeTierWorkspaceRequest{WorkspaceId: free.ID, WarnedAt: warnedAt})
+	require.NoError(t, err)
+	setCronState(t, h, "quota-check-"+period, "notified_workspaces", map[string]int64{paid.ID: now.Unix()})
+	_, err = callRunQuotaCheck(h, period)
+	require.NoError(t, err)
+	require.Empty(t, messages, "throttled workspaces must stay silent even after notification state resets")
+	require.Equal(t, 1, sender.CountByTemplate(freeTierThrottledTemplate))
+
+	upgraded := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 150_000})
+	upgradedClient := hydrav1.NewCronServiceIngressClient(h.Restate, "free-tier-"+upgraded.ID)
+	warning, err := upgradedClient.EnforceFreeTier().Request(h.Ctx, &hydrav1.EnforceFreeTierRequest{WorkspaceId: upgraded.ID, Used: 200_000})
+	require.NoError(t, err)
+	require.NotZero(t, warning.GetWarnedAt())
+	require.NoError(t, h.DB.UpdateWorkspaceBillingTier(h.Ctx, db.UpdateWorkspaceBillingTierParams{
+		Tier: sql.NullString{String: "Pro", Valid: true}, WorkspaceID: upgraded.ID,
+	}))
+	_, err = upgradedClient.ThrottleFreeTierWorkspace().Request(h.Ctx, &hydrav1.ThrottleFreeTierWorkspaceRequest{WorkspaceId: upgraded.ID, WarnedAt: warning.GetWarnedAt()})
+	require.NoError(t, err)
+	require.Empty(t, messages, "upgrading cancels the throttle follow-up")
+	require.Equal(t, 1, sender.CountByTemplate(freeTierThrottledTemplate))
+}
+
 func TestFreeTierEnforcementDeliveryDisabled_Integration(t *testing.T) {
 	h := harness.New(t)
 	ws := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 150_000})
@@ -185,6 +283,28 @@ func TestFreeTierEnforcementSendFailureDoesNotStartGracePeriod_Integration(t *te
 	require.NoError(t, err)
 	require.NotZero(t, resp.GetWarnedAt())
 	require.Equal(t, 1, capture.CountByTemplate(freeTierExceededTemplate))
+}
+
+func setCronState[T any](t *testing.T, h *harness.Harness, objectKey, stateKey string, value T) {
+	t.Helper()
+	encoded, err := json.Marshal(value)
+	require.NoError(t, err)
+	state := make([]int, len(encoded))
+	for i, b := range encoded {
+		state[i] = int(b)
+	}
+	body, err := json.Marshal(struct {
+		ObjectKey string           `json:"object_key"`
+		NewState  map[string][]int `json:"new_state"`
+	}{ObjectKey: objectKey, NewState: map[string][]int{stateKey: state}})
+	require.NoError(t, err)
+	req, err := http.NewRequestWithContext(h.Ctx, http.MethodPost, h.RestateAdmin+"/services/hydra.v1.CronService/state", bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, resp.Body.Close()) })
+	require.Equal(t, http.StatusAccepted, resp.StatusCode)
 }
 
 type fakeAdmins struct {

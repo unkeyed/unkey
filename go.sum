@@ -12,6 +12,8 @@ buf.build/gen/go/depot/api/connectrpc/go v1.19.1-20250915125527-3af9e416de91.2 h
 buf.build/gen/go/depot/api/connectrpc/go v1.19.1-20250915125527-3af9e416de91.2/go.mod h1:MrHPUqrKeUbAIE9tCAQrZa077VS1SLIC56x/xACabr0=
 buf.build/gen/go/depot/api/protocolbuffers/go v1.36.11-20250915125527-3af9e416de91.1 h1:2NFy88/TVmd/CbQ2Drs7b4D9uCGsS7YYEZBmx2KSfzA=
 buf.build/gen/go/depot/api/protocolbuffers/go v1.36.11-20250915125527-3af9e416de91.1/go.mod h1:flLy9CsWgmK0R+28/i1wH9jkYcDoin4b6bzOhw/uXaQ=
+buf.build/gen/go/depot/api/protocolbuffers/go v1.36.12-20261019144514-21d9da72374f.2 h1:EpOOyKDbRcXztirSi0z3C0wTNZwGxYCNdFE2jiLMIpk=
+buf.build/gen/go/depot/api/protocolbuffers/go v1.36.12-20261019144514-21d9da72374f.2/go.mod h1:F/hJ0j47MkXTbXBWZHrAdU6K+20CRArYnkDjtdAylsw=
 buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.11-20241007202033-cf42259fcbfc.1 h1:iGPvEJltOXUMANWf0zajcRcbiOXLD90ZwPUFvbcuv6Q=
 buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.11-20241007202033-cf42259fcbfc.1/go.mod h1:nWVKKRA29zdt4uvkjka3i/y4mkrswyWwiu0TbdX0zts=
 buf.build/go/app v0.2.0 h1:NYaH13A+RzPb7M5vO8uZYZ2maBZI5+MS9A9tQm66fy8=
@@ -912,6 +914,8 @@ google.golang.org/protobuf v1.26.0-rc.1/go.mod h1:jlhhOSvTdKEhbULTjvd4ARK9grFBp0
 google.golang.org/protobuf v1.31.0/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
 google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
 google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
+google.golang.org/protobuf v1.36.12 h1:pJOKDDOyeXErUroCihFAd5LQuwXBSpVnKGrj5o/fwxc=
+google.golang.org/protobuf v1.36.12/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=

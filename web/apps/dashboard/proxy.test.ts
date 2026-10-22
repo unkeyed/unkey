@@ -161,13 +161,18 @@ describe("proxy auth mode split", () => {
     },
   );
 
-  it("does not create an unused AuthKit transaction for public route handlers", async () => {
-    const response = await proxy(new NextRequest("http://localhost:3000/api/webhooks/workos"));
+  it.each(["/api/webhooks/workos", "/api/v1/github/verify"])(
+    "does not create an unused AuthKit transaction for public route handler %s",
+    async (path) => {
+      const response = await proxy(
+        new NextRequest(`http://localhost:3000${path}`, { method: "POST" }),
+      );
 
-    expect(response.status).toBe(200);
-    expect(mocks.authkit).not.toHaveBeenCalled();
-    expect(mocks.handleAuthkitHeaders).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(200);
+      expect(mocks.authkit).not.toHaveBeenCalled();
+      expect(mocks.handleAuthkitHeaders).not.toHaveBeenCalled();
+    },
+  );
 
   it("lets the retired WorkOS join handler return 404 without starting AuthKit", async () => {
     const response = await proxy(
@@ -245,7 +250,7 @@ describe("proxy auth mode split", () => {
     expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
   });
 
-  it.each(["/api/example", "/proxy/v2/keys.updateKey"])(
+  it.each(["/api/example", "/proxy/v2/keys.updateKey", "/api/v1/github/verify-other"])(
     "passes a signed-out request to %s through without an interactive redirect",
     async (path) => {
       const request = new NextRequest(`http://localhost:3000${path}`, { method: "POST" });

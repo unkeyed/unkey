@@ -1,7 +1,7 @@
 "use client";
 
 import { Menu as DropdownMenuPrimitive } from "@base-ui/react/menu";
-import { type VariantProps, cva } from "class-variance-authority";
+import { type VariantProps, cva } from "@unkey/ui/src/lib/cva";
 import { cn } from "~/lib/utils";
 
 export const DropdownMenu = DropdownMenuPrimitive.Root;

@@ -25,6 +25,8 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/add/add-env-vars-button.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/config-blocks.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/list/env-var-edit-row.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/env-vars/model.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/env-vars/app-group-card.tsx
 ---
 
 Environment variables give your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> configuration and secrets, both while it builds and while it runs. Each variable belongs to one <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, so production and preview can have different values for `DATABASE_URL`. Every value is encrypted at rest.
@@ -53,6 +55,16 @@ In the new-app flow, you can also change the value of a saved variable or delete
 <Frame>
   <img src="/images/dashboard/compute--configure-environment-variables--new-app.png" alt="Environment variables panel in the new-app flow with saved DATABASE_URL and LOG_LEVEL values, a masked sensitive STRIPE_SECRET_KEY, an empty row for a new variable, and the Environment select set to All environments" />
 </Frame>
+
+## Find a variable across the workspace
+
+To see where a key is set, for example to rotate a leaked secret, open **Environment Variables** in the dashboard sidebar. The page lists every variable in the workspace, in one card for each app. It never shows values.
+
+1. Type the key in **Search by key**.
+2. To narrow the list, filter by type (**Sensitive** or **Not sensitive**) or by environment (**Production** or **Preview**). To change the order, sort by **Last updated**, **Name**, or **Type**.
+3. Click a row. The app's **Environment variables** page opens, filtered to that key. Edit the variable there.
+
+Each card shows 15 rows per page. The search, filters, and sort are kept in the URL, so you can share or bookmark a filtered view.
 
 ## Recoverable or write-only
 

@@ -750,3 +750,44 @@ html[data-current-path^="/errors/"]:not([data-current-path="/errors/overview"]) 
     transition: none;
   }
 }
+
+#sidebar .sidebar-group-header[data-unkey-collapsible] {
+  cursor: pointer;
+  user-select: none;
+}
+
+#sidebar .sidebar-group-header[data-unkey-collapsible]::after {
+  content: "";
+  width: 0.375rem;
+  height: 0.375rem;
+  margin-left: auto;
+  margin-right: 0.75rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+#sidebar .sidebar-group-header[aria-expanded="false"]::after {
+  transform: rotate(-45deg);
+}
+
+#sidebar .sidebar-group-header[data-unkey-collapsible]:hover {
+  color: var(--unkey-ink);
+}
+
+#sidebar [data-unkey-collapsed] > .sidebar-group {
+  display: none;
+}
+
+#sidebar [data-unkey-collapsed] > .sidebar-group-header {
+  margin-bottom: 0;
+}
+
+#sidebar div:has(> .sidebar-group-header[aria-expanded="true"]) + div {
+  margin-top: 1.5rem;
+}
+
+#sidebar [data-unkey-collapsed] + div {
+  margin-top: 1rem;
+}

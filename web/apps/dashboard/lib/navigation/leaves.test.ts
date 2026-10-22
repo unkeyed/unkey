@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildApiLinks, buildAppLinks, buildNamespaceLinks } from "./leaves";
+import {
+  buildApiLinks,
+  buildAppLinks,
+  buildNamespaceLinks,
+  buildWorkspaceSections,
+} from "./leaves";
 import type { ResolvedNavLink } from "./types";
 
 const ws = "acme";
@@ -10,6 +15,38 @@ const projectId = "proj_123";
 
 const rows = (links: ResolvedNavLink[]) =>
   links.map(({ key, label, href, isActive }) => ({ key, label, href, isActive }));
+
+describe("workspace sections", () => {
+  it("lists env vars and root keys before the audit log for an admin", () => {
+    const keys = buildWorkspaceSections(ws, ["projects"], true).map((link) => link.key);
+    expect(keys).toEqual([
+      "projects",
+      "apis",
+      "ratelimits",
+      "authorization",
+      "logs",
+      "identities",
+      "env-vars",
+      "root-keys",
+      "audit",
+      "settings",
+    ]);
+  });
+
+  it("omits root keys for a non-admin", () => {
+    const keys = buildWorkspaceSections(ws, ["projects"], false).map((link) => link.key);
+    expect(keys).not.toContain("root-keys");
+    expect(keys).toContain("env-vars");
+  });
+
+  it.each([
+    ["env-vars", "/acme/env-vars"],
+    ["root-keys", "/acme/root-keys"],
+  ])("marks only %s active on its own segment", (segment, href) => {
+    const active = buildWorkspaceSections(ws, [segment], true).filter((link) => link.isActive);
+    expect(active.map((link) => [link.key, link.href])).toEqual([[segment, href]]);
+  });
+});
 
 describe("keyspace links at workspace scope", () => {
   it("lists requests, keys, the portal and settings", () => {

@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/number"
@@ -27,7 +28,6 @@ const (
 	throttleRequestsPerMinute = 5
 	throttleAfter             = 5 * 24 * time.Hour
 	throttleStallTimeout      = 24 * time.Hour
-	warningStaleAfter         = 7 * 24 * time.Hour
 	throttleRetryDelay        = time.Hour
 	runMaxAttempts            = 5
 )
@@ -177,9 +177,6 @@ func nextFreeTierAction(warnedAt int64, now time.Time) freeTierAction {
 	if warnedAt == 0 {
 		return freeTierActionWarn
 	}
-	if now.Sub(time.Unix(warnedAt, 0)) > throttleAfter+warningStaleAfter {
-		return freeTierActionWarn
-	}
 	if now.Sub(time.Unix(warnedAt, 0)) > throttleAfter+throttleStallTimeout {
 		return freeTierActionRescheduleThrottle
 	}
@@ -204,6 +201,31 @@ func (h *Handler) notifyThrottledBestEffort(
 		fmt.Sprintf("free-tier-throttled/%s/%d", ws.ID, warnedAt), h.freeTierVariables(ws, now))
 	if err != nil {
 		logger.Error("free tier throttled email failed",
+			"workspace_id", ws.ID,
+			"error", err.Error(),
+		)
+	}
+	if h.slackWebhookURL == "" {
+		return
+	}
+
+	title := fmt.Sprintf("Free Tier Rate Limited: %s", ws.Name)
+	payload := slack.Payload{
+		Text: title,
+		Blocks: []slack.Block{
+			slack.NewHeaderBlock(title),
+			slack.NewSectionBlock(
+				slack.NewMarkdownField(fmt.Sprintf("*Workspace ID:*\n`%s`", ws.ID)),
+				slack.NewMarkdownField(fmt.Sprintf("*Workspace Name:*\n%s", ws.Name)),
+				slack.NewMarkdownField(fmt.Sprintf("*Organisation ID:*\n`%s`", ws.OrgID)),
+				slack.NewMarkdownField(fmt.Sprintf("*Rate Limit:*\n%d requests/minute", throttleRequestsPerMinute)),
+			),
+		},
+	}
+	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+		return slack.NewClient().Send(rc, h.slackWebhookURL, payload)
+	}, restate.WithName("notify throttled workspace on slack"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
+		logger.Error("free tier throttled slack notification failed",
 			"workspace_id", ws.ID,
 			"error", err.Error(),
 		)

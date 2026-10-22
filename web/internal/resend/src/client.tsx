@@ -5,7 +5,6 @@ import { render } from "@react-email/render";
 import React from "react";
 import { ApiV1Migration } from "../emails/api_v1_migration";
 import { PaymentIssue } from "../emails/payment_issue";
-import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";
 import { WelcomeEmail } from "../emails/welcome_email";
 export class Resend {
   public readonly client: Client;
@@ -64,35 +63,6 @@ export class Resend {
       throw result.error;
     } catch (error) {
       console.error("Error occurred sending payment issue email ", JSON.stringify(error));
-    }
-  }
-  public async sendLeakedKeyEmail(req: {
-    email: string;
-    date: string;
-    source: string;
-    url: string;
-    idempotencyKey?: string;
-  }): Promise<void> {
-    const { date, email, source, url, idempotencyKey } = req;
-    const html = await render(<SecretScanningKeyDetected date={date} source={source} url={url} />);
-
-    try {
-      const result = await this.client.emails.send(
-        {
-          to: email,
-          from: "James from Unkey <james@updates.unkey.com>",
-          replyTo: this.replyTo,
-          subject: "Unkey root key exposed in public Github repository",
-          html: html,
-        },
-        idempotencyKey ? { idempotencyKey } : undefined,
-      );
-      if (!result.error) {
-        return;
-      }
-      throw result.error;
-    } catch (error) {
-      console.error(error);
     }
   }
 

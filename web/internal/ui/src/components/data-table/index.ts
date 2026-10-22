@@ -77,8 +77,9 @@ export type { SortableHeaderProps } from "./components/headers";
 export { SkeletonRow } from "./components/rows";
 
 // Footer components
-export { LoadMoreFooter, PaginationFooter } from "./components/footer";
+export { LoadMoreFooter, PaginationControls, PaginationFooter } from "./components/footer";
 export type { LoadMoreFooterComponentProps } from "./components/footer/load-more-footer";
+export type { PaginationControlsProps } from "./components/footer/pagination-controls";
 export type { PaginationFooterProps } from "./components/footer/pagination-footer";
 
 // Utility components

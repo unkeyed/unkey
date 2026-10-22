@@ -1,4 +1,4 @@
-import { cva } from "class-variance-authority";
+import { cva } from "@unkey/ui";
 import { cn } from "cn";
 import type { HTMLAttributes, ReactNode } from "react";
 
