@@ -3,7 +3,6 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -63,20 +62,6 @@ func TestDeleteDomainPermissions(t *testing.T) {
 			if tc.shouldPass {
 				require.Equal(t, http.StatusOK, res.Status, "expected 200 for %v, received: %s", permissions, res.RawBody)
 				require.Len(t, ctrlClient.DeleteCustomDomainCalls, callsBefore+1)
-				return
-			}
-			readable := false
-			for _, permission := range permissions {
-				if strings.Contains(permission, "read_domain") || strings.HasSuffix(permission, "#read") {
-					readable = true
-				}
-			}
-			if readable {
-				require.Equal(t, http.StatusForbidden, res.Status, "expected 403 for %v, received: %s", permissions, res.RawBody)
-				require.Contains(t, res.RawBody, "delete_domain")
-				require.Contains(t, res.RawBody, "Log in again")
-				require.Len(t, ctrlClient.DeleteCustomDomainCalls, callsBefore,
-					"a rejected request must not delete anything")
 				return
 			}
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for %v, received: %s", permissions, res.RawBody)

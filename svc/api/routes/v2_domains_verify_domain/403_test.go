@@ -3,7 +3,6 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,8 +12,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_verify_domain"
 )
 
-// TestVerifyDomainPermissions is a permission matrix. A caller who cannot read the
-// domain gets 404. A caller who can read it gets 403 naming verify_domain.
+// TestVerifyDomainPermissions is a permission matrix. A legacy read does not
+// reveal the domain, so every missing grant is a 404.
 func TestVerifyDomainPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctrlClient := &testutil.MockCustomDomainClient{}
@@ -62,20 +61,6 @@ func TestVerifyDomainPermissions(t *testing.T) {
 			if tc.shouldPass {
 				require.Equal(t, http.StatusAccepted, res.Status, "expected 202 for %v, received: %s", permissions, res.RawBody)
 				require.Len(t, ctrlClient.RetryVerificationCalls, callsBefore+1)
-				return
-			}
-			readable := false
-			for _, permission := range permissions {
-				if strings.Contains(permission, "read_domain") || strings.HasSuffix(permission, "#read") {
-					readable = true
-				}
-			}
-			if readable {
-				require.Equal(t, http.StatusForbidden, res.Status, "expected 403 for %v, received: %s", permissions, res.RawBody)
-				require.Contains(t, res.RawBody, "verify_domain")
-				require.Contains(t, res.RawBody, "Log in again")
-				require.Len(t, ctrlClient.RetryVerificationCalls, callsBefore,
-					"a rejected request must not restart anything")
 				return
 			}
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for %v, received: %s", permissions, res.RawBody)

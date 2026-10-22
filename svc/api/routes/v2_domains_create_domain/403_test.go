@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -69,18 +68,6 @@ func TestCreateDomainPermissions(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, makeRequest(env, randomDomain()))
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, received: %s", tc.permissions, res.RawBody)
-				return
-			}
-			readable := false
-			for _, permission := range tc.permissions {
-				if strings.Contains(permission, "read_environment") || strings.HasSuffix(permission, "#read") {
-					readable = true
-				}
-			}
-			if readable {
-				require.Equal(t, http.StatusForbidden, res.Status, "expected 403 for %v, received: %s", tc.permissions, res.RawBody)
-				require.Contains(t, res.RawBody, "create_domain")
-				require.Contains(t, res.RawBody, "Log in again")
 				return
 			}
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for %v, received: %s", tc.permissions, res.RawBody)

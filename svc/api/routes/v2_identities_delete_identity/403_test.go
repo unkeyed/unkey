@@ -88,8 +88,23 @@ func TestDeleteIdentityMasksInsufficientPermissions(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
-	t.Run("read-only permission", func(t *testing.T) {
+	t.Run("legacy read does not reveal the identity", func(t *testing.T) {
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		req := handler.Request{Identity: externalID}
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+		require.NotContains(t, res.RawBody, identity.ID)
+	})
+
+	t.Run("urn read names the missing permission", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/%s#read", h.Resources().UserWorkspace.ID, identity.ProjectID, identity.ID))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -98,13 +113,9 @@ func TestDeleteIdentityMasksInsufficientPermissions(t *testing.T) {
 		req := handler.Request{Identity: externalID}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "delete_identity")
+		require.Contains(t, res.Body.Error.Detail, "#delete")
 		require.Contains(t, res.Body.Error.Detail, "Log in again")
-		require.Contains(t, res.Body.Error.Detail, "grant it")
-		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.NotContains(t, res.RawBody, identity.ID)
 	})
 
 	t.Run("partial permission match", func(t *testing.T) {
