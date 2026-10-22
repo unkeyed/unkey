@@ -1,5 +1,9 @@
 import type { ValidationResult } from "./use-repo-tree";
 
+export function normalizePath(path: string): string {
+  return path.replace(/^(\.\/)+/, "").replace(/^\/+|\/+$/g, "");
+}
+
 export type PathHint =
   | { type: "none" }
   | { type: "case-match"; path: string }

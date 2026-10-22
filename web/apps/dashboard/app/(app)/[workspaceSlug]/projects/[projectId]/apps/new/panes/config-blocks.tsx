@@ -11,7 +11,7 @@ import {
   readCompute,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/compute/draft";
 import { useEnvironmentSettings } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/environment-provider";
-import { useBuildFields } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-build-fields";
+import { useBuildRecipe } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-build-recipe";
 import { useBuildSource } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-build-source";
 import { OCIImage } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/oci-image";
 import {
@@ -27,7 +27,7 @@ import {
   type IconProps,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, SettingsPanel, Skeleton } from "@unkey/ui";
+import { Button, SettingsForm, SettingsPanel, Skeleton } from "@unkey/ui";
 import { type ComponentType, type ReactNode, useEffect, useState } from "react";
 import type { SourceKind } from "../wizard-model";
 
@@ -191,14 +191,16 @@ function BlockRow({
 }
 
 function GitBuildFields() {
-  const build = useBuildFields();
+  const { form, formProps } = useBuildRecipe();
   return (
     <>
-      <div className="grid grid-cols-1 gap-5 @lg:grid-cols-2 @lg:gap-4">
-        <RootDirectory />
-        <Dockerfile field={build.dockerfile} onSelect={build.onDockerfileSelect} />
-      </div>
-      <BuildCommand field={build.buildCommand} disabled={build.dockerfileConfigured} />
+      <SettingsForm {...formProps}>
+        <div className="grid grid-cols-1 gap-5 @lg:grid-cols-2 @lg:gap-4">
+          <RootDirectory form={form} />
+          <Dockerfile form={form} />
+        </div>
+        <BuildCommand form={form} />
+      </SettingsForm>
       <CommandForm />
       <WatchPaths />
     </>

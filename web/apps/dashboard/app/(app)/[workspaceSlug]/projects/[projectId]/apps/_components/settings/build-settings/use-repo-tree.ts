@@ -4,6 +4,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
+import { normalizePath } from "./path-hint";
 
 export type ValidationResult = "valid" | "invalid" | "unknown";
 
@@ -38,10 +39,6 @@ const workspaceWatchFiles = new Set([
 ]);
 
 /** Strip leading "./", leading/trailing slashes so `./svc/api/` and `svc/api` match the same tree entry. */
-function normalizePath(path: string): string {
-  return path.replace(/^(\.\/)+/, "").replace(/^\/+|\/+$/g, "");
-}
-
 /**
  * Join a docker context (root directory) with a relative path.
  * e.g. ("svc/api", "Dockerfile") → "svc/api/Dockerfile"
