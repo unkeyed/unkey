@@ -15,7 +15,7 @@ export const CANCELLATION_REASON_LABELS: Record<CancellationReason, string> = {
   other: "Something else",
 };
 
-function isCancellationReason(value: string): value is CancellationReason {
+export function isCancellationReason(value: string): value is CancellationReason {
   return Object.hasOwn(CANCELLATION_REASON_LABELS, value);
 }
 

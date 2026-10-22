@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  alertCancellationReason: vi.fn(),
   alertCustomerLifecycle: vi.fn(),
   billingSubscriptionFindFirst: vi.fn(),
   constructEvent: vi.fn(),
@@ -77,6 +78,7 @@ vi.mock("@/lib/stripe/subscriptionUtils", async (importOriginal) => ({
   isScheduleUpdateOnly: vi.fn(),
 }));
 vi.mock("@/lib/utils/slackAlerts", () => ({
+  alertCancellationReason: mocks.alertCancellationReason,
   alertCustomerLifecycle: mocks.alertCustomerLifecycle,
   alertInvalidProductQuotaMetadata: vi.fn(),
   alertOrphanedDeploySubscription: vi.fn(),
@@ -244,15 +246,52 @@ describe("customer.subscription.updated on a cancelling API subscription", () =>
     mocks.subscriptionsRetrieve.mockResolvedValue(cancellingSub);
   });
 
-  function updatedEvent(previousAttributes: Partial<Stripe.Subscription>) {
+  function updatedEvent(
+    previousAttributes: Partial<Stripe.Subscription>,
+    object: typeof cancellingSub &
+      Partial<Pick<Stripe.Subscription, "cancellation_details">> = cancellingSub,
+  ) {
     return {
       id: "evt_updated",
       type: "customer.subscription.updated",
-      data: { object: cancellingSub, previous_attributes: previousAttributes },
+      data: { object, previous_attributes: previousAttributes },
     };
   }
 
-  it("posts no cancelling alert when only the cancellation feedback changed", async () => {
+  it("posts only the reason alert when the cancellation feedback changed", async () => {
+    mocks.constructEvent.mockReturnValue(
+      updatedEvent(
+        { cancellation_details: { feedback: null, comment: null, reason: null } },
+        {
+          ...cancellingSub,
+          cancellation_details: {
+            feedback: "too_expensive",
+            comment: "Too pricey for us",
+            reason: "cancellation_requested",
+          },
+        },
+      ),
+    );
+
+    const response = await POST(signedRequest());
+
+    expect(response.status).toBe(200);
+    expect(mocks.alertCustomerLifecycle).not.toHaveBeenCalled();
+    expect(mocks.alertCancellationReason).toHaveBeenCalledOnce();
+    expect(mocks.alertCancellationReason).toHaveBeenCalledWith({
+      reason: "too_expensive",
+      comment: "Too pricey for us",
+      name: "Jane",
+      email: "jane@example.com",
+      workspaceId: "ws_123",
+      workspaceName: "Acme",
+      product: "API",
+      stripeCustomerId: "cus_123",
+      livemode: true,
+    });
+  });
+
+  it("posts no alert when the feedback was cleared", async () => {
     mocks.constructEvent.mockReturnValue(
       updatedEvent({ cancellation_details: { feedback: null, comment: null, reason: null } }),
     );
@@ -261,6 +300,7 @@ describe("customer.subscription.updated on a cancelling API subscription", () =>
 
     expect(response.status).toBe(200);
     expect(mocks.alertCustomerLifecycle).not.toHaveBeenCalled();
+    expect(mocks.alertCancellationReason).not.toHaveBeenCalled();
   });
 
   it("posts a cancelling alert when the cancel was just scheduled", async () => {

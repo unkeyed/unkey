@@ -1,6 +1,7 @@
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreatorMemberships";
+import { type BillingProduct, PRODUCT_LABELS } from "@/lib/billing/products";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -21,6 +22,8 @@ import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/payment
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import {
+  type CancellationFeedback,
+  cancellationFeedbackUpdate,
   isAutomatedBillingRenewal,
   isCancelJustScheduled,
   isCardUpdateOnly,
@@ -30,6 +33,7 @@ import {
 import { keepsTeamAfterDelete, stripeWebhookResponse } from "@/lib/stripe/webhookRouting";
 import {
   type SlackPostStatus,
+  alertCancellationReason,
   alertCustomerLifecycle,
   alertInvalidProductQuotaMetadata,
   alertOrphanedDeploySubscription,
@@ -82,6 +86,62 @@ async function mirrorDeployPlan(
   }
 }
 
+type AlertCustomerFailure = "customer_lookup_failed" | "customer_contact_missing";
+
+type AlertCustomer = { name: string; email: string; stripeCustomerId: string; livemode: boolean };
+
+async function retrieveAlertCustomer(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+): Promise<AlertCustomer | AlertCustomerFailure> {
+  if (!sub.customer) {
+    return "customer_contact_missing";
+  }
+
+  let customer: Stripe.Customer | Stripe.DeletedCustomer;
+  try {
+    customer = await stripe.customers.retrieve(
+      typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+    );
+  } catch (err) {
+    console.error("Failed to retrieve customer for subscription alert:", {
+      subscriptionId: sub.id,
+      error: err instanceof Error ? err.message : err,
+    });
+    return "customer_lookup_failed";
+  }
+
+  if (customer.deleted || !customer.email) {
+    return "customer_contact_missing";
+  }
+  return {
+    name: customer.name || "Unknown",
+    email: customer.email,
+    stripeCustomerId: customer.id,
+    livemode: customer.livemode,
+  };
+}
+
+async function sendCancellationReasonAlert(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+  feedback: CancellationFeedback,
+  ws: { id: string; name: string },
+  product: BillingProduct,
+): Promise<void> {
+  const customer = await retrieveAlertCustomer(stripe, sub);
+  if (typeof customer === "string") {
+    return;
+  }
+  await alertCancellationReason({
+    ...feedback,
+    ...customer,
+    workspaceId: ws.id,
+    workspaceName: ws.name,
+    product: PRODUCT_LABELS[product],
+  });
+}
+
 /**
  * Sends the operational Slack alert for a Compute (Deploy) subscription lifecycle
  * event, resolving the customer email/name the alert renders. Best-effort: a
@@ -95,44 +155,19 @@ async function sendComputeAlert(
   sub: Stripe.Subscription,
   alert: ComputeLifecycleAlert | null,
   ws: { id: string; name: string } | null,
-): Promise<
-  SlackPostStatus | "not_applicable" | "customer_lookup_failed" | "customer_contact_missing"
-> {
+): Promise<SlackPostStatus | "not_applicable" | AlertCustomerFailure> {
   if (!alert) {
     return "not_applicable";
   }
-  if (!sub.customer) {
-    return "customer_contact_missing";
-  }
-
-  let customer: Stripe.Customer | Stripe.DeletedCustomer;
-  try {
-    customer = await stripe.customers.retrieve(
-      typeof sub.customer === "string" ? sub.customer : sub.customer.id,
-    );
-  } catch (err) {
-    console.error("Failed to retrieve customer for Compute subscription alert:", {
-      subscriptionId: sub.id,
-      error: err instanceof Error ? err.message : err,
-    });
-    return "customer_lookup_failed";
-  }
-
-  if (customer.deleted || !customer.email) {
-    return "customer_contact_missing";
+  const customer = await retrieveAlertCustomer(stripe, sub);
+  if (typeof customer === "string") {
+    return customer;
   }
 
   // Common customer/workspace facts every Compute lifecycle alert renders. ws is null when a
   // created event races ahead of the checkout link that writes the billing_subscriptions row;
   // the workspace fields are simply omitted from the alert in that case.
-  const base = {
-    name: customer.name || "Unknown",
-    email: customer.email,
-    workspaceId: ws?.id,
-    workspaceName: ws?.name,
-    stripeCustomerId: customer.id,
-    livemode: customer.livemode,
-  };
+  const base = { ...customer, workspaceId: ws?.id, workspaceName: ws?.name };
 
   switch (alert.type) {
     case "created":
@@ -483,6 +518,11 @@ export const POST = async (req: Request): Promise<Response> => {
         // and is reconciled normally.
         if (isScheduleUpdateOnly(previousAttributes)) {
           return new Response("OK", { status: 200 });
+        }
+
+        const feedback = cancellationFeedbackUpdate(previousAttributes, eventSub);
+        if (feedback) {
+          await sendCancellationReasonAlert(stripe, sub, feedback, ws, column);
         }
 
         // Deploy-matched: mirror the plan, announce the change, and stop. The

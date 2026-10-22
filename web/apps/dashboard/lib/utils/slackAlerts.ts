@@ -1,3 +1,7 @@
+import {
+  CANCELLATION_REASON_LABELS,
+  type CancellationReason,
+} from "@/lib/billing/cancellation-reasons";
 import { formatPrice } from "@/lib/fmt";
 
 /**
@@ -6,18 +10,21 @@ import { formatPrice } from "@/lib/fmt";
  */
 const RENDERED_LENGTH_MAX = 256;
 
-/** Bounds a string to RENDERED_LENGTH_MAX code points, slicing by code point so surrogate pairs stay whole. */
-function boundLength(value: string): string {
+/** Slack rejects a section whose text exceeds 3000 characters. */
+const SECTION_TEXT_MAX = 3000;
+
+/** Bounds a string to `max` code points, slicing by code point so surrogate pairs stay whole. */
+function boundLength(value: string, max = RENDERED_LENGTH_MAX): string {
   // UTF-16 length is an upper bound on the code-point count, so a short string skips the
   // Array.from allocation entirely; only genuinely long values pay for the exact count.
-  if (value.length <= RENDERED_LENGTH_MAX) {
+  if (value.length <= max) {
     return value;
   }
   const codePoints = Array.from(value);
-  if (codePoints.length <= RENDERED_LENGTH_MAX) {
+  if (codePoints.length <= max) {
     return value;
   }
-  return `${codePoints.slice(0, RENDERED_LENGTH_MAX).join("")}…`;
+  return `${codePoints.slice(0, max).join("")}…`;
 }
 
 /**
@@ -95,15 +102,15 @@ export function mrkdwn(strings: TemplateStringsArray, ...values: SlackValue[]): 
 type MrkdwnText = { type: "mrkdwn"; text: Mrkdwn; verbatim: true };
 
 /**
- * A plain_text object. Slack renders it literally — no markup, no auto-linking — so it is only
- * ever fed our own copy (block titles, button labels), never a customer-controlled value.
+ * A plain_text object. Slack renders it literally (no markup, no auto-linking), so it carries our
+ * own copy and customer free text that must keep its line breaks, such as a cancellation comment.
  */
 type PlainText = { type: "plain_text"; text: string; emoji: true };
 
 type HeaderBlock = { type: "header"; text: PlainText };
 
 /** A section with a single line of text, `fields` for a two-column grid, or both. */
-type SectionBlock = { type: "section"; text?: MrkdwnText; fields?: MrkdwnText[] };
+type SectionBlock = { type: "section"; text?: MrkdwnText | PlainText; fields?: MrkdwnText[] };
 
 /** A link button. `url` is a separate field from any text, so it carries no injection risk. */
 type ButtonElement = { type: "button"; text: PlainText; url: string };
@@ -172,6 +179,10 @@ async function postToSlack(
 
 const section = (text: Mrkdwn): SectionBlock => {
   return { type: "section", text: mrkdwnText(text) };
+};
+
+const plainSection = (text: string): SectionBlock => {
+  return { type: "section", text: plainText(boundLength(text, SECTION_TEXT_MAX - 1)) };
 };
 
 const header = (text: string): HeaderBlock => {
@@ -291,6 +302,45 @@ export async function alertCustomerLifecycle(
   return postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, `subscription_${alert.action}`, {
     blocks,
   });
+}
+
+export type CancellationReasonAlert = {
+  reason: CancellationReason;
+  comment: string | null;
+  name: string;
+  email: string;
+  workspaceId: string;
+  workspaceName: string;
+  product: string;
+  stripeCustomerId: string;
+  livemode: boolean;
+};
+
+export async function alertCancellationReason(
+  alert: CancellationReasonAlert,
+): Promise<SlackPostStatus> {
+  const blocks: SlackBlock[] = [
+    header(":speech_balloon: Cancellation reason"),
+    fieldsSection([
+      mrkdwn`*Customer*\n${alert.name}`,
+      mrkdwn`*Email*\n${alert.email}`,
+      mrkdwn`*Workspace*\n${alert.workspaceName}`,
+      mrkdwn`*Workspace ID*\n${alert.workspaceId}`,
+      mrkdwn`*Tier / Product*\n${alert.product}`,
+      mrkdwn`*Reason*\n${CANCELLATION_REASON_LABELS[alert.reason]}`,
+    ]),
+  ];
+  if (alert.comment) {
+    blocks.push(plainSection(alert.comment));
+  }
+  blocks.push(
+    linkButton(
+      "View customer in Stripe",
+      stripeCustomerUrl(alert.stripeCustomerId, alert.livemode),
+    ),
+  );
+
+  return postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "cancellation_reason", { blocks });
 }
 
 /**

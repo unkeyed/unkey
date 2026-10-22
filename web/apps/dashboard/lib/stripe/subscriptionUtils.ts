@@ -1,3 +1,4 @@
+import { type CancellationReason, isCancellationReason } from "@/lib/billing/cancellation-reasons";
 import type Stripe from "stripe";
 
 interface PreviousAttributes {
@@ -175,6 +176,29 @@ export function isCancelJustScheduled(previousAttributes: PreviousAttributes | u
     return false;
   }
   return "cancel_at_period_end" in previousAttributes || "cancel_at" in previousAttributes;
+}
+
+export type CancellationFeedback = { reason: CancellationReason; comment: string | null };
+
+export function cancellationFeedbackUpdate(
+  previousAttributes: PreviousAttributes | undefined,
+  sub: Pick<Stripe.Subscription, "id" | "cancellation_details">,
+): CancellationFeedback | null {
+  if (!previousAttributes || !("cancellation_details" in previousAttributes)) {
+    return null;
+  }
+  const feedback = sub.cancellation_details?.feedback;
+  if (!feedback) {
+    return null;
+  }
+  if (!isCancellationReason(feedback)) {
+    console.warn("Unknown cancellation feedback reason, skipping alert:", {
+      subscriptionId: sub.id,
+      feedback,
+    });
+    return null;
+  }
+  return { reason: feedback, comment: sub.cancellation_details?.comment || null };
 }
 
 /** Attaching or releasing a schedule does not change the active API plan. */

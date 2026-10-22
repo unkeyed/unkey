@@ -1,5 +1,10 @@
+import type Stripe from "stripe";
 import { describe, expect, it } from "vitest";
-import { isCancelJustScheduled, isScheduleUpdateOnly } from "./subscriptionUtils";
+import {
+  cancellationFeedbackUpdate,
+  isCancelJustScheduled,
+  isScheduleUpdateOnly,
+} from "./subscriptionUtils";
 
 describe("isScheduleUpdateOnly", () => {
   it("matches a schedule attachment without a plan change", () => {
@@ -34,5 +39,44 @@ describe("isCancelJustScheduled", () => {
 
   it("does not match missing previous attributes", () => {
     expect(isCancelJustScheduled(undefined)).toBe(false);
+  });
+});
+
+describe("cancellationFeedbackUpdate", () => {
+  function subWithDetails(details: Stripe.Subscription.CancellationDetails | null) {
+    return { id: "sub_123", cancellation_details: details };
+  }
+  const previous = { cancellation_details: { comment: null, feedback: null, reason: null } };
+
+  it("returns the reason and comment the update recorded", () => {
+    const sub = subWithDetails({
+      comment: "Too pricey for us",
+      feedback: "too_expensive",
+      reason: "cancellation_requested",
+    });
+
+    expect(cancellationFeedbackUpdate(previous, sub)).toEqual({
+      reason: "too_expensive",
+      comment: "Too pricey for us",
+    });
+  });
+
+  it("returns a null comment when the customer left none", () => {
+    const sub = subWithDetails({ comment: null, feedback: "unused", reason: null });
+
+    expect(cancellationFeedbackUpdate(previous, sub)).toEqual({ reason: "unused", comment: null });
+  });
+
+  it("does not match an update that left cancellation_details alone", () => {
+    const sub = subWithDetails({ comment: null, feedback: "unused", reason: null });
+
+    expect(cancellationFeedbackUpdate({ cancel_at_period_end: false }, sub)).toBeNull();
+    expect(cancellationFeedbackUpdate(undefined, sub)).toBeNull();
+  });
+
+  it("does not match when the subscription carries no feedback", () => {
+    const sub = subWithDetails({ comment: null, feedback: null, reason: "cancellation_requested" });
+
+    expect(cancellationFeedbackUpdate(previous, sub)).toBeNull();
   });
 });
