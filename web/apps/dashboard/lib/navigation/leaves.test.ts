@@ -221,14 +221,24 @@ describe("buildAppLinks", () => {
   const appId = "app_456";
 
   it("keeps App settings active on its sub-pages", () => {
-    const links = buildAppLinks(ws, projectId, appId, [
-      "projects",
+    const links = buildAppLinks(
+      ws,
       projectId,
-      "apps",
       appId,
-      "settings",
-      "environments",
-    ]);
+      ["projects", projectId, "apps", appId, "settings", "environments"],
+      false,
+    );
     expect(links.filter((link) => link.isActive).map((link) => link.key)).toEqual(["settings"]);
+  });
+
+  it("shows Metrics only when the app metrics flag is on", () => {
+    const segments = ["projects", projectId, "apps", appId, "metrics"];
+    const keys = (enabled: boolean) =>
+      buildAppLinks(ws, projectId, appId, segments, enabled).map((link) => link.key);
+    expect(keys(false)).not.toContain("metrics");
+    expect(keys(true)).toContain("metrics");
+    expect(
+      buildAppLinks(ws, projectId, appId, segments, true).find((link) => link.isActive)?.key,
+    ).toBe("metrics");
   });
 });

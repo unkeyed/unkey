@@ -33,6 +33,7 @@ export function SidebarBody() {
   const { keyAuthId } = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
   const portalManagement = useFlag("portalManagement");
   const projectsNav = useFlag("projectsNav");
+  const appMetrics = useFlag("appMetrics");
   const { user } = useWorkspace();
   const prefetchUsage = usePrefetchWorkspaceUsage();
 
@@ -56,7 +57,7 @@ export function SidebarBody() {
       case "project": {
         const { projectId, appId } = context;
         return appId
-          ? buildAppLinks(slug, projectId, appId, segments).map((link) =>
+          ? buildAppLinks(slug, projectId, appId, segments, appMetrics).map((link) =>
               link.key === "deployments"
                 ? { ...link, onIntent: () => warmDeploymentsTable(projectId, appId) }
                 : link,
