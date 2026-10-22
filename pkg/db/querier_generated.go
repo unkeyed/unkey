@@ -159,6 +159,12 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	DeleteEnvVarsByEnvironmentId(ctx context.Context, db DBTX, arg DeleteEnvVarsByEnvironmentIdParams) error
+	//DeleteExpiredCLISessions
+	//
+	//  DELETE FROM cli_sessions
+	//  WHERE expires_at < ?
+	//  LIMIT 100
+	DeleteExpiredCLISessions(ctx context.Context, db DBTX, expiredBefore int64) (int64, error)
 	//DeleteExpiredDeviceAuthorizations
 	//
 	//  DELETE FROM device_authorizations
@@ -295,6 +301,13 @@ type Querier interface {
 	//  DELETE FROM flag_overrides
 	//  WHERE workspace_id = ? AND flag_slug = ?
 	DeleteWorkspaceFlagOverride(ctx context.Context, db DBTX, arg DeleteWorkspaceFlagOverrideParams) error
+	//DenyDeviceAuthorization
+	//
+	//  UPDATE device_authorizations
+	//  SET status = 'denied'
+	//  WHERE id = ?
+	//    AND status IN ('pending', 'approved')
+	DenyDeviceAuthorization(ctx context.Context, db DBTX, id string) (int64, error)
 	//EndDeploymentStep
 	//
 	//  UPDATE `deployment_steps`
@@ -319,6 +332,13 @@ type Querier interface {
 	//    AND revoked_at IS NULL
 	//    AND exchange_code_expires_at > ?
 	ExchangePortalSessionCode(ctx context.Context, db DBTX, arg ExchangePortalSessionCodeParams) (sql.Result, error)
+	//ExpireDeviceAuthorization
+	//
+	//  UPDATE device_authorizations
+	//  SET status = 'expired'
+	//  WHERE id = ?
+	//    AND status IN ('pending', 'approved')
+	ExpireDeviceAuthorization(ctx context.Context, db DBTX, id string) (int64, error)
 	//FindApiByID
 	//
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
@@ -2684,6 +2704,8 @@ type Querier interface {
 	//  FROM cli_sessions
 	//  WHERE workspace_id = ?
 	//    AND user_id = ?
+	//    AND revoked_at IS NULL
+	//    AND expires_at > ?
 	//  ORDER BY created_at DESC
 	//  LIMIT 100
 	ListCLISessionsByUser(ctx context.Context, db DBTX, arg ListCLISessionsByUserParams) ([]CliSession, error)
@@ -2706,9 +2728,11 @@ type Querier interface {
 	//      revoked_at
 	//  FROM cli_sessions
 	//  WHERE workspace_id = ?
+	//    AND revoked_at IS NULL
+	//    AND expires_at > ?
 	//  ORDER BY created_at DESC
 	//  LIMIT 100
-	ListCLISessionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]CliSession, error)
+	ListCLISessionsByWorkspace(ctx context.Context, db DBTX, arg ListCLISessionsByWorkspaceParams) ([]CliSession, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
 	// workspace, regardless of drainer state. Intended for tests and ad-hoc
 	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks
@@ -3745,7 +3769,7 @@ type Querier interface {
 	//  SET revoked_at = ?
 	//  WHERE refresh_family = ?
 	//    AND revoked_at IS NULL
-	RevokeCLISessionFamily(ctx context.Context, db DBTX, arg RevokeCLISessionFamilyParams) error
+	RevokeCLISessionFamily(ctx context.Context, db DBTX, arg RevokeCLISessionFamilyParams) (int64, error)
 	// Revokes the sessions LockLivePortalSessionsByExternalID locked. Run it in the
 	// same transaction, so the ids are exactly the rows this call revokes.
 	//
@@ -3994,12 +4018,6 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, db DBTX, arg UpdateDeploymentImageParams) error
-	//UpdateDeviceAuthorizationStatus
-	//
-	//  UPDATE device_authorizations
-	//  SET status = ?
-	//  WHERE id = ?
-	UpdateDeviceAuthorizationStatus(ctx context.Context, db DBTX, arg UpdateDeviceAuthorizationStatusParams) error
 	//UpdateGithubRepoConnectionDefaultBranch
 	//
 	//  UPDATE github_repo_connections
