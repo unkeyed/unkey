@@ -32,9 +32,9 @@ type RecordInstanceCrashLoopBackOffParams struct {
 // the underlying exit and the "currently throttling" indicator together.
 //
 // Called once per (pod_uid, container_name, restart_count) when krane sees
-// the waiting container reach the BackOff state. Only the next terminated
-// event removes $.waiting, via RecordInstanceExit, so an instance that
-// recovers keeps it. instances.status tells whether the loop is current.
+// the waiting container reach the BackOff state. The next terminated event
+// (RecordInstanceExit) or the next start (RecordInstanceRunning) removes
+// $.waiting.
 //
 // Out-of-order events are dropped via the restartCount guard: a delayed
 // crashloop RPC from an earlier container life cannot flip the waiting

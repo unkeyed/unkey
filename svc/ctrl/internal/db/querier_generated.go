@@ -2410,9 +2410,9 @@ type Querier interface {
 	// the underlying exit and the "currently throttling" indicator together.
 	//
 	// Called once per (pod_uid, container_name, restart_count) when krane sees
-	// the waiting container reach the BackOff state. Only the next terminated
-	// event removes $.waiting, via RecordInstanceExit, so an instance that
-	// recovers keeps it. instances.status tells whether the loop is current.
+	// the waiting container reach the BackOff state. The next terminated event
+	// (RecordInstanceExit) or the next start (RecordInstanceRunning) removes
+	// $.waiting.
 	//
 	// Out-of-order events are dropped via the restartCount guard: a delayed
 	// crashloop RPC from an earlier container life cannot flip the waiting
@@ -2462,6 +2462,25 @@ type Querier interface {
 	//  		)
 	//  	)
 	RecordInstanceExit(ctx context.Context, arg RecordInstanceExitParams) error
+	// Records that a container started a new life after a restart. Removes
+	// $.waiting, because a running container is no longer in CrashLoopBackOff,
+	// and moves restartCount to the new life. The lastTerminationState stays,
+	// it still describes the most recent exit.
+	//
+	// The guard is strict. A delayed running event of the life that then crashed
+	// has the same restart_count as the row and must not remove that crash loop.
+	// After restartCount moves forward, RecordInstanceCrashLoopBackOff rejects
+	// delayed crash loop events of earlier lives.
+	//
+	//  UPDATE instances
+	//  SET container_status = JSON_SET(
+	//  	JSON_REMOVE(container_status, '$.waiting'),
+	//  	'$.restartCount', CAST(? AS UNSIGNED)
+	//  )
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(? AS UNSIGNED)
+	RecordInstanceRunning(ctx context.Context, arg RecordInstanceRunningParams) error
 	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
 	// This is a bulk operation to minimize database round trips.
 	//

@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-func TestReportInstanceEventsRecordsCleanExit(t *testing.T) {
+func TestReportInstanceEventsRecordsCleanExitCrashLoopAndRecovery(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
 
@@ -79,4 +79,28 @@ func TestReportInstanceEventsRecordsCleanExit(t *testing.T) {
 	require.NotNil(t, looping.Waiting)
 	require.Equal(t, "CrashLoopBackOff", looping.Waiting.Reason)
 	require.Equal(t, exited.LastTerminationState, looping.LastTerminationState)
+
+	report(&ctrlv1.InstanceEvent{
+		RestartCount: 3,
+		Time:         finishedAt - 1,
+		State:        &ctrlv1.InstanceEvent_Running{Running: &ctrlv1.Running{}},
+	})
+	require.Equal(t, looping, instance().ContainerStatus)
+
+	report(&ctrlv1.InstanceEvent{
+		RestartCount: 4,
+		Time:         finishedAt + 2,
+		State:        &ctrlv1.InstanceEvent_Running{Running: &ctrlv1.Running{}},
+	})
+	recovered := instance().ContainerStatus
+	require.Nil(t, recovered.Waiting)
+	require.Equal(t, uint32(4), recovered.RestartCount)
+	require.Equal(t, exited.LastTerminationState, recovered.LastTerminationState)
+
+	report(&ctrlv1.InstanceEvent{
+		RestartCount: 3,
+		Time:         finishedAt + 3,
+		State:        &ctrlv1.InstanceEvent_Waiting{Waiting: &ctrlv1.Waiting{Reason: "CrashLoopBackOff", Message: ""}},
+	})
+	require.Equal(t, recovered, instance().ContainerStatus)
 }

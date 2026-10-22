@@ -102,11 +102,24 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 		// not the storage layout.
 		switch event.GetState().(type) {
 		case *ctrlv1.InstanceEvent_Running:
-			// Running carries no exit metadata — the row is identity +
-			// time + attributes, written for the dashboard's "container
-			// booted" timeline divider. No MySQL denormalization: the live
-			// instance row is already tracked via reportDeploymentStatus.
 			row.EventKind = "running"
+			rc := int64(event.GetRestartCount())
+			err := s.db.RecordInstanceRunning(ctx, db.RecordInstanceRunningParams{
+				K8sName:        event.GetPodName(),
+				RegionID:       cluster.RegionID,
+				RestartCount:   rc,
+				RestartCount_2: rc,
+			})
+			if err != nil {
+				logger.Error("report instance events: record running failed",
+					"error", err.Error(),
+					"pod_name", event.GetPodName(),
+					"restart_count", event.GetRestartCount(),
+				)
+				if firstDenormErr == nil {
+					firstDenormErr = err
+				}
+			}
 		case *ctrlv1.InstanceEvent_Terminated:
 			t := event.GetTerminated()
 			row.EventKind = "terminated"

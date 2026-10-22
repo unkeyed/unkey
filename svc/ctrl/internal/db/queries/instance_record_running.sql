@@ -1,0 +1,18 @@
+-- name: RecordInstanceRunning :exec
+-- Records that a container started a new life after a restart. Removes
+-- $.waiting, because a running container is no longer in CrashLoopBackOff,
+-- and moves restartCount to the new life. The lastTerminationState stays,
+-- it still describes the most recent exit.
+--
+-- The guard is strict. A delayed running event of the life that then crashed
+-- has the same restart_count as the row and must not remove that crash loop.
+-- After restartCount moves forward, RecordInstanceCrashLoopBackOff rejects
+-- delayed crash loop events of earlier lives.
+UPDATE instances
+SET container_status = JSON_SET(
+	JSON_REMOVE(container_status, '$.waiting'),
+	'$.restartCount', CAST(sqlc.arg(restart_count) AS UNSIGNED)
+)
+WHERE k8s_name = sqlc.arg(k8s_name)
+	AND region_id = sqlc.arg(region_id)
+	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(sqlc.arg(restart_count) AS UNSIGNED);
