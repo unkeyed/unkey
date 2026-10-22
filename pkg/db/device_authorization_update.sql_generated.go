@@ -118,23 +118,44 @@ func (q *Queries) DeleteExpiredDeviceAuthorizations(ctx context.Context, db DBTX
 	return result.RowsAffected()
 }
 
-const updateDeviceAuthorizationStatus = `-- name: UpdateDeviceAuthorizationStatus :exec
+const denyDeviceAuthorization = `-- name: DenyDeviceAuthorization :execrows
 UPDATE device_authorizations
-SET status = ?
+SET status = 'denied'
 WHERE id = ?
+  AND status IN ('pending', 'approved')
 `
 
-type UpdateDeviceAuthorizationStatusParams struct {
-	Status DeviceAuthorizationsStatus `db:"status"`
-	ID     string                     `db:"id"`
-}
-
-// UpdateDeviceAuthorizationStatus
+// DenyDeviceAuthorization
 //
 //	UPDATE device_authorizations
-//	SET status = ?
+//	SET status = 'denied'
 //	WHERE id = ?
-func (q *Queries) UpdateDeviceAuthorizationStatus(ctx context.Context, db DBTX, arg UpdateDeviceAuthorizationStatusParams) error {
-	_, err := db.ExecContext(ctx, updateDeviceAuthorizationStatus, arg.Status, arg.ID)
-	return err
+//	  AND status IN ('pending', 'approved')
+func (q *Queries) DenyDeviceAuthorization(ctx context.Context, db DBTX, id string) (int64, error) {
+	result, err := db.ExecContext(ctx, denyDeviceAuthorization, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const expireDeviceAuthorization = `-- name: ExpireDeviceAuthorization :execrows
+UPDATE device_authorizations
+SET status = 'expired'
+WHERE id = ?
+  AND status IN ('pending', 'approved')
+`
+
+// ExpireDeviceAuthorization
+//
+//	UPDATE device_authorizations
+//	SET status = 'expired'
+//	WHERE id = ?
+//	  AND status IN ('pending', 'approved')
+func (q *Queries) ExpireDeviceAuthorization(ctx context.Context, db DBTX, id string) (int64, error) {
+	result, err := db.ExecContext(ctx, expireDeviceAuthorization, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

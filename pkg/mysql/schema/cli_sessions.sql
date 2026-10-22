@@ -19,7 +19,7 @@ CREATE TABLE `cli_sessions` (
 	CONSTRAINT `cli_sessions_previous_refresh_token_hash_unique` UNIQUE(`previous_refresh_token_hash`)
 );
 
-CREATE INDEX `cli_sessions_workspace_user_idx` ON `cli_sessions` (`workspace_id`,`user_id`);
+CREATE INDEX `cli_sessions_workspace_user_created_idx` ON `cli_sessions` (`workspace_id`,`user_id`,`created_at`);
 
 CREATE INDEX `cli_sessions_refresh_family_idx` ON `cli_sessions` (`refresh_family`);
 
