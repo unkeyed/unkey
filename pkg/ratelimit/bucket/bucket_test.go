@@ -19,18 +19,18 @@ import (
 func TestBucketChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
 	rate := bucket.Rate{Limit: 60, Duration: 60}
 	sessions := []bucket.Session{
-		{ID: "own", AnchorAtNs: 0, ConsumedNs: 1},
-		{ID: "peer", AnchorAtNs: 50, ConsumedNs: 60},
+		{ID: "own", AnchorAtNs: 100, ConsumedNs: 1},
+		{ID: "peer", AnchorAtNs: 150, ConsumedNs: 60},
 	}
 	b, err := bucket.New(sessions, "own")
 	require.NoError(t, err)
-	require.Equal(t, int64(110), b.ResetAtNs())
+	require.Equal(t, int64(210), b.ResetAtNs())
 
-	decision, err := b.Check(55, rate, 1)
+	decision, err := b.Check(155, rate, 1)
 	require.NoError(t, err)
 	require.True(t, decision.Allowed)
-	require.Equal(t, int64(111), decision.ResetAtNs)
-	require.Equal(t, int64(55), decision.CreateNewSessionAtNs)
+	require.Equal(t, int64(211), decision.ResetAtNs)
+	require.Equal(t, int64(155), decision.CreateNewSessionAtNs)
 }
 
 // TestBucketNeverWrapsAround guarantees that sums beyond int64 return an
