@@ -75,6 +75,7 @@ func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), request(stored.ID))
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
+	require.NotContains(t, denied.RawBody, stored.ID)
 	require.True(t, portalExists(t, h, workspace.ID, stored.ID), "a denied delete must not delete")
 	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""), "a denied delete must not revoke")
 	require.Equal(t, 0, countAuditEntriesMentioning(t, h, workspace.ID, "portal.delete"),

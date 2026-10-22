@@ -21,7 +21,7 @@ Required Permissions
 - environment.<environment_id>.verify_domain (to verify domains in a specific environment)
 
 For full documentation, see https://www.unkey.com/docs/networking/domains` + util.Disclaimer, Examples: []string{"unkey api domains verify-domain --domain=api.acme.com"}, Flags: []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("domain", "Domain ID or name.", cli.Required(), cli.MutuallyExclusive("body"))}, Action: func(ctx context.Context, cmd *cli.Command) error {
-		client, err := util.CreateClient(cmd)
+		client, err := util.CreateClient(ctx, cmd)
 		if err != nil {
 			return err
 		}

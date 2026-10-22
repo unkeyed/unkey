@@ -46,11 +46,20 @@ func New() *cli.Command {
 func revoke(ctx context.Context, apiURL string, current session.Session) error {
 	token := current.AccessToken
 	if current.ExpiresAt <= time.Now().Add(time.Minute).Unix() {
-		refreshed, err := refresh(ctx, apiURL, current.RefreshToken)
+		refreshed, err := session.Refresh(ctx, apiURL, current.RefreshToken)
 		if err != nil {
 			return err
 		}
-		token = refreshed
+		if refreshed.WorkspaceID == "" {
+			refreshed.WorkspaceID = current.WorkspaceID
+		}
+		if refreshed.SessionID == "" {
+			refreshed.SessionID = current.SessionID
+		}
+		if err := session.Save(refreshed); err != nil {
+			return err
+		}
+		token = refreshed.AccessToken
 	}
 	body, _ := json.Marshal(map[string]string{"sessionId": current.SessionID})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(apiURL, "/")+"/v2/cli.revokeSession", bytes.NewReader(body))
@@ -69,30 +78,4 @@ func revoke(ctx context.Context, apiURL string, current session.Session) error {
 		return fmt.Errorf("revoke returned %d: %s", res.StatusCode, strings.TrimSpace(string(payload)))
 	}
 	return nil
-}
-
-func refresh(ctx context.Context, apiURL string, refreshToken string) (string, error) {
-	body, _ := json.Marshal(map[string]string{"refreshToken": refreshToken})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(apiURL, "/")+"/v2/cli.refreshToken", bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("content-type", "application/json")
-	res, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer func() { _ = res.Body.Close() }()
-	var envelope struct {
-		Data struct {
-			AccessToken string `json:"accessToken"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&envelope); err != nil {
-		return "", err
-	}
-	if res.StatusCode >= 300 || envelope.Data.AccessToken == "" {
-		return "", fmt.Errorf("refresh returned %d", res.StatusCode)
-	}
-	return envelope.Data.AccessToken, nil
 }

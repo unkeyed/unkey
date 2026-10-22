@@ -50,10 +50,12 @@ func TestResolverBuildsPrincipalFromPermissionsClaim(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	sessionExpires := clk.Now().Add(30 * 24 * time.Hour)
 	resolver, err := NewResolver(fakeSessions{session: Session{
 		UserID:      "user_dev",
 		WorkspaceID: "ws_123",
 		DeviceName:  "laptop",
+		ExpiresAt:   sessionExpires,
 	}}, clk, []byte(testSecret))
 	require.NoError(t, err)
 
@@ -73,6 +75,7 @@ func TestResolverBuildsPrincipalFromPermissionsClaim(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "clis_123", source.SessionID)
 	require.Equal(t, "laptop", source.DeviceName)
+	require.True(t, sessionExpires.Equal(source.ExpiresAt))
 }
 
 func TestResolverRejectsRevokedAndExpiredSessions(t *testing.T) {

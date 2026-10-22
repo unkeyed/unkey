@@ -113,8 +113,10 @@ func run(ctx context.Context, opts options) error {
 		RefreshToken: issued.RefreshToken,
 		ExpiresAt:    time.Now().Add(time.Duration(issued.ExpiresIn) * time.Second).Unix(),
 	}); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n\nSave this refresh token (%s) now. It will not be shown again:\n\n  %s\n\n", err.Error(), issued.SessionID, issued.RefreshToken)
-		return err
+		if revokeErr := revokeIssuedSession(ctx, opts.client, opts.apiURL, issued); revokeErr != nil {
+			return fmt.Errorf("could not store the CLI session: %w", err)
+		}
+		return fmt.Errorf("could not store the CLI session, so it was revoked: %w", err)
 	}
 	fmt.Printf("Authentication successful. Session stored for workspace %s.\n", issued.WorkspaceID)
 	return nil

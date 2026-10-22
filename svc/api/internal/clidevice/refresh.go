@@ -126,8 +126,9 @@ func (s *Service) rejectReusedRefreshToken(ctx context.Context, presented string
 }
 
 func (s *Service) revokeFamily(ctx context.Context, family string) error {
-	return db.Query.RevokeCLISessionFamily(ctx, s.DB.RW(), db.RevokeCLISessionFamilyParams{
+	_, err := db.Query.RevokeCLISessionFamily(ctx, s.DB.RW(), db.RevokeCLISessionFamilyParams{
 		RevokedAt:     sql.NullInt64{Int64: s.Clock.Now().UnixMilli(), Valid: true},
 		RefreshFamily: family,
 	})
+	return err
 }

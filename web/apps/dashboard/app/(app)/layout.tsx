@@ -65,7 +65,7 @@ export default function Layout({ children }: LayoutProps) {
     pathname === "/integrations/github/callback" ||
     /\/projects\/[^/]+\/apps\/new$/.test(pathname) ||
     /\/settings\/logdrains\/new$/.test(pathname) ||
-    pathname === "/cli/device";
+    pathname === routes.cli.device();
 
   useEffect(() => {
     // Don't navigate while loading

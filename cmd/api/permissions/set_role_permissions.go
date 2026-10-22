@@ -44,7 +44,7 @@ For full documentation, see https://www.unkey.com/docs/platform/apis/features/au
 			"role-id",
 		}},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

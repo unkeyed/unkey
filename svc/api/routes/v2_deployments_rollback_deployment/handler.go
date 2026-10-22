@@ -73,10 +73,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(
+		return apierrors.MaskDeploymentPermission(
 			err,
 			principal.Permissions,
 			permissionQuery,
+			deployment.Visibility(principal.AuthorizedWorkspaceID, dep),
 			codes.Data.Deployment.NotFound.URN(),
 			"The requested deployment does not exist.",
 		)

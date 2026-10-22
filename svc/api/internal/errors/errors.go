@@ -74,16 +74,39 @@ func MaskInsufficientPermissionsAsNotFound(err error, granted []string, query rb
 	}
 
 	if rbac.CanRead(query, granted) {
-		return fault.New("insufficient permissions",
-			fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
-			fault.Internal("caller can read the resource but lacks a required permission"),
-			fault.Public(rbac.PermissionDeniedDetail(query, granted)),
-		)
+		return readablePermissionDenied(query, granted)
 	}
 
 	return fault.New("resource not found",
 		fault.Code(code),
 		fault.Internal("masking insufficient permissions as not found"),
 		fault.Public(public),
+	)
+}
+
+// MaskDeploymentPermission hides a deployment from a caller who cannot read
+// that deployment or its environment, and names the missing permission when
+// they can. visibility is scoped to this deployment. required is the action
+// the route demanded, so the 403 does not offer the read as a substitute.
+func MaskDeploymentPermission(err error, granted []string, required, visibility rbac.PermissionQuery, code codes.URN, public string) error {
+	errCode, ok := fault.GetCode(err)
+	if !ok || errCode != codes.Auth.Authorization.InsufficientPermissions.URN() {
+		return err
+	}
+	if rbac.CanRead(visibility, granted) {
+		return readablePermissionDenied(required, granted)
+	}
+	return fault.New("resource not found",
+		fault.Code(code),
+		fault.Internal("masking insufficient permissions as not found"),
+		fault.Public(public),
+	)
+}
+
+func readablePermissionDenied(required rbac.PermissionQuery, granted []string) error {
+	return fault.New("insufficient permissions",
+		fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+		fault.Internal("caller can read the resource but lacks a required permission"),
+		fault.Public(rbac.PermissionDeniedDetail(required, granted)),
 	)
 }

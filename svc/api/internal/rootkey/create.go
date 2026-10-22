@@ -16,6 +16,12 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 )
 
+// InsertRequest is the authorized input for one new root key.
+//
+// Principal is the caller. Permissions are the slugs to grant, already
+// checked against what that caller may delegate. Key holds the secret
+// material from the key service. Auditlogs and Clock are the collaborators
+// the insert writes with.
 type InsertRequest struct {
 	Principal   *principal.Principal
 	Name        *string
@@ -28,11 +34,19 @@ type InsertRequest struct {
 	Clock       clock.Clock
 }
 
+// InsertResult is the root key that was stored. Key is the plaintext secret
+// and is available only from this result.
 type InsertResult struct {
 	KeyID string
 	Key   string
 }
 
+// Insert stores a root key, its permission rows, and the audit logs for both.
+//
+// Insert opens its own transaction. Callers must authorize the request and
+// validate the permissions before calling Insert. A failure rolls the key,
+// the grants, and the audit logs back together. On failure the result is the
+// zero InsertResult.
 func Insert(ctx context.Context, database db.Database, req InsertRequest) (InsertResult, error) {
 	var result InsertResult
 	err := db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
@@ -46,6 +60,8 @@ func Insert(ctx context.Context, database db.Database, req InsertRequest) (Inser
 	return result, err
 }
 
+// insert writes the root key, its grants, and the audit logs inside the
+// transaction Insert opened.
 func insert(ctx context.Context, tx db.DBTX, req InsertRequest) (InsertResult, error) {
 	keyID := uid.New(uid.KeyPrefix)
 	err := db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{

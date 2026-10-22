@@ -16,10 +16,76 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli/keystore"
 )
+
+// Store is the secret-store seam for the session blob. Tests pass a
+// [MemoryStore] so they do not read or write the operating system keychain.
+type Store interface {
+	Get() (string, error)
+	Set(secret string) error
+}
+
+type keychainStore struct{}
+
+func (keychainStore) Get() (string, error) {
+	return keystore.GetSessions()
+}
+
+func (keychainStore) Set(secret string) error {
+	return keystore.SetSessions(secret)
+}
+
+// MemoryStore keeps the session blob in memory.
+type MemoryStore struct {
+	mu     sync.Mutex
+	value  string
+	getErr error
+	setErr error
+}
+
+// SetError makes the next Set call fail.
+func (m *MemoryStore) SetError(err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.setErr = err
+}
+
+func (m *MemoryStore) Get() (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.getErr != nil {
+		return "", m.getErr
+	}
+	if m.value == "" {
+		return "", keystore.ErrNotFound
+	}
+	return m.value, nil
+}
+
+func (m *MemoryStore) Set(secret string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.setErr != nil {
+		return m.setErr
+	}
+	m.value = secret
+	return nil
+}
+
+var secrets Store = keychainStore{}
+
+// SetStore replaces the secret store. Passing nil restores the keychain.
+func SetStore(store Store) {
+	if store == nil {
+		secrets = keychainStore{}
+		return
+	}
+	secrets = store
+}
 
 // ErrNotFound means there is no stored session for the active workspace.
 var ErrNotFound = errors.New("cli session not found")
@@ -135,7 +201,17 @@ func Delete(workspaceID string) (Session, error) {
 
 // AccessToken returns a usable access token, refreshing it when it is within
 // a minute of expiry. refresh exchanges the refresh token.
+//
+// The read, refresh, and save run under a file lock. The session is read
+// again after the lock is acquired, so a caller that waited does not present
+// a refresh token another caller already rotated.
 func AccessToken(ctx context.Context, refresh func(ctx context.Context, refreshToken string) (Session, error)) (string, error) {
+	unlock, err := lockSessions()
+	if err != nil {
+		return "", err
+	}
+	defer unlock()
+
 	session, err := Active()
 	if err != nil {
 		return "", err
@@ -173,7 +249,7 @@ func read() (state, error) {
 	if err != nil && !errors.Is(err, os.ErrNotExist) && !errors.Is(err, ErrNotFound) {
 		return state{}, err
 	}
-	raw, err := keystore.GetSessions()
+	raw, err := secrets.Get()
 	if err != nil {
 		if errors.Is(err, keystore.ErrNotFound) || errors.Is(err, keystore.ErrUnavailable) {
 			return state{}, ErrNotFound
@@ -193,15 +269,17 @@ func write(current state) error {
 	if err != nil {
 		return err
 	}
-	err = keystore.SetSessions(string(raw))
-	if err == nil {
+	if err = secrets.Set(string(raw)); err == nil {
 		_ = removeFile()
 		return nil
 	}
-	if !errors.Is(err, keystore.ErrUnavailable) {
-		return err
+	// A failed keychain write must not drop a token that was just rotated.
+	// The file is the fallback for every store error, not only an unavailable
+	// keychain.
+	if fileErr := writeFile(raw); fileErr != nil {
+		return errors.Join(err, fileErr)
 	}
-	return writeFile(raw)
+	return nil
 }
 
 func decode(raw string) (state, error) {
@@ -246,7 +324,7 @@ func readFile() (state, error) {
 	if err != nil {
 		return state{}, err
 	}
-	if setErr := keystore.SetSessions(string(raw)); setErr == nil {
+	if setErr := secrets.Set(string(raw)); setErr == nil {
 		_ = os.Remove(path)
 	}
 	return current, nil

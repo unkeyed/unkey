@@ -60,7 +60,7 @@ Your root key must be associated with a workspace that has an enabled portal con
 			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("portal", "Portal configuration ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("external-id", "End user's identifier in your system.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.StringSlice("scopes", "Portal capabilities. Valid choices: "+strings.Join(portalScopes, ", ")+".", cli.Required(), cli.Validate(validatePortalScopes), cli.MutuallyExclusive("body")), cli.String("return-url", "Absolute URL to return the end user to after the portal.", cli.MutuallyExclusive("body"))},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"fmt"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auth"
@@ -27,6 +28,7 @@ type Session struct {
 	UserID      string
 	WorkspaceID string
 	DeviceName  string
+	ExpiresAt   time.Time
 }
 
 // Sessions loads the live session behind an access token.
@@ -128,6 +130,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		Source: principal.CLISessionSource{
 			SessionID:  claims.SessionID,
 			DeviceName: session.DeviceName,
+			ExpiresAt:  session.ExpiresAt,
 		},
 		AuthorizedWorkspaceID: claims.WorkspaceID,
 		Permissions:           claims.Permissions,

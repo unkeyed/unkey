@@ -1,6 +1,7 @@
 package keystore
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,6 +47,20 @@ func TestSecretToolMissingBinaryIsUnavailable(t *testing.T) {
 	require.ErrorIs(t, err, ErrUnavailable)
 	err = secretToolSet("unkey-secret-tool-missing", serviceName, rootKeyAccount, "unkey_x")
 	require.ErrorIs(t, err, ErrUnavailable)
+}
+
+func TestSecretToolWriteFailureIsNotAMissingItem(t *testing.T) {
+	bin := writeTool(t, "#!/bin/sh\nexit 1\n")
+	err := secretToolSet(bin, serviceName, rootKeyAccount, "unkey_x")
+	require.Error(t, err)
+	require.NotErrorIs(t, err, ErrNotFound)
+	require.NotErrorIs(t, err, ErrUnavailable)
+}
+
+func TestWindowsCredentialLimitMatchesMeasuredSessions(t *testing.T) {
+	require.False(t, ExceedsWindowsCredentialBlob(string(bytes.Repeat([]byte("a"), 761))))
+	require.True(t, ExceedsWindowsCredentialBlob(string(bytes.Repeat([]byte("a"), 2850))))
+	require.True(t, ExceedsWindowsCredentialBlob(string(bytes.Repeat([]byte("a"), 6111))))
 }
 
 func TestSecretToolDBusFailureIsUnavailable(t *testing.T) {

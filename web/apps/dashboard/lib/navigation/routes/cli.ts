@@ -6,6 +6,9 @@ import type { Route } from "next";
 import { buildRoute } from "./shared";
 
 export const cliRoutes = {
+  device(query?: { user_code?: string }): Route {
+    return buildRoute("/cli/device", {}, query);
+  },
   sessions(): Route {
     return buildRoute("/cli/sessions", {});
   },
