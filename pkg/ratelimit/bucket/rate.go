@@ -32,7 +32,7 @@ func (r Rate) Validate() error {
 // The caller guarantees `0 ≤ units ≤ Limit`, so the result is at most
 // `Duration`.
 func (r Rate) unitsToNs(units int64) int64 {
-	productHigh, productLow := bits.Mul64(uint64(units), uint64(r.Duration))
+	productHigh, productLow := bits.Mul64(uint64(units), uint64(r.Duration.Nanoseconds()))
 	quotient, remainder := bits.Div64(productHigh, productLow, uint64(r.Limit))
 	// Rounding down would make every unit a little cheaper than its share,
 	// and `Limit` requests could fit into less than `Duration`.
@@ -51,10 +51,10 @@ func (r Rate) remaining(nowNs, resetAtNs int64) int64 {
 	// `reset_at` is in use; the rest is free. A `reset_at` in the past means
 	// the bucket is full, not that it holds more than `Duration`.
 	aheadNs := max(resetAtNs-nowNs, 0)
-	if aheadNs >= int64(r.Duration) {
+	if aheadNs >= r.Duration.Nanoseconds() {
 		return 0
 	}
-	return r.unitsWithin(int64(r.Duration) - aheadNs)
+	return r.unitsWithin(r.Duration.Nanoseconds() - aheadNs)
 }
 
 // unitsWithin returns `⌊freeNs × Limit / Duration⌋`, the largest number of
@@ -65,6 +65,6 @@ func (r Rate) remaining(nowNs, resetAtNs int64) int64 {
 // `Limit`.
 func (r Rate) unitsWithin(freeNs int64) int64 {
 	productHigh, productLow := bits.Mul64(uint64(freeNs), uint64(r.Limit))
-	quotient, _ := bits.Div64(productHigh, productLow, uint64(r.Duration))
+	quotient, _ := bits.Div64(productHigh, productLow, uint64(r.Duration.Nanoseconds()))
 	return int64(quotient)
 }

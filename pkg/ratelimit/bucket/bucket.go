@@ -226,7 +226,7 @@ func (b Bucket) Check(nowNs int64, rate Rate, units int64) (Decision, error) {
 	// The burst tolerance is one full `Duration`: `reset_at` may run at most
 	// that far ahead of now. When pods over-admitted, `reset_at` can already
 	// be further ahead, and every request is denied until time catches up.
-	if nextResetAtNs-nowNs > int64(rate.Duration) {
+	if nextResetAtNs-nowNs > rate.Duration.Nanoseconds() {
 		return unchanged, nil
 	}
 	// A request of zero `units` only asks whether the limit is open. It spends
