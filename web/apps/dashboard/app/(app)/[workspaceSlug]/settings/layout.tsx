@@ -15,6 +15,7 @@ const ITEMS = [
   { segment: "general", label: "General", getHref: routes.settings.general },
   { segment: "team", label: "Team", getHref: routes.settings.team },
   { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
+  { segment: "env-vars", label: "Environment Variables", getHref: routes.settings.envVars },
   { segment: "logdrains", label: "Log Drains", getHref: routes.settings.logdrains.list },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
   { segment: "usage", label: "Usage", getHref: routes.settings.usage },

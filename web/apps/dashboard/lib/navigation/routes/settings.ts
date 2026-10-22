@@ -29,6 +29,10 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/root-keys", { workspaceSlug });
   },
 
+  envVars({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/env-vars", { workspaceSlug });
+  },
+
   logdrains: {
     list({ workspaceSlug }: WorkspaceScope): Route {
       return buildRoute("/[workspaceSlug]/settings/logdrains", { workspaceSlug });
