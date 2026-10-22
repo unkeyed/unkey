@@ -236,6 +236,7 @@ export function ConnectionCanvas({
         >
           <SelectTrigger
             aria-label="Caller environment"
+            size="sm"
             wrapperClassName="w-44"
             rightIcon={<IconChevronDownOutline12 className="absolute right-3 opacity-70" />}
           >
