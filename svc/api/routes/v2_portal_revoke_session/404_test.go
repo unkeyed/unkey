@@ -60,16 +60,10 @@ func TestRevokeSessionWithoutPermission(t *testing.T) {
 	for name, permissions := range testCases {
 		t.Run(name, func(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, permissions...)
-			if name == "portal admin only" {
-				res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request(stored.ID, "user_1"))
-				require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
-				require.Contains(t, res.Body.Error.Detail, "create_portal_session")
-				require.Contains(t, res.Body.Error.Detail, "Log in again")
-				return
-			}
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request(stored.ID, "user_1"))
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 			require.NotContains(t, res.RawBody, stored.ID, "a denial must not disclose the portal id")
+			require.NotContains(t, res.RawBody, "create_portal_session", "a denial must not echo the required permission")
 		})
 	}
 

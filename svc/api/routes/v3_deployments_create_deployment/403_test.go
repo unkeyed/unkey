@@ -21,16 +21,15 @@ func TestMissingPermission(t *testing.T) {
 
 	for _, environment := range []string{setup.Environment.Slug, "does-not-exist"} {
 		t.Run(environment, func(t *testing.T) {
-			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
 				Project:     setup.Project.Slug,
 				App:         setup.App.Slug,
 				Environment: environment,
 				Oci:         &openapi.DeploymentSourceOCI{Image: "nginx:latest"},
 			})
-			require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
-			require.Contains(t, res.Body.Error.Detail, "create_deployment")
-			require.Contains(t, res.Body.Error.Detail, "Log in again")
-			require.Contains(t, res.Body.Error.Detail, "grant it")
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+			require.Equal(t, "The requested project, app, or environment does not exist.", res.Body.Error.Detail)
+			require.NotContains(t, res.RawBody, setup.Environment.ID)
 		})
 	}
 }
