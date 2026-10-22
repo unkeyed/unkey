@@ -1,6 +1,7 @@
 import { and, asc, db, eq, isNull, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { workspaceProcedure } from "../../../trpc";
+import { isDefaultProject } from "../project/get-default";
 
 type Row = Awaited<ReturnType<typeof selectRows>>[number];
 
@@ -17,7 +18,7 @@ type EnvVarVariable = {
 };
 
 type EnvVarAppGroup = {
-  project: { id: string; name: string };
+  project: { id: string; name: string; isDefault: boolean };
   app: {
     id: string;
     name: string;
@@ -56,6 +57,7 @@ function selectRows(workspaceId: string) {
       updatedAt: vars.updatedAt,
       projectId: projects.id,
       projectName: projects.name,
+      projectIsDefault: isDefaultProject,
       appId: apps.id,
       appName: apps.name,
       appSourceType: apps.sourceType,
@@ -90,7 +92,7 @@ function groupByApp(rows: Row[]): EnvVarAppGroup[] {
   for (const row of rows) {
     if (group?.app.id !== row.appId) {
       group = {
-        project: { id: row.projectId, name: row.projectName },
+        project: { id: row.projectId, name: row.projectName, isDefault: row.projectIsDefault },
         app: {
           id: row.appId,
           name: row.appName,
