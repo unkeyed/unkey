@@ -1,8 +1,7 @@
+import { type AppSource, appSource } from "@/components/deploy/app-source";
 import type { App } from "@/lib/collections/deploy/apps";
 import { githubUrl } from "@/lib/github-url";
 import type { Route } from "next";
-
-export type AppSource = "git" | "image" | "legacy";
 
 export type AppRowData = {
   app: App;
@@ -12,16 +11,6 @@ export type AppRowData = {
   commitUrl: string | undefined;
   branchUrl: string | undefined;
 };
-
-export function appSource(app: Pick<App, "sourceType" | "repositoryFullName">): AppSource {
-  if (app.sourceType === "git") {
-    return "git";
-  }
-  if (app.sourceType === "oci") {
-    return "image";
-  }
-  return app.repositoryFullName ? "git" : "legacy";
-}
 
 export function toAppRow(app: App, href: Route): AppRowData {
   const source = appSource(app);

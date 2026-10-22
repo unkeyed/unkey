@@ -115,7 +115,7 @@ The endpoint is [ratelimit.limit](/api-management/api-reference/ratelimit/apply-
 
 ## Create a deployment
 
-The client covers Compute too. Name the project, app, and environment, and optionally set the source with one of `Oci`, `Git`, or `Deployment`. Leave all three out to use the app's default:
+The client covers Compute too. Name the <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>, app, and environment, and optionally set the source with one of `Oci`, `Git`, or `Deployment`. Leave all three out to use the app's default:
 
 ```go
 res, err := client.Deployments.CreateDeploymentV3(ctx, components.V3DeploymentsCreateDeploymentRequestBody{

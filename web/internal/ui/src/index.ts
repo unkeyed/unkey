@@ -24,6 +24,7 @@ export * from "./components/drover";
 export * from "./components/empty-state";
 export * from "./components/icon-fan-row";
 export * from "./components/form";
+export * from "./components/generated-avatar";
 export * from "./components/full-screen-layout";
 export * from "./components/id";
 export * from "./components/info-tooltip";
@@ -58,4 +59,5 @@ export * from "./components/data-table";
 
 /* Lib Export */
 export * from "./lib/utils";
+export * from "./lib/cva";
 export { formatTimestamp, isSameDay, type TimestampStyle } from "./lib/time";

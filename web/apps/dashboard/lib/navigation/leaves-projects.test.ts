@@ -8,11 +8,17 @@ const rows = (links: ReturnType<typeof buildWorkspaceSections>) =>
   links.map(({ key, label, href, isActive }) => ({ key, label, href, isActive }));
 
 describe("projects-first workspace sections", () => {
-  it("lists projects, root keys, logs, audit log and workspace settings for an admin", () => {
+  it("lists projects, logs, env vars, root keys, audit log and workspace settings for an admin", () => {
     expect(rows(buildWorkspaceSections(ws, ["projects"], true))).toEqual([
       { key: "projects", label: "Projects", href: "/acme/projects", isActive: true },
-      { key: "root-keys", label: "Root Keys", href: "/acme/root-keys", isActive: false },
       { key: "logs", label: "Logs", href: "/acme/logs", isActive: false },
+      {
+        key: "env-vars",
+        label: "Environment Variables",
+        href: "/acme/env-vars",
+        isActive: false,
+      },
+      { key: "root-keys", label: "Root Keys", href: "/acme/root-keys", isActive: false },
       { key: "audit", label: "Audit log", href: "/acme/audit", isActive: false },
       {
         key: "settings",
@@ -27,6 +33,12 @@ describe("projects-first workspace sections", () => {
     expect(rows(buildWorkspaceSections(ws, ["projects"], false))).toEqual([
       { key: "projects", label: "Projects", href: "/acme/projects", isActive: true },
       { key: "logs", label: "Logs", href: "/acme/logs", isActive: false },
+      {
+        key: "env-vars",
+        label: "Environment Variables",
+        href: "/acme/env-vars",
+        isActive: false,
+      },
       { key: "audit", label: "Audit log", href: "/acme/audit", isActive: false },
       {
         key: "settings",
@@ -42,12 +54,17 @@ describe("projects-first workspace sections", () => {
     expect(active.map((link) => link.key)).toEqual(["root-keys"]);
   });
 
+  it("marks env vars active on the env-vars segment", () => {
+    const active = buildWorkspaceSections(ws, ["env-vars"], true).filter((link) => link.isActive);
+    expect(active.map((link) => link.key)).toEqual(["env-vars"]);
+  });
+
   it("marks logs active on the workspace logs segment", () => {
     const active = buildWorkspaceSections(ws, ["logs"], false).filter((link) => link.isActive);
     expect(active.map((link) => link.key)).toEqual(["logs"]);
   });
 
-  it("marks nothing active outside the five sections", () => {
+  it("marks nothing active outside its sections", () => {
     expect(buildWorkspaceSections(ws, ["apis"], true).filter((link) => link.isActive)).toEqual([]);
   });
 });

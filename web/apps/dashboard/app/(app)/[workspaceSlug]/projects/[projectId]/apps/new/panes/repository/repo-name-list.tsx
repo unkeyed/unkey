@@ -1,7 +1,12 @@
 "use client";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Github, IconCheckOutline12, IconMagnifierOutline12 } from "@unkey/icons";
+import {
+  Github,
+  IconCheckOutline12,
+  IconMagnifierOutline12,
+  IconPlusOutline12,
+} from "@unkey/icons";
 import { Combobox, InputGroup, InputGroupAddon, InputGroupInput } from "@unkey/ui";
 import { cn } from "cn";
 import { useState } from "react";
@@ -15,6 +20,7 @@ type RepoNameListProps = {
   linkedRepoId: number | null;
   disabled: boolean;
   onPick: (repo: RepoItem) => void;
+  onAddAccount: () => void;
 };
 
 function linkedFirst<T extends { repo: RepoItem }>(rows: T[], linkedRepoId: number | null): T[] {
@@ -27,11 +33,15 @@ function OwnerSelect({
   value,
   disabled,
   onSelect,
+  addAccountDisabled,
+  onAddAccount,
 }: {
   options: { value: string; label: string }[];
   value: string;
   disabled: boolean;
   onSelect: (owner: string) => void;
+  addAccountDisabled: boolean;
+  onAddAccount: () => void;
 }) {
   return (
     <Combobox
@@ -46,6 +56,12 @@ function OwnerSelect({
       placeholder={<span className="text-gray-9">Account</span>}
       searchPlaceholder="Filter accounts…"
       emptyMessage="No accounts match."
+      action={{
+        label: "Add GitHub account",
+        icon: <IconPlusOutline12 />,
+        disabled: addAccountDisabled,
+        onSelect: onAddAccount,
+      }}
     />
   );
 }
@@ -56,6 +72,7 @@ export function RepoNameList({
   linkedRepoId,
   disabled,
   onPick,
+  onAddAccount,
 }: RepoNameListProps) {
   const [query, setQuery] = useState("");
   const [pickedOwner, setPickedOwner] = useState<string | null>(null);
@@ -68,8 +85,10 @@ export function RepoNameList({
         <OwnerSelect
           options={ownerOptions(repos ?? [])}
           value={owner}
-          disabled={repos === null || repos.length === 0}
+          disabled={repos === null}
           onSelect={setPickedOwner}
+          addAccountDisabled={disabled}
+          onAddAccount={onAddAccount}
         />
         <InputGroup className="h-8 bg-transparent">
           <InputGroupAddon>
