@@ -29,7 +29,8 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), sessionID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			s.remember(ctx, sessionID, SessionVerdict{Allowed: false})
+			var inactive clisession.Session
+			s.remember(ctx, sessionID, SessionVerdict{Allowed: false, Session: inactive})
 			return clisession.Session{}, clisession.ErrInactive
 		}
 		return clisession.Session{}, err
@@ -144,6 +145,7 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 			CreatedAt:   row.CreatedAt,
 			LastUsedAt:  row.LastUsedAt,
 			ExpiresAt:   row.ExpiresAt,
+			RevokedAt:   0,
 		}
 		if row.RevokedAt.Valid {
 			info.RevokedAt = row.RevokedAt.Int64

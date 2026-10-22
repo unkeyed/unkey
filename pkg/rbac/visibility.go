@@ -146,6 +146,10 @@ func readActionsFor(resource ResourceType, action ActionType) []ActionType {
 		return []ActionType{ReadEnvironment, ReadDeployment, ReadEnvironmentVariables, ReadPolicies, ReadDomain}
 	case Portal:
 		return []ActionType{ReadPortal}
+	case Workspace:
+		// Workspace permissions are create_root_key and install_github. Neither
+		// is a read, so holding one does not reveal the workspace.
+		return nil
 	case Rbac:
 		switch action {
 		case ReadRole, CreateRole, UpdateRole, DeleteRole, AddRoleToKey, RemoveRoleFromKey:
@@ -153,6 +157,18 @@ func readActionsFor(resource ResourceType, action ActionType) []ActionType {
 		case ReadPermission, CreatePermission, UpdatePermission, DeletePermission,
 			AddPermissionToKey, RemovePermissionFromKey, AddPermissionToRole, RemovePermissionFromRole:
 			return []ActionType{ReadPermission}
+		case ReadAPI, CreateAPI, DeleteAPI, UpdateAPI, CreateKey, UpdateKey, DeleteKey,
+			EncryptKey, DecryptKey, ReadKey, VerifyKey, ReadAnalytics, CreateRootKey, InstallGithub,
+			Limit, CreateNamespace, ReadNamespace, UpdateNamespace, DeleteNamespace, SetOverride,
+			ReadOverride, DeleteOverride, ListOverrides, CreateIdentity, ReadIdentity, UpdateIdentity,
+			DeleteIdentity, CreateDeployment, ReadDeployment, StopDeployment, StartDeployment,
+			PromoteDeployment, RollbackDeployment, GenerateUploadURL, CreateProject, ReadProject,
+			UpdateProject, DeleteProject, ReadGatewayRequests, ReadRuntimeLogs, CreateApp, ReadApp,
+			UpdateApp, DeleteApp, ConnectRepository, ReadEnvironment, UpdateEnvironment,
+			SetEnvironmentVariables, RemoveEnvironmentVariables, ReadEnvironmentVariables, SetPolicies,
+			UpdatePolicy, ReadPolicies, CreateDomain, ReadDomain, DeleteDomain, VerifyDomain,
+			CreatePortal, ReadPortal, UpdatePortal, DeletePortal, CreatePortalSession:
+			return []ActionType{ReadPermission, ReadRole}
 		default:
 			return []ActionType{ReadPermission, ReadRole}
 		}
