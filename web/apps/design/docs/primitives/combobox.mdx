@@ -1,0 +1,21 @@
+---
+title: Combobox
+description: A dropdown with a search field for picking one value from a list.
+---
+
+<Component path="combobox/basic" />
+
+Use `Combobox` when the list is long enough that people want to type to find a value. For a short list, use [Select](/primitives/select).
+
+- `searchPlaceholder` sets the filter text. `emptyMessage` shows when nothing matches.
+- `creatable` offers the typed text as a value when it matches no option.
+
+## Action row
+
+<Component path="combobox/action" />
+
+Pass `action` to pin a last row below the options, for example "Add GitHub account". It runs `action.onSelect` and does not change the value.
+
+- The row stays visible whatever the filter text is.
+- When nothing matches, Enter does not pick the row. Arrow keys and a click still reach it.
+- Set `action.disabled` while the action cannot run.
