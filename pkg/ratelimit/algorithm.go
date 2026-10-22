@@ -146,27 +146,24 @@ func summarize(otherSessions []session, liveSession *session) (summary, error) {
 
 	var result summary
 	var consumedAtOrAfterAnchorNs int64
-	for start := 0; start < len(newestFirst); {
-		anchorNs := newestFirst[start].anchorAtNs
-		end := start
-		// Sessions with the same anchor count toward each other, so all of
-		// them are added before their candidate is computed.
-		for ; end < len(newestFirst) && newestFirst[end].anchorAtNs == anchorNs; end++ {
-			var err error
-			consumedAtOrAfterAnchorNs, err = addNs(consumedAtOrAfterAnchorNs, newestFirst[end].consumedNs)
-			if err != nil {
-				return summary{}, err
-			}
+	for _, s := range newestFirst {
+		var err error
+		consumedAtOrAfterAnchorNs, err = addNs(consumedAtOrAfterAnchorNs, s.consumedNs)
+		if err != nil {
+			return summary{}, err
 		}
-		candidateNs, err := addNs(anchorNs, consumedAtOrAfterAnchorNs)
+		// Sessions with the same anchor count toward each other. They need no
+		// special case: the first of them gets a candidate with only part of
+		// their sum, but the last gets the full sum, and only the largest
+		// candidate matters.
+		candidateNs, err := addNs(s.anchorAtNs, consumedAtOrAfterAnchorNs)
 		if err != nil {
 			return summary{}, err
 		}
 		result.resetAtNs = max(result.resetAtNs, candidateNs)
-		if liveSession != nil && anchorNs <= liveSession.anchorAtNs {
+		if liveSession != nil && s.anchorAtNs <= liveSession.anchorAtNs {
 			result.maxCandidateRaisedByLiveSessionNs = max(result.maxCandidateRaisedByLiveSessionNs, candidateNs)
 		}
-		start = end
 	}
 	if len(newestFirst) > 0 {
 		result.newestAnchorAtNs = newestFirst[0].anchorAtNs
@@ -197,11 +194,11 @@ func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units 
 	// A denied request returns the state as it is. Nothing is written, so a
 	// caller who keeps hitting a closed rate limit costs no database writes.
 	unchanged := decision{
-		allowed:              false,
-		consumedNs:           0,
+		allowed:              false, //faultline:equivalent the zero value; exhaustruct requires the field
+		consumedNs:           0,     //faultline:equivalent the zero value; exhaustruct requires the field
 		resetAtNs:            current.resetAtNs,
 		remaining:            rate.remaining(nowNs, current.resetAtNs),
-		createNewSessionAtNs: 0,
+		createNewSessionAtNs: 0, //faultline:equivalent the zero value; exhaustruct requires the field
 	}
 	// At most `Limit` units are ever free, so more `units` never fit.
 	// Checking it here also keeps the 128-bit division in `unitsToNs` from
@@ -264,13 +261,10 @@ func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units 
 	}, nil
 }
 
-// summaryAfter returns the summary after an allowed decision was written into
-// the sessions. It is O(1). The decision must come from `decide` on
-// `current`.
+// summaryAfter returns the summary after an allowed decision with a positive
+// `consumedNs` was written into the sessions. It is O(1). The decision must
+// come from `decide` on `current`.
 func summaryAfter(current summary, spent decision) summary {
-	if !spent.allowed || spent.consumedNs == 0 {
-		return current
-	}
 	// The request raised every candidate at or before the live session. A new
 	// session is anchored at or after every other session, so there it raised
 	// every candidate. Either way, the largest raised candidate is the new
@@ -299,7 +293,7 @@ func summaryWithoutLiveSession(current summary) summary {
 // wrapped `reset_at` would open the rate limit.
 func addNs(a, b int64) (int64, error) {
 	if a > math.MaxInt64-b {
-		return 0, fault.New("time overflows int64 nanoseconds")
+		return 0, fault.New("time overflows int64 nanoseconds") //faultline:equivalent callers discard the value when there is an error
 	}
 	return a + b, nil
 }

@@ -24,6 +24,26 @@ func TestEntryMergeRowsKeepsTheLargerConsumedTime(t *testing.T) {
 	require.Equal(t, int64(105), e.summary.resetAtNs)
 }
 
+// TestEntryMergeRowsUpdatesEveryKnownSession guarantees that a newer row of
+// any known session updates that session instead of adding it a second time,
+// which would count its consumed time twice.
+func TestEntryMergeRowsUpdatesEveryKnownSession(t *testing.T) {
+	var e entry
+	require.NoError(t, e.mergeRows([]session{
+		{id: "a", anchorAtNs: 10, consumedNs: 1},
+		{id: "b", anchorAtNs: 20, consumedNs: 1},
+	}))
+	require.NoError(t, e.mergeRows([]session{
+		{id: "a", anchorAtNs: 10, consumedNs: 3},
+		{id: "b", anchorAtNs: 20, consumedNs: 5},
+	}))
+	require.ElementsMatch(t, []session{
+		{id: "a", anchorAtNs: 10, consumedNs: 3},
+		{id: "b", anchorAtNs: 20, consumedNs: 5},
+	}, e.all())
+	require.Equal(t, int64(25), e.summary.resetAtNs)
+}
+
 // TestEntryMergeRowsRejectsInvalidRows guarantees that corrupt rows return an
 // error and leave the entry unchanged.
 func TestEntryMergeRowsRejectsInvalidRows(t *testing.T) {
