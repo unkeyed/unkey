@@ -1,9 +1,11 @@
 package ratelimit
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"database/sql"
 	"testing"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
@@ -33,4 +35,58 @@ func TestMySQLStoreRoundTrip(t *testing.T) {
 	sessions, err = store.ReadSessions(ctx, fingerprint, 1)
 	require.NoError(t, err)
 	require.Equal(t, []StoredSession{newer}, sessions)
+}
+
+// TestMySQLStoreCleanup guarantees the two promises that cleanup relies on:
+// due rows page in `ListRowsToCompact` order, and a cleanup whose rows
+// changed after it read them changes nothing.
+func TestMySQLStoreCleanup(t *testing.T) {
+	ctx := t.Context()
+	conn, err := sql.Open("mysql", containers.MySQL(t).DSN)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
+	store := NewMySQLStore(conn, conn)
+
+	// The database outlives test runs, so each run lists its own range.
+	dueMs := time.Now().UnixNano()
+	beforeDue := DueRow{Fingerprint: lastFingerprint, CompactAfterMs: dueMs - 1}
+	first := sha256.Sum256([]byte(uid.New(uid.TestPrefix)))
+	second := sha256.Sum256([]byte(uid.New(uid.TestPrefix)))
+	if bytes.Compare(first[:], second[:]) > 0 {
+		first, second = second, first
+	}
+	a := StoredSession{Fingerprint: second, SessionID: uid.New("", 16), AnchorAtNs: 100, ConsumedNs: 10, CompactAfterMs: dueMs}
+	b := StoredSession{Fingerprint: second, SessionID: uid.New("", 16), AnchorAtNs: 105, ConsumedNs: 5, CompactAfterMs: dueMs}
+	c := StoredSession{Fingerprint: first, SessionID: uid.New("", 16), AnchorAtNs: 100, ConsumedNs: 1, CompactAfterMs: dueMs}
+	require.NoError(t, store.WriteSessions(ctx, []StoredSession{a, b, c}))
+
+	page, err := store.ListDueRows(ctx, dueMs+1, beforeDue, 1)
+	require.NoError(t, err)
+	require.Equal(t, []DueRow{{Fingerprint: first, CompactAfterMs: dueMs}}, page)
+	page, err = store.ListDueRows(ctx, dueMs+1, page[0], 3)
+	require.NoError(t, err)
+	require.Equal(t, []DueRow{{Fingerprint: second, CompactAfterMs: dueMs}, {Fingerprint: second, CompactAfterMs: dueMs}}, page)
+	page, err = store.ListDueRows(ctx, dueMs+1, page[1], 3)
+	require.NoError(t, err)
+	require.Empty(t, page, "the next page starts after the last fingerprint")
+	page, err = store.ListDueRows(ctx, dueMs, beforeDue, 2)
+	require.NoError(t, err)
+	require.Empty(t, page)
+
+	merged := StoredSession{Fingerprint: second, SessionID: uid.New("", 16), AnchorAtNs: 100, ConsumedNs: 15, CompactAfterMs: dueMs + 1}
+	stale := b
+	stale.ConsumedNs = 4
+	applied, err := store.ApplyCleanup(ctx, []StoredSession{a, stale}, []StoredSession{merged})
+	require.NoError(t, err)
+	require.False(t, applied)
+	sessions, err := store.ReadSessionsFromPrimary(ctx, second, 10)
+	require.NoError(t, err)
+	require.Equal(t, []StoredSession{b, a}, sessions, "a failed delete must roll back the earlier delete")
+
+	applied, err = store.ApplyCleanup(ctx, []StoredSession{a, b}, []StoredSession{merged})
+	require.NoError(t, err)
+	require.True(t, applied)
+	sessions, err = store.ReadSessionsFromPrimary(ctx, second, 10)
+	require.NoError(t, err)
+	require.Equal(t, []StoredSession{merged}, sessions)
 }
