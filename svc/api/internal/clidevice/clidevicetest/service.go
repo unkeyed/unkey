@@ -32,5 +32,6 @@ func New(h *testutil.Harness) *clidevice.Service {
 		Memberships:      allowAdmin{},
 		DashboardBaseURL: "http://dashboard.test",
 		Signer:           signer,
+		SessionCache:     nil,
 	}
 }
