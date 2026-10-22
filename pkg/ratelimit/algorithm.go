@@ -21,6 +21,13 @@ type session struct {
 
 	// consumedNs only grows.
 	consumedNs int64
+
+	// own is true if this pod created the session, so this pod writes it.
+	own bool
+
+	// committedNs is the consumed time that the store acknowledged. It is
+	// only used for own sessions.
+	committedNs int64
 }
 
 // resetTimes holds `reset_at` and the two other times that `decide` needs

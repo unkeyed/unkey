@@ -146,7 +146,7 @@ func TestLimiterStartsANewSessionWhenTheLifetimeEnds(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, first.id, e.liveID)
 	require.Len(t, e.sessions, 2)
-	require.Equal(t, session{id: first.id, anchorAtNs: first.anchorAtNs, consumedNs: 1801 * time.Second.Nanoseconds()}, e.sessions[first.id])
+	require.Equal(t, session{id: first.id, anchorAtNs: first.anchorAtNs, consumedNs: 1801 * time.Second.Nanoseconds(), own: true, committedNs: 0}, e.sessions[first.id])
 	require.Equal(t, start.Add(1802*time.Second), result.ResetAt)
 }
 

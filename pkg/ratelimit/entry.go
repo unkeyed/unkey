@@ -27,11 +27,6 @@ type entry struct {
 	// limit has no pause. Only the limiter sets it.
 	liveSessionEndsAtNs int64
 
-	// writtenNs holds the consumed time that the store acknowledged for each
-	// of this pod's sessions that may still need a write: the live session,
-	// and frozen sessions with units that are not written yet.
-	writtenNs map[string]int64
-
 	// rowsReadAtNs is when the last read of peer rows started, whether it
 	// succeeded or not. Zero means never.
 	rowsReadAtNs int64
@@ -56,14 +51,16 @@ func (e *entry) mergeRows(rows []session) error {
 			return err
 		}
 		known, ok := next[row.id]
-		if ok {
-			err = assert.Equal(known.anchorAtNs, row.anchorAtNs, "the anchor of a session never changes")
-			if err != nil {
-				return err
-			}
-			row.consumedNs = max(known.consumedNs, row.consumedNs)
+		if !ok {
+			next[row.id] = session{id: row.id, anchorAtNs: row.anchorAtNs, consumedNs: row.consumedNs, own: false, committedNs: 0}
+			continue
 		}
-		next[row.id] = row
+		err = assert.Equal(known.anchorAtNs, row.anchorAtNs, "the anchor of a session never changes")
+		if err != nil {
+			return err
+		}
+		known.consumedNs = max(known.consumedNs, row.consumedNs)
+		next[row.id] = known
 	}
 
 	nextResetTimes, err := computeResetTimes(next, e.liveID)
@@ -106,15 +103,13 @@ func (e *entry) apply(applied decision, newSessionID string) error {
 			e.sessions = make(map[string]session)
 		}
 		e.sessions[newSessionID] = session{
-			id:         newSessionID,
-			anchorAtNs: applied.createNewSessionAtNs,
-			consumedNs: applied.consumedNs,
+			id:          newSessionID,
+			anchorAtNs:  applied.createNewSessionAtNs,
+			consumedNs:  applied.consumedNs,
+			own:         true,
+			committedNs: 0,
 		}
 		e.liveID = newSessionID
-		if e.writtenNs == nil {
-			e.writtenNs = make(map[string]int64)
-		}
-		e.writtenNs[newSessionID] = 0
 	}
 	e.resetTimes = resetTimesAfter(e.resetTimes, applied)
 	return nil
@@ -131,40 +126,17 @@ func (e *entry) endLiveSession() {
 	e.resetTimes.maxCandidateRaisedByLiveSessionNs = 0
 }
 
-// forgetWrittenSessions stops tracking this pod's sessions that need no
-// more writes: frozen sessions that are fully written, and sessions past
-// their `compact_after`. Cleanup may already have merged such a row, so a
-// late write would count its units twice.
+// uncommittedSessions returns this pod's sessions whose consumed time the
+// store has not acknowledged. A session at or past its `compact_after` is
+// left out: cleanup may already have merged its row, so a late write would
+// count its units twice. It does not change the entry.
 // The caller must hold the shard lock of the entry.
-func (e *entry) forgetWrittenSessions(nowNs int64) {
-	for id, writtenNs := range e.writtenNs {
-		s := e.sessions[id]
-		pastCompactAfter := nowNs >= s.anchorAtNs+compactAfter.Nanoseconds()
-		if pastCompactAfter || (id != e.liveID && s.consumedNs <= writtenNs) {
-			delete(e.writtenNs, id)
+func (e *entry) uncommittedSessions(nowNs int64) []session {
+	var uncommitted []session
+	for _, s := range e.sessions {
+		if s.own && s.consumedNs > s.committedNs && nowNs < s.anchorAtNs+compactAfter.Nanoseconds() {
+			uncommitted = append(uncommitted, s)
 		}
 	}
-}
-
-// unwrittenSessions returns this pod's tracked sessions whose consumed time
-// the store has not acknowledged. It does not change the entry.
-// The caller must hold the shard lock of the entry.
-func (e *entry) unwrittenSessions() []session {
-	var unwritten []session
-	for id, writtenNs := range e.writtenNs {
-		s := e.sessions[id]
-		if s.consumedNs > writtenNs {
-			unwritten = append(unwritten, s)
-		}
-	}
-	return unwritten
-}
-
-// markWritten records that the store acknowledged `consumedNs` for a session.
-// The caller must hold the shard lock of the entry.
-func (e *entry) markWritten(id string, consumedNs int64) {
-	writtenNs, ok := e.writtenNs[id]
-	if ok {
-		e.writtenNs[id] = max(writtenNs, consumedNs)
-	}
+	return uncommitted
 }
