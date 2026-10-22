@@ -8,6 +8,7 @@ import (
 )
 
 // Rate allows `Limit` units per `Duration`. The burst is the full `Limit`.
+// Its methods only read the value, so they are safe to call concurrently.
 type Rate struct {
 	Limit    int64
 	Duration time.Duration
