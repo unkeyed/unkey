@@ -109,7 +109,9 @@ type SectionBlock = { type: "section"; text?: MrkdwnText; fields?: MrkdwnText[] 
 type ButtonElement = { type: "button"; text: PlainText; url: string };
 type ActionsBlock = { type: "actions"; elements: ButtonElement[] };
 
-type SlackBlock = HeaderBlock | SectionBlock | ActionsBlock;
+type ContextBlock = { type: "context"; elements: MrkdwnText[] };
+
+type SlackBlock = HeaderBlock | SectionBlock | ActionsBlock | ContextBlock;
 
 const mrkdwnText = (text: Mrkdwn): MrkdwnText => {
   return { type: "mrkdwn", text, verbatim: true };
@@ -120,6 +122,7 @@ const plainText = (text: string): PlainText => {
 };
 
 type SlackMessage = {
+  text?: Mrkdwn;
   blocks: SlackBlock[];
 };
 
@@ -376,57 +379,54 @@ export async function alertOrphanedDeploySubscription(details: {
   eventId?: string;
   reason: string;
   product?: "API" | "Compute";
+  livemode?: boolean;
 }): Promise<void> {
-  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
-  if (!url) {
-    return;
+  const product = details.product ?? "Compute";
+  const reason =
+    details.reason === "subscription_conflict" ? "Subscription conflict" : details.reason;
+  const fields = [mrkdwn`*Product*\n${product}`, mrkdwn`*Reason*\n${reason}`];
+  if (details.workspaceId) {
+    fields.push(mrkdwn`*Workspace ID*\n\`${details.workspaceId}\``);
   }
-
-  // Include only the fields provided so the message never shows undefined.
-  const detailLines = [
-    details.workspaceId ? `Workspace: \`${details.workspaceId}\`` : null,
-    `Subscription: \`${details.subscriptionId}\``,
-    details.sessionId ? `Checkout session: \`${details.sessionId}\`` : null,
-    details.eventId ? `Event: \`${details.eventId}\`` : null,
-  ].filter((line): line is string => line !== null);
-
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `:rotating_light: Orphaned ${details.product ?? "Compute"} subscription needs manual reconciliation (${details.reason})`,
-            },
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `A live subscription could not be linked to its workspace. The subscription is billing but unlinked — cancel/refund it manually.\n${detailLines.join("\n")}`,
-            },
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      console.error("Failed to send orphaned-subscription alert to Slack:", {
-        status: response.status,
-        statusText: response.statusText,
-        ...details,
-      });
-    }
-  } catch (err: unknown) {
-    console.error("Error sending orphaned-subscription alert:", {
-      error: err instanceof Error ? { message: err.message, name: err.name } : err,
-      ...details,
+  fields.push(mrkdwn`*Subscription*\n\`${details.subscriptionId}\``);
+  const subscriptionUrl = stripeResourceUrl(
+    "subscriptions",
+    details.subscriptionId,
+    details.livemode,
+  );
+  const blocks: SlackBlock[] = [
+    header(`${product} subscription needs attention`),
+    section(
+      mrkdwn`This subscription is still billing but is not linked to its workspace.\nReview it in Stripe and cancel or refund it manually.`,
+    ),
+    fieldsSection(fields),
+    section(mrkdwn`<${subscriptionUrl}|Review subscription in Stripe>`),
+  ];
+  if (details.sessionId) {
+    blocks.push({
+      type: "context",
+      elements: [mrkdwnText(mrkdwn`Checkout session: \`${details.sessionId}\``)],
     });
   }
+  if (details.eventId) {
+    blocks.push({
+      type: "context",
+      elements: [mrkdwnText(mrkdwn`Stripe event: \`${details.eventId}\``)],
+    });
+  }
+  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "orphaned_subscription", {
+    text: mrkdwn`${product} subscription ${details.subscriptionId} is billing but unlinked. Review it in Stripe and cancel or refund it manually.`,
+    blocks,
+  });
+}
+
+function stripeResourceUrl(
+  resource: "subscriptions" | "products",
+  id: string,
+  livemode = true,
+): string {
+  const base = livemode ? "https://dashboard.stripe.com" : "https://dashboard.stripe.com/test";
+  return `${base}/${resource}/${encodeURIComponent(id)}`;
 }
 
 /**
@@ -440,47 +440,30 @@ export async function alertInvalidProductQuotaMetadata(details: {
   productName: string;
   subscriptionId: string;
   eventId: string;
+  livemode?: boolean;
 }): Promise<void> {
-  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
-  if (!url) {
-    return;
-  }
-
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: ":rotating_light: Product has invalid quota metadata; tier sync skipped",
-            },
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `A subscription.updated could not sync the workspace tier because the product's quota metadata is invalid or missing. Fix the product metadata in Stripe.\nProduct: \`${details.productName}\` (\`${details.productId}\`)\nSubscription: \`${details.subscriptionId}\`\nEvent: \`${details.eventId}\``,
-            },
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      console.error("Failed to send invalid-quota-metadata alert to Slack:", {
-        status: response.status,
-        statusText: response.statusText,
-        ...details,
-      });
-    }
-  } catch (err: unknown) {
-    console.error("Error sending invalid-quota-metadata alert:", {
-      error: err instanceof Error ? { message: err.message, name: err.name } : err,
-      ...details,
-    });
-  }
+  const productUrl = stripeResourceUrl("products", details.productId, details.livemode);
+  const subscriptionUrl = stripeResourceUrl(
+    "subscriptions",
+    details.subscriptionId,
+    details.livemode,
+  );
+  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "invalid_product_quota_metadata", {
+    text: mrkdwn`${details.productName}: workspace tier sync was skipped because quota metadata is invalid or missing. Fix the product metadata in Stripe.`,
+    blocks: [
+      header("Product quota settings need attention"),
+      section(
+        mrkdwn`Workspace tier sync was skipped.\nFix the invalid or missing product quota metadata in Stripe.`,
+      ),
+      fieldsSection([
+        mrkdwn`*Product*\n${details.productName}`,
+        mrkdwn`*Subscription*\n\`${details.subscriptionId}\``,
+      ]),
+      section(
+        mrkdwn`<${productUrl}|Review product in Stripe> · <${subscriptionUrl}|View subscription>`,
+      ),
+      { type: "context", elements: [mrkdwnText(mrkdwn`Product ID: \`${details.productId}\``)] },
+      { type: "context", elements: [mrkdwnText(mrkdwn`Stripe event: \`${details.eventId}\``)] },
+    ],
+  });
 }
