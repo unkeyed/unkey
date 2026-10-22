@@ -73,6 +73,8 @@ SELECT
     revoked_at
 FROM cli_sessions
 WHERE workspace_id = sqlc.arg(workspace_id)
+  AND revoked_at IS NULL
+  AND expires_at > sqlc.arg(now)
 ORDER BY created_at DESC
 LIMIT 100;
 
@@ -95,5 +97,7 @@ SELECT
 FROM cli_sessions
 WHERE workspace_id = sqlc.arg(workspace_id)
   AND user_id = sqlc.arg(user_id)
+  AND revoked_at IS NULL
+  AND expires_at > sqlc.arg(now)
 ORDER BY created_at DESC
 LIMIT 100;

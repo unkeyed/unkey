@@ -15,10 +15,17 @@ WHERE id = sqlc.arg(id)
     OR approver_user_id = sqlc.arg(approver_user_id)
   );
 
--- name: UpdateDeviceAuthorizationStatus :exec
+-- name: DenyDeviceAuthorization :execrows
 UPDATE device_authorizations
-SET status = sqlc.arg(status)
-WHERE id = sqlc.arg(id);
+SET status = 'denied'
+WHERE id = sqlc.arg(id)
+  AND status IN ('pending', 'approved');
+
+-- name: ExpireDeviceAuthorization :execrows
+UPDATE device_authorizations
+SET status = 'expired'
+WHERE id = sqlc.arg(id)
+  AND status IN ('pending', 'approved');
 
 -- name: ConsumeDeviceAuthorization :execrows
 UPDATE device_authorizations
