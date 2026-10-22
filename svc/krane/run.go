@@ -32,6 +32,7 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/watcher"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -95,6 +96,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
+	metrics.Init()
 	buildinfometrics.Register("krane")
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
@@ -249,6 +251,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 		identity := uid.New(uid.InstancePrefix)
 		return runWithLeadership(ctx, leaseClient, namespace, identity, func(ctx context.Context) {
+			metrics.Leader.Set(1)
+			defer metrics.ResetLeaderGauges()
 			fingerprintCache.Clear(ctx)
 
 			var workers sync.WaitGroup

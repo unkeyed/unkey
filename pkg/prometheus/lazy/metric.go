@@ -42,6 +42,8 @@ func NewCounterVec(opts prometheus.CounterOpts, labels []string) *CounterVec {
 	}}
 }
 
+func (c *CounterVec) Register() { c.m.get() }
+
 func (c *CounterVec) WithLabelValues(lvs ...string) prometheus.Counter {
 	return c.m.get().WithLabelValues(lvs...)
 }
@@ -62,6 +64,8 @@ func NewGaugeVec(opts prometheus.GaugeOpts, labels []string) *GaugeVec {
 		},
 	}}
 }
+
+func (g *GaugeVec) Register() { g.m.get() }
 
 func (g *GaugeVec) WithLabelValues(lvs ...string) prometheus.Gauge {
 	return g.m.get().WithLabelValues(lvs...)
@@ -86,6 +90,8 @@ func NewHistogramVec(opts prometheus.HistogramOpts, labels []string) *HistogramV
 	}}
 }
 
+func (h *HistogramVec) Register() { h.m.get() }
+
 func (h *HistogramVec) WithLabelValues(lvs ...string) prometheus.Observer {
 	return h.m.get().WithLabelValues(lvs...)
 }
@@ -109,6 +115,7 @@ func NewCounter(opts prometheus.CounterOpts) *Counter {
 	}}
 }
 
+func (c *Counter) Register()     { c.m.get() }
 func (c *Counter) Inc()          { c.m.get().Inc() }
 func (c *Counter) Add(v float64) { c.m.get().Add(v) }
 
@@ -125,6 +132,7 @@ func NewGauge(opts prometheus.GaugeOpts) *Gauge {
 	}}
 }
 
+func (g *Gauge) Register()     { g.m.get() }
 func (g *Gauge) Set(v float64) { g.m.get().Set(v) }
 func (g *Gauge) Inc()          { g.m.get().Inc() }
 func (g *Gauge) Dec()          { g.m.get().Dec() }
@@ -143,5 +151,7 @@ func NewHistogram(opts prometheus.HistogramOpts) *Histogram {
 		},
 	}}
 }
+
+func (h *Histogram) Register() { h.m.get() }
 
 func (h *Histogram) Observe(v float64) { h.m.get().Observe(v) }
