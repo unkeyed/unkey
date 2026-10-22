@@ -84,7 +84,7 @@ import (
 	v2AnalyticsGetRuntimeLogs "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_runtime_logs"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
-	v2LogsGetApiRequestsTimeseries "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_requests_timeseries"
+	v2LogsGetApiRequestMetrics "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
 	v2LogsListApiRequests "github.com/unkeyed/unkey/svc/api/routes/v2_logs_list_api_requests"
 	v2PortalCreatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
@@ -866,10 +866,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
-	// v2/logs.getApiRequestsTimeseries
+	// v2/logs.getApiRequestMetrics
 	srv.RegisterRoute(
 		protectedMiddlewares,
-		&v2LogsGetApiRequestsTimeseries.Handler{
+		&v2LogsGetApiRequestMetrics.Handler{
 			ClickHouse:  svc.ClickHouse,
 			DB:          svc.Database,
 			LimitsCache: svc.Caches.WorkspaceLimits,

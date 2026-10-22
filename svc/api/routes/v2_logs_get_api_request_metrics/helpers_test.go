@@ -9,7 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_requests_timeseries"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
 )
 
 func newRoute(t *testing.T) (*testutil.Harness, *handler.Handler, string) {

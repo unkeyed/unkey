@@ -19,8 +19,8 @@ import (
 )
 
 type (
-	Request  = openapi.V2LogsGetApiRequestsTimeseriesRequestBody
-	Response = openapi.V2LogsGetApiRequestsTimeseriesResponseBody
+	Request  = openapi.V2LogsGetApiRequestMetricsRequestBody
+	Response = openapi.V2LogsGetApiRequestMetricsResponseBody
 )
 
 type Handler struct {
@@ -32,7 +32,7 @@ type Handler struct {
 
 func (h *Handler) Method() string { return http.MethodPost }
 
-func (h *Handler) Path() string { return "/v2/logs.getApiRequestsTimeseries" }
+func (h *Handler) Path() string { return "/v2/logs.getApiRequestMetrics" }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// The dashboard would fill the request logs with its own reads
@@ -59,11 +59,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	filters := ptr.SafeDeref(req.Filters)
-	series, err := h.ClickHouse.GetApiRequestsTimeseries(ctx, clickhouse.ApiRequestsTimeseriesRequest{
+	series, err := h.ClickHouse.GetApiRequestMetrics(ctx, clickhouse.ApiRequestMetricsRequest{
 		WorkspaceID:    principal.AuthorizedWorkspaceID,
 		Now:            h.Clock.Now().UnixMilli(),
 		RetentionStart: retentionStart,
-		Filters: clickhouse.ApiRequestsTimeseriesFilters{
+		Filters: clickhouse.ApiRequestMetricsFilters{
 			Time:   requestlogs.Time(filters.Time),
 			Path:   requestlogs.Text(filters.Path),
 			Method: requestlogs.Method(filters.Method),
@@ -71,14 +71,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 	})
 	if err != nil {
-		return requestlogs.ReadError(err, "failed to read the api requests timeseries",
+		return requestlogs.ReadError(err, "failed to read the api request metrics",
 			"The query exceeds a read limit. Send a narrower `filters.time` window or more filters, then try again.",
 		)
 	}
 
-	points := make([]openapi.ApiRequestsTimeseriesPoint, len(series))
+	points := make([]openapi.ApiRequestMetricsPoint, len(series))
 	for i, p := range series {
-		points[i] = openapi.ApiRequestsTimeseriesPoint{
+		points[i] = openapi.ApiRequestMetricsPoint{
 			Time:        p.Time,
 			Success:     p.Success,
 			ClientError: p.ClientError,
@@ -91,8 +91,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.V2LogsGetApiRequestsTimeseriesResponseData{
-			Points: points,
-		},
+		Data: points,
 	})
 }

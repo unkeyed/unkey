@@ -1,11 +1,14 @@
 type: object
 required:
-  - points
+  - meta
+  - data
 properties:
-  points:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
     type: array
     maxItems: 200
     items:
-      "$ref": "../../../../common/ApiRequestsTimeseriesPoint.yaml"
+      "$ref": "../../../../common/ApiRequestMetricsPoint.yaml"
     description: One point per bucket, oldest first, with no gaps. A bucket with no requests has a point with zero counts. The bucket width is the distance between the `time` of two points.
 additionalProperties: false

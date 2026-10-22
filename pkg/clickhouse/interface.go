@@ -76,10 +76,10 @@ type Querier interface {
 	// A query over a read limit returns an error that the API serves as a 422
 	ListApiRequests(ctx context.Context, req ListApiRequestsRequest) ([]ApiRequestLog, error)
 
-	// GetApiRequestsTimeseries counts a workspace's API requests per bucket
+	// GetApiRequestMetrics counts a workspace's API requests per bucket
 	// over the window of req.Filters.Time, with a bucket width picked from the
 	// window. A query over a read limit returns an error the API serves as a 422
-	GetApiRequestsTimeseries(ctx context.Context, req ApiRequestsTimeseriesRequest) ([]ApiRequestsTimeseriesPoint, error)
+	GetApiRequestMetrics(ctx context.Context, req ApiRequestMetricsRequest) ([]ApiRequestMetricsPoint, error)
 
 	// InsertAuditLogs synchronously writes a batch of audit log rows to
 	// audit_logs_raw_v1. Used by the AuditLogExport outbox worker — returns

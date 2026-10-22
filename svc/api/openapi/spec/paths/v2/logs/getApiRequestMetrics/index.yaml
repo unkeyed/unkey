@@ -1,7 +1,7 @@
 post:
   tags:
     - logs
-  summary: Get the API requests timeseries
+  summary: Get API request metrics
   description: |
     Count the requests that the Unkey API served for your workspace per time bucket, split by status class.
 
@@ -13,8 +13,8 @@ post:
 
     Your root key must have the following permission:
     - `unkey:v1:<workspace_id>:logs/apiRequests#read`
-  operationId: logs.getApiRequestsTimeseries
-  x-speakeasy-name-override: getApiRequestsTimeseries
+  operationId: logs.getApiRequestMetrics
+  x-speakeasy-name-override: getApiRequestMetrics
   x-unkey-idempotency: idempotent
   security:
     - bearer: []
@@ -23,14 +23,14 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "./V2LogsGetApiRequestsTimeseriesRequestBody.yaml"
+          "$ref": "./V2LogsGetApiRequestMetricsRequestBody.yaml"
   responses:
     "200":
       description: One point per bucket, oldest first, with zero counts for buckets without requests.
       content:
         application/json:
           schema:
-            "$ref": "./V2LogsGetApiRequestsTimeseriesResponseBody.yaml"
+            "$ref": "./V2LogsGetApiRequestMetricsResponseBody.yaml"
           examples:
             series:
               summary: Two buckets of 30 minutes
@@ -38,24 +38,22 @@ post:
                 meta:
                   requestId: req_1234abcd
                 data:
-                  points:
-                    - time: 1792018800000
-                      success: 1200
-                      clientError: 31
-                      serverError: 2
-                      total: 1233
-                    - time: 1792020600000
-                      success: 0
-                      clientError: 0
-                      serverError: 0
-                      total: 0
+                  - time: 1792018800000
+                    success: 1200
+                    clientError: 31
+                    serverError: 2
+                    total: 1233
+                  - time: 1792020600000
+                    success: 0
+                    clientError: 0
+                    serverError: 0
+                    total: 0
             empty:
               summary: A window that ends before it starts
               value:
                 meta:
                   requestId: req_1234abcd
-                data:
-                  points: []
+                data: []
     "400":
       description: Bad request
       content:
@@ -64,13 +62,13 @@ post:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
           examples:
             unknownField:
-              summary: A filter field the timeseries does not have
+              summary: A filter field the metrics do not have
               value:
                 meta:
                   requestId: req_1234abcd
                 error:
                   title: Bad Request
-                  detail: POST request body for '/v2/logs.getApiRequestsTimeseries' failed to validate schema
+                  detail: POST request body for '/v2/logs.getApiRequestMetrics' failed to validate schema
                   status: 400
                   type: https://unkey.com/docs/errors/unkey/application/invalid_input
                   errors:

@@ -10,20 +10,20 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_requests_timeseries"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
 )
 
 type unreachableClickHouse struct {
 	clickhouse.ClickHouse
 }
 
-func (unreachableClickHouse) GetApiRequestsTimeseries(context.Context, clickhouse.ApiRequestsTimeseriesRequest) ([]clickhouse.ApiRequestsTimeseriesPoint, error) {
+func (unreachableClickHouse) GetApiRequestMetrics(context.Context, clickhouse.ApiRequestMetricsRequest) ([]clickhouse.ApiRequestMetricsPoint, error) {
 	return nil, errors.New("dial tcp 10.0.0.9:9000: connect: connection refused")
 }
 
-// TestGetApiRequestsTimeseriesLogStoreUnavailable guarantees an unreachable
+// TestGetApiRequestMetricsLogStoreUnavailable guarantees an unreachable
 // log store is a 503, which tells the caller to retry
-func TestGetApiRequestsTimeseriesLogStoreUnavailable(t *testing.T) {
+func TestGetApiRequestMetricsLogStoreUnavailable(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	route.ClickHouse = unreachableClickHouse{ClickHouse: h.ClickHouse}
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))

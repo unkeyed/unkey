@@ -678,8 +678,8 @@ type ApiRequestLog struct {
 	Time int64 `json:"time"`
 }
 
-// ApiRequestsTimeseriesPoint The number of requests in one bucket.
-type ApiRequestsTimeseriesPoint struct {
+// ApiRequestMetricsPoint The number of requests in one bucket.
+type ApiRequestMetricsPoint struct {
 	// ClientError The number of requests with a 4xx status.
 	//
 	// Example: 31
@@ -5758,8 +5758,8 @@ type V2LivenessResponseData struct {
 	Message string `json:"message"`
 }
 
-// V2LogsGetApiRequestsTimeseriesFilters Filters for the timeseries. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
-type V2LogsGetApiRequestsTimeseriesFilters struct {
+// V2LogsGetApiRequestMetricsFilters Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+type V2LogsGetApiRequestMetricsFilters struct {
 	// Method Filters by HTTP method.
 	//
 	// Example: {"is":["POST","PUT"]}
@@ -5788,24 +5788,19 @@ type V2LogsGetApiRequestsTimeseriesFilters struct {
 	Time *TimeFilter `json:"time,omitempty"`
 }
 
-// V2LogsGetApiRequestsTimeseriesRequestBody defines model for V2LogsGetApiRequestsTimeseriesRequestBody.
-type V2LogsGetApiRequestsTimeseriesRequestBody struct {
-	// Filters Filters for the timeseries. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
-	Filters *V2LogsGetApiRequestsTimeseriesFilters `json:"filters,omitempty"`
+// V2LogsGetApiRequestMetricsRequestBody defines model for V2LogsGetApiRequestMetricsRequestBody.
+type V2LogsGetApiRequestMetricsRequestBody struct {
+	// Filters Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+	Filters *V2LogsGetApiRequestMetricsFilters `json:"filters,omitempty"`
 }
 
-// V2LogsGetApiRequestsTimeseriesResponseBody defines model for V2LogsGetApiRequestsTimeseriesResponseBody.
-type V2LogsGetApiRequestsTimeseriesResponseBody struct {
-	Data V2LogsGetApiRequestsTimeseriesResponseData `json:"data"`
+// V2LogsGetApiRequestMetricsResponseBody defines model for V2LogsGetApiRequestMetricsResponseBody.
+type V2LogsGetApiRequestMetricsResponseBody struct {
+	// Data One point per bucket, oldest first, with no gaps. A bucket with no requests has a point with zero counts. The bucket width is the distance between the `time` of two points.
+	Data []ApiRequestMetricsPoint `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// V2LogsGetApiRequestsTimeseriesResponseData defines model for V2LogsGetApiRequestsTimeseriesResponseData.
-type V2LogsGetApiRequestsTimeseriesResponseData struct {
-	// Points One point per bucket, oldest first, with no gaps. A bucket with no requests has a point with zero counts. The bucket width is the distance between the `time` of two points.
-	Points []ApiRequestsTimeseriesPoint `json:"points"`
 }
 
 // V2LogsListApiRequestsFilters Filters for the listing. A missing field does not filter. Different fields are combined with AND.
@@ -8212,8 +8207,8 @@ type KeysVerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 // KeysWhoamiJSONRequestBody defines body for KeysWhoami for application/json ContentType.
 type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
 
-// LogsGetApiRequestsTimeseriesJSONRequestBody defines body for LogsGetApiRequestsTimeseries for application/json ContentType.
-type LogsGetApiRequestsTimeseriesJSONRequestBody = V2LogsGetApiRequestsTimeseriesRequestBody
+// LogsGetApiRequestMetricsJSONRequestBody defines body for LogsGetApiRequestMetrics for application/json ContentType.
+type LogsGetApiRequestMetricsJSONRequestBody = V2LogsGetApiRequestMetricsRequestBody
 
 // LogsListApiRequestsJSONRequestBody defines body for LogsListApiRequests for application/json ContentType.
 type LogsListApiRequestsJSONRequestBody = V2LogsListApiRequestsRequestBody

@@ -12,12 +12,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_requests_timeseries"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
 )
 
-// TestGetApiRequestsTimeseriesWithoutLimits guarantees a workspace with no
+// TestGetApiRequestMetricsWithoutLimits guarantees a workspace with no
 // limits row never reads without its retention bound, also from the cached miss
-func TestGetApiRequestsTimeseriesWithoutLimits(t *testing.T) {
+func TestGetApiRequestMetricsWithoutLimits(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	require.NoError(t, db.Query.DeleteLimitByWorkspaceID(context.Background(), h.DB.RW(), workspaceID))
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
@@ -32,13 +32,13 @@ type rejectingClickHouse struct {
 	clickhouse.ClickHouse
 }
 
-func (rejectingClickHouse) GetApiRequestsTimeseries(context.Context, clickhouse.ApiRequestsTimeseriesRequest) ([]clickhouse.ApiRequestsTimeseriesPoint, error) {
-	return nil, fault.Wrap(&ch.Exception{Code: 47, Name: "DB::Exception", Message: "Unknown identifier"}, fault.Internal("failed to read the api requests timeseries"))
+func (rejectingClickHouse) GetApiRequestMetrics(context.Context, clickhouse.ApiRequestMetricsRequest) ([]clickhouse.ApiRequestMetricsPoint, error) {
+	return nil, fault.Wrap(&ch.Exception{Code: 47, Name: "DB::Exception", Message: "Unknown identifier"}, fault.Internal("failed to read the api request metrics"))
 }
 
-// TestGetApiRequestsTimeseriesQueryRejected guarantees ClickHouse rejecting
+// TestGetApiRequestMetricsQueryRejected guarantees ClickHouse rejecting
 // the query is a 500, because Unkey writes the query
-func TestGetApiRequestsTimeseriesQueryRejected(t *testing.T) {
+func TestGetApiRequestMetricsQueryRejected(t *testing.T) {
 	h, route, workspaceID := newRoute(t)
 	route.ClickHouse = rejectingClickHouse{ClickHouse: h.ClickHouse}
 	rootKey := h.CreateRootKey(workspaceID, apiRequestLogsPermission(workspaceID))
