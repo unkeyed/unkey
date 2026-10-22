@@ -7,7 +7,14 @@ import { formatTimestamp } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useId, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { type AreaFill, FILL_STYLES, Gradients } from "./area-fill";
 import { resolveXAxisDomain } from "./chart-domain";
+import {
+  ChartMarkerOverlay,
+  type ChartMarkers,
+  MarkerLayer,
+  activeMarkerSpan,
+} from "./chart-markers";
 import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
 import { formatBucketInterval } from "./format-interval";
@@ -49,6 +56,7 @@ function activePointFromState(state: unknown, data: AreaChartPoint[]): AreaChart
 }
 
 const Y_GUTTER_PX = 36;
+const DIMMED_OPACITY = 0.18;
 
 export type ValueParts = { value: string; unit?: string; hint?: string };
 
@@ -61,9 +69,21 @@ export type AreaTimeseriesAxisOptions = {
   };
   y?: {
     floor?: number;
+    max?: number;
+    tickCount?: number;
     formatTick?: (value: number) => string;
   };
 };
+
+function useSyncedScrub(syncId: string | undefined) {
+  const [inside, setInside] = useState(false);
+  return {
+    showDetail: !syncId || inside,
+    containerProps: syncId
+      ? { onPointerEnter: () => setInside(true), onPointerLeave: () => setInside(false) }
+      : {},
+  };
+}
 
 type Props = {
   data: AreaChartPoint[];
@@ -75,12 +95,22 @@ type Props = {
   showDateInTooltip?: boolean;
   formatTooltipValue?: (value: number) => ValueParts;
   axis?: AreaTimeseriesAxisOptions | null;
-  paleFill?: boolean;
+  fill?: AreaFill;
   fillColors?: Record<string, string>;
   onActiveChange?: (point: AreaChartPoint | null) => void;
   hideTooltip?: boolean;
   showZeroLine?: boolean;
+  syncId?: string;
+  markers?: ChartMarkers;
+  focusKey?: string | null;
 };
+
+function yTop(dataMax: number, floor: number, max: number | undefined, zeroLine: boolean) {
+  if (max !== undefined) {
+    return Math.max(max, dataMax * 1.1);
+  }
+  return zeroLine ? Math.max(floor, 1) : Math.max(dataMax, floor) * 1.1;
+}
 
 export function AreaTimeseriesChart({
   data,
@@ -92,17 +122,21 @@ export function AreaTimeseriesChart({
   showDateInTooltip,
   formatTooltipValue = formatBytesPerSecondParts,
   axis,
-  paleFill,
+  fill = "pulse",
   fillColors,
   onActiveChange,
   hideTooltip,
   showZeroLine,
+  syncId,
+  markers,
+  focusKey = null,
 }: Props) {
   const handleActive = onActiveChange
     ? (state: unknown) => onActiveChange(activePointFromState(state, data))
     : undefined;
   const chartId = useId().replace(/:/g, "");
   const [shouldAnimate, setShouldAnimate] = useState(true);
+  const scrub = useSyncedScrub(syncId);
   useEffect(() => {
     const timer = setTimeout(() => setShouldAnimate(false), 600);
     return () => clearTimeout(timer);
@@ -119,9 +153,10 @@ export function AreaTimeseriesChart({
   if (isLoading) {
     return <ChartWaveLoading height={height} color={sectionColor} />;
   }
-  const hasPositiveValue = data.some((point) => configKeys.some((key) => Number(point[key]) > 0));
-  const isAllZero =
-    data.length > 0 && data.every((point) => configKeys.every((key) => Number(point[key]) === 0));
+  const values = data.flatMap((point) => configKeys.map((key) => point[key]));
+  const reported = values.filter((value) => value !== undefined);
+  const hasPositiveValue = reported.some((value) => value > 0);
+  const isAllZero = reported.length > 0 && reported.every((value) => value === 0);
   const renderZeroLine = Boolean(showZeroLine && isAllZero);
   if (!data.length || (!hasPositiveValue && !renderZeroLine)) {
     return (
@@ -135,8 +170,9 @@ export function AreaTimeseriesChart({
   );
   const yAxisFloor = axis === null ? 0 : (axis?.y?.floor ?? 1024);
   const formatYTick = axis?.y?.formatTick ?? formatYAxisCompactBytes;
-  const top = renderZeroLine ? Math.max(yAxisFloor, 1) : Math.max(dataMax, yAxisFloor) * 1.1;
-  const yTicks = [0, top / 3, (2 * top) / 3, top];
+  const top = yTop(dataMax, yAxisFloor, axis?.y?.max, renderZeroLine);
+  const tickCount = Math.max(2, axis?.y?.tickCount ?? 4);
+  const yTicks = Array.from({ length: tickCount }, (_, i) => (i * top) / (tickCount - 1));
   const yDomain: [number, number] = [0, top];
 
   let firstNonZeroTs: number | undefined;
@@ -162,80 +198,47 @@ export function AreaTimeseriesChart({
       )
     : undefined;
 
-  return (
+  const margin = {
+    top: showAxes || markers ? 16 : 4,
+    right: showAxes ? 8 : 0,
+    bottom: 0,
+    left: 0,
+  };
+  const markerDomain: [number, number] = effectiveDomain ?? [
+    data[0].originalTimestamp,
+    data[data.length - 1].originalTimestamp,
+  ];
+  const markerSpan = markers
+    ? activeMarkerSpan(markers.items, markers.activeId, markerDomain)
+    : null;
+
+  const style = FILL_STYLES[fill];
+  const emphasis = (key: string) => (focusKey === null || key === focusKey ? 1 : DIMMED_OPACITY);
+  const { showDetail } = scrub;
+
+  const chart = (
     <ChartContainer
       config={config}
-      className={cn("!flex-col aspect-auto w-full", chartContainerClassname)}
+      className={cn("!flex-col aspect-auto w-full", style.containerClass, chartContainerClassname)}
       style={{ height, width: "100%" }}
+      {...scrub.containerProps}
     >
       <AreaChart
         data={data}
         onMouseMove={handleActive}
         onMouseLeave={onActiveChange ? () => onActiveChange(null) : undefined}
-        margin={
-          showAxes
-            ? { top: 16, right: 8, bottom: 0, left: 0 }
-            : { top: 4, right: 0, bottom: 0, left: 0 }
-        }
+        syncId={syncId}
+        margin={margin}
       >
-        <defs>
-          {configKeys.map((key) => {
-            const fillColor = fillColors?.[key] ?? config[key].color;
-            return (
-              <linearGradient
-                key={`${chartId}-${key}`}
-                id={`${chartId}-${key}`}
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                {paleFill ? (
-                  <>
-                    <stop offset="0%" stopColor={fillColor} stopOpacity={0.85} />
-                    <stop offset="90%" stopColor={fillColor} stopOpacity={0.1} />
-                  </>
-                ) : (
-                  <>
-                    <stop offset="0%" stopColor={config[key].color} stopOpacity={0.45}>
-                      <animate
-                        attributeName="stop-opacity"
-                        values="0.45;0.3;0.45"
-                        dur="6s"
-                        repeatCount="indefinite"
-                      />
-                    </stop>
-                    <stop offset="50%" stopColor={config[key].color} stopOpacity={0.2}>
-                      <animate
-                        attributeName="stop-opacity"
-                        values="0.2;0.35;0.2"
-                        dur="6s"
-                        repeatCount="indefinite"
-                      />
-                    </stop>
-                    <stop offset="85%" stopColor={config[key].color} stopOpacity={0.08}>
-                      <animate
-                        attributeName="stop-opacity"
-                        values="0.08;0.15;0.08"
-                        dur="6s"
-                        repeatCount="indefinite"
-                      />
-                    </stop>
-                    <stop offset="100%" stopColor={config[key].color} stopOpacity={0.03} />
-                  </>
-                )}
-              </linearGradient>
-            );
-          })}
-        </defs>
-        {showAxes && (
-          <CartesianGrid
-            vertical={false}
-            stroke="var(--color-gray-4)"
-            strokeDasharray="3 3"
-            strokeOpacity={0.6}
+        {style.gradient && (
+          <Gradients
+            kind={style.gradient}
+            chartId={chartId}
+            config={config}
+            fillColors={fillColors}
           />
         )}
+        {showAxes && <CartesianGrid vertical={false} {...style.grid} />}
         <XAxis
           dataKey="originalTimestamp"
           type="number"
@@ -260,17 +263,13 @@ export function AreaTimeseriesChart({
           domain={yDomain}
           hide={!showAxes}
         />
+        {markers && <MarkerLayer markers={markers} span={markerSpan} />}
         <ChartTooltip
           allowEscapeViewBox={{ x: false, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}
-          cursor={{
-            stroke: "var(--color-gray-9)",
-            strokeWidth: 1,
-            strokeDasharray: "3 3",
-            strokeOpacity: 0.5,
-          }}
+          cursor={style.cursor}
           content={({ active, payload }) => {
-            if (hideTooltip || !active || !payload?.length) {
+            if (hideTooltip || !showDetail || !active || !payload?.length) {
               return null;
             }
             const point: unknown = payload[0]?.payload;
@@ -283,8 +282,8 @@ export function AreaTimeseriesChart({
               showDateInTooltip,
             );
             const rows = configKeys
-              .map((key) => ({ key, value: Number(point[key]) || 0 }))
-              .sort((a, b) => b.value - a.value);
+              .map((key) => ({ key, value: point[key] }))
+              .sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
             return (
               <div
                 role="tooltip"
@@ -294,7 +293,8 @@ export function AreaTimeseriesChart({
                 <div className="grid gap-1">
                   {rows.map(({ key, value }) => {
                     const itemConfig = config[key];
-                    const parts = formatTooltipValue(value);
+                    const parts =
+                      value === undefined ? { value: "No data" } : formatTooltipValue(value);
                     return (
                       <div key={key} className="flex items-center gap-2">
                         <div
@@ -317,7 +317,7 @@ export function AreaTimeseriesChart({
             );
           }}
         />
-        {!paleFill &&
+        {style.glow &&
           configKeys.map((key) => (
             <Area
               key={`${key}-glow`}
@@ -340,35 +340,37 @@ export function AreaTimeseriesChart({
             dataKey={key}
             type="monotone"
             stroke={config[key].color}
-            strokeWidth={1.5}
-            fill={`url(#${chartId}-${key})`}
-            fillOpacity={1}
+            strokeWidth={key === focusKey ? 2 : 1.5}
+            strokeOpacity={emphasis(key)}
+            fill={style.gradient ? `url(#${chartId}-${key})` : config[key].color}
+            fillOpacity={style.fillOpacity * emphasis(key)}
             isAnimationActive={shouldAnimate}
             animationDuration={500}
             animationEasing="ease-out"
             dot={false}
-            activeDot={(props: { cx?: number; cy?: number }) => {
-              const x = props.cx ?? 0;
-              const y = props.cy ?? 0;
-              return (
-                <g>
-                  <circle cx={x} cy={y} r={8} fill={config[key].color} opacity={0.12} />
-                  <circle cx={x} cy={y} r={5} fill={config[key].color} opacity={0.3} />
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={3}
-                    fill={config[key].color}
-                    stroke="white"
-                    strokeWidth={1.5}
-                  />
-                </g>
-              );
-            }}
+            activeDot={(props: { cx?: number; cy?: number }) =>
+              showDetail ? style.dot(props.cx ?? 0, props.cy ?? 0, config[key].color) : <g />
+            }
           />
         ))}
       </AreaChart>
     </ChartContainer>
+  );
+
+  if (!markers) {
+    return chart;
+  }
+  return (
+    <div className="relative w-full">
+      {chart}
+      <ChartMarkerOverlay
+        markers={markers}
+        domain={markerDomain}
+        insetLeft={margin.left + (showAxes ? Y_GUTTER_PX : 0)}
+        insetRight={margin.right}
+        bandHeight={margin.top}
+      />
+    </div>
   );
 }
 

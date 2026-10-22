@@ -106,7 +106,7 @@ export function ProductionCardChart() {
         data={pulse.series}
         config={CHART_CONFIG}
         fillColors={FILL_COLORS}
-        paleFill
+        fill="fade"
         height={120}
         axis={{
           x: { domain: xDomain, utc: true },
