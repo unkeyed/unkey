@@ -37,8 +37,7 @@
         "WORKOS_CLIENT_ID",
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
         "WORKOS_API_HOSTNAME",
-        "SENTRY_AUTH_TOKEN",
-        "GITHUB_KEYS_URI"
+        "SENTRY_AUTH_TOKEN"
       ],
       "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
     },
@@ -48,6 +47,7 @@
       "env": [
         "NEXT_PUBLIC_\\*",
         "\\!NEXT_PUBLIC_VERCEL_\\*",
+        "CTRL_URL",
         "VAULT_URL",
         "VAULT_TOKEN",
         "DATABASE_PRIMARY",
@@ -77,8 +77,7 @@
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
         "WORKOS_API_HOSTNAME",
         "SENTRY_AUTH_TOKEN",
-        "SENTRY_UPLOAD_SOURCEMAPS",
-        "GITHUB_KEYS_URI"
+        "SENTRY_UPLOAD_SOURCEMAPS"
       ],
       "passThroughEnv": ["SENTRY_RELEASE", "VERCEL_ENV", "VERCEL_GIT_COMMIT_SHA"]
     },
