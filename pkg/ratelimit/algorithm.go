@@ -85,6 +85,12 @@ type decision struct {
 	// createNewSessionAtNs is the anchor of the new session that the request
 	// must start, or zero if the request goes into the live session.
 	//
+	// If it is not zero, the caller must create a fresh session with a new ID,
+	// anchored at `createNewSessionAtNs`, and write the request into it. The
+	// old live session must never take units again: it is frozen and keeps
+	// counting as it is. Writing the units into the old session instead
+	// charges the request too little or not at all.
+	//
 	// A new session is needed when adding the units to the live session would
 	// not move `reset_at` to `max(reset_at, now) + c`: after a pause, or when
 	// a newer peer session holds `reset_at` (see
@@ -111,9 +117,6 @@ type decision struct {
 	// out, so they would not count `c` and the request would be charged too
 	// little. A later anchor would push the new candidate past the correct
 	// `reset_at` and charge too much.
-	//
-	// The caller freezes the old live session, which keeps counting in full,
-	// and writes `c` into the new session under a new ID.
 	//
 	// Zero is free to mean "no new session" because `decide` requires a
 	// positive time and a new anchor is never before it.
