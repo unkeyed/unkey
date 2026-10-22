@@ -117,7 +117,9 @@ func (e *entry) endLiveSession() {
 	}
 	e.others = append(e.others, *e.live)
 	e.live = nil
-	e.summary = summaryWithoutLiveSession(e.summary)
+	// `reset_at` does not change. No session is live, so no candidate is
+	// raised by one.
+	e.summary.maxCandidateRaisedByLiveSessionNs = 0
 }
 
 // isKnown is O(n), but it only runs when a new session starts.
