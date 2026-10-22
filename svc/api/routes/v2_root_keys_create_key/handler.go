@@ -7,18 +7,21 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 	principalpermissions "github.com/unkeyed/unkey/svc/api/internal/principal"
-	"github.com/unkeyed/unkey/svc/api/internal/rootkey"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -78,17 +81,86 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+	keyID := uid.New(uid.KeyPrefix)
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
-	created, err := rootkey.Insert(ctx, h.DB, rootkey.InsertRequest{
-		Principal:   p,
-		Name:        req.Name,
-		Permissions: validatedPermissions,
-		Expires:     expires,
-		Key:         key,
-		RemoteIP:    s.Location(),
-		UserAgent:   s.UserAgent(),
-		Auditlogs:   h.Auditlogs,
-		Clock:       h.Clock,
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		err := db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
+			ID:          keyID,
+			WorkspaceID: p.AuthorizedWorkspaceID,
+			Name: sql.NullString{
+				String: ptr.SafeDeref(req.Name),
+				Valid:  req.Name != nil,
+			},
+			Hash:      key.Hash,
+			Prefix:    key.Prefix,
+			Start:     key.Start,
+			End:       key.End,
+			Enabled:   true,
+			CreatedAt: h.Clock.Now().UnixMilli(),
+			Expires:   expires,
+		})
+		if err != nil {
+			return err
+		}
+		permissionRows := array.Map(validatedPermissions, func(slug string) db.InsertUnkeyPermissionParams {
+			return db.InsertUnkeyPermissionParams{
+				ID:            uid.New(uid.PermissionPrefix),
+				WorkspaceID:   p.AuthorizedWorkspaceID,
+				PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+				PrincipalID:   keyID,
+				Slug:          slug,
+				CreatedAt:     h.Clock.Now().UnixMilli(),
+			}
+		})
+		if err := db.BulkQuery.InsertUnkeyPermissions(ctx, tx, permissionRows); err != nil {
+			return err
+		}
+		actor := auditactor.FromPrincipal(p)
+		keyTarget := auditlog.AuditLogTarget{
+			Type:        auditlog.KeyTargetType,
+			ID:          keyID,
+			Name:        ptr.SafeDeref(req.Name),
+			DisplayName: ptr.SafeDeref(req.Name),
+			Meta:        map[string]any{},
+		}
+		logs := []auditlog.AuditLog{{
+			WorkspaceID:   p.AuthorizedWorkspaceID,
+			Event:         auditlog.RootKeyCreateEvent,
+			ActorType:     actor.Type,
+			ActorID:       actor.ID,
+			ActorName:     actor.Name,
+			ActorMeta:     actor.Meta,
+			Display:       "Created root key " + keyID,
+			RemoteIP:      s.Location(),
+			UserAgent:     s.UserAgent(),
+			CorrelationID: "",
+			Targets:       []auditlog.AuditLogTarget{keyTarget},
+		}}
+		logs = append(logs, array.Map(permissionRows, func(permission db.InsertUnkeyPermissionParams) auditlog.AuditLog {
+			return auditlog.AuditLog{
+				WorkspaceID:   p.AuthorizedWorkspaceID,
+				Event:         auditlog.AuthConnectPermissionKeyEvent,
+				ActorType:     actor.Type,
+				ActorID:       actor.ID,
+				ActorName:     actor.Name,
+				ActorMeta:     actor.Meta,
+				Display:       "Granted " + permission.Slug,
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
+				Targets: []auditlog.AuditLogTarget{
+					keyTarget,
+					{
+						Type:        auditlog.PermissionTargetType,
+						ID:          permission.ID,
+						Name:        permission.Slug,
+						DisplayName: permission.Slug,
+						Meta:        map[string]any{},
+					},
+				},
+			}
+		})...)
+		return h.Auditlogs.Insert(ctx, tx, logs)
 	})
 	if err != nil {
 		return err
@@ -96,8 +168,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.V2RootKeysCreateKeyResponseData{
-			KeyId: created.KeyID,
-			Key:   created.Key,
+			KeyId: keyID,
+			Key:   key.Key,
 		},
 	})
 }
