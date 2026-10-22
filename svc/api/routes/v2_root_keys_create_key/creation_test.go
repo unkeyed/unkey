@@ -253,7 +253,6 @@ func requireRootKeyAudit(t *testing.T, logs []auditlog.Event, keyID string, perm
 	require.Equal(t, []auditlog.EventTarget{{
 		Type: "key",
 		ID:   keyID,
-		Meta: map[string]any{},
 	}}, created.Targets)
 
 	granted, ok := byEvent[string(auditlog.AuthConnectPermissionKeyEvent)]
@@ -263,13 +262,11 @@ func requireRootKeyAudit(t *testing.T, logs []auditlog.Event, keyID string, perm
 		{
 			Type: "key",
 			ID:   keyID,
-			Meta: map[string]any{},
 		},
 		{
 			Type: "permission",
 			ID:   permissionID,
 			Name: permission,
-			Meta: map[string]any{},
 		},
 	}, granted.Targets)
 }
