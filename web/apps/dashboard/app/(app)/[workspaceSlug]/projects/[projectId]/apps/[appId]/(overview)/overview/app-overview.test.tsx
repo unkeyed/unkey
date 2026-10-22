@@ -25,6 +25,12 @@ const state = vi.hoisted(() => ({
   })),
 }));
 
+vi.mock("@/lib/flags/provider", () => ({
+  useFlag: () => false,
+}));
+vi.mock("./components/metrics-glance", () => ({
+  MetricsGlance: () => null,
+}));
 vi.mock("@/hooks/use-workspace-navigation", () => ({
   useWorkspaceNavigation: () => ({ slug: "workspace" }),
 }));
