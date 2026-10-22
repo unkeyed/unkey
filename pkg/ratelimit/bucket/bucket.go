@@ -75,17 +75,13 @@ type Decision struct {
 	// Remaining is how many more units fit after the request.
 	Remaining int64
 
-	// CreateNewSession is set when the request cannot go into the live
-	// session. The caller then creates a new session with a new ID, writes
-	// CostNs into it, and does not use the old live session again. It is nil
-	// when the request goes into the live session or changes nothing.
-	CreateNewSession *NewSession
-}
-
-// NewSession describes the session that a [Decision] creates.
-type NewSession struct {
-	// AnchorAtNs is the anchor of the new session, in Unix nanoseconds.
-	AnchorAtNs int64
+	// CreateNewSessionAtNs is zero when the request goes into the live
+	// session or changes nothing. Otherwise the request cannot go into the
+	// live session: the caller creates a new session with a new ID, anchored
+	// at CreateNewSessionAtNs, writes CostNs into it, and does not use the old
+	// live session again. Zero is free to mean "no new session" because
+	// [Bucket.Check] requires a positive time and the anchor is never before it.
+	CreateNewSessionAtNs int64
 }
 
 // New computes the state of a limit from all its known sessions.
@@ -173,7 +169,7 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	err := assert.All(
 		rate.Validate(),
 		assert.GreaterOrEqual(cost, 0, "cost must not be negative"),
-		assert.GreaterOrEqual(nowNs, 0, "time must not be before the Unix epoch"),
+		assert.Greater(nowNs, 0, "time must be after the Unix epoch"),
 	)
 	if err != nil {
 		return Decision{}, err
@@ -181,11 +177,11 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 
 	resetAtNs := b.ResetAtNs()
 	unchanged := Decision{
-		Allowed:          false,
-		CostNs:           0,
-		ResetAtNs:        resetAtNs,
-		Remaining:        rate.remaining(nowNs, resetAtNs),
-		CreateNewSession: nil,
+		Allowed:              false,
+		CostNs:               0,
+		ResetAtNs:            resetAtNs,
+		Remaining:            rate.remaining(nowNs, resetAtNs),
+		CreateNewSessionAtNs: 0,
 	}
 	if cost > rate.Limit {
 		return unchanged, nil
@@ -203,16 +199,16 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 		return unchanged, nil
 	}
 
-	var createNewSession *NewSession
+	var createNewSessionAtNs int64
 	if !b.hasLive || b.olderMaxNs < max(b.newerMaxNs, nowNs) {
-		createNewSession = &NewSession{AnchorAtNs: max(nowNs, b.newestAnchorNs)}
+		createNewSessionAtNs = max(nowNs, b.newestAnchorNs)
 	}
 	return Decision{
-		Allowed:          true,
-		CostNs:           costNs,
-		ResetAtNs:        nextResetAtNs,
-		Remaining:        rate.remaining(nowNs, nextResetAtNs),
-		CreateNewSession: createNewSession,
+		Allowed:              true,
+		CostNs:               costNs,
+		ResetAtNs:            nextResetAtNs,
+		Remaining:            rate.remaining(nowNs, nextResetAtNs),
+		CreateNewSessionAtNs: createNewSessionAtNs,
 	}, nil
 }
 
@@ -226,11 +222,11 @@ func (b *Bucket) Apply(decision Decision) {
 	// In both cases the request raises exactly the candidates at or before the
 	// live anchor, and the largest of them becomes the new reset_at.
 	b.olderMaxNs = decision.ResetAtNs
-	if decision.CreateNewSession != nil {
+	if decision.CreateNewSessionAtNs != 0 {
 		b.hasLive = true
-		b.liveAnchorNs = decision.CreateNewSession.AnchorAtNs
+		b.liveAnchorNs = decision.CreateNewSessionAtNs
 		b.newerMaxNs = 0
-		b.newestAnchorNs = decision.CreateNewSession.AnchorAtNs
+		b.newestAnchorNs = decision.CreateNewSessionAtNs
 	}
 }
 
