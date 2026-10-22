@@ -8,9 +8,13 @@
 // read them: secret-tool and `security -i` both receive the secret on stdin.
 // `security -i` keeps only 4095 bytes of a command line and drops the rest
 // without a reliable error, so a secret that does not fit is stored as several
-// items. Because that mode also does not reliably report failures through its
-// exit status, writes on macOS are confirmed by reading the items back and a
-// mismatch is deleted.
+// items. Those pieces are written under a fresh nonce, and the primary item
+// is replaced only after they are stored. A crash before that replacement
+// leaves the previous secret in place. A file lock keeps two writers from
+// deleting each other's pieces. Because interactive mode also does not
+// reliably report failures through its exit status, writes on macOS are
+// confirmed by reading the items back and a mismatch restores the previous
+// manifest.
 //
 // # Errors
 //
