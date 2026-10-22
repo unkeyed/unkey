@@ -106,33 +106,36 @@ func NewClient(config ClientConfig) (*Client, error) {
 	}
 
 	tokenCache, err := cache.New(cache.Config[int64, InstallationToken]{
-		Fresh:    50 * time.Minute,
-		Stale:    55 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "github_installation_token",
-		Clock:    clock.New(),
+		Fresh:     50 * time.Minute,
+		Stale:     55 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "github_installation_token",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	scopedTokenCache, err := cache.New(cache.Config[string, InstallationToken]{
-		Fresh:    50 * time.Minute,
-		Stale:    55 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "github_scoped_installation_token",
-		Clock:    clock.New(),
+		Fresh:     50 * time.Minute,
+		Stale:     55 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "github_scoped_installation_token",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	collaboratorCache, err := cache.New(cache.Config[collaboratorKey, bool]{
-		Fresh:    5 * time.Minute,
-		Stale:    30 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "github_collaborator",
-		Clock:    clock.New(),
+		Fresh:     5 * time.Minute,
+		Stale:     30 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "github_collaborator",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, err
@@ -149,11 +152,12 @@ func NewClient(config ClientConfig) (*Client, error) {
 	//     needlessly, but it only reads a now-public repo. Harmless.
 	// A flip never escalates access; worst case it delays the optimal choice.
 	visibilityCache, err := cache.New(cache.Config[string, bool]{
-		Fresh:    10 * time.Minute,
-		Stale:    1 * time.Hour,
-		MaxSize:  10_000,
-		Resource: "github_repo_visibility",
-		Clock:    clock.New(),
+		Fresh:     10 * time.Minute,
+		Stale:     1 * time.Hour,
+		MaxSize:   10_000,
+		Resource:  "github_repo_visibility",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, err
