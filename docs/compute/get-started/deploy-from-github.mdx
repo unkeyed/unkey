@@ -83,7 +83,7 @@ If you'd rather bring an image you built yourself, see [Deploy a container image
     - **Scaling**: each app starts with 0.25 vCPU, 256 MiB of memory, and one instance in each region available to the workspace. See [Runtime settings](/compute/configure/runtime-settings).
     - **Environment variables**: mark secrets as sensitive to make them write-only. See [Environment variables](/compute/configure/environment-variables).
 
-    Build and scaling settings you save here apply to both <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>. Auto deploy starts on for both. Your container must listen on the port in the `PORT` environment variable, 8080 unless you change it under **App settings** > **Runtime**.
+    Build and scaling settings you save here apply to both <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>. Auto deploy starts on for both. Your container must listen on the port in the `PORT` environment variable. The port is set per environment and is 8080 in each one. To change it for one environment, open **App settings** > **Environments**, select the environment, and click **Configure** on the **Runtime** card.
 
     Going back keeps your saved settings. Picking a different repository connects it to the same app.
 

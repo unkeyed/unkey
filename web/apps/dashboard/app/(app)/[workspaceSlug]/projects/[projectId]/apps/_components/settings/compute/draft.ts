@@ -7,15 +7,28 @@ export const computeSchema = z.object({
   cpuMillicores: z.number().int().positive(),
   memoryMib: z.number().int().positive(),
   storageMib: z.number().int().min(0),
-  replicas: z
-    .object({ min: z.number().int().min(1), max: z.number().int().min(1) })
-    .refine(({ min, max }) => min <= max, "Minimum can't be above maximum"),
+  replicas: z.object({ min: z.number().or(z.nan()), max: z.number().or(z.nan()) }),
   regions: z.array(z.string()).min(1, "Your app needs at least one region"),
 });
 
 export type ComputeValues = z.infer<typeof computeSchema>;
 
 export type Replicas = ComputeValues["replicas"];
+
+export type SetCompute = <K extends keyof ComputeValues>(key: K, value: ComputeValues[K]) => void;
+
+export function replicasError({ min, max }: Replicas, limit: number): string | undefined {
+  if (![min, max].every((n) => Number.isInteger(n) && n >= 1)) {
+    return `Use a whole number from 1 to ${limit}`;
+  }
+  if (max > limit) {
+    return `Up to ${limit} per region on your plan`;
+  }
+  if (min > max) {
+    return "Min can't be above max";
+  }
+  return undefined;
+}
 
 export function formatReplicas({ min, max }: Replicas): string {
   return min === max ? `${max}` : `${min}–${max}`;

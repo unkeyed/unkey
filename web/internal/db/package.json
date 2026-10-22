@@ -15,7 +15,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "20.14.9",
+    "@types/node": "24.19.2",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "7.4.1",
     "drizzle-kit": "0.31.4",

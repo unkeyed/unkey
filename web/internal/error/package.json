@@ -14,7 +14,7 @@
   "author": "Andreas Thomas",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "20.14.9",
+    "@types/node": "24.19.2",
     "typescript": "5.5.3"
   },
   "dependencies": {
