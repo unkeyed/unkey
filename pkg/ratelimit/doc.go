@@ -82,26 +82,11 @@
 //
 // So each pod writes only the rows of its own sessions. The anchor of a row
 // never changes and its consumed time only grows. When `entry.mergeRows`
-// sees two copies of one row, it keeps the larger consumed time, so a late or repeated
-// write never undoes a newer one.
+// sees two copies of one row, it keeps the larger consumed time, so a late or
+// repeated write never undoes a newer one.
 //
-// `reset_at` is computed from all rows:
-//
-//	reset_at = max over sessions r of
-//	           (r.anchor + sum of consumed of sessions anchored at or after r)
-//
-// Rows sorted newest first, any rate:
-//
-//	session   anchor     consumed   candidate
-//	B         12:00:03   9s         12:00:03 + 9s             = 12:00:12
-//	A         12:00:00   12s        12:00:00 + 9s + 12s       = 12:00:21   <- reset_at
-//	C         11:58:40   3s         11:58:40 + 9s + 12s + 3s  = 11:59:04
-//
-// A candidate answers one question: if the rate limit had no pause from this
-// anchor on, when would it be free? The formula is correct because each
-// admitted request keeps `reset_at` equal to single-machine GCRA, by the rule
-// in the next section. `FuzzDecideMatchesSingleMachineGCRA` checks this for
-// random histories of sessions and requests.
+// `reset_at` is computed from all rows by `summarize`, whose comment has the
+// formula and a worked example.
 //
 // # Where a request goes
 //

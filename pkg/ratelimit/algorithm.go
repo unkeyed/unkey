@@ -74,10 +74,29 @@ type decision struct {
 	createNewSessionAtNs int64
 }
 
-// summarize computes the summary of all sessions of one rate limit, with the
-// formula from the package documentation. `liveSessionID` names this pod's
-// live session and must be in `sessions`; pass an empty `liveSessionID` if
-// there is none. It is O(n log n) for n sessions and runs once per refresh.
+// summarize computes the summary of all sessions of one rate limit.
+// `reset_at` is the largest candidate, and the candidate of a session r is
+// r's anchor plus the consumed time of every session anchored at or after r:
+//
+//	reset_at = max over sessions r of
+//	           (r.anchor + sum of consumed of sessions anchored at or after r)
+//
+// For example, with three sessions sorted newest first:
+//
+//	session   anchor     consumed   candidate
+//	B         12:00:03   9s         12:00:03 + 9s             = 12:00:12
+//	A         12:00:00   12s        12:00:00 + 9s + 12s       = 12:00:21   <- reset_at
+//	C         11:58:40   3s         11:58:40 + 9s + 12s + 3s  = 11:59:04
+//
+// A candidate answers one question: if the rate limit had no pause from this
+// anchor on, when would it be free? The largest candidate is right because
+// `decide` keeps `reset_at` equal to single-machine GCRA with every admitted
+// request. `FuzzDecideMatchesSingleMachineGCRA` checks this for random
+// histories of sessions and requests.
+//
+// `liveSessionID` names this pod's live session and must be in `sessions`;
+// pass an empty `liveSessionID` if there is none. summarize is O(n log n) for
+// n sessions and runs once per refresh.
 //
 // summarize returns an error if an anchor is not positive, if a consumed time
 // is negative, if a sum overflows int64, or if the live session is missing or
