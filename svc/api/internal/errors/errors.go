@@ -3,6 +3,7 @@ package errors
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -62,8 +63,9 @@ func MaxByteSize(subject string, sizeBytes, limitBytes int) error {
 // read the resource, the result is a fresh not-found fault using code and
 // public, with no permission text attached. When the caller can read the
 // resource, the result is a fresh insufficient-permissions fault whose public
-// message names the missing permission or permissions and says to log in again
-// or grant them. Any other error, including a nil error, is returned unchanged.
+// message names the missing action or actions and says to log in again or
+// grant them. Resource ids stay out of that message. Any other error,
+// including a nil error, is returned unchanged.
 //
 // The result is never a wrap of err. Public messages in a fault chain are
 // concatenated into the response, and the denial names resource ids.
@@ -77,7 +79,7 @@ func MaskInsufficientPermissionsAsNotFound(err error, granted []string, query rb
 		return fault.New("insufficient permissions",
 			fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
 			fault.Internal("caller can read the resource but lacks a required permission"),
-			fault.Public(rbac.PermissionDeniedDetail(query, granted)),
+			fault.Public(actionDeniedDetail(query)),
 		)
 	}
 
@@ -86,4 +88,51 @@ func MaskInsufficientPermissionsAsNotFound(err error, granted []string, query rb
 		fault.Internal("masking insufficient permissions as not found"),
 		fault.Public(public),
 	)
+}
+
+// actionDeniedDetail names the missing actions without the resource ids in the
+// permission query. A caller who can read a resource already knows it exists;
+// repeating its id in the 403 would also reveal ids that were only resolved
+// server-side, such as the keyspace behind an API.
+func actionDeniedDetail(query rbac.PermissionQuery) string {
+	labels := actionLabels(query)
+	if len(labels) == 1 {
+		return "Missing permission: '" + labels[0] + "'. Log in again with that permission, or grant it."
+	}
+	return "Missing one of these permissions: " + strings.Join(labels, " or ") + ". Log in again with one of those permissions, or grant it."
+}
+
+func actionLabels(query rbac.PermissionQuery) []string {
+	labels := make([]string, 0)
+	seen := make(map[string]struct{})
+	var walk func(rbac.PermissionQuery)
+	walk = func(q rbac.PermissionQuery) {
+		if q.Value != "" {
+			label := actionLabel(q.Value)
+			if _, ok := seen[label]; ok {
+				return
+			}
+			seen[label] = struct{}{}
+			labels = append(labels, label)
+			return
+		}
+		for _, child := range q.Children {
+			walk(child)
+		}
+	}
+	walk(query)
+	if len(labels) == 0 {
+		return []string{"the required permission"}
+	}
+	return labels
+}
+
+func actionLabel(value string) string {
+	if i := strings.LastIndex(value, "#"); i >= 0 {
+		return value[i:]
+	}
+	if i := strings.LastIndex(value, "."); i >= 0 {
+		return value[i+1:]
+	}
+	return value
 }
