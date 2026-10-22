@@ -53,7 +53,7 @@ func TestBucketNeverWrapsAround(t *testing.T) {
 // FuzzBucketMatchesSingleMachineGCRA guarantees the core property of the
 // limiter math. For any history of peer sessions, paused or ended sessions,
 // and requests, every decision equals single-machine GCRA over the same
-// sessions: reset_at moves to max(reset_at, now) + cost, and the request fits
+// sessions: reset_at moves to max(reset_at, now) + units × Duration / Limit, and the request fits
 // if that stays within one Duration of now.
 //
 // It also guarantees that the sessions the caller writes reproduce that
@@ -99,8 +99,8 @@ func FuzzBucketMatchesSingleMachineGCRA(f *testing.F) {
 				liveSessionID = ""
 				require.Equal(t, rebuild(t, sessions, liveSessionID), b)
 			case 4:
-				cost := int64(c.Uint8()) % (rate.Limit + 2)
-				sessions, liveSessionID = requestMatchesSingleMachine(t, &b, sessions, liveSessionID, rate, nowNs, cost)
+				units := int64(c.Uint8()) % (rate.Limit + 2)
+				sessions, liveSessionID = requestMatchesSingleMachine(t, &b, sessions, liveSessionID, rate, nowNs, units)
 				require.Equal(t, rebuild(t, sessions, liveSessionID), b)
 			}
 		}
@@ -110,19 +110,19 @@ func FuzzBucketMatchesSingleMachineGCRA(f *testing.F) {
 // requestMatchesSingleMachine checks one request against single-machine GCRA,
 // applies it to the bucket, and writes it into the sessions the way the
 // limiter writes its rows. It returns the sessions and the live session ID.
-func requestMatchesSingleMachine(t *testing.T, b *bucket.Bucket, sessions []bucket.Session, liveSessionID string, rate bucket.Rate, nowNs, cost int64) ([]bucket.Session, string) {
+func requestMatchesSingleMachine(t *testing.T, b *bucket.Bucket, sessions []bucket.Session, liveSessionID string, rate bucket.Rate, nowNs, units int64) ([]bucket.Session, string) {
 	t.Helper()
 	before := resetAtByFormula(sessions)
 	require.Equal(t, before, b.ResetAtNs())
 
-	decision, err := b.Check(nowNs, rate, cost)
+	decision, err := b.Check(nowNs, rate, units)
 	require.NoError(t, err)
 
-	costNs := ceilDiv(cost*int64(rate.Duration), rate.Limit)
-	after := max(before, nowNs) + costNs
-	allowed := cost <= rate.Limit && after-nowNs <= int64(rate.Duration)
+	consumedNs := ceilDiv(units*int64(rate.Duration), rate.Limit)
+	after := max(before, nowNs) + consumedNs
+	allowed := units <= rate.Limit && after-nowNs <= int64(rate.Duration)
 	require.Equal(t, allowed, decision.Allowed)
-	if !allowed || cost == 0 {
+	if !allowed || units == 0 {
 		require.Equal(t, before, decision.ResetAtNs)
 		require.Zero(t, decision.CreateNewSessionAtNs)
 		require.Equal(t, remainingBySearch(rate, nowNs, before), decision.Remaining)
@@ -131,14 +131,14 @@ func requestMatchesSingleMachine(t *testing.T, b *bucket.Bucket, sessions []buck
 	}
 
 	require.Equal(t, after, decision.ResetAtNs)
-	require.Equal(t, costNs, decision.CostNs)
+	require.Equal(t, consumedNs, decision.ConsumedNs)
 	require.Equal(t, remainingBySearch(rate, nowNs, after), decision.Remaining)
 
 	withLive := slices.Clone(sessions)
 	liveCanTakeIt := false
 	for i := range withLive {
 		if liveSessionID != "" && withLive[i].ID == liveSessionID {
-			withLive[i].ConsumedNs += costNs
+			withLive[i].ConsumedNs += consumedNs
 			liveCanTakeIt = resetAtByFormula(withLive) == after
 		}
 	}
@@ -150,7 +150,7 @@ func requestMatchesSingleMachine(t *testing.T, b *bucket.Bucket, sessions []buck
 		sessions = append(sessions, bucket.Session{
 			ID:         liveSessionID,
 			AnchorAtNs: decision.CreateNewSessionAtNs,
-			ConsumedNs: decision.CostNs,
+			ConsumedNs: decision.ConsumedNs,
 		})
 	} else {
 		sessions = withLive
