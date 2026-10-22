@@ -239,7 +239,8 @@ func (st *simState) request(pod *simPod, limit simLimit, units int64) (bool, err
 			sessions = make(map[string]session)
 			st.ledger[limit.fingerprint] = sessions
 		}
-		sessions[e.liveID] = e.sessions[e.liveID]
+		live := e.sessions[e.liveID]
+		sessions[live.id] = session{id: live.id, anchorAtNs: live.anchorAtNs, consumedNs: live.consumedNs}
 		st.owner[e.liveID] = pod
 	}
 	truthAfterNs, err := st.truth(limit.fingerprint, nil)

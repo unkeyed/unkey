@@ -109,7 +109,7 @@ const (
 	maxSessionLifetime = 15 * time.Minute
 
 	// compactAfter is how long after its anchor a row may be compacted. A
-	// pod writes a session within this time or drops its unwritten units.
+	// pod writes a session within this time or drops its uncommitted units.
 	compactAfter = 30 * time.Minute
 
 	flushInterval       = time.Second
@@ -139,7 +139,7 @@ type limiter struct {
 	closed atomic.Bool
 
 	// flushMu lets one flush run at a time, so only the flush that collected
-	// a session marks it as written.
+	// a session marks it as committed.
 	flushMu sync.Mutex
 
 	// runInBackground runs background reads. It is `go f()`; the
@@ -323,9 +323,9 @@ func (l *limiter) flushUntilStopped(ticker clock.Ticker) {
 	}
 }
 
-// flush writes every unwritten session to the store and removes entries that
-// are idle and fully written. A failed write leaves its sessions unwritten,
-// so the next flush retries them with their latest values.
+// flush writes every uncommitted session to the store and removes entries
+// that are idle and fully committed. A failed write leaves its sessions
+// uncommitted, so the next flush retries them with their latest values.
 //
 // It is safe to call concurrently: `flushMu` runs one flush at a time, and it
 // takes each shard lock itself. The caller must not hold a shard lock.
@@ -339,16 +339,15 @@ func (l *limiter) flush(ctx context.Context) error {
 		s := &l.shards[i]
 		s.mu.Lock()
 		for fingerprint, e := range s.entries {
-			e.forgetWrittenSessions(nowNs)
-			unwritten := e.unwrittenSessions()
+			uncommitted := e.uncommittedSessions(nowNs)
 			// An idle entry decides like a new one, so removing it changes
 			// no decision. A running read merges into the entry when it
 			// finishes, so the entry stays until then.
-			if len(unwritten) == 0 && e.resetTimes.resetAtNs < nowNs && e.readDone == nil {
+			if len(uncommitted) == 0 && e.resetTimes.resetAtNs < nowNs && e.readDone == nil {
 				delete(s.entries, fingerprint)
 				continue
 			}
-			for _, session := range unwritten {
+			for _, session := range uncommitted {
 				writes = append(writes, StoredSession{
 					Fingerprint:    fingerprint,
 					SessionID:      session.id,
@@ -376,8 +375,12 @@ func (l *limiter) flush(ctx context.Context) error {
 			s := &l.shards[shardIndex(written.Fingerprint)]
 			s.mu.Lock()
 			// Only flush removes entries, and it never removes one with
-			// unwritten sessions, so the entry still exists.
-			s.entries[written.Fingerprint].markWritten(written.SessionID, written.ConsumedNs)
+			// uncommitted sessions. Entries never remove sessions. So both
+			// still exist.
+			e := s.entries[written.Fingerprint]
+			committed := e.sessions[written.SessionID]
+			committed.committedNs = max(committed.committedNs, written.ConsumedNs)
+			e.sessions[written.SessionID] = committed
 			s.mu.Unlock()
 		}
 	}
@@ -461,7 +464,7 @@ func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte) {
 	if err == nil {
 		rows := make([]session, len(stored))
 		for i, row := range stored {
-			rows[i] = session{id: row.SessionID, anchorAtNs: row.AnchorAtNs, consumedNs: row.ConsumedNs}
+			rows[i] = session{id: row.SessionID, anchorAtNs: row.AnchorAtNs, consumedNs: row.ConsumedNs, own: false, committedNs: 0}
 		}
 		err = e.mergeRows(rows)
 		if err != nil {
