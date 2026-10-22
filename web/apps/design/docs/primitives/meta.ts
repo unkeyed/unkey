@@ -7,7 +7,6 @@ export default defineMeta({
   pages: [
     "alert-banner",
     "badge",
-    "combobox",
     "empty-state",
     "item",
     "resource-list",
