@@ -22,6 +22,7 @@ import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import {
   isAutomatedBillingRenewal,
+  isCancelJustScheduled,
   isCardUpdateOnly,
   isPaymentFailureRelatedUpdate,
   isScheduleUpdateOnly,
@@ -549,10 +550,15 @@ export const POST = async (req: Request): Promise<Response> => {
          * So we get a subscription updated event, which we should handle accordingly.
          */
         if (sub.cancel_at) {
-          // Alert only when an email exists, but return unconditionally: the tier
-          // and limit update below is for active plan changes, never a cancelling
-          // subscription.
-          if (customer && !customer.deleted && customer.email) {
+          // Other updates on a cancelling subscription, such as the cancellation
+          // feedback write, must not re-alert. Return unconditionally: the tier and
+          // limit update below is for active plan changes, never a cancelling one.
+          if (
+            isCancelJustScheduled(previousAttributes) &&
+            customer &&
+            !customer.deleted &&
+            customer.email
+          ) {
             await alertCustomerLifecycle({
               action: "cancelling",
               name: customer.name || "Unknown",

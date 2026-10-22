@@ -3,6 +3,7 @@
 import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { currentPlanState } from "@/lib/billing/plan-card-state";
+import { type BillingProduct, PRODUCT_LABELS } from "@/lib/billing/products";
 import { useFlag } from "@/lib/flags/provider";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -22,15 +23,10 @@ import {
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { ApiPlans } from "./api-plans";
+import { CancellationFeedbackDialog } from "./cancellation-feedback-dialog";
 import { CREDITS_LINK_HREF, CREDITS_LINK_LABEL, planCreditsCopy } from "./compute-plan-copy";
 import { ComputePlans } from "./compute-plans";
-import {
-  type PaywallProduct,
-  type PaywallReason,
-  availableProducts,
-  defaultProduct,
-  paywallCopy,
-} from "./paywall-copy";
+import { type PaywallReason, availableProducts, defaultProduct, paywallCopy } from "./paywall-copy";
 
 type PlansScreenProps = {
   open: boolean;
@@ -77,8 +73,8 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     computeEnabled: deployBilling && !plansQuery.isError && plansQuery.data?.configured !== false,
   });
 
-  const [selectedProduct, setSelectedProduct] = useState<PaywallProduct | null>(null);
-  const [initialProduct, setInitialProduct] = useState<PaywallProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<BillingProduct | null>(null);
+  const [initialProduct, setInitialProduct] = useState<BillingProduct | null>(null);
   const choiceSettled =
     open &&
     (!wantsCompute || (!plansQuery.isLoading && !deployUsageQuery.isLoading)) &&
@@ -92,12 +88,18 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     );
   }
   const chosenProduct = [selectedProduct, initialProduct].find(
-    (product): product is PaywallProduct => product !== null && products.includes(product),
+    (product): product is BillingProduct => product !== null && products.includes(product),
   );
   const activeProduct = products.length > 1 ? (chosenProduct ?? null) : (products[0] ?? null);
 
+  const [feedbackProduct, setFeedbackProduct] = useState<BillingProduct | null>(null);
+
   const close = () => onOpenChange(false);
-  const panels: Record<PaywallProduct, ReactNode> = {
+  const askForFeedback = (product: BillingProduct) => {
+    close();
+    setFeedbackProduct(product);
+  };
+  const panels: Record<BillingProduct, ReactNode> = {
     compute: (
       <ComputePlans
         plans={copy.computePlans}
@@ -108,6 +110,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
         from={from}
         manage={copy.manage}
         onChanged={close}
+        onCancelled={() => askForFeedback("compute")}
         signupCreditClaimed={subscriptionQuery.data?.signupCreditClaimed}
       />
     ),
@@ -118,95 +121,97 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
           manage={copy.manage}
           usedThisMonth={apiOperations ?? null}
           onChanged={close}
+          onCancelled={() => askForFeedback("api")}
         />
       </div>
     ),
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="group/plans top-0 left-0 block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none bg-background p-0 transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-ending-style:scale-100 data-starting-style:scale-100 data-ending-style:duration-150 motion-reduce:transition-none sm:rounded-none [&>button[aria-label='Close_dialog']]:top-8 [&>button[aria-label='Close_dialog']]:right-8">
-        <div className="h-full overflow-y-auto">
-          <div className="overflow-clip">
-            <Tabs
-              value={activeProduct}
-              onValueChange={(value) =>
-                setSelectedProduct(products.find((product) => product === value) ?? null)
-              }
-              className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-24 pb-10 transition-[translate] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-data-starting-style/plans:translate-y-3 motion-reduce:transition-none md:justify-center md:px-6 md:py-24"
-            >
-              <div className="relative">
-                <Logo
-                  aria-hidden="true"
-                  className="absolute bottom-full left-1/2 mb-10 h-6 w-auto -translate-x-1/2"
-                />
-                <DialogTitle className="text-center font-semibold text-gray-12 text-xl tracking-[-0.03em] md:text-2xl">
-                  {copy.title}
-                </DialogTitle>
-              </div>
-              <DialogDescription className="mt-2 max-w-md text-balance text-center text-gray-11 text-sm leading-6">
-                {copy.description}
-                {products.includes("compute") ? (
-                  <span
-                    aria-hidden={activeProduct !== "compute"}
-                    className={activeProduct === "compute" ? undefined : "invisible"}
-                  >
-                    {" "}
-                    {planCreditsCopy()}{" "}
-                    <a
-                      href={CREDITS_LINK_HREF}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      tabIndex={activeProduct === "compute" ? undefined : -1}
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="group/plans top-0 left-0 block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none bg-background p-0 transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-ending-style:scale-100 data-starting-style:scale-100 data-ending-style:duration-150 motion-reduce:transition-none sm:rounded-none [&>button[aria-label='Close_dialog']]:top-8 [&>button[aria-label='Close_dialog']]:right-8">
+          <div className="h-full overflow-y-auto">
+            <div className="overflow-clip">
+              <Tabs
+                value={activeProduct}
+                onValueChange={(value) =>
+                  setSelectedProduct(products.find((product) => product === value) ?? null)
+                }
+                className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-24 pb-10 transition-[translate] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-data-starting-style/plans:translate-y-3 motion-reduce:transition-none md:justify-center md:px-6 md:py-24"
+              >
+                <div className="relative">
+                  <Logo
+                    aria-hidden="true"
+                    className="absolute bottom-full left-1/2 mb-10 h-6 w-auto -translate-x-1/2"
+                  />
+                  <DialogTitle className="text-center font-semibold text-gray-12 text-xl tracking-[-0.03em] md:text-2xl">
+                    {copy.title}
+                  </DialogTitle>
+                </div>
+                <DialogDescription className="mt-2 max-w-md text-balance text-center text-gray-11 text-sm leading-6">
+                  {copy.description}
+                  {products.includes("compute") ? (
+                    <span
+                      aria-hidden={activeProduct !== "compute"}
+                      className={activeProduct === "compute" ? undefined : "invisible"}
+                    >
+                      {" "}
+                      {planCreditsCopy()}{" "}
+                      <a
+                        href={CREDITS_LINK_HREF}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        tabIndex={activeProduct === "compute" ? undefined : -1}
+                        className="underline underline-offset-2 hover:text-gray-12"
+                      >
+                        {CREDITS_LINK_LABEL}
+                      </a>
+                    </span>
+                  ) : null}
+                </DialogDescription>
+                {isAdmin ? null : (
+                  <p className="mt-3 rounded-lg bg-grayA-3 px-3 py-1.5 text-center text-gray-12 text-sm">
+                    Only workspace admins can change plans. Ask an admin to upgrade.
+                  </p>
+                )}
+                {products.length > 1 ? (
+                  <TabsList className="mt-8 w-64">
+                    {products.map((product) => (
+                      <TabsTrigger key={product} value={product} className="flex-1">
+                        {PRODUCT_LABELS[product]}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                ) : null}
+                {products.map((product) => (
+                  <TabsContent key={product} value={product} className="mt-8 w-full">
+                    {panels[product]}
+                  </TabsContent>
+                ))}
+                {activeProduct === null && products.length > 1 ? (
+                  <Skeleton className="mt-8 h-96 w-full max-w-[560px] rounded-xl" />
+                ) : null}
+                {products.length === 0 ? (
+                  <p className="mt-8 text-center text-gray-11 text-sm">
+                    Plans aren't available right now.{" "}
+                    <Link
+                      href={routes.settings.billing({ workspaceSlug: workspace.slug })}
                       className="underline underline-offset-2 hover:text-gray-12"
                     >
-                      {CREDITS_LINK_LABEL}
-                    </a>
-                  </span>
+                      Go to billing
+                    </Link>
+                  </p>
                 ) : null}
-              </DialogDescription>
-              {isAdmin ? null : (
-                <p className="mt-3 rounded-lg bg-grayA-3 px-3 py-1.5 text-center text-gray-12 text-sm">
-                  Only workspace admins can change plans. Ask an admin to upgrade.
-                </p>
-              )}
-              {products.length > 1 ? (
-                <TabsList className="mt-8 w-64">
-                  {products.map((product) => (
-                    <TabsTrigger key={product} value={product} className="flex-1">
-                      {PRODUCT_LABELS[product]}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              ) : null}
-              {products.map((product) => (
-                <TabsContent key={product} value={product} className="mt-8 w-full">
-                  {panels[product]}
-                </TabsContent>
-              ))}
-              {activeProduct === null && products.length > 1 ? (
-                <Skeleton className="mt-8 h-96 w-full max-w-[560px] rounded-xl" />
-              ) : null}
-              {products.length === 0 ? (
-                <p className="mt-8 text-center text-gray-11 text-sm">
-                  Plans aren't available right now.{" "}
-                  <Link
-                    href={routes.settings.billing({ workspaceSlug: workspace.slug })}
-                    className="underline underline-offset-2 hover:text-gray-12"
-                  >
-                    Go to billing
-                  </Link>
-                </p>
-              ) : null}
-            </Tabs>
+              </Tabs>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+      <CancellationFeedbackDialog
+        product={feedbackProduct}
+        onClose={() => setFeedbackProduct(null)}
+      />
+    </>
   );
 }
-
-const PRODUCT_LABELS: Record<PaywallProduct, string> = {
-  compute: "Compute",
-  api: "API",
-};

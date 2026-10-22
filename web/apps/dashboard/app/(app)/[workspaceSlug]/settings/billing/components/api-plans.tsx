@@ -23,9 +23,16 @@ type ApiPlansProps = {
   manage: boolean;
   usedThisMonth: number | null;
   onChanged: () => void;
+  onCancelled: () => void;
 };
 
-export function ApiPlans({ isAdmin, manage, usedThisMonth, onChanged }: ApiPlansProps) {
+export function ApiPlans({
+  isAdmin,
+  manage,
+  usedThisMonth,
+  onChanged,
+  onCancelled,
+}: ApiPlansProps) {
   const router = useRouter();
   const pathname = usePathname();
   const trpcUtils = trpc.useUtils();
@@ -176,7 +183,7 @@ export function ApiPlans({ isAdmin, manage, usedThisMonth, onChanged }: ApiPlans
           </CancelPlanLink>
         </div>
       ) : null}
-      <CancelApiDialog open={isCancelOpen} onOpenChange={setCancelOpen} />
+      <CancelApiDialog open={isCancelOpen} onOpenChange={setCancelOpen} onCancelled={onCancelled} />
       <p className="flex items-center justify-center gap-2 text-gray-11 text-sm">
         <IconUserOutline18 className="size-4" />
         All API plans include unlimited team members.

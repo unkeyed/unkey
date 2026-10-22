@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  alertCancellationFeedback,
   alertCustomerLifecycle,
   alertPaymentFailed,
   alertPaymentRecovered,
@@ -406,6 +407,51 @@ describe("alertCustomerLifecycle", () => {
       "*Tier / Product*\nCompute Pro",
       "*Price*\n$25",
     ]);
+    expect(buttonUrl()).toBeUndefined();
+  });
+});
+
+describe("alertCancellationFeedback", () => {
+  const feedback = {
+    product: "compute",
+    reason: "too_expensive",
+    name: "Jane",
+    email: "jane@acme.com",
+    workspaceId: "ws_123",
+    workspaceName: "Acme",
+  } as const;
+
+  beforeEach(() => {
+    vi.stubEnv("SLACK_WEBHOOK_CUSTOMER_SUCCESS", "https://hooks.slack.example/services/cs");
+  });
+
+  it("posts the reason label and the comment to the customer success channel", async () => {
+    await alertCancellationFeedback({
+      ...feedback,
+      comment: "Line one\nLine two",
+      stripe: { customerId: "cus_123", livemode: false },
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toBe("https://hooks.slack.example/services/cs");
+    expect(headerText()).toBe(":speech_balloon: Compute cancellation feedback");
+    expect(fieldTexts()).toEqual([
+      "*Customer*\nJane",
+      "*Email*\njane@acme.com",
+      "*Workspace*\nAcme",
+      "*Workspace ID*\nws_123",
+      "*Reason*\nToo expensive",
+    ]);
+    expect(sentBlocks()[2]).toEqual({
+      type: "section",
+      text: { type: "plain_text", text: "Line one\nLine two", emoji: false },
+    });
+    expect(buttonUrl()).toBe("https://dashboard.stripe.com/test/customers/cus_123");
+  });
+
+  it("omits the comment and the Stripe button when neither is given", async () => {
+    await alertCancellationFeedback(feedback);
+
+    expect(sentBlocks().map((block) => block.type)).toEqual(["header", "section"]);
     expect(buttonUrl()).toBeUndefined();
   });
 });

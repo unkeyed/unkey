@@ -17,7 +17,9 @@ interface PreviousAttributes {
   plan?: Stripe.Plan | null;
   quantity?: number;
   discount?: Stripe.Discount | null;
+  cancel_at?: number | null;
   cancel_at_period_end?: boolean;
+  cancellation_details?: Stripe.Subscription.CancellationDetails | null;
   collection_method?: string;
   latest_invoice?: string | Stripe.Invoice | null;
   schedule?: string | Stripe.SubscriptionSchedule | null;
@@ -162,6 +164,17 @@ export function isCardUpdateOnly(
   }
 
   return false;
+}
+
+/**
+ * True when this update changed the cancel fields. An unrelated update on an already-cancelling
+ * subscription does not carry them in previous_attributes, so gating on this stops a re-alert.
+ */
+export function isCancelJustScheduled(previousAttributes: PreviousAttributes | undefined): boolean {
+  if (!previousAttributes) {
+    return false;
+  }
+  return "cancel_at_period_end" in previousAttributes || "cancel_at" in previousAttributes;
 }
 
 /** Attaching or releasing a schedule does not change the active API plan. */

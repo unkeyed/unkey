@@ -1,3 +1,8 @@
+import {
+  CANCELLATION_REASON_LABELS,
+  type CancellationReason,
+} from "@/lib/billing/cancellation-reasons";
+import { type BillingProduct, PRODUCT_LABELS } from "@/lib/billing/products";
 import { formatPrice } from "@/lib/fmt";
 
 /**
@@ -109,7 +114,10 @@ type SectionBlock = { type: "section"; text?: MrkdwnText; fields?: MrkdwnText[] 
 type ButtonElement = { type: "button"; text: PlainText; url: string };
 type ActionsBlock = { type: "actions"; elements: ButtonElement[] };
 
-type SlackBlock = HeaderBlock | SectionBlock | ActionsBlock;
+/** Plain text that is safe for customer prose: it keeps line breaks and renders no markup. */
+type ProseBlock = { type: "section"; text: { type: "plain_text"; text: string; emoji: false } };
+
+type SlackBlock = HeaderBlock | SectionBlock | ActionsBlock | ProseBlock;
 
 const mrkdwnText = (text: Mrkdwn): MrkdwnText => {
   return { type: "mrkdwn", text, verbatim: true };
@@ -172,6 +180,10 @@ async function postToSlack(
 
 const section = (text: Mrkdwn): SectionBlock => {
   return { type: "section", text: mrkdwnText(text) };
+};
+
+const prose = (text: string): ProseBlock => {
+  return { type: "section", text: { type: "plain_text", text, emoji: false } };
 };
 
 const header = (text: string): HeaderBlock => {
@@ -483,4 +495,45 @@ export async function alertInvalidProductQuotaMetadata(details: {
       ...details,
     });
   }
+}
+
+export type CancellationFeedback = {
+  product: BillingProduct;
+  reason: CancellationReason;
+  comment?: string;
+  name: string;
+  email: string;
+  workspaceId: string;
+  workspaceName: string;
+  stripe?: { customerId: string; livemode: boolean };
+};
+
+export async function alertCancellationFeedback(
+  feedback: CancellationFeedback,
+): Promise<SlackPostStatus> {
+  const blocks: SlackBlock[] = [
+    header(`:speech_balloon: ${PRODUCT_LABELS[feedback.product]} cancellation feedback`),
+    fieldsSection([
+      mrkdwn`*Customer*\n${feedback.name}`,
+      mrkdwn`*Email*\n${feedback.email}`,
+      mrkdwn`*Workspace*\n${feedback.workspaceName}`,
+      mrkdwn`*Workspace ID*\n${feedback.workspaceId}`,
+      mrkdwn`*Reason*\n${CANCELLATION_REASON_LABELS[feedback.reason]}`,
+    ]),
+  ];
+  if (feedback.comment) {
+    blocks.push(prose(feedback.comment));
+  }
+  if (feedback.stripe) {
+    blocks.push(
+      linkButton(
+        "View customer in Stripe",
+        stripeCustomerUrl(feedback.stripe.customerId, feedback.stripe.livemode),
+      ),
+    );
+  }
+
+  return postToSlack(process.env.SLACK_WEBHOOK_CUSTOMER_SUCCESS, "cancellation_feedback", {
+    blocks,
+  });
 }

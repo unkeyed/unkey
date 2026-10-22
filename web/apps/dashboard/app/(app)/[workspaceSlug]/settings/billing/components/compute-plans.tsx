@@ -46,6 +46,7 @@ type ComputePlansProps = {
   from: DeployCheckoutOrigin;
   manage: boolean;
   onChanged: () => void;
+  onCancelled: () => void;
   /** Undefined while the subscription query is loading, so the discount stays hidden. */
   signupCreditClaimed: boolean | undefined;
 };
@@ -59,6 +60,7 @@ export function ComputePlans({
   from,
   manage,
   onChanged,
+  onCancelled,
   signupCreditClaimed,
 }: ComputePlansProps) {
   const showSignupCredit = signupCreditClaimed === false;
@@ -160,7 +162,11 @@ export function ComputePlans({
           </CancelPlanLink>
         </div>
       ) : null}
-      <CancelComputeDialog open={isCancelOpen} onOpenChange={setCancelOpen} />
+      <CancelComputeDialog
+        open={isCancelOpen}
+        onOpenChange={setCancelOpen}
+        onCancelled={onCancelled}
+      />
       {current.status === "plan" ? (
         <ComputePlanConfirmDialog
           plan={pendingOption}

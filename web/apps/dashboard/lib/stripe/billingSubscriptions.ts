@@ -1,11 +1,5 @@
+import type { BillingProduct } from "@/lib/billing/products";
 import { type Database, type Transaction, and, eq, schema } from "@unkey/db";
-
-/**
- * A Stripe subscription belongs to exactly one Unkey product. After the billing
- * split each product owns a whole subscription, tracked as one row per
- * (workspace, product) in billing_subscriptions.
- */
-export type SubscriptionProduct = "api" | "compute";
 
 /**
  * Records (or repoints) the workspace's subscription for a product. Keyed on the
@@ -17,7 +11,7 @@ export type SubscriptionProduct = "api" | "compute";
  */
 export async function upsertBillingSubscription(
   db: Transaction | Database,
-  params: { workspaceId: string; product: SubscriptionProduct; stripeSubscriptionId: string },
+  params: { workspaceId: string; product: BillingProduct; stripeSubscriptionId: string },
 ): Promise<void> {
   await db
     .insert(schema.billingSubscriptions)
@@ -36,7 +30,7 @@ export async function upsertBillingSubscription(
  */
 export async function deleteBillingSubscription(
   db: Transaction | Database,
-  params: { workspaceId: string; product: SubscriptionProduct },
+  params: { workspaceId: string; product: BillingProduct },
 ): Promise<void> {
   await db
     .delete(schema.billingSubscriptions)
@@ -55,7 +49,7 @@ export async function deleteBillingSubscription(
  * product enum through them.
  */
 export function subscriptionIdsByProduct(
-  subscriptions: ReadonlyArray<{ product: SubscriptionProduct; stripeSubscriptionId: string }>,
+  subscriptions: ReadonlyArray<{ product: BillingProduct; stripeSubscriptionId: string }>,
 ): { stripeSubscriptionId: string | null; stripeDeploySubscriptionId: string | null } {
   let stripeSubscriptionId: string | null = null;
   let stripeDeploySubscriptionId: string | null = null;

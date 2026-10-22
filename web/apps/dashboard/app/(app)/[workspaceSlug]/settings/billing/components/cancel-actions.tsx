@@ -35,9 +35,11 @@ export function CancelPlanLink({
 export function CancelComputeDialog({
   open,
   onOpenChange,
+  onCancelled,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCancelled: () => void;
 }) {
   const trpcUtils = trpc.useUtils();
   const invalidateWorkspace = useInvalidateWorkspaceQueries();
@@ -45,6 +47,7 @@ export function CancelComputeDialog({
   const cancel = trpc.stripe.cancelDeploy.useMutation({
     onSuccess: async () => {
       onOpenChange(false);
+      onCancelled();
       toast.info("Compute cancelled");
       await Promise.all([
         trpcUtils.stripe.getDeploySubscription.invalidate(),
@@ -88,9 +91,11 @@ export function CancelComputeDialog({
 export function CancelApiDialog({
   open,
   onOpenChange,
+  onCancelled,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCancelled: () => void;
 }) {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
@@ -98,14 +103,15 @@ export function CancelApiDialog({
 
   const cancel = trpc.stripe.cancelSubscription.useMutation({
     onSuccess: async () => {
+      onOpenChange(false);
+      onCancelled();
+      toast.info("Subscription cancelled");
       await Promise.all([
         invalidateWorkspace(),
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.stripe.getUpcomingInvoice.invalidate(),
       ]);
       router.refresh();
-      onOpenChange(false);
-      toast.info("Subscription cancelled");
     },
     onError: (err) => toast.error(err.message),
   });

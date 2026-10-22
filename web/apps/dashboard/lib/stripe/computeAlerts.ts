@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import type { DeployBillingConfig } from "./deployBilling";
 import { planForPlanFeePriceId } from "./deployBilling";
 import { DEPLOY_PLANS, type DeployPlan, detectDeployPlan } from "./deployPlan";
+import { isCancelJustScheduled } from "./subscriptionUtils";
 
 /**
  * The operational Slack alert a Compute (Deploy) subscription lifecycle event
@@ -117,10 +118,7 @@ export function computeUpdatedAlert(
   const currentPlan = detectDeployPlan(sub);
 
   const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
-  const cancelJustSet =
-    previousAttributes != null &&
-    ("cancel_at_period_end" in previousAttributes || "cancel_at" in previousAttributes);
-  if (cancelling && cancelJustSet && currentPlan) {
+  if (cancelling && isCancelJustScheduled(previousAttributes) && currentPlan) {
     return {
       type: "cancelling",
       product: computeProductLabel(currentPlan),

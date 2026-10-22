@@ -1,3 +1,4 @@
+import type Stripe from "stripe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -10,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   handlePaymentMethodAttached: vi.fn(),
   pricesRetrieve: vi.fn(),
   productsRetrieve: vi.fn(),
+  subscriptionsRetrieve: vi.fn(),
 }));
 
 vi.mock("@/gen/proto/ctrl/v1/deployment_pb", () => ({ DeployService: {} }));
@@ -67,7 +69,8 @@ vi.mock("@/lib/stripe/paymentUtils", () => ({
 }));
 vi.mock("@/lib/stripe/productUtils", () => ({ validateAndParseQuotas: vi.fn() }));
 vi.mock("@/lib/stripe/setWorkspaceLimits", () => ({ setWorkspaceLimits: vi.fn() }));
-vi.mock("@/lib/stripe/subscriptionUtils", () => ({
+vi.mock("@/lib/stripe/subscriptionUtils", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/stripe/subscriptionUtils")>()),
   isAutomatedBillingRenewal: vi.fn(),
   isCardUpdateOnly: vi.fn(),
   isPaymentFailureRelatedUpdate: vi.fn(),
@@ -88,6 +91,7 @@ vi.mock("stripe", () => {
     prices = { retrieve: mocks.pricesRetrieve };
     customers = { retrieve: mocks.customersRetrieve };
     products = { retrieve: mocks.productsRetrieve };
+    subscriptions = { retrieve: mocks.subscriptionsRetrieve };
   }
 
   return { default: StripeMock };
@@ -212,6 +216,69 @@ describe("customer.subscription.created", () => {
       eventId: "evt_created",
       result: "api_signup_alert_processed",
       details: { workspaceLinked: false, slackDelivery: "sent" },
+    });
+  });
+});
+
+describe("customer.subscription.updated on a cancelling API subscription", () => {
+  const cancellingSub = {
+    id: "sub_api",
+    customer: "cus_123",
+    cancel_at: 1_900_000_000,
+    cancel_at_period_end: true,
+    items: { data: [{ id: "si_api", price: { id: "price_api" } }] },
+  };
+
+  beforeEach(() => {
+    mocks.billingSubscriptionFindFirst.mockResolvedValue({
+      workspaceId: "ws_123",
+      product: "api",
+      workspace: {
+        id: "ws_123",
+        orgId: "org_123",
+        name: "Acme",
+        deletedAtM: null,
+        billing: { workspaceId: "ws_123", plan: null, planOverride: null, tier: "Pro" },
+      },
+    });
+    mocks.subscriptionsRetrieve.mockResolvedValue(cancellingSub);
+  });
+
+  function updatedEvent(previousAttributes: Partial<Stripe.Subscription>) {
+    return {
+      id: "evt_updated",
+      type: "customer.subscription.updated",
+      data: { object: cancellingSub, previous_attributes: previousAttributes },
+    };
+  }
+
+  it("posts no cancelling alert when only the cancellation feedback changed", async () => {
+    mocks.constructEvent.mockReturnValue(
+      updatedEvent({ cancellation_details: { feedback: null, comment: null, reason: null } }),
+    );
+
+    const response = await POST(signedRequest());
+
+    expect(response.status).toBe(200);
+    expect(mocks.alertCustomerLifecycle).not.toHaveBeenCalled();
+  });
+
+  it("posts a cancelling alert when the cancel was just scheduled", async () => {
+    mocks.constructEvent.mockReturnValue(updatedEvent({ cancel_at_period_end: false }));
+
+    const response = await POST(signedRequest());
+
+    expect(response.status).toBe(200);
+    expect(mocks.alertCustomerLifecycle).toHaveBeenCalledWith({
+      action: "cancelling",
+      name: "Jane",
+      email: "jane@example.com",
+      workspaceId: "ws_123",
+      workspaceName: "Acme",
+      product: "API Pro",
+      price: "$25.00",
+      stripeCustomerId: "cus_123",
+      livemode: true,
     });
   });
 });
