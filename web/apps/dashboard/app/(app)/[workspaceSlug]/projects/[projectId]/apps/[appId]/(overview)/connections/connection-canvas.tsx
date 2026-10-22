@@ -150,7 +150,10 @@ export function ConnectionCanvas({
       environmentId: environment.id,
       targetAppId: selectedConnection?.targetAppId,
     },
-    { getNextPageParam: (page) => page.nextCursor ?? undefined },
+    {
+      getNextPageParam: (page) => page.nextCursor ?? undefined,
+      keepPreviousData: true,
+    },
   );
   const refresh = async () => {
     await Promise.all([
@@ -254,13 +257,13 @@ export function ConnectionCanvas({
         </Select>
       </ConnectionsHeader>
       <PageBody>
-        <p className="mb-5 text-sm text-gray-9">
+        <p className="text-sm text-gray-9">
           Defaults for new deployments. Existing deployments keep their saved connections.
         </p>
         <div
           className={cn(
-            "grid min-w-0 items-start gap-5",
-            selected && "lg:grid-cols-[minmax(0,1fr)_320px]",
+            "grid min-w-0 items-start gap-x-0 gap-y-5 lg:grid-cols-[minmax(0,1fr)_0px] motion-safe:transition-[grid-template-columns,column-gap] motion-safe:duration-200 motion-safe:ease-out",
+            selected && "lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-x-5",
           )}
         >
           <div
@@ -269,7 +272,7 @@ export function ConnectionCanvas({
           >
             <div
               ref={setCanvasRoot}
-              className="relative flex min-h-64 flex-col items-start gap-10 px-6 py-8 @min-[520px]:flex-row @min-[520px]:justify-center @min-[520px]:gap-16"
+              className="relative flex min-h-52 flex-col items-start gap-10 p-6 @min-[520px]:flex-row @min-[520px]:justify-center @min-[520px]:gap-16"
             >
               <button
                 type="button"
@@ -366,28 +369,30 @@ export function ConnectionCanvas({
             <aside
               id="connection-details"
               aria-label="Connection details"
-              className="min-w-0 break-words rounded-xl border border-gray-4 bg-background"
+              className="min-w-0 overflow-hidden animate-in fade-in duration-200 motion-reduce:animate-none"
             >
-              <ConnectionDetails
-                key={selected.id}
-                projectId={projectId}
-                appName={app.name}
-                connection={selected}
-                environment={environment}
-                targets={targetData}
-                hasMoreDeployments={!!targets.hasNextPage}
-                loadingMoreDeployments={targets.isFetchingNextPage}
-                onLoadMoreDeployments={() => void targets.fetchNextPage()}
-                onClose={() => {
-                  canvasRoot?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
-                  setSelectedId(null);
-                }}
-                onRemove={() => setRemovingId(selected.id)}
-                onSaved={() => {
-                  showRedeployBanner();
-                  return refresh();
-                }}
-              />
+              <div className="min-w-0 break-words rounded-xl border border-gray-4 bg-background lg:w-80">
+                <ConnectionDetails
+                  key={selected.id}
+                  projectId={projectId}
+                  appName={app.name}
+                  connection={selected}
+                  environment={environment}
+                  targets={targetData}
+                  hasMoreDeployments={!targets.isPreviousData && !!targets.hasNextPage}
+                  loadingMoreDeployments={targets.isFetchingNextPage}
+                  onLoadMoreDeployments={() => void targets.fetchNextPage()}
+                  onClose={() => {
+                    canvasRoot?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
+                    setSelectedId(null);
+                  }}
+                  onRemove={() => setRemovingId(selected.id)}
+                  onSaved={() => {
+                    showRedeployBanner();
+                    return refresh();
+                  }}
+                />
+              </div>
             </aside>
           )}
         </div>
