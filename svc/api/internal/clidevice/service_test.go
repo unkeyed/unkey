@@ -208,11 +208,34 @@ func TestReusedRefreshTokenRevokesTheSession(t *testing.T) {
 	refreshed, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
 	require.NoError(t, err)
 
+	h.Clock.Tick(refreshReuseGrace + time.Millisecond)
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: refreshed.RefreshToken})
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+}
+
+func TestPreviousRefreshTokenWithinGraceDoesNotRevokeTheFamily(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, "user_dev", permissionOnlyDeveloperHas(t, workspace.ID))
+
+	refreshed, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+	require.NoError(t, err)
+
+	h.Clock.Tick(refreshReuseGrace)
+	again, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+	require.NoError(t, err)
+	require.NotEqual(t, refreshed.RefreshToken, again.RefreshToken)
+
+	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	require.False(t, row.RevokedAt.Valid)
+
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: again.RefreshToken})
+	require.NoError(t, err)
 }
 
 func TestExpiredAndRevokedSessionsCannotRefresh(t *testing.T) {
