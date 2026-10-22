@@ -14,7 +14,6 @@ import (
 // always uses exactly one `Duration`, and that a single unit is never rounded down to
 // zero, for very high and very low rates.
 func TestRateUnitsToNsIsExactForExtremeRates(t *testing.T) {
-	week := 7 * 24 * time.Hour
 	cases := []struct {
 		name   string
 		rate   Rate
@@ -22,8 +21,8 @@ func TestRateUnitsToNsIsExactForExtremeRates(t *testing.T) {
 		wantNs int64
 	}{
 		{"one of 162M per minute rounds up", Rate{Limit: 162_000_000, Duration: time.Minute}, 1, 371},
-		{"all of 162M per minute is one minute", Rate{Limit: 162_000_000, Duration: time.Minute}, 162_000_000, int64(time.Minute)},
-		{"one per week is one week", Rate{Limit: 1, Duration: week}, 1, int64(week)},
+		{"all of 162M per minute is one minute", Rate{Limit: 162_000_000, Duration: time.Minute}, 162_000_000, time.Minute.Nanoseconds()},
+		{"one per week is one week", Rate{Limit: 1, Duration: 7 * 24 * time.Hour}, 1, (7 * 24 * time.Hour).Nanoseconds()},
 		{"max limit over max duration", Rate{Limit: math.MaxInt64, Duration: math.MaxInt64}, math.MaxInt64, math.MaxInt64},
 		{"zero units use no time", Rate{Limit: 10, Duration: time.Second}, 0, 0},
 	}
