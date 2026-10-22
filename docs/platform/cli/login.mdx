@@ -2,11 +2,13 @@
 title: unkey login
 description: "Sign in from the terminal and store a CLI session with the permissions you select."
 sources:
-  - cmd/login/login.go
-  - cmd/login/device.go
+  - cmd/auth/login/login.go
+  - cmd/auth/login/device.go
+  - cmd/auth/logout/logout.go
   - cmd/auth/main.go
   - pkg/cli/config.go
-  - pkg/cli/rootkey.go
+  - pkg/cli/credentials/rootkey.go
+  - pkg/cli/session/session.go
   - pkg/cli/keystore/doc.go
   - svc/api/internal/clidevice/service.go
 ---
@@ -67,9 +69,9 @@ A key that is already in `~/.unkey/config.toml` is copied into the secret store 
 
 `unkey login --root-key` uses this same storage. Running the command again replaces the stored key.
 
-The key has exactly the permissions you selected. It does not inherit every permission your user has. You must be a workspace admin to approve the login.
+The session has exactly the permissions you selected. It does not inherit every permission your user has. Any role can approve a login, limited to the permissions that role can grant.
 
-`unkey api` commands read the keychain when neither `--root-key` nor `UNKEY_ROOT_KEY` is set and the config path is the default. `unkey deploy` reads neither the keychain nor the file. See [CLI authentication](/platform/cli/authentication).
+`unkey api` and `unkey deploy` use a stored CLI session when neither `--root-key` nor `UNKEY_ROOT_KEY` is set. A root key saved with `--root-key` is the next fallback. See [CLI authentication](/platform/cli/authentication).
 
 ## Examples
 

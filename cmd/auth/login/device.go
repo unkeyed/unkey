@@ -150,6 +150,31 @@ func pollOnce(ctx context.Context, client *http.Client, apiURL string, loginID s
 	}, nil
 }
 
+func revokeIssuedSession(ctx context.Context, client *http.Client, apiURL string, issued issuedSession) error {
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
+	raw, err := json.Marshal(map[string]string{"sessionId": issued.SessionID})
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(apiURL, "/")+"/v2/cli.revokeSession", bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("content-type", "application/json")
+	req.Header.Set("authorization", "Bearer "+issued.AccessToken)
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = res.Body.Close() }()
+	if res.StatusCode >= 300 {
+		return fmt.Errorf("revoke returned %d", res.StatusCode)
+	}
+	return nil
+}
+
 func postJSON(ctx context.Context, client *http.Client, apiURL string, path string, body any) (apiEnvelope, error) {
 	raw, err := json.Marshal(body)
 	if err != nil {

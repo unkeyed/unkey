@@ -29,7 +29,7 @@ func secretToolSet(bin, service, account, secret string) error {
 		"account", account,
 	}, secret)
 	if err != nil {
-		return classifySecretTool(err, stderr)
+		return classifySecretToolWrite(err, stderr)
 	}
 	return nil
 }
@@ -48,6 +48,27 @@ func secretToolDelete(bin, service, account string) error {
 		return nil
 	}
 	return classified
+}
+
+func classifySecretToolWrite(err error, stderr string) error {
+	if errors.Is(err, exec.ErrNotFound) {
+		return ErrUnavailable
+	}
+	msg := strings.TrimSpace(stderr)
+	lower := strings.ToLower(msg)
+	if strings.Contains(lower, "not provided by any") ||
+		strings.Contains(lower, "cannot autolaunch") ||
+		strings.Contains(lower, "locked") ||
+		strings.Contains(lower, "no session") {
+		if msg == "" {
+			return ErrUnavailable
+		}
+		return withDetail(ErrUnavailable, msg)
+	}
+	if msg == "" {
+		return fmt.Errorf("secret-tool: %w", err)
+	}
+	return fmt.Errorf("secret-tool: %w: %s", err, msg)
 }
 
 func classifySecretTool(err error, stderr string) error {

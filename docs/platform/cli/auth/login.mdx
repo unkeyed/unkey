@@ -3,9 +3,9 @@ title: unkey auth login
 description: "Sign in from the terminal. Same command as unkey login."
 sources:
   - cmd/auth/main.go
-  - cmd/login/login.go
+  - cmd/auth/login/login.go
   - pkg/cli/config.go
-  - pkg/cli/rootkey.go
+  - pkg/cli/credentials/rootkey.go
 ---
 
 `unkey auth login` is `unkey login`. It starts a device login, or stores a root key you pass with `--root-key`.
