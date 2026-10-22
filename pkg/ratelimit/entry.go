@@ -14,9 +14,9 @@ import (
 // An entry has no locks; the limiter holds the shard lock while it uses one.
 type entry struct {
 	// live is this pod's live session: the session that takes its admitted
-	// units. Its `id` is empty when the pod has no live session, and then the
-	// next admitted request starts a new session.
-	live session
+	// units. It is nil when the pod has no live session, and then the next
+	// admitted request starts a new session.
+	live *session
 
 	// others are all other sessions: the sessions of peers and this pod's
 	// frozen sessions, in no particular order.
@@ -29,8 +29,8 @@ type entry struct {
 // particular order.
 func (e *entry) all() []session {
 	all := slices.Clone(e.others)
-	if e.live.id != "" {
-		all = append(all, e.live)
+	if e.live != nil {
+		all = append(all, *e.live)
 	}
 	return all
 }
@@ -44,7 +44,11 @@ func (e *entry) all() []session {
 // nothing, if a row has an empty ID, a known ID with a different anchor, or
 // values that `summarize` rejects.
 func (e *entry) mergeRows(rows []session) error {
-	live := e.live
+	var live *session
+	if e.live != nil {
+		liveCopy := *e.live
+		live = &liveCopy
+	}
 	others := slices.Clone(e.others)
 
 	indexByID := make(map[string]int, len(others))
@@ -56,8 +60,8 @@ func (e *entry) mergeRows(rows []session) error {
 		if err != nil {
 			return err
 		}
-		known := &live
-		if row.id != live.id {
+		known := live
+		if live == nil || row.id != live.id {
 			index, ok := indexByID[row.id]
 			if !ok {
 				indexByID[row.id] = len(others)
@@ -85,7 +89,7 @@ func (e *entry) mergeRows(rows []session) error {
 
 // check decides a request without changing the entry.
 func (e *entry) check(nowNs int64, rate Rate, units int64) (decision, error) {
-	return decide(e.summary, e.live.id != "", nowNs, rate, units)
+	return decide(e.summary, e.live != nil, nowNs, rate, units)
 }
 
 // spend writes a decision from `check` into the sessions: it adds the
@@ -112,7 +116,7 @@ func (e *entry) spend(spent decision, newSessionID string) error {
 			return err
 		}
 		e.endLiveSession()
-		e.live = session{
+		e.live = &session{
 			id:         newSessionID,
 			anchorAtNs: spent.createNewSessionAtNs,
 			consumedNs: spent.consumedNs,
@@ -126,18 +130,18 @@ func (e *entry) spend(spent decision, newSessionID string) error {
 // ended. It keeps counting in full, and the next admitted request starts a
 // new session.
 func (e *entry) endLiveSession() {
-	if e.live.id == "" {
+	if e.live == nil {
 		return
 	}
-	e.others = append(e.others, e.live)
-	e.live = session{id: "", anchorAtNs: 0, consumedNs: 0}
+	e.others = append(e.others, *e.live)
+	e.live = nil
 	e.summary = summaryWithoutLiveSession(e.summary)
 }
 
 // isKnown reports whether a session with `id` exists. It is O(n), but it
 // only runs when a new session starts.
 func (e *entry) isKnown(id string) bool {
-	return id == e.live.id || slices.ContainsFunc(e.others, func(s session) bool {
+	return (e.live != nil && id == e.live.id) || slices.ContainsFunc(e.others, func(s session) bool {
 		return s.id == id
 	})
 }
