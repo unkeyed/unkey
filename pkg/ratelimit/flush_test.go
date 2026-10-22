@@ -70,12 +70,21 @@ func TestFlushRetriesAFailedWriteWithTheLatestValue(t *testing.T) {
 	_, err := l.Allow(ctx, request)
 	require.NoError(t, err)
 	require.Error(t, l.flush(ctx))
+
+	store.setFailWrites(false)
+	require.NoError(t, l.flush(ctx))
+	require.Equal(t, time.Second.Nanoseconds(), store.sessions(request.Fingerprint)[0].ConsumedNs)
+
+	store.setFailWrites(true)
+	_, err = l.Allow(ctx, request)
+	require.NoError(t, err)
+	require.Error(t, l.flush(ctx))
 	_, err = l.Allow(ctx, request)
 	require.NoError(t, err)
 
 	store.setFailWrites(false)
 	require.NoError(t, l.flush(ctx))
-	require.Equal(t, (2 * time.Second).Nanoseconds(), store.sessions(request.Fingerprint)[0].ConsumedNs)
+	require.Equal(t, (3 * time.Second).Nanoseconds(), store.sessions(request.Fingerprint)[0].ConsumedNs)
 }
 
 // TestFlushWritesAFrozenSessionThenForgetsIt uses 1 unit per second, so the
