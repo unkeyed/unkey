@@ -469,6 +469,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:        database,
 		Admin:     restateAdminClient,
 		Auditlogs: auditlogSvc,
+		Vault:     vaultClient,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create environment worker service: %w", err)

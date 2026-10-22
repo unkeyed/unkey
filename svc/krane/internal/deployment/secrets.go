@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -54,6 +55,33 @@ func (c *Controller) decryptSecrets(ctx context.Context, encrypted []byte, envir
 // Converts the deployment ID to a valid RFC 1123 subdomain name.
 func deploymentResourcePrefix(deploymentID string) string {
 	return "deploy-" + strings.ToLower(strings.ReplaceAll(deploymentID, "_", "-"))
+}
+
+func isDeploymentSecret(secret *corev1.Secret) bool {
+	id, ok := labels.GetDeploymentID(secret.Labels)
+	return ok && id != "" && secret.Labels[labels.LabelKeyManagedBy] == labels.New().ManagedByKrane()[labels.LabelKeyManagedBy] &&
+		secret.Type == corev1.SecretTypeOpaque && secret.Name == deploymentResourcePrefix(id)
+}
+
+func (c *Controller) deleteDeploymentSecret(ctx context.Context, namespace, deploymentID string) error {
+	client := c.clientSet.CoreV1().Secrets(namespace)
+	secret, err := client.Get(ctx, deploymentResourcePrefix(deploymentID), metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get deployment secret: %w", err)
+	}
+	if !isDeploymentSecret(secret) || secret.Labels[labels.LabelKeyDeploymentID] != deploymentID {
+		return nil
+	}
+	err = client.Delete(ctx, secret.Name, metav1.DeleteOptions{
+		Preconditions: &metav1.Preconditions{UID: &secret.UID, ResourceVersion: &secret.ResourceVersion},
+	})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("failed to delete deployment secret: %w", err)
+	}
+	return nil
 }
 
 // ensureDeploymentSecret creates or updates a K8s Secret containing the plaintext

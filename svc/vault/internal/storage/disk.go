@@ -116,6 +116,22 @@ func (d *disk) PutObject(ctx context.Context, key string, data []byte) error {
 	return nil
 }
 
+func (d *disk) DeleteObject(ctx context.Context, key string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	path, err := d.resolve(key)
+	if err != nil {
+		return err
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("delete object: %w", err)
+	}
+	return nil
+}
+
 func (d *disk) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, false, err

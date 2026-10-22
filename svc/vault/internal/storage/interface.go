@@ -16,6 +16,9 @@ type Storage interface {
 	// PutObject stores the object data for the given key
 	PutObject(ctx context.Context, key string, object []byte) error
 
+	// DeleteObject succeeds if the object is already absent.
+	DeleteObject(ctx context.Context, key string) error
+
 	// GetObject returns the object data for the given key
 	GetObject(ctx context.Context, key string) ([]byte, bool, error)
 

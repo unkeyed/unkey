@@ -33,6 +33,17 @@ func (tm *tracingMiddleware) PutObject(ctx context.Context, key string, object [
 	return err
 }
 
+func (tm *tracingMiddleware) DeleteObject(ctx context.Context, key string) error {
+	ctx, span := tracing.Start(ctx, fmt.Sprintf("storage.%s.DeleteObject", tm.name))
+	defer span.End()
+	span.SetAttributes(attribute.String("key", key))
+	err := tm.next.DeleteObject(ctx, key)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return err
+}
+
 func (tm *tracingMiddleware) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 	ctx, span := tracing.Start(ctx, fmt.Sprintf("storage.%s.GetObject", tm.name))
 	defer span.End()

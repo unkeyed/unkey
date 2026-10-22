@@ -36,6 +36,16 @@ func (s *memory) PutObject(ctx context.Context, key string, b []byte) error {
 	return nil
 }
 
+func (s *memory) DeleteObject(ctx context.Context, key string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.data, key)
+	return nil
+}
+
 func (s *memory) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

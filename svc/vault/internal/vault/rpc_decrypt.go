@@ -22,6 +22,9 @@ func (s *Service) Decrypt(
 	if err := s.authenticate(req); err != nil {
 		return nil, err
 	}
+	if err := s.keyring.CheckActive(ctx, req.Msg.GetKeyring()); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 
 	res, err := s.decrypt(ctx, req.Msg)
 	if err != nil {

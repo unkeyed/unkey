@@ -7,7 +7,9 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // runActualStateResyncLoop periodically reports actual instance state to the
@@ -58,7 +60,36 @@ func (c *Controller) runDesiredStateResyncLoop(ctx context.Context) {
 	c.runResyncLoop(ctx, time.Minute, func() {
 		logger.Info("running desired state resync")
 		c.forEachWorkload(ctx, c.reconcileDesiredState)
+		c.resyncDeploymentSecrets(ctx)
 	})
+}
+
+func (c *Controller) resyncDeploymentSecrets(ctx context.Context) {
+	cursor := ""
+	for {
+		secrets, err := c.clientSet.CoreV1().Secrets("").List(ctx, metav1.ListOptions{
+			LabelSelector: labels.New().ManagedByKrane().ToString(),
+			Continue:      cursor,
+		})
+		if err != nil {
+			logger.Error("unable to list deployment secrets", "error", err)
+			return
+		}
+		for i := range secrets.Items {
+			secret := &secrets.Items[i]
+			if !isDeploymentSecret(secret) {
+				continue
+			}
+			id := secret.Labels[labels.LabelKeyDeploymentID]
+			c.reconcileDesired(ctx, id, func(*ctrlv1.ApplyDeployment) error { return nil }, func(*ctrlv1.DeleteDeployment) error {
+				return c.deleteDeploymentSecret(ctx, secret.Namespace, id)
+			})
+		}
+		cursor = secrets.Continue
+		if cursor == "" {
+			return
+		}
+	}
 }
 
 func (c *Controller) runResyncLoop(ctx context.Context, interval time.Duration, resync func()) {
@@ -80,34 +111,42 @@ func (c *Controller) runResyncLoop(ctx context.Context, interval time.Duration, 
 // reconcileDesiredState fetches the desired state for a single workload from
 // the control plane and applies or deletes as needed.
 func (c *Controller) reconcileDesiredState(ctx context.Context, w workload) {
+	c.reconcileDesired(ctx, w.deploymentID, func(req *ctrlv1.ApplyDeployment) error {
+		return c.ApplyDeployment(ctx, req)
+	}, func(req *ctrlv1.DeleteDeployment) error {
+		if req == nil {
+			req = &ctrlv1.DeleteDeployment{K8SNamespace: w.namespace, K8SName: w.k8sName}
+		}
+		return c.DeleteDeployment(ctx, req)
+	})
+}
+
+func (c *Controller) reconcileDesired(ctx context.Context, deploymentID string, apply func(*ctrlv1.ApplyDeployment) error, deleteDeployment func(*ctrlv1.DeleteDeployment) error) {
 	res, err := c.cluster.GetDesiredDeploymentState(ctx, &ctrlv1.GetDesiredDeploymentStateRequest{
 		Cluster:      c.clusterKey(),
-		DeploymentId: w.deploymentID,
+		DeploymentId: deploymentID,
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeNotFound {
-			if err := c.DeleteDeployment(ctx, &ctrlv1.DeleteDeployment{
-				K8SNamespace: w.namespace,
-				K8SName:      w.k8sName,
-			}); err != nil {
-				logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", w.deploymentID)
+			if err := deleteDeployment(nil); err != nil {
+				logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
 			}
 
 			return
 		}
 
-		logger.Error("unable to get desired deployment state", "error", err.Error(), "deployment_id", w.deploymentID)
+		logger.Error("unable to get desired deployment state", "error", err.Error(), "deployment_id", deploymentID)
 		return
 	}
 
 	switch res.GetState().(type) {
 	case *ctrlv1.DeploymentState_Apply:
-		if err := c.ApplyDeployment(ctx, res.GetApply()); err != nil {
-			logger.Error("unable to apply deployment", "error", err.Error(), "deployment_id", w.deploymentID)
+		if err := apply(res.GetApply()); err != nil {
+			logger.Error("unable to apply deployment", "error", err.Error(), "deployment_id", deploymentID)
 		}
 	case *ctrlv1.DeploymentState_Delete:
-		if err := c.DeleteDeployment(ctx, res.GetDelete()); err != nil {
-			logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", w.deploymentID)
+		if err := deleteDeployment(res.GetDelete()); err != nil {
+			logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
 		}
 	}
 }

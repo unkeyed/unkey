@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,47 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
+
+func TestS3_ListObjectKeysIncludesEveryPage(t *testing.T) {
+	for _, failSecondPage := range []bool{false, true} {
+		t.Run(fmt.Sprint(failSecondPage), func(t *testing.T) {
+			prefix := "keyring/" + uid.New(uid.EnvironmentPrefix) + "/"
+			firstKey, secondKey := prefix+"LATEST", prefix+uid.New("dek")
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Query().Get("prefix") != prefix {
+					t.Error("listing must remain scoped to the keyring")
+				}
+				page := struct {
+					XMLName   xml.Name `xml:"ListBucketResult"`
+					Truncated bool     `xml:"IsTruncated"`
+					Next      string   `xml:"NextContinuationToken,omitempty"`
+					Keys      []string `xml:"Contents>Key"`
+				}{Truncated: true, Next: "next-page", Keys: []string{firstKey}}
+				if r.URL.Query().Get("continuation-token") == "next-page" {
+					if failSecondPage {
+						http.Error(w, "denied", http.StatusForbidden)
+						return
+					}
+					page.Truncated, page.Next, page.Keys = false, "", []string{secondKey}
+				}
+				if err := xml.NewEncoder(w).Encode(page); err != nil {
+					t.Error(err)
+				}
+			}))
+			t.Cleanup(server.Close)
+			store, err := NewS3(S3Config{S3URL: server.URL, S3Bucket: "vault", S3AccessKeyID: "test", S3AccessKeySecret: "test"})
+			require.NoError(t, err)
+			keys, err := store.ListObjectKeys(t.Context(), prefix)
+			if failSecondPage {
+				require.Error(t, err)
+				require.Empty(t, keys)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, []string{firstKey, secondKey}, keys)
+			}
+		})
+	}
+}
 
 func TestS3_StartupAssumesBucketExists(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -53,6 +53,9 @@ func (stubVault) DecryptBulk(context.Context, *vaultv1.DecryptBulkRequest) (*vau
 func (stubVault) ReEncrypt(context.Context, *vaultv1.ReEncryptRequest) (*vaultv1.ReEncryptResponse, error) {
 	return nil, errors.New("not implemented")
 }
+func (stubVault) DeleteEnvironmentKeyring(context.Context, *vaultv1.DeleteEnvironmentKeyringRequest) (*vaultv1.DeleteEnvironmentKeyringResponse, error) {
+	return nil, errors.New("not implemented")
+}
 
 type collector struct {
 	mu         sync.Mutex
