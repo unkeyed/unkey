@@ -50,6 +50,22 @@ func TestResendSend(t *testing.T) {
 		require.Equal(t, "$300", gotBody.Template.Variables["BUDGET"])
 	})
 
+	t.Run("omits From to keep the published template sender", func(t *testing.T) {
+		var gotBody map[string]json.RawMessage
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+			w.WriteHeader(http.StatusOK)
+		}))
+		t.Cleanup(srv.Close)
+
+		err := newTestResend(srv.URL, "re_test_key", "").Send(t.Context(), Email{
+			To:         []string{"a@example.com"},
+			TemplateID: uid.New(uid.TestPrefix),
+		})
+		require.NoError(t, err)
+		require.NotContains(t, gotBody, "from")
+	})
+
 	for _, defaultFrom := range []string{"", "default@unkey.com"} {
 		t.Run("explicit From with default "+defaultFrom, func(t *testing.T) {
 			var gotBody resendRequest

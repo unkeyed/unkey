@@ -273,6 +273,8 @@ type SlackConfig struct {
 type EmailConfig struct {
 	// ResendAPIKey authenticates the Resend send API. Empty uses a noop sender.
 	ResendAPIKey string `toml:"resend_api_key"`
+	// From overrides the published template's sender. Empty keeps the template default.
+	From string `toml:"from"`
 }
 
 // Config holds the complete configuration for the Restate worker service.

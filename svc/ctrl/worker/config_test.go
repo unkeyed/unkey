@@ -125,3 +125,34 @@ password = "depot-token"
 		require.Equal(t, "us-east-1", cfg.GetDepotConfig().ProjectRegion)
 	})
 }
+
+func TestConfigEmailFrom(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		email string
+		from  string
+	}{
+		{name: "omitted keeps template sender"},
+		{name: "empty keeps template sender", email: "[email]\nfrom = \"${UNKEY_EMAIL_FROM}\""},
+		{
+			name:  "canary overrides template sender",
+			email: "[email]\nfrom = \"${UNKEY_EMAIL_FROM}\"",
+			from:  "James from Unkey <james@updates.unkey-canary.com>",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("UNKEY_EMAIL_FROM", tt.from)
+			cfg, err := config.LoadBytes[Config]([]byte(`
+cname_domain = "unkey.local"
+database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
+
+[vault]
+url = "http://vault:8060"
+token = "vault-token"
+` + tt.email))
+
+			require.NoError(t, err)
+			require.Equal(t, tt.from, cfg.Email.From)
+		})
+	}
+}
