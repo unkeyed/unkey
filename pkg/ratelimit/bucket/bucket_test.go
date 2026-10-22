@@ -14,8 +14,9 @@ import (
 
 // TestBucketChargesRequestsWhenAPeerSessionIsNewer guarantees that a request
 // is charged in full when a peer started a session after this pod's live
-// session. Adding the request to the older live session would leave reset_at
-// unchanged, because the peer's newer session holds the largest candidate.
+// session. Adding the request to the older live session would leave
+// `reset_at` unchanged, because the peer's newer session holds the largest
+// candidate.
 func TestBucketChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
 	rate := bucket.Rate{Limit: 60, Duration: 60}
 	sessions := []bucket.Session{
@@ -33,33 +34,84 @@ func TestBucketChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
 	require.Equal(t, int64(155), decision.CreateNewSessionAtNs)
 }
 
-// TestBucketNeverWrapsAround guarantees that sums beyond int64 return an
-// error. A wrapped reset_at would lie far in the past and open the limit.
-func TestBucketNeverWrapsAround(t *testing.T) {
-	_, err := bucket.New([]bucket.Session{
-		{ID: "a", AnchorAtNs: math.MaxInt64 - 5, ConsumedNs: 3},
-		{ID: "b", AnchorAtNs: math.MaxInt64 - 5, ConsumedNs: 3},
-	}, "")
-	require.Error(t, err)
+// TestBucketNewRejectsInvalidSessions guarantees that corrupt rows return an
+// error instead of a wrong `reset_at`. A zero anchor would also collide with
+// the "no live session" value, and a sum beyond int64 would wrap into the
+// past and open the rate limit.
+func TestBucketNewRejectsInvalidSessions(t *testing.T) {
+	cases := []struct {
+		name          string
+		sessions      []bucket.Session
+		liveSessionID string
+	}{
+		{"zero anchor", []bucket.Session{{ID: "a", AnchorAtNs: 0, ConsumedNs: 1}}, ""},
+		{"negative anchor", []bucket.Session{{ID: "a", AnchorAtNs: -1, ConsumedNs: 1}}, ""},
+		{"negative consumed time", []bucket.Session{{ID: "a", AnchorAtNs: 1, ConsumedNs: -1}}, ""},
+		{"missing live session", []bucket.Session{{ID: "a", AnchorAtNs: 1, ConsumedNs: 1}}, "b"},
+		{"duplicated live session", []bucket.Session{{ID: "a", AnchorAtNs: 1, ConsumedNs: 1}, {ID: "a", AnchorAtNs: 2, ConsumedNs: 1}}, "a"},
+		{"consumed sum beyond int64", []bucket.Session{
+			{ID: "a", AnchorAtNs: 1, ConsumedNs: math.MaxInt64 - 1},
+			{ID: "b", AnchorAtNs: 1, ConsumedNs: 2},
+		}, ""},
+		{"candidate beyond int64", []bucket.Session{{ID: "a", AnchorAtNs: math.MaxInt64 - 5, ConsumedNs: 6}}, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := bucket.New(tc.sessions, tc.liveSessionID)
+			require.Error(t, err)
+		})
+	}
+}
 
-	b, err := bucket.New([]bucket.Session{
-		{ID: "a", AnchorAtNs: math.MaxInt64 - 5, ConsumedNs: 3},
-	}, "a")
-	require.NoError(t, err)
-	_, err = b.Check(1, bucket.Rate{Limit: 1, Duration: 10}, 1)
-	require.Error(t, err)
+// TestBucketCheckAtTheEdges guarantees that `Check` rejects invalid input,
+// decides exactly up to the int64 limit, and returns an error instead of
+// wrapping around one nanosecond later. It also guarantees that a huge
+// `units` is denied before the 128-bit division, which would panic.
+func TestBucketCheckAtTheEdges(t *testing.T) {
+	empty := rebuild(t, nil, "")
+	cases := []struct {
+		name        string
+		nowNs       int64
+		rate        bucket.Rate
+		units       int64
+		wantErr     bool
+		wantAllowed bool
+	}{
+		{"zero time", 0, bucket.Rate{Limit: 1, Duration: 2}, 1, true, false},
+		{"negative units", 1, bucket.Rate{Limit: 1, Duration: 2}, -1, true, false},
+		{"zero limit", 1, bucket.Rate{Limit: 0, Duration: 2}, 1, true, false},
+		{"zero duration", 1, bucket.Rate{Limit: 1, Duration: 0}, 1, true, false},
+		{"reset_at exactly at the int64 maximum", math.MaxInt64 - 2, bucket.Rate{Limit: 1, Duration: 2}, 1, false, true},
+		{"reset_at one past the int64 maximum", math.MaxInt64 - 1, bucket.Rate{Limit: 1, Duration: 2}, 1, true, false},
+		{"huge units on a huge duration", 1, bucket.Rate{Limit: 1, Duration: math.MaxInt64}, math.MaxInt64, false, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			decision, err := empty.Check(tc.nowNs, tc.rate, tc.units)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.wantAllowed, decision.Allowed)
+		})
+	}
 }
 
 // FuzzBucketMatchesSingleMachineGCRA guarantees the core property of the
 // limiter math. For any history of peer sessions, paused or ended sessions,
 // and requests, every decision equals single-machine GCRA over the same
-// sessions: reset_at moves to max(reset_at, now) + units × Duration / Limit, and the request fits
-// if that stays within one Duration of now.
+// sessions: `reset_at` moves to `max(reset_at, now) + consumed time`, and the
+// request fits if that stays within one `Duration` of now.
 //
-// It also guarantees that the sessions the caller writes reproduce that
-// reset_at by the formula over all rows, that Apply gives the same Bucket as
-// a rebuild from those rows, and that a request starts a new session only when
-// the live session cannot take it exactly.
+// It also guarantees that:
+//   - the sessions the caller writes reproduce that `reset_at` by the formula
+//     over all rows;
+//   - `Check` changes nothing, and `Apply` gives the same Bucket as a rebuild
+//     from those rows;
+//   - a request starts a new session exactly when the live session cannot
+//     take it, and the new session is anchored at `max(now, newest anchor)`;
+//   - a denied request or a request of zero `units` consumes nothing.
 func FuzzBucketMatchesSingleMachineGCRA(f *testing.F) {
 	fuzz.Seed(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -115,8 +167,10 @@ func requestMatchesSingleMachine(t *testing.T, b *bucket.Bucket, sessions []buck
 	before := resetAtByFormula(sessions)
 	require.Equal(t, before, b.ResetAtNs())
 
+	beforeCheck := *b
 	decision, err := b.Check(nowNs, rate, units)
 	require.NoError(t, err)
+	require.Equal(t, beforeCheck, *b, "Check must not change the bucket")
 
 	consumedNs := ceilDiv(units*rate.Duration.Nanoseconds(), rate.Limit)
 	after := max(before, nowNs) + consumedNs
@@ -124,6 +178,7 @@ func requestMatchesSingleMachine(t *testing.T, b *bucket.Bucket, sessions []buck
 	require.Equal(t, allowed, decision.Allowed)
 	if !allowed || units == 0 {
 		require.Equal(t, before, decision.ResetAtNs)
+		require.Zero(t, decision.ConsumedNs)
 		require.Zero(t, decision.CreateNewSessionAtNs)
 		require.Equal(t, remainingBySearch(rate, nowNs, before), decision.Remaining)
 		b.Apply(decision)
@@ -146,6 +201,11 @@ func requestMatchesSingleMachine(t *testing.T, b *bucket.Bucket, sessions []buck
 
 	b.Apply(decision)
 	if decision.CreateNewSessionAtNs != 0 {
+		var newestAnchorAtNs int64
+		for _, session := range sessions {
+			newestAnchorAtNs = max(newestAnchorAtNs, session.AnchorAtNs)
+		}
+		require.Equal(t, max(nowNs, newestAnchorAtNs), decision.CreateNewSessionAtNs)
 		liveSessionID = fmt.Sprintf("own_%d", len(sessions))
 		sessions = append(sessions, bucket.Session{
 			ID:         liveSessionID,
@@ -166,7 +226,7 @@ func rebuild(t *testing.T, sessions []bucket.Session, liveSessionID string) buck
 	return b
 }
 
-// resetAtByFormula computes reset_at straight from its definition, in O(n²).
+// resetAtByFormula computes `reset_at` straight from its definition, in O(n²).
 func resetAtByFormula(sessions []bucket.Session) int64 {
 	var resetAtNs int64
 	for _, r := range sessions {
@@ -181,7 +241,7 @@ func resetAtByFormula(sessions []bucket.Session) int64 {
 	return resetAtNs
 }
 
-// remainingBySearch returns the largest number of units that fit at nowNs.
+// remainingBySearch returns the largest number of units that fit at `nowNs`.
 func remainingBySearch(rate bucket.Rate, nowNs, resetAtNs int64) int64 {
 	for units := rate.Limit; units > 0; units-- {
 		if max(resetAtNs, nowNs)+ceilDiv(units*rate.Duration.Nanoseconds(), rate.Limit)-nowNs <= rate.Duration.Nanoseconds() {
