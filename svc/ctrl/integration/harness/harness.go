@@ -265,6 +265,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		AlertEmail:         o.alertEmail,
 		WorkOSAPIKey:       "",
 		ResendAPIKey:       "",
+		EmailFrom:          "",
 		BillingBaseURL:     "",
 		Heartbeats: cron.Heartbeats{
 			BuildLimitSync:     healthcheck.NewNoop(),

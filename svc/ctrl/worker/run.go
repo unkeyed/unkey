@@ -431,7 +431,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateSrv.Bind(keyleak.New(keyleak.Config{
 		Members:         workos.New(cfg.WorkOSAPIKey),
-		Email:           email.NewResend(cfg.Email.ResendAPIKey, ""),
+		Email:           email.NewResend(cfg.Email.ResendAPIKey, cfg.Email.From),
 		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
 	}).Definition(
 		restate.WithJournalRetention(time.Hour),
@@ -617,6 +617,7 @@ func Run(ctx context.Context, cfg Config) error {
 		AlertEmail:     nil,
 		WorkOSAPIKey:   cfg.WorkOSAPIKey,
 		ResendAPIKey:   cfg.Email.ResendAPIKey,
+		EmailFrom:      cfg.Email.From,
 		BillingBaseURL: cfg.DashboardURL,
 		Heartbeats: cron.Heartbeats{
 			BuildLimitSync:     cronHeartbeat(cfg.Heartbeat.BuildLimitSyncURL),
