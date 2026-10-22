@@ -27,7 +27,7 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * Get the API requests timeseries
+ * Get API request metrics
  *
  * @remarks
  * Count the requests that the Unkey API served for your workspace per time bucket, split by status class.
@@ -43,13 +43,13 @@ import { Result } from "../types/fp.js";
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function logsGetApiRequestsTimeseries(
+export function logsGetApiRequestMetrics(
   client: UnkeyCore,
-  request: components.V2LogsGetApiRequestsTimeseriesRequestBody,
+  request: components.V2LogsGetApiRequestMetricsRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2LogsGetApiRequestsTimeseriesResponseBody,
+    components.V2LogsGetApiRequestMetricsResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
@@ -76,12 +76,12 @@ export function logsGetApiRequestsTimeseries(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2LogsGetApiRequestsTimeseriesRequestBody,
+  request: components.V2LogsGetApiRequestMetricsRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2LogsGetApiRequestsTimeseriesResponseBody,
+      components.V2LogsGetApiRequestMetricsResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
@@ -104,7 +104,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2LogsGetApiRequestsTimeseriesRequestBody$outboundSchema.parse(
+      components.V2LogsGetApiRequestMetricsRequestBody$outboundSchema.parse(
         value,
       ),
     "Input validation failed",
@@ -115,7 +115,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/logs.getApiRequestsTimeseries")();
+  const path = pathToFunc("/v2/logs.getApiRequestMetrics")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -129,7 +129,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "logs.getApiRequestsTimeseries",
+    operationID: "logs.getApiRequestMetrics",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -183,7 +183,7 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2LogsGetApiRequestsTimeseriesResponseBody,
+    components.V2LogsGetApiRequestMetricsResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
@@ -202,7 +202,7 @@ async function $do(
   >(
     M.json(
       200,
-      components.V2LogsGetApiRequestsTimeseriesResponseBody$inboundSchema,
+      components.V2LogsGetApiRequestMetricsResponseBody$inboundSchema,
     ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
