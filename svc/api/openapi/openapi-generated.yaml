@@ -5488,6 +5488,11 @@ components:
                     "$ref": "#/components/schemas/DeploymentError"
                     description: |
                         Why the deployment failed. Present only when `status` is `failed`.
+                lastExit:
+                    "$ref": "#/components/schemas/DeploymentLastExit"
+                    description: |
+                        The most recent exit or crash loop of any instance of this deployment.
+                        Omitted when no instance has reported one.
                 finishedAt:
                     type: integer
                     format: int64
@@ -5682,6 +5687,49 @@ components:
                         handling, use `code`.
                     example: No schedulable regions configured. Please configure at least one schedulable region before deploying.
             additionalProperties: false
+        DeploymentLastExit:
+            type: object
+            required:
+                - reason
+                - message
+                - restartCount
+            properties:
+                reason:
+                    "$ref": "#/components/schemas/DeploymentExitReason"
+                message:
+                    type: string
+                    description: |
+                        Human-readable explanation of the exit and what to do about it. The
+                        wording can change. For programmatic handling, use `reason` and
+                        `exitCode`.
+                    example: Your app used more memory than its limit and was stopped. Check its memory usage, or raise the limit.
+                exitCode:
+                    type: integer
+                    format: int32
+                    description: |
+                        Exit code of the last recorded exit. Codes above 128 mean the process
+                        was killed by signal `exitCode - 128`, for example 137 for SIGKILL.
+                        Omitted when no exit was recorded.
+                    example: 137
+                restartCount:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: |
+                        How many times the instance that reported this exit was restarted. This
+                        is not a total across the instances of the deployment.
+                    example: 4
+                finishedAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: |
+                        Unix timestamp in milliseconds of the last recorded exit. The exit stays
+                        reported after the instance recovers, so compare this time before you act
+                        on it. Omitted when no exit was recorded.
+                    example: 1704067260000
+            additionalProperties: false
         DeploymentRuntime:
             type: object
             required:
@@ -5792,6 +5840,38 @@ components:
                 The reason a deployment failed. `unknown` means Unkey could not classify the
                 failure; see `message` for details.
             example: no_schedulable_regions
+        DeploymentExitReason:
+            type: string
+            enum:
+                - crash_loop
+                - out_of_memory
+                - exited_with_error
+                - start_failed
+                - exited_cleanly
+                - unknown
+            x-speakeasy-unknown-values: allow
+            x-enum-varnames:
+                - DeploymentExitReasonCrashLoop
+                - DeploymentExitReasonOutOfMemory
+                - DeploymentExitReasonExitedWithError
+                - DeploymentExitReasonStartFailed
+                - DeploymentExitReasonExitedCleanly
+                - DeploymentExitReasonUnknown
+            description: |
+                Why the app stopped, as of the last report from the instance:
+
+                - `crash_loop`: the app exits right after each start, so Unkey waits longer
+                  before each restart. The instance keeps this reason until its next
+                  reported exit, also after it recovers.
+                - `out_of_memory`: the app used more memory than its limit and was stopped.
+                - `exited_with_error`: the app exited with a non-zero `exitCode`.
+                - `start_failed`: the start command could not run, for example because the
+                  entrypoint does not exist.
+                - `exited_cleanly`: the app exited with code 0. A service must keep running,
+                  so Unkey restarts it.
+                - `unknown`: Unkey could not classify the exit. Handle this value, because
+                  new reasons can be added.
+            example: out_of_memory
         EnvironmentShutdownSignal:
             type: string
             enum:

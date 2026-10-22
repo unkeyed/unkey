@@ -20,6 +20,10 @@ import {
 } from "./deploymenterror.js";
 import { DeploymentGit, DeploymentGit$inboundSchema } from "./deploymentgit.js";
 import {
+  DeploymentLastExit,
+  DeploymentLastExit$inboundSchema,
+} from "./deploymentlastexit.js";
+import {
   DeploymentRuntime,
   DeploymentRuntime$inboundSchema,
 } from "./deploymentruntime.js";
@@ -86,6 +90,7 @@ export type Deployment = {
    */
   regions: Array<string>;
   error?: DeploymentError | undefined;
+  lastExit?: DeploymentLastExit | undefined;
   /**
    * Unix timestamp in milliseconds when the deployment finished, successfully
    *
@@ -133,6 +138,7 @@ export const Deployment$inboundSchema: z.ZodType<
   availableActions: z.array(DeploymentAction$inboundSchema),
   regions: z.array(z.string()),
   error: DeploymentError$inboundSchema.optional(),
+  lastExit: DeploymentLastExit$inboundSchema.optional(),
   finishedAt: z.number().int().optional(),
   domains: z.array(z.string()).optional(),
   runtime: DeploymentRuntime$inboundSchema,

@@ -71,6 +71,11 @@ properties:
     "$ref": "./DeploymentError.yaml"
     description: |
       Why the deployment failed. Present only when `status` is `failed`.
+  lastExit:
+    "$ref": "./DeploymentLastExit.yaml"
+    description: |
+      The most recent exit or crash loop of any instance of this deployment.
+      Omitted when no instance has reported one.
   finishedAt:
     type: integer
     format: int64

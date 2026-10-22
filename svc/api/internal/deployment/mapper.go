@@ -9,17 +9,19 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/conc"
 	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/deploy/deployactor"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 type Input struct {
-	Deployment db.ListDeploymentsRow
-	State      db.ListDeploymentEnvAndAppStateRow
-	Steps      []db.DeploymentStep
-	Regions    []string
-	Domains    []string
+	Deployment        db.ListDeploymentsRow
+	State             db.ListDeploymentEnvAndAppStateRow
+	Steps             []db.DeploymentStep
+	Regions           []string
+	Domains           []string
+	ContainerStatuses []dbtype.ContainerStatus
 }
 
 func ToResponse(ctx context.Context, database *db.Replica, workspaceID string, row db.ListDeploymentsRow) (openapi.Deployment, error) {
@@ -30,8 +32,9 @@ func ToResponse(ctx context.Context, database *db.Replica, workspaceID string, r
 	return responses[0], nil
 }
 
-// ToResponses loads the state, steps, regions, and domains of rows in four
-// parallel queries, whatever the number of rows, and maps each row to its response
+// ToResponses loads the state, steps, regions, domains, and instance container
+// statuses of rows in five parallel queries, whatever the number of rows, and
+// maps each row to its response
 func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, rows []db.ListDeploymentsRow) ([]openapi.Deployment, error) {
 	if len(rows) == 0 {
 		return []openapi.Deployment{}, nil
@@ -45,6 +48,7 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 	var steps []db.DeploymentStep
 	var regions []db.ListDeploymentRegionsByIdsRow
 	var domains []db.ListDeploymentDomainsByIdsRow
+	var containerStatuses []db.ListInstanceContainerStatusesByDeploymentIdsRow
 	err := conc.All(ctx,
 		func(ctx context.Context) (err error) {
 			states, err = db.Query.ListDeploymentEnvAndAppState(ctx, database, db.ListDeploymentEnvAndAppStateParams{WorkspaceID: workspaceID, DeploymentIds: ids})
@@ -62,6 +66,10 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 			domains, err = db.Query.ListDeploymentDomainsByIds(ctx, database, db.ListDeploymentDomainsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
 			return err
 		},
+		func(ctx context.Context) (err error) {
+			containerStatuses, err = db.Query.ListInstanceContainerStatusesByDeploymentIds(ctx, database, db.ListInstanceContainerStatusesByDeploymentIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+			return err
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -69,7 +77,7 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 
 	inputs := make(map[string]*Input, len(rows))
 	for _, row := range rows {
-		inputs[row.ID] = &Input{Deployment: row, State: db.ListDeploymentEnvAndAppStateRow{}, Steps: nil, Regions: nil, Domains: nil} //nolint:exhaustruct // zero state when the join misses
+		inputs[row.ID] = &Input{Deployment: row, State: db.ListDeploymentEnvAndAppStateRow{}, Steps: nil, Regions: nil, Domains: nil, ContainerStatuses: nil} //nolint:exhaustruct // zero state when the join misses
 	}
 	for _, s := range states {
 		inputs[s.DeploymentID].State = s
@@ -82,6 +90,9 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 	}
 	for _, d := range domains {
 		inputs[d.DeploymentID].Domains = append(inputs[d.DeploymentID].Domains, d.Domain)
+	}
+	for _, c := range containerStatuses {
+		inputs[c.DeploymentID].ContainerStatuses = append(inputs[c.DeploymentID].ContainerStatuses, c.ContainerStatus)
 	}
 
 	responses := make([]openapi.Deployment, len(rows))
@@ -145,10 +156,11 @@ func toResponse(in Input) openapi.Deployment {
 		CreatedAt:  d.CreatedAt,
 		UpdatedAt:  d.UpdatedAt.Int64,
 
-		Git:     nil,
-		Docker:  nil,
-		Error:   nil,
-		Domains: nil,
+		Git:      nil,
+		Docker:   nil,
+		Error:    nil,
+		Domains:  nil,
+		LastExit: lastExit(in.ContainerStatuses),
 	}
 
 	switch d.Source {

@@ -1,0 +1,31 @@
+type: string
+enum:
+  - crash_loop
+  - out_of_memory
+  - exited_with_error
+  - start_failed
+  - exited_cleanly
+  - unknown
+x-speakeasy-unknown-values: allow
+x-enum-varnames:
+  - DeploymentExitReasonCrashLoop
+  - DeploymentExitReasonOutOfMemory
+  - DeploymentExitReasonExitedWithError
+  - DeploymentExitReasonStartFailed
+  - DeploymentExitReasonExitedCleanly
+  - DeploymentExitReasonUnknown
+description: |
+  Why the app stopped, as of the last report from the instance:
+
+  - `crash_loop`: the app exits right after each start, so Unkey waits longer
+    before each restart. The instance keeps this reason until its next
+    reported exit, also after it recovers.
+  - `out_of_memory`: the app used more memory than its limit and was stopped.
+  - `exited_with_error`: the app exited with a non-zero `exitCode`.
+  - `start_failed`: the start command could not run, for example because the
+    entrypoint does not exist.
+  - `exited_cleanly`: the app exited with code 0. A service must keep running,
+    so Unkey restarts it.
+  - `unknown`: Unkey could not classify the exit. Handle this value, because
+    new reasons can be added.
+example: out_of_memory

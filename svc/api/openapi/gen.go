@@ -104,6 +104,36 @@ func (e DeploymentErrorCode) Valid() bool {
 	}
 }
 
+// Defines values for DeploymentExitReason.
+const (
+	DeploymentExitReasonCrashLoop       DeploymentExitReason = "crash_loop"
+	DeploymentExitReasonExitedCleanly   DeploymentExitReason = "exited_cleanly"
+	DeploymentExitReasonExitedWithError DeploymentExitReason = "exited_with_error"
+	DeploymentExitReasonOutOfMemory     DeploymentExitReason = "out_of_memory"
+	DeploymentExitReasonStartFailed     DeploymentExitReason = "start_failed"
+	DeploymentExitReasonUnknown         DeploymentExitReason = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the DeploymentExitReason enum.
+func (e DeploymentExitReason) Valid() bool {
+	switch e {
+	case DeploymentExitReasonCrashLoop:
+		return true
+	case DeploymentExitReasonExitedCleanly:
+		return true
+	case DeploymentExitReasonExitedWithError:
+		return true
+	case DeploymentExitReasonOutOfMemory:
+		return true
+	case DeploymentExitReasonStartFailed:
+		return true
+	case DeploymentExitReasonUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeploymentStatus.
 const (
 	DeploymentStatusAwaitingApproval DeploymentStatus = "awaiting_approval"
@@ -988,7 +1018,8 @@ type Deployment struct {
 	//
 	//
 	// Example: true
-	IsCurrent bool `json:"isCurrent"`
+	IsCurrent bool                `json:"isCurrent"`
+	LastExit  *DeploymentLastExit `json:"lastExit,omitempty"`
 
 	// Project Slug of the project this deployment belongs to.
 	//
@@ -1071,6 +1102,23 @@ type DeploymentError struct {
 // Example: no_schedulable_regions
 type DeploymentErrorCode string
 
+// DeploymentExitReason Why the app stopped, as of the last report from the instance:
+//
+//   - `crash_loop`: the app exits right after each start, so Unkey waits longer
+//     before each restart. The instance keeps this reason until its next
+//     reported exit, also after it recovers.
+//   - `out_of_memory`: the app used more memory than its limit and was stopped.
+//   - `exited_with_error`: the app exited with a non-zero `exitCode`.
+//   - `start_failed`: the start command could not run, for example because the
+//     entrypoint does not exist.
+//   - `exited_cleanly`: the app exited with code 0. A service must keep running,
+//     so Unkey restarts it.
+//   - `unknown`: Unkey could not classify the exit. Handle this value, because
+//     new reasons can be added.
+//
+// Example: out_of_memory
+type DeploymentExitReason string
+
 // DeploymentGit defines model for DeploymentGit.
 type DeploymentGit struct {
 	Author *DeploymentGitAuthor `json:"author,omitempty"`
@@ -1119,6 +1167,58 @@ type DeploymentGitAuthor struct {
 	//
 	// Example: octocat
 	Handle string `json:"handle"`
+}
+
+// DeploymentLastExit defines model for DeploymentLastExit.
+type DeploymentLastExit struct {
+	// ExitCode Exit code of the last recorded exit. Codes above 128 mean the process
+	// was killed by signal `exitCode - 128`, for example 137 for SIGKILL.
+	// Omitted when no exit was recorded.
+	//
+	//
+	// Example: 137
+	ExitCode *int32 `json:"exitCode,omitempty"`
+
+	// FinishedAt Unix timestamp in milliseconds of the last recorded exit. The exit stays
+	// reported after the instance recovers, so compare this time before you act
+	// on it. Omitted when no exit was recorded.
+	//
+	//
+	// Example: 1704067260000
+	FinishedAt *int64 `json:"finishedAt,omitempty"`
+
+	// Message Human-readable explanation of the exit and what to do about it. The
+	// wording can change. For programmatic handling, use `reason` and
+	// `exitCode`.
+	//
+	//
+	// Example: Your app used more memory than its limit and was stopped. Check its memory usage, or raise the limit.
+	Message string `json:"message"`
+
+	// Reason Why the app stopped, as of the last report from the instance:
+	//
+	// - `crash_loop`: the app exits right after each start, so Unkey waits longer
+	//   before each restart. The instance keeps this reason until its next
+	//   reported exit, also after it recovers.
+	// - `out_of_memory`: the app used more memory than its limit and was stopped.
+	// - `exited_with_error`: the app exited with a non-zero `exitCode`.
+	// - `start_failed`: the start command could not run, for example because the
+	//   entrypoint does not exist.
+	// - `exited_cleanly`: the app exited with code 0. A service must keep running,
+	//   so Unkey restarts it.
+	// - `unknown`: Unkey could not classify the exit. Handle this value, because
+	//   new reasons can be added.
+	//
+	//
+	// Example: out_of_memory
+	Reason DeploymentExitReason `json:"reason"`
+
+	// RestartCount How many times the instance that reported this exit was restarted. This
+	// is not a total across the instances of the deployment.
+	//
+	//
+	// Example: 4
+	RestartCount int64 `json:"restartCount"`
 }
 
 // DeploymentRuntime defines model for DeploymentRuntime.
