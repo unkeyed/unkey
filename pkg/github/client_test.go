@@ -3,6 +3,7 @@ package github
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -137,6 +138,44 @@ func TestProbeRepoVisibility(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, tt.wantPublic, public)
+		})
+	}
+}
+
+// TestGetRawFile pins that a missing file is not an error: most repositories
+// have no .gitmodules, and treating 404 as a failure would break their builds.
+func TestGetRawFile(t *testing.T) {
+	tests := []struct {
+		name      string
+		status    int
+		body      string
+		wantFound bool
+		wantErr   bool
+	}{
+		{name: "200 returns the body", status: http.StatusOK, body: "[submodule \"lib\"]\n", wantFound: true},
+		{name: "404 means not found", status: http.StatusNotFound, body: "{}", wantFound: false},
+		{name: "403 is an error", status: http.StatusForbidden, body: "{}", wantErr: true},
+		{name: "body over the limit is an error", status: http.StatusOK, body: strings.Repeat("a", maxFileContentBytes+1), wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.status)
+				_, _ = w.Write([]byte(tt.body))
+			}))
+			defer srv.Close()
+
+			content, found, err := getRawFile(srv.Client(), srv.URL, nil)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantFound, found)
+			if tt.wantFound {
+				require.Equal(t, tt.body, string(content))
+			}
 		})
 	}
 }

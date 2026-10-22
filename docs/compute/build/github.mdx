@@ -18,6 +18,7 @@ sources:
   - svc/ctrl/worker/deploy/deploy_handler.go
   - svc/ctrl/worker/deploy/domains.go
   - svc/ctrl/worker/deploy/build.go
+  - svc/ctrl/worker/deploy/submodules.go
   - pkg/match/watchpath.go
   - web/internal/db/src/schema/github_app.ts
   - web/apps/dashboard/lib/trpc/routers/github.ts
@@ -41,7 +42,7 @@ You can install the app on more than one GitHub account. An installation belongs
 
 Pick the repository when you create the app, or later under **App settings** > **Build**. From the CLI, pass `--git` to [create-app](/compute/cli/apps/create-app) or [update-app](/compute/cli/apps/update-app).
 
-You connect a repository per app, not per project. In a monorepo, two apps can connect to the same repository and use different build settings.
+You connect a repository per app, not per <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>. In a monorepo, two apps can connect to the same repository and use different build settings.
 
 The app's default branch deploys to production. It starts as the repository's default branch on GitHub, and you can change it with `apps.updateApp`.
 
@@ -77,6 +78,26 @@ A fork pull request runs code from someone without write access to your reposito
 Pushes from people with write access to the repository don't need approval.
 
 Fork previews get their own hostname prefix, `<project>[-<app>]-fork-<fork owner>-...`, so you can't confuse them with your own branches. You can also deploy a fork yourself from the **Create Deployment** dialog, or with `deployments.createDeployment` by passing `git.repository` as `owner/repo` and a `commitSha`.
+
+## Use Git submodules
+
+We clone your repository's submodules with it, at the commits your repository pins. Public submodules always clone. A private submodule clones when all of these are true:
+
+- Its `url` in `.gitmodules` is an HTTPS GitHub URL, such as `https://github.com/acme/shared.git`, or a relative URL, such as `../shared.git`.
+- The same GitHub account owns the submodule and the repository you deploy.
+- The Unkey GitHub App has access to the submodule's repository. To add it, change the app's repository access in your GitHub account or organization settings.
+
+These private submodules don't clone:
+
+- Submodules with SSH URLs, such as `git@github.com:acme/shared.git`
+- Submodules nested inside another submodule
+- Any private submodule in a build of a fork pull request
+
+If a submodule can't be cloned, the build fails with "A Git submodule could not be cloned."
+
+<Note>
+  The build reads every private submodule that `.gitmodules` lists and the GitHub App can access. Anyone who can push to the repository can add a submodule. Give the GitHub App access only to the repositories your builds need.
+</Note>
 
 ## What you'll see on GitHub
 

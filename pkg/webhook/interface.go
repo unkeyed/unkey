@@ -21,6 +21,10 @@ var ErrIgnore = errors.New("webhook event ignored")
 //	return fmt.Errorf("%w: parse payload: %v", webhook.ErrBadRequest, err)
 var ErrBadRequest = errors.New("webhook bad request")
 
+// ErrUnavailable marks a transient verification or handler failure as HTTP 503
+// so the provider retries rather than treating it as an invalid signature.
+var ErrUnavailable = errors.New("webhook unavailable")
+
 // Event is a verified provider event: identity, type, and the raw payload
 // for the handler to parse into its provider-specific shape.
 type Event struct {
@@ -48,6 +52,18 @@ type Verifier interface {
 // HandlerFunc processes one verified event. See the package documentation
 // for how the returned error maps to HTTP responses and retries.
 type HandlerFunc func(ctx context.Context, event Event) error
+
+// Response is the acknowledgment sent after a handler succeeds. A zero value
+// sends an empty HTTP 200. Body must be encoded before returning from the handler.
+type Response struct {
+	StatusCode  int
+	ContentType string
+	Body        []byte
+}
+
+// ResponseHandlerFunc returns a provider-specific acknowledgment. On error,
+// the receiver discards the response and applies the normal error mapping.
+type ResponseHandlerFunc func(ctx context.Context, event Event) (Response, error)
 
 // Middleware wraps every registered handler, outermost first. Use it for
 // integration-specific concerns the transport cannot know about: custom
