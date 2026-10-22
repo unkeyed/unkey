@@ -756,6 +756,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 			KeepGb:   defaultCacheKeepGB,
 			KeepDays: defaultCacheKeepDays,
 		},
+		BuildTimeoutMinutes: new(int32(buildBackendDeadline.Minutes())),
 	}))
 	if err != nil {
 		return "", fmt.Errorf("failed to create project: %w", err)
