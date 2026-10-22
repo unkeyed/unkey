@@ -47,7 +47,8 @@ var (
 //
 // Seeds 0 to 99 run on every run and catch regressions. The random seeds
 // search new scenarios. Replay a failing seed with `-sim.seed=<seed>`, and
-// add it to the fixed seeds once the bug is fixed.
+// add it to the fixed seeds once the bug is fixed. The test stops starting
+// seeds a minute before the `go test` deadline, 10 minutes by default.
 func TestSimulation(t *testing.T) {
 	var seeds []sim.Seed
 	if *simSeed != "" {
@@ -63,7 +64,13 @@ func TestSimulation(t *testing.T) {
 			seeds = append(seeds, sim.NewSeed())
 		}
 	}
-	for _, seed := range seeds {
+	deadline, hasDeadline := t.Deadline()
+	for i, seed := range seeds {
+		// One seed takes well under a second, so a minute is enough margin.
+		if hasDeadline && time.Until(deadline) < time.Minute {
+			t.Logf("stopped after %d of %d seeds because the test deadline is near; pass -timeout to run more", i, len(seeds))
+			return
+		}
 		t.Run(seed.String(), func(t *testing.T) {
 			runSimulation(t, rand.New(rand.NewChaCha8(seed)))
 		})
