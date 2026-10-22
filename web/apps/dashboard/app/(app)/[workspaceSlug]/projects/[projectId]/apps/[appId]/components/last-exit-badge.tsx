@@ -1,12 +1,12 @@
 "use client";
 
-import { type ExitSummary, describeLastExit } from "@/lib/collections/deploy/last-exit";
+import { type ExitBadge, exitBadge } from "@/lib/collections/deploy/last-exit";
 import type { LastExit } from "@/lib/types/deploy";
 import { match } from "@unkey/match";
 import { Badge, InfoTooltip } from "@unkey/ui";
 
 export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
-  const summary = describeLastExit(lastExit);
+  const summary = exitBadge(lastExit);
   const reason = summary.reason ?? "Error";
   const variant = summary.kind === "waiting" ? "warning" : "error";
 
@@ -27,7 +27,7 @@ export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
   );
 }
 
-function explainWaiting({ reason }: Extract<ExitSummary, { kind: "waiting" }>): React.ReactNode {
+function explainWaiting({ reason }: ExitBadge): React.ReactNode {
   if (reason !== "CrashLoopBackOff") {
     return reason;
   }
