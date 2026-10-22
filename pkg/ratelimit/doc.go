@@ -17,6 +17,10 @@
 // other, the excess is paid back: pods A and B each admit 10 at 12:00:00, and
 // once both rows are visible, the next unit fits at 12:00:11.
 //
+// Pods stop writing a row 25 minutes after its anchor. From 30 minutes, every
+// pod's cleanup pass may merge such rows or delete them once the limit is
+// idle, without changing `reset_at`; see `planCleanup`.
+//
 // Do not replace the 128-bit math in [Rate] with plain integer math.
 // `units × Duration` overflows 64 bits for rates the API accepts:
 //

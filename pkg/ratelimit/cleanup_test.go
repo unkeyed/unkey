@@ -47,8 +47,8 @@ func TestPlanCleanupDeletesOnlyRunsThatANewerRowOutgrows(t *testing.T) {
 }
 
 // FuzzPlanCleanupKeepsResetAt guarantees that cleanup never changes
-// `max(reset_at, now)`, which is all a decision uses, by the formula over all
-// rows: not right after the plan, and not
+// `max(reset_at, t)` for any pod time `t ≥ now − maxClockSkew`, which is all
+// a decision uses, by the formula over all rows: not right after the plan, and not
 // after later writes to rows that are not due or new rows that pods may
 // create. It also guarantees that an incomplete read, which misses the oldest
 // rows, never deletes a run that those rows count.
@@ -56,8 +56,10 @@ func FuzzPlanCleanupKeepsResetAt(f *testing.F) {
 	fuzz.Seed(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
 		c := fuzz.New(t, data)
-		nowNs := int64(time.Millisecond) + int64(c.Uint16()%1_000)
+		nowNs := int64(maxClockSkew+time.Millisecond) + int64(c.Uint16()%1_000)
 		nowMs := nowNs / time.Millisecond.Nanoseconds()
+		// The pod with the clock furthest behind.
+		podNowNs := nowNs - maxClockSkew.Nanoseconds()
 		table := map[string]StoredSession{}
 		for i := range int(c.Uint8() % 12) {
 			compactAfterMs := nowMs + 1
@@ -67,7 +69,7 @@ func FuzzPlanCleanupKeepsResetAt(f *testing.F) {
 			id := fmt.Sprintf("row_%d", i)
 			table[id] = StoredSession{
 				SessionID:      id,
-				AnchorAtNs:     nowNs - 500 + int64(c.Uint16()%1_000),
+				AnchorAtNs:     podNowNs - 500 + int64(c.Uint16()%1_000),
 				ConsumedNs:     int64(c.Uint8()),
 				CompactAfterMs: compactAfterMs,
 			}
@@ -78,7 +80,7 @@ func FuzzPlanCleanupKeepsResetAt(f *testing.F) {
 			return cmp.Or(cmp.Compare(right.AnchorAtNs, left.AnchorAtNs), cmp.Compare(left.SessionID, right.SessionID))
 		})
 		readCount := len(newestFirst) - int(c.Uint8())%(len(newestFirst)+1)
-		before := max(nowNs, resetAtByFormula(sessionsOf(table)))
+		before := max(podNowNs, resetAtByFormula(sessionsOf(table)))
 
 		mergedCount := 0
 		plan, err := planCleanup(newestFirst[:readCount], readCount == len(newestFirst), nowNs, func() string {
@@ -96,7 +98,7 @@ func FuzzPlanCleanupKeepsResetAt(f *testing.F) {
 			require.Greater(t, row.CompactAfterMs, nowMs)
 			table[row.SessionID] = row
 		}
-		require.Equal(t, before, max(nowNs, resetAtByFormula(sessionsOf(table))))
+		require.Equal(t, before, max(podNowNs, resetAtByFormula(sessionsOf(table))))
 
 		withoutCleanup := maps.Clone(table)
 		for _, row := range plan.inserted {
@@ -116,7 +118,7 @@ func FuzzPlanCleanupKeepsResetAt(f *testing.F) {
 				}
 				continue
 			}
-			newestAnchorNs := nowNs
+			newestAnchorNs := podNowNs
 			for _, row := range withoutCleanup {
 				newestAnchorNs = max(newestAnchorNs, row.AnchorAtNs)
 			}
@@ -129,7 +131,7 @@ func FuzzPlanCleanupKeepsResetAt(f *testing.F) {
 			withoutCleanup[row.SessionID] = row
 			table[row.SessionID] = row
 		}
-		require.Equal(t, max(nowNs, resetAtByFormula(sessionsOf(withoutCleanup))), max(nowNs, resetAtByFormula(sessionsOf(table))))
+		require.Equal(t, max(podNowNs, resetAtByFormula(sessionsOf(withoutCleanup))), max(podNowNs, resetAtByFormula(sessionsOf(table))))
 	})
 }
 

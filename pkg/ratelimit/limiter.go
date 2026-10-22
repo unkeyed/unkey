@@ -109,8 +109,14 @@ const (
 	maxSessionLifetime = 15 * time.Minute
 
 	// compactAfter is how long after its anchor a row may be compacted. A
-	// pod writes a session within this time or drops its uncommitted units.
+	// pod writes a session until `writeMargin` before that, or drops its
+	// uncommitted units.
 	compactAfter = 30 * time.Minute
+	writeMargin  = 5 * time.Minute
+
+	// maxClockSkew is the largest difference between two pod clocks that
+	// cleanup allows for.
+	maxClockSkew = time.Minute
 
 	flushInterval       = time.Second
 	flushTimeout        = 5 * time.Second
@@ -123,6 +129,16 @@ const (
 	rowsStaleFor   = 5 * time.Second
 	readTimeout    = time.Second
 	maxRowsPerRead = 1_000
+
+	// Each pod cleans up every `cleanupInterval`, give or take 20%, and
+	// starts at a random due row, so pods mostly clean different rows.
+	cleanupInterval               = time.Minute
+	cleanupTimeout                = 30 * time.Second
+	dueRowsPerPage                = 1_000
+	maxDueRowsListedPerPass       = 100_000
+	maxFingerprintsPerCleanupPass = 1_000
+	maxRowsPerCleanupRead         = 5_000
+	maxDeletesPerCleanupPass      = 10_000
 )
 
 const sessionIDAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -146,9 +162,10 @@ type limiter struct {
 	// simulation replaces it to choose when background reads run.
 	runInBackground func(f func())
 
-	// stopFlushLoop and flushLoopDone are nil if no flush loop runs.
-	stopFlushLoop chan struct{}
-	flushLoopDone chan struct{}
+	// stopLoops is nil if the flush and cleanup loops do not run. Close
+	// calls it and waits for `loopsDone`.
+	stopLoops context.CancelFunc
+	loopsDone sync.WaitGroup
 }
 
 // shard holds the entries of the fingerprints whose first byte maps to it.
@@ -158,23 +175,25 @@ type shard struct {
 	entries map[[32]byte]*entry
 }
 
-// New returns a [Limiter] that flushes every second. It is safe to call
-// concurrently.
+// New returns a [Limiter] that flushes every second and cleans up about
+// every minute. It is safe to call concurrently.
 func New(config Config) (Limiter, error) {
 	l, err := newLimiter(config)
 	if err != nil {
 		return nil, err
 	}
-	l.stopFlushLoop = make(chan struct{})
-	l.flushLoopDone = make(chan struct{})
-	go l.flushUntilStopped(l.clock.NewTicker(flushInterval))
+	ctx, stopLoops := context.WithCancel(context.Background())
+	l.stopLoops = stopLoops
+	ticker := l.clock.NewTicker(flushInterval)
+	l.loopsDone.Go(func() { l.flushUntilStopped(ctx, ticker) })
+	l.loopsDone.Go(func() { l.cleanUpUntilStopped(ctx) })
 	return l, nil
 }
 
-// newLimiter returns a limiter without the flush loop. Tests and the
-// simulation use it and call flush themselves, so the order of events
-// follows their seed and not the Go scheduler. It is safe to call
-// concurrently.
+// newLimiter returns a limiter without the flush and cleanup loops. Tests
+// and the simulation use it and call flush and cleanUp themselves, so the
+// order of events follows their seed and not the Go scheduler. It is safe to
+// call concurrently.
 func newLimiter(config Config) (*limiter, error) {
 	err := assert.All(
 		assert.NotNil(config.Clock, "clock is required"),
@@ -203,8 +222,8 @@ func newLimiter(config Config) (*limiter, error) {
 		runInBackground: func(f func()) {
 			go f()
 		},
-		stopFlushLoop: nil,
-		flushLoopDone: nil,
+		stopLoops: nil,
+		loopsDone: sync.WaitGroup{},
 	}
 	for i := range l.shards {
 		l.shards[i].entries = make(map[[32]byte]*entry)
@@ -294,27 +313,26 @@ func (l *limiter) Close() error {
 	if l.closed.Swap(true) {
 		return nil
 	}
-	if l.stopFlushLoop != nil {
-		close(l.stopFlushLoop)
-		<-l.flushLoopDone
+	if l.stopLoops != nil {
+		l.stopLoops()
+		l.loopsDone.Wait()
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), flushTimeout)
 	defer cancel()
 	return l.flush(ctx)
 }
 
-// flushUntilStopped flushes on every tick until Close. Only New starts it, in
-// one goroutine.
-func (l *limiter) flushUntilStopped(ticker clock.Ticker) {
-	defer close(l.flushLoopDone)
+// flushUntilStopped flushes on every tick until `ctx` is canceled. Only New
+// starts it, in one goroutine.
+func (l *limiter) flushUntilStopped(ctx context.Context, ticker clock.Ticker) {
 	defer ticker.Stop()
 	for {
 		select {
-		case <-l.stopFlushLoop:
+		case <-ctx.Done():
 			return
 		case <-ticker.C():
-			ctx, cancel := context.WithTimeout(context.Background(), flushTimeout)
-			err := l.flush(ctx)
+			flushCtx, cancel := context.WithTimeout(ctx, flushTimeout)
+			err := l.flush(flushCtx)
 			cancel()
 			if err != nil {
 				logger.Warn("unable to flush rate limit sessions", "error", err.Error())
@@ -375,12 +393,15 @@ func (l *limiter) flush(ctx context.Context) error {
 			s := &l.shards[shardIndex(written.Fingerprint)]
 			s.mu.Lock()
 			// Only flush removes entries, and it never removes one with
-			// uncommitted sessions. Entries never remove sessions. So both
-			// still exist.
+			// uncommitted sessions, so the entry still exists. A read may
+			// have forgotten the session if it passed its last write while
+			// this write ran; then nothing is left to mark.
 			e := s.entries[written.Fingerprint]
-			committed := e.sessions[written.SessionID]
-			committed.committedNs = max(committed.committedNs, written.ConsumedNs)
-			e.sessions[written.SessionID] = committed
+			committed, ok := e.sessions[written.SessionID]
+			if ok {
+				committed.committedNs = max(committed.committedNs, written.ConsumedNs)
+				e.sessions[written.SessionID] = committed
+			}
 			s.mu.Unlock()
 		}
 	}
@@ -466,7 +487,7 @@ func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte) {
 		for i, row := range stored {
 			rows[i] = session{id: row.SessionID, anchorAtNs: row.AnchorAtNs, consumedNs: row.ConsumedNs, own: false, committedNs: 0}
 		}
-		err = e.mergeRows(rows)
+		err = e.replaceRows(rows, l.clock.Now().UnixNano())
 		if err != nil {
 			result = "invalid_rows"
 		}
@@ -531,14 +552,28 @@ func (l *limiter) apply(e *entry, d decision, nowNs int64) error {
 // newSession returns a random session ID and lifetime. It is safe to call
 // concurrently: it takes `randomMu`. The caller may hold a shard lock.
 func (l *limiter) newSession() (string, time.Duration) {
+	id := l.newSessionID()
+	return id, minSessionLifetime + time.Duration(l.randomInt64N((maxSessionLifetime - minSessionLifetime).Nanoseconds()))
+}
+
+// newSessionID returns a random session ID. It is safe to call concurrently:
+// it takes `randomMu`. The caller may hold a shard lock.
+func (l *limiter) newSessionID() string {
 	l.randomMu.Lock()
 	defer l.randomMu.Unlock()
 	id := make([]byte, sessionIDLength)
 	for i := range id {
 		id[i] = sessionIDAlphabet[l.random.IntN(len(sessionIDAlphabet))]
 	}
-	lifetime := minSessionLifetime + time.Duration(l.random.Int64N((maxSessionLifetime - minSessionLifetime).Nanoseconds()))
-	return string(id), lifetime
+	return string(id)
+}
+
+// randomInt64N returns a random number in [0, n). It is safe to call
+// concurrently: it takes `randomMu`. The caller may hold a shard lock.
+func (l *limiter) randomInt64N(n int64) int64 {
+	l.randomMu.Lock()
+	defer l.randomMu.Unlock()
+	return l.random.Int64N(n)
 }
 
 // shardIndex returns the shard of a fingerprint. It is safe to call

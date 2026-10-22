@@ -116,10 +116,10 @@ func TestFlushWritesAFrozenSessionOnce(t *testing.T) {
 	require.Empty(t, e.uncommittedSessions(testClock.Now().UnixNano()))
 }
 
-// TestFlushDropsUnitsAtCompactAfter guarantees that a pod never writes a
-// session at or after its `compact_after`, when cleanup may already have
-// merged the row.
-func TestFlushDropsUnitsAtCompactAfter(t *testing.T) {
+// TestFlushDropsUnitsAfterTheLastWrite guarantees that a pod never writes a
+// session after `writeMargin` before its `compact_after`. A pod whose clock
+// is ahead may already have merged the row.
+func TestFlushDropsUnitsAfterTheLastWrite(t *testing.T) {
 	ctx := context.Background()
 	l, testClock := newTestLimiter(t)
 	store := memoryStoreOf(t, l)
@@ -129,11 +129,11 @@ func TestFlushDropsUnitsAtCompactAfter(t *testing.T) {
 	require.NoError(t, err)
 
 	store.setFailWrites(true)
-	testClock.Set(start.Add(30*time.Minute - time.Nanosecond))
+	testClock.Set(start.Add(25 * time.Minute))
 	require.Error(t, l.flush(ctx))
 	require.Equal(t, 1, store.writeCallCount())
 
-	testClock.Set(start.Add(30 * time.Minute))
+	testClock.Set(start.Add(25*time.Minute + time.Nanosecond))
 	require.NoError(t, l.flush(ctx))
 	require.Equal(t, 1, store.writeCallCount())
 	require.False(t, hasEntry(l, request.Fingerprint))
