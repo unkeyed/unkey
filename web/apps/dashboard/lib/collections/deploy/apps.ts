@@ -134,6 +134,7 @@ export const apps = createCollection<App, string, QueryCollectionUtils<App, stri
         app: original.id,
         name: changes.name,
         oci: changes.imageReference ? { image: changes.imageReference } : undefined,
+        git: changes.defaultBranch ? { defaultBranch: changes.defaultBranch } : undefined,
       }));
       const mutation = Promise.all(requests.map((request) => client.apps.updateApp(request)));
       toast.promise(mutation, {

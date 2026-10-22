@@ -34,7 +34,7 @@ The source you pass decides what gets built. For a GitHub push, auto deploy must
 | --- | --- |
 | Push to the connected default branch | A production deployment |
 | Push to any other branch | A preview deployment |
-| Pull request from a fork | A preview deployment that waits in `awaiting_approval` until a project member approves it |
+| Pull request from a fork | A preview deployment that waits in `awaiting_approval` until a <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> member approves it |
 | Prebuilt image (`oci`) | A deployment of the tag or digest you set, or `latest` if you set neither. Later moves of that tag don't change it |
 | Dashboard, CLI, or API, with no source | A git app builds its default branch. An image app deploys its default image |
 

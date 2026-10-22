@@ -101,6 +101,7 @@ const TIMESTAMP_STYLES = {
     hourCycle: "h23",
   },
   "MMM d": { month: "short", day: "numeric" },
+  "M/d/yy": { month: "numeric", day: "numeric", year: "2-digit" },
   "MMM yyyy": { month: "short", year: "numeric" },
   "MMMM yyyy": { month: "long", year: "numeric" },
   "MMM d, h:mm a": { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },

@@ -12,7 +12,7 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/policy-kinds/logging/fields.tsx
 ---
 
-The [gateway](/compute/gateway/overview) logs the method, host, path, status, and latency of every request that reaches your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. A logging policy also saves headers, query data, or bodies for the requests it matches. Use it to debug a route. It never rejects a request or changes what your app receives.
+The [gateway](/compute/gateway/overview) logs the method, host, path, status, and latency of every request routed to your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, including requests it rejects. A logging policy also saves headers, query data, or bodies for the requests it matches. Use it to debug a route. It never rejects a request or changes what your app receives.
 
 To add one, open the app, go to **Policies**, click **Add policy**, and set **Type** to **Logging**.
 
@@ -63,7 +63,8 @@ Each setting turns on one kind of data. In the dashboard all five start on, so c
 
 - **Several matching policies combine.** A request matched by a `requestHeaders` policy and a `requestBody` policy gets both saved. A policy with no match expressions applies to every request.
 - **Bodies are cut off at 1 MiB in each direction** in the log. The request and response themselves are never cut. Streaming requests are covered too.
-- **Rejected requests aren't logged**, whatever the logging policy says.
+- Requests rejected by a gateway policy are logged too. Matching logging policies apply whether they appear before or after the policy that rejects the request. Saved response bodies contain the gateway's error response.
+- For rejected requests, body capture stops after 1 MiB or 1 second, whichever comes first. A slow or interrupted upload can have a partial body in the log.
 
 ## What's always redacted
 
@@ -73,9 +74,11 @@ These are replaced with `[REDACTED]` before anything is saved:
 - Every header and query parameter listed as a key location in any [API key authentication policy](/compute/gateway/api-key-auth), even turned-off ones. When a query parameter is redacted, the saved query string can be in a different order or encoding than the original.
 - Body fields marked `x-unkey-redact: true` in your OpenAPI spec, when an [OpenAPI validation policy](/compute/gateway/openapi-validation) is on.
 
+Body redaction also applies to rejected requests, even when rejection prevents OpenAPI validation from running. If the gateway can't load the matching redaction rules, it doesn't save bodies.
+
 ## Where to see the data
 
-Saved data shows up in the project's **Requests** view in the dashboard and in the `gateway_requests_v1` analytics table. The header, query, and body columns are empty for requests no logging policy matched.
+Saved data shows up in the <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>'s **Requests** view in the dashboard and in the `gateway_requests_v1` analytics table. The header, query, and body columns are empty for requests no logging policy matched.
 
 ## Next steps
 

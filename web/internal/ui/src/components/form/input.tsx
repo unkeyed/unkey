@@ -1,8 +1,8 @@
 "use client";
 
-import { type VariantProps, cva } from "class-variance-authority";
 // biome-ignore lint/style/useImportType: Biome wants this
 import React from "react";
+import { type VariantProps, cva } from "../../lib/cva";
 import { cn } from "../../lib/utils";
 import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./input-group";
 

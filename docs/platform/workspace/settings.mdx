@@ -16,7 +16,7 @@ sources:
 ## General
 
 <Frame>
-  <img src="/images/dashboard/platform--workspace-settings--general.png" alt="General settings page showing the workspace name, the workspace ID with a copy button, and the GitHub App card marked Connected" />
+  <img src="/images/dashboard/platform--workspace-settings--general.png" alt="General settings page showing the workspace name, the workspace ID with a copy button, and the Unkey GitHub App marked Installed under Integrations" />
 </Frame>
 
 <ParamField path="Workspace name" type="string" required>
@@ -39,9 +39,6 @@ The rest of the settings sidebar lives on its own pages.
   <Card title="Team" icon="users" href="/platform/workspace/team">
     Roles, invitations, and removing members.
   </Card>
-  <Card title="Root keys" icon="key-skeleton" href="/platform/root-keys/overview">
-    The credential for the API. Admins only.
-  </Card>
   <Card title="Billing" icon="credit-card" href="/platform/billing/plans">
     API tier, Compute plan, payment method, invoices.
   </Card>
@@ -52,4 +49,4 @@ The rest of the settings sidebar lives on its own pages.
 
 **Settings > Billing** is where you see your plan and what you've used this month, and the ceilings themselves are tabulated on [Limits](/platform/billing/limits).
 
-Log drains also live under Settings and are documented under [Log drains](/platform/workspace/log-drains). You set up [two-factor authentication](/platform/workspace/two-factor-auth) from your account page, not from workspace settings.
+Log drains also live under Settings and are documented under [Log drains](/platform/workspace/log-drains). [Root keys](/platform/root-keys/overview) are not under Settings. Admins open **Root Keys** in the dashboard sidebar. You set up [two-factor authentication](/platform/workspace/two-factor-auth) from your account page, not from workspace settings.

@@ -51,6 +51,7 @@ A failed build ends the deployment as `failed` with the code `build_failed`. The
 | What went wrong | Message you see |
 | --- | --- |
 | The Dockerfile path points at an empty file | The Dockerfile appears to be empty. Please verify the file path in settings. |
+| A Git submodule could not be cloned | A Git submodule could not be cloned. Please make sure it uses an HTTPS GitHub URL and the Unkey GitHub App can access its repository. |
 | The Dockerfile could not be read at the configured path | Dockerfile could not be read. Please check that the file path is correct in settings. |
 | A file the Dockerfile references is missing from the build context | A file or directory referenced in the build was not found. Please check the root directory in settings. |
 | A `COPY` or `ADD` source is missing | A file referenced in the Dockerfile was not found. Please check the root directory in settings. |
@@ -64,7 +65,7 @@ A failed build ends the deployment as `failed` with the code `build_failed`. The
 
 Errors we don't recognize show the raw build error.
 
-If your Dockerfile clones another private repository or a private submodule, it gets a 404 from GitHub. We only have read access to the repository being built. Vendor those dependencies, or fetch them with credentials passed as [build-time secrets](/compute/build/build-secrets).
+If a `RUN` step in your Dockerfile clones another private repository, it gets a 404 from GitHub. The build has read access only to the repository being built and its [private submodules](/compute/build/github#use-git-submodules). Use a submodule, vendor the dependency, or fetch it with credentials passed as [build-time secrets](/compute/build/build-secrets).
 
 ## Next steps
 
