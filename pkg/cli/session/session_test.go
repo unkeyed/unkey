@@ -62,6 +62,112 @@ func TestSaveSwitchAndDelete(t *testing.T) {
 	require.Equal(t, workspaceB, active.WorkspaceID)
 }
 
+func TestSaveRoundTripsALargeSession(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	useMemoryStore(t)
+	session := largeSession()
+	require.NoError(t, Save(session))
+
+	active, err := Active()
+	require.NoError(t, err)
+	require.Equal(t, session, active)
+}
+
+func TestKeychainFailureWritesAPrivateSessionFile(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	store := useMemoryStore(t)
+	store.SetError(keystore.ErrUnavailable)
+	session := largeSession()
+	require.NoError(t, Save(session))
+
+	path := filepath.Join(home, ".unkey", "sessions.json")
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	require.Zero(t, info.Mode().Perm()&0o077)
+	entries, err := os.ReadDir(filepath.Dir(path))
+	require.NoError(t, err)
+	for _, entry := range entries {
+		require.False(t, strings.HasPrefix(entry.Name(), ".sessions-"))
+	}
+
+	active, err := Active()
+	require.NoError(t, err)
+	require.Equal(t, session, active)
+}
+
+func TestCorruptSessionFileDoesNotHideTheKeychain(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	useMemoryStore(t)
+	session := Session{
+		WorkspaceID:  "ws_1",
+		SessionID:    "clis_1",
+		AccessToken:  "access",
+		RefreshToken: "refresh",
+		ExpiresAt:    1_900_000_000,
+	}
+	require.NoError(t, Save(session))
+	path := filepath.Join(home, ".unkey", "sessions.json")
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
+	require.NoError(t, os.WriteFile(path, []byte(`{"active":"ws_1","sessions":{"ws_1":{"access_token":"abc"`), 0o600))
+
+	active, err := Active()
+	require.NoError(t, err)
+	require.Equal(t, session, active)
+	_, statErr := os.Stat(path)
+	require.ErrorIs(t, statErr, os.ErrNotExist)
+}
+
+func TestCorruptSessionFileWithNoKeychainIsNotFound(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	useMemoryStore(t)
+	path := filepath.Join(home, ".unkey", "sessions.json")
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
+	require.NoError(t, os.WriteFile(path, []byte(`{"active":"ws_1","sessions":{"ws_1":{"access_token":"abc"`), 0o600))
+
+	_, err := Active()
+	require.ErrorIs(t, err, ErrNotFound)
+	require.NotContains(t, err.Error(), "unexpected end of JSON input")
+	_, statErr := os.Stat(path)
+	require.ErrorIs(t, statErr, os.ErrNotExist)
+
+	require.NoError(t, Save(Session{
+		WorkspaceID:  "ws_1",
+		SessionID:    "clis_1",
+		AccessToken:  "access",
+		RefreshToken: "refresh",
+		ExpiresAt:    1_900_000_000,
+	}))
+	active, err := Active()
+	require.NoError(t, err)
+	require.Equal(t, "ws_1", active.WorkspaceID)
+}
+
+func TestCorruptKeychainTellsTheUserToLogInAgain(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	store := useMemoryStore(t)
+	require.NoError(t, store.Set(`{"active":"ws_1"`))
+
+	_, err := Active()
+	require.ErrorIs(t, err, ErrNotFound)
+	require.ErrorContains(t, err, "run unkey login again")
+	require.NotContains(t, err.Error(), "unexpected end of JSON input")
+	_, getErr := store.Get()
+	require.ErrorIs(t, getErr, keystore.ErrNotFound)
+}
+
+func largeSession() Session {
+	return Session{
+		WorkspaceID:  "ws_large",
+		SessionID:    "clis_large",
+		AccessToken:  strings.Repeat("a", 5000),
+		RefreshToken: strings.Repeat("b", 2000),
+		ExpiresAt:    1_900_000_000,
+	}
+}
+
 func TestRefreshKeepsTheAPIURL(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	useMemoryStore(t)
@@ -166,57 +272,4 @@ func TestConcurrentRefreshDoesNotReuseTheToken(t *testing.T) {
 	require.Equal(t, "access_b", tokens[0])
 	require.Equal(t, "access_b", tokens[1])
 	require.Equal(t, int32(1), calls.Load())
-}
-
-// TestSaveRoundTripsALargeSession guarantees a session bigger than the macOS
-// keychain command line still loads, and a file copy is not group-readable.
-func TestSaveRoundTripsALargeSession(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	session := Session{
-		WorkspaceID:  "ws_large",
-		SessionID:    "clis_large",
-		AccessToken:  strings.Repeat("a", 5000),
-		RefreshToken: strings.Repeat("b", 2000),
-		ExpiresAt:    1_900_000_000,
-	}
-	require.NoError(t, Save(session))
-
-	active, err := Active()
-	require.NoError(t, err)
-	require.Equal(t, session, active)
-
-	path := filepath.Join(home, ".unkey", "sessions.json")
-	info, err := os.Stat(path)
-	if err == nil {
-		require.Zero(t, info.Mode().Perm()&0o077)
-	}
-}
-
-// TestCorruptSessionTellsTheUserToLogInAgain guarantees a truncated session
-// blob is removed instead of failing every later command with a JSON error.
-func TestCorruptSessionTellsTheUserToLogInAgain(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	path := filepath.Join(home, ".unkey", "sessions.json")
-	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
-	require.NoError(t, os.WriteFile(path, []byte(`{"active":"ws_1","sessions":{"ws_1":{"access_token":"abc"`), 0o600))
-
-	_, err := Active()
-	require.ErrorIs(t, err, ErrNotFound)
-	require.ErrorContains(t, err, "run unkey login again")
-	require.NotContains(t, err.Error(), "unexpected end of JSON input")
-	_, statErr := os.Stat(path)
-	require.ErrorIs(t, statErr, os.ErrNotExist)
-
-	require.NoError(t, Save(Session{
-		WorkspaceID:  "ws_1",
-		SessionID:    "clis_1",
-		AccessToken:  "access",
-		RefreshToken: "refresh",
-		ExpiresAt:    1_900_000_000,
-	}))
-	active, err := Active()
-	require.NoError(t, err)
-	require.Equal(t, "ws_1", active.WorkspaceID)
 }

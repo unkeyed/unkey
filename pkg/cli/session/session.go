@@ -3,9 +3,10 @@
 // The access token and refresh token live in the operating system secret store.
 // When that store is unavailable they are written to ~/.unkey/sessions.json with
 // mode 0600. A file left behind after a failed keychain write is newer than the
-// keychain and replaces it on the next load. A stored blob that is not valid
-// session JSON is removed and reported as missing so a truncated keychain item
-// does not block the next login.
+// keychain and replaces it on the next load. A keychain blob that is not valid
+// session JSON is removed and reported as missing so a truncated item does not
+// block the next login. A corrupt sessions.json is removed and does not hide a
+// keychain session.
 package session
 
 import (
@@ -29,6 +30,7 @@ import (
 type Store interface {
 	Get() (string, error)
 	Set(secret string) error
+	Delete() error
 }
 
 type keychainStore struct{}
@@ -39,6 +41,10 @@ func (keychainStore) Get() (string, error) {
 
 func (keychainStore) Set(secret string) error {
 	return keystore.SetSessions(secret)
+}
+
+func (keychainStore) Delete() error {
+	return keystore.DeleteSessions()
 }
 
 // MemoryStore keeps the session blob in memory.
@@ -75,6 +81,13 @@ func (m *MemoryStore) Set(secret string) error {
 		return m.setErr
 	}
 	m.value = secret
+	return nil
+}
+
+func (m *MemoryStore) Delete() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.value = ""
 	return nil
 }
 
@@ -279,10 +292,9 @@ func read() (state, error) {
 	if err == nil {
 		return file, nil
 	}
-	if errors.Is(err, errCorruptSession) {
-		return state{}, err
-	}
-	if err != nil && !errors.Is(err, os.ErrNotExist) && !errors.Is(err, ErrNotFound) {
+	// readFile already removed a corrupt sessions.json. Fall through so that
+	// file cannot hide a session still stored in the keychain.
+	if !errors.Is(err, os.ErrNotExist) && !errors.Is(err, ErrNotFound) && !errors.Is(err, errCorruptSession) {
 		return state{}, err
 	}
 	raw, err := secrets.Get()
@@ -294,7 +306,7 @@ func read() (state, error) {
 	}
 	current, err := decode(raw)
 	if errors.Is(err, errCorruptSession) {
-		_ = keystore.DeleteSessions()
+		_ = secrets.Delete()
 		return state{}, err
 	}
 	return current, err
@@ -371,13 +383,34 @@ func writeFile(raw []byte) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, raw, 0o600); err != nil {
+	tmp, err := os.CreateTemp(dir, ".sessions-*.json")
+	if err != nil {
 		return err
 	}
-	return os.Chmod(path, 0o600)
+	tmpName := tmp.Name()
+	if err := tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if _, err := tmp.Write(raw); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		_ = os.Remove(tmpName)
+		return err
+	}
+	return nil
 }
 
 func removeFile() error {
