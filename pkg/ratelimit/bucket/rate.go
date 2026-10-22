@@ -34,6 +34,8 @@ func (r Rate) Validate() error {
 func (r Rate) costNs(cost int64) int64 {
 	productHigh, productLow := bits.Mul64(uint64(cost), uint64(r.Duration))
 	quotient, remainder := bits.Div64(productHigh, productLow, uint64(r.Limit))
+	// Rounding down would make every unit a little cheaper than its share,
+	// and `Limit` requests could fit into less than `Duration`.
 	if remainder > 0 {
 		quotient++
 	}
@@ -42,9 +44,12 @@ func (r Rate) costNs(cost int64) int64 {
 
 // remaining returns how many units fit at `nowNs` when the limit resets at
 // `resetAtNs`. It is zero while `resetAtNs` is a full `Duration` or more
-// ahead, which
-// happens when pods over-admitted and the debt is not paid back yet.
+// ahead, which happens when pods over-admitted and the debt is not paid back
+// yet.
 func (r Rate) remaining(nowNs, resetAtNs int64) int64 {
+	// The bucket holds `Duration` of time in total. The part between now and
+	// `reset_at` is in use; the rest is free. A `reset_at` in the past means
+	// the bucket is full, not that it holds more than `Duration`.
 	aheadNs := max(resetAtNs-nowNs, 0)
 	if aheadNs >= int64(r.Duration) {
 		return 0

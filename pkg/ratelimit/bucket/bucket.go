@@ -101,6 +101,9 @@ type Decision struct {
 // `sessions`.
 func New(sessions []Session, liveSessionID string) (Bucket, error) {
 	var b Bucket
+	// The candidate of a session needs the sum of everything anchored at or
+	// after it. Walking from the newest anchor to the oldest builds that sum
+	// as a running total, so all candidates take one pass.
 	newestFirst := slices.Clone(sessions)
 	slices.SortFunc(newestFirst, func(left, right Session) int {
 		return cmp.Compare(right.AnchorAtNs, left.AnchorAtNs)
@@ -121,6 +124,8 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 	}
 	b.hasLiveSession = liveSessionID != ""
 
+	// `usedNs` is the consumed time of every session seen so far, which is
+	// every session anchored at or after the current one.
 	var usedNs int64
 	for start := 0; start < len(newestFirst); {
 		anchorNs := newestFirst[start].AnchorAtNs
@@ -138,6 +143,9 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 		if err != nil {
 			return Bucket{}, err
 		}
+		// [Bucket.Check] must know which side of the live session holds the
+		// largest candidate, because a cost added to the live session raises
+		// only the candidates at or before it. So the maxima are kept apart.
 		if b.hasLiveSession && anchorNs > b.liveSessionAnchorAtNs {
 			b.maxCandidateAfterLiveSessionNs = max(b.maxCandidateAfterLiveSessionNs, candidateNs)
 		} else {
@@ -145,6 +153,8 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 		}
 		start = end
 	}
+	// A new session anchored at or after the newest anchor counts toward
+	// every session, so [Bucket.Check] never anchors one earlier.
 	if len(newestFirst) > 0 {
 		b.newestAnchorAtNs = newestFirst[0].AnchorAtNs
 	}
@@ -154,6 +164,8 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 // ResetAtNs returns `reset_at` in Unix nanoseconds: the time when every unit is
 // free again. It is zero for a limit without sessions.
 func (b Bucket) ResetAtNs() int64 {
+	// The two maxima together cover every session, so the larger of them is
+	// the largest candidate of all.
 	return max(b.maxCandidateAtOrBeforeLiveSessionNs, b.maxCandidateAfterLiveSessionNs)
 }
 
@@ -183,6 +195,8 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	}
 
 	resetAtNs := b.ResetAtNs()
+	// A denied request returns the state as it is. Nothing is written, so a
+	// caller who keeps hitting a closed limit costs no database writes.
 	unchanged := Decision{
 		Allowed:              false,
 		CostNs:               0,
@@ -190,25 +204,54 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 		Remaining:            rate.remaining(nowNs, resetAtNs),
 		CreateNewSessionAtNs: 0,
 	}
+	// The bucket never holds more than `Limit` units, so a larger `cost`
+	// never fits. Checking it here also keeps the 128-bit division in
+	// `costNs` from panicking.
 	if cost > rate.Limit {
 		return unchanged, nil
 	}
 	costNs := rate.costNs(cost)
+	// This is the single-machine GCRA rule. If `reset_at` is in the past the
+	// bucket is full, and the request starts paying from now, not from the
+	// old `reset_at`. Otherwise the request waits behind what is already in
+	// use.
 	nextResetAtNs, err := addNs(max(resetAtNs, nowNs), costNs)
 	if err != nil {
 		return Decision{}, err
 	}
+	// The burst tolerance is one full `Duration`: `reset_at` may run at most
+	// that far ahead of now. When pods over-admitted, `reset_at` can already
+	// be further ahead, and every request is denied until time catches up.
 	if nextResetAtNs-nowNs > int64(rate.Duration) {
 		return unchanged, nil
 	}
+	// A request of `cost` zero only asks whether the limit is open. It spends
+	// nothing, so it must not start a session or write a row.
 	if costNs == 0 {
 		unchanged.Allowed = true
 		return unchanged, nil
 	}
 
+	// The request may go into the live session only if that moves `reset_at`
+	// to exactly `nextResetAtNs`. A cost added to the live session raises the
+	// candidates at or before it, so this holds when the largest candidate is
+	// on that side and is not in the past.
+	//
+	// Example, 60 units per 60 ns, `nowNs` = 55:
+	//
+	//	live session  anchor 0,  consumed 1    candidate 0 + 1 + 60 = 61
+	//	peer session  anchor 50, consumed 60   candidate 50 + 60    = 110  <- reset_at
+	//
+	// Adding a cost of 1 to the live session makes its candidate 62, and
+	// `reset_at` stays 110: the request would be free. Single-machine GCRA
+	// gives 111. A new session anchored at 55 has candidate 55 + 1 = 56, and
+	// the peer session now counts it too: 50 + 60 + 1 = 111.
 	var createNewSessionAtNs int64
 	liveSessionHoldsResetAt := b.maxCandidateAtOrBeforeLiveSessionNs >= max(b.maxCandidateAfterLiveSessionNs, nowNs)
 	if !b.hasLiveSession || !liveSessionHoldsResetAt {
+		// At or after the newest anchor, the new session is counted by every
+		// other session. The newest anchor can be ahead of `nowNs` when the
+		// clocks of two pods differ a little.
 		createNewSessionAtNs = max(nowNs, b.newestAnchorAtNs)
 	}
 	return Decision{
@@ -230,6 +273,9 @@ func (b *Bucket) Apply(decision Decision) {
 	// In both cases the request raises exactly the candidates at or before the
 	// live anchor, and the largest of them becomes the new `reset_at`.
 	b.maxCandidateAtOrBeforeLiveSessionNs = decision.ResetAtNs
+	// A new session is anchored at or after every other session, so no
+	// session lies after it anymore. The old live session becomes one of the
+	// older sessions and keeps counting in full.
 	if decision.CreateNewSessionAtNs != 0 {
 		b.hasLiveSession = true
 		b.liveSessionAnchorAtNs = decision.CreateNewSessionAtNs
@@ -242,6 +288,9 @@ func (b *Bucket) Apply(decision Decision) {
 // ended. The next admitted request starts a new session. `reset_at` does not
 // change.
 func (b *Bucket) EndLiveSession() {
+	// Without a live session, every session counts as "at or before", so the
+	// largest candidate of all moves to that side. The next admitted request
+	// then sees `hasLiveSession` false and starts a new session.
 	b.maxCandidateAtOrBeforeLiveSessionNs = b.ResetAtNs()
 	b.maxCandidateAfterLiveSessionNs = 0
 	b.hasLiveSession = false
