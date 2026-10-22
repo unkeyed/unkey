@@ -211,6 +211,9 @@ func (h *Handler) Handle(
 
 			lastNotified := notifiedAt[ws.ID]
 			isFollowUp := lastNotified > 0
+			if isFreeTier(ws.Tier) && (isFollowUp || isThrottled(ws.RequestsPerMinute)) {
+				continue
+			}
 			if isFollowUp {
 				timeSinceLastNotification := time.Duration(now-lastNotified) * time.Second
 				if timeSinceLastNotification < followUpInterval {
