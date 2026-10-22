@@ -260,6 +260,8 @@ export type ComboboxOption = {
   disabled?: boolean;
 };
 
+const ACTION_VALUE = "__combobox-action__";
+
 type DocumentedComboboxProps = DocumentedComboboxTriggerProps & {
   options: ComboboxOption[];
   value: string;
@@ -282,6 +284,13 @@ type DocumentedComboboxProps = DocumentedComboboxTriggerProps & {
   createPosition?: "first" | "last";
   /** Class name applied to the popup container. */
   popoverClassName?: string;
+  /** Pinned last row that runs `onSelect` instead of choosing a value. Ignores the search query. */
+  action?: {
+    label: React.ReactNode;
+    icon?: React.ReactNode;
+    disabled?: boolean;
+    onSelect: () => void;
+  };
 };
 
 type ComboboxProps = DocumentedComboboxProps &
@@ -308,6 +317,7 @@ function Combobox({
   creatable = false,
   createPosition = "first",
   popoverClassName,
+  action,
   ...triggerProps
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
@@ -357,12 +367,19 @@ function Combobox({
     [listOptions],
   );
 
-  const itemValues = React.useMemo(() => listOptions.map((option) => option.value), [listOptions]);
+  const hasAction = action !== undefined;
+  const itemValues = React.useMemo(() => {
+    const values = listOptions.map((option) => option.value);
+    return hasAction ? [...values, ACTION_VALUE] : values;
+  }, [listOptions, hasAction]);
 
   const selectedOption = effectiveOptions.find((option) => option.value === value);
 
   const filterOption = React.useCallback(
     (itemValue: string, itemQuery: string) => {
+      if (itemValue === ACTION_VALUE) {
+        return true;
+      }
       const option = optionsByValue.get(itemValue);
       if (!option) {
         return false;
@@ -373,15 +390,24 @@ function Combobox({
     [optionsByValue],
   );
 
+  const hasMatches =
+    hasAction &&
+    listOptions.some((option) => !option.disabled && filterOption(option.value, query));
+
   return (
     <ComboboxRoot<string>
       items={itemValues}
       filter={filterOption}
-      autoHighlight
+      // A typo must not leave Enter on the action row.
+      autoHighlight={!hasAction || hasMatches}
       // Not `selectedOption?.value || null`: an option whose value is the empty
       // string still has to resolve to itself.
       value={selectedOption ? selectedOption.value : null}
       onValueChange={(next) => {
+        if (next === ACTION_VALUE) {
+          action?.onSelect();
+          return;
+        }
         if (next !== null) {
           onSelect(next);
         }
@@ -422,9 +448,32 @@ function Combobox({
         <div className="p-1">
           <ComboboxInput placeholder={searchPlaceholder} onInput={onChange} />
         </div>
-        <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
+        {action ? (
+          <ComboboxStatus className="py-6 text-center text-sm text-grayA-9 empty:hidden">
+            {hasMatches ? null : emptyMessage}
+          </ComboboxStatus>
+        ) : (
+          <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
+        )}
         <ComboboxList>
           {(itemValue: string) => {
+            if (itemValue === ACTION_VALUE && action) {
+              return (
+                <React.Fragment key={ACTION_VALUE}>
+                  {hasMatches ? <div aria-hidden className="-mx-1 my-1 h-px bg-grayA-4" /> : null}
+                  <ComboboxItem
+                    value={ACTION_VALUE}
+                    disabled={action.disabled}
+                    className="text-gray-11"
+                  >
+                    {action.icon ? (
+                      <span className="flex shrink-0 items-center">{action.icon}</span>
+                    ) : null}
+                    <span className="min-w-0 flex-1 truncate">{action.label}</span>
+                  </ComboboxItem>
+                </React.Fragment>
+              );
+            }
             const option = optionsByValue.get(itemValue);
             if (!option) {
               return null;
