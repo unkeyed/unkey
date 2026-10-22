@@ -1,14 +1,14 @@
-// Package workos resolves an organization's admin emails via the WorkOS API.
-// Budget alerts go to workspace admins, whose emails live in WorkOS, not our
-// database, so the spend-cap check has to look them up here.
-//
-// The two GET endpoints this needs do not justify the WorkOS SDK dependency,
-// so the client is plain net/http against the documented REST API. Callers
-// choose the implementation: New for the real client, NewNoop when no API key
-// is configured (see noop.go).
+// Package workos resolves organization admin and member email addresses.
+// New selects a noop when no API key is configured.
 package workos
 
 import "context"
+
+// Client resolves both admin and member recipients for an organization.
+type Client interface {
+	Resolver
+	MemberEmails(ctx context.Context, orgID string) ([]string, error)
+}
 
 // Resolver returns the email addresses to notify for an organization.
 type Resolver interface {

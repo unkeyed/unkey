@@ -43,7 +43,7 @@ export function ImageDeploymentForm({ app, isOpen, onOpenChange }: ImageDeployme
   const { environments } = useProjectData();
   const { deployments } = useRecentDeployments({ enabled: isOpen });
   const defaultEnvironmentId =
-    environments.find((env) => env.kind === "preview")?.id ?? environments[0]?.id ?? "";
+    environments.find((env) => env.kind === "production")?.id ?? environments[0]?.id ?? "";
 
   const {
     register,

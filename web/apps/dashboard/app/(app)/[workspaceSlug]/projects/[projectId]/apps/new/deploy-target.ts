@@ -5,7 +5,7 @@ type TargetEnvironment = { slug: string; kind: EnvironmentKind };
 
 const firstDeployKind: Record<SourceKind, EnvironmentKind> = {
   git: "production",
-  oci: "preview",
+  oci: "production",
 };
 
 export function firstDeployEnvironment(
