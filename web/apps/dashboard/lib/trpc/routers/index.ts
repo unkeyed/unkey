@@ -117,6 +117,7 @@ import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
 import { getCurrentUser, listMemberships } from "./user";
+import { oidcVercel } from "./oidc-vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
@@ -125,6 +126,7 @@ import { listAvailable } from "./workspace/listAvailable";
 
 export const router = t.router({
   logdrain,
+  oidcVercel,
   share: t.router({
     create: createSharedSecret,
     reveal: revealSharedSecret,

@@ -32,6 +32,8 @@ func subjectType(t principal.SubjectType) ctrlv1.ActorType {
 		return ctrlv1.ActorType_ACTOR_TYPE_USER
 	case principal.SubjectTypeRootKey:
 		return ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY
+	case principal.SubjectTypeOIDCVercel:
+		return ctrlv1.ActorType_ACTOR_TYPE_OIDC_VERCEL
 	default:
 		return ctrlv1.ActorType_ACTOR_TYPE_UNSPECIFIED
 	}

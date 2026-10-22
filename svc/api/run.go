@@ -30,6 +30,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
 	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
+	oidcvercel "github.com/unkeyed/unkey/pkg/auth/oidc/vercel"
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	authworkos "github.com/unkeyed/unkey/pkg/auth/workos"
@@ -394,9 +395,54 @@ func Run(ctx context.Context, cfg Config) error {
 		return workspace.ID, nil
 	})
 
+	oidcVercelLookup := oidcvercel.IntegrationLookupFunc(func(ctx context.Context, audience string) (oidcvercel.Integration, error) {
+		integration, hit, err := caches.OIDCVercelIntegration.SWR(ctx, audience, func(ctx context.Context) (oidcvercel.Integration, error) {
+			rows, queryErr := db.WithRetryContext(ctx, func() ([]db.FindOIDCVercelIntegrationByAudienceRow, error) {
+				return db.Query.FindOIDCVercelIntegrationByAudience(ctx, database.RO(), audience)
+			})
+			if queryErr != nil {
+				return oidcvercel.Integration{}, queryErr
+			}
+			if len(rows) == 0 {
+				return oidcvercel.Integration{}, sql.ErrNoRows
+			}
+
+			first := rows[0]
+			found := oidcvercel.Integration{
+				ID:                first.ID,
+				WorkspaceID:       first.WorkspaceID,
+				Name:              first.Name,
+				Audience:          first.Audience,
+				VercelTeamSlug:    first.VercelTeamSlug,
+				VercelProjectName: first.VercelProjectName,
+				VercelEnvironment: first.VercelEnvironment,
+				Enabled:           first.Enabled,
+				WorkspaceEnabled:  first.WorkspaceEnabled,
+				Permissions:       make([]string, 0, len(rows)),
+			}
+			for _, row := range rows {
+				if row.PermissionSlug.Valid {
+					found.Permissions = append(found.Permissions, row.PermissionSlug.String)
+				}
+			}
+			return found, nil
+		}, cachesvc.DefaultFindFirstOp)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return oidcvercel.Integration{}, oidcvercel.ErrIntegrationNotFound
+			}
+			return oidcvercel.Integration{}, err
+		}
+		if hit == cache.Null {
+			return oidcvercel.Integration{}, oidcvercel.ErrIntegrationNotFound
+		}
+		return integration, nil
+	})
+
+	authResolvers := []auth.Resolver{oidcvercel.NewResolver(oidcVercelLookup)}
+
 	// Portal sessions authenticate on a dedicated auth service used only by the
 	// portal routes, so protected routes never accept a portal-session cookie.
-	authResolvers := []auth.Resolver{}
 	portalResolvers := []auth.Resolver{}
 	for i, authConfig := range cfg.Auth {
 		switch authConfig := authConfig.(type) {

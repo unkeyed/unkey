@@ -17,6 +17,8 @@ func AuditType(t ctrlv1.ActorType) auditlog.AuditLogActor {
 		return auditlog.RootKeyActor
 	case ctrlv1.ActorType_ACTOR_TYPE_GITHUB:
 		return auditlog.GitHubActor
+	case ctrlv1.ActorType_ACTOR_TYPE_OIDC_VERCEL:
+		return auditlog.OIDCVercelActor
 	case ctrlv1.ActorType_ACTOR_TYPE_SYSTEM, ctrlv1.ActorType_ACTOR_TYPE_UNSPECIFIED:
 		return auditlog.SystemActor
 	default:

@@ -1,0 +1,24 @@
+-- name: FindOIDCVercelIntegrationByAudience :many
+-- Loads the integration trust policy and permission grants selected by the
+-- token's exact, case-sensitive audience. Grants are scoped to its workspace
+-- and OIDC principal. The left join preserves integrations without grants.
+SELECT ov.id,
+       ov.workspace_id,
+       ov.name,
+       ov.audience,
+       ov.vercel_team_slug,
+       ov.vercel_project_name,
+       ov.vercel_environment,
+       ov.enabled,
+       w.enabled AS workspace_enabled,
+       p.slug AS permission_slug
+FROM oidc_vercel ov
+JOIN workspaces w
+  ON w.id = ov.workspace_id
+  AND w.deleted_at_m IS NULL
+LEFT JOIN unkey_principal_permissions p
+  ON p.principal_id = ov.id
+  AND p.principal_type = 'oidc'
+  AND p.workspace_id = ov.workspace_id
+WHERE ov.audience = sqlc.arg(audience)
+ORDER BY p.slug;

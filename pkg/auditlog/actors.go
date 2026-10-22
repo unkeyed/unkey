@@ -29,4 +29,7 @@ const (
 	// workspace owner. The actor's externalId is carried by the audit log's
 	// ActorID so customers can see what their end users did.
 	PortalEndUserActor AuditLogActor = "portalEndUser"
+
+	// OIDCVercelActor indicates a Vercel OIDC integration performed the action.
+	OIDCVercelActor AuditLogActor = "oidcVercel"
 )

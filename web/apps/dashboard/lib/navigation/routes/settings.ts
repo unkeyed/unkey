@@ -29,6 +29,10 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/root-keys", { workspaceSlug });
   },
 
+  oidcVercel({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/oidc-vercel", { workspaceSlug });
+  },
+
   logdrains: {
     list({ workspaceSlug }: WorkspaceScope): Route {
       return buildRoute("/[workspaceSlug]/settings/logdrains", { workspaceSlug });
