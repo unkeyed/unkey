@@ -14,15 +14,21 @@ import (
 
 var jsonHeaders = http.Header{"Content-Type": {"application/json"}}
 
+func withClientIP(ip string) http.Header {
+	headers := jsonHeaders.Clone()
+	headers.Set("X-Forwarded-For", ip)
+	return headers
+}
+
 func TestPollWaitsUntilTheLoginIsApproved(t *testing.T) {
 	h := testutil.NewHarness(t)
 	devices := clidevicetest.New(h)
 	route := &handler.Handler{Devices: devices}
 	h.Register(route, h.PublicMiddleware()...)
-	started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "", UserAgent: ""})
+	started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.40", UserAgent: ""})
 	require.NoError(t, err)
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, jsonHeaders, handler.Request{LoginId: started.LoginID})
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, withClientIP("203.0.113.41"), handler.Request{LoginId: started.LoginID})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 	require.Equal(t, openapi.PermissionsRequired, res.Body.Data.Status)
 	require.Nil(t, res.Body.Data.AccessToken)
@@ -33,6 +39,6 @@ func TestPollRejectsAnUnknownLogin(t *testing.T) {
 	route := &handler.Handler{Devices: clidevicetest.New(h)}
 	h.Register(route, h.PublicMiddleware()...)
 
-	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, jsonHeaders, handler.Request{LoginId: "cdl_doesnotexist"})
+	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, withClientIP("203.0.113.42"), handler.Request{LoginId: "cdl_doesnotexist"})
 	require.Equal(t, http.StatusBadRequest, res.Status, res.RawBody)
 }
