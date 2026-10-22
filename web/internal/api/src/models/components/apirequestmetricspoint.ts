@@ -10,7 +10,7 @@ import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 /**
  * The number of requests in one bucket.
  */
-export type ApiRequestsTimeseriesPoint = {
+export type ApiRequestMetricsPoint = {
   /**
    * The start of the bucket, in Unix milliseconds.
    */
@@ -34,8 +34,8 @@ export type ApiRequestsTimeseriesPoint = {
 };
 
 /** @internal */
-export const ApiRequestsTimeseriesPoint$inboundSchema: z.ZodType<
-  ApiRequestsTimeseriesPoint,
+export const ApiRequestMetricsPoint$inboundSchema: z.ZodType<
+  ApiRequestMetricsPoint,
   z.ZodTypeDef,
   unknown
 > = z.object({
@@ -46,12 +46,12 @@ export const ApiRequestsTimeseriesPoint$inboundSchema: z.ZodType<
   total: z.number().int(),
 });
 
-export function apiRequestsTimeseriesPointFromJSON(
+export function apiRequestMetricsPointFromJSON(
   jsonString: string,
-): SafeParseResult<ApiRequestsTimeseriesPoint, SDKValidationError> {
+): SafeParseResult<ApiRequestMetricsPoint, SDKValidationError> {
   return safeParse(
     jsonString,
-    (x) => ApiRequestsTimeseriesPoint$inboundSchema.parse(JSON.parse(x)),
-    `Failed to parse 'ApiRequestsTimeseriesPoint' from JSON`,
+    (x) => ApiRequestMetricsPoint$inboundSchema.parse(JSON.parse(x)),
+    `Failed to parse 'ApiRequestMetricsPoint' from JSON`,
   );
 }

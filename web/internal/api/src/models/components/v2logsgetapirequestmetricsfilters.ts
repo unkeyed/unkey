@@ -25,11 +25,11 @@ import {
 } from "./timefilter.js";
 
 /**
- * Filters for the timeseries. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+ * Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
  *
  * @remarks
  */
-export type V2LogsGetApiRequestsTimeseriesFilters = {
+export type V2LogsGetApiRequestMetricsFilters = {
   /**
    * Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
    *
@@ -59,7 +59,7 @@ export type V2LogsGetApiRequestsTimeseriesFilters = {
 };
 
 /** @internal */
-export type V2LogsGetApiRequestsTimeseriesFilters$Outbound = {
+export type V2LogsGetApiRequestMetricsFilters$Outbound = {
   time?: TimeFilter$Outbound | undefined;
   path?: TextFilter$Outbound | undefined;
   method?: MethodFilter$Outbound | undefined;
@@ -67,10 +67,10 @@ export type V2LogsGetApiRequestsTimeseriesFilters$Outbound = {
 };
 
 /** @internal */
-export const V2LogsGetApiRequestsTimeseriesFilters$outboundSchema: z.ZodType<
-  V2LogsGetApiRequestsTimeseriesFilters$Outbound,
+export const V2LogsGetApiRequestMetricsFilters$outboundSchema: z.ZodType<
+  V2LogsGetApiRequestMetricsFilters$Outbound,
   z.ZodTypeDef,
-  V2LogsGetApiRequestsTimeseriesFilters
+  V2LogsGetApiRequestMetricsFilters
 > = z.object({
   time: TimeFilter$outboundSchema.optional(),
   path: TextFilter$outboundSchema.optional(),
@@ -78,12 +78,12 @@ export const V2LogsGetApiRequestsTimeseriesFilters$outboundSchema: z.ZodType<
   status: IntFilter$outboundSchema.optional(),
 });
 
-export function v2LogsGetApiRequestsTimeseriesFiltersToJSON(
-  v2LogsGetApiRequestsTimeseriesFilters: V2LogsGetApiRequestsTimeseriesFilters,
+export function v2LogsGetApiRequestMetricsFiltersToJSON(
+  v2LogsGetApiRequestMetricsFilters: V2LogsGetApiRequestMetricsFilters,
 ): string {
   return JSON.stringify(
-    V2LogsGetApiRequestsTimeseriesFilters$outboundSchema.parse(
-      v2LogsGetApiRequestsTimeseriesFilters,
+    V2LogsGetApiRequestMetricsFilters$outboundSchema.parse(
+      v2LogsGetApiRequestMetricsFilters,
     ),
   );
 }
