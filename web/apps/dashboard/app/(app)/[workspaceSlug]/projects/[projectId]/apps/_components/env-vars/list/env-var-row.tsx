@@ -1,7 +1,7 @@
+import { TypeMarker } from "@/components/deploy/env-vars/type-marker";
 import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import type { Environment } from "@/lib/collections/deploy/environments";
-import { IconCodeOutline12, IconLockOutline12 } from "@unkey/icons";
-import { Checkbox, InfoTooltip, ResourceListRow, TimestampInfo } from "@unkey/ui";
+import { Checkbox, ResourceListRow, TimestampInfo } from "@unkey/ui";
 import { cn } from "cn";
 import { EnvironmentLabel } from "../../environment-label";
 import { EnvVarActionMenu } from "./env-var-action-menu";
@@ -57,7 +57,7 @@ export function EnvVarRow({
         {selection ? (
           <SelectableTypeMarker envVar={item} selection={selection} />
         ) : (
-          <TypeMarker envVar={item} />
+          <TypeMarker type={item.type} />
         )}
         <span className="flex min-w-0 justify-self-start">
           <EnvVarNameCell envVar={item} searchQuery={searchQuery} />
@@ -92,36 +92,13 @@ export function EnvVarRow({
   );
 }
 
-const TYPE_MARKERS = {
-  writeonly: { Icon: IconLockOutline12, label: "Sensitive. You can't view the value." },
-  recoverable: { Icon: IconCodeOutline12, label: "Not sensitive. You can view the value." },
-} satisfies Record<EnvVar["type"], { Icon: typeof IconLockOutline12; label: string }>;
-
-function TypeMarker({ envVar, className }: { envVar: EnvVar; className?: string }) {
-  const { Icon, label } = TYPE_MARKERS[envVar.type];
-
-  return (
-    <InfoTooltip content={label} position={{ side: "top" }} asChild>
-      <span
-        className={cn(
-          "relative flex size-6 items-center justify-center rounded-md border bg-raised text-gray-12 transition-opacity",
-          className,
-        )}
-      >
-        <Icon />
-        <span className="sr-only">{label}</span>
-      </span>
-    </InfoTooltip>
-  );
-}
-
 function SelectableTypeMarker({ envVar, selection }: { envVar: EnvVar; selection: RowSelection }) {
   const { isSelected, hasSelection, onToggle } = selection;
 
   return (
     <span className="group/marker relative flex size-6 shrink-0 items-center justify-center">
       <TypeMarker
-        envVar={envVar}
+        type={envVar.type}
         className={hasSelection ? "opacity-0" : "group-hover/marker:opacity-0"}
       />
       <Checkbox
