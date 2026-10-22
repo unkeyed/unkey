@@ -121,13 +121,13 @@ func summarize(otherSessions []session, liveSession *session) (summary, error) {
 	var consumedAtOrAfterAnchorNs int64
 	for _, s := range newestFirst {
 		var err error
-		consumedAtOrAfterAnchorNs, err = addNs(consumedAtOrAfterAnchorNs, s.consumedNs)
+		consumedAtOrAfterAnchorNs, err = checkedAdd(consumedAtOrAfterAnchorNs, s.consumedNs)
 		if err != nil {
 			return summary{}, err
 		}
 		// Equal anchors need no special case: the last of them gets the full
 		// sum, and only the largest candidate matters.
-		candidateNs, err := addNs(s.anchorAtNs, consumedAtOrAfterAnchorNs)
+		candidateNs, err := checkedAdd(s.anchorAtNs, consumedAtOrAfterAnchorNs)
 		if err != nil {
 			return summary{}, err
 		}
@@ -167,7 +167,7 @@ func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units 
 		return unchanged, nil
 	}
 	consumedNs := rate.unitsToNs(units)
-	nextResetAtNs, err := addNs(max(current.resetAtNs, nowNs), consumedNs)
+	nextResetAtNs, err := checkedAdd(max(current.resetAtNs, nowNs), consumedNs)
 	if err != nil {
 		return decision{}, err
 	}
@@ -220,18 +220,11 @@ func summaryAfter(current summary, spent decision) summary {
 	return next
 }
 
-// summaryWithoutLiveSession returns the summary after the live session was
-// frozen. `reset_at` does not change.
-func summaryWithoutLiveSession(current summary) summary {
-	current.maxCandidateRaisedByLiveSessionNs = 0
-	return current
-}
-
-// addNs returns `a + b`, or an error on overflow. A wrapped `reset_at` would
-// open the rate limit.
-func addNs(a, b int64) (int64, error) {
+// checkedAdd returns `a + b` for non-negative `a` and `b`, or an error on
+// overflow. A wrapped `reset_at` would open the rate limit.
+func checkedAdd(a, b int64) (int64, error) {
 	if a > math.MaxInt64-b {
-		return 0, fault.New("time overflows int64 nanoseconds") //faultline:equivalent callers discard the value when there is an error
+		return 0, fault.New("sum overflows int64") //faultline:equivalent callers discard the value when there is an error
 	}
 	return a + b, nil
 }

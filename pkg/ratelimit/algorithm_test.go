@@ -200,7 +200,7 @@ func TestDecideReplaysTheDocumentationTables(t *testing.T) {
 // It also guarantees that:
 //   - the sessions reproduce that `reset_at` by the formula over all rows;
 //   - the summary always equals `summarize` over the sessions, so the O(1)
-//     updates in `summaryAfter` and `summaryWithoutLiveSession` never drift;
+//     updates in `summaryAfter` and `endLiveSession` never drift;
 //   - a request starts a new session exactly when the live session cannot
 //     take it, and the new session is anchored at `max(now, newest anchor)`;
 //   - a denied request or a request of zero `units` consumes nothing.
