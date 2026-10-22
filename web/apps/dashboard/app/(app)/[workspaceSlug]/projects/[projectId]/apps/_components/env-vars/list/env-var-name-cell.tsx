@@ -1,9 +1,9 @@
 "use client";
 
+import { HighlightMatch } from "@/components/deploy/env-vars/highlight-match";
 import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import { IconNote3Outline18 } from "@unkey/icons";
 import { CopyButton, InfoTooltip } from "@unkey/ui";
-import { HighlightMatch } from "../shared/highlight-match";
 
 export function EnvVarNameCell({ envVar, searchQuery }: { envVar: EnvVar; searchQuery: string }) {
   const { key: variableKey, description: note } = envVar;

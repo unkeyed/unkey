@@ -21,11 +21,12 @@ import {
   SettingsRowTitle,
 } from "@unkey/ui";
 import Link from "next/link";
+import type { ComponentType } from "react";
 import { useAppId, useProjectData } from "../../../data-provider";
-import type { Branch } from "../branch";
 import { BranchLabel } from "../branch-label";
 import { type DomainAssignment, environmentPanelDomains } from "../model";
 import { AutoDeploy } from "./auto-deploy";
+import { ProductionBranch } from "./production-branch";
 
 const ASSIGNMENT_LABEL: Record<DomainAssignment, string> = {
   live: "Live deployment",
@@ -33,32 +34,37 @@ const ASSIGNMENT_LABEL: Record<DomainAssignment, string> = {
   "each-branch": "Latest deployment of each branch",
 };
 
-const BRANCH_NOTE: Record<EnvironmentKind, string> = {
-  production:
-    "Your repository's default branch. To use a different branch, change the default in your GitHub repository settings.",
-  preview: "Every branch except the default deploys here. Each one gets its own URL.",
+const BRANCH_ROW: Record<EnvironmentKind, ComponentType> = {
+  production: ProductionBranch,
+  preview: PreviewBranch,
 };
 
-export function BranchTracking({
-  environment,
-  branch,
-}: { environment: Environment; branch: Branch }) {
+export function BranchTracking({ environment }: { environment: Environment }) {
+  const BranchRow = BRANCH_ROW[environment.kind];
   return (
     <SettingsGroup>
       <SettingsGroupTitle>Branch tracking</SettingsGroupTitle>
       <SettingsGroupContent>
-        <SettingsRow>
-          <SettingsRowHeader>
-            <SettingsRowTitle>Branch</SettingsRowTitle>
-            <SettingsRowDescription>{BRANCH_NOTE[environment.kind]}</SettingsRowDescription>
-          </SettingsRowHeader>
-          <SettingsRowContent>
-            <BranchLabel branch={branch} className="w-fit" />
-          </SettingsRowContent>
-        </SettingsRow>
+        <BranchRow />
         <AutoDeploy />
       </SettingsGroupContent>
     </SettingsGroup>
+  );
+}
+
+function PreviewBranch() {
+  return (
+    <SettingsRow>
+      <SettingsRowHeader>
+        <SettingsRowTitle>Branch</SettingsRowTitle>
+        <SettingsRowDescription>
+          Every branch except the production branch deploys here. Each one gets its own URL.
+        </SettingsRowDescription>
+      </SettingsRowHeader>
+      <SettingsRowContent>
+        <BranchLabel branch={{ kind: "unassigned" }} className="w-fit" />
+      </SettingsRowContent>
+    </SettingsRow>
   );
 }
 

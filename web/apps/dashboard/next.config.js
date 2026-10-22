@@ -1,3 +1,5 @@
+const { env } = require("./lib/env.ts");
+
 const isDev = process.env.NODE_ENV === "development";
 const isProd = process.env.NODE_ENV === "production";
 
@@ -104,7 +106,15 @@ const nextConfig = {
     });
     return config;
   },
-  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/error", "@unkey/id"],
+  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/id"],
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/github/verify",
+        destination: new URL("/webhooks/github/key-leaks", env().CTRL_URL).toString(),
+      },
+    ];
+  },
   async redirects() {
     return [
       {

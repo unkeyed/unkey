@@ -11,10 +11,13 @@
 //		On([]string{"invoice.payment_failed"}, handlePaymentFailed)
 //	mux.Handle("POST /webhooks/stripe", receiver)
 //
-// [Receiver.On] takes the event types first so one handler can serve several:
-// On([]string{"create", "delete"}, handleBranchLifecycle). Handlers that parse
-// the payload wrap themselves in [Typed] to receive it already unmarshalled:
-// On([]string{"invoice.created"}, webhook.Typed(handleInvoiceCreated)).
+// [Receiver.On] decodes the payload into the handler's third argument type.
+// [Receiver.OnRaw] skips decoding for handlers that only need event metadata.
+//
+// [Receiver.OnResponse] encodes the handler's result as JSON with the configured
+// status. On, OnRaw, and Default send an empty HTTP 200 on success.
+// All responses use Cache-Control: no-store. [WithTimeout] optionally bounds
+// the request context across verification and handling.
 //
 // Handler semantics drive the HTTP response and the metrics outcome:
 //
@@ -26,8 +29,13 @@
 //   - return an error wrapping [ErrBadRequest]: bad_request, 400. The verified
 //     request is malformed (e.g. an unparseable payload), so the same bytes
 //     will fail every retry; the provider should not keep retrying.
+//   - return an error wrapping [ErrUnavailable]: error, 503. A dependency is
+//     unavailable, so the provider must retry.
 //   - return any other error: error, 500. The provider retries, so handlers
 //     must be idempotent.
+//
+// Verifiers can also return ErrBadRequest (400) or ErrUnavailable (503).
+// Oversized bodies receive 413. Other verification failures receive 401.
 //
 // Events without a registered handler are acknowledged with 200 and counted
 // as unhandled; providers treat non-2xx as "retry forever", so refusing

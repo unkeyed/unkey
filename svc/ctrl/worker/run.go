@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/email"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -40,6 +41,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -55,6 +57,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
 
 	"github.com/unkeyed/unkey/internal/services/flags"
@@ -426,6 +429,24 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
+	restateSrv.Bind(keyleak.New(keyleak.Config{
+		Members:         workos.New(cfg.WorkOSAPIKey),
+		Email:           email.NewResend(cfg.Email.ResendAPIKey, cfg.Email.From),
+		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
+	}).Definition(
+		restate.WithJournalRetention(time.Hour),
+		restate.WithIdempotencyRetention(24*time.Hour),
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(time.Second),
+			restate.WithMaxRetryInterval(time.Minute),
+			restate.WithRetryIntervalFactor(2),
+			restate.WithMaxRetryAttempts(360),
+			restate.KillOnMaxAttempts(),
+		),
+	).
+		ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
+		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
+
 	projectSvc, err := workerproject.New(workerproject.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,
@@ -596,6 +617,7 @@ func Run(ctx context.Context, cfg Config) error {
 		AlertEmail:     nil,
 		WorkOSAPIKey:   cfg.WorkOSAPIKey,
 		ResendAPIKey:   cfg.Email.ResendAPIKey,
+		EmailFrom:      cfg.Email.From,
 		BillingBaseURL: cfg.DashboardURL,
 		Heartbeats: cron.Heartbeats{
 			BuildLimitSync:     cronHeartbeat(cfg.Heartbeat.BuildLimitSyncURL),

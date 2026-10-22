@@ -16,7 +16,7 @@ import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 Run a SQL query against the requests your gateway handled. Query the `gateway_requests_v1` table. CTEs, subqueries, `UNION`, and `EXCEPT` all work.
 
-You only see data from the root key's workspace. To narrow it to one project, <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>, or <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, filter on `project_id`, `app_id`, or `environment_id`. Your plan's log query range limits how far back a query can reach, and analytics query quotas apply. See [Limits](/platform/billing/limits).
+You only see data from the root key's workspace. To narrow it to one <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>, <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>, or <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, filter on `project_id`, `app_id`, or `environment_id`. Your plan's log query range limits how far back a query can reach, and analytics query quotas apply. See [Limits](/platform/billing/limits).
 
 ## Usage
 

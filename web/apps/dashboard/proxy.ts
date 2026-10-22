@@ -11,7 +11,6 @@ const PUBLIC_PATHS = [
   "/favicon.ico",
   "/api/webhooks/stripe",
   "/api/webhooks/workos",
-  "/api/v1/github/verify",
   "/success",
   "/share",
   "/_next/*",

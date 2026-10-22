@@ -23,6 +23,7 @@ const AREAS = [
   "projects",
   "ratelimits",
   "root-keys",
+  "env-vars",
   "settings",
   "authorization",
   "identities",
