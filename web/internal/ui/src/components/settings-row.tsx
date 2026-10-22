@@ -161,7 +161,7 @@ function GroupSaveButton({
       return;
     }
     const results = await Promise.all(save.submit.map((member) => member.submit()));
-    if (results.every(Boolean)) {
+    if (save.complete && results.every(Boolean)) {
       onSaved?.();
     }
   };

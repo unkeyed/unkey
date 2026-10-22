@@ -37,7 +37,7 @@ export type GroupSave<T> =
   | { status: "clean" }
   | { status: "saving" }
   | { status: "blocked"; reasons: string[] }
-  | { status: "ready"; submit: T[] };
+  | { status: "ready"; submit: T[]; complete: boolean };
 
 export function resolveGroupSave<T extends { dirty: boolean; saveState: SaveState }>(
   members: ReadonlyArray<T>,
@@ -51,7 +51,7 @@ export function resolveGroupSave<T extends { dirty: boolean; saveState: SaveStat
   }
   const submit = dirty.filter((member) => member.saveState.status === "ready");
   if (submit.length > 0) {
-    return { status: "ready", submit };
+    return { status: "ready", submit, complete: submit.length === dirty.length };
   }
   const reasons = [
     ...new Set(
