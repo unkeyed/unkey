@@ -10,7 +10,7 @@ import (
 // Rate allows `Limit` units per `Duration`, with a burst of `Limit` units.
 //
 // The burst tolerance is the full `Duration`: after an idle time, all `Limit`
-// units fit at once, and a single request may cost the whole limit.
+// units fit at once, and a single request may use the whole limit.
 type Rate struct {
 	Limit    int64
 	Duration time.Duration
@@ -24,15 +24,15 @@ func (r Rate) Validate() error {
 	)
 }
 
-// costNs returns `⌈cost × Duration / Limit⌉`, the time that `cost` units use.
+// unitsToNs returns `⌈units × Duration / Limit⌉`, the time that `units` use.
 // It rounds up so that `Limit` requests never use less than `Duration`. The
 // product uses 128 bits; the package documentation explains why plain integer
 // math is not enough.
 //
-// The caller guarantees `0 ≤ cost ≤ Limit`, so the result is at most
+// The caller guarantees `0 ≤ units ≤ Limit`, so the result is at most
 // `Duration`.
-func (r Rate) costNs(cost int64) int64 {
-	productHigh, productLow := bits.Mul64(uint64(cost), uint64(r.Duration))
+func (r Rate) unitsToNs(units int64) int64 {
+	productHigh, productLow := bits.Mul64(uint64(units), uint64(r.Duration))
 	quotient, remainder := bits.Div64(productHigh, productLow, uint64(r.Limit))
 	// Rounding down would make every unit a little cheaper than its share,
 	// and `Limit` requests could fit into less than `Duration`.
@@ -58,7 +58,7 @@ func (r Rate) remaining(nowNs, resetAtNs int64) int64 {
 }
 
 // unitsWithin returns `⌊freeNs × Limit / Duration⌋`, the largest number of
-// units whose cost fits into `freeNs`. Because [Rate.costNs] rounds up, `k`
+// units whose time fits into `freeNs`. Because [Rate.unitsToNs] rounds up, `k`
 // units fit exactly when `k ≤ freeNs × Limit / Duration`.
 //
 // The caller guarantees `0 ≤ freeNs ≤ Duration`, so the result is at most

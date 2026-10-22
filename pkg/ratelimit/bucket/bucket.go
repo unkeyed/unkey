@@ -68,9 +68,9 @@ type Bucket struct {
 type Decision struct {
 	Allowed bool
 
-	// CostNs is the time the request uses. It is zero if the request was
-	// denied or had `cost` zero, and then the request changes nothing.
-	CostNs int64
+	// ConsumedNs is the time the request uses. It is zero if the request was
+	// denied or had zero `units`, and then the request changes nothing.
+	ConsumedNs int64
 
 	// ResetAtNs is `reset_at` after the request, in Unix nanoseconds: the time
 	// when every unit is free again. It can be in the past when the limit is
@@ -83,7 +83,7 @@ type Decision struct {
 	// CreateNewSessionAtNs is zero when the request goes into the live
 	// session or changes nothing. Otherwise the request cannot go into the
 	// live session: the caller creates a new session with a new ID, anchored
-	// at `CreateNewSessionAtNs`, writes `CostNs` into it, and does not use the old
+	// at `CreateNewSessionAtNs`, writes `ConsumedNs` into it, and does not use the old
 	// live session again. Zero is free to mean "no new session" because
 	// [Bucket.Check] requires a positive time and the anchor is never before it.
 	CreateNewSessionAtNs int64
@@ -148,7 +148,7 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 			return Bucket{}, err
 		}
 		// [Bucket.Check] must know which side of the live session holds the
-		// largest candidate, because a cost added to the live session raises
+		// largest candidate, because units added to the live session raise
 		// only the candidates at or before it. So the maxima are kept apart.
 		if b.liveSessionAnchorAtNs != 0 && anchorNs > b.liveSessionAnchorAtNs {
 			b.maxCandidateAfterLiveSessionNs = max(b.maxCandidateAfterLiveSessionNs, candidateNs)
@@ -173,11 +173,11 @@ func (b Bucket) ResetAtNs() int64 {
 	return max(b.maxCandidateAtOrBeforeLiveSessionNs, b.maxCandidateAfterLiveSessionNs)
 }
 
-// Check decides a request of `cost` units at `nowNs` without changing the
+// Check decides a request of `units` units at `nowNs` without changing the
 // Bucket. An allowed request moves `reset_at` to
-// `max(reset_at, nowNs) + cost`, the same as single-machine GCRA. A request
+// `max(reset_at, nowNs) + unitsToNs(units)`, the same as single-machine GCRA. A request
 // fits if `reset_at` then stays at most one `rate.Duration` ahead of `nowNs`.
-// A `cost` above `rate.Limit` never fits.
+// More `units` than `rate.Limit` never fit.
 //
 // The request goes into the live session if that gives the same `reset_at`.
 // That is the case when the largest candidate is at or before the live anchor
@@ -186,12 +186,12 @@ func (b Bucket) ResetAtNs() int64 {
 // (`reset_at` in the past) and a peer session that started after the live
 // one.
 //
-// Check returns an error if `rate` or `cost` is invalid, if `nowNs` is not
+// Check returns an error if `rate` or `units` is invalid, if `nowNs` is not
 // positive, or if `reset_at` overflows int64.
-func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
+func (b Bucket) Check(nowNs int64, rate Rate, units int64) (Decision, error) {
 	err := assert.All(
 		rate.Validate(),
-		assert.GreaterOrEqual(cost, 0, "cost must not be negative"),
+		assert.GreaterOrEqual(units, 0, "units must not be negative"),
 		assert.Greater(nowNs, 0, "time must be after the Unix epoch"),
 	)
 	if err != nil {
@@ -203,23 +203,23 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	// caller who keeps hitting a closed limit costs no database writes.
 	unchanged := Decision{
 		Allowed:              false,
-		CostNs:               0,
+		ConsumedNs:           0,
 		ResetAtNs:            resetAtNs,
 		Remaining:            rate.remaining(nowNs, resetAtNs),
 		CreateNewSessionAtNs: 0,
 	}
-	// The bucket never holds more than `Limit` units, so a larger `cost`
+	// The bucket never holds more than `Limit` units, so more `units`
 	// never fits. Checking it here also keeps the 128-bit division in
-	// `costNs` from panicking.
-	if cost > rate.Limit {
+	// `unitsToNs` from panicking.
+	if units > rate.Limit {
 		return unchanged, nil
 	}
-	costNs := rate.costNs(cost)
+	consumedNs := rate.unitsToNs(units)
 	// This is the single-machine GCRA rule. If `reset_at` is in the past the
 	// bucket is full, and the request starts paying from now, not from the
 	// old `reset_at`. Otherwise the request waits behind what is already in
 	// use.
-	nextResetAtNs, err := addNs(max(resetAtNs, nowNs), costNs)
+	nextResetAtNs, err := addNs(max(resetAtNs, nowNs), consumedNs)
 	if err != nil {
 		return Decision{}, err
 	}
@@ -229,15 +229,15 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	if nextResetAtNs-nowNs > int64(rate.Duration) {
 		return unchanged, nil
 	}
-	// A request of `cost` zero only asks whether the limit is open. It spends
+	// A request of zero `units` only asks whether the limit is open. It spends
 	// nothing, so it must not start a session or write a row.
-	if costNs == 0 {
+	if consumedNs == 0 {
 		unchanged.Allowed = true
 		return unchanged, nil
 	}
 
 	// The request may go into the live session only if that moves `reset_at`
-	// to exactly `nextResetAtNs`. A cost added to the live session raises the
+	// to exactly `nextResetAtNs`. Units added to the live session raise the
 	// candidates at or before it, so this holds when the largest candidate is
 	// on that side and is not in the past.
 	//
@@ -246,7 +246,7 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	//	live session  anchor 100, consumed 1    candidate 100 + 1 + 60 = 161
 	//	peer session  anchor 150, consumed 60   candidate 150 + 60     = 210  <- reset_at
 	//
-	// Adding a cost of 1 to the live session makes its candidate 162, and
+	// Adding 1 unit to the live session makes its candidate 162, and
 	// `reset_at` stays 210: the request would be free. Single-machine GCRA
 	// gives 211. A new session anchored at 155 has candidate 155 + 1 = 156,
 	// and the peer session now counts it too: 150 + 60 + 1 = 211.
@@ -260,7 +260,7 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	}
 	return Decision{
 		Allowed:              true,
-		CostNs:               costNs,
+		ConsumedNs:           consumedNs,
 		ResetAtNs:            nextResetAtNs,
 		Remaining:            rate.remaining(nowNs, nextResetAtNs),
 		CreateNewSessionAtNs: createNewSessionAtNs,
@@ -271,7 +271,7 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 // this Bucket with no change in between. Apply does nothing for a decision
 // that uses no time.
 func (b *Bucket) Apply(decision Decision) {
-	if !decision.Allowed || decision.CostNs == 0 {
+	if !decision.Allowed || decision.ConsumedNs == 0 {
 		return
 	}
 	// In both cases the request raises exactly the candidates at or before the

@@ -15,7 +15,7 @@
 //	}
 //	b.Apply(decision)
 //	if decision.CreateNewSessionAtNs != 0 {
-//		// Write decision.CostNs into a new session anchored at
+//		// Write decision.ConsumedNs into a new session anchored at
 //		// decision.CreateNewSessionAtNs.
 //	}
 //
@@ -27,13 +27,13 @@
 //
 // Every unit has a price in time. A rate of `Limit` units per `Duration`
 // prices one unit at `Duration / Limit`, so 10 per 10 seconds makes one unit
-// cost 1 second. A request of `cost` units uses `⌈cost × Duration / Limit⌉`
+// use 1 second. A request of `units` units uses `⌈units × Duration / Limit⌉`
 // nanoseconds.
 //
 // A request is allowed if, after paying for it, `reset_at` stays at most one
 // `Duration` ahead of now. One `Duration` is the burst tolerance: a limit that
 // was idle can spend all `Limit` units at once. If the request is allowed,
-// `reset_at` becomes `max(reset_at, now) + cost`. The max matters: a
+// `reset_at` becomes `max(reset_at, now) + time of the units`. The max matters: a
 // `reset_at` in the past means the bucket is full, and a full bucket cannot
 // get fuller, so idle time is not saved up. A denied request changes nothing.
 //
@@ -41,23 +41,23 @@
 // boundary. With 10 per 10 seconds:
 //
 //	now       request   reset_at before   check               result   reset_at after
-//	12:00:00  cost 1    (past)            0s + 1s ≤ 10s       allow    12:00:01
-//	12:00:00  cost 9    12:00:01          1s + 9s ≤ 10s       allow    12:00:10
-//	12:00:00  cost 1    12:00:10          10s + 1s > 10s      deny     12:00:10
-//	12:00:01  cost 1    12:00:10          9s + 1s ≤ 10s       allow    12:00:11
-//	12:00:30  cost 1    12:00:11 (past)   0s + 1s ≤ 10s       allow    12:00:31
+//	12:00:00  1 unit    (past)            0s + 1s ≤ 10s       allow    12:00:01
+//	12:00:00  9 units   12:00:01          1s + 9s ≤ 10s       allow    12:00:10
+//	12:00:00  1 unit    12:00:10          10s + 1s > 10s      deny     12:00:10
+//	12:00:01  1 unit    12:00:10          9s + 1s ≤ 10s       allow    12:00:11
+//	12:00:30  1 unit    12:00:11 (past)   0s + 1s ≤ 10s       allow    12:00:31
 //
 // # Sharing a limit between pods
 //
 // Many pods decide on the same limit, and each pod sees the others about a
 // second late. A single shared `reset_at` does not work: two pods read the
-// same value, both add their own cost, both write, and one cost is lost. Lost
-// costs are over-admission that never evens out.
+// same value, both add their own units, both write, and one write is lost. Lost
+// units are over-admission that never evens out.
 //
 // So each pod writes only its own rows. A session is one stretch of time in
 // which one pod admits requests for one limit. Each session has one row with
 // two values: its anchor, when it started, and its consumed time, the sum of
-// the costs it admitted. The anchor never changes and the consumed time only
+// the time of the units it admitted. The anchor never changes and the consumed time only
 // grows, so writes that arrive late or twice cannot undo a newer write.
 //
 // `reset_at` is computed from all rows. The candidate of a session r is r's
@@ -71,7 +71,7 @@
 // busy stretch, the answer is exact. For older sessions the assumption is
 // false, because the limit was idle at some point after their anchor, so their
 // candidate is too early. No candidate is ever too late, so the largest one is
-// right. This is the single-machine rule `max(reset_at, now) + cost`, written
+// right. This is the single-machine rule `max(reset_at, now) + time of the units`, written
 // over sessions instead of over requests:
 //
 //	session   anchor     consumed   candidate
@@ -81,9 +81,9 @@
 //
 // # Where a request goes
 //
-// A pod adds its admitted costs to its live session. That is only correct if
-// it gives the same `reset_at` as single-machine GCRA. A cost added to the
-// live session raises the candidates of the live session and of every session
+// A pod adds its admitted units to its live session. That is only correct if
+// it gives the same `reset_at` as single-machine GCRA. Units added to the
+// live session raise the candidates of the live session and of every session
 // anchored before it. It does not raise the candidates of sessions anchored
 // after it. Two cases break this:
 //
@@ -109,18 +109,18 @@
 // request is denied until 12:00:11. The extra 10 are paid back right after,
 // and over time the total matches a single-machine limiter.
 //
-// # Exact cost arithmetic
+// # Exact time arithmetic
 //
 // Do not replace the 128-bit math in [Rate] with plain int64 or uint64
-// multiplication. The product `cost × Duration` can reach `Limit × Duration`,
+// multiplication. The product `units × Duration` can reach `Limit × Duration`,
 // and that does not fit into 64 bits for rates the API accepts:
 //
 //	rate                 Limit × Duration (ns)   fits into uint64 (max 1.8e19)
 //	10,000 per 30 days   2.6e19                  no
 //	400M per minute      2.4e19                  no
 //
-// A product that wraps around gives a small or negative cost, and the limiter
-// admits too much. Dividing first, as in `Duration / Limit × cost`, loses
+// A product that wraps around gives a small or negative time, and the limiter
+// admits too much. Dividing first, as in `Duration / Limit × units`, loses
 // precision: 162M per minute is 370.37 ns per unit, and 370 ns would let the
 // full limit through in less than a minute. [math/big] is exact but allocates
 // on every decision.
@@ -129,7 +129,7 @@
 // the result is exact for every `Limit` and `Duration` that fit into int64, with
 // no allocation. It costs about 1 ns more per decision than plain division on
 // amd64. bits.Div64 panics if the divisor is zero or if the quotient does not
-// fit into 64 bits; [Rate.Validate] and the rule `cost ≤ Limit` in
+// fit into 64 bits; [Rate.Validate] and the rule `units ≤ Limit` in
 // [Bucket.Check] exclude both cases, so keep them in front of every call.
 // `FuzzRateMatchesExactArithmetic` checks the result against [math/big] over
 // the full int64 range.
