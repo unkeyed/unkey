@@ -1,9 +1,12 @@
 package ratelimit
 
 import (
+	"bytes"
+	"cmp"
 	"context"
 	"crypto/rand"
 	"encoding/binary"
+	"errors"
 	mathrand "math/rand/v2"
 	"slices"
 	"sync"
@@ -13,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // Limiter is a global rate limiter. Each pod runs one Limiter, and the pods
@@ -33,8 +37,8 @@ type Limiter interface {
 	AllowMany(context.Context, []Request) ([]Result, error)
 
 	// Close stops the background work and writes every session that MySQL has
-	// not caught up with. It returns an error if that write fails. Calls to
-	// the Limiter after Close return an error.
+	// not caught up with. It returns an error if that write fails. Allow and
+	// AllowMany return an error after Close.
 	Close() error
 }
 
@@ -43,6 +47,9 @@ type Config struct {
 	// Clock gives the time of every decision and drives session lifetimes.
 	// Tests and simulations pass a `clock.TestClock`. Required.
 	Clock clock.Clock
+
+	// Store holds the sessions that all pods share. Required.
+	Store Store
 
 	// Random generates session IDs and session lifetimes. Tests and
 	// simulations pass a seeded one to make runs repeatable. Optional; the
@@ -100,12 +107,21 @@ const (
 	// minutes after their anchor, so a session must end well before that.
 	minSessionLifetime = 12 * time.Minute
 	maxSessionLifetime = 15 * time.Minute
+
+	// compactAfter is how long after its anchor a row may be compacted. A
+	// pod writes a session within this time or drops its unwritten units.
+	compactAfter = 30 * time.Minute
+
+	flushInterval       = time.Second
+	flushTimeout        = 5 * time.Second
+	maxSessionsPerWrite = 10_000
 )
 
 const sessionIDAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 type limiter struct {
 	clock clock.Clock
+	store Store
 
 	// randomMu guards random, which is not safe for concurrent use.
 	randomMu sync.Mutex
@@ -113,6 +129,14 @@ type limiter struct {
 
 	shards [shardCount]shard
 	closed atomic.Bool
+
+	// flushMu lets one flush run at a time, so only the flush that collected
+	// a session marks it as written.
+	flushMu sync.Mutex
+
+	// stopFlushLoop and flushLoopDone are nil if no flush loop runs.
+	stopFlushLoop chan struct{}
+	flushLoopDone chan struct{}
 }
 
 type shard struct {
@@ -120,9 +144,26 @@ type shard struct {
 	entries map[[32]byte]*entry
 }
 
-// New returns a [Limiter].
+// New returns a [Limiter] that flushes every second.
 func New(config Config) (Limiter, error) {
-	err := assert.NotNil(config.Clock, "clock is required")
+	l, err := newLimiter(config)
+	if err != nil {
+		return nil, err
+	}
+	l.stopFlushLoop = make(chan struct{})
+	l.flushLoopDone = make(chan struct{})
+	go l.flushUntilStopped(l.clock.NewTicker(flushInterval))
+	return l, nil
+}
+
+// newLimiter returns a limiter without the flush loop. Tests and the
+// simulation use it and call flush themselves, so the order of events
+// follows their seed and not the Go scheduler.
+func newLimiter(config Config) (*limiter, error) {
+	err := assert.All(
+		assert.NotNil(config.Clock, "clock is required"),
+		assert.NotNil(config.Store, "store is required"),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -136,11 +177,15 @@ func New(config Config) (Limiter, error) {
 		random = mathrand.New(mathrand.NewPCG(binary.LittleEndian.Uint64(seed[:8]), binary.LittleEndian.Uint64(seed[8:])))
 	}
 	l := &limiter{
-		clock:    config.Clock,
-		randomMu: sync.Mutex{},
-		random:   random,
-		shards:   [shardCount]shard{},
-		closed:   atomic.Bool{},
+		clock:         config.Clock,
+		store:         config.Store,
+		randomMu:      sync.Mutex{},
+		random:        random,
+		shards:        [shardCount]shard{},
+		closed:        atomic.Bool{},
+		flushMu:       sync.Mutex{},
+		stopFlushLoop: nil,
+		flushLoopDone: nil,
 	}
 	for i := range l.shards {
 		l.shards[i].entries = make(map[[32]byte]*entry)
@@ -216,8 +261,90 @@ func (l *limiter) AllowMany(_ context.Context, requests []Request) ([]Result, er
 }
 
 func (l *limiter) Close() error {
-	l.closed.Store(true)
-	return nil
+	if l.closed.Swap(true) {
+		return nil
+	}
+	if l.stopFlushLoop != nil {
+		close(l.stopFlushLoop)
+		<-l.flushLoopDone
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), flushTimeout)
+	defer cancel()
+	return l.flush(ctx)
+}
+
+func (l *limiter) flushUntilStopped(ticker clock.Ticker) {
+	defer close(l.flushLoopDone)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-l.stopFlushLoop:
+			return
+		case <-ticker.C():
+			ctx, cancel := context.WithTimeout(context.Background(), flushTimeout)
+			err := l.flush(ctx)
+			cancel()
+			if err != nil {
+				logger.Warn("unable to flush rate limit sessions", "error", err.Error())
+			}
+		}
+	}
+}
+
+// flush writes every unwritten session to the store and removes entries that
+// are idle and fully written. A failed write leaves its sessions unwritten,
+// so the next flush retries them with their latest values.
+func (l *limiter) flush(ctx context.Context) error {
+	l.flushMu.Lock()
+	defer l.flushMu.Unlock()
+	nowNs := l.clock.Now().UnixNano()
+
+	var writes []StoredSession
+	for i := range l.shards {
+		s := &l.shards[i]
+		s.mu.Lock()
+		for fingerprint, e := range s.entries {
+			unwritten := e.unwrittenSessions(nowNs)
+			// An idle entry decides like a new one, so removing it changes
+			// no decision.
+			if len(unwritten) == 0 && e.resetTimes.resetAtNs < nowNs {
+				delete(s.entries, fingerprint)
+				continue
+			}
+			for _, session := range unwritten {
+				writes = append(writes, StoredSession{
+					Fingerprint:    fingerprint,
+					SessionID:      session.id,
+					AnchorAtNs:     session.anchorAtNs,
+					ConsumedNs:     session.consumedNs,
+					CompactAfterMs: (session.anchorAtNs + compactAfter.Nanoseconds()) / time.Millisecond.Nanoseconds(),
+				})
+			}
+		}
+		s.mu.Unlock()
+	}
+	// Map order is random; sorting keeps simulation runs repeatable.
+	slices.SortFunc(writes, func(left, right StoredSession) int {
+		return cmp.Or(bytes.Compare(left.Fingerprint[:], right.Fingerprint[:]), cmp.Compare(left.SessionID, right.SessionID))
+	})
+
+	var errs []error
+	for chunk := range slices.Chunk(writes, maxSessionsPerWrite) {
+		err := l.store.WriteSessions(ctx, chunk)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		for _, written := range chunk {
+			s := &l.shards[shardIndex(written.Fingerprint)]
+			s.mu.Lock()
+			// Only flush removes entries, and it never removes one with
+			// unwritten sessions, so the entry still exists.
+			s.entries[written.Fingerprint].markWritten(written.SessionID, written.ConsumedNs)
+			s.mu.Unlock()
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func (l *limiter) validate(requests []Request) error {

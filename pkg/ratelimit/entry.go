@@ -25,6 +25,11 @@ type entry struct {
 	// liveSessionEndsAtNs is when the live session ends, even if the rate
 	// limit has no pause. Only the limiter sets it.
 	liveSessionEndsAtNs int64
+
+	// writtenNs holds the consumed time that the store acknowledged for each
+	// of this pod's sessions that may still need a write: the live session,
+	// and frozen sessions with units that are not written yet.
+	writtenNs map[string]int64
 }
 
 // mergeRows adds database rows and keeps the larger `consumedNs` per session,
@@ -95,6 +100,10 @@ func (e *entry) apply(d decision, newSessionID string) error {
 			consumedNs: d.consumedNs,
 		}
 		e.liveID = newSessionID
+		if e.writtenNs == nil {
+			e.writtenNs = make(map[string]int64)
+		}
+		e.writtenNs[newSessionID] = 0
 	}
 	e.resetTimes = resetTimesAfter(e.resetTimes, d)
 	return nil
@@ -109,4 +118,32 @@ func (e *entry) endLiveSession() {
 	// `reset_at` does not change. No session is live, so no candidate is
 	// raised by one.
 	e.resetTimes.maxCandidateRaisedByLiveSessionNs = 0
+}
+
+// unwrittenSessions returns this pod's sessions whose consumed time the store
+// has not acknowledged. It forgets frozen sessions that are fully written, and
+// sessions past their `compact_after`: cleanup may already have merged their
+// row, so a late write would count its units twice.
+func (e *entry) unwrittenSessions(nowNs int64) []session {
+	var unwritten []session
+	for id, writtenNs := range e.writtenNs {
+		s := e.sessions[id]
+		switch {
+		case nowNs >= s.anchorAtNs+compactAfter.Nanoseconds():
+			delete(e.writtenNs, id)
+		case s.consumedNs > writtenNs:
+			unwritten = append(unwritten, s)
+		case id != e.liveID:
+			delete(e.writtenNs, id)
+		}
+	}
+	return unwritten
+}
+
+// markWritten records that the store acknowledged `consumedNs` for a session.
+func (e *entry) markWritten(id string, consumedNs int64) {
+	writtenNs, ok := e.writtenNs[id]
+	if ok {
+		e.writtenNs[id] = max(writtenNs, consumedNs)
+	}
 }
