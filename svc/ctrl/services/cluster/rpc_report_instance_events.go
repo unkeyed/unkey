@@ -115,15 +115,11 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 			row.Reason = t.GetReason()
 			row.Message = t.GetMessage()
 
-			// Only failures denormalize onto the instances row. Clean
-			// exits (init-container migrations, cron pods, graceful
-			// shutdowns with exit 0) still land in CH for the timeline
-			// divider, but must not flow into container_status — the
-			// dashboard renders that as "last failure" and would show a
-			// red "Completed" badge for a healthy init completion.
-			if t.GetExitCode() == 0 {
-				break
-			}
+			// Exit 0 is recorded like any other exit. Krane pods restart
+			// always, so a clean exit of the app is a restart and a crash
+			// loop of exit 0 has no other trace on the row. A clean exit
+			// during a graceful shutdown lasts only until the pod leaves
+			// the deployment status report and its row is deleted.
 
 			// Build the post-update ContainerStatus in one place. The new
 			// value fully replaces what's on the row (including clearing
