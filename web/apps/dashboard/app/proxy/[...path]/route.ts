@@ -103,11 +103,11 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
 }
 
 function upstreamBearerToken(auth: GetAuthResult, apiURL: string): string | undefined {
-  // Local APIs verify the dashboard HS256 secret, not WorkOS JWKS. WorkOS
-  // mode sets accessToken, and forwarding that token makes dashboard calls,
-  // including CLI approval, fail against a local API. Mint the dashboard JWT
-  // for those hosts. Without WorkOS, accessToken is already empty, so this
-  // is the same path the proxy took before.
+  // Local APIs verify the dashboard HS256 secret, not WorkOS JWKS. Returning
+  // no token makes the caller mint that JWT for localhost, 127.0.0.1, ::1,
+  // and *.unkey.local. A WorkOS access token fails those calls, including CLI
+  // approval. When WorkOS is not configured, accessToken is already empty and
+  // the caller mints the same JWT.
   if (env().UNKEY_JWT_SECRET && apiVerifiesDashboardJWT(apiURL)) {
     return undefined;
   }

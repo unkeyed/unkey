@@ -146,10 +146,12 @@ func (JWTSource) principalSource() {}
 //
 // Permissions live on the principal, copied from the token's permissions claim.
 // SessionID and DeviceName are the non-secret session handle and the device
-// label captured when the login started.
+// label captured when the login started. ExpiresAt is the session row's idle
+// deadline. A root key this session mints must not outlive it.
 type CLISessionSource struct {
 	SessionID  string
 	DeviceName string
+	ExpiresAt  time.Time
 }
 
 func (CLISessionSource) principalSource() {}

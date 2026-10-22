@@ -42,7 +42,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	permissions := grantablePermissions(p)
+	permissions := GrantablePermissions(p)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
@@ -60,7 +60,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func grantablePermissions(p *principal.Principal) []string {
+// GrantablePermissions is the set the approval page can offer this caller.
+func GrantablePermissions(p *principal.Principal) []string {
 	if len(p.Permissions) == 0 {
 		return []string{}
 	}

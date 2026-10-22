@@ -14,6 +14,7 @@ import {
 } from "@/lib/cli/device-api";
 import { formatUserCode } from "@/lib/cli/format-user-code";
 import { trpc } from "@/lib/trpc/client";
+import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
@@ -25,7 +26,7 @@ import {
   TimestampInfo,
   toast,
 } from "@unkey/ui";
-import { type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { FormProvider } from "react-hook-form";
 
 type AuthorizeDeviceLoginProps = {
@@ -63,10 +64,6 @@ export function AuthorizeDeviceLogin({ userCode }: AuthorizeDeviceLoginProps) {
             </>
           }
         />
-      ) : query.isError ? (
-        <p className="max-w-md text-balance text-center text-sm leading-5 text-gray-11">
-          {query.error instanceof Error ? query.error.message : "This login could not be loaded."}
-        </p>
       ) : query.data ? (
         <DeviceLoginView
           login={query.data}
@@ -75,6 +72,10 @@ export function AuthorizeDeviceLogin({ userCode }: AuthorizeDeviceLoginProps) {
           isAdmin={user?.role === "admin"}
           onChanged={refresh}
         />
+      ) : query.isError ? (
+        <p className="max-w-md text-balance text-center text-sm leading-5 text-gray-11">
+          {query.error instanceof Error ? query.error.message : "This login could not be loaded."}
+        </p>
       ) : null}
     </CenteredFlow>
   );
@@ -214,10 +215,13 @@ function ClosedStatus({ login }: { login: DeviceLogin }) {
   );
 }
 
+const authenticatedCopy =
+  "Your device has been successfully authenticated. Please return to your terminal.";
+
 function Approved() {
   return (
     <p className="max-w-md text-balance text-center text-sm leading-5 text-gray-11">
-      Your device has been successfully authenticated please return to your terminal.
+      {authenticatedCopy}
     </p>
   );
 }
@@ -241,9 +245,7 @@ function PendingLogin({
   const approve = useMutation({
     mutationFn: approveDeviceLogin,
     async onSuccess() {
-      toast.success(
-        "Your device has been successfully authenticated please return to your terminal.",
-      );
+      toast.success(authenticatedCopy);
       await onChanged();
     },
     onError(error) {
@@ -267,10 +269,22 @@ function PendingLogin({
   };
   const { form, bodyRef, submit } = useRootKeyPolicyForm(defaults, (values) => {
     const narrowed = [...buildUrns(workspaceId, values.policies)];
-    const permissions = narrowed.length > 0 ? narrowed : selected;
-    approve.mutate({ userCode: login.userCode, permissions });
+    approve.mutate({ userCode: login.userCode, permissions: narrowed });
   });
+  const policies = form.watch("policies") ?? [];
+  const allow = (event: FormEvent<HTMLFormElement>) => {
+    if (policies.length > 0) {
+      void submit(event);
+      return;
+    }
+    event.preventDefault();
+    if (selected.length === 0) {
+      return;
+    }
+    approve.mutate({ userCode: login.userCode, permissions: selected });
+  };
   const busy = approve.isLoading || deny.isLoading;
+  const nothingSelected = selected.length === 0 && policies.length === 0;
 
   if (step === "code") {
     return (
@@ -316,7 +330,7 @@ function PendingLogin({
 
   return (
     <FormProvider {...form}>
-      <form onSubmit={submit} className="flex w-full flex-col items-center gap-6">
+      <form onSubmit={allow} className="flex w-full flex-col items-center gap-6">
         <StepIntro
           title="Authorize CLI"
           description="Everything your role allows is selected. Uncheck a permission to narrow the session."
@@ -365,7 +379,7 @@ function PendingLogin({
           <Button
             type="submit"
             variant="primary"
-            disabled={busy || (selected.length === 0 && !isAdmin)}
+            disabled={busy || nothingSelected}
             loading={approve.isLoading}
           >
             Allow
@@ -395,9 +409,12 @@ function WorkspacePicker({ userCode }: { userCode: string }) {
           if (organizationId === workspace.orgId) {
             return;
           }
-          const returnTo = `/cli/device?user_code=${encodeURIComponent(userCode)}`;
+          const returnTo = routes.cli.device({ user_code: userCode });
           window.location.assign(
-            `/auth/switch-organization?organization_id=${encodeURIComponent(organizationId)}&return_to=${encodeURIComponent(returnTo)}`,
+            routes.auth.switchOrganization({
+              organizationId,
+              returnTo,
+            }),
           );
         }}
       >
@@ -413,7 +430,7 @@ function WorkspacePicker({ userCode }: { userCode: string }) {
 
 function LinkToSessions() {
   return (
-    <a href="/cli/sessions" className="text-sm text-gray-11 underline">
+    <a href={routes.cli.sessions()} className="text-sm text-gray-11 underline">
       Manage CLI sessions
     </a>
   );

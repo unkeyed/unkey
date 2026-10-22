@@ -209,10 +209,10 @@ func TestReusedRefreshTokenRevokesTheSession(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
-	require.Equal(t, codes.Auth.Authentication.Malformed.URN(), codeOf(t, err))
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: refreshed.RefreshToken})
-	require.Equal(t, codes.Auth.Authentication.Malformed.URN(), codeOf(t, err))
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 }
 
 func TestExpiredAndRevokedSessionsCannotRefresh(t *testing.T) {
@@ -226,12 +226,12 @@ func TestExpiredAndRevokedSessionsCannotRefresh(t *testing.T) {
 		SessionID: tokens.SessionID,
 	}))
 	_, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
-	require.Equal(t, codes.Auth.Authentication.Malformed.URN(), codeOf(t, err))
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 
 	other := login(t, svc, workspace, "user_other", permissionOnlyDeveloperHas(t, workspace.ID))
 	h.Clock.Tick(refreshIdle + time.Second)
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: other.RefreshToken})
-	require.Equal(t, codes.Auth.Authentication.Malformed.URN(), codeOf(t, err))
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 }
 
 func TestRootKeyCannotApprove(t *testing.T) {
