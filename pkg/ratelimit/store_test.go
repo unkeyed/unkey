@@ -15,6 +15,8 @@ type memoryStore struct {
 	rows       map[[32]byte]map[string]StoredSession
 	writeCalls [][]StoredSession
 	failWrites bool
+	readCalls  int
+	failReads  bool
 }
 
 func newMemoryStore() *memoryStore {
@@ -45,6 +47,13 @@ func (s *memoryStore) WriteSessions(_ context.Context, sessions []StoredSession)
 }
 
 func (s *memoryStore) ReadSessions(_ context.Context, fingerprint [32]byte, limit int) ([]StoredSession, error) {
+	s.mu.Lock()
+	s.readCalls++
+	fail := s.failReads
+	s.mu.Unlock()
+	if fail {
+		return nil, fault.New("read failed")
+	}
 	sessions := s.sessions(fingerprint)
 	return sessions[:min(limit, len(sessions))], nil
 }
@@ -73,4 +82,16 @@ func (s *memoryStore) writeCallCount() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return len(s.writeCalls)
+}
+
+func (s *memoryStore) setFailReads(fail bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.failReads = fail
+}
+
+func (s *memoryStore) readCallCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.readCalls
 }

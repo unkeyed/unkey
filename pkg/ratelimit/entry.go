@@ -30,6 +30,14 @@ type entry struct {
 	// of this pod's sessions that may still need a write: the live session,
 	// and frozen sessions with units that are not written yet.
 	writtenNs map[string]int64
+
+	// rowsReadAtNs is when the last read of peer rows started, whether it
+	// succeeded or not. Zero means never.
+	rowsReadAtNs int64
+
+	// readDone is set while a read of peer rows runs, and closed when it
+	// has finished.
+	readDone chan struct{}
 }
 
 // mergeRows adds database rows and keeps the larger `consumedNs` per session,
