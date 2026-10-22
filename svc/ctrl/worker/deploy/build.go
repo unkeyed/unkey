@@ -79,16 +79,7 @@ type knownBuildError struct {
 	message string
 }
 
-// knownBuildErrors lists BuildKit error patterns caused by user mistakes
-// (bad Dockerfile, missing files, invalid config) paired with friendly messages.
 var knownBuildErrors = []knownBuildError{
-	// Railpack (Dockerfile-less) builds. Listed first because the
-	// "railpack prepare failed" wrapper is more specific than the generic
-	// patterns below (e.g. "no such file or directory") that could otherwise
-	// shadow it.
-	// The message is deliberately tech-neutral: Railpack is an implementation
-	// detail we don't surface to customers. "check the root directory" also
-	// makes the dashboard's failed-deployment banner show its settings link.
 	{substr: "railpack prepare failed", message: "Unkey could not build this app automatically. For a monorepo, set the root directory to your app and a custom build command in settings, or review the build logs for details."},
 	// Settings-fixable: dockerfile path / docker context
 	{substr: "the dockerfile cannot be empty", message: "The Dockerfile appears to be empty. Please verify the file path in settings."},
@@ -964,9 +955,6 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 	return token, false, nil
 }
 
-// extractUserBuildError checks whether err matches a known user-caused build
-// failure and returns a clean, actionable message. For unrecognized errors it
-// returns a generic fallback.
 func extractUserBuildError(err error) string {
 	msg := strings.ToLower(err.Error())
 	for _, known := range knownBuildErrors {
@@ -974,7 +962,7 @@ func extractUserBuildError(err error) string {
 			return known.message
 		}
 	}
-	return "Build failed. Please check the build logs for details."
+	return fmt.Sprintf("Build failed: %s", err)
 }
 
 // logSequence numbers the log rows of one build attempt. It starts at the
