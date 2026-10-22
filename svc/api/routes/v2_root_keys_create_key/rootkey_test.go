@@ -96,6 +96,14 @@ func TestRootKeyDelegatesCreationThroughBearerAuthentication(t *testing.T) {
 				require.NotEmpty(t, log.CorrelationID)
 				require.Equal(t, logs[0].CorrelationID, log.CorrelationID)
 			}
+			permissionRows, err := db.Query.ListUnkeyPermissionRowsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionRowsByPrincipalParams{
+				WorkspaceID:   r.UserWorkspace.ID,
+				PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+				PrincipalID:   grandchild.Body.Data.KeyId,
+			})
+			require.NoError(t, err)
+			require.Len(t, permissionRows, 1)
+			requireRootKeyAudit(t, logs, grandchild.Body.Data.KeyId, permissionRows[0].ID, permission)
 			before := snapshot(t, h)
 			escalation := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 				"Authorization": {"Bearer " + res.Body.Data.Key}, "Content-Type": {"application/json"},
