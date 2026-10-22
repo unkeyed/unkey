@@ -57,6 +57,8 @@ const alertBannerVariants = cva(
         className:
           "border-infoA-4 bg-infoA-2 [&>svg]:text-info-11 *:data-[slot=alert-banner-title]:text-info-11",
       },
+      // A one-color gradient sets background-image, which tints over the card's
+      // bg-raised instead of replacing it as a bg-* color would
       {
         appearance: "card",
         variant: "warning",

@@ -1,6 +1,11 @@
 import type { LastExit } from "@/lib/types/deploy";
 import { describe, expect, test } from "vitest";
-import { isFatalWaitingReason, summarizeDeploymentExit, summarizeExit } from "./exit-reasons";
+import {
+  isCrashLooping,
+  isFatalWaitingReason,
+  summarizeDeploymentExit,
+  summarizeExit,
+} from "./exit-reasons";
 
 describe("isFatalWaitingReason", () => {
   test("is true only for waiting reasons that stop an instance", () => {
@@ -82,7 +87,7 @@ describe("summarizeDeploymentExit", () => {
       label: "Exited with error",
       exit: "exit=1",
       sentences: [apiExit.message],
-      raw: "exit code 1",
+      raw: null,
     });
   });
 
@@ -97,8 +102,9 @@ describe("summarizeDeploymentExit", () => {
     expect(summarizeDeploymentExit({ ...apiExit, reason: "KEBAP" }).label).toBe("Exited");
   });
 
-  test("no recorded exit has no exit code line", () => {
-    const summary = summarizeDeploymentExit({ ...apiExit, reason: "crash_loop", exitCode: null });
-    expect(summary.raw).toBe(null);
+  test("isCrashLooping is true only for a crash loop", () => {
+    expect(isCrashLooping({ ...apiExit, reason: "crash_loop" })).toBe(true);
+    expect(isCrashLooping(apiExit)).toBe(false);
+    expect(isCrashLooping(null)).toBe(false);
   });
 });

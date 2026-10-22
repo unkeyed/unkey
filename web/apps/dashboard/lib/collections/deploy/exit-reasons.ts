@@ -136,10 +136,14 @@ function isKnownExitReason(reason: string): reason is KnownExitReason {
   return Object.hasOwn(EXIT_LABELS, reason);
 }
 
+export function isCrashLooping(lastExit: Deployment["lastExit"]): boolean {
+  return lastExit?.reason === DeploymentExitReason.CrashLoop;
+}
+
 export function summarizeDeploymentExit(
   lastExit: NonNullable<Deployment["lastExit"]>,
 ): ExitSummary {
-  const crashing = lastExit.reason === DeploymentExitReason.CrashLoop;
+  const crashing = isCrashLooping(lastExit);
   const failedCode =
     !crashing && lastExit.exitCode !== null && lastExit.exitCode !== 0 ? lastExit.exitCode : null;
   return {
@@ -147,6 +151,6 @@ export function summarizeDeploymentExit(
     label: isKnownExitReason(lastExit.reason) ? EXIT_LABELS[lastExit.reason] : EXIT_LABELS.unknown,
     exit: failedCode !== null ? `exit=${failedCode}` : null,
     sentences: [lastExit.message],
-    raw: lastExit.exitCode !== null ? `exit code ${lastExit.exitCode}` : null,
+    raw: null,
   };
 }

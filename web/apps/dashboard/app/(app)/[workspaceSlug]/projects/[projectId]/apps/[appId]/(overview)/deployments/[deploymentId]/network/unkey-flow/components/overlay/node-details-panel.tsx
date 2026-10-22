@@ -1,4 +1,5 @@
 import { LastExitCard } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
+import { summarizeExit } from "@/lib/collections/deploy/exit-reasons";
 import { IconLayers3Outline18 } from "@unkey/icons";
 import { SlidePanel, SlidePanelContent } from "@unkey/ui";
 import { useDeployment } from "../../../../layout-provider";
@@ -35,7 +36,11 @@ const InstanceNodeDetails = ({ node, deploymentId, onClose }: InstanceNodeDetail
       />
       {lastExit && (
         <div className="mt-5 w-full px-4">
-          <LastExitCard lastExit={lastExit} />
+          <LastExitCard
+            summary={summarizeExit(lastExit)}
+            restartCount={lastExit.restartCount}
+            finishedAt={lastExit.finishedAt}
+          />
         </div>
       )}
       <ResourceMetrics

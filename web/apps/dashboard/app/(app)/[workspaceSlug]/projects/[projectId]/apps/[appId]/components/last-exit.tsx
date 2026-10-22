@@ -1,8 +1,7 @@
 "use client";
 
-import { type ExitSummary, summarizeExit } from "@/lib/collections/deploy/exit-reasons";
+import type { ExitSummary } from "@/lib/collections/deploy/exit-reasons";
 import { plural } from "@/lib/fmt";
-import type { LastExit } from "@/lib/types/deploy";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import {
   AlertBanner,
@@ -63,8 +62,15 @@ export function LastExitHover({
   );
 }
 
-export function LastExitCard({ lastExit }: { lastExit: LastExit }) {
-  const summary = summarizeExit(lastExit);
+export function LastExitCard({
+  summary,
+  restartCount,
+  finishedAt,
+}: {
+  summary: ExitSummary;
+  restartCount: number;
+  finishedAt: number | null;
+}) {
   return (
     <AlertBanner variant={summary.severity} appearance="card">
       <IconTriangleWarningOutline18 className="size-4" />
@@ -72,14 +78,10 @@ export function LastExitCard({ lastExit }: { lastExit: LastExit }) {
         <RawReason label={summary.label} raw={summary.raw} />
       </AlertBannerTitle>
       <AlertBannerMeta className="flex items-center gap-1 tabular-nums">
-        {lastExit.restartCount > 0 && <span>{plural(lastExit.restartCount, "restart")}</span>}
-        {lastExit.restartCount > 0 && lastExit.finishedAt && <span aria-hidden="true">·</span>}
-        {lastExit.finishedAt && (
-          <TimestampInfo
-            value={lastExit.finishedAt}
-            displayType="relative"
-            className="text-gray-10"
-          />
+        {restartCount > 0 && <span>{plural(restartCount, "restart")}</span>}
+        {restartCount > 0 && finishedAt && <span aria-hidden="true">·</span>}
+        {finishedAt && (
+          <TimestampInfo value={finishedAt} displayType="relative" className="text-gray-10" />
         )}
       </AlertBannerMeta>
       {summary.sentences.length > 0 && (
