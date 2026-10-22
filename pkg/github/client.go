@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -275,6 +276,7 @@ type ghRepoResponse struct {
 	ID            int64  `json:"id"`
 	FullName      string `json:"full_name"`
 	DefaultBranch string `json:"default_branch"`
+	Private       bool   `json:"private"`
 }
 
 // GetInstallationRepo fetches repo metadata using the installation's token. The
@@ -325,6 +327,65 @@ func (c *Client) GetInstallationRepo(installationID int64, repo string) (*RepoIn
 	return &info, nil
 }
 
+// maxFileContentBytes bounds [Client.GetFileContents] so a large file cannot
+// exhaust worker memory.
+const maxFileContentBytes = 1 << 20
+
+// GetFileContents returns the raw contents of path in repo ("owner/repo") at
+// ref, using the installation's token. found is false when the file does not
+// exist at that ref. Files larger than 1 MiB return an error.
+func (c *Client) GetFileContents(installationID int64, repo, ref, path string) ([]byte, bool, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return nil, false, err
+	}
+	headers["Accept"] = "application/vnd.github.raw+json"
+
+	apiURL := fmt.Sprintf("%s/repos/%s/contents/%s?ref=%s", c.baseURL, repo, path, url.QueryEscape(ref))
+	return getRawFile(c.httpClient, apiURL, headers)
+}
+
+// getRawFile fetches a raw file body. A 404 is reported as not found rather
+// than as an error.
+func getRawFile(client *http.Client, apiURL string, headers map[string]string) ([]byte, bool, error) {
+	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, false, fault.Wrap(err, fault.Internal("failed to create request"))
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, false, fault.Wrap(err, fault.Internal(fmt.Sprintf("GET %s failed", apiURL)))
+	}
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, false, nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, false, fault.New(
+			fmt.Sprintf("GET %s returned unexpected status", apiURL),
+			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
+		)
+	}
+
+	content, err := io.ReadAll(io.LimitReader(resp.Body, maxFileContentBytes+1))
+	if err != nil {
+		return nil, false, fault.Wrap(err, fault.Internal("failed to read response body"))
+	}
+	if len(content) > maxFileContentBytes {
+		return nil, false, fault.New(fmt.Sprintf("GET %s returned more than %d bytes", apiURL, maxFileContentBytes))
+	}
+	return content, true, nil
+}
+
 // scopedTokenRequest is the body for POST /app/installations/{id}/access_tokens
 // when minting a downscoped token. An empty body grants the App's full
 // installation-wide permissions; setting these fields restricts the token.
@@ -342,17 +403,17 @@ type scopedTokenRequest struct {
 // permissions, e.g. {"contents":"read"}. permissions must be a subset of what
 // the App was granted at install.
 //
-// If repo (an "owner/repo" full name) is non-empty the token is restricted to
-// that single repository; if empty the token spans all of the installation's
-// repositories. Callers scope to a single repo so an exfiltrated token grants
-// only read access to the one repo BuildKit clones. The empty-repo (all-repos)
-// form exists for callers that need cross-repo reads, but the build path does
-// not use it: a single-repo read token cannot clone private cross-repo deps or
-// submodules, an accepted tradeoff for keeping the build credential minimal.
+// If repos ("owner/repo" full names) is non-empty the token is restricted to
+// exactly those repositories; if empty the token spans all of the
+// installation's repositories. The build path always passes an explicit list
+// (the cloned repo plus its declared submodules) so an exfiltrated token reads
+// nothing else. Every listed repo must be accessible to the installation, or
+// GitHub rejects the whole request.
 //
 // Results are cached (like [Client.GetInstallationToken]) keyed by the full
-// scope (installation, repo, permission set) so distinct scopes never collide.
-func (c *Client) GetScopedInstallationToken(installationID int64, repo string, permissions map[string]string) (InstallationToken, error) {
+// scope (installation, repo set, permission set) so distinct scopes never
+// collide.
+func (c *Client) GetScopedInstallationToken(installationID int64, repos []string, permissions map[string]string) (InstallationToken, error) {
 	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
 		return InstallationToken{}, err
 	}
@@ -364,10 +425,23 @@ func (c *Client) GetScopedInstallationToken(installationID int64, repo string, p
 		return InstallationToken{}, err
 	}
 
+	// The installation covers a single account, so GitHub wants bare repo names.
+	// Sorted and deduplicated so the cache key is stable across calls.
+	var repositories []string
+	for _, repo := range repos {
+		repoName := repo
+		if _, name, found := strings.CutLast(repo, "/"); found {
+			repoName = name
+		}
+		repositories = append(repositories, strings.ToLower(repoName))
+	}
+	slices.Sort(repositories)
+	repositories = slices.Compact(repositories)
+
 	// %v prints map keys in sorted order, so the key is stable across calls.
-	// The permission set is part of the key: a fork's single-repo read token and
-	// a trusted all-repos read token differ in scope and must never share a slot.
-	key := fmt.Sprintf("%d:%s:%v", installationID, repo, permissions)
+	// The repo and permission sets are part of the key: tokens of different
+	// scope must never share a slot.
+	key := fmt.Sprintf("%d:%v:%v", installationID, repositories, permissions)
 
 	value, _, err := c.scopedTokenCache.SWR(
 		context.Background(),
@@ -376,17 +450,8 @@ func (c *Client) GetScopedInstallationToken(installationID int64, repo string, p
 			logger.Info(
 				"Getting scoped GitHub installation token",
 				"installation_id", installationID,
-				"repo", repo,
+				"repos", repositories,
 			)
-
-			var repositories []string
-			if repo != "" {
-				repoName := repo
-				if _, name, found := strings.CutLast(repo, "/"); found {
-					repoName = name
-				}
-				repositories = []string{repoName}
-			}
 
 			jwtToken, err := c.generateJWT()
 			if err != nil {

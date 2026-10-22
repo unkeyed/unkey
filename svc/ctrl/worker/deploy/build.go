@@ -92,6 +92,9 @@ var knownBuildErrors = []knownBuildError{
 	{substr: "railpack prepare failed", message: "Unkey could not build this app automatically. For a monorepo, set the root directory to your app and a custom build command in settings, or review the build logs for details."},
 	// Settings-fixable: dockerfile path / docker context
 	{substr: "the dockerfile cannot be empty", message: "The Dockerfile appears to be empty. Please verify the file path in settings."},
+	// BuildKit initializes submodules while loading the git context, so this
+	// failure is wrapped in "failed to read dockerfile" and must match first.
+	{substr: "failed to update submodules", message: "A Git submodule could not be cloned. Please make sure it uses an HTTPS GitHub URL and the Unkey GitHub App can access its repository."},
 	{substr: "failed to read dockerfile", message: "Dockerfile could not be read. Please check that the file path is correct in settings."},
 	{substr: "failed to find target", message: "The specified build target stage was not found. Please check the target name in settings."},
 	{substr: "failed to compute cache key", message: "A file referenced in the Dockerfile was not found. Please check the root directory in settings."},
@@ -878,9 +881,9 @@ func (w *Workflow) processBuildStatus(
 //   - fork build (untrusted Dockerfile): a public clone target needs no token;
 //     a private one gets a read-only token scoped to that single repo, so an
 //     exfiltrated token reads only what the PR author already can.
-//   - trusted build: a read-only token, also scoped to the single repo being
-//     cloned. A Dockerfile pulling private cross-repo deps or submodules will
-//     see a clone 404; widen the scope only if that surfaces in practice.
+//   - trusted build: a read-only token scoped to the repo being cloned plus
+//     the private submodule repos its .gitmodules declares at the commit, so
+//     BuildKit can initialize them. Other private repos stay unreadable.
 //
 // Probing and scoping both target the repo BuildKit actually clones: the base
 // for a live fork PR (refs/pull/<n>/head only exists there), the fork itself
@@ -944,7 +947,16 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 	// Permission names and access levels are defined by GitHub:
 	// https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps
 	// "contents":"read" grants clone/read access only, no write of any kind.
-	token, err := w.github.GetScopedInstallationToken(params.InstallationID, scopeRepo, map[string]string{"contents": "read"})
+	repos := []string{scopeRepo}
+	if !isForkBuild {
+		submodules, err := w.privateSubmoduleRepos(params.InstallationID, scopeRepo, params.CommitSHA)
+		if err != nil {
+			return noToken, false, err
+		}
+		repos = append(repos, submodules...)
+	}
+
+	token, err := w.github.GetScopedInstallationToken(params.InstallationID, repos, map[string]string{"contents": "read"})
 	if err != nil {
 		return noToken, false, fmt.Errorf("failed to get GitHub installation token: %w", err)
 	}
