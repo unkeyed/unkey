@@ -47,24 +47,15 @@ type Handler struct {
 }
 
 // maskCreateKeyPermissions hides a keyspace from callers who cannot read it.
-// Callers who can read it get a 403 that names the missing action. The keyspace
-// id is resolved from the API, so the public message must not repeat it.
-func maskCreateKeyPermissions(err error, granted []string, query rbac.PermissionQuery, keySpaceID string) error {
-	masked := apierrors.MaskInsufficientPermissionsAsNotFound(
+// Callers who can read it get a 403 that names the missing action. Resource
+// ids in that 403 are removed by the error middleware.
+func maskCreateKeyPermissions(err error, granted []string, query rbac.PermissionQuery, _ string) error {
+	return apierrors.MaskInsufficientPermissionsAsNotFound(
 		err,
 		granted,
 		query,
 		codes.Data.Api.NotFound.URN(),
 		"The specified API was not found.",
-	)
-	code, ok := fault.GetCode(masked)
-	if !ok || code != codes.Auth.Authorization.InsufficientPermissions.URN() || keySpaceID == "" {
-		return masked
-	}
-	return fault.New("insufficient permissions",
-		fault.Code(code),
-		fault.Internal("caller can read the resource but lacks a required permission"),
-		fault.Public(strings.ReplaceAll(fault.UserFacingMessage(masked), keySpaceID, "{keyspace}")),
 	)
 }
 
