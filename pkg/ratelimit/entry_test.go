@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"maps"
-	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -115,9 +114,14 @@ func sessionsByID(sessions ...session) map[string]session {
 	return byID
 }
 
-// allSessions returns the sessions of an entry in no particular order.
+// allSessions returns the sessions of an entry in no particular order,
+// without this pod's write state.
 func allSessions(e entry) []session {
-	return slices.Collect(maps.Values(e.sessions))
+	all := make([]session, 0, len(e.sessions))
+	for _, s := range e.sessions {
+		all = append(all, session{id: s.id, anchorAtNs: s.anchorAtNs, consumedNs: s.consumedNs})
+	}
+	return all
 }
 
 // TestEntryMergeRowsIsAllOrNothing guarantees that a merge that fails on a

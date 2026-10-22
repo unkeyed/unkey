@@ -87,9 +87,9 @@ func TestFlushRetriesAFailedWriteWithTheLatestValue(t *testing.T) {
 	require.Equal(t, (3 * time.Second).Nanoseconds(), store.sessions(request.Fingerprint)[0].ConsumedNs)
 }
 
-// TestFlushWritesAFrozenSessionThenForgetsIt uses 1 unit per second, so the
-// lifetime ends the first session while `reset_at` is still ahead.
-func TestFlushWritesAFrozenSessionThenForgetsIt(t *testing.T) {
+// TestFlushWritesAFrozenSessionOnce uses 1 unit per second, so the lifetime
+// ends the first session while `reset_at` is still ahead.
+func TestFlushWritesAFrozenSessionOnce(t *testing.T) {
 	ctx := context.Background()
 	l, testClock := newTestLimiter(t)
 	store := memoryStoreOf(t, l)
@@ -110,8 +110,10 @@ func TestFlushWritesAFrozenSessionThenForgetsIt(t *testing.T) {
 	require.Equal(t, frozenID, sessions[1].SessionID)
 	require.Equal(t, (1800 * time.Second).Nanoseconds(), sessions[1].ConsumedNs)
 
+	writeCalls := store.writeCallCount()
 	require.NoError(t, l.flush(ctx))
-	require.Equal(t, map[string]int64{e.liveID: time.Second.Nanoseconds()}, e.writtenNs)
+	require.Equal(t, writeCalls, store.writeCallCount(), "nothing is left to write")
+	require.Empty(t, e.uncommittedSessions(testClock.Now().UnixNano()))
 }
 
 // TestFlushDropsUnitsAtCompactAfter guarantees that a pod never writes a
