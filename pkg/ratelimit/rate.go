@@ -50,7 +50,7 @@ func (r Rate) remaining(nowNs, resetAtNs int64) int64 {
 	// `reset_at` is in use and the rest is free. A `reset_at` in the past
 	// means every unit is free; idle time is not saved up beyond `Duration`.
 	aheadNs := max(resetAtNs-nowNs, 0)
-	if aheadNs >= r.Duration.Nanoseconds() {
+	if aheadNs >= r.Duration.Nanoseconds() { //faultline:equivalent at equality `unitsWithin(0)` is also 0
 		return 0
 	}
 	return r.unitsWithin(r.Duration.Nanoseconds() - aheadNs)

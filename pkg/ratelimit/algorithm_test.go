@@ -59,6 +59,28 @@ func TestSummarizeRejectsInvalidSessions(t *testing.T) {
 	}
 }
 
+// TestSummarizeAcceptsTheSmallestAnchor guarantees that the check for a
+// positive anchor does not reject the smallest valid one.
+func TestSummarizeAcceptsTheSmallestAnchor(t *testing.T) {
+	result, err := summarize([]session{{id: "a", anchorAtNs: 1, consumedNs: 2}}, nil)
+	require.NoError(t, err)
+	require.Equal(t, int64(3), result.resetAtNs)
+}
+
+// TestDecideKeepsTheLiveSessionWhenResetAtIsNow guarantees that a request at
+// exactly `reset_at` goes into the live session. Starting a new session there
+// gives the same `reset_at`, but costs an extra row.
+func TestDecideKeepsTheLiveSessionWhenResetAtIsNow(t *testing.T) {
+	current, err := summarize(nil, &session{id: "own", anchorAtNs: 100, consumedNs: 10})
+	require.NoError(t, err)
+	require.Equal(t, int64(110), current.resetAtNs)
+
+	result, err := decide(current, true, 110, Rate{Limit: 10, Duration: 10}, 1)
+	require.NoError(t, err)
+	require.True(t, result.allowed)
+	require.Zero(t, result.createNewSessionAtNs)
+}
+
 // TestDecideAtTheEdges guarantees that `decide` rejects invalid input,
 // decides exactly up to the int64 limit, and returns an error instead of
 // wrapping around one nanosecond later. It also guarantees that a huge
@@ -79,6 +101,7 @@ func TestDecideAtTheEdges(t *testing.T) {
 		{"reset_at exactly at the int64 maximum", math.MaxInt64 - 2, Rate{Limit: 1, Duration: 2}, 1, false, true},
 		{"reset_at one past the int64 maximum", math.MaxInt64 - 1, Rate{Limit: 1, Duration: 2}, 1, true, false},
 		{"huge units on a huge duration", 1, Rate{Limit: 1, Duration: math.MaxInt64}, math.MaxInt64, false, false},
+		{"smallest valid rate", 1, Rate{Limit: 1, Duration: 1}, 1, false, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
