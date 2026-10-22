@@ -28,8 +28,8 @@ func TestStaleReadsDoNotWaitForRefreshQueue(t *testing.T) {
 			c, clk := newPausedRefreshCache(t)
 			c.Set(t.Context(), "target", "stale")
 			clk.Tick(2 * time.Minute)
-			for range cap(c.revalidateC) {
-				c.revalidateC <- func() {}
+			for range cap(queued(c)) {
+				queued(c) <- func() {}
 			}
 
 			type result struct {
@@ -58,13 +58,13 @@ func TestStaleReadsDoNotWaitForRefreshQueue(t *testing.T) {
 				t.Fatal("stale read blocked on a full refresh queue")
 			}
 
-			for len(c.revalidateC) > 0 {
-				<-c.revalidateC
+			for len(queued(c)) > 0 {
+				<-queued(c)
 			}
 			_, _, err := readStale(c, method, "target")
 			require.NoError(t, err)
-			require.Len(t, c.revalidateC, 1, "a dropped refresh must be retryable")
-			(<-c.revalidateC)()
+			require.Len(t, queued(c), 1, "a dropped refresh must be retryable")
+			(<-queued(c))()
 			value, hit := c.Get(t.Context(), "target")
 			require.Equal(t, Hit, hit)
 			require.Equal(t, "refreshed-target", value)
@@ -75,7 +75,7 @@ func TestStaleReadsDoNotWaitForRefreshQueue(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, Hit, hit)
 			require.Equal(t, "refreshed-target", value)
-			require.Empty(t, c.revalidateC)
+			require.Empty(t, queued(c))
 			require.Empty(t, c.inflightRefreshes)
 
 			for _, outcome := range []string{"enqueued", "queue_full", "closed"} {
@@ -116,7 +116,7 @@ func TestRevalidationMetricsSeparateQueueWaitFromExecution(t *testing.T) {
 				require.NoError(t, err)
 			}
 			clk.Tick(3 * time.Second)
-			(<-c.revalidateC)()
+			(<-queued(c))()
 
 			queued := gatherCacheMetric(t, "unkey_cache_revalidation_enqueues_total", c.resource, "enqueued")
 			require.Equal(t, float64(1), queued.GetCounter().GetValue(), "a batch occupies one queue slot, not one per key")
@@ -148,7 +148,7 @@ func TestStaleReadsDeduplicateQueuedRefreshes(t *testing.T) {
 			require.Equal(t, "old-a", value)
 		}
 	}
-	require.Len(t, c.revalidateC, 1, "all stale read methods must share queued-key deduplication")
+	require.Len(t, queued(c), 1, "all stale read methods must share queued-key deduplication")
 
 	var refreshedKeys []string
 	values, hits, err := c.SWRMany(t.Context(), []string{"a", "b"}, func(_ context.Context, keys []string) (map[string]string, error) {
@@ -158,15 +158,15 @@ func TestStaleReadsDeduplicateQueuedRefreshes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, map[string]string{"a": "old-a", "b": "old-b"}, values)
 	require.Equal(t, map[string]CacheHit{"a": Hit, "b": Hit}, hits)
-	require.Len(t, c.revalidateC, 2)
-	(<-c.revalidateC)()
-	(<-c.revalidateC)()
+	require.Len(t, queued(c), 2)
+	(<-queued(c))()
+	(<-queued(c))()
 	require.Equal(t, []string{"b"}, refreshedKeys, "a batch must exclude keys already queued by a single read")
 
 	clk.Tick(2 * time.Minute)
 	_, _, err = readStale(c, "SWR", "a")
 	require.NoError(t, err)
-	require.Len(t, c.revalidateC, 1, "a completed refresh must not suppress the next stale refresh")
+	require.Len(t, queued(c), 1, "a completed refresh must not suppress the next stale refresh")
 }
 
 func TestConcurrentStaleReadsDeduplicateRunningRefresh(t *testing.T) {
@@ -183,7 +183,7 @@ func TestConcurrentStaleReadsDeduplicateRunningRefresh(t *testing.T) {
 		return "updated", nil
 	}, func(error) Op { return WriteValue })
 	require.NoError(t, err)
-	refresh := <-c.revalidateC
+	refresh := <-queued(c)
 	go func() {
 		refresh()
 		close(finished)
@@ -214,7 +214,7 @@ func TestConcurrentStaleReadsDeduplicateRunningRefresh(t *testing.T) {
 		require.Equal(t, Hit, got.hit)
 		require.Equal(t, "stale", got.value)
 	}
-	require.Empty(t, c.revalidateC, "running refreshes must not accumulate duplicate queued work")
+	require.Empty(t, queued(c), "running refreshes must not accumulate duplicate queued work")
 	releaseRefresh()
 	<-finished
 	value, hit := c.Get(t.Context(), "key")
@@ -263,7 +263,7 @@ func newPausedRefreshCache(t *testing.T) (*cache[string, string], *clock.TestClo
 		}
 	})
 	for range 10 {
-		c.revalidateC <- func() {
+		queued(c) <- func() {
 			started <- struct{}{}
 			<-release
 			finished <- struct{}{}
@@ -299,4 +299,119 @@ func readStale(c Cache[string, string], method, key string) (string, CacheHit, e
 	default:
 		return "", Miss, fmt.Errorf("unknown stale read method: %s", method)
 	}
+}
+
+// queued returns the refresh queue of c's default worker pool.
+func queued(c *cache[string, string]) chan func() {
+	return c.scheduler.(*workers).refreshes
+}
+
+// counterValue returns the value of the counter with the given labels, or 0
+// when nothing has incremented it yet.
+func counterValue(t *testing.T, name string, labels map[string]string) float64 {
+	t.Helper()
+	families, err := testMetrics.Gather()
+	require.NoError(t, err)
+	for _, family := range families {
+		if family.GetName() != name {
+			continue
+		}
+	metrics:
+		for _, metric := range family.GetMetric() {
+			got := map[string]string{}
+			for _, label := range metric.GetLabel() {
+				got[label.GetName()] = label.GetValue()
+			}
+			for k, v := range labels {
+				if got[k] != v {
+					continue metrics
+				}
+			}
+			return metric.GetCounter().GetValue()
+		}
+	}
+	return 0
+}
+
+func TestDeletedMetricCountsEachReason(t *testing.T) {
+	clk := clock.NewTestClock()
+	c, err := New(Config[string, string]{Fresh: time.Minute, Stale: time.Hour, MaxSize: 2, Resource: t.Name(), Clock: clk})
+	require.NoError(t, err)
+	t.Cleanup(c.Close)
+	ctx := t.Context()
+	deleted := func(reason string) float64 {
+		return counterValue(t, "unkey_cache_deleted_total", map[string]string{"resource": t.Name(), "reason": reason})
+	}
+
+	c.Set(ctx, "a", "1")
+	c.Set(ctx, "a", "2")
+	c.Set(ctx, "b", "1")
+	c.Set(ctx, "c", "1")
+	c.Remove(ctx, "b", "c", "missing")
+	for _, key := range []string{"a", "b", "c"} {
+		_, hit := c.Get(ctx, key)
+		require.Equal(t, Miss, hit, key)
+	}
+	c.Set(ctx, "d", "1")
+	clk.Tick(2 * time.Hour)
+	c.Get(ctx, "d")
+	c.Get(ctx, "d")
+
+	require.Equal(t, float64(1), deleted("Replaced"))
+	require.Equal(t, float64(1), deleted("Size"))
+	require.Equal(t, float64(2), deleted("Explicit"), "Remove must delete every key it is given")
+	require.Equal(t, float64(1), deleted("Expired"), "a read of an already deleted key must not count again")
+
+	op := func(error) Op { return WriteValue }
+	origin := func(_ context.Context, keys []string) (map[string]string, error) {
+		values := map[string]string{}
+		for _, key := range keys {
+			values[key] = "v"
+		}
+		return values, nil
+	}
+	for range 2 {
+		_, _, err := c.SWRMany(ctx, []string{"e", "f"}, origin, op)
+		require.NoError(t, err)
+	}
+	require.Equal(t, float64(1), deleted("Replaced"), "SWRMany must write each fetched key once")
+	require.Zero(t, counterValue(t, "unkey_cache_revalidation_enqueues_total", map[string]string{"resource": t.Name(), "outcome": "deduplicated"}),
+		"fresh reads must not ask for a refresh")
+}
+
+// A refresh for several keys must release all of them, whether it runs or is
+// dropped, or the keys it missed would never be refreshed again.
+func TestBatchRefreshReleasesEveryKey(t *testing.T) {
+	c, clk := newPausedRefreshCache(t)
+	ctx := t.Context()
+	var refreshed []string
+	origin := func(_ context.Context, keys []string) (map[string]string, error) {
+		refreshed = keys
+		return map[string]string{"a": "new-a", "b": "new-b"}, nil
+	}
+	op := func(error) Op { return WriteValue }
+	c.SetMany(ctx, map[string]string{"a": "old-a", "b": "old-b"})
+
+	clk.Tick(2 * time.Minute)
+	_, _, err := c.SWRMany(ctx, []string{"a", "b"}, origin, op)
+	require.NoError(t, err)
+	(<-queued(c))()
+	require.ElementsMatch(t, []string{"a", "b"}, refreshed)
+
+	clk.Tick(2 * time.Minute)
+	for range cap(queued(c)) - len(queued(c)) {
+		queued(c) <- func() {}
+	}
+	_, _, err = c.SWRMany(ctx, []string{"a", "b"}, origin, op)
+	require.NoError(t, err)
+	for len(queued(c)) > 0 {
+		<-queued(c)
+	}
+
+	refreshed = nil
+	_, _, err = c.SWRMany(ctx, []string{"a", "b"}, origin, op)
+	require.NoError(t, err)
+	require.Len(t, queued(c), 1, "a dropped batch must release every key")
+	(<-queued(c))()
+	require.ElementsMatch(t, []string{"a", "b"}, refreshed)
 }

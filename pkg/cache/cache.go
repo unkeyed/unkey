@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/maypok86/otter"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -21,15 +20,15 @@ import (
 )
 
 type cache[K comparable, V any] struct {
-	otter    otter.Cache[K, swrEntry[V]]
+	store    *store[K, swrEntry[V]]
 	fresh    time.Duration
 	stale    time.Duration
 	resource string
 	clock    clock.Clock
 
-	revalidateC chan func()
-	done        chan struct{}
-	closeOnce   sync.Once
+	scheduler Scheduler
+	done      chan struct{}
+	closeOnce sync.Once
 
 	inflightMu        sync.Mutex
 	inflightRefreshes map[K]bool
@@ -60,12 +59,67 @@ type Config[K comparable, V any] struct {
 	// fetching from the origin server
 	Stale time.Duration
 
-	// Start evicting the least recently used entry when the cache grows to MaxSize
+	// MaxSize is the number of entries the cache holds before it evicts one
+	// for each new key. It must be positive.
 	MaxSize int
 
 	Resource string
 
 	Clock clock.Clock
+
+	// Scheduler decides when background revalidations run. When nil, the
+	// cache starts 10 worker goroutines with a queue of 1000 refreshes and
+	// stops them on Close.
+	Scheduler Scheduler
+}
+
+// Scheduler decides when the background refreshes that stale reads request
+// run. Production uses the default worker pool. A simulation can hold
+// refreshes in a queue and run each one when its seed says so, which makes
+// the moment a refresh writes to the cache part of the seed.
+type Scheduler interface {
+	// Schedule arranges for refresh to run and reports whether it accepted
+	// it. Schedule must not block. It may run refresh before it returns.
+	// When Schedule returns false, the cache drops the refresh and the next
+	// stale read for the same keys requests it again.
+	Schedule(refresh func()) bool
+}
+
+// workers is the default [Scheduler]. It runs refreshes from a bounded queue
+// on a fixed number of goroutines until done is closed. Refreshes still
+// queued at that point never run.
+type workers struct {
+	refreshes chan func()
+	resource  string
+}
+
+// startWorkers starts count goroutines that run refreshes until done is closed.
+func startWorkers(count, queueSize int, resource string, done <-chan struct{}) *workers {
+	w := &workers{refreshes: make(chan func(), queueSize), resource: resource}
+	for range count {
+		go func() {
+			for {
+				select {
+				case <-done:
+					return
+				case refresh := <-w.refreshes:
+					refresh()
+				}
+			}
+		}()
+	}
+	return w
+}
+
+// Schedule queues refresh, or returns false when the queue is full.
+func (w *workers) Schedule(refresh func()) bool {
+	metrics.CacheRevalidationQueueDepth.WithLabelValues(w.resource).Observe(float64(len(w.refreshes)))
+	select {
+	case w.refreshes <- refresh:
+		return true
+	default:
+		return false
+	}
 }
 
 var _ Cache[any, any] = (*cache[any, any])(nil)
@@ -75,65 +129,45 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 	if err := assert.All(
 		assert.NotNil(config.Clock, "clock is required"),
 	); err != nil {
-		return nil, fmt.Errorf("invalid cache config: %w", err)
+		return nil, fmt.Errorf("invalid cache config: %w", err) //faultline:equivalent *new(Cache[K, V]) is the nil interface
 	}
 
-	builder, err := otter.NewBuilder[K, swrEntry[V]](config.MaxSize)
-	if err != nil {
-		return nil, err
+	if config.MaxSize <= 0 {
+		return nil, fmt.Errorf("invalid cache config: MaxSize must be positive, got %d", config.MaxSize) //faultline:equivalent *new(Cache[K, V]) is the nil interface
 	}
 
-	otter, err := builder.
-		CollectStats().
-		Cost(func(key K, value swrEntry[V]) uint32 {
-			return 1
-		}).
-		WithTTL(config.Stale).
-		DeletionListener(func(key K, value swrEntry[V], cause otter.DeletionCause) {
-			metrics.CacheDeleted.WithLabelValues(config.Resource, cause.String()).Inc()
-		}).
-		Build()
-	if err != nil {
-		return nil, err
+	done := make(chan struct{})
+	scheduler := config.Scheduler
+	if scheduler == nil {
+		scheduler = startWorkers(10, 1000, config.Resource, done)
 	}
+
 	c := &cache[K, V]{
-		otter:             otter,
+		store:             newStore[K, swrEntry[V]](config.MaxSize),
 		fresh:             config.Fresh,
 		stale:             config.Stale,
 		resource:          config.Resource,
 		clock:             config.Clock,
-		revalidateC:       make(chan func(), 1000),
-		done:              make(chan struct{}),
-		closeOnce:         sync.Once{},
-		inflightMu:        sync.Mutex{},
+		scheduler:         scheduler,
+		done:              done,
+		closeOnce:         sync.Once{},  //faultline:equivalent the zero sync.Once is ready to use
+		inflightMu:        sync.Mutex{}, //faultline:equivalent the zero sync.Mutex is ready to use
 		inflightRefreshes: make(map[K]bool),
-		loadsMu:           sync.Mutex{},
+		loadsMu:           sync.Mutex{}, //faultline:equivalent the zero sync.Mutex is ready to use
 		loads:             make(map[K]*inflight[V]),
 	}
 
-	for range 10 {
-		go func() {
-			for {
-				select {
-				case <-c.done:
-					return
-				case revalidate := <-c.revalidateC:
-					revalidate()
-				}
-			}
-		}()
-	}
-
-	repeat.Every(60*time.Second, func(context.Context) {
-		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
-		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(c.otter.Capacity()))
+	repeat.Every(60*time.Second, func(context.Context) { //faultline:equivalent only the gauge refresh interval changes
+		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.store.len()))
+		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(config.MaxSize))
 	}, repeat.UntilClose(c.done))
 	return c, nil
 }
 
-// Close stops the background revalidation workers and the periodic metrics
-// reporter. Queued revalidations that no worker has picked up yet are
-// dropped; cached data stays readable. Close is idempotent.
+// Close stops the periodic metrics reporter and, when Config.Scheduler was
+// nil, the default revalidation workers. Revalidations they have not started
+// are dropped. Later stale reads schedule no revalidation. Cached data stays
+// readable. Close is idempotent.
 func (c *cache[K, V]) Close() {
 	c.closeOnce.Do(func() {
 		close(c.done)
@@ -149,7 +183,6 @@ func (c *cache[K, V]) enqueueRevalidation(keys []K, fn func([]K)) {
 	}
 
 	c.inflightMu.Lock()
-	defer c.inflightMu.Unlock()
 	keysToRefresh := make([]K, 0, len(keys))
 	for _, key := range keys {
 		if !c.inflightRefreshes[key] {
@@ -157,15 +190,16 @@ func (c *cache[K, V]) enqueueRevalidation(keys []K, fn func([]K)) {
 			keysToRefresh = append(keysToRefresh, key)
 		}
 	}
+	c.inflightMu.Unlock()
 	if len(keysToRefresh) == 0 {
 		metrics.CacheRevalidationEnqueues.WithLabelValues(c.resource, "deduplicated").Inc()
 		return
 	}
 
-	metrics.CacheRevalidationQueueDepth.WithLabelValues(c.resource).Observe(float64(len(c.revalidateC)))
+	// Schedule runs without inflightMu held, because a scheduler may run the
+	// refresh at once and the refresh takes inflightMu to release its keys.
 	enqueuedAt := c.clock.Now()
-	select {
-	case c.revalidateC <- func() {
+	accepted := c.scheduler.Schedule(func() {
 		startedAt := c.clock.Now()
 		metrics.CacheRevalidationQueueWait.WithLabelValues(c.resource).Observe(startedAt.Sub(enqueuedAt).Seconds())
 		defer func() {
@@ -177,23 +211,23 @@ func (c *cache[K, V]) enqueueRevalidation(keys []K, fn func([]K)) {
 			c.inflightMu.Unlock()
 		}()
 		fn(keysToRefresh)
-	}:
+	})
+	if accepted {
 		metrics.CacheRevalidationEnqueues.WithLabelValues(c.resource, "enqueued").Inc()
 		return
-	case <-c.done:
-		metrics.CacheRevalidationEnqueues.WithLabelValues(c.resource, "closed").Inc()
-	default:
-		metrics.CacheRevalidationEnqueues.WithLabelValues(c.resource, "queue_full").Inc()
 	}
+	metrics.CacheRevalidationEnqueues.WithLabelValues(c.resource, "queue_full").Inc()
+	c.inflightMu.Lock()
 	for _, key := range keysToRefresh {
 		delete(c.inflightRefreshes, key)
 	}
+	c.inflightMu.Unlock()
 }
 
 func (c *cache[K, V]) recordTiming(ctx context.Context, name, status string, start time.Time) {
 	timing.Record(ctx, timing.Entry{
 		Name:     name,
-		Duration: time.Since(start),
+		Duration: c.clock.Now().Sub(start),
 		Attributes: map[string]string{
 			"cache":  c.resource,
 			"status": strings.ToLower(status),
@@ -202,11 +236,11 @@ func (c *cache[K, V]) recordTiming(ctx context.Context, name, status string, sta
 }
 
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
-	start := time.Now()
+	start := c.clock.Now()
 	e, ok := c.get(ctx, key)
 	if !ok {
 		c.recordTiming(ctx, "cache_get", "miss", start)
-		return value, Miss
+		return value, Miss //faultline:equivalent value is the zero named result
 	}
 
 	now := c.clock.Now()
@@ -220,10 +254,10 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 		return e.Value, e.Hit
 	}
 
-	c.otter.Delete(key)
+	c.deleteExpired(key)
 	c.recordTiming(ctx, "cache_get", "miss", start)
 
-	return value, Miss
+	return value, Miss //faultline:equivalent value is the zero named result
 }
 
 func (c *cache[K, V]) GetMany(ctx context.Context, keys []K) (values map[K]V, hits map[K]CacheHit) {
@@ -235,7 +269,7 @@ func (c *cache[K, V]) GetMany(ctx context.Context, keys []K) (values map[K]V, hi
 		e, ok := c.get(ctx, key)
 		if !ok {
 			hits[key] = Miss
-			continue
+			continue //faultline:equivalent without continue, the zero entry is expired and deleteExpired finds nothing to delete
 		}
 
 		if now.Before(e.Stale) {
@@ -244,7 +278,7 @@ func (c *cache[K, V]) GetMany(ctx context.Context, keys []K) (values map[K]V, hi
 			continue
 		}
 
-		c.otter.Delete(key)
+		c.deleteExpired(key)
 		hits[key] = Miss
 	}
 
@@ -255,11 +289,11 @@ func (c *cache[K, V]) SetNull(_ context.Context, key K) {
 	now := c.clock.Now()
 
 	var v V
-	c.otter.Set(key, swrEntry[V]{
+	c.write(key, swrEntry[V]{
 		Value: v,
 		Fresh: now.Add(c.fresh),
 		Stale: now.Add(c.stale),
-		Hit:   Null,
+		Hit:   Null, //faultline:equivalent Null is the zero CacheHit
 	})
 }
 
@@ -268,11 +302,11 @@ func (c *cache[K, V]) SetNullMany(ctx context.Context, keys []K) {
 	var v V
 
 	for _, key := range keys {
-		c.otter.Set(key, swrEntry[V]{
+		c.write(key, swrEntry[V]{
 			Value: v,
 			Fresh: now.Add(c.fresh),
 			Stale: now.Add(c.stale),
-			Hit:   Null,
+			Hit:   Null, //faultline:equivalent Null is the zero CacheHit
 		})
 	}
 }
@@ -280,7 +314,7 @@ func (c *cache[K, V]) SetNullMany(ctx context.Context, keys []K) {
 func (c *cache[K, V]) Set(_ context.Context, key K, value V) {
 	now := c.clock.Now()
 
-	c.otter.Set(key, swrEntry[V]{
+	c.write(key, swrEntry[V]{
 		Value: value,
 		Fresh: now.Add(c.fresh),
 		Stale: now.Add(c.stale),
@@ -292,7 +326,7 @@ func (c *cache[K, V]) SetMany(ctx context.Context, values map[K]V) {
 	now := c.clock.Now()
 
 	for key, value := range values {
-		c.otter.Set(key, swrEntry[V]{
+		c.write(key, swrEntry[V]{
 			Value: value,
 			Fresh: now.Add(c.fresh),
 			Stale: now.Add(c.stale),
@@ -301,8 +335,48 @@ func (c *cache[K, V]) SetMany(ctx context.Context, values map[K]V) {
 	}
 }
 
+// setInOrder writes values like SetMany, but writes the requested keys in
+// the order of keys first. Go randomizes map iteration order, and on a full
+// cache the write order decides which keys get evicted.
+func (c *cache[K, V]) setInOrder(keys []K, values map[K]V) {
+	now := c.clock.Now()
+	entry := func(v V) swrEntry[V] {
+		return swrEntry[V]{Value: v, Fresh: now.Add(c.fresh), Stale: now.Add(c.stale), Hit: Hit}
+	}
+	requested := make(map[K]struct{}, len(keys))
+	for _, key := range keys {
+		requested[key] = struct{}{}
+		if v, ok := values[key]; ok {
+			c.write(key, entry(v))
+		}
+	}
+	for key, v := range values {
+		if _, ok := requested[key]; !ok {
+			c.write(key, entry(v))
+		}
+	}
+}
+
+// write stores e and counts the value it replaced or the entry it evicted.
+func (c *cache[K, V]) write(key K, e swrEntry[V]) {
+	replaced, evicted := c.store.set(key, e)
+	if replaced {
+		metrics.CacheDeleted.WithLabelValues(c.resource, "Replaced").Inc()
+	}
+	if evicted {
+		metrics.CacheDeleted.WithLabelValues(c.resource, "Size").Inc()
+	}
+}
+
+// deleteExpired removes key after a read found it past its stale time.
+func (c *cache[K, V]) deleteExpired(key K) {
+	if c.store.delete(key) {
+		metrics.CacheDeleted.WithLabelValues(c.resource, "Expired").Inc()
+	}
+}
+
 func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
-	v, ok := c.otter.Get(key)
+	v, ok := c.store.get(key)
 
 	metrics.CacheReads.WithLabelValues(c.resource, fmt.Sprintf("%t", ok)).Inc()
 
@@ -311,17 +385,18 @@ func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
 
 func (c *cache[K, V]) Remove(ctx context.Context, keys ...K) {
 	for _, key := range keys {
-		c.otter.Delete(key)
+		if c.store.delete(key) {
+			metrics.CacheDeleted.WithLabelValues(c.resource, "Explicit").Inc()
+		}
 	}
 }
 
 func (c *cache[K, V]) Dump(ctx context.Context) ([]byte, error) {
 	data := make(map[K]swrEntry[V])
 
-	c.otter.Range(func(key K, entry swrEntry[V]) bool {
+	for key, entry := range c.store.all() {
 		data[key] = entry
-		return true
-	})
+	}
 
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -350,7 +425,7 @@ func (c *cache[K, V]) Restore(ctx context.Context, b []byte) error {
 }
 
 func (c *cache[K, V]) Clear(ctx context.Context) {
-	c.otter.Clear()
+	c.store.clear()
 }
 
 func (c *cache[K, V]) Name() string {
@@ -365,8 +440,8 @@ func (c *cache[K, V]) revalidate(
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
 	_, _, err := c.load(ctx, key, refreshFromOrigin, op)
 
-	if err != nil && !db.IsNotFound(err) {
-		logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
+	if err != nil && !db.IsNotFound(err) { //faultline:equivalent the condition only decides whether to log
+		logger.Warn("failed to revalidate", "error", err.Error(), "key", key) //faultline:equivalent log output only
 	}
 }
 
@@ -382,7 +457,7 @@ func (c *cache[K, V]) load(
 ) (V, CacheHit, error) {
 	var zero V
 	if err := ctx.Err(); err != nil {
-		return zero, Miss, err
+		return zero, Miss, err //faultline:equivalent zero is the zero value
 	}
 
 	c.loadsMu.Lock()
@@ -394,13 +469,13 @@ func (c *cache[K, V]) load(
 			return f.value, f.hit, f.err
 		case <-ctx.Done():
 			c.leaveLoad(key, f)
-			return zero, Miss, ctx.Err()
+			return zero, Miss, ctx.Err() //faultline:equivalent zero is the zero value
 		}
 	}
 
 	// A read may have written the key and left loads since the caller's cache
 	// lookup. Only a fresh entry counts: background refreshes load stale keys.
-	if e, ok := c.otter.Get(key); ok && c.clock.Now().Before(e.Fresh) {
+	if e, ok := c.store.get(key); ok && c.clock.Now().Before(e.Fresh) {
 		c.loadsMu.Unlock()
 		return e.Value, e.Hit, nil
 	}
@@ -415,7 +490,7 @@ func (c *cache[K, V]) load(
 	} else {
 		loadCtx, cancel = context.WithCancel(loadCtx)
 	}
-	f := &inflight[V]{done: make(chan struct{}), cancel: cancel, waiters: 1, value: zero, hit: Miss, err: errLoadPanicked}
+	f := &inflight[V]{done: make(chan struct{}), cancel: cancel, waiters: 1, value: zero, hit: Miss, err: errLoadPanicked} //faultline:equivalent zero is the zero value
 	c.loads[key] = f
 	c.loadsMu.Unlock()
 
@@ -439,9 +514,9 @@ func (c *cache[K, V]) load(
 		hit = Hit
 	case WriteNull:
 		c.SetNull(loadCtx, key)
-		hit = Null
-	case Noop:
-		hit = Null
+		hit = Null //faultline:equivalent hit starts as Null, the zero CacheHit
+	case Noop: //faultline:equivalent hit starts as Null, the zero CacheHit
+		hit = Null //faultline:equivalent hit starts as Null, the zero CacheHit
 	default:
 		hit = Miss
 	}
@@ -474,7 +549,7 @@ func (c *cache[K, V]) SWR(
 	refreshFromOrigin func(context.Context) (V, error),
 	op func(error) Op,
 ) (V, CacheHit, error) {
-	start := time.Now()
+	start := c.clock.Now()
 	now := c.clock.Now()
 	e, ok := c.get(ctx, key)
 	if ok {
@@ -496,7 +571,7 @@ func (c *cache[K, V]) SWR(
 		}
 
 		// We have old data, that we should not serve anymore
-		c.otter.Delete(key)
+		c.deleteExpired(key)
 	}
 
 	// Cache Miss - measure total time including all overhead
@@ -531,7 +606,7 @@ func (c *cache[K, V]) SWRMany(
 		hit := hits[key]
 		if hit == Miss {
 			missingKeys = append(missingKeys, key)
-			continue
+			continue //faultline:equivalent without continue, a missed key is not Null and c.get misses again, so nothing is queued
 		}
 
 		if hit == Null {
@@ -562,7 +637,7 @@ func (c *cache[K, V]) SWRMany(
 		case WriteValue:
 			if fetchedValues != nil {
 				// Write the values we got
-				c.SetMany(ctx, fetchedValues)
+				c.setInOrder(missingKeys, fetchedValues)
 				for key, value := range fetchedValues {
 					values[key] = value
 					hits[key] = Hit
@@ -576,7 +651,7 @@ func (c *cache[K, V]) SWRMany(
 					}
 				}
 
-				if len(notFoundKeys) > 0 {
+				if len(notFoundKeys) > 0 { //faultline:equivalent SetNullMany with no keys writes nothing
 					c.SetNullMany(ctx, notFoundKeys)
 					for _, key := range notFoundKeys {
 						hits[key] = Null
@@ -588,11 +663,11 @@ func (c *cache[K, V]) SWRMany(
 			for _, key := range missingKeys {
 				hits[key] = Null
 			}
-		case Noop:
+		case Noop: //faultline:equivalent the switch has no default, so an empty or missing Noop case does the same
 			// Don't cache anything
 		}
 
-		if err != nil {
+		if err != nil { //faultline:equivalent err is nil when the condition is false, so both returns are the same
 			return values, hits, err
 		}
 	}
@@ -606,14 +681,14 @@ func (c *cache[K, V]) SWRWithFallback(
 	refreshFromOrigin func(context.Context) (V, K, error),
 	op func(error) Op,
 ) (V, CacheHit, error) {
-	start := time.Now()
+	start := c.clock.Now()
 	now := c.clock.Now()
 
 	// Check all candidate keys for cache hits
 	for _, key := range candidates {
 		e, ok := c.get(ctx, key)
 		if !ok {
-			continue
+			continue //faultline:equivalent without continue, the zero entry is expired and deleteExpired finds nothing to delete
 		}
 
 		// Found in cache
@@ -632,7 +707,7 @@ func (c *cache[K, V]) SWRWithFallback(
 		}
 
 		// Expired - delete and continue checking other candidates
-		c.otter.Delete(key)
+		c.deleteExpired(key)
 	}
 
 	// Cache miss on all candidates - fetch from origin
@@ -653,7 +728,7 @@ func (c *cache[K, V]) SWRWithFallback(
 		hit = Hit
 	case WriteNull:
 		c.SetNull(ctx, canonicalKey)
-		hit = Null
+		hit = Null //faultline:equivalent hit starts as Null, the zero CacheHit
 	case Noop:
 		hit = Miss
 	}
@@ -670,7 +745,7 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
-		logger.Warn("failed to revalidate with canonical key", "error", err.Error())
+		logger.Warn("failed to revalidate with canonical key", "error", err.Error()) //faultline:equivalent log output only
 		return
 	}
 
@@ -679,7 +754,7 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 		c.Set(ctx, canonicalKey, v)
 	case WriteNull:
 		c.SetNull(ctx, canonicalKey)
-	case Noop:
+	case Noop: //faultline:equivalent the switch has no default, so an empty or missing Noop case does the same
 		break
 	}
 }
@@ -693,15 +768,15 @@ func (c *cache[K, V]) revalidateMany(
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Add(float64(len(keys)))
 	values, err := refreshFromOrigin(ctx, keys)
 
-	if err != nil && !db.IsNotFound(err) {
-		logger.Warn("failed to revalidate many", "resource", c.resource, "error", err.Error(), "keys", keys)
+	if err != nil && !db.IsNotFound(err) { //faultline:equivalent the condition only decides whether to log
+		logger.Warn("failed to revalidate many", "resource", c.resource, "error", err.Error(), "keys", keys) //faultline:equivalent log output only
 	}
 
 	switch op(err) {
 	case WriteValue:
 		if values != nil {
 			// Write the values we got
-			c.SetMany(ctx, values)
+			c.setInOrder(keys, values)
 
 			// Automatically write NULL for keys that weren't returned
 			var notFoundKeys []K
@@ -710,13 +785,13 @@ func (c *cache[K, V]) revalidateMany(
 					notFoundKeys = append(notFoundKeys, key)
 				}
 			}
-			if len(notFoundKeys) > 0 {
+			if len(notFoundKeys) > 0 { //faultline:equivalent SetNullMany with no keys writes nothing
 				c.SetNullMany(ctx, notFoundKeys)
 			}
 		}
 	case WriteNull:
 		c.SetNullMany(ctx, keys)
-	case Noop:
+	case Noop: //faultline:equivalent the switch has no default, so an empty or missing Noop case does the same
 		// Don't cache anything
 	}
 }

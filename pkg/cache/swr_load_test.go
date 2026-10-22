@@ -262,7 +262,7 @@ func TestSWRExpiredReadJoinsRunningRefresh(t *testing.T) {
 	}, op)
 	require.NoError(t, err)
 	require.Equal(t, "stale", value)
-	refresh := <-c.revalidateC
+	refresh := <-queued(c)
 	refreshDone := make(chan struct{})
 	go func() {
 		defer close(refreshDone)
