@@ -73,11 +73,7 @@ func (e *entry) mergeRows(rows []session) error {
 		known.consumedNs = max(known.consumedNs, row.consumedNs)
 	}
 
-	all := others
-	if live.id != "" {
-		all = append(slices.Clone(others), live)
-	}
-	next, err := summarize(all, live.id)
+	next, err := summarize(others, live)
 	if err != nil {
 		return err
 	}

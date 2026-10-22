@@ -94,24 +94,27 @@ type decision struct {
 // request. `FuzzDecideMatchesSingleMachineGCRA` checks this for random
 // histories of sessions and requests.
 //
-// `liveSessionID` names this pod's live session and must be in `sessions`;
-// pass an empty `liveSessionID` if there is none. summarize is O(n log n) for
-// n sessions and runs once per refresh.
+// `otherSessions` are the sessions of peers and this pod's frozen sessions.
+// `liveSession` is this pod's live session; an empty `liveSession.id` means
+// there is none. summarize is O(n log n) for n sessions and runs once per
+// refresh.
 //
 // summarize returns an error if an anchor is not positive, if a consumed time
-// is negative, if a sum overflows int64, or if the live session is missing or
-// duplicated. It does not change `sessions`.
-func summarize(sessions []session, liveSessionID string) (summary, error) {
+// is negative, if a sum overflows int64, or if the live session is also in
+// `otherSessions`. It does not change `otherSessions`.
+func summarize(otherSessions []session, liveSession session) (summary, error) {
+	hasLiveSession := liveSession.id != ""
 	// The candidate of a session needs the sum of everything anchored at or
 	// after it. Walking from the newest anchor to the oldest builds that sum
 	// as a running total, so all candidates take one pass.
-	newestFirst := slices.Clone(sessions)
+	newestFirst := slices.Clone(otherSessions)
+	if hasLiveSession {
+		newestFirst = append(newestFirst, liveSession)
+	}
 	slices.SortFunc(newestFirst, func(left, right session) int {
 		return cmp.Compare(right.anchorAtNs, left.anchorAtNs)
 	})
 
-	var liveAnchorAtNs int64
-	liveCount := 0
 	for _, s := range newestFirst {
 		err := assert.All(
 			assert.Greater(s.anchorAtNs, 0, "session anchor must be positive"),
@@ -120,13 +123,9 @@ func summarize(sessions []session, liveSessionID string) (summary, error) {
 		if err != nil {
 			return summary{}, err
 		}
-		if liveSessionID != "" && s.id == liveSessionID {
-			liveCount++
-			liveAnchorAtNs = s.anchorAtNs
-		}
 	}
-	if liveSessionID != "" && liveCount != 1 {
-		return summary{}, fault.New("live session must be in sessions exactly once")
+	if hasLiveSession && slices.ContainsFunc(otherSessions, func(s session) bool { return s.id == liveSession.id }) {
+		return summary{}, fault.New("live session must not also be in the other sessions")
 	}
 
 	var result summary
@@ -148,7 +147,7 @@ func summarize(sessions []session, liveSessionID string) (summary, error) {
 			return summary{}, err
 		}
 		result.resetAtNs = max(result.resetAtNs, candidateNs)
-		if liveSessionID != "" && anchorNs <= liveAnchorAtNs {
+		if hasLiveSession && anchorNs <= liveSession.anchorAtNs {
 			result.maxCandidateRaisedByLiveSessionNs = max(result.maxCandidateRaisedByLiveSessionNs, candidateNs)
 		}
 		start = end
