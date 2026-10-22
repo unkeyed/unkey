@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
@@ -39,6 +40,7 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 		UserID:      row.UserID,
 		WorkspaceID: row.WorkspaceID,
 		DeviceName:  row.DeviceName.String,
+		ExpiresAt:   time.UnixMilli(row.ExpiresAt),
 	}
 	active := !row.RevokedAt.Valid && row.ExpiresAt > s.Clock.Now().UnixMilli()
 	s.remember(ctx, sessionID, SessionVerdict{Allowed: active, Session: session})
@@ -120,12 +122,17 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 	}
 	var rows []db.CliSession
 	var err error
+	now := s.Clock.Now().UnixMilli()
 	if isAdmin(req.Principal) {
-		rows, err = db.Query.ListCLISessionsByWorkspace(ctx, s.DB.RO(), req.Principal.AuthorizedWorkspaceID)
+		rows, err = db.Query.ListCLISessionsByWorkspace(ctx, s.DB.RO(), db.ListCLISessionsByWorkspaceParams{
+			WorkspaceID: req.Principal.AuthorizedWorkspaceID,
+			Now:         now,
+		})
 	} else {
 		rows, err = db.Query.ListCLISessionsByUser(ctx, s.DB.RO(), db.ListCLISessionsByUserParams{
 			WorkspaceID: req.Principal.AuthorizedWorkspaceID,
 			UserID:      req.Principal.Subject.ID,
+			Now:         now,
 		})
 	}
 	if err != nil {

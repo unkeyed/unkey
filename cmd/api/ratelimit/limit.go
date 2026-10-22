@@ -44,7 +44,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 			cli.Int64("cost", "How much quota this request consumes (default 1).", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

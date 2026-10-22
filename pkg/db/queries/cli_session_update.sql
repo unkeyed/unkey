@@ -18,8 +18,13 @@ WHERE id = sqlc.arg(id)
   AND workspace_id = sqlc.arg(workspace_id)
   AND revoked_at IS NULL;
 
--- name: RevokeCLISessionFamily :exec
+-- name: RevokeCLISessionFamily :execrows
 UPDATE cli_sessions
 SET revoked_at = sqlc.arg(revoked_at)
 WHERE refresh_family = sqlc.arg(refresh_family)
   AND revoked_at IS NULL;
+
+-- name: DeleteExpiredCLISessions :execrows
+DELETE FROM cli_sessions
+WHERE expires_at < sqlc.arg(expired_before)
+LIMIT 100;

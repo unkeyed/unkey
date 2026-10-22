@@ -11,6 +11,25 @@ import (
 	"encoding/json"
 )
 
+const deleteExpiredCLISessions = `-- name: DeleteExpiredCLISessions :execrows
+DELETE FROM cli_sessions
+WHERE expires_at < ?
+LIMIT 100
+`
+
+// DeleteExpiredCLISessions
+//
+//	DELETE FROM cli_sessions
+//	WHERE expires_at < ?
+//	LIMIT 100
+func (q *Queries) DeleteExpiredCLISessions(ctx context.Context, db DBTX, expiredBefore int64) (int64, error) {
+	result, err := db.ExecContext(ctx, deleteExpiredCLISessions, expiredBefore)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const revokeCLISession = `-- name: RevokeCLISession :execrows
 UPDATE cli_sessions
 SET revoked_at = ?
@@ -40,7 +59,7 @@ func (q *Queries) RevokeCLISession(ctx context.Context, db DBTX, arg RevokeCLISe
 	return result.RowsAffected()
 }
 
-const revokeCLISessionFamily = `-- name: RevokeCLISessionFamily :exec
+const revokeCLISessionFamily = `-- name: RevokeCLISessionFamily :execrows
 UPDATE cli_sessions
 SET revoked_at = ?
 WHERE refresh_family = ?
@@ -58,9 +77,12 @@ type RevokeCLISessionFamilyParams struct {
 //	SET revoked_at = ?
 //	WHERE refresh_family = ?
 //	  AND revoked_at IS NULL
-func (q *Queries) RevokeCLISessionFamily(ctx context.Context, db DBTX, arg RevokeCLISessionFamilyParams) error {
-	_, err := db.ExecContext(ctx, revokeCLISessionFamily, arg.RevokedAt, arg.RefreshFamily)
-	return err
+func (q *Queries) RevokeCLISessionFamily(ctx context.Context, db DBTX, arg RevokeCLISessionFamilyParams) (int64, error) {
+	result, err := db.ExecContext(ctx, revokeCLISessionFamily, arg.RevokedAt, arg.RefreshFamily)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const rotateCLISessionRefreshToken = `-- name: RotateCLISessionRefreshToken :execrows

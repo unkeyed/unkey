@@ -32,7 +32,11 @@ export const cliSessions = mysqlTable(
     revokedAt: bigint("revoked_at", { mode: "number" }),
   },
   (table) => [
-    index("cli_sessions_workspace_user_idx").on(table.workspaceId, table.userId),
+    index("cli_sessions_workspace_user_created_idx").on(
+      table.workspaceId,
+      table.userId,
+      table.createdAt,
+    ),
     index("cli_sessions_refresh_family_idx").on(table.refreshFamily),
     index("cli_sessions_expires_at_idx").on(table.expiresAt),
   ],

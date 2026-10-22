@@ -27,6 +27,9 @@ func platformGet(service, account string) (string, error) {
 }
 
 func platformSet(service, account, secret string) error {
+	if ExceedsWindowsCredentialBlob(secret) {
+		return ErrUnavailable
+	}
 	cred := wincred.NewGenericCredential(windowsCredentialTarget(service, account))
 	cred.UserName = account
 	cred.Comment = secretToolLabel

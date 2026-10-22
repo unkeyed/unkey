@@ -85,7 +85,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	}
 	dockerImage := args[0]
 
-	credential, err := util.Credential(cmd)
+	credential, err := util.Credential(ctx, cmd)
 	if err != nil {
 		return err
 	}

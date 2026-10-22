@@ -1,6 +1,7 @@
 "use client";
 
 import { type CliSession, listCliSessions, revokeCliSession } from "@/lib/cli/device-api";
+import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, TimestampInfo, toast } from "@unkey/ui";
@@ -32,7 +33,7 @@ export function CliSessions() {
           {user?.role === "admin"
             ? "You can see every CLI session in this workspace."
             : "You can see and revoke your own CLI sessions."}{" "}
-          <Link href="/cli/device" className="underline">
+          <Link href={routes.cli.device()} className="underline">
             Approve a new login
           </Link>
         </p>
@@ -90,6 +91,10 @@ function SessionRow({
               <>
                 Revoked <TimestampInfo value={session.revokedAt} displayType="relative" />
               </>
+            ) : session.expiresAt <= Date.now() ? (
+              <>
+                Expired <TimestampInfo value={session.expiresAt} displayType="relative" />
+              </>
             ) : (
               <>
                 Expires <TimestampInfo value={session.expiresAt} displayType="relative" />
@@ -97,7 +102,7 @@ function SessionRow({
             )}
           </span>
         </div>
-        {session.revokedAt ? null : (
+        {session.revokedAt || session.expiresAt <= Date.now() ? null : (
           <Button type="button" variant="outline" loading={revoking} onClick={onRevoke}>
             Revoke
           </Button>

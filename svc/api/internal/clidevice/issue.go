@@ -155,10 +155,14 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 }
 
 func (s *Service) denyAuthorization(ctx context.Context, id string) error {
-	return db.Query.UpdateDeviceAuthorizationStatus(ctx, s.DB.RW(), db.UpdateDeviceAuthorizationStatusParams{
-		Status: db.DeviceAuthorizationsStatusDenied,
-		ID:     id,
-	})
+	n, err := db.Query.DenyDeviceAuthorization(ctx, s.DB.RW(), id)
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return alreadyIssued()
+	}
+	return nil
 }
 
 func waitingPoll() PollResult {

@@ -3,6 +3,7 @@ package login
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +20,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli/keystore"
 	"github.com/unkeyed/unkey/pkg/cli/session"
 )
+
+func useSessionStore(t *testing.T) *session.MemoryStore {
+	t.Helper()
+	store := &session.MemoryStore{}
+	session.SetStore(store)
+	t.Cleanup(func() { session.SetStore(nil) })
+	return store
+}
 
 func TestFormatUserCode(t *testing.T) {
 	require.Equal(t, "Z H V G - S X Q M", formatUserCode("zhvg-sxqm"))
@@ -64,6 +73,7 @@ func TestRootKeyFlagFallsBackToTheConfigFile(t *testing.T) {
 }
 
 func TestDeviceLoginPollsUntilTheKeyIsIssued(t *testing.T) {
+	useSessionStore(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	store := &memoryRootKeyStore{}
@@ -154,6 +164,7 @@ func TestDeviceLoginStopsWhenDenied(t *testing.T) {
 }
 
 func TestDeviceLoginRetriesTransientPollErrors(t *testing.T) {
+	useSessionStore(t)
 	store := &memoryRootKeyStore{}
 	polls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -207,14 +218,22 @@ func TestDeviceLoginStopsOnClientPollErrors(t *testing.T) {
 	require.EqualError(t, err, "This login was already used.")
 }
 
-func TestDeviceLoginPrintsTheRefreshTokenWhenItCannotBeStored(t *testing.T) {
+func TestDeviceLoginRevokesTheSessionWhenItCannotBeStored(t *testing.T) {
+	store := useSessionStore(t)
+	store.SetError(errors.New("keychain rejected the blob"))
 	home := filepath.Join(t.TempDir(), "not-a-directory")
 	require.NoError(t, os.WriteFile(home, []byte("x"), 0o600))
 	t.Setenv("HOME", home)
+	var revoked bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("content-type", "application/json")
 		if r.URL.Path == "/v2/cli.startDeviceLogin" {
 			_, _ = w.Write([]byte(`{"data":{"loginId":"cdl_test","userCode":"ABCD-EFGH","verificationUriComplete":"http://dashboard.example/cli/device?user_code=ABCD-EFGH","expiresIn":300,"interval":1}}`))
+			return
+		}
+		if r.URL.Path == "/v2/cli.revokeSession" {
+			revoked = r.Header.Get("authorization") == "Bearer access_issued"
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 		_, _ = w.Write([]byte(`{"data":{"status":"complete","interval":1,"accessToken":"access_issued","refreshToken":"refresh_issued","expiresIn":3600,"workspaceId":"ws_1","sessionId":"clis_1"}}`))
@@ -228,10 +247,10 @@ func TestDeviceLoginPrintsTheRefreshTokenWhenItCannotBeStored(t *testing.T) {
 			client:    srv.Client(),
 			sleep:     func(context.Context, time.Duration) error { return nil },
 		})
-		require.Error(t, err)
+		require.ErrorContains(t, err, "could not store the CLI session, so it was revoked")
 	})
-	require.Contains(t, stderr, "clis_1")
-	require.Contains(t, stderr, "refresh_issued")
+	require.True(t, revoked)
+	require.NotContains(t, stderr, "refresh_issued")
 }
 
 func TestReadRootKeyFromStdin(t *testing.T) {
