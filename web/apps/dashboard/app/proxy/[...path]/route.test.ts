@@ -78,32 +78,29 @@ describe("dashboard proxy POST", () => {
     expect(res.status).toBe(401);
   });
 
-  it.each(["api.unkey.com"])(
-    "forwards the WorkOS access token to %s",
-    async (hostname) => {
-      mockedEnv.mockReturnValue({
-        ...env(),
-        UNKEY_API_URL: `https://${hostname}`,
-        UNKEY_JWT_AUDIENCE: "api.unkey.local",
-      });
-      mockedGetAuth.mockResolvedValue({
-        userId: "user_1",
-        orgId: "org_1",
-        accessToken: "workos_access_token",
-        role: "owner",
-      });
+  it.each(["api.unkey.com"])("forwards the WorkOS access token to %s", async (hostname) => {
+    mockedEnv.mockReturnValue({
+      ...env(),
+      UNKEY_API_URL: `https://${hostname}`,
+      UNKEY_JWT_AUDIENCE: "api.unkey.local",
+    });
+    mockedGetAuth.mockResolvedValue({
+      userId: "user_1",
+      orgId: "org_1",
+      accessToken: "workos_access_token",
+      role: "owner",
+    });
 
-      const res = await POST(makeRequest({ accept: "application/json" }), { params });
+    const res = await POST(makeRequest({ accept: "application/json" }), { params });
 
-      expect(res.status).toBe(200);
-      expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
-      expect(fetch).toHaveBeenCalledOnce();
-      const [, init] = vi.mocked(fetch).mock.calls[0];
-      expect(init).toBeDefined();
-      const headers = new Headers(init?.headers);
-      expect(headers.get("authorization")).toBe("Bearer workos_access_token");
-    },
-  );
+    expect(res.status).toBe(200);
+    expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledOnce();
+    const [, init] = vi.mocked(fetch).mock.calls[0];
+    expect(init).toBeDefined();
+    const headers = new Headers(init?.headers);
+    expect(headers.get("authorization")).toBe("Bearer workos_access_token");
+  });
 
   it("mints a proxy JWT for a local API even when a WorkOS access token exists", async () => {
     mockedEnv.mockReturnValue({
