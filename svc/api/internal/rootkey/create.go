@@ -89,13 +89,17 @@ func insert(ctx context.Context, tx db.DBTX, req InsertRequest) (InsertResult, e
 		Meta:        map[string]any{},
 	}
 	base := auditlog.AuditLog{
-		WorkspaceID: req.Principal.AuthorizedWorkspaceID,
-		ActorType:   actor.Type,
-		ActorID:     actor.ID,
-		ActorName:   actor.Name,
-		ActorMeta:   actor.Meta,
-		RemoteIP:    req.RemoteIP,
-		UserAgent:   req.UserAgent,
+		Event:         "",
+		WorkspaceID:   req.Principal.AuthorizedWorkspaceID,
+		Display:       "",
+		ActorType:     actor.Type,
+		ActorID:       actor.ID,
+		ActorName:     actor.Name,
+		ActorMeta:     actor.Meta,
+		Targets:       nil,
+		RemoteIP:      req.RemoteIP,
+		UserAgent:     req.UserAgent,
+		CorrelationID: "",
 	}
 	created := base
 	created.Event = auditlog.RootKeyCreateEvent
