@@ -96,6 +96,15 @@ describe("app-scoped paths", () => {
     );
   });
 
+  it("carries an env vars search", () => {
+    expect(routes.projects.apps.envVars(scope)).toBe(
+      "/acme/projects/proj_123/apps/app_456/env-vars",
+    );
+    expect(routes.projects.apps.envVars({ ...scope, search: "REDIS_URL" })).toBe(
+      "/acme/projects/proj_123/apps/app_456/env-vars?search=REDIS_URL",
+    );
+  });
+
   it("builds an openapi diff path", () => {
     expect(routes.projects.apps.openapiDiff({ ...scope, from: "dep_old", to: "dep_new" })).toBe(
       "/acme/projects/proj_123/apps/app_456/openapi-diff?from=dep_old&to=dep_new",

@@ -9,6 +9,7 @@ export default defineMeta({
     "badge",
     "empty-state",
     "item",
+    "pagination",
     "resource-list",
     "select",
     "settings-card",
