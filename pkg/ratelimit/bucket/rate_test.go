@@ -50,9 +50,9 @@ func FuzzRateMatchesExactArithmetic(f *testing.F) {
 			t.Skip("wrapped around")
 		}
 		units := int64(c.Uint64() % (uint64(rate.Limit) + 1))
-		freeNs := int64(c.Uint64() % (uint64(rate.Duration) + 1))
+		freeNs := int64(c.Uint64() % (uint64(rate.Duration.Nanoseconds()) + 1))
 
-		exact := new(big.Int).Mul(big.NewInt(units), big.NewInt(int64(rate.Duration)))
+		exact := new(big.Int).Mul(big.NewInt(units), big.NewInt(rate.Duration.Nanoseconds()))
 		exact.Add(exact, big.NewInt(rate.Limit-1))
 		exact.Quo(exact, big.NewInt(rate.Limit))
 		require.Equal(t, exact.Int64(), rate.unitsToNs(units))

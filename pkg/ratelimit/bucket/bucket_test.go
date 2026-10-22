@@ -118,9 +118,9 @@ func requestMatchesSingleMachine(t *testing.T, b *bucket.Bucket, sessions []buck
 	decision, err := b.Check(nowNs, rate, units)
 	require.NoError(t, err)
 
-	consumedNs := ceilDiv(units*int64(rate.Duration), rate.Limit)
+	consumedNs := ceilDiv(units*rate.Duration.Nanoseconds(), rate.Limit)
 	after := max(before, nowNs) + consumedNs
-	allowed := units <= rate.Limit && after-nowNs <= int64(rate.Duration)
+	allowed := units <= rate.Limit && after-nowNs <= rate.Duration.Nanoseconds()
 	require.Equal(t, allowed, decision.Allowed)
 	if !allowed || units == 0 {
 		require.Equal(t, before, decision.ResetAtNs)
@@ -184,7 +184,7 @@ func resetAtByFormula(sessions []bucket.Session) int64 {
 // remainingBySearch returns the largest number of units that fit at nowNs.
 func remainingBySearch(rate bucket.Rate, nowNs, resetAtNs int64) int64 {
 	for units := rate.Limit; units > 0; units-- {
-		if max(resetAtNs, nowNs)+ceilDiv(units*int64(rate.Duration), rate.Limit)-nowNs <= int64(rate.Duration) {
+		if max(resetAtNs, nowNs)+ceilDiv(units*rate.Duration.Nanoseconds(), rate.Limit)-nowNs <= rate.Duration.Nanoseconds() {
 			return units
 		}
 	}
