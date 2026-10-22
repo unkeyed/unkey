@@ -649,9 +649,44 @@ k8s_resource(
   links=['https://app.unkey.local'],
 )
 
+# ─── Private network DNS ───────────────────────────────────────────────────
+# Adds the unkey.internal server block to the cluster CoreDNS and leaves the
+# stock server block unchanged. Reruns replace only the marked block.
+local_resource(
+  'coredns-private-network',
+  '''
+  set -euo pipefail
+  current=$(mktemp)
+  desired=$(mktemp)
+  trap 'rm -f "$current" "$desired"' EXIT
+  kubectl -n kube-system get configmap coredns -o go-template='{{.data.Corefile}}' > "$current"
+  {
+    awk '/^# BEGIN unkey private network$/ { skip = 1 } !skip { print } /^# END unkey private network$/ { skip = 0 }' "$current"
+    cat k8s/coredns/private-network.Corefile
+  } > "$desired"
+  if ! cmp -s "$current" "$desired"; then
+    kubectl -n kube-system patch configmap coredns --type merge \
+      -p "$(jq -n --rawfile corefile "$desired" '{data: {Corefile: $corefile}}')"
+    kubectl -n kube-system rollout restart deployment/coredns
+  fi
+  kubectl -n kube-system rollout status deployment/coredns --timeout=180s
+  ''',
+  deps=['k8s/coredns/private-network.Corefile'],
+  resource_deps=[] if ORB else ['cilium-ready'],
+  labels=['setup'],
+  allow_parallel=True,
+)
+
 # ─── Krane ─────────────────────────────────────────────────────────────────
 go_service_image('unkey/krane:dev', 'krane')
+kube_dns_ip = str(local(
+    "kubectl -n kube-system get service kube-dns -o jsonpath='{.spec.clusterIP}'",
+    quiet=True, echo_off=True,
+)).strip()
 krane_resources = read_yaml_stream('k8s/manifests/krane.yaml')
+for resource in krane_resources:
+    if resource.get('kind') == 'ConfigMap' and resource['metadata']['name'] == 'krane-config':
+        resource['data']['unkey.toml'] = resource['data']['unkey.toml'].replace('${UNKEY_PRIVATE_DNS_RESOLVER_IP}', kube_dns_ip)
 if has_depot_credentials:
     for resource in krane_resources:
         metadata = resource.get('metadata', {})
@@ -665,7 +700,7 @@ password = "${UNKEY_REGISTRY_PASSWORD}"
         if resource.get('kind') == 'Deployment' and metadata.get('name') == 'krane':
             for container in resource['spec']['template']['spec']['containers']:
                 if container.get('name') == 'krane':
-                    container['env'] = [{
+                    container['env'] = container.get('env', []) + [{
                         'name': 'UNKEY_REGISTRY_PASSWORD',
                         'valueFrom': {
                             'secretKeyRef': {
@@ -676,7 +711,7 @@ password = "${UNKEY_REGISTRY_PASSWORD}"
                     }]
 k8s_yaml(encode_yaml_stream(krane_resources))
 krane_network_deps = ['cilium-network-policy-crd'] if ORB else ['cilium-policies']
-krane_deps = ['ctrl-api', 'rbac', 'namespace', 'node-labels', 'registry', 'topolvm', 'krane-compile'] + krane_network_deps
+krane_deps = ['ctrl-api', 'rbac', 'namespace', 'node-labels', 'registry', 'topolvm', 'krane-compile', 'coredns-private-network'] + krane_network_deps
 if has_depot_credentials:
     krane_deps.append('depot-credentials')
 k8s_resource(

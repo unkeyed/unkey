@@ -105,6 +105,20 @@ installation because the node needs Cilium to become ready. Hubble readiness
 does not block application startup. Orbs use bridge networking and wait for
 node readiness during Minikube startup instead.
 
+Private networking uses the cluster CoreDNS in both modes. The
+`coredns-private-network` resource appends the `unkey.internal` server block
+from `dev/k8s/coredns/private-network.Corefile` to the `coredns` ConfigMap.
+It replaces only that marked block and leaves the default server block
+unchanged. CoreDNS restarts only when the Corefile changes. The block resolves
+only `unkey-connection-<32 hex>.<namespace>.unkey.internal` to the Service of
+that name in that namespace, with a 5 second TTL. A region prefix of 1 to 22
+characters, as in `<region>.unkey-connection-<32 hex>.<namespace>.unkey.internal`,
+resolves to the `unkey-r-<32 hex>-<region>` Service instead. A region with no
+addresses returns an empty answer. Other names in the zone return NXDOMAIN.
+Answers with multiple addresses come in random order. Tilt sets Krane's
+`private_network.resolver_ip` to the `kube-system/kube-dns` ClusterIP. Customer
+pods use that nameserver with `ndots:1` and no search domains.
+
 Minikube 1.39.0 requires `--force` when CNI installation is disabled with the
 containerd runtime. The Helm-managed Cilium path uses this flag so Tilt can
 install Cilium. It also bypasses Minikube's driver and resource safety checks.
