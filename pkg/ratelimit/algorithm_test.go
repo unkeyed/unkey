@@ -81,6 +81,30 @@ func TestDecideKeepsTheLiveSessionWhenResetAtIsNow(t *testing.T) {
 	require.Zero(t, result.createNewSessionAtNs)
 }
 
+// TestDecideIsExactForLargeRates guarantees that `decide` itself uses the
+// exact 128-bit math for the rates in the package documentation, whose
+// `Limit × Duration` does not fit into 64 bits: the full limit uses exactly
+// one `Duration`, and an idle rate limit reports the full limit as remaining.
+func TestDecideIsExactForLargeRates(t *testing.T) {
+	rates := []Rate{
+		{Limit: 10_000, Duration: 30 * 24 * time.Hour},
+		{Limit: 400_000_000, Duration: time.Minute},
+	}
+	for _, rate := range rates {
+		t.Run(fmt.Sprintf("%d per %s", rate.Limit, rate.Duration), func(t *testing.T) {
+			idle, err := decide(summary{}, false, 1, rate, 0)
+			require.NoError(t, err)
+			require.Equal(t, rate.Limit, idle.remaining)
+
+			full, err := decide(summary{}, false, 1, rate, rate.Limit)
+			require.NoError(t, err)
+			require.True(t, full.allowed)
+			require.Equal(t, rate.Duration.Nanoseconds(), full.consumedNs)
+			require.Zero(t, full.remaining)
+		})
+	}
+}
+
 // TestDecideAtTheEdges guarantees that `decide` rejects invalid input,
 // decides exactly up to the int64 limit, and returns an error instead of
 // wrapping around one nanosecond later. It also guarantees that a huge
@@ -98,6 +122,8 @@ func TestDecideAtTheEdges(t *testing.T) {
 		{"negative units", 1, Rate{Limit: 1, Duration: 2}, -1, true, false},
 		{"zero limit", 1, Rate{Limit: 0, Duration: 2}, 1, true, false},
 		{"zero duration", 1, Rate{Limit: 1, Duration: 0}, 1, true, false},
+		{"negative limit", 1, Rate{Limit: -1, Duration: 2}, 1, true, false},
+		{"negative duration", 1, Rate{Limit: 1, Duration: -2}, 1, true, false},
 		{"reset_at exactly at the int64 maximum", math.MaxInt64 - 2, Rate{Limit: 1, Duration: 2}, 1, false, true},
 		{"reset_at one past the int64 maximum", math.MaxInt64 - 1, Rate{Limit: 1, Duration: 2}, 1, true, false},
 		{"huge units on a huge duration", 1, Rate{Limit: 1, Duration: math.MaxInt64}, math.MaxInt64, false, false},
@@ -189,6 +215,7 @@ func FuzzDecideFollowsGCRARule(f *testing.F) {
 		var e entry
 		var nowNs int64 = 1_000
 		peerCount := 0
+		ownCount := 0
 
 		for range 100 {
 			switch c.Uint8() % 5 {
@@ -216,7 +243,8 @@ func FuzzDecideFollowsGCRARule(f *testing.F) {
 				e.endLiveSession()
 			case 4:
 				units := int64(c.Uint8()) % (rate.Limit + 2)
-				requestFollowsGCRARule(t, &e, rate, nowNs, units)
+				ownCount++
+				requestFollowsGCRARule(t, &e, rate, nowNs, units, fmt.Sprintf("own_%d", ownCount))
 			}
 			fresh, err := summarize(e.others, e.live)
 			require.NoError(t, err)
@@ -227,7 +255,7 @@ func FuzzDecideFollowsGCRARule(f *testing.F) {
 
 // requestFollowsGCRARule checks one request against the GCRA rule
 // and against the formula over all sessions, then spends it.
-func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int64) {
+func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int64, newSessionID string) {
 	t.Helper()
 	all := e.all()
 	before := resetAtByFormula(all)
@@ -269,8 +297,9 @@ func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int6
 		require.Equal(t, max(nowNs, newestAnchorAtNs), result.createNewSessionAtNs)
 	}
 
-	require.NoError(t, e.spend(result, fmt.Sprintf("own_%d", len(all))))
+	require.NoError(t, e.spend(result, newSessionID))
 	require.Equal(t, after, resetAtByFormula(e.all()))
+	require.Len(t, e.all(), len(all)+min(1, int(result.createNewSessionAtNs)), "spend never removes a session")
 }
 
 // resetAtByFormula computes `reset_at` straight from its definition, in O(n²).

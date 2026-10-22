@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -22,6 +23,17 @@ func TestEntryMergeRowsKeepsTheLargerConsumedTime(t *testing.T) {
 
 	require.NoError(t, e.mergeRows([]session{{id: "own", anchorAtNs: 100, consumedNs: 5}}))
 	require.Equal(t, int64(105), e.summary.resetAtNs)
+
+	e.endLiveSession()
+	require.NoError(t, e.mergeRows([]session{{id: "peer", anchorAtNs: 50, consumedNs: 60}}))
+	require.NoError(t, e.mergeRows([]session{
+		{id: "own", anchorAtNs: 100, consumedNs: 2},
+		{id: "peer", anchorAtNs: 50, consumedNs: 2},
+	}))
+	require.ElementsMatch(t, []session{
+		{id: "own", anchorAtNs: 100, consumedNs: 5},
+		{id: "peer", anchorAtNs: 50, consumedNs: 60},
+	}, e.all(), "stale rows of frozen and peer sessions must not move them back")
 }
 
 // TestEntryMergeRowsUpdatesEveryKnownSession guarantees that a newer row of
@@ -71,12 +83,74 @@ func TestEntryMergeRowsRejectsInvalidRows(t *testing.T) {
 // reuses a known ID. The upsert keeps the larger `consumed_ns`, so a session
 // that starts again from zero under an old ID would be hidden.
 func TestEntrySpendRejectsAReusedSessionID(t *testing.T) {
+	rate := Rate{Limit: 60, Duration: 60}
 	var e entry
-	require.NoError(t, e.mergeRows([]session{{id: "peer", anchorAtNs: 50, consumedNs: 1}}))
-	result, err := e.check(100, Rate{Limit: 10, Duration: 10}, 1)
+	first, err := e.check(100, rate, 1)
+	require.NoError(t, err)
+	require.NoError(t, e.spend(first, "own"))
+	require.NoError(t, e.mergeRows([]session{{id: "peer", anchorAtNs: 150, consumedNs: 60}}))
+
+	result, err := e.check(155, rate, 1)
 	require.NoError(t, err)
 	require.NotZero(t, result.createNewSessionAtNs)
+	before := snapshot(e)
 	require.Error(t, e.spend(result, "peer"))
+	require.Error(t, e.spend(result, "own"))
 	require.Error(t, e.spend(result, ""))
-	require.Equal(t, []session{{id: "peer", anchorAtNs: 50, consumedNs: 1}}, e.all())
+	require.Equal(t, before, snapshot(e), "a failed spend must not change the entry")
+}
+
+// entrySnapshot is a deep copy of an entry, for comparing it before and after.
+type entrySnapshot struct {
+	live    *session
+	others  []session
+	summary summary
+}
+
+func snapshot(e entry) entrySnapshot {
+	var live *session
+	if e.live != nil {
+		copied := *e.live
+		live = &copied
+	}
+	return entrySnapshot{live: live, others: slices.Clone(e.others), summary: e.summary}
+}
+
+// TestEntryMergeRowsIsAllOrNothing guarantees that a merge that fails on a
+// later row leaves the entry exactly as it was, even after earlier rows in
+// the same call were valid. Otherwise the summary would no longer match the
+// sessions.
+func TestEntryMergeRowsIsAllOrNothing(t *testing.T) {
+	var e entry
+	result, err := e.check(100, Rate{Limit: 10, Duration: 10}, 1)
+	require.NoError(t, err)
+	require.NoError(t, e.spend(result, "own"))
+	require.NoError(t, e.mergeRows([]session{{id: "peer", anchorAtNs: 50, consumedNs: 1}}))
+	before := snapshot(e)
+
+	require.Error(t, e.mergeRows([]session{
+		{id: "own", anchorAtNs: 100, consumedNs: 9},
+		{id: "peer", anchorAtNs: 50, consumedNs: 9},
+		{id: "", anchorAtNs: 1, consumedNs: 1},
+	}))
+	require.Equal(t, before, snapshot(e))
+
+	require.Error(t, e.mergeRows([]session{{id: "own", anchorAtNs: 101, consumedNs: 1}}))
+	require.Equal(t, before, snapshot(e))
+}
+
+// TestEntryMergeRowsNeverRemovesASession guarantees that sessions missing
+// from a refresh stay in memory. A frozen session of this pod may not be
+// flushed yet, and dropping it would forget admitted units.
+func TestEntryMergeRowsNeverRemovesASession(t *testing.T) {
+	var e entry
+	result, err := e.check(100, Rate{Limit: 10, Duration: 10}, 1)
+	require.NoError(t, err)
+	require.NoError(t, e.spend(result, "own"))
+	e.endLiveSession()
+	require.NoError(t, e.mergeRows([]session{{id: "peer", anchorAtNs: 50, consumedNs: 1}}))
+	require.ElementsMatch(t, []session{
+		{id: "own", anchorAtNs: 100, consumedNs: 1},
+		{id: "peer", anchorAtNs: 50, consumedNs: 1},
+	}, e.all())
 }
