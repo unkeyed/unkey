@@ -97,7 +97,7 @@ func securitySetUnlocked(bin, service, account, secret string) error {
 		return err
 	}
 	oldRaw := ""
-	oldRef := chunkRef{}
+	oldRef := chunkRef{nonce: "", n: 0}
 	if raw, readErr := readItem(bin, service, account); readErr == nil {
 		oldRaw = raw
 		if ref, parseErr := parseChunkHeader(raw); parseErr == nil {
@@ -229,7 +229,7 @@ func parseChunkHeader(raw string) (chunkRef, error) {
 		return chunkRef{nonce: nonce, n: n}, nil
 	}
 	if !strings.HasPrefix(raw, chunkHeader) {
-		return chunkRef{}, nil
+		return chunkRef{nonce: "", n: 0}, nil
 	}
 	n, err := strconv.Atoi(strings.TrimPrefix(raw, chunkHeader))
 	if err != nil || n <= 0 || n > 1024 {
@@ -284,7 +284,7 @@ func securityDelete(bin, service, account string) error {
 	}
 	defer unlock()
 	raw, readErr := readItem(bin, service, account)
-	ref := chunkRef{}
+	ref := chunkRef{nonce: "", n: 0}
 	if readErr == nil {
 		if parsed, parseErr := parseChunkHeader(raw); parseErr == nil {
 			ref = parsed
