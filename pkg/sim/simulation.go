@@ -81,6 +81,14 @@ func WithValidator[S any](validator Validator[S]) apply[S] {
 	}
 }
 
+// WithTicks sets how many events Run executes.
+func WithTicks[S any](ticks int64) apply[S] {
+	return func(s *Simulation[S]) *Simulation[S] {
+		s.ticks = ticks
+		return s
+	}
+}
+
 // WithState configures the initial state for the simulation.
 // The provided function receives a random number generator and should
 // return a pointer to a newly initialized state with random values.
