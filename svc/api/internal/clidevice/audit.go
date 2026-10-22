@@ -2,6 +2,7 @@ package clidevice
 
 import (
 	"context"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -21,6 +22,7 @@ func (s *Service) writeAudit(ctx context.Context, tx db.DBTX, event auditlog.Aud
 		Source: principal.CLISessionSource{
 			SessionID:  sessionID,
 			DeviceName: device,
+			ExpiresAt:  time.Time{},
 		},
 		AuthorizedWorkspaceID: workspaceID,
 		Permissions:           nil,
