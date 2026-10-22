@@ -2,7 +2,7 @@
 
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog";
 import { IconXmarkOutline18 } from "@unkey/icons";
-import { type VariantProps, cva } from "class-variance-authority";
+import { type VariantProps, cva } from "@unkey/ui";
 import * as React from "react";
 
 import { cn } from "cn";

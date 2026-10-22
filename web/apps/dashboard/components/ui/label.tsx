@@ -1,6 +1,6 @@
 "use client";
 
-import { type VariantProps, cva } from "class-variance-authority";
+import { type VariantProps, cva } from "@unkey/ui";
 import * as React from "react";
 
 import { cn } from "cn";

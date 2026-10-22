@@ -1,7 +1,7 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
+import { type VariantProps, cva } from "../../lib/cva";
 import { cn } from "../../lib/utils";
 
 function SecondaryNav({ className, children, ...props }: React.ComponentProps<"nav">) {
