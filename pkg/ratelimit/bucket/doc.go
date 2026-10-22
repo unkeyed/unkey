@@ -1,29 +1,28 @@
 // Package bucket holds the math of the global rate limiter: GCRA (Generic Cell
 // Rate Algorithm) over the sessions of the `ratelimit_state` table.
 //
-// The package has no I/O, no clock and no locks. The caller reads the
-// sessions, passes the time, and serializes access, so the same code runs in
-// the limiter and in simulations.
+// [Sessions] holds the sessions of one rate limit that one pod knows about,
+// and caches the values a decision needs. The pod merges rows from the
+// database into it, and checks and spends requests against it:
 //
-//	b, err := bucket.New(sessions, liveSessionID)
+//	var sessions bucket.Sessions
+//	err := sessions.MergeRows(rowsFromReplica)
 //	if err != nil {
 //		return err
 //	}
-//	decision, err := b.Check(nowNs, bucket.Rate{Limit: 100, Duration: time.Minute}, 1)
+//	decision, err := sessions.Check(nowNs, bucket.Rate{Limit: 100, Duration: time.Minute}, 1)
 //	if err != nil {
 //		return err
 //	}
-//	b.Apply(decision)
-//	switch {
-//	case !decision.Allowed, decision.ConsumedNs == 0:
-//		// Denied, or zero units: write nothing.
-//	case decision.CreateNewSessionAtNs != 0:
-//		// Create a session with a new ID, anchored at
-//		// decision.CreateNewSessionAtNs, with decision.ConsumedNs consumed.
-//		// It becomes the live session.
-//	default:
-//		// Add decision.ConsumedNs to the live session.
+//	err = sessions.Spend(decision, newSessionID)
+//	if err != nil {
+//		return err
 //	}
+//	// Write sessions.All() to the database later.
+//
+// The package has no I/O, no clock and no locks. The caller reads the rows,
+// passes the time and new session IDs, and serializes access, so the same
+// code runs in the limiter and in simulations.
 //
 // The examples in this package replay the tables below step by step.
 //
@@ -96,8 +95,8 @@
 // lost. Lost units are over-admission that never evens out.
 //
 // So each pod writes only the rows of its own sessions. The anchor of a row
-// never changes and its consumed time only grows. When the caller merges two
-// copies of one row, it keeps the larger consumed time, so a late or repeated
+// never changes and its consumed time only grows. When [Sessions.MergeRows]
+// sees two copies of one row, it keeps the larger consumed time, so a late or repeated
 // write never undoes a newer one.
 //
 // `reset_at` is computed from all rows:
@@ -115,7 +114,7 @@
 // A candidate answers one question: if the rate limit had no pause from this
 // anchor on, when would it be free? The formula is correct because each
 // admitted request keeps `reset_at` equal to single-machine GCRA, by the rule
-// in the next section. `FuzzBucketMatchesSingleMachineGCRA` checks this for
+// in the next section. `FuzzSessionsMatchesSingleMachineGCRA` checks this for
 // random histories of sessions and requests.
 //
 // # Where a request goes
@@ -136,7 +135,7 @@
 // newer sessions is larger than every candidate the live session raises,
 // adding to the live session moves `reset_at` too little or not at all.
 //
-// In both cases [Bucket.Check] sets [Decision.CreateNewSessionAtNs] to
+// In both cases [Sessions.Check] sets [Decision.CreateNewSessionAtNs] to
 // `max(now, newest anchor)`. A session anchored there is counted by the
 // candidate of every other session, and its anchor is never before now.
 // So `reset_at` becomes exactly `max(reset_at, now) + consumed time`. The old
@@ -171,7 +170,7 @@
 // the result is exact for every `Limit` and `Duration` that fit into int64,
 // with no allocation. `bits.Div64` panics if the divisor is zero or if the
 // quotient does not fit into 64 bits; [Rate.Validate] and the rule
-// `units ≤ Limit` in [Bucket.Check] exclude both cases, so keep them in front
+// `units ≤ Limit` in [Sessions.Check] exclude both cases, so keep them in front
 // of every call. `FuzzRateMatchesExactArithmetic` checks the result against
 // [math/big] over the full int64 range.
 package bucket
