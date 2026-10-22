@@ -18,6 +18,7 @@ sources:
   - svc/api/routes/v2_deployments_create_deployment/handler.go
   - web/apps/dashboard/lib/trpc/routers/github.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/_components/create-project-dialog.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/repository/repo-name-list.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/_components/deploy-plan-gate-dialog.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/page.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/wizard-model.ts
@@ -68,7 +69,7 @@ If you'd rather bring an image you built yourself, see [Deploy a container image
 
     If the workspace hasn't installed the Unkey GitHub App, the row reads **Connect GitHub** instead. It sends you to GitHub to install the app on an organization or personal account and choose repositories, then brings you back to the repository list. The installation belongs to the workspace, so you do it once.
 
-    Click a repository. If it's missing, choose **Can't find it? Add repositories on GitHub**.
+    Click a repository. The account menu above the list switches between your GitHub accounts and organizations. To import from an account that isn't listed, choose **Add GitHub account** at the bottom of that menu. If a repository is missing from a listed account, choose **Can't find it? Add repositories on GitHub**.
 
     <Frame>
       <img src="/images/dashboard/compute--get-started-deploy-from-github--select-repository.png" alt="Import a GitHub repository card with an account filter, a search field, and a list of repositories" />
