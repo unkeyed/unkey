@@ -23,6 +23,7 @@ sources:
   - web/internal/db/src/schema/github_app.ts
   - web/apps/dashboard/lib/trpc/routers/github.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/disconnect-github.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/repository/repo-name-list.tsx
 ---
 
 Connect a GitHub repository to an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> and every push becomes a deployment. You install the Unkey GitHub App once, connect a repository, and push.
@@ -36,7 +37,17 @@ You install the Unkey GitHub App once per workspace, on a GitHub organization or
 
 To do it with the API, call `github.installApp` with a root key that has `workspace.*.install_github`, and open the URL it returns.
 
-You can install the app on more than one GitHub account. An installation belongs to one workspace only, so a second workspace can't use it.
+An installation belongs to one workspace only, so a second workspace can't use it.
+
+### Add another GitHub account or organization
+
+You can install the app on more than one GitHub account. For example, install it on your personal account and on your company's organization.
+
+1. In the new-app flow, open the account menu above the repository list.
+2. Choose **Add GitHub account** at the bottom of the menu.
+3. On GitHub, pick the account or organization, choose its repositories, and approve. GitHub sends you back to Unkey.
+
+The new account now shows in the account menu. To install the app on an organization, you must be an owner of it on GitHub. Otherwise, GitHub sends the request to an owner to approve.
 
 ## Connect a repository to an app
 
