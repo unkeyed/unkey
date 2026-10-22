@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   alertCustomerLifecycle,
+  alertInvalidProductQuotaMetadata,
+  alertOrphanedDeploySubscription,
   alertPaymentFailed,
   alertPaymentRecovered,
   escapeSlackText,
@@ -138,7 +140,12 @@ type SentBlock = {
   type: string;
   text?: SentTextObject;
   fields?: SentTextObject[];
-  elements?: Array<{ type: string; url?: string; text?: SentTextObject }>;
+  elements?: Array<{
+    type: string;
+    url?: string;
+    text?: SentTextObject | string;
+    verbatim?: boolean;
+  }>;
 };
 
 const sentBlocks = (): SentBlock[] => {
@@ -155,6 +162,11 @@ const sentMrkdwnObjects = (): SentTextObject[] => {
     }
     if (Array.isArray(block.fields)) {
       objects.push(...block.fields);
+    }
+    for (const element of block.elements ?? []) {
+      if (element.type === "mrkdwn" && typeof element.text === "string") {
+        objects.push({ type: element.type, text: element.text, verbatim: element.verbatim });
+      }
     }
   }
   return objects;
@@ -428,6 +440,122 @@ describe("alertPaymentFailed", () => {
     ]);
     expect(buttonUrl()).toBe("https://dashboard.stripe.com/customers/cus_123");
   });
+});
+
+describe("billing attention alerts", () => {
+  const ids = () => ({
+    subscriptionId: `sub_${crypto.randomUUID()}`,
+    workspaceId: `ws_${crypto.randomUUID()}`,
+    sessionId: `cs_${crypto.randomUUID()}`,
+    eventId: `evt_${crypto.randomUUID()}`,
+    productId: `prod_${crypto.randomUUID()}`,
+  });
+  const fallbackText = (): string => JSON.parse(fetchMock.mock.calls[0][1].body).text;
+
+  for (const livemode of [true, false]) {
+    it(`renders the orphan consequence, copyable IDs and labeled link (live: ${livemode})`, async () => {
+      const details = ids();
+      await alertOrphanedDeploySubscription({
+        ...details,
+        reason: "subscription_conflict",
+        livemode,
+      });
+
+      expect(headerText()).toBe("Compute subscription needs attention");
+      expect(fieldTexts()).toEqual([
+        "*Product*\nCompute",
+        "*Reason*\nSubscription conflict",
+        `*Workspace ID*\n\`${details.workspaceId}\``,
+        `*Subscription*\n\`${details.subscriptionId}\``,
+      ]);
+      expect(sentText()).toContain(`Checkout session: \`${details.sessionId}\``);
+      expect(sentText()).toContain(`Stripe event: \`${details.eventId}\``);
+      expect(sentText()).toContain("still billing but is not linked to its workspace.");
+      expect(sentText()).toContain(
+        `<https://dashboard.stripe.com${livemode ? "" : "/test"}/subscriptions/${details.subscriptionId}|Review subscription in Stripe>`,
+      );
+      expect(fallbackText()).toBe(
+        `Compute subscription ${details.subscriptionId} is billing but unlinked. Review it in Stripe and cancel or refund it manually.`,
+      );
+      expect(buttonUrl()).toBeUndefined();
+      expect(sentMrkdwnObjects().every((object) => object.verbatim)).toBe(true);
+    });
+
+    it(`renders metadata consequences and encoded resource links (live: ${livemode})`, async () => {
+      const details = { ...ids(), productId: `prod_${crypto.randomUUID()}/a b` };
+      await alertInvalidProductQuotaMetadata({ ...details, productName: "Compute Pro", livemode });
+
+      const base = `https://dashboard.stripe.com${livemode ? "" : "/test"}`;
+      expect(headerText()).toBe("Product quota settings need attention");
+      expect(fieldTexts()).toEqual([
+        "*Product*\nCompute Pro",
+        `*Subscription*\n\`${details.subscriptionId}\``,
+      ]);
+      expect(sentText()).toContain(
+        `<${base}/products/${encodeURIComponent(details.productId)}|Review product in Stripe> · <${base}/subscriptions/${details.subscriptionId}|View subscription>`,
+      );
+      expect(sentText()).toContain(`Product ID: \`${details.productId}\``);
+      expect(sentText()).toContain(`Stripe event: \`${details.eventId}\``);
+      expect(sentText()).toContain("Workspace tier sync was skipped.");
+      expect(fallbackText()).toBe(
+        "Compute Pro: workspace tier sync was skipped because quota metadata is invalid or missing. Fix the product metadata in Stripe.",
+      );
+      expect(buttonUrl()).toBeUndefined();
+      expect(sentMrkdwnObjects().every((object) => object.verbatim)).toBe(true);
+    });
+  }
+
+  it("omits unknown optional IDs and retains unknown reasons and API product", async () => {
+    await alertOrphanedDeploySubscription({
+      subscriptionId: ids().subscriptionId,
+      reason: "future_reason",
+      product: "API",
+    });
+    expect(headerText()).toBe("API subscription needs attention");
+    expect(fieldTexts()).toContain("*Reason*\nfuture_reason");
+    expect(sentText()).not.toMatch(/Workspace ID|Checkout session|Stripe event|undefined/);
+    expect(sentBlocks().some((block) => block.type === "context")).toBe(false);
+  });
+
+  const senders = [
+    (value: string) => alertOrphanedDeploySubscription({ ...ids(), reason: value }),
+    (value: string) => alertInvalidProductQuotaMetadata({ ...ids(), productName: value }),
+  ];
+  for (const [index, send] of senders.entries()) {
+    it(`escapes mentions, injected links and forged lines in billing alert ${index}`, async () => {
+      const hostile =
+        "<!here> <@U123> <https://evil.example|Click>\nforged\u2028line & http://evil.example";
+      await send(hostile);
+      expect(sentText()).toContain(escapeSlackText(hostile));
+      expect(sentText()).not.toContain("<!here>");
+      expect(sentText()).not.toContain("<@U123>");
+      expect(sentText()).not.toContain("<https://evil.example");
+      expect(sentText()).not.toContain("\nforged");
+      expect(sentMrkdwnObjects().every((object) => object.verbatim)).toBe(true);
+      expect(fallbackText()).not.toMatch(/<!|<@|<https:\/\/evil|\n/);
+    });
+
+    it(`bounds free text in billing alert ${index}`, async () => {
+      await send("a".repeat(500));
+      expect(sentText()).toContain(`${"a".repeat(256)}…`);
+      expect(sentText()).not.toContain("a".repeat(257));
+    });
+
+    it(`keeps billing alert ${index} best-effort without exposing customer data in logs`, async () => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      fetchMock.mockRejectedValueOnce(new Error("offline"));
+      await expect(send("private billing value")).resolves.toBeUndefined();
+      fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
+      await expect(send("private billing value")).resolves.toBeUndefined();
+      expect(error).toHaveBeenCalledTimes(2);
+      expect(JSON.stringify(error.mock.calls)).not.toContain("private billing value");
+      fetchMock.mockClear();
+      vi.stubEnv("SLACK_WEBHOOK_CUSTOMERS", "");
+      await expect(send("private billing value")).resolves.toBeUndefined();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  }
 });
 
 describe("postToSlack", () => {
