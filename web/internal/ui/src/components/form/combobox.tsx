@@ -329,7 +329,9 @@ function Combobox({
     const loweredQuery = trimmedQuery.toLowerCase();
     if (
       effectiveOptions.some(
-        (option) => (option.searchValue || option.value).toLowerCase() === loweredQuery,
+        (option) =>
+          option.value === trimmedQuery ||
+          (option.searchValue || option.value).toLowerCase() === loweredQuery,
       )
     ) {
       return undefined;

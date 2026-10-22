@@ -1,6 +1,5 @@
 "use client";
 
-import { ENVIRONMENT_SETTINGS_DEFAULTS } from "@/lib/collections/deploy/environment-settings";
 import { IconChevronDownOutline12 } from "@unkey/icons";
 import {
   FormField,
@@ -13,64 +12,37 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SettingsForm,
   SettingsRow,
   SettingsRowContent,
   SettingsRowHeader,
   SettingsRowTitle,
 } from "@unkey/ui";
-import { Controller } from "react-hook-form";
-import { useSettingForm } from "../../hooks/use-setting-form";
+import { Controller, type UseFormReturn } from "react-hook-form";
 import { MethodBadge } from "./method-badge";
-import {
-  HTTP_METHODS,
-  type HealthcheckFormValues,
-  INTERVAL_SECONDS,
-  healthcheckSchema,
-} from "./schema";
+import { HTTP_METHODS, INTERVAL_SECONDS, type RuntimeValues } from "./model";
 
-export function Healthcheck() {
-  const { form, formProps } = useSettingForm({
-    schema: healthcheckSchema,
-    read: ({ healthcheck }): HealthcheckFormValues => ({
-      method: healthcheck?.method ?? "GET",
-      path: healthcheck?.path ?? "",
-      intervalSeconds: healthcheck?.intervalSeconds ?? INTERVAL_SECONDS.default,
-    }),
-    write: (draft, values) => {
-      draft.healthcheck =
-        values.path === ""
-          ? null
-          : {
-              ...ENVIRONMENT_SETTINGS_DEFAULTS.healthcheck,
-              ...draft.healthcheck,
-              method: values.method,
-              path: values.path,
-              intervalSeconds: values.intervalSeconds,
-            };
-    },
-  });
+export function HealthcheckFields({ form }: { form: UseFormReturn<RuntimeValues> }) {
   const { control, register } = form;
-  const { errors } = form.formState;
-  const pathEmpty = form.watch("path") === "";
+  const errors = form.formState.errors.healthcheck;
+  const pathEmpty = form.watch("healthcheck.path") === "";
 
   return (
-    <SettingsForm className="divide-y divide-grayA-4" {...formProps}>
+    <>
       <SettingsRow>
         <SettingsRowHeader>
-          <SettingsRowTitle>Endpoint</SettingsRowTitle>
+          <SettingsRowTitle>Health check path</SettingsRowTitle>
         </SettingsRowHeader>
         <SettingsRowContent>
           <FormField
             className="max-w-(--setting-w)"
-            error={errors.path?.message}
+            error={errors?.path?.message}
             description={pathEmpty ? "Leave empty to turn off health checks." : undefined}
           >
             {(field) => (
               <InputGroup variant={field.variant}>
                 <Controller
                   control={control}
-                  name="method"
+                  name="healthcheck.method"
                   render={({ field: method }) => (
                     <Select
                       value={method.value}
@@ -103,14 +75,14 @@ export function Healthcheck() {
                 <InputGroupInput
                   data-1p-ignore
                   id={field.id}
-                  aria-label="Path"
+                  aria-label="Health check path"
                   aria-invalid={field.invalid}
                   aria-describedby={field.describedBy}
                   placeholder="/health"
                   autoComplete="off"
                   spellCheck={false}
                   className="px-3 font-mono"
-                  {...register("path")}
+                  {...register("healthcheck.path", { deps: "healthcheck.intervalSeconds" })}
                 />
               </InputGroup>
             )}
@@ -119,10 +91,10 @@ export function Healthcheck() {
       </SettingsRow>
       <SettingsRow>
         <SettingsRowHeader>
-          <SettingsRowTitle>Interval</SettingsRowTitle>
+          <SettingsRowTitle>Health check interval</SettingsRowTitle>
         </SettingsRowHeader>
         <SettingsRowContent>
-          <FormField error={errors.intervalSeconds?.message}>
+          <FormField error={errors?.intervalSeconds?.message}>
             {(field) => (
               <InputGroup variant={field.variant} className="w-28">
                 <InputGroupInput
@@ -133,13 +105,13 @@ export function Healthcheck() {
                   min={INTERVAL_SECONDS.min}
                   max={INTERVAL_SECONDS.max}
                   step={1}
-                  aria-label="Interval in seconds"
+                  aria-label="Health check interval in seconds"
                   aria-invalid={field.invalid}
                   aria-describedby={field.describedBy}
                   disabled={pathEmpty}
                   className="pl-3 font-mono tabular-nums"
                   onWheelCapture={(e) => e.currentTarget.blur()}
-                  {...register("intervalSeconds", { valueAsNumber: true })}
+                  {...register("healthcheck.intervalSeconds", { valueAsNumber: true })}
                 />
                 <InputGroupAddon align="inline-end">
                   <InputGroupText className="font-mono">s</InputGroupText>
@@ -149,6 +121,6 @@ export function Healthcheck() {
           </FormField>
         </SettingsRowContent>
       </SettingsRow>
-    </SettingsForm>
+    </>
   );
 }
