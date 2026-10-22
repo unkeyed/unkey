@@ -2,6 +2,7 @@ package bucket_test
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/ratelimit/bucket"
@@ -15,9 +16,9 @@ func clock(ns int64) string {
 	return time.Unix(0, ns).UTC().Format("15:04:05")
 }
 
-// ExampleBucket replays the single-machine table of the package
+// ExampleSessions replays the single-machine table of the package
 // documentation: 10 units per 10 seconds on one pod.
-func ExampleBucket() {
+func ExampleSessions() {
 	rate := bucket.Rate{Limit: 10, Duration: 10 * time.Second}
 	requests := []struct {
 		at    time.Duration
@@ -30,17 +31,17 @@ func ExampleBucket() {
 		{30 * time.Second, 1},
 	}
 
-	b, err := bucket.New(nil, "")
-	if err != nil {
-		panic(err)
-	}
-	for _, request := range requests {
+	var sessions bucket.Sessions
+	for index, request := range requests {
 		nowNs := noonNs + request.at.Nanoseconds()
-		decision, err := b.Check(nowNs, rate, request.units)
+		decision, err := sessions.Check(nowNs, rate, request.units)
 		if err != nil {
 			panic(err)
 		}
-		b.Apply(decision)
+		err = sessions.Spend(decision, "session_"+strconv.Itoa(index))
+		if err != nil {
+			panic(err)
+		}
 		fmt.Printf("%s  %d unit(s)  allowed=%-5v  reset_at=%s  remaining=%d\n",
 			clock(nowNs), request.units, decision.Allowed, clock(decision.ResetAtNs), decision.Remaining)
 	}
@@ -52,24 +53,35 @@ func ExampleBucket() {
 	// 12:00:30  1 unit(s)  allowed=true   reset_at=12:00:31  remaining=9
 }
 
-// ExampleBucket_Check_newerPeerSession shows why a request sometimes starts a
+// ExampleSessions_Check_newerPeerSession shows why a request sometimes starts a
 // new session. A peer started a session after this pod's live session and
 // holds `reset_at`. Adding the request to the live session would not move
 // `reset_at`, so the request goes into a new session instead.
-func ExampleBucket_Check_newerPeerSession() {
+func ExampleSessions_Check_newerPeerSession() {
 	rate := bucket.Rate{Limit: 60, Duration: time.Minute}
-	sessions := []bucket.Session{
-		{ID: "own", AnchorAtNs: noonNs, ConsumedNs: time.Second.Nanoseconds()},
-		{ID: "peer", AnchorAtNs: noonNs + 50*time.Second.Nanoseconds(), ConsumedNs: time.Minute.Nanoseconds()},
-	}
-	b, err := bucket.New(sessions, "own")
+	var sessions bucket.Sessions
+
+	// This pod admits 1 unit at 12:00:00 into its live session.
+	decision, err := sessions.Check(noonNs, rate, 1)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("reset_at before:", clock(b.ResetAtNs()))
+	err = sessions.Spend(decision, "own")
+	if err != nil {
+		panic(err)
+	}
+
+	// A peer started a session at 12:00:50 and used the whole limit.
+	err = sessions.MergeRows([]bucket.Session{
+		{ID: "peer", AnchorAtNs: noonNs + 50*time.Second.Nanoseconds(), ConsumedNs: time.Minute.Nanoseconds()},
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("reset_at before:", clock(sessions.ResetAtNs()))
 
 	nowNs := noonNs + 55*time.Second.Nanoseconds()
-	decision, err := b.Check(nowNs, rate, 1)
+	decision, err = sessions.Check(nowNs, rate, 1)
 	if err != nil {
 		panic(err)
 	}
@@ -83,23 +95,33 @@ func ExampleBucket_Check_newerPeerSession() {
 	// new session anchored at: 12:00:55
 }
 
-// ExampleBucket_overAdmissionIsPaidBack shows two pods that each admitted
+// ExampleSessions_overAdmissionIsPaidBack shows two pods that each admitted
 // the full limit before they saw each other. Once both rows are visible, the
 // extra units are paid back before anything else fits.
-func ExampleBucket_overAdmissionIsPaidBack() {
+func ExampleSessions_overAdmissionIsPaidBack() {
 	rate := bucket.Rate{Limit: 10, Duration: 10 * time.Second}
-	tenSecondsNs := (10 * time.Second).Nanoseconds()
-	sessions := []bucket.Session{
-		{ID: "pod_a", AnchorAtNs: noonNs, ConsumedNs: tenSecondsNs},
-		{ID: "pod_b", AnchorAtNs: noonNs, ConsumedNs: tenSecondsNs},
-	}
-	b, err := bucket.New(sessions, "pod_a")
+	var sessions bucket.Sessions
+
+	// Pod A admits all 10 units at 12:00:00.
+	decision, err := sessions.Check(noonNs, rate, 10)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("reset_at:", clock(b.ResetAtNs()))
+	err = sessions.Spend(decision, "pod_a")
+	if err != nil {
+		panic(err)
+	}
 
-	for _, step := range []struct {
+	// Pod B did the same before either saw the other. Its row arrives.
+	err = sessions.MergeRows([]bucket.Session{
+		{ID: "pod_b", AnchorAtNs: noonNs, ConsumedNs: (10 * time.Second).Nanoseconds()},
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("reset_at:", clock(sessions.ResetAtNs()))
+
+	for index, step := range []struct {
 		at    time.Duration
 		units int64
 	}{
@@ -108,11 +130,14 @@ func ExampleBucket_overAdmissionIsPaidBack() {
 		{11 * time.Second, 1},
 	} {
 		nowNs := noonNs + step.at.Nanoseconds()
-		decision, err := b.Check(nowNs, rate, step.units)
+		decision, err := sessions.Check(nowNs, rate, step.units)
 		if err != nil {
 			panic(err)
 		}
-		b.Apply(decision)
+		err = sessions.Spend(decision, "pod_a_"+strconv.Itoa(index))
+		if err != nil {
+			panic(err)
+		}
 		fmt.Printf("%s  %d unit(s)  allowed=%v\n", clock(nowNs), step.units, decision.Allowed)
 	}
 	// Output:
