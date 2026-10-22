@@ -1,4 +1,4 @@
-package gcra
+package bucket
 
 import (
 	"cmp"
@@ -23,20 +23,20 @@ type Session struct {
 	ConsumedNs int64
 }
 
-// Timeline is the state of one limit, seen by the pod that owns its live
+// Bucket is the state of one limit, seen by the pod that owns its live
 // session. It does not keep the sessions. It keeps only the values that
-// [Timeline.Check] needs, so a decision is O(1) after an O(n log n) build.
+// [Bucket.Check] needs, so a decision is O(1) after an O(n log n) build.
 //
 // The candidate of a session r is r's anchor plus the consumed time of every
 // session anchored at or after r. reset_at is the largest candidate.
 //
 // A request that goes into the live session raises the candidates of the
 // sessions anchored at or before it, and of no other session. That is why the
-// Timeline keeps two maxima: one for the sessions at or before the live anchor
+// Bucket keeps two maxima: one for the sessions at or before the live anchor
 // and one for the sessions after it.
 //
-// A Timeline is a value without locks. The caller serializes access.
-type Timeline struct {
+// A Bucket is a value without locks. The caller serializes access.
+type Bucket struct {
 	// hasLive reports whether this pod has a live session that can take
 	// requests. Without one, the next admitted request starts a new session.
 	hasLive bool
@@ -58,7 +58,7 @@ type Timeline struct {
 	newestAnchorNs int64
 }
 
-// Decision is the result of [Timeline.Check]. Pass it to [Timeline.Apply] to
+// Decision is the result of [Bucket.Check]. Pass it to [Bucket.Apply] to
 // commit it.
 type Decision struct {
 	Allowed bool
@@ -82,37 +82,37 @@ type Decision struct {
 	SessionAnchorAtNs int64
 }
 
-// NewTimeline computes the state of a limit from all its known sessions.
+// New computes the state of a limit from all its known sessions.
 // liveSessionID names this pod's live session; it must be in sessions. Pass
 // an empty liveSessionID if this pod has no live session.
 //
 // Each session ID must be in sessions only once. The caller merges its own
 // sessions with the database rows first and keeps the larger ConsumedNs.
 //
-// NewTimeline returns an error if a value is negative, if a sum overflows
+// New returns an error if a value is negative, if a sum overflows
 // int64, or if the live session is missing or duplicated. It does not change
 // sessions.
-func NewTimeline(sessions []Session, liveSessionID string) (Timeline, error) {
-	var timeline Timeline
+func New(sessions []Session, liveSessionID string) (Bucket, error) {
+	var b Bucket
 	newestFirst := slices.Clone(sessions)
-	slices.SortFunc(newestFirst, func(a, b Session) int {
-		return cmp.Compare(b.AnchorAtNs, a.AnchorAtNs)
+	slices.SortFunc(newestFirst, func(left, right Session) int {
+		return cmp.Compare(right.AnchorAtNs, left.AnchorAtNs)
 	})
 
 	liveCount := 0
 	for _, session := range newestFirst {
 		if session.AnchorAtNs < 0 || session.ConsumedNs < 0 {
-			return Timeline{}, fault.New("session values must not be negative")
+			return Bucket{}, fault.New("session values must not be negative")
 		}
 		if liveSessionID != "" && session.ID == liveSessionID {
 			liveCount++
-			timeline.liveAnchorNs = session.AnchorAtNs
+			b.liveAnchorNs = session.AnchorAtNs
 		}
 	}
 	if liveSessionID != "" && liveCount != 1 {
-		return Timeline{}, fault.New("live session must be in sessions exactly once")
+		return Bucket{}, fault.New("live session must be in sessions exactly once")
 	}
-	timeline.hasLive = liveSessionID != ""
+	b.hasLive = liveSessionID != ""
 
 	var usedNs int64
 	for start := 0; start < len(newestFirst); {
@@ -124,34 +124,34 @@ func NewTimeline(sessions []Session, liveSessionID string) (Timeline, error) {
 			var err error
 			usedNs, err = addNs(usedNs, newestFirst[end].ConsumedNs)
 			if err != nil {
-				return Timeline{}, err
+				return Bucket{}, err
 			}
 		}
 		candidateNs, err := addNs(anchorNs, usedNs)
 		if err != nil {
-			return Timeline{}, err
+			return Bucket{}, err
 		}
-		if timeline.hasLive && anchorNs > timeline.liveAnchorNs {
-			timeline.newerMaxNs = max(timeline.newerMaxNs, candidateNs)
+		if b.hasLive && anchorNs > b.liveAnchorNs {
+			b.newerMaxNs = max(b.newerMaxNs, candidateNs)
 		} else {
-			timeline.olderMaxNs = max(timeline.olderMaxNs, candidateNs)
+			b.olderMaxNs = max(b.olderMaxNs, candidateNs)
 		}
 		start = end
 	}
 	if len(newestFirst) > 0 {
-		timeline.newestAnchorNs = newestFirst[0].AnchorAtNs
+		b.newestAnchorNs = newestFirst[0].AnchorAtNs
 	}
-	return timeline, nil
+	return b, nil
 }
 
 // ResetAtNs returns reset_at in Unix nanoseconds: the time when every unit is
 // free again. It is zero for a limit without sessions.
-func (t Timeline) ResetAtNs() int64 {
-	return max(t.olderMaxNs, t.newerMaxNs)
+func (b Bucket) ResetAtNs() int64 {
+	return max(b.olderMaxNs, b.newerMaxNs)
 }
 
 // Check decides a request of cost units at nowNs without changing the
-// Timeline. An allowed request moves reset_at to max(reset_at, now) + cost,
+// Bucket. An allowed request moves reset_at to max(reset_at, now) + cost,
 // the same as single-machine GCRA. A request fits if reset_at then stays at
 // most one Duration ahead of now. A cost above the limit never fits.
 //
@@ -163,7 +163,7 @@ func (t Timeline) ResetAtNs() int64 {
 //
 // Check returns an error if the rate or the cost is invalid, if nowNs is
 // negative, or if reset_at overflows int64.
-func (t Timeline) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
+func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	err := assert.All(
 		rate.Validate(),
 		assert.GreaterOrEqual(cost, 0, "cost must not be negative"),
@@ -173,7 +173,7 @@ func (t Timeline) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 		return Decision{}, err
 	}
 
-	resetAtNs := t.ResetAtNs()
+	resetAtNs := b.ResetAtNs()
 	unchanged := Decision{
 		Allowed:           false,
 		CostNs:            0,
@@ -198,10 +198,10 @@ func (t Timeline) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 		return unchanged, nil
 	}
 
-	startsSession := !t.hasLive || t.olderMaxNs < max(t.newerMaxNs, nowNs)
+	startsSession := !b.hasLive || b.olderMaxNs < max(b.newerMaxNs, nowNs)
 	var sessionAnchorAtNs int64
 	if startsSession {
-		sessionAnchorAtNs = max(nowNs, t.newestAnchorNs)
+		sessionAnchorAtNs = max(nowNs, b.newestAnchorNs)
 	}
 	return Decision{
 		Allowed:           true,
@@ -213,32 +213,32 @@ func (t Timeline) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	}, nil
 }
 
-// Apply commits a decision. The decision must come from [Timeline.Check] on
-// this Timeline with no change in between. Apply does nothing for a decision
+// Apply commits a decision. The decision must come from [Bucket.Check] on
+// this Bucket with no change in between. Apply does nothing for a decision
 // that uses no time.
-func (t *Timeline) Apply(decision Decision) {
+func (b *Bucket) Apply(decision Decision) {
 	if !decision.Allowed || decision.CostNs == 0 {
 		return
 	}
 	// In both cases the request raises exactly the candidates at or before the
 	// live anchor, and the largest of them becomes the new reset_at.
-	t.olderMaxNs = decision.ResetAtNs
+	b.olderMaxNs = decision.ResetAtNs
 	if decision.StartsSession {
-		t.hasLive = true
-		t.liveAnchorNs = decision.SessionAnchorAtNs
-		t.newerMaxNs = 0
-		t.newestAnchorNs = decision.SessionAnchorAtNs
+		b.hasLive = true
+		b.liveAnchorNs = decision.SessionAnchorAtNs
+		b.newerMaxNs = 0
+		b.newestAnchorNs = decision.SessionAnchorAtNs
 	}
 }
 
 // EndLiveSession freezes the live session, for example when its lifetime
 // ended. The next admitted request starts a new session. reset_at does not
 // change.
-func (t *Timeline) EndLiveSession() {
-	t.olderMaxNs = t.ResetAtNs()
-	t.newerMaxNs = 0
-	t.hasLive = false
-	t.liveAnchorNs = 0
+func (b *Bucket) EndLiveSession() {
+	b.olderMaxNs = b.ResetAtNs()
+	b.newerMaxNs = 0
+	b.hasLive = false
+	b.liveAnchorNs = 0
 }
 
 // addNs returns a + b for non-negative a and b, or an error if the sum does
