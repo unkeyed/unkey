@@ -10,7 +10,7 @@ import (
 )
 
 // Session is what one session admitted for one limit: one row of the
-// ratelimit_state table, or one of this pod's sessions in memory.
+// `ratelimit_state` table, or one of this pod's sessions in memory.
 type Session struct {
 	ID string
 
@@ -28,7 +28,7 @@ type Session struct {
 // [Bucket.Check] needs, so a decision is O(1) after an O(n log n) build.
 //
 // The candidate of a session r is r's anchor plus the consumed time of every
-// session anchored at or after r. reset_at is the largest candidate.
+// session anchored at or after r. `reset_at` is the largest candidate.
 //
 // A request that goes into the live session raises the candidates of the
 // sessions anchored at or before it, and of no other session. That is why the
@@ -42,14 +42,14 @@ type Bucket struct {
 	hasLiveSession bool
 
 	// liveSessionAnchorAtNs is the anchor of the live session, if
-	// hasLiveSession.
+	// `hasLiveSession`.
 	liveSessionAnchorAtNs int64
 
 	// maxCandidateAtOrBeforeLiveSessionNs is the largest candidate of the
 	// sessions anchored at or before the live session, the live session
 	// included. A request in the live session raises exactly these
 	// candidates. Without a live session it covers every session, so it is
-	// reset_at.
+	// `reset_at`.
 	maxCandidateAtOrBeforeLiveSessionNs int64
 
 	// maxCandidateAfterLiveSessionNs is the largest candidate of the sessions
@@ -69,10 +69,10 @@ type Decision struct {
 	Allowed bool
 
 	// CostNs is the time the request uses. It is zero if the request was
-	// denied or had cost zero, and then the request changes nothing.
+	// denied or had `cost` zero, and then the request changes nothing.
 	CostNs int64
 
-	// ResetAtNs is reset_at after the request, in Unix nanoseconds: the time
+	// ResetAtNs is `reset_at` after the request, in Unix nanoseconds: the time
 	// when every unit is free again. It can be in the past when the limit is
 	// idle.
 	ResetAtNs int64
@@ -83,22 +83,22 @@ type Decision struct {
 	// CreateNewSessionAtNs is zero when the request goes into the live
 	// session or changes nothing. Otherwise the request cannot go into the
 	// live session: the caller creates a new session with a new ID, anchored
-	// at CreateNewSessionAtNs, writes CostNs into it, and does not use the old
+	// at `CreateNewSessionAtNs`, writes `CostNs` into it, and does not use the old
 	// live session again. Zero is free to mean "no new session" because
 	// [Bucket.Check] requires a positive time and the anchor is never before it.
 	CreateNewSessionAtNs int64
 }
 
 // New computes the state of a limit from all its known sessions.
-// liveSessionID names this pod's live session; it must be in sessions. Pass
-// an empty liveSessionID if this pod has no live session.
+// `liveSessionID` names this pod's live session; it must be in `sessions`.
+// Pass an empty `liveSessionID` if this pod has no live session.
 //
-// Each session ID must be in sessions only once. The caller merges its own
-// sessions with the database rows first and keeps the larger ConsumedNs.
+// Each session ID must be in `sessions` only once. The caller merges its own
+// sessions with the database rows first and keeps the larger `ConsumedNs`.
 //
 // New returns an error if a value is negative, if a sum overflows
 // int64, or if the live session is missing or duplicated. It does not change
-// sessions.
+// `sessions`.
 func New(sessions []Session, liveSessionID string) (Bucket, error) {
 	var b Bucket
 	newestFirst := slices.Clone(sessions)
@@ -151,25 +151,27 @@ func New(sessions []Session, liveSessionID string) (Bucket, error) {
 	return b, nil
 }
 
-// ResetAtNs returns reset_at in Unix nanoseconds: the time when every unit is
+// ResetAtNs returns `reset_at` in Unix nanoseconds: the time when every unit is
 // free again. It is zero for a limit without sessions.
 func (b Bucket) ResetAtNs() int64 {
 	return max(b.maxCandidateAtOrBeforeLiveSessionNs, b.maxCandidateAfterLiveSessionNs)
 }
 
-// Check decides a request of cost units at nowNs without changing the
-// Bucket. An allowed request moves reset_at to max(reset_at, now) + cost,
-// the same as single-machine GCRA. A request fits if reset_at then stays at
-// most one Duration ahead of now. A cost above the limit never fits.
+// Check decides a request of `cost` units at `nowNs` without changing the
+// Bucket. An allowed request moves `reset_at` to
+// `max(reset_at, nowNs) + cost`, the same as single-machine GCRA. A request
+// fits if `reset_at` then stays at most one `rate.Duration` ahead of `nowNs`.
+// A `cost` above `rate.Limit` never fits.
 //
-// The request goes into the live session if that gives the same reset_at.
+// The request goes into the live session if that gives the same `reset_at`.
 // That is the case when the largest candidate is at or before the live anchor
 // and not in the past. Otherwise the request starts a new session, anchored at
-// now or at the newest anchor, whichever is later. This covers a pause (reset_at
-// in the past) and a peer session that started after the live one.
+// `nowNs` or at the newest anchor, whichever is later. This covers a pause
+// (`reset_at` in the past) and a peer session that started after the live
+// one.
 //
-// Check returns an error if the rate or the cost is invalid, if nowNs is
-// negative, or if reset_at overflows int64.
+// Check returns an error if `rate` or `cost` is invalid, if `nowNs` is not
+// positive, or if `reset_at` overflows int64.
 func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 	err := assert.All(
 		rate.Validate(),
@@ -226,7 +228,7 @@ func (b *Bucket) Apply(decision Decision) {
 		return
 	}
 	// In both cases the request raises exactly the candidates at or before the
-	// live anchor, and the largest of them becomes the new reset_at.
+	// live anchor, and the largest of them becomes the new `reset_at`.
 	b.maxCandidateAtOrBeforeLiveSessionNs = decision.ResetAtNs
 	if decision.CreateNewSessionAtNs != 0 {
 		b.hasLiveSession = true
@@ -237,7 +239,7 @@ func (b *Bucket) Apply(decision Decision) {
 }
 
 // EndLiveSession freezes the live session, for example when its lifetime
-// ended. The next admitted request starts a new session. reset_at does not
+// ended. The next admitted request starts a new session. `reset_at` does not
 // change.
 func (b *Bucket) EndLiveSession() {
 	b.maxCandidateAtOrBeforeLiveSessionNs = b.ResetAtNs()
@@ -246,9 +248,9 @@ func (b *Bucket) EndLiveSession() {
 	b.liveSessionAnchorAtNs = 0
 }
 
-// addNs returns a + b for non-negative a and b, or an error if the sum does
-// not fit into int64. The limiter must never wrap around, because a wrapped
-// reset_at would open the limit.
+// addNs returns `a + b` for non-negative `a` and `b`, or an error if the sum
+// does not fit into int64. The limiter must never wrap around, because a
+// wrapped `reset_at` would open the limit.
 func addNs(a, b int64) (int64, error) {
 	if a > math.MaxInt64-b {
 		return 0, fault.New("time overflows int64 nanoseconds")
