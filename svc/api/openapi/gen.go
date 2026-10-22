@@ -1105,8 +1105,7 @@ type DeploymentErrorCode string
 // DeploymentExitReason Why the app stopped, as of the last report from the instance:
 //
 //   - `crash_loop`: the app exits right after each start, so Unkey waits longer
-//     before each restart. The instance keeps this reason until its next
-//     reported exit, also after it recovers.
+//     before each restart.
 //   - `out_of_memory`: the app used more memory than its limit and was stopped.
 //   - `exited_with_error`: the app exited with a non-zero `exitCode`.
 //   - `start_failed`: the start command could not run, for example because the
@@ -1180,8 +1179,7 @@ type DeploymentLastExit struct {
 	ExitCode *int32 `json:"exitCode,omitempty"`
 
 	// FinishedAt Unix timestamp in milliseconds of the last recorded exit. The exit stays
-	// reported after the instance recovers, so compare this time before you act
-	// on it. Omitted when no exit was recorded.
+	// reported after the instance recovers. Omitted when no exit was recorded.
 	//
 	//
 	// Example: 1704067260000
@@ -1198,8 +1196,7 @@ type DeploymentLastExit struct {
 	// Reason Why the app stopped, as of the last report from the instance:
 	//
 	// - `crash_loop`: the app exits right after each start, so Unkey waits longer
-	//   before each restart. The instance keeps this reason until its next
-	//   reported exit, also after it recovers.
+	//   before each restart.
 	// - `out_of_memory`: the app used more memory than its limit and was stopped.
 	// - `exited_with_error`: the app exited with a non-zero `exitCode`.
 	// - `start_failed`: the start command could not run, for example because the

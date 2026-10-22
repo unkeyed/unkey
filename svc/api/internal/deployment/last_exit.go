@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -35,13 +36,18 @@ var exitCodeHints = map[int32]string{
 // lastExit picks the most recent exit across the instances of a deployment, so
 // one failing instance in a multi-region rollout still surfaces while the others
 // are healthy. A crash loop outranks the exit reason because it means the
-// instance is stuck, and the exit code still carries the cause.
-func lastExit(statuses []dbtype.ContainerStatus) *openapi.DeploymentLastExit {
+// instance is stuck, and the exit code still carries the cause. ctrl keeps the
+// crash loop on the row after the instance recovers, so it counts only while
+// the instance is not running.
+func lastExit(instances []db.ListInstanceContainerStatusesByDeploymentIdsRow) *openapi.DeploymentLastExit {
 	var latest *dbtype.ContainerStatus
+	latestCrashLooping := false
 	latestFinishedAt := noRecordedExit
-	for i := range statuses {
-		status := &statuses[i]
-		if status.LastTerminationState == nil && status.Waiting == nil {
+	for i := range instances {
+		status := &instances[i].ContainerStatus
+		crashLooping := instances[i].Status != db.InstancesStatusRunning &&
+			status.Waiting != nil && status.Waiting.Reason == "CrashLoopBackOff"
+		if status.LastTerminationState == nil && !crashLooping {
 			continue
 		}
 		finishedAt := noRecordedExit
@@ -50,7 +56,7 @@ func lastExit(statuses []dbtype.ContainerStatus) *openapi.DeploymentLastExit {
 		}
 		if latest == nil || finishedAt > latestFinishedAt ||
 			(finishedAt == latestFinishedAt && status.RestartCount > latest.RestartCount) {
-			latest, latestFinishedAt = status, finishedAt
+			latest, latestCrashLooping, latestFinishedAt = status, crashLooping, finishedAt
 		}
 	}
 	if latest == nil {
@@ -71,7 +77,7 @@ func lastExit(statuses []dbtype.ContainerStatus) *openapi.DeploymentLastExit {
 			exit.Reason = reason
 		}
 	}
-	if latest.Waiting != nil && latest.Waiting.Reason == "CrashLoopBackOff" {
+	if latestCrashLooping {
 		exit.Reason = openapi.DeploymentExitReasonCrashLoop
 	}
 	exit.Message = exitMessage(exit.Reason, exit.ExitCode)

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -21,6 +22,18 @@ func exited(reason string, exitCode int32, finishedAt int64) dbtype.ContainerSta
 	}
 }
 
+func pendingInstances(statuses ...dbtype.ContainerStatus) []db.ListInstanceContainerStatusesByDeploymentIdsRow {
+	instances := make([]db.ListInstanceContainerStatusesByDeploymentIdsRow, len(statuses))
+	for i, status := range statuses {
+		instances[i] = db.ListInstanceContainerStatusesByDeploymentIdsRow{
+			DeploymentID:    "",
+			Status:          db.InstancesStatusPending,
+			ContainerStatus: status,
+		}
+	}
+	return instances
+}
+
 func TestLastExitClassification(t *testing.T) {
 	crashLooping := exited("Error", 137, 1_000)
 	crashLooping.Waiting = &dbtype.WaitingState{Reason: "CrashLoopBackOff"}
@@ -30,11 +43,6 @@ func TestLastExitClassification(t *testing.T) {
 		RestartCount:         3,
 		LastTerminationState: nil,
 		Waiting:              &dbtype.WaitingState{Reason: "CrashLoopBackOff"},
-	}
-	waitingWithoutExit := dbtype.ContainerStatus{
-		RestartCount:         0,
-		LastTerminationState: nil,
-		Waiting:              &dbtype.WaitingState{Reason: "ContainerCreating"},
 	}
 
 	cases := []struct {
@@ -54,12 +62,6 @@ func TestLastExitClassification(t *testing.T) {
 			status:  crashLoopingWithoutExit,
 			reason:  openapi.DeploymentExitReasonCrashLoop,
 			message: "Your app exits right after it starts, so Unkey waits longer before each restart. Check your logs for the cause.",
-		},
-		{
-			name:    "an unknown waiting reason with no exit says so",
-			status:  waitingWithoutExit,
-			reason:  openapi.DeploymentExitReasonUnknown,
-			message: "Unkey could not tell why your app stopped. Check your logs for the cause.",
 		},
 		{
 			name:    "out of memory does not repeat the exit code",
@@ -107,7 +109,7 @@ func TestLastExitClassification(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := lastExit([]dbtype.ContainerStatus{tc.status})
+			got := lastExit(pendingInstances(tc.status))
 			require.NotNil(t, got)
 			require.Equal(t, tc.reason, got.Reason)
 			require.Equal(t, tc.message, got.Message)
@@ -128,16 +130,16 @@ func TestLastExitSelection(t *testing.T) {
 
 	t.Run("no exit when every instance is healthy", func(t *testing.T) {
 		require.Nil(t, lastExit(nil))
-		require.Nil(t, lastExit([]dbtype.ContainerStatus{healthy, healthy}))
+		require.Nil(t, lastExit(pendingInstances(healthy, healthy)))
 	})
 
 	t.Run("the most recent exit across instances wins", func(t *testing.T) {
-		got := lastExit([]dbtype.ContainerStatus{
+		got := lastExit(pendingInstances(
 			exited("Error", 2, 1_000),
 			healthy,
 			exited("OOMKilled", 137, 2_000),
 			exited("Error", 1, 1_500),
-		})
+		))
 		require.NotNil(t, got)
 		require.Equal(t, openapi.DeploymentExitReasonOutOfMemory, got.Reason)
 	})
@@ -145,9 +147,33 @@ func TestLastExitSelection(t *testing.T) {
 	t.Run("equal exit times prefer the instance with more restarts", func(t *testing.T) {
 		restarted := exited("Error", 1, 1_000)
 		restarted.RestartCount = 5
-		got := lastExit([]dbtype.ContainerStatus{exited("Error", 2, 1_000), restarted})
+		got := lastExit(pendingInstances(exited("Error", 2, 1_000), restarted))
 		require.NotNil(t, got)
 		require.Equal(t, openapi.DeploymentExitReasonExitedWithError, got.Reason)
 		require.Equal(t, int64(5), got.RestartCount)
+	})
+
+	t.Run("a waiting reason other than a crash loop is not an exit", func(t *testing.T) {
+		creating := dbtype.ContainerStatus{
+			RestartCount:         0,
+			LastTerminationState: nil,
+			Waiting:              &dbtype.WaitingState{Reason: "ContainerCreating"},
+		}
+		require.Nil(t, lastExit(pendingInstances(creating)))
+	})
+
+	t.Run("a running instance reports its last exit, not the crash loop it recovered from", func(t *testing.T) {
+		recovered := exited("Error", 137, 1_000)
+		recovered.Waiting = &dbtype.WaitingState{Reason: "CrashLoopBackOff"}
+		instances := pendingInstances(recovered)
+		instances[0].Status = db.InstancesStatusRunning
+
+		got := lastExit(instances)
+		require.NotNil(t, got)
+		require.Equal(t, openapi.DeploymentExitReasonExitedWithError, got.Reason)
+		require.Equal(t, "Exit code 137 means the process was killed with SIGKILL. Check your logs for the cause.", got.Message)
+
+		instances[0].ContainerStatus.LastTerminationState = nil
+		require.Nil(t, lastExit(instances))
 	})
 }

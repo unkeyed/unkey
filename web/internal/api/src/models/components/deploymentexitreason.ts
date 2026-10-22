@@ -12,8 +12,7 @@ import { OpenEnum } from "../../types/enums.js";
  * @remarks
  *
  * - `crash_loop`: the app exits right after each start, so Unkey waits longer
- *   before each restart. The instance keeps this reason until its next
- *   reported exit, also after it recovers.
+ *   before each restart.
  * - `out_of_memory`: the app used more memory than its limit and was stopped.
  * - `exited_with_error`: the app exited with a non-zero `exitCode`.
  * - `start_failed`: the start command could not run, for example because the
@@ -37,8 +36,7 @@ export const DeploymentExitReason = {
  * @remarks
  *
  * - `crash_loop`: the app exits right after each start, so Unkey waits longer
- *   before each restart. The instance keeps this reason until its next
- *   reported exit, also after it recovers.
+ *   before each restart.
  * - `out_of_memory`: the app used more memory than its limit and was stopped.
  * - `exited_with_error`: the app exited with a non-zero `exitCode`.
  * - `start_failed`: the start command could not run, for example because the

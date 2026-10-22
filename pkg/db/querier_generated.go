@@ -2652,7 +2652,7 @@ type Querier interface {
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListInstanceContainerStatusesByDeploymentIds
 	//
-	//  SELECT instances.deployment_id, instances.container_status FROM instances
+	//  SELECT instances.deployment_id, instances.status, instances.container_status FROM instances
 	//  WHERE workspace_id = ?
 	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
 	ListInstanceContainerStatusesByDeploymentIds(ctx context.Context, db DBTX, arg ListInstanceContainerStatusesByDeploymentIdsParams) ([]ListInstanceContainerStatusesByDeploymentIdsRow, error)

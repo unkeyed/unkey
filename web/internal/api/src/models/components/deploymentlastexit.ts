@@ -18,8 +18,7 @@ export type DeploymentLastExit = {
    * @remarks
    *
    * - `crash_loop`: the app exits right after each start, so Unkey waits longer
-   *   before each restart. The instance keeps this reason until its next
-   *   reported exit, also after it recovers.
+   *   before each restart.
    * - `out_of_memory`: the app used more memory than its limit and was stopped.
    * - `exited_with_error`: the app exited with a non-zero `exitCode`.
    * - `start_failed`: the start command could not run, for example because the
@@ -57,8 +56,7 @@ export type DeploymentLastExit = {
    * Unix timestamp in milliseconds of the last recorded exit. The exit stays
    *
    * @remarks
-   * reported after the instance recovers, so compare this time before you act
-   * on it. Omitted when no exit was recorded.
+   * reported after the instance recovers. Omitted when no exit was recorded.
    */
   finishedAt?: number | undefined;
 };

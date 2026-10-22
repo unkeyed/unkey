@@ -36,7 +36,6 @@ properties:
     maximum: 9223372036854775807
     description: |
       Unix timestamp in milliseconds of the last recorded exit. The exit stays
-      reported after the instance recovers, so compare this time before you act
-      on it. Omitted when no exit was recorded.
+      reported after the instance recovers. Omitted when no exit was recorded.
     example: 1704067260000
 additionalProperties: false

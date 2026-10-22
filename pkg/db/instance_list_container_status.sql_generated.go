@@ -13,7 +13,7 @@ import (
 )
 
 const listInstanceContainerStatusesByDeploymentIds = `-- name: ListInstanceContainerStatusesByDeploymentIds :many
-SELECT instances.deployment_id, instances.container_status FROM instances
+SELECT instances.deployment_id, instances.status, instances.container_status FROM instances
 WHERE workspace_id = ?
   AND deployment_id IN (/*SLICE:deployment_ids*/?)
 `
@@ -25,12 +25,13 @@ type ListInstanceContainerStatusesByDeploymentIdsParams struct {
 
 type ListInstanceContainerStatusesByDeploymentIdsRow struct {
 	DeploymentID    string                 `db:"deployment_id"`
+	Status          InstancesStatus        `db:"status"`
 	ContainerStatus dbtype.ContainerStatus `db:"container_status"`
 }
 
 // ListInstanceContainerStatusesByDeploymentIds
 //
-//	SELECT instances.deployment_id, instances.container_status FROM instances
+//	SELECT instances.deployment_id, instances.status, instances.container_status FROM instances
 //	WHERE workspace_id = ?
 //	  AND deployment_id IN (/*SLICE:deployment_ids*/?)
 func (q *Queries) ListInstanceContainerStatusesByDeploymentIds(ctx context.Context, db DBTX, arg ListInstanceContainerStatusesByDeploymentIdsParams) ([]ListInstanceContainerStatusesByDeploymentIdsRow, error) {
@@ -53,7 +54,7 @@ func (q *Queries) ListInstanceContainerStatusesByDeploymentIds(ctx context.Conte
 	var items []ListInstanceContainerStatusesByDeploymentIdsRow
 	for rows.Next() {
 		var i ListInstanceContainerStatusesByDeploymentIdsRow
-		if err := rows.Scan(&i.DeploymentID, &i.ContainerStatus); err != nil {
+		if err := rows.Scan(&i.DeploymentID, &i.Status, &i.ContainerStatus); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
