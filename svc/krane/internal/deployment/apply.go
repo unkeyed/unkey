@@ -11,6 +11,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
@@ -39,6 +40,8 @@ import (
 // ApplyDeployment validates all required fields and returns an error if any are missing
 // or invalid: WorkspaceId, ProjectId, EnvironmentId, DeploymentId, K8sNamespace, K8sName,
 // and Image must be non-empty; CpuMillicores and MemoryMib must be > 0.
+// A request whose capabilities enable private networking must carry a
+// production or preview EnvironmentKind, which undns uses to identify callers.
 //
 // The namespace is created automatically if it doesn't exist. After the
 // Deployment is applied a CiliumNetworkPolicy is installed in the same
@@ -60,6 +63,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		assert.NotEmpty(req.GetWorkspaceId(), "Workspace ID is required"),
 		assert.NotEmpty(req.GetProjectId(), "Project ID is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "Environment ID is required"),
+		assert.True(!req.GetCapabilities().GetPrivateNetworking() || req.GetEnvironmentKind() == "production" || req.GetEnvironmentKind() == "preview", "Private networking requires a production or preview environment kind"),
 		assert.NotEmpty(req.GetDeploymentId(), "Deployment ID is required"),
 		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
@@ -434,6 +438,21 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		Containers:                    []corev1.Container{container},
 	}
 
+	if c.privateNetworkEnabled(req) {
+		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, corev1.EnvVar{
+			Name: "UNKEY_PRIVATE_DOMAIN", Value: privatenetwork.SelfHost,
+		})
+		podSpec.DNSPolicy = corev1.DNSNone
+		podSpec.DNSConfig = &corev1.PodDNSConfig{
+			Nameservers: []string{c.privateNetworkResolverIP},
+			Options: []corev1.PodDNSConfigOption{
+				{Name: "ndots", Value: new("1")},
+				{Name: "timeout", Value: new("1")},
+				{Name: "attempts", Value: new("2")},
+			},
+		}
+	}
+
 	if len(volumes) > 0 {
 		podSpec.Volumes = volumes
 	}
@@ -744,12 +763,17 @@ func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, owner metav1.OwnerRef
 	return pdb
 }
 
+func (c *Controller) privateNetworkEnabled(req *ctrlv1.ApplyDeployment) bool {
+	return req.GetCapabilities().GetPrivateNetworking() && c.privateNetworkResolverIP != ""
+}
+
 func deploymentLabels(req *ctrlv1.ApplyDeployment) labels.Labels {
 	return labels.New().
 		WorkspaceID(req.GetWorkspaceId()).
 		ProjectID(req.GetProjectId()).
 		AppID(req.GetAppId()).
 		EnvironmentID(req.GetEnvironmentId()).
+		EnvironmentKind(req.GetEnvironmentKind()).
 		DeploymentID(req.GetDeploymentId()).
 		ManagedByKrane().
 		ComponentDeployment()

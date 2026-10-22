@@ -70,7 +70,8 @@ type Controller struct {
 	// disableGvisor drops the gVisor sandbox from user workloads.
 	disableGvisor bool
 
-	maxConcurrentRollouts int
+	maxConcurrentRollouts    int
+	privateNetworkResolverIP string
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -132,6 +133,10 @@ type Config struct {
 	// template change at the same time. Zero holds every template change of
 	// an existing workload.
 	MaxConcurrentRollouts int
+
+	// PrivateNetworkResolverIP is the regional undns Service IP used by enrolled
+	// deployments. Empty disables private DNS on deployment Pods.
+	PrivateNetworkResolverIP string
 }
 
 // New creates a [Controller] ready to be run with [Controller.Run].
@@ -163,7 +168,8 @@ func New(cfg Config) *Controller {
 		storageClassName: cfg.StorageClassName,
 		disableGvisor:    cfg.DisableGvisor,
 
-		maxConcurrentRollouts: cfg.MaxConcurrentRollouts,
+		maxConcurrentRollouts:    cfg.MaxConcurrentRollouts,
+		privateNetworkResolverIP: cfg.PrivateNetworkResolverIP,
 	}
 }
 
