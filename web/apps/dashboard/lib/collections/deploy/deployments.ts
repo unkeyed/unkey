@@ -13,7 +13,7 @@ import {
   type DeploymentStatus,
 } from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
-import { latestExitAcross } from "./last-exit";
+import { latestExit } from "./last-exit";
 import { type ParsedFilter, extractStringFilter, extractStringValues } from "./utils";
 
 const regionSchema = z.object({
@@ -234,7 +234,7 @@ function toDeployment(
     createdAt: deployment.createdAt,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
-    lastExit: latestExitAcross(details.instances),
+    lastExit: latestExit(details.instances.map((i) => i.lastExit)),
   };
 }
 

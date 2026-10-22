@@ -11,6 +11,9 @@ export function formatTooltipPercent(p: number): string {
   if (!Number.isFinite(p) || p <= 0) {
     return "0%";
   }
+  if (p < 0.01) {
+    return "<0.01%";
+  }
   return p < 1 ? `${p.toFixed(2)}%` : p < 10 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
 }
 
@@ -63,7 +66,7 @@ export function formatStorageParts(mib: number): FormattedParts {
   return { value: `${mib}`, unit: "MiB" };
 }
 
-function joinParts({ value, unit }: FormattedParts): string {
+export function joinParts({ value, unit }: { value: string; unit?: string }): string {
   return unit ? `${value} ${unit}` : value;
 }
 
