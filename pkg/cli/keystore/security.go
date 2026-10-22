@@ -235,7 +235,7 @@ func parseChunkHeader(raw string) (chunkRef, error) {
 	if err != nil || n <= 0 || n > 1024 {
 		return chunkRef{}, fmt.Errorf("security: unparseable keychain chunk header")
 	}
-	return chunkRef{n: n}, nil
+	return chunkRef{nonce: "", n: n}, nil
 }
 
 func newNonce() (string, error) {
