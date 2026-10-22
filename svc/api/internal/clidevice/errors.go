@@ -21,7 +21,7 @@ func forbidden(message string) error {
 
 func unauthenticated(message string) error {
 	return fault.New(message,
-		fault.Code(codes.Auth.Authentication.Malformed.URN()),
+		fault.Code(codes.Auth.Authentication.CredentialRejected.URN()),
 		fault.Public(message),
 	)
 }
