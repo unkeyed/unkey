@@ -7,10 +7,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 )
 
-// Rate allows `Limit` units per `Duration`, with a burst of `Limit` units.
-//
-// The burst tolerance is the full `Duration`: after an idle time, all `Limit`
-// units fit at once, and a single request may use the whole limit.
+// Rate allows `Limit` units per `Duration`. The burst is the full `Limit`.
 type Rate struct {
 	Limit    int64
 	Duration time.Duration
@@ -24,14 +21,9 @@ func (r Rate) Validate() error {
 	)
 }
 
-// unitsToNs returns `⌈units × Duration / Limit⌉` (rounded up), the consumed
-// time of `units`. Rounding down would make each unit a little cheaper than
-// its share, and `Limit` requests could fit into less than `Duration`. The
-// product uses 128 bits; the package documentation explains why plain integer
-// math is not enough.
-//
-// The caller guarantees `0 ≤ units ≤ Limit`, so the result is at most
-// `Duration`.
+// unitsToNs returns `⌈units × Duration / Limit⌉`, rounded up so that `Limit`
+// requests never fit into less than `Duration`. The caller guarantees
+// `0 ≤ units ≤ Limit`. See the package documentation for the 128-bit math.
 func (r Rate) unitsToNs(units int64) int64 {
 	productHigh, productLow := bits.Mul64(uint64(units), uint64(r.Duration.Nanoseconds()))
 	quotient, remainder := bits.Div64(productHigh, productLow, uint64(r.Limit))
@@ -41,14 +33,9 @@ func (r Rate) unitsToNs(units int64) int64 {
 	return int64(quotient)
 }
 
-// remaining returns the largest number of units that one request could use
-// at `nowNs` when `reset_at` is `resetAtNs`. It is zero while `resetAtNs` is a
-// full `Duration` or more ahead, which happens when pods over-admitted and
-// the debt is not paid back yet.
+// remaining returns how many units fit at `nowNs`. It is zero while
+// `resetAtNs` is a full `Duration` or more ahead, after an over-admission.
 func (r Rate) remaining(nowNs, resetAtNs int64) int64 {
-	// A rate limit has `Duration` of time in total. The part between now and
-	// `reset_at` is in use and the rest is free. A `reset_at` in the past
-	// means every unit is free; idle time is not saved up beyond `Duration`.
 	aheadNs := max(resetAtNs-nowNs, 0)
 	if aheadNs >= r.Duration.Nanoseconds() { //faultline:equivalent at equality `unitsWithin(0)` is also 0
 		return 0
@@ -56,12 +43,8 @@ func (r Rate) remaining(nowNs, resetAtNs int64) int64 {
 	return r.unitsWithin(r.Duration.Nanoseconds() - aheadNs)
 }
 
-// unitsWithin returns `⌊freeNs × Limit / Duration⌋`, the largest number of
-// units whose time fits into `freeNs`. Because [Rate.unitsToNs] rounds up, `k`
-// units fit exactly when `k ≤ freeNs × Limit / Duration`.
-//
-// The caller guarantees `0 ≤ freeNs ≤ Duration`, so the result is at most
-// `Limit`.
+// unitsWithin returns `⌊freeNs × Limit / Duration⌋`, the most units whose
+// time fits into `freeNs`. The caller guarantees `0 ≤ freeNs ≤ Duration`.
 func (r Rate) unitsWithin(freeNs int64) int64 {
 	productHigh, productLow := bits.Mul64(uint64(freeNs), uint64(r.Limit))
 	quotient, _ := bits.Div64(productHigh, productLow, uint64(r.Duration.Nanoseconds()))
