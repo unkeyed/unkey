@@ -6,8 +6,11 @@
 //
 // Secrets never appear in a child process's argv, where other local users could
 // read them: secret-tool and `security -i` both receive the secret on stdin.
-// Because `security -i` does not reliably report failures through its exit
-// status, writes on macOS are confirmed by reading the item back.
+// `security -i` keeps only 4095 bytes of a command line and drops the rest
+// without a reliable error, so a secret that does not fit is stored as several
+// items. Because that mode also does not reliably report failures through its
+// exit status, writes on macOS are confirmed by reading the items back and a
+// mismatch is deleted.
 //
 // # Errors
 //
@@ -25,8 +28,9 @@
 // # Platform files
 //
 // store_darwin.go calls securityGet and securitySet. securitySet writes through
-// `security -i` and then reads the item back because that mode does not report
-// failure reliably. quoteSecurityArg quotes values for that command.
+// `security -i`, splitting a secret that would exceed the 4095-byte command
+// line, and then reads the item back because that mode does not report failure
+// reliably. quoteSecurityArg quotes values for that command.
 // store_linux.go calls secret-tool with the secret on stdin. store_windows.go
 // uses the Credential Manager. store_unsupported.go returns [ErrUnavailable].
 // classifySecurity and classifySecretTool map tool failures onto [ErrNotFound]

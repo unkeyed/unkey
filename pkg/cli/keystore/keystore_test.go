@@ -3,6 +3,7 @@ package keystore
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -89,6 +90,52 @@ func TestSecuritySetRejectsLineBreaks(t *testing.T) {
 	require.Error(t, securitySet(bin, serviceName, rootKeyAccount, "unkey_x\nadd-generic-password"))
 }
 
+// TestSecuritySetRoundTripsABlobLargerThanTheInteractiveLine guarantees a CLI
+// session bigger than macOS `security -i` can accept on one line is stored
+// whole, off argv, and comes back unchanged.
+func TestSecuritySetRoundTripsABlobLargerThanTheInteractiveLine(t *testing.T) {
+	bin := writeTool(t, securityScript)
+	secret := `{"active":"ws_1","sessions":{"ws_1":{"access_token":"` + strings.Repeat("a", 5000) + `","refresh_token":"ref\"resh\\token"}}}`
+	require.Greater(t, len(secret), securityMaxLineLen)
+
+	require.NoError(t, securitySet(bin, serviceName, sessionAccount, secret))
+	got, err := securityGet(bin, serviceName, sessionAccount)
+	require.NoError(t, err)
+	require.Equal(t, secret, got)
+
+	dir := os.Getenv("KEYSTORE_DIR")
+	argv, err := os.ReadFile(filepath.Join(dir, "argv"))
+	require.NoError(t, err)
+	require.NotContains(t, string(argv), "access_token")
+
+	lines, err := os.ReadFile(filepath.Join(dir, "lines"))
+	require.NoError(t, err)
+	for _, line := range strings.Split(strings.TrimSuffix(string(lines), "\n"), "\n") {
+		require.LessOrEqual(t, len(line), securityMaxLineLen)
+		require.NotEmpty(t, line)
+	}
+
+	require.NoError(t, securityDelete(bin, serviceName, sessionAccount))
+	_, err = securityGet(bin, serviceName, sessionAccount)
+	require.ErrorIs(t, err, ErrNotFound)
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	for _, entry := range entries {
+		require.NotContains(t, entry.Name(), sessionAccount)
+	}
+}
+
+// TestSecuritySetDeletesATruncatedBlob guarantees a tool that silently shortens
+// the secret does not leave that value for the next read.
+func TestSecuritySetDeletesATruncatedBlob(t *testing.T) {
+	bin := writeTool(t, truncatingSecurityScript)
+	secret := strings.Repeat("x", 80)
+	err := securitySet(bin, serviceName, sessionAccount, secret)
+	require.ErrorIs(t, err, ErrUnavailable)
+	_, err = securityGet(bin, serviceName, sessionAccount)
+	require.ErrorIs(t, err, ErrNotFound)
+}
+
 func TestSecurityInteractionIsUnavailable(t *testing.T) {
 	bin := writeTool(t, "#!/bin/sh\necho \"security: User interaction is not allowed.\" >&2\nexit 36\n")
 	err := securitySet(bin, serviceName, rootKeyAccount, "unkey_x")
@@ -155,7 +202,12 @@ dir="${KEYSTORE_DIR}"
 mkdir -p "$dir"
 printf '%s\n' "$*" >> "$dir/argv"
 if [ "$1" = "-i" ]; then
-  IFS= read -r line
+  IFS= read -r line || exit 2
+  printf '%s\n' "$line" >> "$dir/lines"
+  if [ ${#line} -gt 4095 ]; then
+    echo "interactive line exceeds 4095 bytes" >&2
+    exit 1
+  fi
   eval "set -- $line"
 fi
 cmd="$1"
@@ -186,10 +238,71 @@ if [ -z "$service" ] || [ -z "$account" ]; then
   echo "missing service or account" >&2
   exit 2
 fi
-file="$dir/secret"
+file="$dir/$(printf '%s' "$account" | tr '/' '_')"
 case "$cmd" in
   add-generic-password)
     printf '%s' "$password" > "$file"
+    ;;
+  find-generic-password)
+    if [ ! -f "$file" ]; then
+      echo "The specified item could not be found in the keychain." >&2
+      exit 44
+    fi
+    cat "$file"
+    printf '\n'
+    ;;
+  delete-generic-password)
+    if [ ! -f "$file" ]; then
+      echo "The specified item could not be found in the keychain." >&2
+      exit 44
+    fi
+    rm -f "$file"
+    ;;
+  *)
+    echo "unknown $cmd" >&2
+    exit 2
+    ;;
+esac
+`
+
+// truncatingSecurityScript accepts a write and keeps only the first 10 bytes,
+// the way `security -i` keeps a prefix of an overlong command.
+const truncatingSecurityScript = `#!/bin/sh
+set -eu
+dir="${KEYSTORE_DIR}"
+mkdir -p "$dir"
+if [ "$1" = "-i" ]; then
+  IFS= read -r line || exit 2
+  eval "set -- $line"
+fi
+cmd="$1"
+shift
+service=""
+account=""
+password=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -U) shift ;;
+    -s) service="$2"; shift 2 ;;
+    -a) account="$2"; shift 2 ;;
+    -w)
+      if [ "$cmd" = "add-generic-password" ]; then
+        password="$2"
+        shift 2
+      else
+        shift
+      fi
+      ;;
+    *)
+      echo "bad arg $1" >&2
+      exit 2
+      ;;
+  esac
+done
+file="$dir/$(printf '%s' "$account" | tr '/' '_')"
+case "$cmd" in
+  add-generic-password)
+    printf '%s' "$password" | cut -c1-10 > "$file"
     ;;
   find-generic-password)
     if [ ! -f "$file" ]; then
