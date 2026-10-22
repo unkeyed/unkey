@@ -31,7 +31,7 @@ export const useFetchTimeseries = () => {
   }, [filters, timestamp]);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.logs.apiRequests.timeseries(apiFilters),
+    queryKey: queryKeys.logs.apiRequests.metrics(apiFilters),
     queryFn: async ({ signal }) => {
       // Live mode slides the same window up to now on every refetch
       const { gte, lte } = apiFilters.time ?? {};
@@ -40,13 +40,13 @@ export const useFetchTimeseries = () => {
         isLive && gte !== undefined && lte !== undefined
           ? { gte: now - (lte - gte), lte: now }
           : apiFilters.time;
-      const { data } = await getUnkeyClient().logs.getApiRequestsTimeseries(
+      const { data } = await getUnkeyClient().logs.getApiRequestMetrics(
         { filters: { ...apiFilters, time } },
         { signal },
       );
       return data;
     },
-    select: ({ points }) => {
+    select: (points) => {
       // Points have no gaps, so two of them give the bucket width. A single
       // point spans the whole window
       const { gte, lte } = apiFilters.time ?? {};
