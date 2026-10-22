@@ -24,7 +24,7 @@ func TestApproveRequiresADashboardSession(t *testing.T) {
 	devices := clidevicetest.New(h)
 	route := &handler.Handler{Devices: devices}
 	h.Register(route)
-	started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "", UserAgent: ""})
+	started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.50", UserAgent: ""})
 	require.NoError(t, err)
 
 	workspace := h.Resources().UserWorkspace

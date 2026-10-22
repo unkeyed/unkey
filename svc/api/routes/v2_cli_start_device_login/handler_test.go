@@ -15,13 +15,19 @@ import (
 
 var jsonHeaders = http.Header{"Content-Type": {"application/json"}, "User-Agent": {"unkey-cli/test"}}
 
+func withClientIP(ip string) http.Header {
+	headers := jsonHeaders.Clone()
+	headers.Set("X-Forwarded-For", ip)
+	return headers
+}
+
 func TestStartRecordsTheRequester(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{Devices: clidevicetest.New(h)}
 	h.Register(route, h.PublicMiddleware()...)
 
 	deviceName := "laptop"
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, jsonHeaders, handler.Request{DeviceName: &deviceName})
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, withClientIP("203.0.113.10"), handler.Request{DeviceName: &deviceName})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 	code := res.Body.Data.UserCode
 	require.Equal(t, "http://dashboard.test/cli/device?user_code="+code, res.Body.Data.VerificationUriComplete)
@@ -30,7 +36,7 @@ func TestStartRecordsTheRequester(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "laptop", row.DeviceName.String)
 	require.Equal(t, "unkey-cli/test", row.RequesterUserAgent.String)
-	require.True(t, row.RequesterIp.Valid)
+	require.Equal(t, "203.0.113.10", row.RequesterIp.String)
 }
 
 func TestStartIsRateLimitedPerIP(t *testing.T) {
@@ -38,9 +44,10 @@ func TestStartIsRateLimitedPerIP(t *testing.T) {
 	route := &handler.Handler{Devices: clidevicetest.New(h)}
 	h.Register(route, h.PublicMiddleware()...)
 
+	headers := withClientIP("203.0.113.21")
 	last := 0
 	for range 21 {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, jsonHeaders, handler.Request{DeviceName: nil})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{DeviceName: nil})
 		last = res.Status
 	}
 	require.Equal(t, http.StatusTooManyRequests, last)
