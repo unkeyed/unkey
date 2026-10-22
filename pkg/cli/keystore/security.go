@@ -1,6 +1,8 @@
 package keystore
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -18,29 +20,42 @@ const securityMaxLineLen = 4095
 // interactive line limit after the command and quoting are added.
 const chunkPieceBytes = 3500
 
-// chunkHeader marks a primary keychain item whose value is the count of
-// following items. It is not valid session JSON and is not a root key.
-// Chunk i is stored under account + "/" + i.
+// chunkHeader is the legacy manifest: the primary item holds the piece count
+// and piece i is stored at account/i.
 const chunkHeader = "unkey-keystore-chunks:v1:"
 
+// nonceHeader is the manifest written last. Pieces live at
+// account/<nonce>/<i> and are invisible until this one item is replaced.
+const nonceHeader = "unkey-keystore-nonce:v1:"
+
 func securityGet(bin, service, account string) (string, error) {
+	unlock, err := lockKeystore()
+	if err != nil {
+		return "", err
+	}
+	defer unlock()
+	return securityGetUnlocked(bin, service, account)
+}
+
+func securityGetUnlocked(bin, service, account string) (string, error) {
 	raw, err := readItem(bin, service, account)
 	if err != nil {
 		return "", err
 	}
-	n, err := chunkCount(raw)
+	ref, err := parseChunkHeader(raw)
 	if err != nil {
 		return "", err
 	}
-	if n == 0 {
+	if ref.n == 0 {
 		return raw, nil
 	}
 	var b strings.Builder
-	for i := 0; i < n; i++ {
-		part, err := readItem(bin, service, chunkAccount(account, i))
+	for i := 0; i < ref.n; i++ {
+		part, err := readItem(bin, service, chunkAccount(account, ref.nonce, i))
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
-				_ = discardItems(bin, service, account, n)
+				_ = deleteItem(bin, service, account)
+				_ = discardNonce(bin, service, account, ref.nonce)
 				return "", fmt.Errorf("stored secret is unreadable; run unkey login again: %w", ErrNotFound)
 			}
 			return "", err
@@ -55,51 +70,68 @@ func securityGet(bin, service, account string) (string, error) {
 //
 // Interactive mode reads at most 4095 bytes of a command and does not reliably
 // report that it dropped the rest. A secret that does not fit in one command
-// is split across several items. The write is confirmed by reading the value
-// back. A mismatch, or a missing item, is deleted so a truncated value is not
-// left behind. Any other read error leaves the stored items in place.
+// is split across several items under a fresh nonce. The primary item is
+// replaced only after those pieces are stored, so a crash keeps the previous
+// secret. The write is confirmed by reading the value back. A mismatch, or a
+// missing item, restores the previous manifest. Any other read error leaves
+// the stored items in place.
 func securitySet(bin, service, account, secret string) error {
-	if strings.ContainsAny(secret, "\r\n") {
-		return fmt.Errorf("security: secret must not contain line breaks")
-	}
-	parts, chunked, err := planChunks(service, account, secret)
+	unlock, err := lockKeystore()
 	if err != nil {
 		return err
 	}
-	oldN := 0
-	if raw, readErr := readItem(bin, service, account); readErr == nil {
-		oldN, _ = chunkCount(raw)
+	defer unlock()
+	return securitySetUnlocked(bin, service, account, secret)
+}
+
+func securitySetUnlocked(bin, service, account, secret string) error {
+	if strings.ContainsAny(secret, "\r\n") {
+		return fmt.Errorf("security: secret must not contain line breaks")
 	}
-	if err := storeChunks(bin, service, account, parts, chunked); err != nil {
+	nonce, err := newNonce()
+	if err != nil {
+		return err
+	}
+	parts, chunked, err := planChunks(service, account, nonce, secret)
+	if err != nil {
+		return err
+	}
+	oldRaw := ""
+	oldRef := chunkRef{}
+	if raw, readErr := readItem(bin, service, account); readErr == nil {
+		oldRaw = raw
+		if ref, parseErr := parseChunkHeader(raw); parseErr == nil {
+			oldRef = ref
+		}
+	}
+	if err := storeChunks(bin, service, account, nonce, parts, chunked); err != nil {
 		if chunked {
-			_ = discardChunkItems(bin, service, account, len(parts))
+			_ = discardNonce(bin, service, account, nonce)
 		}
 		return err
 	}
-	if !chunked {
-		_ = discardChunkItems(bin, service, account, oldN)
-	} else if oldN > len(parts) {
-		_ = discardChunkRange(bin, service, account, len(parts), oldN)
-	}
-	stored, err := securityGet(bin, service, account)
+	stored, err := securityGetUnlocked(bin, service, account)
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		return err
 	}
 	if err != nil || stored != secret {
-		n := len(parts)
-		if !chunked {
-			n = 0
+		if oldRaw != "" {
+			_ = writeItem(bin, service, account, oldRaw)
+		} else {
+			_ = deleteItem(bin, service, account)
 		}
-		if oldN > n {
-			n = oldN
+		if chunked {
+			_ = discardNonce(bin, service, account, nonce)
 		}
-		_ = discardItems(bin, service, account, n)
 		return withDetail(ErrUnavailable, "keychain did not keep the secret")
+	}
+	if oldRef.n > 0 && oldRef.nonce != nonce {
+		_ = discardNonce(bin, service, account, oldRef.nonce)
 	}
 	return nil
 }
 
-func planChunks(service, account, secret string) ([]string, bool, error) {
+func planChunks(service, account, nonce, secret string) ([]string, bool, error) {
 	if lineFits(service, account, secret) {
 		return []string{secret}, false, nil
 	}
@@ -111,7 +143,7 @@ func planChunks(service, account, secret string) ([]string, bool, error) {
 			n = len(rest)
 		}
 		n = cutUTF8(rest, n)
-		name := chunkAccount(account, len(parts))
+		name := chunkAccount(account, nonce, len(parts))
 		for n > 0 && !lineFits(service, name, rest[:n]) {
 			n = cutUTF8(rest, n-1)
 		}
@@ -124,23 +156,23 @@ func planChunks(service, account, secret string) ([]string, bool, error) {
 			return nil, false, fmt.Errorf("security: secret cannot be stored")
 		}
 	}
-	header := chunkHeader + strconv.Itoa(len(parts))
+	header := nonceHeader + nonce + ":" + strconv.Itoa(len(parts))
 	if !lineFits(service, account, header) {
 		return nil, false, fmt.Errorf("security: secret cannot be stored")
 	}
 	return parts, true, nil
 }
 
-func storeChunks(bin, service, account string, parts []string, chunked bool) error {
+func storeChunks(bin, service, account, nonce string, parts []string, chunked bool) error {
 	if !chunked {
 		return writeItem(bin, service, account, parts[0])
 	}
 	for i, part := range parts {
-		if err := writeItem(bin, service, chunkAccount(account, i), part); err != nil {
+		if err := writeItem(bin, service, chunkAccount(account, nonce, i), part); err != nil {
 			return err
 		}
 	}
-	return writeItem(bin, service, account, chunkHeader+strconv.Itoa(len(parts)))
+	return writeItem(bin, service, account, nonceHeader+nonce+":"+strconv.Itoa(len(parts)))
 }
 
 func writeItem(bin, service, account, secret string) error {
@@ -171,19 +203,47 @@ func lineFits(service, account, secret string) bool {
 	return len(command)-1 <= securityMaxLineLen
 }
 
-func chunkAccount(account string, index int) string {
-	return account + "/" + strconv.Itoa(index)
+type chunkRef struct {
+	nonce string
+	n     int
 }
 
-func chunkCount(raw string) (int, error) {
+func chunkAccount(account, nonce string, index int) string {
+	if nonce == "" {
+		return account + "/" + strconv.Itoa(index)
+	}
+	return account + "/" + nonce + "/" + strconv.Itoa(index)
+}
+
+func parseChunkHeader(raw string) (chunkRef, error) {
+	if strings.HasPrefix(raw, nonceHeader) {
+		rest := strings.TrimPrefix(raw, nonceHeader)
+		nonce, count, ok := strings.Cut(rest, ":")
+		if !ok || nonce == "" || strings.ContainsAny(nonce, "/:") {
+			return chunkRef{}, fmt.Errorf("security: unparseable keychain chunk header")
+		}
+		n, err := strconv.Atoi(count)
+		if err != nil || n <= 0 || n > 1024 {
+			return chunkRef{}, fmt.Errorf("security: unparseable keychain chunk header")
+		}
+		return chunkRef{nonce: nonce, n: n}, nil
+	}
 	if !strings.HasPrefix(raw, chunkHeader) {
-		return 0, nil
+		return chunkRef{}, nil
 	}
 	n, err := strconv.Atoi(strings.TrimPrefix(raw, chunkHeader))
 	if err != nil || n <= 0 || n > 1024 {
-		return 0, fmt.Errorf("security: unparseable keychain chunk header")
+		return chunkRef{}, fmt.Errorf("security: unparseable keychain chunk header")
 	}
-	return n, nil
+	return chunkRef{n: n}, nil
+}
+
+func newNonce() (string, error) {
+	buf := make([]byte, 8)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
 }
 
 func cutUTF8(s string, n int) int {
@@ -218,39 +278,39 @@ func quoteSecurityArg(value string) string {
 }
 
 func securityDelete(bin, service, account string) error {
+	unlock, err := lockKeystore()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	raw, readErr := readItem(bin, service, account)
+	ref := chunkRef{}
+	if readErr == nil {
+		if parsed, parseErr := parseChunkHeader(raw); parseErr == nil {
+			ref = parsed
+		}
+	} else if !errors.Is(readErr, ErrNotFound) {
+		return readErr
+	}
 	if err := deleteItem(bin, service, account); err != nil {
 		return err
 	}
-	return deleteChunksUntilMissing(bin, service, account)
-}
-
-func deleteChunksUntilMissing(bin, service, account string) error {
-	for i := 0; i < 1024; i++ {
-		err := removeItem(bin, service, chunkAccount(account, i))
-		if errors.Is(err, ErrNotFound) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
+	if err := discardNonce(bin, service, account, ref.nonce); err != nil {
+		return err
+	}
+	if ref.nonce != "" {
+		return discardNonce(bin, service, account, "")
 	}
 	return nil
 }
 
-func discardItems(bin, service, account string, n int) error {
-	if err := deleteItem(bin, service, account); err != nil && !errors.Is(err, ErrNotFound) {
-		return err
-	}
-	return discardChunkItems(bin, service, account, n)
-}
-
-func discardChunkItems(bin, service, account string, n int) error {
-	return discardChunkRange(bin, service, account, 0, n)
-}
-
-func discardChunkRange(bin, service, account string, from, to int) error {
-	for i := from; i < to; i++ {
-		if err := deleteItem(bin, service, chunkAccount(account, i)); err != nil && !errors.Is(err, ErrNotFound) {
+func discardNonce(bin, service, account, nonce string) error {
+	for i := 0; i < 1024; i++ {
+		err := removeItem(bin, service, chunkAccount(account, nonce, i))
+		if errors.Is(err, ErrNotFound) {
+			return nil
+		}
+		if err != nil {
 			return err
 		}
 	}

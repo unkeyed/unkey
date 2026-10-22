@@ -155,19 +155,19 @@ func TestSecuritySetDeletesATruncatedBlob(t *testing.T) {
 func TestSecurityGetMissingChunkIsNotFound(t *testing.T) {
 	bin := writeTool(t, securityScript)
 	plantItem(t, sessionAccount, chunkHeader+"2")
-	plantItem(t, chunkAccount(sessionAccount, 0), "kept")
+	plantItem(t, chunkAccount(sessionAccount, "", 0), "kept")
 
 	_, err := securityGet(bin, serviceName, sessionAccount)
 	require.ErrorIs(t, err, ErrNotFound)
 	require.ErrorContains(t, err, "unreadable")
 	require.NoFileExists(t, itemPath(t, sessionAccount))
-	require.NoFileExists(t, itemPath(t, chunkAccount(sessionAccount, 0)))
+	require.NoFileExists(t, itemPath(t, chunkAccount(sessionAccount, "", 0)))
 }
 
 func TestSecuritySetChunkWriteFailureKeepsThePreviousSecret(t *testing.T) {
 	bin := writeTool(t, securityScript)
 	plantItem(t, rootKeyAccount, "unkey_previous")
-	t.Setenv("KEYSTORE_FAIL_ACCOUNT", chunkAccount(rootKeyAccount, 1))
+	t.Setenv("KEYSTORE_FAIL_CHUNK", "1")
 
 	err := securitySet(bin, serviceName, rootKeyAccount, strings.Repeat("a", 5000))
 	require.Error(t, err)
@@ -176,13 +176,13 @@ func TestSecuritySetChunkWriteFailureKeepsThePreviousSecret(t *testing.T) {
 	body, readErr := os.ReadFile(itemPath(t, rootKeyAccount))
 	require.NoError(t, readErr)
 	require.Equal(t, "unkey_previous", string(body))
-	require.NoFileExists(t, itemPath(t, chunkAccount(rootKeyAccount, 0)))
+	require.NoError(t, requireNoChunkFiles(t, rootKeyAccount))
 }
 
 func TestSecurityGetReadErrorKeepsStoredItems(t *testing.T) {
 	bin := writeTool(t, securityScript)
 	plantItem(t, sessionAccount, chunkHeader+"1")
-	plantItem(t, chunkAccount(sessionAccount, 0), "piece")
+	plantItem(t, chunkAccount(sessionAccount, "", 0), "piece")
 	t.Setenv("KEYSTORE_FAIL_READ_CHUNK", "1")
 
 	_, err := securityGet(bin, serviceName, sessionAccount)
@@ -192,7 +192,7 @@ func TestSecurityGetReadErrorKeepsStoredItems(t *testing.T) {
 	body, readErr := os.ReadFile(itemPath(t, sessionAccount))
 	require.NoError(t, readErr)
 	require.Equal(t, chunkHeader+"1", string(body))
-	piece, readErr := os.ReadFile(itemPath(t, chunkAccount(sessionAccount, 0)))
+	piece, readErr := os.ReadFile(itemPath(t, chunkAccount(sessionAccount, "", 0)))
 	require.NoError(t, readErr)
 	require.Equal(t, "piece", string(piece))
 }
@@ -214,19 +214,46 @@ func TestSecuritySetReadBackErrorKeepsTheSecret(t *testing.T) {
 func TestSecurityDeleteRemovesLeftoverChunks(t *testing.T) {
 	bin := writeTool(t, securityScript)
 	plantItem(t, sessionAccount, chunkHeader+"1")
-	plantItem(t, chunkAccount(sessionAccount, 0), "zero")
-	plantItem(t, chunkAccount(sessionAccount, 1), "one")
-	plantItem(t, chunkAccount(sessionAccount, 2), "two")
+	plantItem(t, chunkAccount(sessionAccount, "", 0), "zero")
+	plantItem(t, chunkAccount(sessionAccount, "", 1), "one")
+	plantItem(t, chunkAccount(sessionAccount, "", 2), "two")
 	plantItem(t, rootKeyAccount, "unkey_keep")
 
 	require.NoError(t, securityDelete(bin, serviceName, sessionAccount))
 	require.NoFileExists(t, itemPath(t, sessionAccount))
-	require.NoFileExists(t, itemPath(t, chunkAccount(sessionAccount, 0)))
-	require.NoFileExists(t, itemPath(t, chunkAccount(sessionAccount, 1)))
-	require.NoFileExists(t, itemPath(t, chunkAccount(sessionAccount, 2)))
+	require.NoFileExists(t, itemPath(t, chunkAccount(sessionAccount, "", 0)))
+	require.NoFileExists(t, itemPath(t, chunkAccount(sessionAccount, "", 1)))
+	require.NoFileExists(t, itemPath(t, chunkAccount(sessionAccount, "", 2)))
 	body, err := os.ReadFile(itemPath(t, rootKeyAccount))
 	require.NoError(t, err)
 	require.Equal(t, "unkey_keep", string(body))
+}
+
+func TestSecuritySetPublishesANonceOnlyAfterThePiecesExist(t *testing.T) {
+	bin := writeTool(t, securityScript)
+	secret := strings.Repeat("a", 5000)
+	require.NoError(t, securitySet(bin, serviceName, sessionAccount, secret))
+
+	body, err := os.ReadFile(itemPath(t, sessionAccount))
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(string(body), nonceHeader))
+	got, err := securityGet(bin, serviceName, sessionAccount)
+	require.NoError(t, err)
+	require.Equal(t, secret, got)
+}
+
+func TestSecurityGetIgnoresAnUncommittedNonce(t *testing.T) {
+	bin := writeTool(t, securityScript)
+	plantItem(t, sessionAccount, nonceHeader+"aaaa:1")
+	plantItem(t, chunkAccount(sessionAccount, "aaaa", 0), "committed")
+	plantItem(t, chunkAccount(sessionAccount, "bbbb", 0), "uncommitted")
+
+	got, err := securityGet(bin, serviceName, sessionAccount)
+	require.NoError(t, err)
+	require.Equal(t, "committed", got)
+	extra, err := os.ReadFile(itemPath(t, chunkAccount(sessionAccount, "bbbb", 0)))
+	require.NoError(t, err)
+	require.Equal(t, "uncommitted", string(extra))
 }
 
 func TestSecurityGetRejectsAnUnparseableChunkHeader(t *testing.T) {
@@ -243,7 +270,7 @@ func TestSecurityGetRejectsAnUnparseableChunkHeader(t *testing.T) {
 
 func TestPlanChunksStayUnderThePieceSizeAndCutOnUTF8(t *testing.T) {
 	secret := strings.Repeat("a", 8000)
-	parts, chunked, err := planChunks(serviceName, sessionAccount, secret)
+	parts, chunked, err := planChunks(serviceName, sessionAccount, "0123456789abcdef", secret)
 	require.NoError(t, err)
 	require.True(t, chunked)
 	require.Equal(t, secret, strings.Join(parts, ""))
@@ -255,7 +282,7 @@ func TestPlanChunksStayUnderThePieceSizeAndCutOnUTF8(t *testing.T) {
 
 	euro := "€"
 	split := strings.Repeat("a", chunkPieceBytes-1) + euro + strings.Repeat("b", 2000)
-	parts, chunked, err = planChunks(serviceName, sessionAccount, split)
+	parts, chunked, err = planChunks(serviceName, sessionAccount, "0123456789abcdef", split)
 	require.NoError(t, err)
 	require.True(t, chunked)
 	require.Equal(t, split, strings.Join(parts, ""))
@@ -276,6 +303,21 @@ func TestSecurityInteractionIsUnavailable(t *testing.T) {
 func TestSecurityMissingBinaryIsUnavailable(t *testing.T) {
 	_, err := securityGet("unkey-security-missing", serviceName, rootKeyAccount)
 	require.ErrorIs(t, err, ErrUnavailable)
+}
+
+func requireNoChunkFiles(t *testing.T, account string) error {
+	t.Helper()
+	entries, err := os.ReadDir(os.Getenv("KEYSTORE_DIR"))
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.Name() == "argv" || entry.Name() == "lines" || entry.Name() == account {
+			continue
+		}
+		t.Errorf("leftover keychain item %s", entry.Name())
+	}
+	return nil
 }
 
 func plantItem(t *testing.T, account, secret string) {
@@ -386,6 +428,14 @@ case "$cmd" in
     if [ "${KEYSTORE_FAIL_ACCOUNT:-}" = "$account" ]; then
       echo "write failed" >&2
       exit 1
+    fi
+    if [ "${KEYSTORE_FAIL_CHUNK:-}" = "1" ]; then
+      case "$account" in
+        */*)
+          echo "write failed" >&2
+          exit 1
+          ;;
+      esac
     fi
     printf '%s' "$password" > "$file"
     ;;
