@@ -40,34 +40,43 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { useState } from "react";
-import {
-  type ComputeValues,
-  type Replicas,
-  type SetCompute,
-  computeSchema,
-  replicasError,
-} from "./draft";
+import type { UseFormReturn } from "react-hook-form";
+import type { RuntimeValues } from "../runtime/model";
+import type { Replicas, SetCompute } from "./draft";
 import { REGION_STATES, availableFrom, regionChoices, regionsNote } from "./status";
 import { CUSTOM_VALUE, useSizeChoice } from "./use-size-choice";
 
-export type ComputeInput = { values: ComputeValues; change: SetCompute; busy: boolean };
+type RuntimeForm = UseFormReturn<RuntimeValues>;
 
 type FieldProps = { compute: ReturnType<typeof useComputeControls> };
 
-function useComputeControls(input: ComputeInput) {
+function useComputeControls(form: RuntimeForm) {
   const { limits } = useWorkspace();
   const regionsQuery = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
-  return { ...input, limits: resolveLimits(limits), available: availableFrom(regionsQuery) };
+  const change: SetCompute = (key, value) =>
+    form.setValue(
+      "compute",
+      { ...form.getValues("compute"), [key]: value },
+      { shouldDirty: true, shouldValidate: true },
+    );
+  return {
+    values: form.watch("compute"),
+    errors: form.formState.errors.compute,
+    busy: form.formState.isSubmitting,
+    change,
+    limits: resolveLimits(limits),
+    available: availableFrom(regionsQuery),
+  };
 }
 
 export function ComputeFields({
-  compute: input,
+  form,
   hideLockedSizes = false,
 }: {
-  compute: ComputeInput;
+  form: RuntimeForm;
   hideLockedSizes?: boolean;
 }) {
-  const compute = useComputeControls(input);
+  const compute = useComputeControls(form);
   return (
     <>
       <RegionsField compute={compute} />
@@ -79,12 +88,15 @@ export function ComputeFields({
 }
 
 function RegionsField({ compute }: FieldProps) {
-  const { values, available, busy } = compute;
+  const { values, available, busy, errors } = compute;
   const choices = regionChoices(available, values.regions);
   const states = new Map(choices.map((choice) => [choice.name, REGION_STATES[choice.state]]));
-  const error = computeSchema.shape.regions.safeParse(values.regions).error?.issues[0]?.message;
   return (
-    <FormField label="Regions" description={regionsNote(available)} error={error}>
+    <FormField
+      label="Regions"
+      description={regionsNote(available)}
+      error={errors?.regions?.message}
+    >
       {({ id, describedBy }) => (
         <Select
           multiple
@@ -279,7 +291,7 @@ function UnitSelect({
 }
 
 function InstancesField({ compute }: FieldProps) {
-  const { values, limits, busy } = compute;
+  const { values, limits, busy, errors } = compute;
   const bounds: { key: keyof Replicas; label: string }[] = [
     { key: "min", label: "Min" },
     { key: "max", label: "Max" },
@@ -288,7 +300,7 @@ function InstancesField({ compute }: FieldProps) {
     <FormField
       label="Instances"
       description={`Scales between min and max on CPU usage. Up to ${limits.replicas} per region.`}
-      error={replicasError(values.replicas, limits.replicas)}
+      error={errors?.replicas?.message}
     >
       {({ describedBy, invalid, variant }) => (
         <div className="grid grid-cols-2 gap-3">

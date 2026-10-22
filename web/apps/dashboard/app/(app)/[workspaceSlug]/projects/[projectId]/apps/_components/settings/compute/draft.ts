@@ -7,7 +7,7 @@ export const computeSchema = z.object({
   cpuMillicores: z.number().int().positive(),
   memoryMib: z.number().int().positive(),
   storageMib: z.number().int().min(0),
-  replicas: z.object({ min: z.number().int().min(1), max: z.number().int().min(1) }),
+  replicas: z.object({ min: z.number().or(z.nan()), max: z.number().or(z.nan()) }),
   regions: z.array(z.string()).min(1, "Your app needs at least one region"),
 });
 

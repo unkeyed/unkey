@@ -1,5 +1,5 @@
 import { routes } from "@/lib/navigation/routes";
-import { permanentRedirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export default async function RuntimeSettingsPage({
   params,
@@ -7,7 +7,7 @@ export default async function RuntimeSettingsPage({
   params: Promise<{ workspaceSlug: string; projectId: string; appId: string }>;
 }) {
   const { workspaceSlug, projectId, appId } = await params;
-  permanentRedirect(
+  redirect(
     routes.projects.apps.settings({ workspaceSlug, projectId, appId, page: "environments" }),
   );
 }

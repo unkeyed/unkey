@@ -53,7 +53,7 @@ export const runtimeSchema = z.object({
     .int(PORT_MESSAGE)
     .min(1, PORT_MESSAGE)
     .max(65535, PORT_MESSAGE),
-  command: z.string(),
+  command: z.string().trim(),
   healthcheck: healthcheckSchema,
 });
 
@@ -61,27 +61,35 @@ export type RuntimeValues = z.infer<typeof runtimeSchema>;
 
 type HealthcheckValues = RuntimeValues["healthcheck"];
 
-export const computeSectionSchema = runtimeSchema.extend({
+export type RuntimeSection = keyof RuntimeValues;
+
+const UNCHECKED: { [K in RuntimeSection]: z.ZodType<RuntimeValues[K], RuntimeValues[K]> } = {
+  compute: z.custom<ComputeValues>(),
   port: z.custom<number>(),
   command: z.custom<string>(),
   healthcheck: z.custom<HealthcheckValues>(),
-});
+};
 
-export const commandSectionSchema = runtimeSchema.extend({
-  compute: z.custom<ComputeValues>(),
-  port: z.custom<number>(),
-  healthcheck: z.custom<HealthcheckValues>(),
-});
-
-export function withReplicaLimit(
-  schema: z.ZodType<RuntimeValues, RuntimeValues>,
-  limit: number,
+export function runtimeFormSchema(
+  shown: readonly RuntimeSection[] | "all",
+  replicaLimit: number,
 ): z.ZodType<RuntimeValues, RuntimeValues> {
-  return schema.superRefine(({ compute }, ctx) => {
-    const message = replicasError(compute.replicas, limit);
-    if (message) {
-      ctx.addIssue({ code: "custom", path: ["compute", "replicas"], message });
-    }
+  const checks = {
+    ...runtimeSchema.shape,
+    compute: computeSchema.superRefine(({ replicas }, ctx) => {
+      const message = replicasError(replicas, replicaLimit);
+      if (message) {
+        ctx.addIssue({ code: "custom", path: ["replicas"], message });
+      }
+    }),
+  };
+  const section = <K extends RuntimeSection>(key: K) =>
+    shown === "all" || shown.includes(key) ? checks[key] : UNCHECKED[key];
+  return z.object({
+    compute: section("compute"),
+    port: section("port"),
+    command: section("command"),
+    healthcheck: section("healthcheck"),
   });
 }
 
@@ -122,8 +130,7 @@ export function writeRuntime(
 }
 
 function writeCommand(draft: EnvironmentSettings, command: string): void {
-  const trimmed = command.trim();
-  draft.command = trimmed === "" ? [] : trimmed.split(/\s+/);
+  draft.command = command === "" ? [] : command.split(/\s+/);
 }
 
 function writeHealthcheck(draft: EnvironmentSettings, values: HealthcheckValues): void {

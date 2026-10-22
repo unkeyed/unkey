@@ -8,10 +8,10 @@ import { PortField } from "./port-field";
 import { useRuntimeForm } from "./use-runtime-form";
 
 export function RuntimeForm() {
-  const { form, formProps, compute } = useRuntimeForm();
+  const { form, formProps } = useRuntimeForm();
   return (
     <SettingsForm {...formProps}>
-      <ComputeFields compute={compute} />
+      <ComputeFields form={form} />
       <PortField form={form} />
       <CommandField form={form} />
       <HealthcheckFields form={form} />
@@ -20,16 +20,16 @@ export function RuntimeForm() {
 }
 
 export function ComputeForm({ hideLockedSizes = false }: { hideLockedSizes?: boolean }) {
-  const { formProps, compute } = useRuntimeForm("compute");
+  const { form, formProps } = useRuntimeForm(["compute"]);
   return (
     <SettingsForm {...formProps}>
-      <ComputeFields compute={compute} hideLockedSizes={hideLockedSizes} />
+      <ComputeFields form={form} hideLockedSizes={hideLockedSizes} />
     </SettingsForm>
   );
 }
 
 export function CommandForm() {
-  const { form, formProps } = useRuntimeForm("command");
+  const { form, formProps } = useRuntimeForm(["command"]);
   return (
     <SettingsForm {...formProps}>
       <CommandField form={form} />

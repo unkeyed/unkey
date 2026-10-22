@@ -2,38 +2,22 @@
 
 import { resolveLimits } from "@/lib/compute/sizing";
 import { useWorkspace } from "@/providers/workspace-provider";
-import type { ComputeInput } from "../compute/compute-fields";
+import { useEffect } from "react";
 import { useSettingForm } from "../hooks/use-setting-form";
-import {
-  commandSectionSchema,
-  computeSectionSchema,
-  readRuntime,
-  runtimeSchema,
-  withReplicaLimit,
-  writeRuntime,
-} from "./model";
+import { type RuntimeSection, readRuntime, runtimeFormSchema, writeRuntime } from "./model";
 
-const CHANGE = { shouldDirty: true, shouldValidate: true } as const;
-
-const SHOWN = {
-  all: { schema: runtimeSchema, checksCompute: true },
-  compute: { schema: computeSectionSchema, checksCompute: true },
-  command: { schema: commandSectionSchema, checksCompute: false },
-} as const;
-
-export function useRuntimeForm(shown: keyof typeof SHOWN = "all") {
+export function useRuntimeForm(shown: readonly RuntimeSection[] | "all" = "all") {
   const { limits } = useWorkspace();
-  const { schema, checksCompute } = SHOWN[shown];
-  const { form, formProps } = useSettingForm({
-    schema: checksCompute ? withReplicaLimit(schema, resolveLimits(limits).replicas) : schema,
+  const replicaLimit = resolveLimits(limits).replicas;
+  const runtime = useSettingForm({
+    schema: runtimeFormSchema(shown, replicaLimit),
     read: readRuntime,
     write: writeRuntime,
   });
-  const compute: ComputeInput = {
-    values: form.watch("compute"),
-    change: (key, value) =>
-      form.setValue("compute", { ...form.getValues("compute"), [key]: value }, CHANGE),
-    busy: form.formState.isSubmitting,
-  };
-  return { form, formProps, compute };
+  const { form } = runtime;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the plan limit loads after the form, and the limit check must rerun when it arrives
+  useEffect(() => {
+    void form.trigger();
+  }, [form, replicaLimit]);
+  return runtime;
 }
