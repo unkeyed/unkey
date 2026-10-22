@@ -14,7 +14,7 @@ import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 <RootKeyPrereq />
 
-Retrieve a custom domain by ID or name and its <Tooltip tip="Here: proving DNS ownership of a custom domain. Not key verification.">verification</Tooltip> status. Names are unique per workspace, so `api.acme.com` is enough. No project, <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>, or <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> is needed.
+Retrieve a custom domain by ID or name and its <Tooltip tip="Here: proving DNS ownership of a custom domain. Not key verification.">verification</Tooltip> status. Names are unique per workspace, so `api.acme.com` is enough. No <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>, <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>, or <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> is needed.
 
 Use it to check progress after `create-domain`. We check DNS about once a minute.
 

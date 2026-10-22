@@ -42,7 +42,7 @@ You can install the app on more than one GitHub account. An installation belongs
 
 Pick the repository when you create the app, or later under **App settings** > **Build**. From the CLI, pass `--git` to [create-app](/compute/cli/apps/create-app) or [update-app](/compute/cli/apps/update-app).
 
-You connect a repository per app, not per project. In a monorepo, two apps can connect to the same repository and use different build settings.
+You connect a repository per app, not per <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>. In a monorepo, two apps can connect to the same repository and use different build settings.
 
 The app's default branch deploys to production. It starts as the repository's default branch on GitHub, and you can change it with `apps.updateApp`.
 
