@@ -575,6 +575,11 @@ func (s *Session) SetResponseBody(body []byte) {
 	s.responseBody = body
 }
 
+// ResponseBody returns the captured response bytes. Callers must not modify them.
+func (s *Session) ResponseBody() []byte {
+	return s.responseBody
+}
+
 // MaxBodyCapture is the maximum number of bytes captured from streaming
 // request/response bodies for logging. Anything beyond this is silently dropped.
 const MaxBodyCapture = 1 << 20 // 1 MiB

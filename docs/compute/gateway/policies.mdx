@@ -159,14 +159,14 @@ Each match expression sets exactly one of `path`, `method`, `header`, `queryPara
 
 ## Put policies in the right order
 
-The gateway runs every enabled policy that matches, from top to bottom. In the dashboard, drag a row by its handle to reorder. Order matters in four ways:
+The gateway runs matching, enabled authentication, rate limit, firewall, and OpenAPI validation policies from top to bottom. In the dashboard, drag a row by its handle to reorder. Order matters in four ways:
 
 - **IP blocks before authentication.** Put a firewall policy that blocks by `remoteIp` above your API key policies, so blocked clients can't try keys.
 - **Authentication first.** The first API key policy that succeeds decides who the caller is. Later API key policies are skipped.
 - **Rate limits by caller go after authentication.** A rate limit that counts by `authenticatedSubject` or `principalField` needs to know the caller. If it runs first, every request counts as `unknown`.
-- **A rejection stops everything.** After a firewall block, a failed key check, a used-up rate limit, or an OpenAPI error, no later policy runs, including logging.
+- A rejection stops enforcement. After a firewall block, a failed key check, a used-up rate limit, or an OpenAPI error, no later authentication, rate limit, firewall, or validation check runs.
 
-Logging policies never reject. If several match, the request is logged with all of their settings combined.
+Logging policies apply to accepted and rejected requests, regardless of their position. If several match, their settings combine. Body redaction from matching, enabled OpenAPI policies also applies when a request is rejected before validation.
 
 ## Limits
 

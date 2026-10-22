@@ -8,6 +8,7 @@ import { apiRoutes } from "./apis";
 import { auditRoutes } from "./audit";
 import { authRoutes } from "./auth";
 import { authorizationRoutes } from "./authorization";
+import { envVarRoutes } from "./env-vars";
 import { identityRoutes } from "./identities";
 import { logRoutes } from "./logs";
 import { projectRoutes } from "./projects";
@@ -25,6 +26,7 @@ export const routes = {
   projects: projectRoutes,
   ratelimits: ratelimitRoutes,
   rootKeys: rootKeyRoutes,
+  envVars: envVarRoutes,
   settings: settingsRoutes,
   apis: apiRoutes,
   authorization: authorizationRoutes,

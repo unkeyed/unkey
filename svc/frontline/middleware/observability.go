@@ -71,6 +71,9 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 			var domain string
 
 			if hasError {
+				if tracking, ok := proxy.RequestTrackingFromContext(ctx); ok && tracking.LogRequestBody && tracking.InstanceID == "" && s.Request().Body != nil {
+					tracking.RequestBody = captureRejectedBody(ctx, s)
+				}
 				s.ResponseWriter().Header().Set(proxy.HeaderRequestID, s.RequestID())
 				tracing.RecordError(span, err)
 

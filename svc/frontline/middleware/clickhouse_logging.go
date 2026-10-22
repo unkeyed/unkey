@@ -2,14 +2,18 @@ package middleware
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 	"unsafe"
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
@@ -83,6 +87,13 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 				responseHeaders = formatHeaders(s.ResponseWriter().Header(), nil)
 			}
 
+			if tracking.LogResponseBody {
+				body := s.ResponseBody()
+				if len(body) > 0 {
+					tracking.ResponseBody = body[:min(len(body), zen.MaxBodyCapture)]
+				}
+			}
+
 			buf.Buffer(schema.FrontlineRequest{
 				RequestID:       tracking.RequestID,
 				Time:            tracking.StartTime.UnixMilli(),
@@ -116,6 +127,24 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			return err
 		}
 	}
+}
+
+func captureRejectedBody(ctx context.Context, sess *zen.Session) []byte {
+	deadline := time.Now().Add(time.Second)
+	if requestDeadline, ok := ctx.Deadline(); ok && requestDeadline.Before(deadline) {
+		deadline = requestDeadline
+	}
+	if err := http.NewResponseController(sess.ResponseWriter()).SetReadDeadline(deadline); err != nil && !errors.Is(err, http.ErrNotSupported) {
+		logger.Debug("failed to bound rejected request body capture", "error", err)
+		return nil
+	}
+
+	req := sess.Request()
+	buf := zen.NewBodyCapture(req.ContentLength)
+	if _, err := io.Copy(buf, io.LimitReader(req.Body, zen.MaxBodyCapture)); err != nil {
+		logger.Debug("incomplete rejected request body capture", "error", err)
+	}
+	return buf.Bytes()
 }
 
 func redactBody(body []byte, redactors []*redaction.Redactor) string {
