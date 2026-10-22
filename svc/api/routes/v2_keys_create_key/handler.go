@@ -46,6 +46,28 @@ type Handler struct {
 	Vault     vault.VaultServiceClient
 }
 
+// maskCreateKeyPermissions hides a keyspace from callers who cannot read it.
+// Callers who can read it get a 403 that names the missing action. The keyspace
+// id is resolved from the API, so the public message must not repeat it.
+func maskCreateKeyPermissions(err error, granted []string, query rbac.PermissionQuery, keySpaceID string) error {
+	masked := apierrors.MaskInsufficientPermissionsAsNotFound(
+		err,
+		granted,
+		query,
+		codes.Data.Api.NotFound.URN(),
+		"The specified API was not found.",
+	)
+	code, ok := fault.GetCode(masked)
+	if !ok || code != codes.Auth.Authorization.InsufficientPermissions.URN() || keySpaceID == "" {
+		return masked
+	}
+	return fault.New("insufficient permissions",
+		fault.Code(code),
+		fault.Internal("caller can read the resource but lacks a required permission"),
+		fault.Public(strings.ReplaceAll(fault.UserFacingMessage(masked), keySpaceID, "*")),
+	)
+}
+
 // Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
@@ -134,12 +156,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(
-			err,
-			principal.Permissions,
-			permissionQuery,
-			codes.Data.Api.NotFound.URN(),
-		)
+		return maskCreateKeyPermissions(err, principal.Permissions, permissionQuery, api.KeyAuthID.String)
 	}
 
 	// Portal sessions are scoped to a single external identity. Force the
@@ -228,12 +245,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 		err = principal.Authorize(encryptQuery)
 		if err != nil {
-			return apierrors.MaskInsufficientPermissionsAsNotFound(
-				err,
-				principal.Permissions,
-				encryptQuery,
-				codes.Data.Api.NotFound.URN(),
-			)
+			return maskCreateKeyPermissions(err, principal.Permissions, encryptQuery, keySpace.ID)
 		}
 
 		if !keySpace.StoreEncryptedKeys {
