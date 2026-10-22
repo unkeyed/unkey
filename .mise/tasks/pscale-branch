@@ -29,9 +29,9 @@ trap cleanup EXIT
 git archive "$BASE" web/internal/db/src | tar -x -C "$TEMP"
 echo "Planning schema changes since Git merge-base $BASE."
 pnpm --dir=web/internal/db exec drizzle-kit generate --dialect=mysql \
-  --schema="$TEMP/web/internal/db/src/schema/index.ts" --out="$TEMP/base" >/dev/null
+  --schema="$TEMP/web/internal/db/src/schema/index.ts" --out="$TEMP/base"
 pnpm --dir=web/internal/db exec drizzle-kit generate --dialect=mysql \
-  --schema=./src/schema/index.ts --out="$TEMP/head" >/dev/null
+  --schema=./src/schema/index.ts --out="$TEMP/head"
 node web/internal/db/scripts/pscale-branch.mts \
   "$TEMP/base/meta/0000_snapshot.json" "$TEMP/head/meta/0000_snapshot.json" --check
 
@@ -43,7 +43,7 @@ USER="$(echo "$PW" | jq -r '.username | @uri')"
 PASS="$(echo "$PW" | jq -r '.plain_text | @uri')"
 HOST="$(echo "$PW" | jq -r '.access_host_url | @uri')"
 export DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/unkey?ssl={}"
-pnpm --dir=web/internal/db exec drizzle-kit pull --out="$TEMP/live" >/dev/null
+DRIZZLE_OUTPUT_DIR="$TEMP/live" pnpm --dir=web/internal/db exec drizzle-kit pull
 node web/internal/db/scripts/pscale-branch.mts \
   "$TEMP/base/meta/0000_snapshot.json" "$TEMP/head/meta/0000_snapshot.json" \
   "$TEMP/live/meta/0000_snapshot.json"
