@@ -67,6 +67,9 @@ const (
 	UnkeyAuthErrorsAuthenticationMalformed URN = "err:unkey:authentication:malformed"
 	// KeyNotFound indicates the authentication key was not found.
 	UnkeyAuthErrorsAuthenticationKeyNotFound URN = "err:unkey:authentication:key_not_found"
+	// CredentialRejected indicates a presented credential is not accepted.
+	// CLI refresh uses this when the token is unknown, expired, revoked, or already used.
+	UnkeyAuthErrorsAuthenticationCredentialRejected URN = "err:unkey:authentication:credential_rejected"
 
 	// Authorization
 

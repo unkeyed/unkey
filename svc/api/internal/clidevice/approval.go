@@ -133,10 +133,14 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 		if row.ApproverUserID.Valid && row.ApproverUserID.String != req.Principal.Subject.ID {
 			return forbidden("Another account already approved this login.")
 		}
-		return db.Query.UpdateDeviceAuthorizationStatus(ctx, tx, db.UpdateDeviceAuthorizationStatusParams{
-			Status: db.DeviceAuthorizationsStatusDenied,
-			ID:     row.ID,
-		})
+		n, err := db.Query.DenyDeviceAuthorization(ctx, tx, row.ID)
+		if err != nil {
+			return err
+		}
+		if n != 1 {
+			return invalid("This login was already used.")
+		}
+		return nil
 	})
 }
 
