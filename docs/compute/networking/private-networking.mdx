@@ -31,7 +31,7 @@ Instances can't talk to each other, so anything two of them need belongs in a st
 ## What your instances can and can't reach
 
 - **Outbound: anything.** Your app can call any host it can resolve: a database, a third-party API, an object store, or another Unkey app.
-- **Inbound: only the gateway**, on your app's port. Nothing else can reach an instance: not other instances of the same deployment, not other apps in the project, not older deployments of the same app.
+- **Inbound: only the gateway**, on your app's port. Nothing else can reach an instance: not other instances of the same deployment, not other apps in the <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>, not older deployments of the same app.
 
 A blocked connection isn't refused or reset. It's silently dropped, so the caller just times out. If you see that, this is the likely cause.
 

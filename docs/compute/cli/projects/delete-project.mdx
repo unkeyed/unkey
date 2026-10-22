@@ -14,7 +14,7 @@ import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 <RootKeyPrereq />
 
-Delete a project and all of its <Tooltip tip="Compute apps: deployable services inside a project. Not your applications in general.">apps</Tooltip>, <Tooltip tip="Production or preview environments of a Compute app, not the dashboard label on a key.">environments</Tooltip>, deployments, and custom domains.
+Delete a <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> and all of its <Tooltip tip="Compute apps: deployable services inside a project. Not your applications in general.">apps</Tooltip>, <Tooltip tip="Production or preview environments of a Compute app, not the dashboard label on a key.">environments</Tooltip>, deployments, and custom domains.
 
 Deletion runs in the background: a successful response means it has started, not that every resource is gone yet. A project with delete protection enabled is refused until you disable it with `update-project`.
 
