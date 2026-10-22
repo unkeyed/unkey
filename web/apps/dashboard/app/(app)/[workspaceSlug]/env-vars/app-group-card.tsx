@@ -3,7 +3,9 @@
 import { SourceIcon, appSource } from "@/components/deploy/app-source";
 import { HighlightMatch } from "@/components/deploy/env-vars/highlight-match";
 import { TYPE_MARKERS, TypeMarker } from "@/components/deploy/env-vars/type-marker";
+import { CrumbSeparator } from "@/components/navigation/top-nav/crumb";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import { PaginationControls, ResourceListContent } from "@unkey/ui";
 import type { Route } from "next";
@@ -17,10 +19,13 @@ import {
   environmentProse,
   formatChangedAt,
   pageWindow,
+  projectCrumbLabel,
 } from "./model";
 
 export function AppGroupCard({ group, search }: { group: VisibleAppGroup; search: string }) {
   const workspace = useWorkspaceNavigation();
+  const projectsNav = useFlag("projectsNav");
+  const projectLabel = projectCrumbLabel(group.project, workspace.name, projectsNav);
   const [page, setPage] = useState(0);
   const { project, app, variables } = group;
   const pager = pageWindow(variables.length, page);
@@ -40,7 +45,15 @@ export function AppGroupCard({ group, search }: { group: VisibleAppGroup; search
         className="flex h-11 items-center gap-2.5 border-b px-4 text-sm transition-colors hover:bg-grayA-2 focus-visible:bg-grayA-2 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-grayA-7"
       >
         <SourceIcon source={appSource(app)} className="size-3.5 shrink-0 text-gray-12" />
-        <span className="truncate font-medium text-gray-12">{app.name}</span>
+        <span className="flex min-w-0 items-center gap-1">
+          {projectLabel && (
+            <>
+              <span className="truncate text-gray-11">{projectLabel}</span>
+              <CrumbSeparator />
+            </>
+          )}
+          <span className="truncate font-medium text-gray-12">{app.name}</span>
+        </span>
         <span className="text-xs text-gray-9">{variables.length}</span>
       </Link>
       <ul aria-label={`Environment variables in ${app.name}`} className="py-1">

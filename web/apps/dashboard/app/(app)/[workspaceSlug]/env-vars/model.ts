@@ -1,6 +1,7 @@
 import { environmentName } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
 import { type EnvVarType, TYPE_MARKERS } from "@/components/deploy/env-vars/type-marker";
 import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import { projectDisplayName } from "@/lib/collections/deploy/projects";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { IconBarsFilterOutline18, IconLayers3Outline18, IconLockOutline18 } from "@unkey/icons";
@@ -160,4 +161,15 @@ export function environmentProse(environments: VisibleVariable["environments"]):
 export function formatChangedAt(millis: number, now: number): string {
   const sameYear = new Date(millis).getFullYear() === new Date(now).getFullYear();
   return formatTimestamp(millis, sameYear ? "MMM d" : "M/d/yy");
+}
+
+export function projectCrumbLabel(
+  project: VisibleAppGroup["project"],
+  workspaceName: string,
+  projectsNav: boolean,
+): string | null {
+  if (project.isDefault && !projectsNav) {
+    return null;
+  }
+  return projectDisplayName(project, workspaceName);
 }
