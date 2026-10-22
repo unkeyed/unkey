@@ -1,10 +1,9 @@
 "use client";
 
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { sameJson } from "@/lib/utils/same-json";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formSaveState } from "@unkey/ui";
-import type { BaseSyntheticEvent } from "react";
+import { type BaseSyntheticEvent, useEffect, useRef } from "react";
 import { type FieldValues, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../environment-provider";
@@ -13,29 +12,35 @@ export function useSavableForm<TValues extends FieldValues>({
   schema,
   values,
   save,
-  isNoop,
 }: {
   schema: z.ZodType<TValues, TValues>;
   values: TValues;
   save: (values: TValues) => Promise<unknown>;
-  isNoop?: (submitted: TValues) => boolean;
 }) {
   const form = useForm<TValues>({ resolver: zodResolver(schema), mode: "onChange", values });
   const { isSubmitting, isValid, isDirty } = form.formState;
+  const stored = useRef(values);
+  useEffect(() => {
+    stored.current = values;
+  });
+
+  const valuesKey = JSON.stringify(values);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: valuesKey is the trigger; stored values can break a rule, so show it before the first edit
+  useEffect(() => {
+    void form.trigger();
+  }, [form, valuesKey]);
 
   const submit = async (event?: BaseSyntheticEvent): Promise<boolean> => {
     let saved = false;
-    let noop = false;
     await form.handleSubmit(async (submitted) => {
-      noop = isNoop ? isNoop(submitted) : sameJson(submitted, values);
       saved = await save(submitted).then(
         () => true,
         () => false,
       );
     })(event);
-    // A save that normalizes to the stored value leaves `values` unchanged, so RHF never resets on its own.
-    if (saved && noop) {
-      form.reset(values);
+    // A save that stores nothing new leaves `values` unchanged, so RHF never resets on its own.
+    if (saved) {
+      form.reset(stored.current);
     }
     return saved;
   };
@@ -67,11 +72,6 @@ export function useSettingForm<TValues extends FieldValues>({
     values: saved,
     save: (submitted) =>
       context.update((draft) => write(draft, submitted, saved)).isPersisted.promise,
-    isNoop: (submitted) => {
-      const draft = structuredClone(context.settings);
-      write(draft, submitted, saved);
-      return sameJson(read(draft), saved);
-    },
   });
 
   return { ...context, ...form };
@@ -92,7 +92,3 @@ export function useSettingField<K extends keyof EnvironmentSettings>(
     },
   });
 }
-
-export type SettingField<K extends keyof EnvironmentSettings> = ReturnType<
-  typeof useSettingField<K>
->;
