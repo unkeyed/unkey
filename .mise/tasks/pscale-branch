@@ -32,7 +32,7 @@ pnpm --dir=web/internal/db exec drizzle-kit generate --dialect=mysql \
   --schema="$TEMP/web/internal/db/src/schema/index.ts" --out="$TEMP/base"
 pnpm --dir=web/internal/db exec drizzle-kit generate --dialect=mysql \
   --schema=./src/schema/index.ts --out="$TEMP/head"
-node web/internal/db/scripts/pscale-branch.mts \
+pnpm --dir=web/internal/db exec node ./scripts/pscale-branch.mts \
   "$TEMP/base/meta/0000_snapshot.json" "$TEMP/head/meta/0000_snapshot.json" --check
 
 pscale branch create unkey "$BRANCH" --org unkey --from "$FROM" --wait \
@@ -44,6 +44,6 @@ PASS="$(echo "$PW" | jq -r '.plain_text | @uri')"
 HOST="$(echo "$PW" | jq -r '.access_host_url | @uri')"
 export DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/unkey?ssl={}"
 DRIZZLE_OUTPUT_DIR="$TEMP/live" pnpm --dir=web/internal/db exec drizzle-kit pull
-node web/internal/db/scripts/pscale-branch.mts \
+pnpm --dir=web/internal/db exec node ./scripts/pscale-branch.mts \
   "$TEMP/base/meta/0000_snapshot.json" "$TEMP/head/meta/0000_snapshot.json" \
   "$TEMP/live/meta/0000_snapshot.json"

@@ -42,7 +42,6 @@ catalog:
 
 overrides:
   "zod": "4.3.5"
-  "drizzle-kit>zod": "3.24.4"
   "@tanstack/router-generator>zod": "4.5.4"
   "@tanstack/start-plugin-core>zod": "4.5.4"
   "@tanstack/router-plugin>zod": "4.5.4"
@@ -63,9 +62,6 @@ overrides:
 # in the lockfile. Remove it when @hookform/resolvers declares Zod itself or no
 # longer imports Zod directly.
 packageExtensions:
-  "drizzle-kit@0.31.4":
-    dependencies:
-      zod: "3.24.4"
   "@hookform/resolvers":
     peerDependencies:
       zod: "*"

@@ -3,8 +3,6 @@
   "extends": "@unkey/tsconfig/base.json",
   "exclude": ["dist"],
   "compilerOptions": {
-    "module": "ESNext",
-    "target": "ES2022",
     "outDir": "dist"
   }
 }

@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { resolve } from "node:path";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -10,11 +11,21 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { describe, expect, it } from "vitest";
-import { planBranchChanges } from "./pscale-branch.mjs";
+import { z } from "zod";
+import { planBranchChanges, snapshotSchema } from "./pscale-branch.mjs";
 
-const { generateMySQLDrizzleJson: snapshot }: typeof import("drizzle-kit/api") = createRequire(
-  import.meta.url,
-)("drizzle-kit/api");
+const kit = z
+  .object({ generateMySQLDrizzleJson: z.unknown() })
+  .parse(createRequire(resolve("package.json"))("drizzle-kit/api"));
+if (typeof kit.generateMySQLDrizzleJson !== "function") {
+  throw new Error("drizzle-kit/api does not expose generateMySQLDrizzleJson");
+}
+const generate = kit.generateMySQLDrizzleJson;
+
+async function snapshot(schema: Record<string, unknown>) {
+  const result: unknown = await generate(schema);
+  return snapshotSchema.parse(result);
+}
 
 describe("PlanetScale branch schema changes", () => {
   it("applies only the Git delta, preserving newer tables, columns, indexes and definitions", async () => {
@@ -58,13 +69,34 @@ describe("PlanetScale branch schema changes", () => {
     });
     const head = await snapshot({
       deployments: mysqlTable("deployments", { attempts: int("attempts").default(3) }),
-      regions: mysqlTable("regions", { name: varchar("name", { length: 32 }) }),
+      regions: mysqlTable("regions", {
+        id: int("id").autoincrement().primaryKey(),
+        name: varchar("name", { length: 32 }).notNull().default("earth"),
+      }),
     });
     const sql = await planBranchChanges(base, head, base);
     expect(sql).toContain("ALTER TABLE `deployments` MODIFY COLUMN `attempts` int DEFAULT 3;");
     expect(sql).toContain("ALTER TABLE `deployments` DROP COLUMN `retired`;");
-    expect(sql.some((statement) => statement.startsWith("CREATE TABLE `regions`"))).toBe(true);
+    const createTable = sql.find((statement) => statement.startsWith("CREATE TABLE `regions`"));
+    expect(createTable).toContain("`id` int AUTO_INCREMENT NOT NULL");
+    expect(createTable).toContain("`name` varchar(32) NOT NULL DEFAULT 'earth'");
+    expect(createTable).toContain("PRIMARY KEY(`id`)");
     expect(await planBranchChanges(base, head, head)).toEqual([]);
+  });
+
+  it("rejects invalid snapshot definitions before returning SQL", async () => {
+    const base = await snapshot({});
+    const head = await snapshot({ apps: mysqlTable("apps", { id: int("id") }) });
+
+    expect(() => snapshotSchema.parse({ ...head, version: "6" })).toThrow();
+    const malformedType = {
+      ...head,
+      tables: { apps: { ...head.tables.apps, columns: { id: { type: 123 } } } },
+    };
+    expect(() => snapshotSchema.parse(malformedType)).toThrow();
+
+    head.tables.apps.columns.id.notNull = "invalid";
+    await expect(planBranchChanges(base, head, base)).rejects.toThrow();
   });
 
   it("recognizes MySQL's boolean and unique-index representations on reruns", async () => {

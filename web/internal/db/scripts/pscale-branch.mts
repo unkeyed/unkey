@@ -1,15 +1,57 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import type { DrizzleMySQLSnapshotJSON } from "drizzle-kit/api";
 import mysql, { type RowDataPacket } from "mysql2/promise";
+import { z } from "zod";
 
-const { generateMySQLMigration }: typeof import("drizzle-kit/api") = createRequire(import.meta.url)(
-  "drizzle-kit/api",
-);
+const definitions = z.record(z.string(), z.unknown());
+const metadata = z.record(z.string(), z.looseObject({ columns: definitions }).optional());
 
-type Snapshot = DrizzleMySQLSnapshotJSON;
+export const snapshotSchema = z.looseObject({
+  version: z.literal("5"),
+  dialect: z.literal("mysql"),
+  tables: z.record(
+    z.string(),
+    z.looseObject({
+      columns: z.record(
+        z.string(),
+        z.looseObject({ type: z.string(), default: z.unknown().optional() }),
+      ),
+      indexes: z.record(
+        z.string(),
+        z.looseObject({
+          columns: z.array(z.string()),
+          isUnique: z.boolean(),
+          using: z.string().optional(),
+          algorithm: z.string().optional(),
+          lock: z.string().optional(),
+        }),
+      ),
+      foreignKeys: definitions,
+      compositePrimaryKeys: definitions,
+      uniqueConstraints: definitions,
+      checkConstraint: definitions,
+    }),
+  ),
+  views: definitions,
+  internal: z.looseObject({ tables: metadata.optional(), indexes: metadata.optional() }).optional(),
+});
+
+type Snapshot = z.infer<typeof snapshotSchema>;
+
+const kit = z
+  .object({ generateMySQLMigration: z.unknown() })
+  .parse(createRequire(resolve("package.json"))("drizzle-kit/api"));
+if (typeof kit.generateMySQLMigration !== "function") {
+  throw new Error("drizzle-kit/api does not expose generateMySQLMigration");
+}
+const generate = kit.generateMySQLMigration;
+
+async function generateMySQLMigration(previous: Snapshot, current: Snapshot): Promise<string[]> {
+  const statements: unknown = await generate(previous, current);
+  return z.array(z.string()).parse(statements);
+}
 
 function checkRenames(base: Snapshot, head: Snapshot): void {
   checkNames(base.tables, head.tables, "tables");
@@ -23,8 +65,12 @@ function checkRenames(base: Snapshot, head: Snapshot): void {
 }
 
 function checkNames(before: object, after: object, path: string): void {
-  const removed = Object.keys(before).filter((key) => !Object.hasOwn(after, key));
-  const added = Object.keys(after).filter((key) => !Object.hasOwn(before, key));
+  const removed = Object.keys(before).filter(
+    (key) => !Object.prototype.hasOwnProperty.call(after, key),
+  );
+  const added = Object.keys(after).filter(
+    (key) => !Object.prototype.hasOwnProperty.call(before, key),
+  );
   if (removed.length && added.length) {
     throw new Error(
       `Possible rename in ${path}: removed [${removed}], added [${added}]. PlanetScale deploy requests do not support direct renames. Add the new column/table first, copy data and switch readers, then drop the old one in a separate deploy request. Split unrelated additions and removals too; this task never guesses rename intent.`,
@@ -48,7 +94,7 @@ function mergeEntries<T>(
         `Schema conflict at ${path}.${key}: the database matches neither the Git base nor the proposed definition. No SQL was applied. Reconcile this object before retrying.`,
       );
     }
-    if (Object.hasOwn(head, key)) {
+    if (Object.prototype.hasOwnProperty.call(head, key)) {
       result[key] = head[key];
     } else {
       delete result[key];
@@ -136,7 +182,7 @@ export async function planBranchChanges(
 }
 
 function normalizeSnapshot(input: Snapshot): Snapshot {
-  const snapshot: Snapshot = JSON.parse(JSON.stringify(input));
+  const snapshot = snapshotSchema.parse(JSON.parse(JSON.stringify(input)));
   for (const table of Object.values(snapshot.tables)) {
     for (const column of Object.values(table.columns)) {
       if (column.type === "boolean") {
@@ -176,7 +222,7 @@ function mergeMetadata<T>(
 }
 
 async function readSnapshot(path: string): Promise<Snapshot> {
-  const snapshot: Snapshot = JSON.parse(readFileSync(path, "utf8"));
+  const snapshot = snapshotSchema.parse(JSON.parse(readFileSync(path, "utf8")));
   await generateMySQLMigration(snapshot, snapshot);
   return snapshot;
 }
@@ -244,7 +290,7 @@ async function main(): Promise<void> {
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === resolve("scripts/pscale-branch.mts")) {
   main().catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : "PlanetScale branch migration failed.");
     process.exitCode = 1;
