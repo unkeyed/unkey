@@ -433,9 +433,9 @@ func (l *limiter) refreshRows(ctx context.Context, requests []Request) {
 }
 
 // readRows reads the peer rows of one fingerprint and merges them into its
-// entry. The caller set `readDone` on the entry, so only one readRows runs
-// per fingerprint. It reads without a lock and then takes the shard lock to
-// merge, so the caller must not hold a shard lock.
+// entry. The caller must set `readDone` on the entry first, so only one
+// readRows runs per fingerprint. It reads without a lock and then takes
+// the shard lock to merge, so the caller must not hold a shard lock.
 func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte) {
 	ctx, cancel := context.WithTimeout(ctx, readTimeout)
 	defer cancel()
@@ -499,7 +499,7 @@ func (l *limiter) validate(requests []Request) error {
 }
 
 // entryOf returns the entry of a fingerprint and creates it if needed. The
-// caller holds the shard lock.
+// caller must hold the shard lock.
 func (l *limiter) entryOf(fingerprint [32]byte) *entry {
 	entries := l.shards[shardIndex(fingerprint)].entries
 	e, ok := entries[fingerprint]
@@ -511,7 +511,7 @@ func (l *limiter) entryOf(fingerprint [32]byte) *entry {
 }
 
 // apply writes an allowed decision into the entry. A new session gets a fresh
-// ID and a random lifetime. The caller holds the shard lock.
+// ID and a random lifetime. The caller must hold the shard lock.
 func (l *limiter) apply(e *entry, d decision, nowNs int64) error {
 	if d.createNewSessionAtNs == 0 {
 		return e.apply(d, "")
