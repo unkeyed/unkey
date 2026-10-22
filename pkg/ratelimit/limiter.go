@@ -115,6 +115,14 @@ const (
 	flushInterval       = time.Second
 	flushTimeout        = 5 * time.Second
 	maxSessionsPerWrite = 10_000
+
+	// Peer rows younger than rowsFreshFor are used as they are. Older rows
+	// are used while a background read refreshes them. A request waits for
+	// a read only when the rows are rowsStaleFor or older.
+	rowsFreshFor   = time.Second
+	rowsStaleFor   = 5 * time.Second
+	readTimeout    = time.Second
+	maxRowsPerRead = 1_000
 )
 
 const sessionIDAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -133,6 +141,10 @@ type limiter struct {
 	// flushMu lets one flush run at a time, so only the flush that collected
 	// a session marks it as written.
 	flushMu sync.Mutex
+
+	// runInBackground runs background reads. It is `go f()`; the
+	// simulation replaces it to choose when background reads run.
+	runInBackground func(f func())
 
 	// stopFlushLoop and flushLoopDone are nil if no flush loop runs.
 	stopFlushLoop chan struct{}
@@ -177,13 +189,16 @@ func newLimiter(config Config) (*limiter, error) {
 		random = mathrand.New(mathrand.NewPCG(binary.LittleEndian.Uint64(seed[:8]), binary.LittleEndian.Uint64(seed[8:])))
 	}
 	l := &limiter{
-		clock:         config.Clock,
-		store:         config.Store,
-		randomMu:      sync.Mutex{},
-		random:        random,
-		shards:        [shardCount]shard{},
-		closed:        atomic.Bool{},
-		flushMu:       sync.Mutex{},
+		clock:    config.Clock,
+		store:    config.Store,
+		randomMu: sync.Mutex{},
+		random:   random,
+		shards:   [shardCount]shard{},
+		closed:   atomic.Bool{},
+		flushMu:  sync.Mutex{},
+		runInBackground: func(f func()) {
+			go f()
+		},
 		stopFlushLoop: nil,
 		flushLoopDone: nil,
 	}
@@ -201,11 +216,12 @@ func (l *limiter) Allow(ctx context.Context, request Request) (Result, error) {
 	return results[0], nil
 }
 
-func (l *limiter) AllowMany(_ context.Context, requests []Request) ([]Result, error) {
+func (l *limiter) AllowMany(ctx context.Context, requests []Request) ([]Result, error) {
 	err := l.validate(requests)
 	if err != nil {
 		return nil, err
 	}
+	l.refreshRows(ctx, requests)
 	nowNs := l.clock.Now().UnixNano()
 
 	// Locking in ascending shard order keeps two calls from deadlocking.
@@ -223,6 +239,11 @@ func (l *limiter) AllowMany(_ context.Context, requests []Request) ([]Result, er
 			l.shards[index].mu.Unlock()
 		}
 	}()
+	// Checked again under the locks: Close sets `closed` before its final
+	// flush takes these locks, so that flush sees every unit spent here.
+	if l.closed.Load() {
+		return nil, fault.New("the rate limiter is closed")
+	}
 
 	// First decide every request without spending, so a denied request means
 	// that nothing is spent.
@@ -306,8 +327,9 @@ func (l *limiter) flush(ctx context.Context) error {
 		for fingerprint, e := range s.entries {
 			unwritten := e.unwrittenSessions(nowNs)
 			// An idle entry decides like a new one, so removing it changes
-			// no decision.
-			if len(unwritten) == 0 && e.resetTimes.resetAtNs < nowNs {
+			// no decision. A running read merges into the entry when it
+			// finishes, so the entry stays until then.
+			if len(unwritten) == 0 && e.resetTimes.resetAtNs < nowNs && e.readDone == nil {
 				delete(s.entries, fingerprint)
 				continue
 			}
@@ -345,6 +367,95 @@ func (l *limiter) flush(ctx context.Context) error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// refreshRows makes sure that the peer rows of each request are less than
+// `rowsStaleFor` old, or that a read for them failed within that time. A
+// failed read leaves the entry with the sessions it already has, so the pod
+// limits on what it knows until MySQL is back.
+func (l *limiter) refreshRows(ctx context.Context, requests []Request) {
+	nowNs := l.clock.Now().UnixNano()
+	var readNow [][32]byte
+	var waitFor []chan struct{}
+	for _, request := range requests {
+		s := &l.shards[shardIndex(request.Fingerprint)]
+		s.mu.Lock()
+		e := l.entryOf(request.Fingerprint)
+		ageNs := nowNs - e.rowsReadAtNs
+		mustWait := ageNs >= rowsStaleFor.Nanoseconds()
+		switch {
+		case ageNs < rowsFreshFor.Nanoseconds():
+		case e.readDone != nil:
+			if mustWait {
+				waitFor = append(waitFor, e.readDone)
+			}
+		case mustWait:
+			e.readDone = make(chan struct{})
+			readNow = append(readNow, request.Fingerprint)
+		default:
+			e.readDone = make(chan struct{})
+			fingerprint := request.Fingerprint
+			l.runInBackground(func() { l.readRows(context.Background(), fingerprint) })
+		}
+		s.mu.Unlock()
+	}
+	// Other requests may wait for these reads, so a canceled request must
+	// not cancel them.
+	for _, fingerprint := range readNow {
+		l.readRows(context.WithoutCancel(ctx), fingerprint)
+	}
+	for _, done := range waitFor {
+		select {
+		case <-done:
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// readRows reads the peer rows of one fingerprint and merges them into its
+// entry. The caller set `readDone` on the entry.
+func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte) {
+	ctx, cancel := context.WithTimeout(ctx, readTimeout)
+	defer cancel()
+	startedAtNs := l.clock.Now().UnixNano()
+	stored, err := l.store.ReadSessions(ctx, fingerprint, maxRowsPerRead)
+	rowsPerRead.Observe(float64(len(stored)))
+	result := "ok"
+	switch {
+	case err != nil:
+		result = "error"
+	case len(stored) >= maxRowsPerRead:
+		// Older rows may be missing, and a missing row can open the limit
+		// too early, so the page is ignored.
+		result = "row_limit"
+		err = fault.New("the read reached the row limit")
+	}
+
+	s := &l.shards[shardIndex(fingerprint)]
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// Flush keeps an entry while `readDone` is set, so it still exists.
+	e := s.entries[fingerprint]
+	if err == nil {
+		rows := make([]session, len(stored))
+		for i, row := range stored {
+			rows[i] = session{id: row.SessionID, anchorAtNs: row.AnchorAtNs, consumedNs: row.ConsumedNs}
+		}
+		err = e.mergeRows(rows)
+		if err != nil {
+			result = "invalid_rows"
+		}
+	}
+	// A failed read counts as a read, so a down database gets at most one
+	// waiting read per limit every `rowsStaleFor`.
+	e.rowsReadAtNs = startedAtNs
+	close(e.readDone)
+	e.readDone = nil
+	readsTotal.WithLabelValues(result).Inc()
+	if err != nil {
+		logger.Warn("unable to read rate limit sessions; deciding without them", "error", err.Error())
+	}
 }
 
 func (l *limiter) validate(requests []Request) error {
