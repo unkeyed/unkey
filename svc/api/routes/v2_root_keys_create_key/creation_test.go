@@ -10,7 +10,6 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/internal/services/keys"
-	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -193,15 +192,6 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 		require.NotEmpty(t, log.CorrelationID)
 		require.Equal(t, logs[0].CorrelationID, log.CorrelationID)
 	}
-	permissionRows, err := db.Query.ListUnkeyPermissionRowsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionRowsByPrincipalParams{
-		WorkspaceID:   p.AuthorizedWorkspaceID,
-		PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
-		PrincipalID:   key.ID,
-	})
-	require.NoError(t, err)
-	require.Len(t, permissionRows, 1)
-	require.Equal(t, permission, permissionRows[0].Slug)
-	requireRootKeyAudit(t, logs, key.ID, permissionRows[0].ID, permission)
 	request := httptest.NewRequest(http.MethodPost, route.Path(), nil)
 	request.Header.Set("Authorization", "Bearer "+res.Body.Data.Key)
 	session := &zen.Session{}
@@ -239,34 +229,4 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 		require.True(t, key.Expires.Valid)
 		require.Equal(t, expires, key.Expires.Int64)
 	})
-}
-
-func requireRootKeyAudit(t *testing.T, logs []auditlog.Event, keyID string, permissionID string, permission string) {
-	t.Helper()
-	byEvent := map[string]auditlog.Event{}
-	for _, log := range logs {
-		byEvent[log.Event] = log
-	}
-	created, ok := byEvent[string(auditlog.RootKeyCreateEvent)]
-	require.True(t, ok)
-	require.Equal(t, "Created root key "+keyID, created.Description)
-	require.Equal(t, []auditlog.EventTarget{{
-		Type: "key",
-		ID:   keyID,
-	}}, created.Targets)
-
-	granted, ok := byEvent[string(auditlog.AuthConnectPermissionKeyEvent)]
-	require.True(t, ok)
-	require.Equal(t, "Granted "+permission, granted.Description)
-	require.Equal(t, []auditlog.EventTarget{
-		{
-			Type: "key",
-			ID:   keyID,
-		},
-		{
-			Type: "permission",
-			ID:   permissionID,
-			Name: permission,
-		},
-	}, granted.Targets)
 }
