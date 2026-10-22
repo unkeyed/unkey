@@ -17,18 +17,22 @@ func CanRead(query PermissionQuery, granted []string) bool {
 // cannot satisfy. It names the missing permission or permissions and tells the
 // caller to log in again or grant them.
 func PermissionDeniedDetail(query PermissionQuery, granted []string) string {
-	const fallback = "Insufficient permissions to access this resource. Log in again with the missing permission, or grant it."
-
 	result, err := New().EvaluatePermissions(query, granted)
 	if err != nil || result.Valid || result.Message == "" {
-		return fallback
+		return denialHint("")
 	}
+	return denialHint(result.Message)
+}
 
+func denialHint(message string) string {
+	if message == "" {
+		return "Insufficient permissions to access this resource. Log in again with the missing permission, or grant it."
+	}
 	hint := "Log in again with that permission, or grant it."
-	if strings.Contains(result.Message, "one of these permissions") {
+	if strings.Contains(message, "one of these permissions") {
 		hint = "Log in again with one of those permissions, or grant it."
 	}
-	return result.Message + ". " + hint
+	return message + ". " + hint
 }
 
 // toReadQuery rewrites query so every leaf asks for read access to the same
@@ -124,55 +128,13 @@ func singletonParent(resource string) (string, bool) {
 	return "", false
 }
 
-// readActionsFor returns the legacy read actions that reveal resource.
+// readActionsFor returns legacy read actions that a read route still accepts.
 //
-// Permissions and roles share the rbac resource type but are different
-// resources, so a role read must not reveal a permission. Every other resource
-// type treats any of its read actions as visibility: the caller already knows
-// that resource exists.
-func readActionsFor(resource ResourceType, action ActionType) []ActionType {
-	switch resource {
-	case Api:
-		return []ActionType{ReadAPI, ReadKey, ReadAnalytics}
-	case Ratelimit:
-		return []ActionType{ReadNamespace, ReadOverride, ListOverrides}
-	case Identity:
-		return []ActionType{ReadIdentity}
-	case Project:
-		return []ActionType{ReadProject, ReadGatewayRequests, ReadRuntimeLogs}
-	case App:
-		return []ActionType{ReadApp}
-	case Environment:
-		return []ActionType{ReadEnvironment, ReadDeployment, ReadEnvironmentVariables, ReadPolicies, ReadDomain}
-	case Portal:
-		return []ActionType{ReadPortal}
-	case Workspace:
-		// Workspace permissions are create_root_key and install_github. Neither
-		// is a read, so holding one does not reveal the workspace.
-		return nil
-	case Rbac:
-		switch action {
-		case ReadRole, CreateRole, UpdateRole, DeleteRole, AddRoleToKey, RemoveRoleFromKey:
-			return []ActionType{ReadRole}
-		case ReadPermission, CreatePermission, UpdatePermission, DeletePermission,
-			AddPermissionToKey, RemovePermissionFromKey, AddPermissionToRole, RemovePermissionFromRole:
-			return []ActionType{ReadPermission}
-		case ReadAPI, CreateAPI, DeleteAPI, UpdateAPI, CreateKey, UpdateKey, DeleteKey,
-			EncryptKey, DecryptKey, ReadKey, VerifyKey, ReadAnalytics, CreateRootKey, InstallGithub,
-			Limit, CreateNamespace, ReadNamespace, UpdateNamespace, DeleteNamespace, SetOverride,
-			ReadOverride, DeleteOverride, ListOverrides, CreateIdentity, ReadIdentity, UpdateIdentity,
-			DeleteIdentity, CreateDeployment, ReadDeployment, StopDeployment, StartDeployment,
-			PromoteDeployment, RollbackDeployment, GenerateUploadURL, CreateProject, ReadProject,
-			UpdateProject, DeleteProject, ReadGatewayRequests, ReadRuntimeLogs, CreateApp, ReadApp,
-			UpdateApp, DeleteApp, ConnectRepository, ReadEnvironment, UpdateEnvironment,
-			SetEnvironmentVariables, RemoveEnvironmentVariables, ReadEnvironmentVariables, SetPolicies,
-			UpdatePolicy, ReadPolicies, CreateDomain, ReadDomain, DeleteDomain, VerifyDomain,
-			CreatePortal, ReadPortal, UpdatePortal, DeletePortal, CreatePortalSession:
-			return []ActionType{ReadPermission, ReadRole}
-		default:
-			return []ActionType{ReadPermission, ReadRole}
-		}
-	default:
-		return nil
+// List keys accepts read_api and read_key. No other read route accepts a
+// legacy read action, so holding one must not turn a 404 into a 403.
+func readActionsFor(resource ResourceType, _ ActionType) []ActionType {
+	if resource == Api {
+		return []ActionType{ReadAPI, ReadKey}
 	}
+	return nil
 }
