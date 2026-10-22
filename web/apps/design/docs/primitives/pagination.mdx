@@ -1,0 +1,21 @@
+---
+title: Pagination
+description: Previous and next buttons for stepping through pages of a list.
+---
+
+<Component path="pagination/basic" />
+
+## Anatomy
+
+- `PaginationControls` renders a labelled `nav` with previous and next buttons. Children render between the two buttons.
+- `PaginationFooter` pins `PaginationControls` to the bottom of a table page, with page numbers as its children.
+
+## Best practices
+
+### Label
+
+Give each `PaginationControls` a `label` that names the list it pages, so two pagers on one screen are distinct.
+
+### Placement
+
+Use `PaginationFooter` for a full-page table. Use `PaginationControls` inline when a card or a section pages its own rows.

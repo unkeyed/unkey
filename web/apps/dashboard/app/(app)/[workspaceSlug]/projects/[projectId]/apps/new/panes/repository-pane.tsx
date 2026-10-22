@@ -112,6 +112,7 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
         pending={pending}
         linkedRepoId={linkedRepoId}
         disabled={locked}
+        onAddAccount={github.connect}
         onPick={(repo) => {
           if (pick.isLoading) {
             return;

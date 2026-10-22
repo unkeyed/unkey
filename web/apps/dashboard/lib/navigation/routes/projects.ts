@@ -100,10 +100,11 @@ export const projectRoutes = {
       );
     },
 
-    envVars(scope: AppScope): Route {
+    envVars({ search, ...scope }: AppScope & { search?: string }): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/env-vars",
         appParams(scope),
+        { search: search || undefined },
       );
     },
 

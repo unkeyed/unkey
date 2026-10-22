@@ -122,7 +122,7 @@ Keep functions short. If a function does not fit on a screen, it is probably doi
 
 ## Naming
 
-Great names capture what a thing is or does. Append qualifiers to names. Units, bounds, and modifiers come at the end. This groups related variables together and makes scanning easier.
+Great names capture what a thing is or does. Append qualifiers to names. Units, bounds, and modifiers come at the end. This groups related variables together and makes scanning easier. Keep the shared prefix of related names as long as possible, so they sort next to each other.
 
 ```go
 // Bad

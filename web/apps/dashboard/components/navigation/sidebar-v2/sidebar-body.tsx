@@ -36,10 +36,11 @@ export function SidebarBody() {
   const { user } = useWorkspace();
   const prefetchUsage = usePrefetchWorkspaceUsage();
 
+  const workspaceSectionsFor = projectsNav
+    ? buildProjectsNavWorkspaceSections
+    : buildWorkspaceSections;
   const workspaceSections = (segs: string[]) =>
-    projectsNav
-      ? buildProjectsNavWorkspaceSections(slug, segs, user?.role === "admin")
-      : buildWorkspaceSections(slug, segs);
+    workspaceSectionsFor(slug, segs, user?.role === "admin");
   const projectLinks = projectsNav ? buildProjectsNavProjectLinks : buildProjectLinks;
 
   const links = (() => {

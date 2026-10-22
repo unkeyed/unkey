@@ -1,6 +1,6 @@
 "use client";
-import { type VariantProps, cva } from "class-variance-authority";
 import type React from "react";
+import { type VariantProps, cva } from "../lib/cva";
 import { cn } from "../lib/utils";
 
 const codeVariants = cva(

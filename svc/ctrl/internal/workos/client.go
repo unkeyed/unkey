@@ -29,9 +29,11 @@ type client struct {
 
 var _ Resolver = (*client)(nil)
 
-// New returns a WorkOS-backed Resolver. apiKey must be non-empty; a caller
-// with no key configured wires NewNoop instead and owns that decision.
-func New(apiKey string) Resolver {
+// New returns a WorkOS client, or a noop when apiKey is empty.
+func New(apiKey string) Client {
+	if apiKey == "" {
+		return NewNoop()
+	}
 	return &client{
 		apiKey:  apiKey,
 		baseURL: baseURL,
