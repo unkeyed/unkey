@@ -66,10 +66,10 @@ message DecryptBulkResponse {
   map<string, string> items = 1;
 }
 
-message DeleteEnvironmentKeyringRequest {
-  string environment_id = 1;
+message DeleteKeyringRequest {
+  string keyring = 1;
 }
-message DeleteEnvironmentKeyringResponse {}
+message DeleteKeyringResponse {}
 
 service VaultService {
   rpc Liveness(LivenessRequest) returns (LivenessResponse) {}
@@ -81,8 +81,8 @@ service VaultService {
   // ReEncrypt rec
   rpc ReEncrypt(ReEncryptRequest) returns (ReEncryptResponse) {}
 
-  // Permanently revokes an environment keyring and removes its current key
+  // Permanently revokes a keyring and removes its current key
   // objects. Repeated cleanup removes late writes from overlapping requests.
   // All Vault replicas must support revocation before callers enable deletion.
-  rpc DeleteEnvironmentKeyring(DeleteEnvironmentKeyringRequest) returns (DeleteEnvironmentKeyringResponse) {}
+  rpc DeleteKeyring(DeleteKeyringRequest) returns (DeleteKeyringResponse) {}
 }

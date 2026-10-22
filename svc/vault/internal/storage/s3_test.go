@@ -16,9 +16,15 @@ import (
 )
 
 func TestS3_ListObjectKeysIncludesEveryPage(t *testing.T) {
-	for _, failSecondPage := range []bool{false, true} {
-		t.Run(fmt.Sprint(failSecondPage), func(t *testing.T) {
-			prefix := "keyring/" + uid.New(uid.EnvironmentPrefix) + "/"
+	for _, tc := range []struct {
+		name           string
+		failSecondPage bool
+	}{
+		{name: "all pages"},
+		{name: "second page fails", failSecondPage: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			prefix := "keyring/" + uid.New(uid.TestPrefix) + "/"
 			firstKey, secondKey := prefix+"LATEST", prefix+uid.New("dek")
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Query().Get("prefix") != prefix {
@@ -31,7 +37,7 @@ func TestS3_ListObjectKeysIncludesEveryPage(t *testing.T) {
 					Keys      []string `xml:"Contents>Key"`
 				}{Truncated: true, Next: "next-page", Keys: []string{firstKey}}
 				if r.URL.Query().Get("continuation-token") == "next-page" {
-					if failSecondPage {
+					if tc.failSecondPage {
 						http.Error(w, "denied", http.StatusForbidden)
 						return
 					}
@@ -45,7 +51,7 @@ func TestS3_ListObjectKeysIncludesEveryPage(t *testing.T) {
 			store, err := NewS3(S3Config{S3URL: server.URL, S3Bucket: "vault", S3AccessKeyID: "test", S3AccessKeySecret: "test"})
 			require.NoError(t, err)
 			keys, err := store.ListObjectKeys(t.Context(), prefix)
-			if failSecondPage {
+			if tc.failSecondPage {
 				require.Error(t, err)
 				require.Empty(t, keys)
 			} else {

@@ -122,8 +122,8 @@ func (s *Service) Delete(
 		if s.vault == nil {
 			return fmt.Errorf("vault is required to delete an environment keyring")
 		}
-		_, err := s.vault.DeleteEnvironmentKeyring(runCtx, &vaultv1.DeleteEnvironmentKeyringRequest{
-			EnvironmentId: envID,
+		_, err := s.vault.DeleteKeyring(runCtx, &vaultv1.DeleteKeyringRequest{
+			Keyring: envID,
 		})
 		return err
 	}, restate.WithName("delete environment keyring")); err != nil {

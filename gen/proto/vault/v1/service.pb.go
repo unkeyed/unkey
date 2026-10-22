@@ -733,27 +733,27 @@ func (x *DecryptBulkResponse) GetItems() map[string]string {
 	return nil
 }
 
-type DeleteEnvironmentKeyringRequest struct {
+type DeleteKeyringRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	EnvironmentId string                 `protobuf:"bytes,1,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	Keyring       string                 `protobuf:"bytes,1,opt,name=keyring,proto3" json:"keyring,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteEnvironmentKeyringRequest) Reset() {
-	*x = DeleteEnvironmentKeyringRequest{}
+func (x *DeleteKeyringRequest) Reset() {
+	*x = DeleteKeyringRequest{}
 	mi := &file_vault_v1_service_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteEnvironmentKeyringRequest) String() string {
+func (x *DeleteKeyringRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteEnvironmentKeyringRequest) ProtoMessage() {}
+func (*DeleteKeyringRequest) ProtoMessage() {}
 
-func (x *DeleteEnvironmentKeyringRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteKeyringRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_vault_v1_service_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -765,38 +765,38 @@ func (x *DeleteEnvironmentKeyringRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteEnvironmentKeyringRequest.ProtoReflect.Descriptor instead.
-func (*DeleteEnvironmentKeyringRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteKeyringRequest.ProtoReflect.Descriptor instead.
+func (*DeleteKeyringRequest) Descriptor() ([]byte, []int) {
 	return file_vault_v1_service_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *DeleteEnvironmentKeyringRequest) GetEnvironmentId() string {
+func (x *DeleteKeyringRequest) GetKeyring() string {
 	if x != nil {
-		return x.EnvironmentId
+		return x.Keyring
 	}
 	return ""
 }
 
-type DeleteEnvironmentKeyringResponse struct {
+type DeleteKeyringResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteEnvironmentKeyringResponse) Reset() {
-	*x = DeleteEnvironmentKeyringResponse{}
+func (x *DeleteKeyringResponse) Reset() {
+	*x = DeleteKeyringResponse{}
 	mi := &file_vault_v1_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteEnvironmentKeyringResponse) String() string {
+func (x *DeleteKeyringResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteEnvironmentKeyringResponse) ProtoMessage() {}
+func (*DeleteKeyringResponse) ProtoMessage() {}
 
-func (x *DeleteEnvironmentKeyringResponse) ProtoReflect() protoreflect.Message {
+func (x *DeleteKeyringResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_vault_v1_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -808,8 +808,8 @@ func (x *DeleteEnvironmentKeyringResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteEnvironmentKeyringResponse.ProtoReflect.Descriptor instead.
-func (*DeleteEnvironmentKeyringResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteKeyringResponse.ProtoReflect.Descriptor instead.
+func (*DeleteKeyringResponse) Descriptor() ([]byte, []int) {
 	return file_vault_v1_service_proto_rawDescGZIP(), []int{16}
 }
 
@@ -870,18 +870,18 @@ const file_vault_v1_service_proto_rawDesc = "" +
 	"\n" +
 	"ItemsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"H\n" +
-	"\x1fDeleteEnvironmentKeyringRequest\x12%\n" +
-	"\x0eenvironment_id\x18\x01 \x01(\tR\renvironmentId\"\"\n" +
-	" DeleteEnvironmentKeyringResponse2\xb0\x04\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"0\n" +
+	"\x14DeleteKeyringRequest\x12\x18\n" +
+	"\akeyring\x18\x01 \x01(\tR\akeyring\"\x17\n" +
+	"\x15DeleteKeyringResponse2\x8f\x04\n" +
 	"\fVaultService\x12C\n" +
 	"\bLiveness\x12\x19.vault.v1.LivenessRequest\x1a\x1a.vault.v1.LivenessResponse\"\x00\x12@\n" +
 	"\aEncrypt\x12\x18.vault.v1.EncryptRequest\x1a\x19.vault.v1.EncryptResponse\"\x00\x12@\n" +
 	"\aDecrypt\x12\x18.vault.v1.DecryptRequest\x1a\x19.vault.v1.DecryptResponse\"\x00\x12L\n" +
 	"\vEncryptBulk\x12\x1c.vault.v1.EncryptBulkRequest\x1a\x1d.vault.v1.EncryptBulkResponse\"\x00\x12L\n" +
 	"\vDecryptBulk\x12\x1c.vault.v1.DecryptBulkRequest\x1a\x1d.vault.v1.DecryptBulkResponse\"\x00\x12F\n" +
-	"\tReEncrypt\x12\x1a.vault.v1.ReEncryptRequest\x1a\x1b.vault.v1.ReEncryptResponse\"\x00\x12s\n" +
-	"\x18DeleteEnvironmentKeyring\x12).vault.v1.DeleteEnvironmentKeyringRequest\x1a*.vault.v1.DeleteEnvironmentKeyringResponse\"\x00B\x92\x01\n" +
+	"\tReEncrypt\x12\x1a.vault.v1.ReEncryptRequest\x1a\x1b.vault.v1.ReEncryptResponse\"\x00\x12R\n" +
+	"\rDeleteKeyring\x12\x1e.vault.v1.DeleteKeyringRequest\x1a\x1f.vault.v1.DeleteKeyringResponse\"\x00B\x92\x01\n" +
 	"\fcom.vault.v1B\fServiceProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/vault/v1;vaultv1\xa2\x02\x03VXX\xaa\x02\bVault.V1\xca\x02\bVault\\V1\xe2\x02\x14Vault\\V1\\GPBMetadata\xea\x02\tVault::V1b\x06proto3"
 
 var (
@@ -898,27 +898,27 @@ func file_vault_v1_service_proto_rawDescGZIP() []byte {
 
 var file_vault_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_vault_v1_service_proto_goTypes = []any{
-	(*LivenessRequest)(nil),                  // 0: vault.v1.LivenessRequest
-	(*LivenessResponse)(nil),                 // 1: vault.v1.LivenessResponse
-	(*EncryptRequest)(nil),                   // 2: vault.v1.EncryptRequest
-	(*EncryptResponse)(nil),                  // 3: vault.v1.EncryptResponse
-	(*DecryptRequest)(nil),                   // 4: vault.v1.DecryptRequest
-	(*DecryptResponse)(nil),                  // 5: vault.v1.DecryptResponse
-	(*ReEncryptRequest)(nil),                 // 6: vault.v1.ReEncryptRequest
-	(*ReEncryptResponse)(nil),                // 7: vault.v1.ReEncryptResponse
-	(*ReEncryptDEKsRequest)(nil),             // 8: vault.v1.ReEncryptDEKsRequest
-	(*ReEncryptDEKsResponse)(nil),            // 9: vault.v1.ReEncryptDEKsResponse
-	(*EncryptBulkRequest)(nil),               // 10: vault.v1.EncryptBulkRequest
-	(*EncryptBulkResponseItem)(nil),          // 11: vault.v1.EncryptBulkResponseItem
-	(*EncryptBulkResponse)(nil),              // 12: vault.v1.EncryptBulkResponse
-	(*DecryptBulkRequest)(nil),               // 13: vault.v1.DecryptBulkRequest
-	(*DecryptBulkResponse)(nil),              // 14: vault.v1.DecryptBulkResponse
-	(*DeleteEnvironmentKeyringRequest)(nil),  // 15: vault.v1.DeleteEnvironmentKeyringRequest
-	(*DeleteEnvironmentKeyringResponse)(nil), // 16: vault.v1.DeleteEnvironmentKeyringResponse
-	nil,                                      // 17: vault.v1.EncryptBulkRequest.ItemsEntry
-	nil,                                      // 18: vault.v1.EncryptBulkResponse.ItemsEntry
-	nil,                                      // 19: vault.v1.DecryptBulkRequest.ItemsEntry
-	nil,                                      // 20: vault.v1.DecryptBulkResponse.ItemsEntry
+	(*LivenessRequest)(nil),         // 0: vault.v1.LivenessRequest
+	(*LivenessResponse)(nil),        // 1: vault.v1.LivenessResponse
+	(*EncryptRequest)(nil),          // 2: vault.v1.EncryptRequest
+	(*EncryptResponse)(nil),         // 3: vault.v1.EncryptResponse
+	(*DecryptRequest)(nil),          // 4: vault.v1.DecryptRequest
+	(*DecryptResponse)(nil),         // 5: vault.v1.DecryptResponse
+	(*ReEncryptRequest)(nil),        // 6: vault.v1.ReEncryptRequest
+	(*ReEncryptResponse)(nil),       // 7: vault.v1.ReEncryptResponse
+	(*ReEncryptDEKsRequest)(nil),    // 8: vault.v1.ReEncryptDEKsRequest
+	(*ReEncryptDEKsResponse)(nil),   // 9: vault.v1.ReEncryptDEKsResponse
+	(*EncryptBulkRequest)(nil),      // 10: vault.v1.EncryptBulkRequest
+	(*EncryptBulkResponseItem)(nil), // 11: vault.v1.EncryptBulkResponseItem
+	(*EncryptBulkResponse)(nil),     // 12: vault.v1.EncryptBulkResponse
+	(*DecryptBulkRequest)(nil),      // 13: vault.v1.DecryptBulkRequest
+	(*DecryptBulkResponse)(nil),     // 14: vault.v1.DecryptBulkResponse
+	(*DeleteKeyringRequest)(nil),    // 15: vault.v1.DeleteKeyringRequest
+	(*DeleteKeyringResponse)(nil),   // 16: vault.v1.DeleteKeyringResponse
+	nil,                             // 17: vault.v1.EncryptBulkRequest.ItemsEntry
+	nil,                             // 18: vault.v1.EncryptBulkResponse.ItemsEntry
+	nil,                             // 19: vault.v1.DecryptBulkRequest.ItemsEntry
+	nil,                             // 20: vault.v1.DecryptBulkResponse.ItemsEntry
 }
 var file_vault_v1_service_proto_depIdxs = []int32{
 	17, // 0: vault.v1.EncryptBulkRequest.items:type_name -> vault.v1.EncryptBulkRequest.ItemsEntry
@@ -932,14 +932,14 @@ var file_vault_v1_service_proto_depIdxs = []int32{
 	10, // 8: vault.v1.VaultService.EncryptBulk:input_type -> vault.v1.EncryptBulkRequest
 	13, // 9: vault.v1.VaultService.DecryptBulk:input_type -> vault.v1.DecryptBulkRequest
 	6,  // 10: vault.v1.VaultService.ReEncrypt:input_type -> vault.v1.ReEncryptRequest
-	15, // 11: vault.v1.VaultService.DeleteEnvironmentKeyring:input_type -> vault.v1.DeleteEnvironmentKeyringRequest
+	15, // 11: vault.v1.VaultService.DeleteKeyring:input_type -> vault.v1.DeleteKeyringRequest
 	1,  // 12: vault.v1.VaultService.Liveness:output_type -> vault.v1.LivenessResponse
 	3,  // 13: vault.v1.VaultService.Encrypt:output_type -> vault.v1.EncryptResponse
 	5,  // 14: vault.v1.VaultService.Decrypt:output_type -> vault.v1.DecryptResponse
 	12, // 15: vault.v1.VaultService.EncryptBulk:output_type -> vault.v1.EncryptBulkResponse
 	14, // 16: vault.v1.VaultService.DecryptBulk:output_type -> vault.v1.DecryptBulkResponse
 	7,  // 17: vault.v1.VaultService.ReEncrypt:output_type -> vault.v1.ReEncryptResponse
-	16, // 18: vault.v1.VaultService.DeleteEnvironmentKeyring:output_type -> vault.v1.DeleteEnvironmentKeyringResponse
+	16, // 18: vault.v1.VaultService.DeleteKeyring:output_type -> vault.v1.DeleteKeyringResponse
 	12, // [12:19] is the sub-list for method output_type
 	5,  // [5:12] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name

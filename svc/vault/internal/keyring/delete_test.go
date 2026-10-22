@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/svc/vault/keys"
 )
 
-func TestDeletedEnvironmentSweepRemovesLateWritesAfterWriterFailure(t *testing.T) {
+func TestDeletedKeyringSweepRemovesLateWritesAfterWriterFailure(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		target string
@@ -26,7 +26,7 @@ func TestDeletedEnvironmentSweepRemovesLateWritesAfterWriterFailure(t *testing.T
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			writer := setupTestKeyring(t)
-			id := uid.New(uid.EnvironmentPrefix)
+			id := "nested/" + uid.New(uid.TestPrefix)
 			write := func() error {
 				_, err := writer.CreateKey(t.Context(), id)
 				return err
@@ -73,14 +73,14 @@ func TestDeletedEnvironmentSweepRemovesLateWritesAfterWriterFailure(t *testing.T
 			case <-t.Context().Done():
 				t.Fatal(t.Context().Err())
 			}
-			require.NoError(t, cleaner.DeleteEnvironment(t.Context(), id))
-			require.NoError(t, cleaner.SweepDeletedEnvironments(t.Context()))
+			require.NoError(t, cleaner.Delete(t.Context(), id))
+			require.NoError(t, cleaner.SweepDeleted(t.Context()))
 			release()
 			require.ErrorIs(t, <-done, errInterruptedWrite)
 			remaining, err := store.ListObjectKeys(t.Context(), store.prefix)
 			require.NoError(t, err)
 			require.Len(t, remaining, 1, "the acknowledged deletion can be followed by a late durable write")
-			require.NoError(t, cleaner.SweepDeletedEnvironments(t.Context()))
+			require.NoError(t, cleaner.SweepDeleted(t.Context()))
 			remaining, err = store.ListObjectKeys(t.Context(), store.prefix)
 			require.NoError(t, err)
 			require.Empty(t, remaining)
@@ -90,24 +90,24 @@ func TestDeletedEnvironmentSweepRemovesLateWritesAfterWriterFailure(t *testing.T
 	}
 }
 
-func TestDeletedEnvironmentSweepContinuesAfterOneRingFails(t *testing.T) {
+func TestDeletedKeyringSweepContinuesAfterOneRingFails(t *testing.T) {
 	kr := setupTestKeyring(t)
-	blockedID, otherID := uid.New(uid.EnvironmentPrefix), uid.New(uid.EnvironmentPrefix)
+	blockedID, otherID := uid.New(uid.TestPrefix), uid.New(uid.TestPrefix)
 	_, err := kr.CreateKey(t.Context(), blockedID)
 	require.NoError(t, err)
 	_, err = kr.CreateKey(t.Context(), otherID)
 	require.NoError(t, err)
 	store := &failedKeyDeletionStorage{Storage: kr.store, blockedPrefix: "keyring/" + blockedID + "/"}
 	kr.store = store
-	require.Error(t, kr.DeleteEnvironment(t.Context(), blockedID))
-	require.NoError(t, kr.DeleteEnvironment(t.Context(), otherID))
+	require.Error(t, kr.Delete(t.Context(), blockedID))
+	require.NoError(t, kr.Delete(t.Context(), otherID))
 	require.NoError(t, store.Storage.PutObject(t.Context(), "keyring/"+otherID+"/LATEST", []byte("late write")))
-	require.Error(t, kr.SweepDeletedEnvironments(t.Context()))
+	require.Error(t, kr.SweepDeleted(t.Context()))
 	remaining, err := store.ListObjectKeys(t.Context(), "keyring/"+otherID+"/")
 	require.NoError(t, err)
 	require.Empty(t, remaining)
 	store.blockedPrefix = ""
-	require.NoError(t, kr.SweepDeletedEnvironments(t.Context()))
+	require.NoError(t, kr.SweepDeleted(t.Context()))
 	remaining, err = store.ListObjectKeys(t.Context(), "keyring/"+blockedID+"/")
 	require.NoError(t, err)
 	require.Empty(t, remaining)

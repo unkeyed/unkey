@@ -20,7 +20,7 @@ type VaultServiceClient interface {
 	EncryptBulk(ctx context.Context, req *v1.EncryptBulkRequest) (*v1.EncryptBulkResponse, error)
 	DecryptBulk(ctx context.Context, req *v1.DecryptBulkRequest) (*v1.DecryptBulkResponse, error)
 	ReEncrypt(ctx context.Context, req *v1.ReEncryptRequest) (*v1.ReEncryptResponse, error)
-	DeleteEnvironmentKeyring(ctx context.Context, req *v1.DeleteEnvironmentKeyringRequest) (*v1.DeleteEnvironmentKeyringResponse, error)
+	DeleteKeyring(ctx context.Context, req *v1.DeleteKeyringRequest) (*v1.DeleteKeyringResponse, error)
 }
 
 var _ VaultServiceClient = (*ConnectVaultServiceClient)(nil)
@@ -113,10 +113,10 @@ func (c *ConnectVaultServiceClient) ReEncrypt(ctx context.Context, req *v1.ReEnc
 	return resp.Msg, nil
 }
 
-func (c *ConnectVaultServiceClient) DeleteEnvironmentKeyring(ctx context.Context, req *v1.DeleteEnvironmentKeyringRequest) (*v1.DeleteEnvironmentKeyringResponse, error) {
-	ctx, span := tracing.Start(ctx, "VaultService.DeleteEnvironmentKeyring")
+func (c *ConnectVaultServiceClient) DeleteKeyring(ctx context.Context, req *v1.DeleteKeyringRequest) (*v1.DeleteKeyringResponse, error) {
+	ctx, span := tracing.Start(ctx, "VaultService.DeleteKeyring")
 	defer span.End()
-	resp, err := c.inner.DeleteEnvironmentKeyring(ctx, connect.NewRequest(req))
+	resp, err := c.inner.DeleteKeyring(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

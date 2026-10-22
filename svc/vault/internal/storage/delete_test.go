@@ -15,7 +15,7 @@ func TestDeleteObjectIsIdempotentAndIsolated(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			store := create(t)
-			key := "keyring/" + uid.New(uid.EnvironmentPrefix) + "/LATEST"
+			key := "keyring/" + uid.New(uid.TestPrefix) + "/LATEST"
 			other := key + "-other"
 			require.NoError(t, store.PutObject(t.Context(), key, []byte("delete")))
 			require.NoError(t, store.PutObject(t.Context(), other, []byte("keep")))

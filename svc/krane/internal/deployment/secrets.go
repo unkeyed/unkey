@@ -59,8 +59,13 @@ func deploymentResourcePrefix(deploymentID string) string {
 
 func isDeploymentSecret(secret *corev1.Secret) bool {
 	id, ok := labels.GetDeploymentID(secret.Labels)
-	return ok && id != "" && secret.Labels[labels.LabelKeyManagedBy] == labels.New().ManagedByKrane()[labels.LabelKeyManagedBy] &&
-		secret.Type == corev1.SecretTypeOpaque && secret.Name == deploymentResourcePrefix(id)
+	if !ok || id == "" || secret.Type != corev1.SecretTypeOpaque {
+		return false
+	}
+	if secret.Labels[labels.LabelKeyManagedBy] != labels.New().ManagedByKrane()[labels.LabelKeyManagedBy] {
+		return false
+	}
+	return secret.Name == deploymentResourcePrefix(id)
 }
 
 func (c *Controller) deleteDeploymentSecret(ctx context.Context, namespace, deploymentID string) error {

@@ -21,12 +21,18 @@ import (
 )
 
 func TestDeleteDeployment_RemovesSecretIdempotently(t *testing.T) {
-	for _, legacy := range []bool{false, true} {
-		t.Run(map[bool]string{false: "deployment", true: "legacy"}[legacy], func(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		legacy bool
+	}{
+		{name: "deployment"},
+		{name: "legacy", legacy: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			req := fullApplyRequest(t)
 			client := fake.NewClientset()
 			ctrl := New(Config{ClientSet: client, Cluster: &testutil.MockClusterClient{}, Fingerprints: cache.NewNoopCache[string, string]()})
-			if legacy {
+			if tc.legacy {
 				_, err := client.AppsV1().ReplicaSets(req.GetK8SNamespace()).Create(t.Context(), legacyReplicaSet(t, 1), metav1.CreateOptions{})
 				require.NoError(t, err)
 			} else {

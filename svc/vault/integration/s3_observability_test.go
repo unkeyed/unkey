@@ -11,6 +11,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
 	"github.com/unkeyed/unkey/svc/vault/keys"
@@ -33,7 +34,8 @@ func TestS3Metrics_CountStorageOperationsForBulkRPCs(t *testing.T) {
 	require.NoError(t, err)
 	_, masterKey, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
-	v, err := vault.New(vault.Config{Storage: store, MasterKey: masterKey, BearerToken: "bearer"})
+	bearer := uid.New(uid.TestPrefix)
+	v, err := vault.New(vault.Config{Storage: store, MasterKey: masterKey, BearerToken: bearer})
 	require.NoError(t, err)
 
 	s3Count := func(operation, outcome string) float64 {
@@ -41,24 +43,31 @@ func TestS3Metrics_CountStorageOperationsForBulkRPCs(t *testing.T) {
 	}
 	reads, writes := s3Count("get", "success"), s3Count("put", "success")
 	plaintexts := map[string]string{"one": "first secret", "two": "a longer second secret", "three": "third"}
-	req := connect.NewRequest(&vaultv1.EncryptBulkRequest{Keyring: "ring", Items: plaintexts})
-	req.Header().Set("Authorization", "Bearer bearer")
+	ringID := uid.New(uid.TestPrefix)
+	req := connect.NewRequest(&vaultv1.EncryptBulkRequest{Keyring: ringID, Items: plaintexts})
+	req.Header().Set("Authorization", "Bearer "+bearer)
 	encrypted, err := v.EncryptBulk(t.Context(), req)
 	require.NoError(t, err)
 	require.Len(t, encrypted.Msg.GetItems(), 3)
-	require.Equal(t, reads+1, s3Count("get", "success"))
+	require.Equal(t, reads+7, s3Count("get", "success"))
 	require.Equal(t, writes+2, s3Count("put", "success"))
 
 	ciphertexts := map[string]string{}
 	for id, item := range encrypted.Msg.GetItems() {
 		ciphertexts[id] = item.GetEncrypted()
 	}
-	decryptReq := connect.NewRequest(&vaultv1.DecryptBulkRequest{Keyring: "ring", Items: ciphertexts})
-	decryptReq.Header().Set("Authorization", "Bearer bearer")
+	decryptReq := connect.NewRequest(&vaultv1.DecryptBulkRequest{Keyring: ringID, Items: ciphertexts})
+	decryptReq.Header().Set("Authorization", "Bearer "+bearer)
 	decrypted, err := v.DecryptBulk(t.Context(), decryptReq)
 	require.NoError(t, err)
 	require.Equal(t, plaintexts, decrypted.Msg.GetItems())
-	require.Equal(t, reads+2, s3Count("get", "success"))
+	require.Equal(t, reads+10, s3Count("get", "success"))
+	require.Equal(t, writes+2, s3Count("put", "success"))
+
+	decrypted, err = v.DecryptBulk(t.Context(), decryptReq)
+	require.NoError(t, err)
+	require.Equal(t, plaintexts, decrypted.Msg.GetItems())
+	require.Equal(t, reads+11, s3Count("get", "success"))
 	require.Equal(t, writes+2, s3Count("put", "success"))
 }
 

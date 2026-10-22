@@ -47,9 +47,9 @@ const (
 	VaultServiceDecryptBulkProcedure = "/vault.v1.VaultService/DecryptBulk"
 	// VaultServiceReEncryptProcedure is the fully-qualified name of the VaultService's ReEncrypt RPC.
 	VaultServiceReEncryptProcedure = "/vault.v1.VaultService/ReEncrypt"
-	// VaultServiceDeleteEnvironmentKeyringProcedure is the fully-qualified name of the VaultService's
-	// DeleteEnvironmentKeyring RPC.
-	VaultServiceDeleteEnvironmentKeyringProcedure = "/vault.v1.VaultService/DeleteEnvironmentKeyring"
+	// VaultServiceDeleteKeyringProcedure is the fully-qualified name of the VaultService's
+	// DeleteKeyring RPC.
+	VaultServiceDeleteKeyringProcedure = "/vault.v1.VaultService/DeleteKeyring"
 )
 
 // VaultServiceClient is a client for the vault.v1.VaultService service.
@@ -61,10 +61,10 @@ type VaultServiceClient interface {
 	DecryptBulk(context.Context, *connect.Request[v1.DecryptBulkRequest]) (*connect.Response[v1.DecryptBulkResponse], error)
 	// ReEncrypt rec
 	ReEncrypt(context.Context, *connect.Request[v1.ReEncryptRequest]) (*connect.Response[v1.ReEncryptResponse], error)
-	// Permanently revokes an environment keyring and removes its current key
+	// Permanently revokes a keyring and removes its current key
 	// objects. Repeated cleanup removes late writes from overlapping requests.
 	// All Vault replicas must support revocation before callers enable deletion.
-	DeleteEnvironmentKeyring(context.Context, *connect.Request[v1.DeleteEnvironmentKeyringRequest]) (*connect.Response[v1.DeleteEnvironmentKeyringResponse], error)
+	DeleteKeyring(context.Context, *connect.Request[v1.DeleteKeyringRequest]) (*connect.Response[v1.DeleteKeyringResponse], error)
 }
 
 // NewVaultServiceClient constructs a client for the vault.v1.VaultService service. By default, it
@@ -114,10 +114,10 @@ func NewVaultServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(vaultServiceMethods.ByName("ReEncrypt")),
 			connect.WithClientOptions(opts...),
 		),
-		deleteEnvironmentKeyring: connect.NewClient[v1.DeleteEnvironmentKeyringRequest, v1.DeleteEnvironmentKeyringResponse](
+		deleteKeyring: connect.NewClient[v1.DeleteKeyringRequest, v1.DeleteKeyringResponse](
 			httpClient,
-			baseURL+VaultServiceDeleteEnvironmentKeyringProcedure,
-			connect.WithSchema(vaultServiceMethods.ByName("DeleteEnvironmentKeyring")),
+			baseURL+VaultServiceDeleteKeyringProcedure,
+			connect.WithSchema(vaultServiceMethods.ByName("DeleteKeyring")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -125,13 +125,13 @@ func NewVaultServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // vaultServiceClient implements VaultServiceClient.
 type vaultServiceClient struct {
-	liveness                 *connect.Client[v1.LivenessRequest, v1.LivenessResponse]
-	encrypt                  *connect.Client[v1.EncryptRequest, v1.EncryptResponse]
-	decrypt                  *connect.Client[v1.DecryptRequest, v1.DecryptResponse]
-	encryptBulk              *connect.Client[v1.EncryptBulkRequest, v1.EncryptBulkResponse]
-	decryptBulk              *connect.Client[v1.DecryptBulkRequest, v1.DecryptBulkResponse]
-	reEncrypt                *connect.Client[v1.ReEncryptRequest, v1.ReEncryptResponse]
-	deleteEnvironmentKeyring *connect.Client[v1.DeleteEnvironmentKeyringRequest, v1.DeleteEnvironmentKeyringResponse]
+	liveness      *connect.Client[v1.LivenessRequest, v1.LivenessResponse]
+	encrypt       *connect.Client[v1.EncryptRequest, v1.EncryptResponse]
+	decrypt       *connect.Client[v1.DecryptRequest, v1.DecryptResponse]
+	encryptBulk   *connect.Client[v1.EncryptBulkRequest, v1.EncryptBulkResponse]
+	decryptBulk   *connect.Client[v1.DecryptBulkRequest, v1.DecryptBulkResponse]
+	reEncrypt     *connect.Client[v1.ReEncryptRequest, v1.ReEncryptResponse]
+	deleteKeyring *connect.Client[v1.DeleteKeyringRequest, v1.DeleteKeyringResponse]
 }
 
 // Liveness calls vault.v1.VaultService.Liveness.
@@ -164,9 +164,9 @@ func (c *vaultServiceClient) ReEncrypt(ctx context.Context, req *connect.Request
 	return c.reEncrypt.CallUnary(ctx, req)
 }
 
-// DeleteEnvironmentKeyring calls vault.v1.VaultService.DeleteEnvironmentKeyring.
-func (c *vaultServiceClient) DeleteEnvironmentKeyring(ctx context.Context, req *connect.Request[v1.DeleteEnvironmentKeyringRequest]) (*connect.Response[v1.DeleteEnvironmentKeyringResponse], error) {
-	return c.deleteEnvironmentKeyring.CallUnary(ctx, req)
+// DeleteKeyring calls vault.v1.VaultService.DeleteKeyring.
+func (c *vaultServiceClient) DeleteKeyring(ctx context.Context, req *connect.Request[v1.DeleteKeyringRequest]) (*connect.Response[v1.DeleteKeyringResponse], error) {
+	return c.deleteKeyring.CallUnary(ctx, req)
 }
 
 // VaultServiceHandler is an implementation of the vault.v1.VaultService service.
@@ -178,10 +178,10 @@ type VaultServiceHandler interface {
 	DecryptBulk(context.Context, *connect.Request[v1.DecryptBulkRequest]) (*connect.Response[v1.DecryptBulkResponse], error)
 	// ReEncrypt rec
 	ReEncrypt(context.Context, *connect.Request[v1.ReEncryptRequest]) (*connect.Response[v1.ReEncryptResponse], error)
-	// Permanently revokes an environment keyring and removes its current key
+	// Permanently revokes a keyring and removes its current key
 	// objects. Repeated cleanup removes late writes from overlapping requests.
 	// All Vault replicas must support revocation before callers enable deletion.
-	DeleteEnvironmentKeyring(context.Context, *connect.Request[v1.DeleteEnvironmentKeyringRequest]) (*connect.Response[v1.DeleteEnvironmentKeyringResponse], error)
+	DeleteKeyring(context.Context, *connect.Request[v1.DeleteKeyringRequest]) (*connect.Response[v1.DeleteKeyringResponse], error)
 }
 
 // NewVaultServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -227,10 +227,10 @@ func NewVaultServiceHandler(svc VaultServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(vaultServiceMethods.ByName("ReEncrypt")),
 		connect.WithHandlerOptions(opts...),
 	)
-	vaultServiceDeleteEnvironmentKeyringHandler := connect.NewUnaryHandler(
-		VaultServiceDeleteEnvironmentKeyringProcedure,
-		svc.DeleteEnvironmentKeyring,
-		connect.WithSchema(vaultServiceMethods.ByName("DeleteEnvironmentKeyring")),
+	vaultServiceDeleteKeyringHandler := connect.NewUnaryHandler(
+		VaultServiceDeleteKeyringProcedure,
+		svc.DeleteKeyring,
+		connect.WithSchema(vaultServiceMethods.ByName("DeleteKeyring")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/vault.v1.VaultService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -247,8 +247,8 @@ func NewVaultServiceHandler(svc VaultServiceHandler, opts ...connect.HandlerOpti
 			vaultServiceDecryptBulkHandler.ServeHTTP(w, r)
 		case VaultServiceReEncryptProcedure:
 			vaultServiceReEncryptHandler.ServeHTTP(w, r)
-		case VaultServiceDeleteEnvironmentKeyringProcedure:
-			vaultServiceDeleteEnvironmentKeyringHandler.ServeHTTP(w, r)
+		case VaultServiceDeleteKeyringProcedure:
+			vaultServiceDeleteKeyringHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -282,6 +282,6 @@ func (UnimplementedVaultServiceHandler) ReEncrypt(context.Context, *connect.Requ
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.ReEncrypt is not implemented"))
 }
 
-func (UnimplementedVaultServiceHandler) DeleteEnvironmentKeyring(context.Context, *connect.Request[v1.DeleteEnvironmentKeyringRequest]) (*connect.Response[v1.DeleteEnvironmentKeyringResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.DeleteEnvironmentKeyring is not implemented"))
+func (UnimplementedVaultServiceHandler) DeleteKeyring(context.Context, *connect.Request[v1.DeleteKeyringRequest]) (*connect.Response[v1.DeleteKeyringResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.DeleteKeyring is not implemented"))
 }
