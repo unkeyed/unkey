@@ -17,9 +17,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_permission"
 )
 
-// TestDeletePermissionMasksInsufficientPermissions guarantees that a caller who
-// can read a permission learns they lack delete, and a caller who cannot read
-// it gets the same not-found response as a missing permission.
+// TestDeletePermissionMasksInsufficientPermissions guarantees that a legacy
+// read does not reveal a permission, while a caller who can read it by URN
+// learns they lack delete. A caller with no access gets not-found.
 func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -51,7 +51,7 @@ func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	t.Run("read without delete names the missing permission", func(t *testing.T) {
+	t.Run("legacy read does not reveal the permission", func(t *testing.T) {
 		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_permission")
 
 		headers := http.Header{
@@ -59,26 +59,42 @@ func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{
-			Permission: permissionID,
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+			h,
+			route,
+			headers,
+			handler.Request{Permission: permissionID},
+		)
+
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, "The requested permission does not exist.", res.Body.Error.Detail)
+		require.NotContains(t, res.RawBody, permissionID)
+
+		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
+		require.NoError(t, err)
+		require.Equal(t, permissionID, perm.ID)
+	})
+
+	t.Run("urn read names the missing permission", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/%s#read", workspace.ID, projectID, permissionID))
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
 			h,
 			route,
 			headers,
-			req,
+			handler.Request{Permission: permissionID},
 		)
 
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "delete_permission")
+		require.Contains(t, res.Body.Error.Detail, "#delete")
 		require.Contains(t, res.Body.Error.Detail, "Log in again")
-		require.Contains(t, res.Body.Error.Detail, "grant it")
+		require.NotContains(t, res.RawBody, permissionID)
 
-		// Verify the permission still exists (wasn't deleted)
 		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
 		require.NoError(t, err)
 		require.Equal(t, permissionID, perm.ID)
