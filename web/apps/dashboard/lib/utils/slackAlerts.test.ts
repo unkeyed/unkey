@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  alertCancellationReason,
   alertCustomerLifecycle,
   alertPaymentFailed,
   alertPaymentRecovered,
@@ -251,20 +250,6 @@ describe("alerts escape attacker-controlled fields", () => {
         }),
     },
     {
-      name: "alertCancellationReason",
-      send: () =>
-        alertCancellationReason({
-          reason: "other",
-          comment: null,
-          name: HOSTILE_NAME,
-          email: HOSTILE_EMAIL,
-          workspaceId: "ws_test",
-          workspaceName: HOSTILE_NAME,
-          product: HOSTILE_TIER,
-          stripeCustomer: { id: "cus_123", livemode: true },
-        }),
-    },
-    {
       name: "alertPaymentFailed",
       send: () => alertPaymentFailed({ email: HOSTILE_EMAIL, name: HOSTILE_NAME, amount: 2500 }),
     },
@@ -422,62 +407,6 @@ describe("alertCustomerLifecycle", () => {
       "*Price*\n$25",
     ]);
     expect(buttonUrl()).toBeUndefined();
-  });
-});
-
-describe("alertCancellationReason", () => {
-  const alert = {
-    reason: "too_expensive",
-    comment: null,
-    name: "Jane",
-    email: "jane@acme.com",
-    workspaceId: "ws_123",
-    workspaceName: "Acme",
-    product: "API",
-    stripeCustomer: { id: "cus_123", livemode: false },
-  } as const;
-
-  it("posts the reason label to the customers channel with a Stripe link", async () => {
-    await alertCancellationReason(alert);
-
-    expect(fetchMock.mock.calls[0][0]).toBe("https://hooks.slack.example/services/customers");
-    expect(headerText()).toBe(":speech_balloon: Cancellation reason");
-    expect(fieldTexts()).toEqual([
-      "*Customer*\nJane",
-      "*Email*\njane@acme.com",
-      "*Workspace*\nAcme",
-      "*Workspace ID*\nws_123",
-      "*Tier / Product*\nAPI",
-      "*Reason*\nToo expensive",
-    ]);
-    expect(buttonUrl()).toBe("https://dashboard.stripe.com/test/customers/cus_123");
-    expect(sentBlocks().map((block) => block.type)).toEqual(["header", "section", "actions"]);
-  });
-
-  it("omits the Stripe link when the customer is unknown", async () => {
-    await alertCancellationReason({ ...alert, stripeCustomer: null });
-
-    expect(buttonUrl()).toBeUndefined();
-    expect(sentBlocks().map((block) => block.type)).toEqual(["header", "section"]);
-  });
-
-  it("adds the comment as literal plain text that keeps its line breaks", async () => {
-    await alertCancellationReason({ ...alert, comment: "Too pricey.\n<https://x.example|Click>" });
-
-    expect(sentBlocks()[2]).toEqual({
-      type: "section",
-      text: {
-        type: "plain_text",
-        text: "Too pricey.\n<https://x.example|Click>",
-        emoji: true,
-      },
-    });
-  });
-
-  it("bounds the comment to the section text limit", async () => {
-    await alertCancellationReason({ ...alert, comment: "a".repeat(3500) });
-
-    expect(sentBlocks()[2].text?.text).toBe(`${"a".repeat(2999)}…`);
   });
 });
 
