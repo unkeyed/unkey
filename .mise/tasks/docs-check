@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Check a Mintlify docs site: spec reachability, validate, broken links, a11y (default dir: docs; needs network for the OpenAPI spec)"
-#MISE tools=["npm:mint"]
 set -euo pipefail
 
 DOCS_DIR="${1:-docs}"
