@@ -36,8 +36,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	data := openapi.V2CliPollDeviceLoginResponseData{
-		Status:   openapi.V2CliPollDeviceLoginResponseDataStatus(result.Status),
-		Interval: int64(result.Interval),
+		AccessToken:  nil,
+		Detail:       nil,
+		ExpiresIn:    nil,
+		Interval:     int64(result.Interval),
+		RefreshToken: nil,
+		SessionId:    nil,
+		Status:       openapi.V2CliPollDeviceLoginResponseDataStatus(result.Status),
+		WorkspaceId:  nil,
 	}
 	if result.Detail != "" {
 		data.Detail = &result.Detail
