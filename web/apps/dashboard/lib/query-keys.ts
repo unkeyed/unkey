@@ -37,8 +37,8 @@ export const queryKeys = {
         [...apiRequestsRoot, "list", filters, limit] as const,
       live: (filters: V2LogsListApiRequestsFilters, limit: number) =>
         [...apiRequestsRoot, "live", filters, limit] as const,
-      metrics: (filters: V2LogsGetApiRequestMetricsFilters) =>
-        [...apiRequestsRoot, "metrics", filters] as const,
+      metrics: (filters: V2LogsGetApiRequestMetricsFilters, isLive: boolean) =>
+        [...apiRequestsRoot, "metrics", filters, isLive] as const,
       detail: (requestId: string, time: number) =>
         [...apiRequestsRoot, "detail", requestId, time] as const,
     },

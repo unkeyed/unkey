@@ -31,15 +31,11 @@ export const useFetchTimeseries = () => {
   }, [filters, timestamp]);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.logs.apiRequests.metrics(apiFilters),
+    queryKey: queryKeys.logs.apiRequests.metrics(apiFilters, isLive),
     queryFn: async ({ signal }) => {
-      // Live mode slides the same window up to now on every refetch
-      const { gte, lte } = apiFilters.time ?? {};
-      const now = Date.now();
-      const time =
-        isLive && gte !== undefined && lte !== undefined
-          ? { gte: now - (lte - gte), lte: now }
-          : apiFilters.time;
+      // Live mode keeps the start and grows the window to now, like the table
+      const gte = apiFilters.time?.gte;
+      const time = isLive && gte !== undefined ? { gte, lte: Date.now() } : apiFilters.time;
       const { data } = await getUnkeyClient().logs.getApiRequestMetrics(
         { filters: { ...apiFilters, time } },
         { signal },
