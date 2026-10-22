@@ -46,15 +46,15 @@ type summary struct {
 	//
 	//	reset_at' = max(maxCandidateRaisedByLiveSession + c, reset_at)
 	//
-	// and single-machine GCRA requires `reset_at' = max(reset_at, now) + c`.
+	// and the GCRA rule requires `reset_at' = max(reset_at, now) + c`.
 	// The two are equal exactly when
 	// `maxCandidateRaisedByLiveSession = reset_at ≥ now`.
 	//
 	// `decide` needs it to know whether the live session can take a request.
 	// Units added to the live session raise only these candidates, not the
 	// candidates of sessions anchored after it. If this maximum equals
-	// `resetAtNs`, adding the units moves `reset_at` exactly as
-	// single-machine GCRA does. If it is smaller, a newer peer session holds
+	// `resetAtNs`, adding the units moves `reset_at` exactly as the GCRA rule
+	// requires. If it is smaller, a newer peer session holds
 	// `reset_at`, adding the units would not move `reset_at` far enough, and
 	// the request must start a new session instead.
 	maxCandidateRaisedByLiveSessionNs int64
@@ -108,13 +108,13 @@ type decision struct {
 //
 // A candidate answers one question: if the rate limit had no pause from this
 // anchor on, when would it be free? The largest candidate is right because
-// `decide` keeps `reset_at` equal to single-machine GCRA with every admitted
-// request. `FuzzDecideMatchesSingleMachineGCRA` checks this for random
+// `decide` applies the GCRA rule `max(reset_at, now) + consumed time` with
+// every admitted request. `FuzzDecideFollowsGCRARule` checks this for random
 // histories of sessions and requests.
 //
 // `otherSessions` are the sessions of peers and this pod's frozen sessions.
-// `liveSession` is this pod's live session, or nil if it has none. summarize is O(n log n) for n sessions and runs once per
-// refresh.
+// `liveSession` is this pod's live session, or nil if it has none.
+// summarize is O(n log n) for n sessions and runs once per refresh.
 //
 // summarize returns an error if an anchor is not positive, if a consumed time
 // is negative, if a sum overflows int64, or if the live session is also in
@@ -176,9 +176,8 @@ func summarize(otherSessions []session, liveSession *session) (summary, error) {
 
 // decide decides a request of `units` units at `nowNs`. An allowed request
 // moves `reset_at` to `max(reset_at, nowNs) + consumed time of units`, the
-// same as single-machine GCRA. A request fits if `reset_at` then stays at
-// most one `rate.Duration` ahead of `nowNs`. More `units` than `rate.Limit`
-// never fit.
+// GCRA rule. A request fits if `reset_at` then stays at most one
+// `rate.Duration` ahead of `nowNs`. More `units` than `rate.Limit` never fit.
 //
 // decide is pure, so a caller can decide several rate limits and spend on
 // all of them or on none.
@@ -211,7 +210,7 @@ func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units 
 		return unchanged, nil
 	}
 	consumedNs := rate.unitsToNs(units)
-	// This is the single-machine GCRA rule. If `reset_at` is in the past,
+	// This is the GCRA rule. If `reset_at` is in the past,
 	// every unit is free, and the request pays from now, not from the old
 	// `reset_at`. Otherwise the request waits behind what is already in use.
 	nextResetAtNs, err := addNs(max(current.resetAtNs, nowNs), consumedNs)
@@ -243,7 +242,7 @@ func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units 
 	//	peer session  anchor 150, consumed 60   candidate 150 + 60     = 210  <- reset_at
 	//
 	// Adding 1 unit to the live session makes its candidate 162, and
-	// `reset_at` stays 210: the request would be free. Single-machine GCRA
+	// `reset_at` stays 210: the request would be free. The GCRA rule
 	// gives 211. A new session anchored at 155 has candidate 155 + 1 = 156,
 	// and the peer session now counts it too: 150 + 60 + 1 = 211.
 	liveSessionCanTakeRequest := hasLiveSession &&
