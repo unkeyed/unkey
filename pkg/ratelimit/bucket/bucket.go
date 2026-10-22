@@ -75,11 +75,17 @@ type Decision struct {
 	// Remaining is how many more units fit after the request.
 	Remaining int64
 
-	// StartsSession reports that the request must go into a new session
-	// anchored at SessionAnchorAtNs. The caller gives that session a new ID and
-	// does not use the old live session again.
-	StartsSession     bool
-	SessionAnchorAtNs int64
+	// CreateNewSession is set when the request cannot go into the live
+	// session. The caller then creates a new session with a new ID, writes
+	// CostNs into it, and does not use the old live session again. It is nil
+	// when the request goes into the live session or changes nothing.
+	CreateNewSession *NewSession
+}
+
+// NewSession describes the session that a [Decision] creates.
+type NewSession struct {
+	// AnchorAtNs is the anchor of the new session, in Unix nanoseconds.
+	AnchorAtNs int64
 }
 
 // New computes the state of a limit from all its known sessions.
@@ -175,12 +181,11 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 
 	resetAtNs := b.ResetAtNs()
 	unchanged := Decision{
-		Allowed:           false,
-		CostNs:            0,
-		ResetAtNs:         resetAtNs,
-		Remaining:         rate.remaining(nowNs, resetAtNs),
-		StartsSession:     false,
-		SessionAnchorAtNs: 0,
+		Allowed:          false,
+		CostNs:           0,
+		ResetAtNs:        resetAtNs,
+		Remaining:        rate.remaining(nowNs, resetAtNs),
+		CreateNewSession: nil,
 	}
 	if cost > rate.Limit {
 		return unchanged, nil
@@ -198,18 +203,16 @@ func (b Bucket) Check(nowNs int64, rate Rate, cost int64) (Decision, error) {
 		return unchanged, nil
 	}
 
-	startsSession := !b.hasLive || b.olderMaxNs < max(b.newerMaxNs, nowNs)
-	var sessionAnchorAtNs int64
-	if startsSession {
-		sessionAnchorAtNs = max(nowNs, b.newestAnchorNs)
+	var createNewSession *NewSession
+	if !b.hasLive || b.olderMaxNs < max(b.newerMaxNs, nowNs) {
+		createNewSession = &NewSession{AnchorAtNs: max(nowNs, b.newestAnchorNs)}
 	}
 	return Decision{
-		Allowed:           true,
-		CostNs:            costNs,
-		ResetAtNs:         nextResetAtNs,
-		Remaining:         rate.remaining(nowNs, nextResetAtNs),
-		StartsSession:     startsSession,
-		SessionAnchorAtNs: sessionAnchorAtNs,
+		Allowed:          true,
+		CostNs:           costNs,
+		ResetAtNs:        nextResetAtNs,
+		Remaining:        rate.remaining(nowNs, nextResetAtNs),
+		CreateNewSession: createNewSession,
 	}, nil
 }
 
@@ -223,11 +226,11 @@ func (b *Bucket) Apply(decision Decision) {
 	// In both cases the request raises exactly the candidates at or before the
 	// live anchor, and the largest of them becomes the new reset_at.
 	b.olderMaxNs = decision.ResetAtNs
-	if decision.StartsSession {
+	if decision.CreateNewSession != nil {
 		b.hasLive = true
-		b.liveAnchorNs = decision.SessionAnchorAtNs
+		b.liveAnchorNs = decision.CreateNewSession.AnchorAtNs
 		b.newerMaxNs = 0
-		b.newestAnchorNs = decision.SessionAnchorAtNs
+		b.newestAnchorNs = decision.CreateNewSession.AnchorAtNs
 	}
 }
 

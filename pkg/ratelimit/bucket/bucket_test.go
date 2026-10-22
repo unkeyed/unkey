@@ -30,8 +30,7 @@ func TestBucketChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, decision.Allowed)
 	require.Equal(t, int64(111), decision.ResetAtNs)
-	require.True(t, decision.StartsSession)
-	require.Equal(t, int64(55), decision.SessionAnchorAtNs)
+	require.Equal(t, &bucket.NewSession{AnchorAtNs: 55}, decision.CreateNewSession)
 }
 
 // TestBucketNeverWrapsAround guarantees that sums beyond int64 return an
@@ -125,7 +124,7 @@ func requestMatchesSingleMachine(t *testing.T, b *bucket.Bucket, sessions []buck
 	require.Equal(t, allowed, decision.Allowed)
 	if !allowed || cost == 0 {
 		require.Equal(t, before, decision.ResetAtNs)
-		require.False(t, decision.StartsSession)
+		require.Nil(t, decision.CreateNewSession)
 		require.Equal(t, remainingBySearch(rate, nowNs, before), decision.Remaining)
 		b.Apply(decision)
 		return sessions, liveSessionID
@@ -143,14 +142,14 @@ func requestMatchesSingleMachine(t *testing.T, b *bucket.Bucket, sessions []buck
 			liveCanTakeIt = resetAtByFormula(withLive) == after
 		}
 	}
-	require.Equal(t, !liveCanTakeIt, decision.StartsSession, "a new session starts exactly when the live session cannot take the request")
+	require.Equal(t, !liveCanTakeIt, decision.CreateNewSession != nil, "a new session starts exactly when the live session cannot take the request")
 
 	b.Apply(decision)
-	if decision.StartsSession {
+	if decision.CreateNewSession != nil {
 		liveSessionID = fmt.Sprintf("own_%d", len(sessions))
 		sessions = append(sessions, bucket.Session{
 			ID:         liveSessionID,
-			AnchorAtNs: decision.SessionAnchorAtNs,
+			AnchorAtNs: decision.CreateNewSession.AnchorAtNs,
 			ConsumedNs: decision.CostNs,
 		})
 	} else {

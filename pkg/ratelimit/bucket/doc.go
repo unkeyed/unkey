@@ -50,8 +50,8 @@
 //		return err
 //	}
 //	b.Apply(decision)
-//	if decision.StartsSession {
+//	if decision.CreateNewSession != nil {
 //		// Write decision.CostNs into a new session anchored at
-//		// decision.SessionAnchorAtNs.
+//		// decision.CreateNewSession.AnchorAtNs.
 //	}
 package bucket
