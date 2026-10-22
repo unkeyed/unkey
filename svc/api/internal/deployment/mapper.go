@@ -20,7 +20,7 @@ type Input struct {
 	Steps      []db.DeploymentStep
 	Regions    []string
 	Domains    []string
-	Instances  []db.ListInstanceContainerStatusesByDeploymentIdsRow
+	Instances  []db.ListDeploymentInstanceStatusesByIdsRow
 }
 
 func ToResponse(ctx context.Context, database *db.Replica, workspaceID string, row db.ListDeploymentsRow) (openapi.Deployment, error) {
@@ -47,7 +47,7 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 	var steps []db.DeploymentStep
 	var regions []db.ListDeploymentRegionsByIdsRow
 	var domains []db.ListDeploymentDomainsByIdsRow
-	var instances []db.ListInstanceContainerStatusesByDeploymentIdsRow
+	var instances []db.ListDeploymentInstanceStatusesByIdsRow
 	err := conc.All(ctx,
 		func(ctx context.Context) (err error) {
 			states, err = db.Query.ListDeploymentEnvAndAppState(ctx, database, db.ListDeploymentEnvAndAppStateParams{WorkspaceID: workspaceID, DeploymentIds: ids})
@@ -66,7 +66,7 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 			return err
 		},
 		func(ctx context.Context) (err error) {
-			instances, err = db.Query.ListInstanceContainerStatusesByDeploymentIds(ctx, database, db.ListInstanceContainerStatusesByDeploymentIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+			instances, err = db.Query.ListDeploymentInstanceStatusesByIds(ctx, database, db.ListDeploymentInstanceStatusesByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
 			return err
 		},
 	)

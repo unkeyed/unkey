@@ -2510,6 +2510,12 @@ type Querier interface {
 	//  WHERE d.workspace_id = ?
 	//    AND d.id IN (/*SLICE:deployment_ids*/?)
 	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error)
+	//ListDeploymentInstanceStatusesByIds
+	//
+	//  SELECT instances.deployment_id, instances.status, instances.container_status FROM instances
+	//  WHERE workspace_id = ?
+	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
+	ListDeploymentInstanceStatusesByIds(ctx context.Context, db DBTX, arg ListDeploymentInstanceStatusesByIdsParams) ([]ListDeploymentInstanceStatusesByIdsRow, error)
 	//ListDeploymentRegionsByIds
 	//
 	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
@@ -2650,12 +2656,6 @@ type Querier interface {
 	//
 	//  SELECT ratelimits.pk, ratelimits.id, ratelimits.name, ratelimits.workspace_id, ratelimits.created_at, ratelimits.updated_at, ratelimits.key_id, ratelimits.identity_id, ratelimits.`limit`, ratelimits.duration, ratelimits.auto_apply FROM ratelimits WHERE identity_id = ?
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
-	//ListInstanceContainerStatusesByDeploymentIds
-	//
-	//  SELECT instances.deployment_id, instances.status, instances.container_status FROM instances
-	//  WHERE workspace_id = ?
-	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
-	ListInstanceContainerStatusesByDeploymentIds(ctx context.Context, db DBTX, arg ListInstanceContainerStatusesByDeploymentIdsParams) ([]ListInstanceContainerStatusesByDeploymentIdsRow, error)
 	//ListLiveKeysByKeySpaceID
 	//
 	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.prefix, k.start, k.end, k.workspace_id,

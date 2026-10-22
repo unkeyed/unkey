@@ -36,10 +36,10 @@ var exitCodeHints = map[int32]string{
 // lastExit picks the most recent exit across the instances of a deployment, so
 // one failing instance in a multi-region rollout still surfaces while the others
 // are healthy. A crash loop outranks the exit reason because it means the
-// instance is stuck, and the exit code still carries the cause. ctrl keeps the
-// crash loop on the row after the instance recovers, so it counts only while
-// the instance is not running.
-func lastExit(instances []db.ListInstanceContainerStatusesByDeploymentIdsRow) *openapi.DeploymentLastExit {
+// instance is stuck, and the exit code still carries the cause. A row can still
+// carry a crash loop after its instance runs again, so it counts only while the
+// instance is not running.
+func lastExit(instances []db.ListDeploymentInstanceStatusesByIdsRow) *openapi.DeploymentLastExit {
 	var latest *dbtype.ContainerStatus
 	latestCrashLooping := false
 	latestFinishedAt := noRecordedExit

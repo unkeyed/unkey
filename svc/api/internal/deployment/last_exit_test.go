@@ -22,10 +22,10 @@ func exited(reason string, exitCode int32, finishedAt int64) dbtype.ContainerSta
 	}
 }
 
-func pendingInstances(statuses ...dbtype.ContainerStatus) []db.ListInstanceContainerStatusesByDeploymentIdsRow {
-	instances := make([]db.ListInstanceContainerStatusesByDeploymentIdsRow, len(statuses))
+func pendingInstances(statuses ...dbtype.ContainerStatus) []db.ListDeploymentInstanceStatusesByIdsRow {
+	instances := make([]db.ListDeploymentInstanceStatusesByIdsRow, len(statuses))
 	for i, status := range statuses {
-		instances[i] = db.ListInstanceContainerStatusesByDeploymentIdsRow{
+		instances[i] = db.ListDeploymentInstanceStatusesByIdsRow{
 			DeploymentID:    "",
 			Status:          db.InstancesStatusPending,
 			ContainerStatus: status,
