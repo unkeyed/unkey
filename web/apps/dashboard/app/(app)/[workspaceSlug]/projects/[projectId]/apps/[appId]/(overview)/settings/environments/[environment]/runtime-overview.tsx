@@ -11,13 +11,13 @@ import {
   SettingsPanel,
 } from "@unkey/ui";
 import { useState } from "react";
-import { ComputeForm } from "../../../../../_components/settings/compute/compute-settings";
 import { readCompute } from "../../../../../_components/settings/compute/draft";
 import { RegionViz } from "../../../../../_components/settings/compute/region-viz";
 import { availableFrom, unschedulableIn } from "../../../../../_components/settings/compute/status";
 import { useEnvironmentSettings } from "../../../../../_components/settings/environment-provider";
+import { RuntimeForm } from "../../../../../_components/settings/runtime/runtime-form";
 
-export function ComputeOverview() {
+export function RuntimeOverview() {
   const { settings } = useEnvironmentSettings();
   const regionsQuery = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
   const [configuring, setConfiguring] = useState(false);
@@ -25,7 +25,7 @@ export function ComputeOverview() {
 
   return (
     <SettingsGroup>
-      <SettingsGroupTitle>Compute</SettingsGroupTitle>
+      <SettingsGroupTitle>Runtime</SettingsGroupTitle>
       <SettingsGroupContent>
         <RegionViz
           settings={settings}
@@ -49,10 +49,10 @@ export function ComputeOverview() {
         isOpen={configuring}
         onClose={close}
         onSaved={close}
-        title="Configure compute"
+        title="Configure runtime"
         description={`${NEXT_DEPLOY}.`}
       >
-        <ComputeForm />
+        <RuntimeForm />
       </SettingsPanel>
     </SettingsGroup>
   );

@@ -2,8 +2,7 @@
 
 import { CUSTOM_SIZE_LABEL, PRESETS, sizeChoice } from "@/lib/compute/sizing";
 import { useState } from "react";
-import type { ComputeValues } from "./draft";
-import type { SetCompute } from "./use-compute";
+import type { ComputeValues, SetCompute } from "./draft";
 
 export const CUSTOM_VALUE = "custom";
 

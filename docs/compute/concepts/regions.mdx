@@ -14,7 +14,7 @@ sources:
   - web/apps/dashboard/lib/trpc/routers/deploy/environment-settings/get-available-regions.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/compute/compute-fields.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/compute/status.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/environments/[environment]/compute-overview.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/environments/[environment]/runtime-overview.tsx
 ---
 
 A region is a place Unkey runs your instances. Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> of an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> has its own region list, and every <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> in that environment runs in all of them.
@@ -37,10 +37,10 @@ We add regions over time. A region can also be closed to new deployments for a w
 Production and preview have separate lists, so you can run production in three regions and preview in one.
 
 <Frame>
-  <img src="/images/dashboard/compute--concepts-regions--regions.png" alt="Configure compute panel for the production environment with Frankfurt and N. Virginia selected under Regions, plus Size, Instances, and Storage" />
+  <img src="/images/dashboard/compute--concepts-regions--regions.png" alt="Configure runtime panel for the production environment with Frankfurt and N. Virginia selected under Regions, plus Size, Instances, Storage, Port, and Start command" />
 </Frame>
 
-In the dashboard, open the app, go to **App settings** > **Environments**, and open the environment. Click **Configure** on the **Compute** card and pick regions under **Regions**. Unschedulable regions are visible but not selectable, and you can't remove the last region. From the CLI or the API:
+In the dashboard, open the app, go to **App settings** > **Environments**, and open the environment. Click **Configure** on the **Runtime** card and pick regions under **Regions**. Unschedulable regions are visible but not selectable, and you can't remove the last region. From the CLI or the API:
 
 <CodeGroup>
 ```bash CLI

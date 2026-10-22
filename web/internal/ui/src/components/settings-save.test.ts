@@ -15,10 +15,19 @@ describe("resolveGroupSave", () => {
     expect(resolveGroupSave([untouched])).toEqual({ status: "clean" });
   });
 
-  it("submits only the valid dirty rows", () => {
+  it("submits only the valid dirty rows and marks the save incomplete", () => {
     expect(resolveGroupSave([name, invalidBytes, prefix, untouched])).toEqual({
       status: "ready",
       submit: [name, prefix],
+      complete: false,
+    });
+  });
+
+  it("marks the save complete when every dirty row is valid", () => {
+    expect(resolveGroupSave([name, prefix, untouched])).toEqual({
+      status: "ready",
+      submit: [name, prefix],
+      complete: true,
     });
   });
 

@@ -161,7 +161,7 @@ function GroupSaveButton({
       return;
     }
     const results = await Promise.all(save.submit.map((member) => member.submit()));
-    if (results.every(Boolean)) {
+    if (save.complete && results.every(Boolean)) {
       onSaved?.();
     }
   };
@@ -358,7 +358,7 @@ function SettingsForm({
   return (
     <form
       ref={formRef}
-      className={className}
+      className={cn(useLayoutClass("body"), className)}
       onSubmit={(e) => {
         if (saveState.status !== "ready") {
           e.preventDefault();

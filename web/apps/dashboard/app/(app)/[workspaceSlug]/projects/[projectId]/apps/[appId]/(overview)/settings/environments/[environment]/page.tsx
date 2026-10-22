@@ -10,8 +10,8 @@ import { useBuildSource } from "../../../../../_components/settings/hooks/use-bu
 import { SettingsSkeleton } from "../../../../../_components/settings/settings-skeleton";
 import { useProjectData } from "../../../data-provider";
 import { trackedBranch } from "../branch";
-import { ComputeOverview } from "./compute-overview";
 import { BranchTracking, EnvironmentDomains } from "./environment-groups";
+import { RuntimeOverview } from "./runtime-overview";
 
 export default function EnvironmentSettingsPage() {
   const { environment: slug } = useParams<{ environment: string }>();
@@ -33,7 +33,7 @@ export default function EnvironmentSettingsPage() {
   return (
     <EnvironmentSettingsScope environmentId={environment.id}>
       <SettingsGroups>
-        <ComputeOverview />
+        <RuntimeOverview />
         <EnvironmentDomains environment={environment} />
         {hasRepository ? (
           <BranchTracking

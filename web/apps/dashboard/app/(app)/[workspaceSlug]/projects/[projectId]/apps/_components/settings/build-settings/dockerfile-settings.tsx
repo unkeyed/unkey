@@ -1,33 +1,22 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
-import {
-  SettingsForm,
-  SettingsRow,
-  SettingsRowContent,
-  SettingsRowHeader,
-  SettingsRowTitle,
-} from "@unkey/ui";
+import { SettingsRow, SettingsRowContent, SettingsRowHeader, SettingsRowTitle } from "@unkey/ui";
 import { useMemo } from "react";
-import type { SettingField } from "../hooks/use-setting-form";
+import type { BuildRecipeForm } from "../hooks/use-build-recipe";
 import { pathHint, pathInputVariant } from "./path-hint";
 import { pathHintMessage } from "./path-hint-message";
 import { useRepoTree } from "./use-repo-tree";
 
-export function Dockerfile({
-  field,
-  onSelect,
-}: {
-  field: SettingField<"dockerfile">;
-  onSelect: (path: string) => void;
-}) {
-  const { settings, form, formProps } = field;
-  const { dockerContext } = settings;
+export function Dockerfile({ form }: { form: BuildRecipeForm }) {
+  const dockerContext = form.watch("dockerContext");
   const { branch, validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
     useRepoTree();
 
   const currentDockerfile = form.watch("dockerfile");
   const setDockerfile = (path: string) => {
     form.setValue("dockerfile", path, { shouldDirty: true, shouldValidate: true });
-    onSelect(path);
+    if (path.trim() !== "") {
+      form.resetField("buildCommand");
+    }
   };
 
   const validation = currentDockerfile
@@ -60,27 +49,25 @@ export function Dockerfile({
   );
 
   return (
-    <SettingsForm {...formProps}>
-      <SettingsRow>
-        <SettingsRowHeader>
-          <SettingsRowTitle>Dockerfile</SettingsRowTitle>
-        </SettingsRowHeader>
-        <SettingsRowContent>
-          <FormCombobox
-            aria-label="Dockerfile"
-            className="max-w-(--setting-w)"
-            description={pathHintMessage(hint, "File", setDockerfile)}
-            options={options}
-            value={currentDockerfile}
-            onSelect={setDockerfile}
-            creatable
-            searchPlaceholder="Search or type a path..."
-            emptyMessage={<div className="mt-2">No Dockerfiles detected in repository</div>}
-            placeholder={<span className="text-grayA-8">None (auto-detected build)</span>}
-            variant={pathInputVariant(Boolean(form.formState.errors.dockerfile), hint)}
-          />
-        </SettingsRowContent>
-      </SettingsRow>
-    </SettingsForm>
+    <SettingsRow>
+      <SettingsRowHeader>
+        <SettingsRowTitle>Dockerfile</SettingsRowTitle>
+      </SettingsRowHeader>
+      <SettingsRowContent>
+        <FormCombobox
+          aria-label="Dockerfile"
+          className="max-w-(--setting-w)"
+          description={pathHintMessage(hint, "File", setDockerfile)}
+          options={options}
+          value={currentDockerfile}
+          onSelect={setDockerfile}
+          creatable
+          searchPlaceholder="Search or type a path..."
+          emptyMessage={<div className="mt-2">No Dockerfiles detected in repository</div>}
+          placeholder={<span className="text-grayA-8">None (auto-detected build)</span>}
+          variant={pathInputVariant(Boolean(form.formState.errors.dockerfile), hint)}
+        />
+      </SettingsRowContent>
+    </SettingsRow>
   );
 }
