@@ -21,7 +21,6 @@ import {
   toast,
 } from "@unkey/ui";
 import Link from "next/link";
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAppId, useProjectData } from "../data-provider";
@@ -78,7 +77,6 @@ export function GitDeploymentForm({ app, isOpen, onOpenChange }: GitDeploymentFo
   const repositoryFullName = app.repositoryFullName ?? null;
   const [owner, repo] = repositoryFullName?.split("/") ?? [];
   const productionBranch = app.defaultBranch ?? "main";
-  const defaultEnvironmentId = environments.find((env) => env.kind === "production")?.id ?? "";
 
   const installations = trpc.github.getInstallations.useQuery(
     { projectId, appId },
@@ -107,35 +105,22 @@ export function GitDeploymentForm({ app, isOpen, onOpenChange }: GitDeploymentFo
     setValue,
     reset,
     watch,
-    getValues,
     formState: { errors, isValid, isSubmitting },
   } = useForm<GitFormValues>({
     resolver: zodResolver(gitFormSchema(repo)),
     mode: "onChange",
-    defaultValues: {
-      ref: productionBranch,
-      environmentId: defaultEnvironmentId,
-    },
+    defaultValues: { ref: "", environmentId: "" },
   });
 
   const close = () => {
     onOpenChange(false);
-    reset({ ref: productionBranch, environmentId: defaultEnvironmentId });
+    reset();
   };
   const createDeployment = useCreateDeployment(close);
 
   const ref = watch("ref");
   const environmentId = watch("environmentId");
   const target = environments.find((env) => env.id === environmentId);
-  const suggestedEnvironmentId = environmentIdForRef(ref, productionBranch, environments);
-
-  useEffect(() => {
-    if (isOpen && suggestedEnvironmentId) {
-      setValue("environmentId", getValues("environmentId") || suggestedEnvironmentId, {
-        shouldValidate: true,
-      });
-    }
-  }, [isOpen, suggestedEnvironmentId, getValues, setValue]);
 
   function onSubmit(values: GitFormValues) {
     const environment = environments.find((env) => env.id === values.environmentId);
