@@ -7,7 +7,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/ratelimit/db"
 )
 
-// Store holds the sessions that all pods share.
+// Store holds the sessions that all pods share. Implementations must be safe
+// for concurrent use: the flush, background reads and requests call them at
+// the same time. The limiter never holds a shard lock while it calls them.
 type Store interface {
 	// WriteSessions writes sessions and keeps the larger `ConsumedNs` of each,
 	// so a retried or reordered write never moves a session back. The
@@ -34,7 +36,7 @@ type mysqlStore struct {
 }
 
 // NewMySQLStore returns a [Store] that writes to the primary and reads from
-// the replica.
+// the replica. Both must be safe for concurrent use, as a `*sql.DB` is.
 func NewMySQLStore(primary, replica db.DBTX) Store {
 	return &mysqlStore{primary: primary, replica: replica}
 }

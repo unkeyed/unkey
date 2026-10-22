@@ -151,12 +151,15 @@ type limiter struct {
 	flushLoopDone chan struct{}
 }
 
+// shard holds the entries of the fingerprints whose first byte maps to it.
+// mu guards entries and every entry in it.
 type shard struct {
 	mu      sync.Mutex
 	entries map[[32]byte]*entry
 }
 
-// New returns a [Limiter] that flushes every second.
+// New returns a [Limiter] that flushes every second. It is safe to call
+// concurrently.
 func New(config Config) (Limiter, error) {
 	l, err := newLimiter(config)
 	if err != nil {
@@ -170,7 +173,8 @@ func New(config Config) (Limiter, error) {
 
 // newLimiter returns a limiter without the flush loop. Tests and the
 // simulation use it and call flush themselves, so the order of events
-// follows their seed and not the Go scheduler.
+// follows their seed and not the Go scheduler. It is safe to call
+// concurrently.
 func newLimiter(config Config) (*limiter, error) {
 	err := assert.All(
 		assert.NotNil(config.Clock, "clock is required"),
@@ -208,6 +212,7 @@ func newLimiter(config Config) (*limiter, error) {
 	return l, nil
 }
 
+// Allow is safe to call concurrently. The caller must not hold a shard lock.
 func (l *limiter) Allow(ctx context.Context, request Request) (Result, error) {
 	results, err := l.AllowMany(ctx, []Request{request})
 	if err != nil {
@@ -216,6 +221,8 @@ func (l *limiter) Allow(ctx context.Context, request Request) (Result, error) {
 	return results[0], nil
 }
 
+// AllowMany is safe to call concurrently. It takes the shard locks of its
+// requests itself, so the caller must not hold a shard lock.
 func (l *limiter) AllowMany(ctx context.Context, requests []Request) ([]Result, error) {
 	err := l.validate(requests)
 	if err != nil {
@@ -281,6 +288,8 @@ func (l *limiter) AllowMany(ctx context.Context, requests []Request) ([]Result, 
 	return results, nil
 }
 
+// Close is safe to call concurrently and more than once; only the first call
+// flushes. The caller must not hold a shard lock.
 func (l *limiter) Close() error {
 	if l.closed.Swap(true) {
 		return nil
@@ -294,6 +303,8 @@ func (l *limiter) Close() error {
 	return l.flush(ctx)
 }
 
+// flushUntilStopped flushes on every tick until Close. Only New starts it, in
+// one goroutine.
 func (l *limiter) flushUntilStopped(ticker clock.Ticker) {
 	defer close(l.flushLoopDone)
 	defer ticker.Stop()
@@ -315,6 +326,9 @@ func (l *limiter) flushUntilStopped(ticker clock.Ticker) {
 // flush writes every unwritten session to the store and removes entries that
 // are idle and fully written. A failed write leaves its sessions unwritten,
 // so the next flush retries them with their latest values.
+//
+// It is safe to call concurrently: `flushMu` runs one flush at a time, and it
+// takes each shard lock itself. The caller must not hold a shard lock.
 func (l *limiter) flush(ctx context.Context) error {
 	l.flushMu.Lock()
 	defer l.flushMu.Unlock()
@@ -373,6 +387,10 @@ func (l *limiter) flush(ctx context.Context) error {
 // `rowsStaleFor` old, or that a read for them failed within that time. A
 // failed read leaves the entry with the sessions it already has, so the pod
 // limits on what it knows until MySQL is back.
+//
+// It is safe to call concurrently. It takes the shard locks itself and does
+// not hold them while it reads or waits, so the caller must not hold a shard
+// lock.
 func (l *limiter) refreshRows(ctx context.Context, requests []Request) {
 	nowNs := l.clock.Now().UnixNano()
 	var readNow [][32]byte
@@ -414,7 +432,9 @@ func (l *limiter) refreshRows(ctx context.Context, requests []Request) {
 }
 
 // readRows reads the peer rows of one fingerprint and merges them into its
-// entry. The caller set `readDone` on the entry.
+// entry. The caller set `readDone` on the entry, so only one readRows runs
+// per fingerprint. It reads without a lock and then takes the shard lock to
+// merge, so the caller must not hold a shard lock.
 func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte) {
 	ctx, cancel := context.WithTimeout(ctx, readTimeout)
 	defer cancel()
@@ -455,6 +475,8 @@ func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte) {
 	readsTotal.WithLabelValues(result).Inc()
 }
 
+// validate checks the requests and that the limiter is open. It reads only
+// its arguments and `closed`, so it is safe to call concurrently.
 func (l *limiter) validate(requests []Request) error {
 	if l.closed.Load() {
 		return fault.New("the rate limiter is closed")
@@ -502,7 +524,8 @@ func (l *limiter) apply(e *entry, d decision, nowNs int64) error {
 	return nil
 }
 
-// newSession returns a random session ID and lifetime.
+// newSession returns a random session ID and lifetime. It is safe to call
+// concurrently: it takes `randomMu`. The caller may hold a shard lock.
 func (l *limiter) newSession() (string, time.Duration) {
 	l.randomMu.Lock()
 	defer l.randomMu.Unlock()
@@ -514,6 +537,8 @@ func (l *limiter) newSession() (string, time.Duration) {
 	return string(id), lifetime
 }
 
+// shardIndex returns the shard of a fingerprint. It is safe to call
+// concurrently.
 func shardIndex(fingerprint [32]byte) int {
 	return int(fingerprint[0]) % shardCount
 }
