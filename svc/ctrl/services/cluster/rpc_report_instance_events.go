@@ -115,11 +115,9 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 			row.Reason = t.GetReason()
 			row.Message = t.GetMessage()
 
-			// Exit 0 is recorded like any other exit. Krane pods restart
-			// always, so a clean exit of the app is a restart and a crash
-			// loop of exit 0 has no other trace on the row. A clean exit
-			// during a graceful shutdown lasts only until the pod leaves
-			// the deployment status report and its row is deleted.
+			// A graceful shutdown that exits 0 shows on the row only until
+			// the pod leaves the deployment status report and its row is
+			// deleted.
 
 			// Build the post-update ContainerStatus in one place. The new
 			// value fully replaces what's on the row (including clearing

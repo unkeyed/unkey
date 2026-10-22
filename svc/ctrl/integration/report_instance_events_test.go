@@ -5,17 +5,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/batch"
-	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/clock"
-	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 )
 
 func TestReportInstanceEventsRecordsCleanExit(t *testing.T) {
@@ -24,31 +17,7 @@ func TestReportInstanceEventsRecordsCleanExit(t *testing.T) {
 
 	const bearer = "test-bearer"
 	clusterKey := &ctrlv1.ClusterKey{CellId: uid.DNS1035(12), Platform: "test", Region: uid.DNS1035(12)}
-
-	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
-		Fresh:    time.Minute,
-		Stale:    time.Minute,
-		MaxSize:  10,
-		Resource: "test_topology",
-		Clock:    clock.New(),
-	})
-	require.NoError(t, err)
-
-	svc, err := cluster.New(cluster.Config{
-		Database:       h.DB,
-		Restate:        ingress.NewClient("http://127.0.0.1:1"),
-		RestateAdmin:   restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:1", APIKey: ""}),
-		Bearer:         bearer,
-		Clock:          clock.New(),
-		TopologyCache:  topologyCache,
-		InstanceEvents: batch.NewNoop[schema.InstanceEventV1](),
-	})
-	require.NoError(t, err)
-
-	heartbeat := connect.NewRequest(&ctrlv1.HeartbeatRequest{Cluster: clusterKey})
-	heartbeat.Header().Set("Authorization", "Bearer "+bearer)
-	_, err = svc.Heartbeat(ctx, heartbeat)
-	require.NoError(t, err)
+	svc := h.ClusterService(clusterKey, bearer)
 
 	deployment := h.CreateDeployment(ctx, CreateDeploymentRequest{Region: clusterKey.GetRegion(), DesiredState: ""})
 	podName := uid.DNS1035(16)
@@ -68,7 +37,7 @@ func TestReportInstanceEventsRecordsCleanExit(t *testing.T) {
 		},
 	})
 	status.Header().Set("Authorization", "Bearer "+bearer)
-	_, err = svc.ReportDeploymentStatus(ctx, status)
+	_, err := svc.ReportDeploymentStatus(ctx, status)
 	require.NoError(t, err)
 
 	report := func(event *ctrlv1.InstanceEvent) {
