@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	envmapper "github.com/unkeyed/unkey/svc/api/internal/environment"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -66,18 +67,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID),
 			permissions.Read,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return fault.New(
-			"environment not found",
-			fault.Code(codes.Data.Environment.NotFound.URN()),
-			fault.Internal("authorization failed; returning not found to avoid leaking environment existence"),
-			fault.Public("The requested environment does not exist."),
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			codes.Data.Environment.NotFound.URN(),
+			"The requested environment does not exist.",
 		)
 	}
 

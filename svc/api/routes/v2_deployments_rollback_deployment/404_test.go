@@ -50,6 +50,32 @@ func TestRollbackDeploymentInsufficientPermissionsMasked(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 }
 
+// A key that can read the deployment already knows it exists, so a missing
+// rollback permission is a 403 that names the permission.
+func TestRollbackDeploymentReadOnlyIsForbidden(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h, newUncalledRestate(t))
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.read_deployment"},
+	})
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
+	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Detail, "rollback_deployment")
+	require.Contains(t, res.Body.Error.Detail, "Log in again")
+	require.Contains(t, res.Body.Error.Detail, "grant it")
+}
+
 // A deployment in another workspace must be indistinguishable from one that does
 // not exist, so cross-workspace calls return 404 rather than leaking existence.
 func TestRollbackDeploymentInAnotherWorkspace(t *testing.T) {

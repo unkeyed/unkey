@@ -17,8 +17,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_permission"
 )
 
-// TestDeletePermissionMasksInsufficientPermissions guarantees that callers cannot
-// find or delete permissions without delete access.
+// TestDeletePermissionMasksInsufficientPermissions guarantees that a caller who
+// can read a permission learns they lack delete, and a caller who cannot read
+// it gets the same not-found response as a missing permission.
 func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -50,9 +51,7 @@ func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Test case for insufficient permissions - missing delete_permission
-	t.Run("missing delete_permission permission", func(t *testing.T) {
-		// Create a root key with some permissions but not delete_permission
+	t.Run("read without delete names the missing permission", func(t *testing.T) {
 		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_permission")
 
 		headers := http.Header{
@@ -64,23 +63,44 @@ func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 			Permission: permissionID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, http.StatusForbidden, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
-		require.Equal(t, "The requested permission does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "delete_permission")
+		require.Contains(t, res.Body.Error.Detail, "Log in again")
+		require.Contains(t, res.Body.Error.Detail, "grant it")
 
 		// Verify the permission still exists (wasn't deleted)
 		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
 		require.NoError(t, err)
 		require.Equal(t, permissionID, perm.ID)
+	})
+
+	t.Run("no access is not found", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspace.ID)
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+			h,
+			route,
+			headers,
+			handler.Request{Permission: permissionID},
+		)
+
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, "The requested permission does not exist.", res.Body.Error.Detail)
 	})
 
 	// Test case for wrong workspace

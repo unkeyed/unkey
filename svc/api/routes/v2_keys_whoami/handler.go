@@ -83,16 +83,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Permission check
-	err = principal.Authorize(rbac.Or(
-
+	permissionQuery := rbac.Or(
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keyData.KeyAuth.ProjectID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
 			permissions.Read,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Key.NotFound.URN(),
 			"We could not find the requested key.",
 		)

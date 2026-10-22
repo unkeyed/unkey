@@ -75,13 +75,12 @@ func TestDeleteNamespaceExistenceNotLeaked(t *testing.T) {
 	ns := seedNamespace(t, h, workspace.ID)
 	headers := authHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/*#read", workspace.ID)))
 
-	realRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Namespace: ns.ID})
+	realRes := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{Namespace: ns.ID})
 	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Namespace: uid.New(uid.RatelimitNamespacePrefix)})
 
-	require.Equal(t, http.StatusNotFound, realRes.Status, "expected 404, received: %s", realRes.RawBody)
+	require.Equal(t, http.StatusForbidden, realRes.Status, "expected 403, received: %s", realRes.RawBody)
+	require.Contains(t, realRes.Body.Error.Detail, "#delete")
+	require.Contains(t, realRes.Body.Error.Detail, "Log in again")
 	require.Equal(t, http.StatusNotFound, missingRes.Status, "expected 404, received: %s", missingRes.RawBody)
-	require.NotContains(t, realRes.RawBody, ns.ID)
-	require.Equal(t, missingRes.Body.Error.Detail, realRes.Body.Error.Detail)
-	require.Equal(t, missingRes.Body.Error.Type, realRes.Body.Error.Type)
-	require.Equal(t, missingRes.Body.Error.Status, realRes.Body.Error.Status)
+	require.NotEqual(t, missingRes.Body.Error.Detail, realRes.Body.Error.Detail)
 }

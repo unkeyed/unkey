@@ -90,18 +90,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String),
 			permissions.Read,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		// The authorization runs after the lookup because the URN arm needs the
-		// keyspace ID, and the failure is masked as 404 so callers who lack read
-		// access cannot distinguish an existing API from a non-existent one.
+		// keyspace ID. Callers who cannot read the API get the same 404 as a
+		// missing API. This query is itself a read, so a denial stays a 404.
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Api.NotFound.URN(),
 			"The requested API does not exist or has been deleted.",
 		)

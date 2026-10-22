@@ -77,24 +77,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(
-		rbac.Or(
-			rbac.T(
-				rbac.Tuple{
-					ResourceType: rbac.Identity,
-					ResourceID:   "*",
-					Action:       rbac.DeleteIdentity,
-				},
-			),
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
-				permissions.Delete,
-			),
+	permissionQuery := rbac.Or(
+		rbac.T(
+			rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   "*",
+				Action:       rbac.DeleteIdentity,
+			},
+		),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
+			permissions.Delete,
 		),
 	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Identity.NotFound.URN(),
 			"This identity does not exist.",
 		)

@@ -113,9 +113,12 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status)
 		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "#write")
+		require.Contains(t, res.Body.Error.Detail, "Log in again")
+		require.Contains(t, res.Body.Error.Detail, "grant it")
 		require.NotContains(t, res.RawBody, keySpaceID)
 	})
 
