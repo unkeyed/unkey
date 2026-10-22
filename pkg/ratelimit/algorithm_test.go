@@ -17,10 +17,10 @@ import (
 // `reset_at` unchanged, because the peer's newer session holds the largest
 // candidate.
 func TestDecideChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
-	current, err := summarize([]session{
-		{id: "own", anchorAtNs: 100, consumedNs: 1},
-		{id: "peer", anchorAtNs: 150, consumedNs: 60},
-	}, "own")
+	current, err := summarize(
+		[]session{{id: "peer", anchorAtNs: 150, consumedNs: 60}},
+		session{id: "own", anchorAtNs: 100, consumedNs: 1},
+	)
 	require.NoError(t, err)
 	require.Equal(t, int64(210), current.resetAtNs)
 
@@ -38,22 +38,22 @@ func TestDecideChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
 func TestSummarizeRejectsInvalidSessions(t *testing.T) {
 	cases := []struct {
 		name          string
-		sessions      []session
-		liveSessionID string
+		otherSessions []session
+		liveSession   session
 	}{
-		{"zero anchor", []session{{id: "a", anchorAtNs: 0, consumedNs: 1}}, ""},
-		{"negative consumed time", []session{{id: "a", anchorAtNs: 1, consumedNs: -1}}, ""},
-		{"missing live session", []session{{id: "a", anchorAtNs: 1, consumedNs: 1}}, "b"},
-		{"duplicated live session", []session{{id: "a", anchorAtNs: 1, consumedNs: 1}, {id: "a", anchorAtNs: 2, consumedNs: 1}}, "a"},
+		{"zero anchor", []session{{id: "a", anchorAtNs: 0, consumedNs: 1}}, session{}},
+		{"zero anchor of the live session", nil, session{id: "a", anchorAtNs: 0, consumedNs: 1}},
+		{"negative consumed time", []session{{id: "a", anchorAtNs: 1, consumedNs: -1}}, session{}},
+		{"live session also in the other sessions", []session{{id: "a", anchorAtNs: 1, consumedNs: 1}}, session{id: "a", anchorAtNs: 1, consumedNs: 1}},
 		{"consumed sum beyond int64", []session{
 			{id: "a", anchorAtNs: 1, consumedNs: math.MaxInt64 - 1},
 			{id: "b", anchorAtNs: 1, consumedNs: 2},
-		}, ""},
-		{"candidate beyond int64", []session{{id: "a", anchorAtNs: math.MaxInt64 - 5, consumedNs: 6}}, ""},
+		}, session{}},
+		{"candidate beyond int64", []session{{id: "a", anchorAtNs: math.MaxInt64 - 5, consumedNs: 6}}, session{}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := summarize(tc.sessions, tc.liveSessionID)
+			_, err := summarize(tc.otherSessions, tc.liveSession)
 			require.Error(t, err)
 		})
 	}
@@ -195,7 +195,7 @@ func FuzzDecideMatchesSingleMachineGCRA(f *testing.F) {
 				units := int64(c.Uint8()) % (rate.Limit + 2)
 				requestMatchesSingleMachine(t, &e, rate, nowNs, units)
 			}
-			fresh, err := summarize(e.all(), e.live.id)
+			fresh, err := summarize(e.others, e.live)
 			require.NoError(t, err)
 			require.Equal(t, fresh, e.summary)
 		}
