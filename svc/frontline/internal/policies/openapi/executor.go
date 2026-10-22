@@ -80,6 +80,18 @@ func (e *Executor) Execute(
 	)
 }
 
+// BodyRedactor returns the spec's redactor without validating or reading the request.
+func (e *Executor) BodyRedactor(ctx context.Context, cfg *frontlinev1.OpenApiRequestValidation) (*redaction.Redactor, error) {
+	if len(cfg.GetSpecYaml()) == 0 {
+		return nil, nil
+	}
+	compiled, err := e.getOrCompile(ctx, cfg.GetSpecYaml())
+	if err != nil {
+		return nil, err
+	}
+	return compiled.redactor, nil
+}
+
 // getOrCompile returns a compiled validator and body redactor, using SWR cache keyed by spec content.
 // Keying by content means deployments sharing the same spec reuse one compiled validator.
 func (e *Executor) getOrCompile(ctx context.Context, spec []byte) (*compiledSpec, error) {
