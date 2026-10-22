@@ -14,7 +14,7 @@ func TestListOverrides_ReturnsPersistedOverride(t *testing.T) {
 	t.Parallel()
 
 	ctx, client := externalClient(t)
-	namespace := "smoke"
+	namespace := createRatelimitNamespace(t, ctx)
 	identifier := uid.DNS1035()
 	set, err := client.Ratelimit.SetOverride(ctx, components.V2RatelimitSetOverrideRequestBody{
 		Namespace:  namespace,

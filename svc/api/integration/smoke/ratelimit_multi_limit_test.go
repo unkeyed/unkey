@@ -12,15 +12,16 @@ func TestMultiLimit_ReturnsEveryLimit(t *testing.T) {
 	t.Parallel()
 
 	ctx, client := externalClient(t)
+	namespace := createRatelimitNamespace(t, ctx)
 	response, err := client.Ratelimit.MultiLimit(ctx, []components.V2RatelimitLimitRequestBody{
 		{
-			Namespace:  "smoke",
+			Namespace:  namespace,
 			Identifier: uid.DNS1035(),
 			Limit:      10,
 			Duration:   60_000,
 		},
 		{
-			Namespace:  "smoke",
+			Namespace:  namespace,
 			Identifier: uid.DNS1035(),
 			Limit:      20,
 			Duration:   60_000,

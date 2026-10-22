@@ -12,8 +12,9 @@ func TestLimit_DecrementsRemainingTokens(t *testing.T) {
 	t.Parallel()
 
 	ctx, client := externalClient(t)
+	namespace := createRatelimitNamespace(t, ctx)
 	response, err := client.Ratelimit.Limit(ctx, components.V2RatelimitLimitRequestBody{
-		Namespace:  "smoke",
+		Namespace:  namespace,
 		Identifier: uid.DNS1035(),
 		Limit:      10,
 		Duration:   60_000,

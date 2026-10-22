@@ -1,7 +1,12 @@
 package smoke_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -10,6 +15,7 @@ import (
 	unkey "github.com/unkeyed/sdks/api/go/v2"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func waitForPropagation() {
@@ -33,6 +39,52 @@ func externalClient(t *testing.T) (context.Context, *unkey.Unkey) {
 	t.Cleanup(cancel)
 
 	return ctx, unkey.New(options...)
+}
+
+func createRatelimitNamespace(t *testing.T, ctx context.Context) string {
+	t.Helper()
+
+	// The pinned SDK does not expose namespace creation or deletion yet.
+	body := postAPI(t, ctx, "/v2/ratelimit.createNamespace", openapi.V2RatelimitCreateNamespaceRequestBody{
+		Name: uid.DNS1035(),
+	})
+	var response openapi.V2RatelimitCreateNamespaceResponseBody
+	require.NoError(t, json.Unmarshal(body, &response))
+	require.NotEmpty(t, response.Data.Id)
+
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		postAPI(t, ctx, "/v2/ratelimit.deleteNamespace", openapi.V2RatelimitDeleteNamespaceRequestBody{
+			Namespace: response.Data.Id,
+		})
+	})
+
+	return response.Data.Name
+}
+
+func postAPI(t *testing.T, ctx context.Context, path string, body any) []byte {
+	t.Helper()
+
+	urlBase := os.Getenv("UNKEY_API_BASE_URL")
+	if urlBase == "" {
+		urlBase = unkey.ServerList[0]
+	}
+	endpoint, err := url.JoinPath(urlBase, path)
+	require.NoError(t, err)
+	encoded, err := json.Marshal(body)
+	require.NoError(t, err)
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(encoded))
+	require.NoError(t, err)
+	request.Header.Set("Authorization", "Bearer "+os.Getenv("UNKEY_ROOT_KEY"))
+	request.Header.Set("Content-Type", "application/json")
+	response, err := http.DefaultClient.Do(request)
+	require.NoError(t, err)
+	defer func() { require.NoError(t, response.Body.Close()) }()
+	data, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode, "%s: %s", path, data)
+	return data
 }
 
 func createAPI(t *testing.T, ctx context.Context, client *unkey.Unkey) components.V2ApisCreateAPIResponseData {
