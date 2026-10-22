@@ -10,8 +10,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/fuzz"
 )
 
-// TestRateUnitsToNsIsExactForExtremeRates guarantees that the full limit always
-// uses exactly one Duration, and that a single unit is never rounded down to
+// TestRateUnitsToNsIsExactForExtremeRates guarantees that the full limit
+// always uses exactly one `Duration`, and that a single unit is never rounded down to
 // zero, for very high and very low rates.
 func TestRateUnitsToNsIsExactForExtremeRates(t *testing.T) {
 	week := 7 * 24 * time.Hour
@@ -34,9 +34,9 @@ func TestRateUnitsToNsIsExactForExtremeRates(t *testing.T) {
 	}
 }
 
-// FuzzRateMatchesExactArithmetic guarantees that the 128-bit math of consumedNs
-// equals ⌈units × Duration / Limit⌉ for every valid rate, and that unitsWithin
-// is the largest number of units whose time fits. A mistake here lets the
+// FuzzRateMatchesExactArithmetic guarantees that the 128-bit math of
+// `unitsToNs` equals `⌈units × Duration / Limit⌉` for every valid rate, and
+// that `unitsWithin` is the largest number of units whose time fits. A mistake here lets the
 // limiter admit more than the limit or report a wrong remaining count.
 func FuzzRateMatchesExactArithmetic(f *testing.F) {
 	fuzz.Seed(f)

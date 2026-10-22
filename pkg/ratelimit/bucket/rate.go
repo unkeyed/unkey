@@ -24,8 +24,9 @@ func (r Rate) Validate() error {
 	)
 }
 
-// unitsToNs returns `⌈units × Duration / Limit⌉`, the time that `units` use.
-// It rounds up so that `Limit` requests never use less than `Duration`. The
+// unitsToNs returns `⌈units × Duration / Limit⌉` (rounded up), the consumed
+// time of `units`. Rounding down would make each unit a little cheaper than
+// its share, and `Limit` requests could fit into less than `Duration`. The
 // product uses 128 bits; the package documentation explains why plain integer
 // math is not enough.
 //
@@ -34,22 +35,20 @@ func (r Rate) Validate() error {
 func (r Rate) unitsToNs(units int64) int64 {
 	productHigh, productLow := bits.Mul64(uint64(units), uint64(r.Duration.Nanoseconds()))
 	quotient, remainder := bits.Div64(productHigh, productLow, uint64(r.Limit))
-	// Rounding down would make every unit a little cheaper than its share,
-	// and `Limit` requests could fit into less than `Duration`.
 	if remainder > 0 {
 		quotient++
 	}
 	return int64(quotient)
 }
 
-// remaining returns how many units fit at `nowNs` when the limit resets at
-// `resetAtNs`. It is zero while `resetAtNs` is a full `Duration` or more
-// ahead, which happens when pods over-admitted and the debt is not paid back
-// yet.
+// remaining returns the largest number of units that one request could use
+// at `nowNs` when `reset_at` is `resetAtNs`. It is zero while `resetAtNs` is a
+// full `Duration` or more ahead, which happens when pods over-admitted and
+// the debt is not paid back yet.
 func (r Rate) remaining(nowNs, resetAtNs int64) int64 {
-	// The bucket holds `Duration` of time in total. The part between now and
-	// `reset_at` is in use; the rest is free. A `reset_at` in the past means
-	// the bucket is full, not that it holds more than `Duration`.
+	// A rate limit has `Duration` of time in total. The part between now and
+	// `reset_at` is in use and the rest is free. A `reset_at` in the past
+	// means every unit is free; idle time is not saved up beyond `Duration`.
 	aheadNs := max(resetAtNs-nowNs, 0)
 	if aheadNs >= r.Duration.Nanoseconds() {
 		return 0

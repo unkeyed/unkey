@@ -14,31 +14,67 @@
 //		return err
 //	}
 //	b.Apply(decision)
-//	if decision.CreateNewSessionAtNs != 0 {
-//		// Write decision.ConsumedNs into a new session anchored at
-//		// decision.CreateNewSessionAtNs.
+//	switch {
+//	case !decision.Allowed, decision.ConsumedNs == 0:
+//		// Denied, or zero units: write nothing.
+//	case decision.CreateNewSessionAtNs != 0:
+//		// Create a session with a new ID, anchored at
+//		// decision.CreateNewSessionAtNs, with decision.ConsumedNs consumed.
+//		// It becomes the live session.
+//	default:
+//		// Add decision.ConsumedNs to the live session.
 //	}
+//
+// The examples in this package replay the tables below step by step.
+//
+// # Terms
+//
+//   - Rate limit: one thing that is limited, for example one identifier in
+//     one namespace with one duration. `Limit` is the number of units it
+//     allows per `Duration`.
+//   - Unit: what a request spends. A request asks for `units` units.
+//   - Consumed time: the time that units use, `⌈units × Duration / Limit⌉`
+//     nanoseconds (rounded up).
+//   - `reset_at`: the time when every admitted unit is paid back and a
+//     request of `Limit` units fits again. GCRA papers call it TAT
+//     (theoretical arrival time).
+//   - Session: a stretch of time in which one pod adds its admitted units to
+//     one row. The row holds the session's anchor and its consumed time.
+//   - Anchor: the fixed time from which a session's consumed time counts.
+//   - Live session: the session a pod currently adds its admitted units to.
+//     A pod has at most one per rate limit. All its older sessions are frozen:
+//     they keep counting, but get no new units.
+//   - Candidate: for one session, its anchor plus the consumed time of every
+//     session anchored at or after it. `reset_at` is the largest candidate.
+//   - Pause: a time in which `reset_at` was in the past, so every unit was
+//     free.
+//
+// All times are int64 nanoseconds since the Unix epoch, which the suffix `Ns`
+// marks.
 //
 // # GCRA on one machine
 //
-// GCRA is a token bucket written as time. It does not count tokens. It stores
-// one point in time, `reset_at`: the time when the bucket is full again and
-// every unit is free.
+// GCRA is a token bucket written as time. It does not count tokens. It
+// stores one point in time, `reset_at`.
 //
 // Every unit has a price in time. A rate of `Limit` units per `Duration`
 // prices one unit at `Duration / Limit`, so 10 per 10 seconds makes one unit
-// use 1 second. A request of `units` units uses `⌈units × Duration / Limit⌉`
-// nanoseconds.
+// use 1 second.
 //
 // A request is allowed if, after paying for it, `reset_at` stays at most one
-// `Duration` ahead of now. One `Duration` is the burst tolerance: a limit that
-// was idle can spend all `Limit` units at once. If the request is allowed,
-// `reset_at` becomes `max(reset_at, now) + time of the units`. The max matters: a
-// `reset_at` in the past means the bucket is full, and a full bucket cannot
-// get fuller, so idle time is not saved up. A denied request changes nothing.
+// `Duration` ahead of now. One `Duration` is the burst tolerance: a rate
+// limit that was idle can spend all `Limit` units at once. GCRA papers write
+// the tolerance as τ = `Duration` minus the price of one unit and check
+// against the time of the last unit; the check here is the same thing.
 //
-// Time refills the bucket on its own. There is no refill job and no window
-// boundary. With 10 per 10 seconds:
+// If the request is allowed, `reset_at` becomes
+// `max(reset_at, now) + consumed time`. The max matters: a `reset_at` in the
+// past means every unit is free, and idle time is not saved up beyond that. A
+// denied request changes nothing.
+//
+// Time pays units back on its own. There is no refill job and no window
+// boundary. With 10 per 10 seconds, where the check is
+// `(how far reset_at is ahead of now, or 0) + consumed time ≤ Duration`:
 //
 //	now       request   reset_at before   check               result   reset_at after
 //	12:00:00  1 unit    (past)            0s + 1s ≤ 10s       allow    12:00:01
@@ -47,67 +83,73 @@
 //	12:00:01  1 unit    12:00:10          9s + 1s ≤ 10s       allow    12:00:11
 //	12:00:30  1 unit    12:00:11 (past)   0s + 1s ≤ 10s       allow    12:00:31
 //
-// # Sharing a limit between pods
+// Each request rounds its consumed time up separately. So several small
+// requests can use more time than one large request: at 3 units per 2 ns, an
+// idle rate limit admits one request of 3 units (2 ns), but only two requests
+// of 1 unit each (1 ns each) at the same instant.
 //
-// Many pods decide on the same limit, and each pod sees the others about a
-// second late. A single shared `reset_at` does not work: two pods read the
-// same value, both add their own units, both write, and one write is lost. Lost
-// units are over-admission that never evens out.
+// # Sharing a rate limit between pods
 //
-// So each pod writes only its own rows. A session is one stretch of time in
-// which one pod admits requests for one limit. Each session has one row with
-// two values: its anchor, when it started, and its consumed time, the sum of
-// the time of the units it admitted. The anchor never changes and the consumed time only
-// grows, so writes that arrive late or twice cannot undo a newer write.
+// Many pods decide on the same rate limit, and each pod sees the others a
+// few seconds late. A single shared `reset_at` does not work: two pods read
+// the same value, both add their own units, both write, and one write is
+// lost. Lost units are over-admission that never evens out.
 //
-// `reset_at` is computed from all rows. The candidate of a session r is r's
-// anchor plus the consumed time of every session anchored at or after r:
+// So each pod writes only the rows of its own sessions. The anchor of a row
+// never changes and its consumed time only grows. When the caller merges two
+// copies of one row, it keeps the larger consumed time, so a late or repeated
+// write never undoes a newer one.
+//
+// `reset_at` is computed from all rows:
 //
 //	reset_at = max over sessions r of
 //	           (r.anchor + sum of consumed of sessions anchored at or after r)
 //
-// A candidate answers one question: "if the limit was never idle since this
-// anchor, when is it free again?" For the session that started the current
-// busy stretch, the answer is exact. For older sessions the assumption is
-// false, because the limit was idle at some point after their anchor, so their
-// candidate is too early. No candidate is ever too late, so the largest one is
-// right. This is the single-machine rule `max(reset_at, now) + time of the units`, written
-// over sessions instead of over requests:
+// Rows sorted newest first, any rate:
 //
 //	session   anchor     consumed   candidate
 //	B         12:00:03   9s         12:00:03 + 9s             = 12:00:12
 //	A         12:00:00   12s        12:00:00 + 9s + 12s       = 12:00:21   <- reset_at
 //	C         11:58:40   3s         11:58:40 + 9s + 12s + 3s  = 11:59:04
 //
+// A candidate answers one question: if the rate limit had no pause from this
+// anchor on, when would it be free? The formula is correct because each
+// admitted request keeps `reset_at` equal to single-machine GCRA, by the rule
+// in the next section. `FuzzBucketMatchesSingleMachineGCRA` checks this for
+// random histories of sessions and requests.
+//
 // # Where a request goes
 //
-// A pod adds its admitted units to its live session. That is only correct if
-// it gives the same `reset_at` as single-machine GCRA. Units added to the
-// live session raise the candidates of the live session and of every session
-// anchored before it. It does not raise the candidates of sessions anchored
-// after it. Two cases break this:
+// A pod adds its admitted units to its live session when it can. Units added
+// to the live session raise the candidates of the sessions anchored at or
+// before it. They do not raise the candidates of sessions anchored after it.
+// So the live session can take a request only if one of the candidates it
+// raises already equals `reset_at` (a tie is enough), and `reset_at` is not
+// in the past. Then `reset_at` moves to `reset_at + consumed time`, as GCRA
+// requires. Two cases break this:
 //
-// After a pause, `reset_at` is in the past. Adding to the live session would
-// raise a candidate that is still in the past, so the request would be free.
-// The request must start a new session at now, the same as `max(reset_at, now)`
-// on one machine.
+// After a pause, `reset_at` is in the past. Adding to the live session
+// starts from the old, past `reset_at`, so the request is charged too little
+// or not at all. GCRA starts from now.
 //
-// When a peer started a session after the live one and that newer session
-// holds `reset_at`, adding to the live session moves `reset_at` too little or
-// not at all. The request must start a new session at the newest anchor or later, so
-// that it counts toward every other session.
+// When a peer started a session after the live one and a candidate of the
+// newer sessions is larger than every candidate the live session raises,
+// adding to the live session moves `reset_at` too little or not at all.
 //
-// [Bucket.Check] detects both cases and sets [Decision.CreateNewSessionAtNs].
-// Old sessions stay as they are and still count in full. An extra session
-// costs one row and never changes `reset_at`.
+// In both cases [Bucket.Check] sets [Decision.CreateNewSessionAtNs] to
+// `max(now, newest anchor)`. A session anchored there is counted by the
+// candidate of every other session, and its anchor is never before now.
+// So `reset_at` becomes exactly `max(reset_at, now) + consumed time`. The old
+// sessions stay as they are and keep counting in full, so nothing is lost or
+// counted twice. An extra session only costs one row.
 //
 // # Over-admission is paid back
 //
 // Two pods that have not seen each other yet can both admit. With 10 per 10
-// seconds, pods A and B can each admit 10 at 12:00:00, 20 in total. Once each
-// sees the other's row, `reset_at` is 12:00:00 + 10s + 10s = 12:00:20, so every
-// request is denied until 12:00:11. The extra 10 are paid back right after,
-// and over time the total matches a single-machine limiter.
+// seconds, pods A and B can each admit 10 units at 12:00:00, 20 in total.
+// Once both rows are visible, `reset_at` is 12:00:00 + 10s + 10s = 12:00:20.
+// A request of 1 unit next fits at 12:00:11, and a check of zero units at
+// 12:00:10. Later decisions count the usage of both pods.
 //
 // # Exact time arithmetic
 //
@@ -126,11 +168,10 @@
 // on every decision.
 //
 // [bits.Mul64] keeps the full 128-bit product and [bits.Div64] divides it, so
-// the result is exact for every `Limit` and `Duration` that fit into int64, with
-// no allocation. It costs about 1 ns more per decision than plain division on
-// amd64. bits.Div64 panics if the divisor is zero or if the quotient does not
-// fit into 64 bits; [Rate.Validate] and the rule `units ≤ Limit` in
-// [Bucket.Check] exclude both cases, so keep them in front of every call.
-// `FuzzRateMatchesExactArithmetic` checks the result against [math/big] over
-// the full int64 range.
+// the result is exact for every `Limit` and `Duration` that fit into int64,
+// with no allocation. `bits.Div64` panics if the divisor is zero or if the
+// quotient does not fit into 64 bits; [Rate.Validate] and the rule
+// `units ≤ Limit` in [Bucket.Check] exclude both cases, so keep them in front
+// of every call. `FuzzRateMatchesExactArithmetic` checks the result against
+// [math/big] over the full int64 range.
 package bucket

@@ -1,0 +1,123 @@
+package bucket_test
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/unkeyed/unkey/pkg/ratelimit/bucket"
+)
+
+// noonNs is 12:00:00 in the examples. Any positive time works.
+var noonNs = time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC).UnixNano()
+
+// clock formats a time of the examples as hh:mm:ss.
+func clock(ns int64) string {
+	return time.Unix(0, ns).UTC().Format("15:04:05")
+}
+
+// ExampleBucket replays the single-machine table of the package
+// documentation: 10 units per 10 seconds on one pod.
+func ExampleBucket() {
+	rate := bucket.Rate{Limit: 10, Duration: 10 * time.Second}
+	requests := []struct {
+		at    time.Duration
+		units int64
+	}{
+		{0, 1},
+		{0, 9},
+		{0, 1},
+		{time.Second, 1},
+		{30 * time.Second, 1},
+	}
+
+	b, err := bucket.New(nil, "")
+	if err != nil {
+		panic(err)
+	}
+	for _, request := range requests {
+		nowNs := noonNs + request.at.Nanoseconds()
+		decision, err := b.Check(nowNs, rate, request.units)
+		if err != nil {
+			panic(err)
+		}
+		b.Apply(decision)
+		fmt.Printf("%s  %d unit(s)  allowed=%-5v  reset_at=%s  remaining=%d\n",
+			clock(nowNs), request.units, decision.Allowed, clock(decision.ResetAtNs), decision.Remaining)
+	}
+	// Output:
+	// 12:00:00  1 unit(s)  allowed=true   reset_at=12:00:01  remaining=9
+	// 12:00:00  9 unit(s)  allowed=true   reset_at=12:00:10  remaining=0
+	// 12:00:00  1 unit(s)  allowed=false  reset_at=12:00:10  remaining=0
+	// 12:00:01  1 unit(s)  allowed=true   reset_at=12:00:11  remaining=0
+	// 12:00:30  1 unit(s)  allowed=true   reset_at=12:00:31  remaining=9
+}
+
+// ExampleBucket_Check_newerPeerSession shows why a request sometimes starts a
+// new session. A peer started a session after this pod's live session and
+// holds `reset_at`. Adding the request to the live session would not move
+// `reset_at`, so the request goes into a new session instead.
+func ExampleBucket_Check_newerPeerSession() {
+	rate := bucket.Rate{Limit: 60, Duration: time.Minute}
+	sessions := []bucket.Session{
+		{ID: "own", AnchorAtNs: noonNs, ConsumedNs: time.Second.Nanoseconds()},
+		{ID: "peer", AnchorAtNs: noonNs + 50*time.Second.Nanoseconds(), ConsumedNs: time.Minute.Nanoseconds()},
+	}
+	b, err := bucket.New(sessions, "own")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("reset_at before:", clock(b.ResetAtNs()))
+
+	nowNs := noonNs + 55*time.Second.Nanoseconds()
+	decision, err := b.Check(nowNs, rate, 1)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("allowed:", decision.Allowed)
+	fmt.Println("reset_at after:", clock(decision.ResetAtNs))
+	fmt.Println("new session anchored at:", clock(decision.CreateNewSessionAtNs))
+	// Output:
+	// reset_at before: 12:01:50
+	// allowed: true
+	// reset_at after: 12:01:51
+	// new session anchored at: 12:00:55
+}
+
+// ExampleBucket_overAdmissionIsPaidBack shows two pods that each admitted
+// the full limit before they saw each other. Once both rows are visible, the
+// extra units are paid back before anything else fits.
+func ExampleBucket_overAdmissionIsPaidBack() {
+	rate := bucket.Rate{Limit: 10, Duration: 10 * time.Second}
+	tenSecondsNs := (10 * time.Second).Nanoseconds()
+	sessions := []bucket.Session{
+		{ID: "pod_a", AnchorAtNs: noonNs, ConsumedNs: tenSecondsNs},
+		{ID: "pod_b", AnchorAtNs: noonNs, ConsumedNs: tenSecondsNs},
+	}
+	b, err := bucket.New(sessions, "pod_a")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("reset_at:", clock(b.ResetAtNs()))
+
+	for _, step := range []struct {
+		at    time.Duration
+		units int64
+	}{
+		{10 * time.Second, 1},
+		{10 * time.Second, 0},
+		{11 * time.Second, 1},
+	} {
+		nowNs := noonNs + step.at.Nanoseconds()
+		decision, err := b.Check(nowNs, rate, step.units)
+		if err != nil {
+			panic(err)
+		}
+		b.Apply(decision)
+		fmt.Printf("%s  %d unit(s)  allowed=%v\n", clock(nowNs), step.units, decision.Allowed)
+	}
+	// Output:
+	// reset_at: 12:00:20
+	// 12:00:10  1 unit(s)  allowed=false
+	// 12:00:10  0 unit(s)  allowed=true
+	// 12:00:11  1 unit(s)  allowed=true
+}
