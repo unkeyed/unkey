@@ -1,8 +1,5 @@
 -- name: RecordInstanceRunning :exec
--- Records that a container started a new life after a restart. Removes
--- $.waiting, because a running container is no longer in CrashLoopBackOff,
--- and moves restartCount to the new life. The lastTerminationState stays,
--- it still describes the most recent exit.
+-- Records that a container is running again after a restart.
 --
 -- The guard is strict. A delayed running event of the life that then crashed
 -- has the same restart_count as the row and must not remove that crash loop.

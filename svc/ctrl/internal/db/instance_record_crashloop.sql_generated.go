@@ -28,7 +28,7 @@ type RecordInstanceCrashLoopBackOffParams struct {
 
 // Records that kubelet has put a container into CrashLoopBackOff by setting
 // container_status.waiting.reason. The lastTerminationState carries the
-// most recent exit info and is left untouched — the dashboard renders both
+// most recent exit info and is left untouched. The dashboard renders both
 // the underlying exit and the "currently throttling" indicator together.
 //
 // Called once per (pod_uid, container_name, restart_count) when krane sees
@@ -38,8 +38,8 @@ type RecordInstanceCrashLoopBackOffParams struct {
 //
 // Out-of-order events are dropped via the restartCount guard: a delayed
 // crashloop RPC from an earlier container life cannot flip the waiting
-// reason back after RecordInstanceExit has already advanced restartCount
-// and removed $.waiting.
+// reason back after RecordInstanceExit or RecordInstanceRunning moved
+// restartCount forward.
 //
 //	UPDATE instances
 //	SET container_status = JSON_SET(

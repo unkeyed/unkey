@@ -22,8 +22,8 @@ import (
 //     event log queried by the dashboard's events panel and the logs viewer
 //     enrichment path.
 //  2. UPDATE on the matching instances row in MySQL with the latest exit
-//     metadata. The dashboard header reads these denormalized fields so a
-//     deployment summary card never round-trips to ClickHouse.
+//     and crash loop state. The dashboard header reads these denormalized
+//     fields so a deployment summary card never round-trips to ClickHouse.
 //
 // Events from a single pod-watch tick are batched into one RPC. The CH
 // insert is buffered through the service-wide batch processor, so a single
