@@ -5,7 +5,7 @@ import {
 import { BILLING_PRODUCTS } from "@/lib/billing/products";
 import { getStripeClient } from "@/lib/stripe";
 import { isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
-import { requireWorkspaceAdmin, withCreateRateLimit, workspaceProcedure } from "@/lib/trpc/trpc";
+import { requireWorkspaceAdmin, withUpdateRateLimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import type Stripe from "stripe";
 import { z } from "zod";
@@ -14,7 +14,7 @@ const SEND_FAILED_MESSAGE = "Could not send your feedback. Please email support@
 
 export const sendCancellationFeedback = workspaceProcedure
   .use(requireWorkspaceAdmin)
-  .use(withCreateRateLimit())
+  .use(withUpdateRateLimit())
   .input(
     z.object({
       product: z.enum(BILLING_PRODUCTS),
@@ -52,9 +52,7 @@ export const sendCancellationFeedback = workspaceProcedure
 
     try {
       await stripe.subscriptions.update(subscriptionId, {
-        cancellation_details: input.comment
-          ? { feedback: input.reason, comment: input.comment }
-          : { feedback: input.reason },
+        cancellation_details: { feedback: input.reason, comment: input.comment },
       });
     } catch (error) {
       console.error("Failed to store cancellation feedback in Stripe:", error);

@@ -23,5 +23,6 @@ export const uncancelSubscription = workspaceProcedure
     // Native cancel: clearing cancel_at_period_end resumes the API subscription.
     await stripe.subscriptions.update(ctx.workspace.stripeSubscriptionId, {
       cancel_at_period_end: false,
+      cancellation_details: { feedback: "", comment: "" },
     });
   });

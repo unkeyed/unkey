@@ -10,6 +10,7 @@ import { deleteBillingSubscription } from "@/lib/stripe/billingSubscriptions";
 import {
   type ComputeLifecycleAlert,
   computeCreatedAlert,
+  computeProductLabel,
   computeUpdatedAlert,
 } from "@/lib/stripe/computeAlerts";
 import { handlePaymentMethodAttached } from "@/lib/stripe/computeSignupCredit";
@@ -26,6 +27,7 @@ import {
   cancellationFeedbackUpdate,
   isAutomatedBillingRenewal,
   isCancelJustScheduled,
+  isCancellationFeedbackOnly,
   isCardUpdateOnly,
   isPaymentFailureRelatedUpdate,
   isScheduleUpdateOnly,
@@ -90,10 +92,10 @@ type AlertCustomerFailure = "customer_lookup_failed" | "customer_contact_missing
 
 type AlertCustomer = { name: string; email: string; stripeCustomerId: string; livemode: boolean };
 
-async function retrieveAlertCustomer(
+async function retrieveStripeCustomer(
   stripe: Stripe,
   sub: Stripe.Subscription,
-): Promise<AlertCustomer | AlertCustomerFailure> {
+): Promise<Stripe.Customer | AlertCustomerFailure> {
   if (!sub.customer) {
     return "customer_contact_missing";
   }
@@ -111,7 +113,18 @@ async function retrieveAlertCustomer(
     return "customer_lookup_failed";
   }
 
-  if (customer.deleted || !customer.email) {
+  return customer.deleted ? "customer_contact_missing" : customer;
+}
+
+async function retrieveAlertCustomer(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+): Promise<AlertCustomer | AlertCustomerFailure> {
+  const customer = await retrieveStripeCustomer(stripe, sub);
+  if (typeof customer === "string") {
+    return customer;
+  }
+  if (!customer.email) {
     return "customer_contact_missing";
   }
   return {
@@ -122,23 +135,55 @@ async function retrieveAlertCustomer(
   };
 }
 
+async function cancellingProductLabel(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+  product: BillingProduct,
+): Promise<string> {
+  if (product === "compute") {
+    const plan = detectDeployPlan(sub);
+    return plan ? computeProductLabel(plan) : PRODUCT_LABELS.compute;
+  }
+
+  const apiItem = findApiItem(await deployBillingConfig(), sub.items?.data ?? []);
+  const productRef = apiItem?.price?.product;
+  if (!productRef) {
+    return PRODUCT_LABELS.api;
+  }
+  try {
+    const apiProduct = await stripe.products.retrieve(
+      typeof productRef === "string" ? productRef : productRef.id,
+    );
+    return apiProduct.name;
+  } catch (err) {
+    console.error("Failed to retrieve product for cancellation reason alert:", {
+      subscriptionId: sub.id,
+      error: err instanceof Error ? err.message : err,
+    });
+    return PRODUCT_LABELS.api;
+  }
+}
+
 async function sendCancellationReasonAlert(
   stripe: Stripe,
   sub: Stripe.Subscription,
   feedback: CancellationFeedback,
   ws: { id: string; name: string },
-  product: BillingProduct,
+  productLabel: string,
 ): Promise<void> {
-  const customer = await retrieveAlertCustomer(stripe, sub);
-  if (typeof customer === "string") {
-    return;
+  const customer = await retrieveStripeCustomer(stripe, sub);
+  const known = typeof customer === "string" ? null : customer;
+  if (customer !== "customer_lookup_failed" && !known?.email) {
+    console.warn("Cancellation reason alert has no customer email:", { subscriptionId: sub.id });
   }
   await alertCancellationReason({
     ...feedback,
-    ...customer,
+    name: known?.name || "Unknown",
+    email: known?.email || "Unknown",
     workspaceId: ws.id,
     workspaceName: ws.name,
-    product: PRODUCT_LABELS[product],
+    product: productLabel,
+    stripeCustomer: known ? { id: known.id, livemode: known.livemode } : null,
   });
 }
 
@@ -521,8 +566,17 @@ export const POST = async (req: Request): Promise<Response> => {
         }
 
         const feedback = cancellationFeedbackUpdate(previousAttributes, eventSub);
-        if (feedback) {
-          await sendCancellationReasonAlert(stripe, sub, feedback, ws, column);
+        if (isCancellationFeedbackOnly(previousAttributes)) {
+          if (feedback) {
+            await sendCancellationReasonAlert(
+              stripe,
+              sub,
+              feedback,
+              ws,
+              await cancellingProductLabel(stripe, sub, column),
+            );
+          }
+          return new Response("OK", { status: 200 });
         }
 
         // Deploy-matched: mirror the plan, announce the change, and stop. The
@@ -541,6 +595,15 @@ export const POST = async (req: Request): Promise<Response> => {
             computeUpdatedAlert(deployConfig, sub, previousAttributes),
             ws,
           );
+          if (feedback) {
+            await sendCancellationReasonAlert(
+              stripe,
+              sub,
+              feedback,
+              ws,
+              await cancellingProductLabel(stripe, sub, column),
+            );
+          }
           return new Response("OK", { status: 200 });
         }
 
@@ -590,9 +653,9 @@ export const POST = async (req: Request): Promise<Response> => {
          * So we get a subscription updated event, which we should handle accordingly.
          */
         if (sub.cancel_at) {
-          // Other updates on a cancelling subscription, such as the cancellation
-          // feedback write, must not re-alert. Return unconditionally: the tier and
-          // limit update below is for active plan changes, never a cancelling one.
+          // Other updates on a cancelling subscription must not re-alert. Return
+          // unconditionally: the tier and limit update below is for active plan
+          // changes, never a cancelling one.
           if (
             isCancelJustScheduled(previousAttributes) &&
             customer &&
@@ -610,6 +673,9 @@ export const POST = async (req: Request): Promise<Response> => {
               stripeCustomerId: customer.id,
               livemode: customer.livemode,
             });
+          }
+          if (feedback) {
+            await sendCancellationReasonAlert(stripe, sub, feedback, ws, product.name);
           }
           return new Response("OK");
         }

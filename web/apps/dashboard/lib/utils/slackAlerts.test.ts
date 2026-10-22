@@ -261,8 +261,7 @@ describe("alerts escape attacker-controlled fields", () => {
           workspaceId: "ws_test",
           workspaceName: HOSTILE_NAME,
           product: HOSTILE_TIER,
-          stripeCustomerId: "cus_123",
-          livemode: true,
+          stripeCustomer: { id: "cus_123", livemode: true },
         }),
     },
     {
@@ -435,8 +434,7 @@ describe("alertCancellationReason", () => {
     workspaceId: "ws_123",
     workspaceName: "Acme",
     product: "API",
-    stripeCustomerId: "cus_123",
-    livemode: false,
+    stripeCustomer: { id: "cus_123", livemode: false },
   } as const;
 
   it("posts the reason label to the customers channel with a Stripe link", async () => {
@@ -454,6 +452,13 @@ describe("alertCancellationReason", () => {
     ]);
     expect(buttonUrl()).toBe("https://dashboard.stripe.com/test/customers/cus_123");
     expect(sentBlocks().map((block) => block.type)).toEqual(["header", "section", "actions"]);
+  });
+
+  it("omits the Stripe link when the customer is unknown", async () => {
+    await alertCancellationReason({ ...alert, stripeCustomer: null });
+
+    expect(buttonUrl()).toBeUndefined();
+    expect(sentBlocks().map((block) => block.type)).toEqual(["header", "section"]);
   });
 
   it("adds the comment as literal plain text that keeps its line breaks", async () => {

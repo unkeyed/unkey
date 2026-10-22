@@ -312,8 +312,7 @@ export type CancellationReasonAlert = {
   workspaceId: string;
   workspaceName: string;
   product: string;
-  stripeCustomerId: string;
-  livemode: boolean;
+  stripeCustomer: { id: string; livemode: boolean } | null;
 };
 
 export async function alertCancellationReason(
@@ -333,12 +332,14 @@ export async function alertCancellationReason(
   if (alert.comment) {
     blocks.push(plainSection(alert.comment));
   }
-  blocks.push(
-    linkButton(
-      "View customer in Stripe",
-      stripeCustomerUrl(alert.stripeCustomerId, alert.livemode),
-    ),
-  );
+  if (alert.stripeCustomer) {
+    blocks.push(
+      linkButton(
+        "View customer in Stripe",
+        stripeCustomerUrl(alert.stripeCustomer.id, alert.stripeCustomer.livemode),
+      ),
+    );
+  }
 
   return postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "cancellation_reason", { blocks });
 }

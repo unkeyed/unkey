@@ -180,6 +180,10 @@ export function isCancelJustScheduled(previousAttributes: PreviousAttributes | u
 
 export type CancellationFeedback = { reason: CancellationReason; comment: string | null };
 
+/**
+ * The customer's reason, when this update set or changed it. previous_attributes may carry only the
+ * changed keys of cancellation_details, so an absent key counts as unchanged.
+ */
 export function cancellationFeedbackUpdate(
   previousAttributes: PreviousAttributes | undefined,
   sub: Pick<Stripe.Subscription, "id" | "cancellation_details">,
@@ -191,6 +195,14 @@ export function cancellationFeedbackUpdate(
   if (!feedback) {
     return null;
   }
+  const comment = sub.cancellation_details?.comment || null;
+  const previous = previousAttributes.cancellation_details;
+  const feedbackChanged = !previous || ("feedback" in previous && previous.feedback !== feedback);
+  const commentChanged =
+    !previous || ("comment" in previous && (previous.comment || null) !== comment);
+  if (!feedbackChanged && !commentChanged) {
+    return null;
+  }
   if (!isCancellationReason(feedback)) {
     console.warn("Unknown cancellation feedback reason, skipping alert:", {
       subscriptionId: sub.id,
@@ -198,7 +210,7 @@ export function cancellationFeedbackUpdate(
     });
     return null;
   }
-  return { reason: feedback, comment: sub.cancellation_details?.comment || null };
+  return { reason: feedback, comment };
 }
 
 /** Attaching or releasing a schedule does not change the active API plan. */
@@ -209,6 +221,17 @@ export function isScheduleUpdateOnly(previousAttributes: PreviousAttributes | un
 
   const changedKeys = Object.keys(previousAttributes);
   return changedKeys.length === 1 && changedKeys[0] === "schedule";
+}
+
+export function isCancellationFeedbackOnly(
+  previousAttributes: PreviousAttributes | undefined,
+): boolean {
+  if (!previousAttributes) {
+    return false;
+  }
+
+  const changedKeys = Object.keys(previousAttributes);
+  return changedKeys.length === 1 && changedKeys[0] === "cancellation_details";
 }
 
 export type { PreviousAttributes };

@@ -182,6 +182,7 @@ export function deployResumeSubscriptionParams(
 
   return {
     cancel_at_period_end: false,
+    cancellation_details: { feedback: "", comment: "" },
     ...(changesPlan
       ? {
           items: [
