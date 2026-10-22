@@ -12,7 +12,6 @@ import {
   IconCloudOutline18,
   IconCubeOutline18,
   IconEyeOutline18,
-  IconLinkOutline18,
   IconMagnifierOutline18,
 } from "@unkey/icons";
 import {
@@ -139,6 +138,7 @@ export function ConnectionCanvas({
   });
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [canvasRoot, setCanvasRoot] = useState<HTMLDivElement | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -264,40 +264,49 @@ export function ConnectionCanvas({
           )}
         >
           <div
-            className="@container min-w-0 rounded-xl border border-gray-4 bg-gray-3/40"
+            className="@container min-w-0 rounded-lg border border-grayA-4 bg-grayA-2"
             aria-label="Connection canvas"
           >
             <div
               ref={setCanvasRoot}
-              className="relative flex min-h-52 flex-col items-start gap-8 p-5 @min-[460px]:flex-row @min-[460px]:gap-10"
+              className="relative flex min-h-64 flex-col items-start gap-10 px-6 py-8 @min-[520px]:flex-row @min-[520px]:justify-center @min-[520px]:gap-16"
             >
               <button
                 type="button"
                 aria-label="Clear connection selection"
-                className="absolute inset-0 rounded-xl"
+                className="absolute inset-0 rounded-lg"
                 tabIndex={-1}
                 disabled={!selected}
                 onClick={() => setSelectedId(null)}
               />
-              <Group
-                icon={<IconCubeOutline18 className="size-4" />}
-                label="This app"
-                className="w-full @min-[460px]:w-40"
-              >
-                <div data-wire-from className="rounded-lg border bg-raised px-3 py-2 shadow-xs">
-                  <span className="block truncate text-sm font-medium" title={app.name}>
-                    {app.name}
+              <Group label="This app" className="w-full @min-[520px]:w-44">
+                <div
+                  data-wire-from
+                  className="overflow-hidden rounded-lg bg-raised shadow-sm ring-1 ring-grayA-5"
+                >
+                  <span className="flex min-w-0 items-center gap-2.5 px-3 py-3">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-grayA-3 text-gray-11">
+                      <IconCubeOutline18 className="size-4" />
+                    </span>
+                    <span className="truncate text-sm font-medium text-gray-12" title={app.name}>
+                      {app.name}
+                    </span>
                   </span>
+                  <div
+                    className="truncate border-t border-grayA-4 bg-grayA-2 px-3 py-2 font-mono text-2xs text-gray-10"
+                    title={environment.slug}
+                  >
+                    {environment.slug}
+                  </div>
                 </div>
               </Group>
               <Group
-                icon={<IconLinkOutline18 className="size-4" />}
                 label={
                   connections.data.length
                     ? `Connects to · ${connections.data.length}`
                     : "Connects to"
                 }
-                className="w-full pl-6 @min-[460px]:max-w-sm @min-[460px]:flex-1 @min-[460px]:pl-0"
+                className="w-full pl-8 @min-[520px]:max-w-80 @min-[520px]:flex-1 @min-[520px]:pl-0"
               >
                 {(connections.data.length > 8 || search.length > 0) && (
                   <InputGroup className="h-8">
@@ -322,6 +331,7 @@ export function ConnectionCanvas({
                     onSelect={() =>
                       setSelectedId(selected?.id === connection.id ? null : connection.id)
                     }
+                    onHighlight={setHighlightedId}
                   />
                 ))}
                 {connections.data.length > 0 && visible.length === 0 && (
@@ -348,7 +358,7 @@ export function ConnectionCanvas({
               <ConnectionWires
                 key={visible.map((connection) => connection.id).join(",")}
                 root={canvasRoot}
-                highlightedId={selected?.id ?? null}
+                highlightedId={highlightedId ?? selected?.id ?? null}
               />
             </div>
           </div>
