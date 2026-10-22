@@ -3,7 +3,9 @@
 // The access token and refresh token live in the operating system secret store.
 // When that store is unavailable they are written to ~/.unkey/sessions.json with
 // mode 0600. A file left behind after a failed keychain write is newer than the
-// keychain and replaces it on the next load.
+// keychain and replaces it on the next load. A stored blob that is not valid
+// session JSON is removed and reported as missing so a truncated keychain item
+// does not block the next login.
 package session
 
 import (
@@ -98,6 +100,11 @@ const DefaultAPIURL = "https://api.unkey.com"
 func NormalizeAPIURL(raw string) string {
 	return strings.TrimRight(strings.TrimSpace(raw), "/")
 }
+
+// errCorruptSession marks a stored blob that is not session JSON. It is wrapped
+// with ErrNotFound so a later login can replace it, and the text tells the
+// user to sign in again.
+var errCorruptSession = errors.New("stored CLI session is unreadable")
 
 // Session is one workspace login.
 type Session struct {
@@ -268,9 +275,14 @@ func AccessToken(ctx context.Context, refresh func(ctx context.Context, current 
 }
 
 func read() (state, error) {
-	if file, err := readFile(); err == nil {
+	file, err := readFile()
+	if err == nil {
 		return file, nil
-	} else if !errors.Is(err, os.ErrNotExist) && !errors.Is(err, ErrNotFound) {
+	}
+	if errors.Is(err, errCorruptSession) {
+		return state{}, err
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) && !errors.Is(err, ErrNotFound) {
 		return state{}, err
 	}
 	raw, err := secrets.Get()
@@ -280,7 +292,12 @@ func read() (state, error) {
 		}
 		return state{}, err
 	}
-	return decode(raw)
+	current, err := decode(raw)
+	if errors.Is(err, errCorruptSession) {
+		_ = keystore.DeleteSessions()
+		return state{}, err
+	}
+	return current, err
 }
 
 func write(current state) error {
@@ -307,7 +324,7 @@ func decode(raw string) (state, error) {
 		return state{}, ErrNotFound
 	}
 	if err := json.Unmarshal([]byte(raw), &current); err != nil {
-		return state{}, err
+		return state{}, fmt.Errorf("%w: %w; run unkey login again", ErrNotFound, errCorruptSession)
 	}
 	if current.Sessions == nil {
 		current.Sessions = map[string]Session{}
@@ -336,6 +353,10 @@ func readFile() (state, error) {
 		return state{}, err
 	}
 	current, err := decode(string(raw))
+	if errors.Is(err, errCorruptSession) {
+		_ = os.Remove(path)
+		return state{}, err
+	}
 	if err != nil {
 		return state{}, err
 	}
@@ -353,7 +374,10 @@ func writeFile(raw []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
-	return os.WriteFile(path, raw, 0o600)
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		return err
+	}
+	return os.Chmod(path, 0o600)
 }
 
 func removeFile() error {
