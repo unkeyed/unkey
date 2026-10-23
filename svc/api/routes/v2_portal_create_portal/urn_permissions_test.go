@@ -157,12 +157,10 @@ func TestCreatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 
 			require.Equal(t, http.StatusForbidden, res.Status,
 				"expected 403 for %s, got: %s", tc.name, res.RawBody)
-			// Unlike the masked routes, create names the grant the caller is short
-			// of, project id included: that project is in the caller's own
-			// workspace, behind a mapping the caller named.
 			require.Contains(t, res.RawBody,
-				fmt.Sprintf("projects/%s/portals/*#write", projectID),
-				"a denial must name the grant the caller lacks")
+				"projects/{proj}/portals/*#write",
+				"a denial must name the missing grant without disclosing resource IDs")
+			require.NotContains(t, res.RawBody, projectID)
 			require.Equal(t, before, countPortals(t, h, workspace.ID),
 				"a denied request must not write a portal")
 		})
