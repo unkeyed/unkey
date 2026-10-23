@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -68,6 +69,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	domainName, err := domaingate.ParseDomain(req.Domain)
 	if err != nil {
+		return err
+	}
+
+	attached, err := db.Query.CountPortalDomainsByWorkspace(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to count the workspace's portal domains."),
+		)
+	}
+
+	if err = domaingate.CheckPortalAllowance(attached); err != nil {
 		return err
 	}
 
