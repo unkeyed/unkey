@@ -30,13 +30,11 @@ func (s *Service) AddPortalDomain(
 		assert.NotEmpty(req.Msg.GetWorkspaceId(), "workspace_id is required"),
 		assert.NotEmpty(req.Msg.GetPortalId(), "portal_id is required"),
 		assert.NotEmpty(req.Msg.GetDomain(), "domain is required"),
+		assert.NotEmpty(s.environmentID, "[portal] environment_id is not configured"),
+		assert.NotEmpty(s.cnameDomain, "[portal] cname_domain is not configured"),
 	); err != nil {
 		// Not InvalidArgument, which is reserved for gatefault codes the API reflects.
 		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	if s.environmentID == "" || s.cnameDomain == "" {
-		return nil, gatefault.Connect(portalDomainsNotConfigured())
 	}
 
 	domain, parseErr := domaingate.ParseDomain(req.Msg.GetDomain())
@@ -63,8 +61,8 @@ func (s *Service) AddPortalDomain(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to count portal domains: %w", err))
 	}
-	if attached >= maxPortalDomainsPerWorkspace {
-		return nil, gatefault.ConnectWith(connect.CodeResourceExhausted, portalDomainCapReached(attached))
+	if capErr := domaingate.CheckPortalAllowance(attached); capErr != nil {
+		return nil, gatefault.ConnectWith(connect.CodeResourceExhausted, capErr)
 	}
 
 	targetCname := fmt.Sprintf("%s.%s", uid.DNS1035(16), s.cnameDomain)

@@ -13,18 +13,12 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
-
-// maxPortalDomainsPerWorkspace is a fixed cap until billing defines per-tier
-// portal domain allowances.
-const maxPortalDomainsPerWorkspace = 10
 
 // Service implements the PortalDomainService ConnectRPC API. It persists
 // portal domains and delegates their verification to the Restate
@@ -50,10 +44,10 @@ type Config struct {
 	// Auditlogs records mutations within the same transaction as the write.
 	Auditlogs auditlogs.AuditLogService
 	// CnameDomain is the base domain for portal CNAME targets. Empty makes
-	// AddPortalDomain fail with FailedPrecondition.
+	// AddPortalDomain fail.
 	CnameDomain string
 	// EnvironmentID is the portal app's production environment. Empty makes
-	// AddPortalDomain fail with FailedPrecondition, and it scopes the route a
+	// AddPortalDomain fail, and it scopes the route a
 	// verified domain's deletion removes.
 	EnvironmentID string
 	// Bearer is the preshared token callers must send in the Authorization header.
@@ -148,26 +142,4 @@ func (s *Service) startVerification(ctx context.Context, domainID string) (resta
 	return hydrav1.NewPortalDomainServiceIngressClient(s.restate, domainID).
 		VerifyDomain().
 		Send(ctx, &hydrav1.VerifyPortalDomainRequest{})
-}
-
-// portalDomainsNotConfigured is the outcome when this environment has no
-// portal app or portal CNAME domain to route a portal domain to.
-func portalDomainsNotConfigured() error {
-	return fault.New(
-		"portal domains not configured",
-		fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-		fault.Internal("ctrl api is missing [portal] environment_id or cname_domain"),
-		fault.Public("Portal domains are not available in this environment. Contact support@unkey.com."),
-	)
-}
-
-// portalDomainCapReached is the outcome for a workspace already holding the
-// maximum number of portal domains.
-func portalDomainCapReached(attached int64) error {
-	return fault.New(
-		"portal domain cap reached",
-		fault.Code(codes.Limits.CustomDomain.Exceeded.URN()),
-		fault.Internal(fmt.Sprintf("workspace holds %d of %d allowed portal domains", attached, maxPortalDomainsPerWorkspace)),
-		fault.Public(fmt.Sprintf("A workspace can hold at most %d portal domains. Remove a domain you no longer need, then retry.", maxPortalDomainsPerWorkspace)),
-	)
 }
