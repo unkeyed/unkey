@@ -135,6 +135,13 @@ var (
 	// CacheOperationDuration measures how long Get, SWR, and SWRWithFallback
 	// take, from the call until the value is returned. A miss includes the
 	// origin read the caller waits for.
+	//
+	// Labels:
+	//   - resource: the cache's Config.Resource, for example "live_api_by_id".
+	//   - operation: "get", "swr", or "swr_fallback".
+	//   - status: "fresh" when the entry was within its fresh time, "stale"
+	//     when it was past fresh but within stale, and "miss" when the cache
+	//     had no usable entry.
 	CacheOperationDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
