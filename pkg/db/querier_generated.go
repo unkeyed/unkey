@@ -159,6 +159,11 @@ type Querier interface {
 	//  DELETE FROM `limits`
 	//  WHERE workspace_id = ?
 	DeleteLimitByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) error
+	// Caller holds the drain lock and inserts its audit event in this transaction.
+	// Worker state updates cannot recreate a deleted drain.
+	//
+	//  DELETE FROM logdrains WHERE workspace_id = ? AND id = ?
+	DeleteLogdrain(ctx context.Context, db DBTX, arg DeleteLogdrainParams) error
 	// DeleteManyIdentitiesByWorkspaceID hard deletes every identity in a
 	// workspace. Intended for tests that reset reusable fixtures.
 	//
