@@ -167,7 +167,6 @@ export function initialOpenStage({
   return { open: failed ?? requested, autoOpened: failed ? [failed] : [], requested };
 }
 
-// A request made on the page, such as "Go to build logs", opens its stage
 export function followRequestedStage(state: OpenStage, requested: StageKey | null): OpenStage {
   if (requested === state.requested) {
     return state;

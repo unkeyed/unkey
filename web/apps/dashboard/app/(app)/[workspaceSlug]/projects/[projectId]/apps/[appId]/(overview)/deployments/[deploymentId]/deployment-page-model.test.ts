@@ -53,9 +53,11 @@ const input = (overrides: Partial<DeploymentPageInput> = {}): DeploymentPageInpu
     instances: [],
     targetRegions: [],
     desiredState: "running",
+    source: "git",
   },
   status: "ready",
   buildRequested: false,
+  buildRequestedOnPage: false,
   domains: [],
   domainsLoading: false,
   customDomains: [],
@@ -73,7 +75,9 @@ describe("deploymentPageModel", () => {
   });
 
   test("?build asks for the build stage and keeps the status body", () => {
-    const model = deploymentPageModel(input({ status: "building", buildRequested: true }));
+    const model = deploymentPageModel(
+      input({ status: "building", buildRequested: true, buildRequestedOnPage: true }),
+    );
     expect(model.body).toBe("stages");
     expect(model.requestedStage).toBe("build");
     expect(deploymentPageModel(input({ status: "building" })).requestedStage).toBe(null);
@@ -81,10 +85,24 @@ describe("deploymentPageModel", () => {
 
   test("a build request shows the stages of a cancelled or superseded deployment", () => {
     const body = (status: DeploymentStatus) =>
-      deploymentPageModel(input({ status, buildRequested: true })).body;
+      deploymentPageModel(input({ status, buildRequested: false, buildRequestedOnPage: true }))
+        .body;
     expect(body("cancelled")).toBe("stages");
     expect(body("superseded")).toBe("stages");
     expect(body("skipped")).toBe("skipped");
+  });
+
+  test("a prebuilt image has no build stage to request", () => {
+    const model = deploymentPageModel(
+      input({
+        deployment: { ...input().deployment, source: "oci" },
+        status: "cancelled",
+        buildRequested: true,
+        buildRequestedOnPage: true,
+      }),
+    );
+    expect(model.requestedStage).toBe(null);
+    expect(model.body).toBe("cancelled");
   });
 
   test("a current deployment lists its verified custom domain first", () => {
@@ -109,10 +127,7 @@ describe("deploymentPageModel", () => {
     const page = deploymentPageModel(
       input({
         deployment: {
-          id: "dep-1",
-          environmentId: "env-1",
-          targetRegions: [],
-          desiredState: "running",
+          ...input().deployment,
           instances: [
             {
               id: "i-1",
