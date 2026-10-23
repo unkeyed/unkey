@@ -169,11 +169,13 @@ describe("instancesTabView", () => {
   it("lists the region names and sorts the rows by health, deploy, region and name", () => {
     const result = view();
     expect(result.regions).toEqual(["eu-central-1", "us-east-1"]);
-    expect(result.rows.map((r) => [r.instance.key, r.instance.tone, r.instance.crash])).toEqual([
+    expect(
+      result.rows.map((r) => [r.instance.key, r.instance.tone, r.instance.statusText]),
+    ).toEqual([
       ["eu-1", "unhealthy", "CrashLoopBackOff · 7 restarts"],
-      ["eu-0", "current", null],
-      ["us-0", "current", null],
-      ["us-old", "previous", null],
+      ["eu-0", "current", "Running"],
+      ["us-0", "current", "Running"],
+      ["us-old", "previous", "Previous deploy"],
     ]);
   });
 

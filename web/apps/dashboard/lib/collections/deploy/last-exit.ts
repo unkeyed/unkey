@@ -4,6 +4,10 @@ import type { ContainerStatus } from "@unkey/db/src/schema";
 import { match } from "@unkey/match";
 import { type FatalWaitingReason, isFatalWaitingReason } from "./instance-status";
 
+function exitCodeLabel(exitCode: number): string {
+  return `exit=${exitCode}`;
+}
+
 export type ExitBadge =
   | { kind: "waiting"; reason: FatalWaitingReason }
   | { kind: "exit"; reason: string; exit: string | null };
@@ -16,7 +20,7 @@ export function exitBadge(lastExit: LastExit): ExitBadge {
   return {
     kind: "exit",
     reason: lastExit.reason || (exitCode === 0 ? "Completed" : "Error"),
-    exit: exitCode !== null && exitCode !== 0 ? `exit=${exitCode}` : null,
+    exit: exitCode !== null && exitCode !== 0 ? exitCodeLabel(exitCode) : null,
   };
 }
 
@@ -76,8 +80,8 @@ function outranks(a: LastExit, b: LastExit): boolean {
 export function exitDetail(lastExit: LastExit): string | null {
   const { reason, exitCode } = lastExit;
   const parts = match(exitBadge(lastExit))
-    .with({ kind: "waiting" }, () => [reason, exitCode !== null ? `exit=${exitCode}` : null])
-    .with({ kind: "exit" }, () => [exitCode === 0 ? "exit=0" : null])
+    .with({ kind: "waiting" }, () => [reason, exitCode !== null ? exitCodeLabel(exitCode) : null])
+    .with({ kind: "exit" }, () => [exitCode === 0 ? exitCodeLabel(0) : null])
     .exhaustive();
   return parts.filter(Boolean).join(" · ") || null;
 }

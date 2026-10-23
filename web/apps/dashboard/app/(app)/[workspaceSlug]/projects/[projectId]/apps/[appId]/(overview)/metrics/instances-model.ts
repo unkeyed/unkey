@@ -62,7 +62,6 @@ export type InstanceView = InstanceRow & {
   key: string;
   state: InstanceState;
   tone: LineTone;
-  crash: string | null;
   statusText: string;
 };
 
@@ -76,7 +75,6 @@ function instanceViews(instances: InstanceRow[]): InstanceView[] {
       key: row.replica.k8sName,
       state,
       tone,
-      crash,
       statusText: crash || ROLE_COPY[row.role].status || instanceLabel[state],
     };
   });
