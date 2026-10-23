@@ -21,7 +21,8 @@
     "drizzle-kit": "0.31.4",
     "mysql2": "catalog:",
     "typescript": "5.5.3",
-    "vitest": "5.0.1"
+    "vitest": "5.0.1",
+    "zod": "catalog:"
   },
   "dependencies": {
     "@unkey/id": "workspace:^",
