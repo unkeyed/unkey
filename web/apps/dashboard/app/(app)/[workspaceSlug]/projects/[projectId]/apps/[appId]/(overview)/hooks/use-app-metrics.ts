@@ -21,9 +21,9 @@ function viewKeyOf(scope: AppMetricsScope | null): string | null {
   return scope && `${scope.appId}:${scope.environmentId}:${scope.grid.range}`;
 }
 
-// Holds the last result across a clock tick (only endMs moved) so charts do not
-// flash to loading every bucket. Any other change shows loading instead of the
-// previous environment's or range's data.
+// Holds the last result while only endMs or the pod list moved, so charts do not
+// flash to loading every bucket or rollout. A new app, environment or range
+// shows loading instead of the previous view's data.
 function useHeldAcrossTicks<T>(scope: AppMetricsScope | null, query: QueryResult<T>): Loadable<T> {
   const viewKey = viewKeyOf(scope);
   const [held, setHeld] = useState<{ viewKey: string | null; data: T } | null>(null);

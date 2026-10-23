@@ -7,7 +7,7 @@ import type {
   ResourcePoint,
 } from "@/lib/metrics/app-metrics";
 import { describe, expect, it } from "vitest";
-import { replicaSheetModel, replicaUsage } from "./replica-model";
+import { replicaSheetModel, replicaUsage, seriesInstancesOf } from "./replica-model";
 
 const MIB = 2 ** 20;
 
@@ -203,5 +203,45 @@ describe("replicaSheetModel", () => {
   it("does not call an instance stopped while the list is loading or failed", () => {
     expect(replicaSheetModel({ ...base, instances: loading })?.stopped).toBe(false);
     expect(replicaSheetModel({ ...base, instances: failed() })?.stopped).toBe(false);
+  });
+});
+
+describe("seriesInstancesOf", () => {
+  const row = (k8sName: string): InstanceRow => ({
+    instanceId: k8sName,
+    region: { name: "us-east-1" },
+    status: "running",
+    role: "current",
+    lastExit: null,
+    deployment: { id: "d_new", source: null },
+    replica: { k8sName, cpuMillicores: 500, memoryMib: 512, storageMib: 0 },
+  });
+  const rows = ready([row("pod-b"), row("pod-a")]);
+  const open = { environmentId: "env_prod", row: row("pod-gone") };
+
+  it("names nothing until the page needs the series and the rows are ready", () => {
+    const input = { open: null, environmentId: "env_prod", instances: rows };
+    expect(seriesInstancesOf({ ...input, needed: false })).toBe(null);
+    expect(seriesInstancesOf({ ...input, needed: true, instances: loading })).toBe(null);
+  });
+
+  it("keeps an open sheet's pod only in its own environment", () => {
+    const input = { needed: true, open, instances: rows };
+    expect(seriesInstancesOf({ ...input, environmentId: "env_prod" })).toEqual([
+      "pod-a",
+      "pod-b",
+      "pod-gone",
+    ]);
+    expect(seriesInstancesOf({ ...input, environmentId: "env_preview" })).toEqual([
+      "pod-a",
+      "pod-b",
+    ]);
+  });
+
+  it("names a live sheet pod once", () => {
+    const live = { environmentId: "env_prod", row: row("pod-a") };
+    expect(
+      seriesInstancesOf({ needed: true, open: live, environmentId: "env_prod", instances: rows }),
+    ).toEqual(["pod-a", "pod-b"]);
   });
 });

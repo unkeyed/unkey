@@ -6,6 +6,9 @@ import type { Grid } from "@unkey/clickhouse/src/app-metrics/grid";
 import type { ResourcePoint } from "@unkey/clickhouse/src/app-metrics/resources";
 import type { TrafficPoint } from "@unkey/clickhouse/src/app-metrics/traffic";
 
+// Pod names travel in a GET query string, so the series names at most this many
+export const INSTANCE_SERIES_MAX = 200;
+
 export {
   METRIC_CATALOG,
   METRIC_IDS,
