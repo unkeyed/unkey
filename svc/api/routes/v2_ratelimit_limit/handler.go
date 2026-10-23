@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	globalratelimit "github.com/unkeyed/unkey/pkg/ratelimit"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	sf "github.com/unkeyed/unkey/pkg/singleflight"
@@ -41,6 +42,7 @@ type Handler struct {
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
 	DirectAuditLogs *batch.BatchProcessor[auditlog.Event]
 	Ratelimit       ratelimit.Service
+	GlobalRatelimit globalratelimit.Limiter
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
 	createFlight    sf.Group[db.FindRatelimitNamespace]
@@ -158,7 +160,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	t0 := time.Now()
-	result, err := h.Ratelimit.Ratelimit(ctx, limitReq)
+	var result ratelimit.RatelimitResponse
+	if ns.UseGlobalRatelimit {
+		result, err = h.allowGlobal(ctx, limitReq)
+	} else {
+		result, err = h.Ratelimit.Ratelimit(ctx, limitReq)
+	}
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -202,6 +209,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Return success response
 	return s.JSON(http.StatusOK, res)
+}
+
+// allowGlobal decides a request of a namespace with `UseGlobalRatelimit`. It
+// is safe to call concurrently.
+func (h *Handler) allowGlobal(ctx context.Context, req ratelimit.RatelimitRequest) (ratelimit.RatelimitResponse, error) {
+	result, err := h.GlobalRatelimit.Allow(ctx, globalratelimit.Request{
+		Fingerprint: namespace.GlobalFingerprint(req.WorkspaceID, req.Namespace, req.Identifier, req.Duration),
+		Rate:        globalratelimit.Rate{Limit: req.Limit, Duration: req.Duration},
+		Units:       req.Cost,
+	})
+	if err != nil {
+		return ratelimit.RatelimitResponse{}, err
+	}
+	return ratelimit.RatelimitResponse{
+		Limit:     req.Limit,
+		Remaining: result.Remaining,
+		Reset:     result.ResetAt,
+		Success:   result.Allowed,
+		Current:   0,
+	}, nil
 }
 
 // bufferAuditLog keeps MySQL out of the high-volume rate limit path by sending
