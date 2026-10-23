@@ -1,7 +1,8 @@
-package zen
+package compression
 
 import (
 	"bytes"
+	"net/http"
 	"sync"
 
 	"github.com/klauspost/compress/gzip"
@@ -15,7 +16,7 @@ type gzipEncoder struct {
 	buffer bytes.Buffer
 }
 
-func writeGzip(s *Session, body []byte) error {
+func writeGzip(w http.ResponseWriter, body []byte) error {
 	var encoder *gzipEncoder
 	if cached := gzipEncoders.Get(); cached != nil {
 		encoder = cached.(*gzipEncoder)
@@ -36,5 +37,5 @@ func writeGzip(s *Session, body []byte) error {
 	if err := encoder.writer.Close(); err != nil {
 		return fault.Wrap(err, fault.Internal("finish gzip response"))
 	}
-	return writeEncoded(s, body, encoder.buffer.Bytes(), "gzip")
+	return writeEncoded(w, body, encoder.buffer.Bytes(), "gzip")
 }

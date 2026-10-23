@@ -56,14 +56,3 @@ func parseEncoding(value string) (name string, quality float64) {
 	}
 	return name, quality
 }
-
-func hasToken(values []string, token string) bool {
-	for _, value := range values {
-		for item := range strings.SplitSeq(value, ",") {
-			if strings.EqualFold(strings.TrimSpace(item), token) {
-				return true
-			}
-		}
-	}
-	return false
-}

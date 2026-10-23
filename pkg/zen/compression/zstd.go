@@ -1,6 +1,7 @@
-package zen
+package compression
 
 import (
+	"net/http"
 	"sync"
 
 	"github.com/klauspost/compress/zstd"
@@ -14,7 +15,7 @@ type zstdEncoder struct {
 	buffer []byte
 }
 
-func writeZstd(s *Session, body []byte) error {
+func writeZstd(w http.ResponseWriter, body []byte) error {
 	var encoder *zstdEncoder
 	if cached := zstdEncoders.Get(); cached != nil {
 		encoder = cached.(*zstdEncoder)
@@ -31,5 +32,5 @@ func writeZstd(s *Session, body []byte) error {
 	defer zstdEncoders.Put(encoder)
 
 	encoder.buffer = encoder.writer.EncodeAll(body, encoder.buffer[:0])
-	return writeEncoded(s, body, encoder.buffer, "zstd")
+	return writeEncoded(w, body, encoder.buffer, "zstd")
 }
