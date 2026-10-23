@@ -1,37 +1,34 @@
 "use client";
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
+import { appSource } from "@/components/deploy/app-source";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { type DeploymentSummary, collection } from "@/lib/collections";
+import { type Deployment, type DeploymentSummary, collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
-import {
-  findRolledBackFrom,
-  previousRollbackTarget,
-  rollbackCandidates,
-} from "@/lib/collections/deploy/rollback";
+import { previousRollbackTarget, rollbackCandidates } from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { Card } from "@unkey/ui";
+import { match } from "@unkey/match";
+import { Card, PageBody } from "@unkey/ui";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import type { Route } from "next";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
+import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
 import { getDomainPriority } from "../../../components/domain-priority";
 import { useAppId, useProjectData } from "../../data-provider";
 import { appDeploymentQueryFor } from "../../data-provider-queries";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
-import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
+import { useProductionPolicies } from "../../policies/hooks/use-policies-data";
+import { AppCanvas } from "./app-canvas";
 import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
-import { BuildInProgressChart, ProductionCardChart } from "./card-chart";
-import { ProductionCardHeader } from "./card-header";
-import { ProductionCardMetadata } from "./card-metadata";
 import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
-import { buildPulse } from "./g-pulse";
+import { OverviewHeader, ProductionActions } from "./overview-header";
 import { type ProductionCardContextValue, ProductionCardProvider } from "./production-card-context";
 import { deriveProductionStatus } from "./status";
 
@@ -48,13 +45,45 @@ const UndoRollbackDialog = dynamic(
   { ssr: false },
 );
 
-export function AppProductionCard() {
+type ProductionCardModel =
+  | { kind: "loading" }
+  | { kind: "no-deployments" }
+  | { kind: "no-production" }
+  | {
+      kind: "deployed";
+      card: ProductionCardContextValue;
+      newer: {
+        deployment: DeploymentSummary & Pick<Deployment, "buildEndedAt">;
+        href: Route;
+      } | null;
+      rollbackDialog: { target: DeploymentSummary; close: () => void } | null;
+      undoDialog: { open: boolean; close: () => void } | null;
+    };
+
+export function AppProductionCard({ children }: { children: ReactNode }) {
+  const { gated, openPaywall, planGate } = useDeployActionGate();
+  return (
+    <>
+      <AppProductionCardView model={useAppProductionCard({ gated, openPaywall })}>
+        {children}
+      </AppProductionCardView>
+      {planGate}
+    </>
+  );
+}
+
+function useAppProductionCard({
+  gated,
+  openPaywall,
+}: {
+  gated: boolean;
+  openPaywall: () => void;
+}): ProductionCardModel {
   const { projectId, environments, customDomains } = useProjectData();
   const { deployments, isLoading: isDeploymentsLoading } = useRecentDeployments();
   const appId = useAppId();
   const workspace = useWorkspaceNavigation();
-  const { gated, openPaywall, planGate } = useDeployActionGate();
-  const reduceMotion = useReducedMotion();
+  const policies = useProductionPolicies();
   const [rollbackOpen, setRollbackOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
 
@@ -105,11 +134,6 @@ export function AppProductionCard() {
     [projectId, appId],
   );
 
-  const metrics = trpc.deploy.metrics.getAppRpsMetrics.useQuery(
-    { appId },
-    { refetchInterval: 30_000 },
-  );
-
   const productionStatus = deployment ? deriveProductionStatus(deployment) : undefined;
   useCollectionPolling(() => collection.deployments.utils.refetch(), {
     intervalMs: 10_000,
@@ -120,34 +144,28 @@ export function AppProductionCard() {
       (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
   });
 
+  if (!isDeploymentsLoading && deployments.length === 0) {
+    return { kind: "no-deployments" };
+  }
+
   if (
     isDeploymentsLoading ||
     isCurrentDeploymentLoading ||
     fallbackDeploymentQuery.isLoading ||
     liveDomainsQuery.isLoading
   ) {
-    return <AppProductionCardSkeleton />;
+    return { kind: "loading" };
   }
 
   if (!deployment) {
-    return (
-      <CreateDeploymentButton
-        renderTrigger={({ onClick }) => (
-          <ActiveDeploymentCardEmpty
-            onCreateDeployment={onClick}
-            title="No production deployment yet"
-            description="This app hasn't been deployed to production. Deploy to production to make it live."
-          />
-        )}
-      />
-    );
+    return { kind: "no-production" };
   }
 
   const status = productionStatus ?? deriveProductionStatus(deployment);
   const isRolledBack = isCurrent && appIsRolledBack;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
-  const { primary, additional } = getDomainPriority({
+  const { all } = getDomainPriority({
     domains: liveDomainsQuery.data ?? [],
     customDomains,
     environmentId: deployment.environmentId,
@@ -161,64 +179,47 @@ export function AppProductionCard() {
         (a, b) => b.createdAt - a.createdAt,
       )
     : [];
-  const rolledBackFromDeployment = isRolledBack
-    ? findRolledBackFrom(deployments, deployment)
-    : undefined;
 
-  const diagnostic =
-    status === "crashing"
-      ? {
-          label: "View crash logs",
-          href: routes.projects.logs({
-            workspaceSlug: workspace.slug,
-            projectId,
-            appId,
-            deploymentId: deployment.id,
-          }),
-        }
-      : status === "failed"
-        ? {
-            label: "View build error",
-            href: routes.projects.apps.deployment({
-              workspaceSlug: workspace.slug,
-              projectId,
-              appId,
-              deploymentId: deployment.id,
-              build: true,
-            }),
-          }
-        : null;
+  const diagnostic = match(status)
+    .returnType<ProductionCardContextValue["diagnostic"]>()
+    .with("crashing", () => ({
+      label: "View crash logs",
+      href: routes.projects.logs({
+        workspaceSlug: workspace.slug,
+        projectId,
+        appId,
+        deploymentId: deployment.id,
+      }),
+    }))
+    .with("failed", () => ({
+      label: "View build error",
+      href: routes.projects.apps.deployment({
+        workspaceSlug: workspace.slug,
+        projectId,
+        appId,
+        deploymentId: deployment.id,
+        build: true,
+      }),
+    }))
+    .otherwise(() => null);
 
-  const addCustomDomainHref =
-    primary?.source === "platform"
-      ? routes.projects.apps.domains({ workspaceSlug: workspace.slug, projectId, appId })
-      : null;
+  const appScope = { workspaceSlug: workspace.slug, projectId, appId };
 
   const ctx: ProductionCardContextValue = {
     deployment,
     status,
     isCurrent,
     isRolledBack,
-    rolledBackFrom: rolledBackFromDeployment
-      ? {
-          commitSha:
-            rolledBackFromDeployment.source === "git"
-              ? rolledBackFromDeployment.gitCommitSha
-              : null,
-          commitMessage:
-            rolledBackFromDeployment.source === "git"
-              ? rolledBackFromDeployment.gitCommitMessage
-              : null,
-          image:
-            rolledBackFromDeployment.source === "oci"
-              ? (rolledBackFromDeployment.requestedImage ?? rolledBackFromDeployment.resolvedImage)
-              : null,
-        }
-      : null,
+    canvas: {
+      appName: app?.name ?? "App",
+      appSource: app ? appSource(app) : "legacy",
+      defaultBranch: app?.defaultBranch ?? null,
+      domains: all,
+      domainsHref: routes.projects.apps.domains(appScope),
+      policiesHref: routes.projects.apps.policies(appScope),
+      policies,
+    },
     sourceRepo,
-    primaryDomain: primary ? { hostname: primary.hostname, url: primary.url } : null,
-    additionalDomains: additional,
-    addCustomDomainHref,
     diagnostic,
     deploymentHref: routes.projects.apps.deployment({
       workspaceSlug: workspace.slug,
@@ -235,9 +236,6 @@ export function AppProductionCard() {
     }),
     rollbackTarget,
     undoCandidates,
-    pulse: buildPulse(metrics.data),
-    isChartLoading: metrics.isLoading,
-    isChartError: metrics.isError,
     // Without a Compute plan these open the paywall instead of switching traffic.
     openRollback: () => {
       if (gated) {
@@ -247,70 +245,149 @@ export function AppProductionCard() {
       setRollbackTargetSnapshot(rollbackTarget);
       setRollbackOpen(true);
     },
-    openUndo: () => (gated ? openPaywall() : setUndoOpen(true)),
+    openUndo: () => {
+      if (gated) {
+        openPaywall();
+        return;
+      }
+      setUndoOpen(true);
+    },
   };
 
-  return (
-    <ProductionCardProvider value={ctx}>
-      <div className="relative">
-        {isRolledBack && <ProductionCardRollbackBanner />}
-        <Card className="relative z-10 flex flex-col">
-          <ProductionCardHeader />
-          <div className="grid grid-cols-1 md:grid-cols-2">
-            {!isCurrent && status === "deploying" ? (
-              <BuildInProgressChart />
-            ) : (
-              <ProductionCardChart />
-            )}
-            <div className="p-4">
-              <ProductionCardMetadata />
-            </div>
-          </div>
-          <AnimatePresence initial={false} mode="wait">
-            {newerDeployment && (
-              <motion.div
-                key={newerDeployment.id}
-                className="overflow-hidden"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={
-                  reduceMotion ? { duration: 0 } : { duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }
-                }
-              >
-                <NewerDeploymentRow
-                  deployment={newerDeployment}
-                  href={routes.projects.apps.deployment({
-                    workspaceSlug: workspace.slug,
-                    projectId,
-                    appId,
-                    deploymentId: newerDeployment.id,
-                    build: true,
-                  })}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Card>
-      </div>
+  return {
+    kind: "deployed",
+    card: ctx,
+    newer: newerDeployment
+      ? {
+          deployment: newerDeployment,
+          href: routes.projects.apps.deployment({
+            workspaceSlug: workspace.slug,
+            projectId,
+            appId,
+            deploymentId: newerDeployment.id,
+            build: true,
+          }),
+        }
+      : null,
+    rollbackDialog:
+      rollbackOpen && rollbackTargetSnapshot
+        ? { target: rollbackTargetSnapshot, close: () => setRollbackOpen(false) }
+        : null,
+    undoDialog:
+      isRolledBack && undoCandidates.length > 0
+        ? { open: undoOpen, close: () => setUndoOpen(false) }
+        : null,
+  };
+}
 
-      {rollbackOpen && rollbackTargetSnapshot && (
-        <RollbackDialog
-          isOpen={rollbackOpen}
-          onClose={() => setRollbackOpen(false)}
-          targetDeployment={rollbackTargetSnapshot}
-          currentDeployment={deployment}
-        />
-      )}
-      {isRolledBack && undoCandidates.length > 0 && (
-        <UndoRollbackDialog
-          isOpen={undoOpen}
-          onClose={() => setUndoOpen(false)}
-          deployments={undoCandidates}
-          currentDeploymentId={deployment.id}
-        />
-      )}
-      {planGate}
-    </ProductionCardProvider>
+function AppProductionCardView({
+  model,
+  children,
+}: {
+  model: ProductionCardModel;
+  children: ReactNode;
+}) {
+  const reduceMotion = useReducedMotion();
+  return match(model)
+    .with({ kind: "loading" }, () => (
+      <>
+        <OverviewHeader />
+        <OverviewBody card={<AppProductionCardSkeleton />}>{children}</OverviewBody>
+      </>
+    ))
+    .with({ kind: "no-deployments" }, () => (
+      <>
+        <OverviewHeader />
+        <PageBody>
+          <CreateDeploymentButton
+            renderTrigger={({ onClick }) => (
+              <ActiveDeploymentCardEmpty onCreateDeployment={onClick} />
+            )}
+          />
+        </PageBody>
+      </>
+    ))
+    .with({ kind: "no-production" }, () => (
+      <>
+        <OverviewHeader />
+        <OverviewBody
+          card={
+            <CreateDeploymentButton
+              renderTrigger={({ onClick }) => (
+                <ActiveDeploymentCardEmpty
+                  onCreateDeployment={onClick}
+                  title="No production deployment yet"
+                  description="This app hasn't been deployed to production. Deploy to production to make it live."
+                />
+              )}
+            />
+          }
+        >
+          {children}
+        </OverviewBody>
+      </>
+    ))
+    .with({ kind: "deployed" }, ({ card, newer, rollbackDialog, undoDialog }) => (
+      <ProductionCardProvider value={card}>
+        <OverviewHeader actions={<ProductionActions />} />
+        <OverviewBody
+          card={
+            <div className="relative">
+              {card.isRolledBack && <ProductionCardRollbackBanner />}
+              <Card className="relative z-10 flex flex-col">
+                <AppCanvas />
+                <AnimatePresence initial={false} mode="wait">
+                  {newer && (
+                    <motion.div
+                      key={newer.deployment.id}
+                      className="overflow-hidden"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={
+                        reduceMotion
+                          ? { duration: 0 }
+                          : { duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }
+                      }
+                    >
+                      <NewerDeploymentRow {...newer} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Card>
+            </div>
+          }
+        >
+          {children}
+        </OverviewBody>
+        {rollbackDialog && (
+          <RollbackDialog
+            isOpen
+            onClose={rollbackDialog.close}
+            targetDeployment={rollbackDialog.target}
+            currentDeployment={card.deployment}
+          />
+        )}
+        {undoDialog && (
+          <UndoRollbackDialog
+            isOpen={undoDialog.open}
+            onClose={undoDialog.close}
+            deployments={card.undoCandidates}
+            currentDeploymentId={card.deployment.id}
+          />
+        )}
+      </ProductionCardProvider>
+    ))
+    .exhaustive();
+}
+
+function OverviewBody({ card, children }: { card: ReactNode; children: ReactNode }) {
+  return (
+    <PageBody>
+      <div className="flex flex-col gap-5">
+        {card}
+        {children}
+      </div>
+    </PageBody>
   );
 }
