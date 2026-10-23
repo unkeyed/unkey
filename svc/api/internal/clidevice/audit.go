@@ -10,39 +10,51 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 )
 
-func (s *Service) writeAudit(ctx context.Context, tx db.DBTX, event auditlog.AuditLogEvent, display string, userID string, name string, workspaceID string, sessionID string, device string, remoteIP string, userAgent string) error {
+type auditEntry struct {
+	Event       auditlog.AuditLogEvent
+	Display     string
+	UserID      string
+	UserName    string
+	WorkspaceID string
+	SessionID   string
+	DeviceName  string
+	RemoteIP    string
+	UserAgent   string
+}
+
+func (s *Service) writeAudit(ctx context.Context, tx db.DBTX, entry auditEntry) error {
 	actor := auditactor.FromPrincipal(&principal.Principal{
 		Version: "",
 		Type:    "",
 		Subject: principal.Subject{
-			ID:   userID,
-			Name: name,
+			ID:   entry.UserID,
+			Name: entry.UserName,
 			Type: principal.SubjectTypeUser,
 		},
 		Source: principal.CLISessionSource{
-			SessionID:  sessionID,
-			DeviceName: device,
+			SessionID:  entry.SessionID,
+			DeviceName: entry.DeviceName,
 			ExpiresAt:  time.Time{},
 		},
-		AuthorizedWorkspaceID: workspaceID,
+		AuthorizedWorkspaceID: entry.WorkspaceID,
 		Permissions:           nil,
 	})
 	return s.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-		WorkspaceID:   workspaceID,
-		Event:         event,
+		WorkspaceID:   entry.WorkspaceID,
+		Event:         entry.Event,
 		ActorType:     actor.Type,
 		ActorID:       actor.ID,
 		ActorName:     actor.Name,
 		ActorMeta:     actor.Meta,
-		Display:       display,
-		RemoteIP:      remoteIP,
-		UserAgent:     userAgent,
+		Display:       entry.Display,
+		RemoteIP:      entry.RemoteIP,
+		UserAgent:     entry.UserAgent,
 		CorrelationID: "",
 		Targets: []auditlog.AuditLogTarget{{
 			Type:        auditlog.CLISessionTargetType,
-			ID:          sessionID,
-			Name:        device,
-			DisplayName: device,
+			ID:          entry.SessionID,
+			Name:        entry.DeviceName,
+			DisplayName: entry.DeviceName,
 			Meta:        map[string]any{},
 		}},
 	}})

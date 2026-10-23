@@ -43,6 +43,13 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 		ExpiresAt:   time.UnixMilli(row.ExpiresAt),
 	}
 	active := !row.RevokedAt.Valid && row.ExpiresAt > s.Clock.Now().UnixMilli()
+	if active {
+		workspace, err := db.Query.FindWorkspaceByID(ctx, s.DB.RO(), row.WorkspaceID)
+		if err != nil && !db.IsNotFound(err) {
+			return clisession.Session{}, err
+		}
+		active = err == nil && workspaceUsable(workspace)
+	}
 	s.remember(ctx, sessionID, SessionVerdict{Allowed: active, Session: session})
 	if !active {
 		return clisession.Session{}, clisession.ErrInactive
@@ -107,7 +114,17 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 			return nil
 		}
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
-		if err := s.writeAudit(ctx, tx, auditlog.CLISessionRevokeEvent, "Revoked CLI session "+row.ID, req.Principal.Subject.ID, req.Principal.Subject.Name, row.WorkspaceID, row.ID, row.DeviceName.String, req.RemoteIP, req.UserAgent); err != nil {
+		if err := s.writeAudit(ctx, tx, auditEntry{
+			Event:       auditlog.CLISessionRevokeEvent,
+			Display:     "Revoked CLI session " + row.ID,
+			UserID:      req.Principal.Subject.ID,
+			UserName:    req.Principal.Subject.Name,
+			WorkspaceID: row.WorkspaceID,
+			SessionID:   row.ID,
+			DeviceName:  row.DeviceName.String,
+			RemoteIP:    req.RemoteIP,
+			UserAgent:   req.UserAgent,
+		}); err != nil {
 			return err
 		}
 		s.forget(ctx, row.ID)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"strings"
 
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -82,7 +81,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 		if err != nil {
 			return err
 		}
-		if workspace.DeletedAtM.Valid || !workspace.Enabled || strings.TrimSpace(workspace.OrgID) == "" {
+		if !workspaceUsable(workspace) {
 			return forbidden("This workspace cannot approve a CLI login.")
 		}
 		n, err := db.Query.ApproveDeviceAuthorization(ctx, tx, db.ApproveDeviceAuthorizationParams{
