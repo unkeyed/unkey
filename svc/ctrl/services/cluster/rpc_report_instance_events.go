@@ -22,8 +22,8 @@ import (
 //     event log queried by the dashboard's events panel and the logs viewer
 //     enrichment path.
 //  2. UPDATE on the matching instances row in MySQL with the latest exit
-//     metadata. The dashboard header reads these denormalized fields so a
-//     deployment summary card never round-trips to ClickHouse.
+//     and crash loop state. The dashboard header reads these denormalized
+//     fields so a deployment summary card never round-trips to ClickHouse.
 //
 // Events from a single pod-watch tick are batched into one RPC. The CH
 // insert is buffered through the service-wide batch processor, so a single
@@ -102,11 +102,24 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 		// not the storage layout.
 		switch event.GetState().(type) {
 		case *ctrlv1.InstanceEvent_Running:
-			// Running carries no exit metadata — the row is identity +
-			// time + attributes, written for the dashboard's "container
-			// booted" timeline divider. No MySQL denormalization: the live
-			// instance row is already tracked via reportDeploymentStatus.
 			row.EventKind = "running"
+			rc := int64(event.GetRestartCount())
+			err := s.db.RecordInstanceRunning(ctx, db.RecordInstanceRunningParams{
+				K8sName:        event.GetPodName(),
+				RegionID:       cluster.RegionID,
+				RestartCount:   rc,
+				RestartCount_2: rc,
+			})
+			if err != nil {
+				logger.Error("report instance events: record running failed",
+					"error", err.Error(),
+					"pod_name", event.GetPodName(),
+					"restart_count", event.GetRestartCount(),
+				)
+				if firstDenormErr == nil {
+					firstDenormErr = err
+				}
+			}
 		case *ctrlv1.InstanceEvent_Terminated:
 			t := event.GetTerminated()
 			row.EventKind = "terminated"
@@ -115,15 +128,9 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 			row.Reason = t.GetReason()
 			row.Message = t.GetMessage()
 
-			// Only failures denormalize onto the instances row. Clean
-			// exits (init-container migrations, cron pods, graceful
-			// shutdowns with exit 0) still land in CH for the timeline
-			// divider, but must not flow into container_status — the
-			// dashboard renders that as "last failure" and would show a
-			// red "Completed" badge for a healthy init completion.
-			if t.GetExitCode() == 0 {
-				break
-			}
+			// A graceful shutdown that exits 0 shows on the row only until
+			// the pod leaves the deployment status report and its row is
+			// deleted.
 
 			// Build the post-update ContainerStatus in one place. The new
 			// value fully replaces what's on the row (including clearing
