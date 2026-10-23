@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/logdrainconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"google.golang.org/protobuf/proto"
 )
@@ -95,10 +96,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		filters.EnvironmentIds = input.EnvironmentIds
 		filters.ProjectIds = input.ProjectIds
 	}
-	if err := setStream(config, stream, filters); err != nil {
+	if err := logdrainconfig.SetStream(config, stream, filters); err != nil {
 		return err
 	}
-	if err := setDestination(ctx, h.Vault, principal.AuthorizedWorkspaceID, config, req.Destination); err != nil {
+	if err := logdrainconfig.SetDestination(ctx, h.Vault, principal.AuthorizedWorkspaceID, config, req.Destination); err != nil {
 		return err
 	}
 	encoded, err := proto.Marshal(config)

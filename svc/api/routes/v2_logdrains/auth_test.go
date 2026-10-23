@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	getRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_get_logdrain"
 	listRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_list_logdrains"
+	updateRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_update_logdrain"
 )
 
 func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
@@ -36,6 +37,16 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 	}{
 		{&getRoute.Handler{DB: h.DB}, `{"logdrainId":"` + foreignID + `"}`, true},
 		{&listRoute.Handler{DB: h.DB}, `{}`, false},
+		{
+			&updateRoute.Handler{
+				DB:        h.DB,
+				Vault:     h.Vault,
+				Auditlogs: h.Auditlogs,
+				Clock:     h.Clock,
+			},
+			`{"logdrainId":"` + foreignID + `","name":"Changed"}`,
+			true,
+		},
 	} {
 		t.Run(tc.route.Path(), func(t *testing.T) {
 			h.Register(tc.route)
