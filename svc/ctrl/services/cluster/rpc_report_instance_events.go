@@ -178,11 +178,9 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 			row.Reason = w.GetReason()
 			row.Message = w.GetMessage()
 
-			// Only CrashLoopBackOff drives the MySQL "instance is in
-			// crashloop" denormalization. Other waiting reasons (image
-			// pull errors, ContainerCreating, …) flow into CH as raw rows
-			// for the timeline but don't change the live instance summary
-			// the dashboard header reads.
+			// Krane forwards only CrashLoopBackOff today. If it forwards
+			// other waiting reasons later, they go to CH only and leave the
+			// instance row alone.
 			if w.GetReason() == "CrashLoopBackOff" {
 				err := s.db.RecordInstanceCrashLoopBackOff(ctx, db.RecordInstanceCrashLoopBackOffParams{
 					K8sName:      event.GetPodName(),

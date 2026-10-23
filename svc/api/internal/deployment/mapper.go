@@ -155,11 +155,11 @@ func toResponse(in Input) openapi.Deployment {
 		CreatedAt:  d.CreatedAt,
 		UpdatedAt:  d.UpdatedAt.Int64,
 
-		Git:      nil,
-		Docker:   nil,
-		Error:    nil,
-		Domains:  nil,
-		LastExit: lastExit(in.Instances),
+		Git:     nil,
+		Docker:  nil,
+		Error:   nil,
+		Domains: nil,
+		Issues:  issues(in.Instances),
 	}
 
 	switch d.Source {

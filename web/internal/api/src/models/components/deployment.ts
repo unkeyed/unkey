@@ -6,35 +6,14 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
-import {
-  DeploymentAction,
-  DeploymentAction$inboundSchema,
-} from "./deploymentaction.js";
-import {
-  DeploymentDocker,
-  DeploymentDocker$inboundSchema,
-} from "./deploymentdocker.js";
-import {
-  DeploymentError,
-  DeploymentError$inboundSchema,
-} from "./deploymenterror.js";
+import { DeploymentAction, DeploymentAction$inboundSchema } from "./deploymentaction.js";
+import { DeploymentDocker, DeploymentDocker$inboundSchema } from "./deploymentdocker.js";
+import { DeploymentError, DeploymentError$inboundSchema } from "./deploymenterror.js";
 import { DeploymentGit, DeploymentGit$inboundSchema } from "./deploymentgit.js";
-import {
-  DeploymentLastExit,
-  DeploymentLastExit$inboundSchema,
-} from "./deploymentlastexit.js";
-import {
-  DeploymentRuntime,
-  DeploymentRuntime$inboundSchema,
-} from "./deploymentruntime.js";
-import {
-  DeploymentStatus,
-  DeploymentStatus$inboundSchema,
-} from "./deploymentstatus.js";
-import {
-  DeploymentTrigger,
-  DeploymentTrigger$inboundSchema,
-} from "./deploymenttrigger.js";
+import { DeploymentIssue, DeploymentIssue$inboundSchema } from "./deploymentissue.js";
+import { DeploymentRuntime, DeploymentRuntime$inboundSchema } from "./deploymentruntime.js";
+import { DeploymentStatus, DeploymentStatus$inboundSchema } from "./deploymentstatus.js";
+import { DeploymentTrigger, DeploymentTrigger$inboundSchema } from "./deploymenttrigger.js";
 
 export type Deployment = {
   /**
@@ -90,7 +69,13 @@ export type Deployment = {
    */
   regions: Array<string>;
   error?: DeploymentError | undefined;
-  lastExit?: DeploymentLastExit | undefined;
+  /**
+   * Problems with the running app right now, at most one per type. An issue
+   *
+   * @remarks
+   * is removed when it is resolved. Empty when nothing is wrong.
+   */
+  issues: Array<DeploymentIssue>;
   /**
    * Unix timestamp in milliseconds when the deployment finished, successfully
    *
@@ -121,11 +106,7 @@ export type Deployment = {
 };
 
 /** @internal */
-export const Deployment$inboundSchema: z.ZodType<
-  Deployment,
-  z.ZodTypeDef,
-  unknown
-> = z.object({
+export const Deployment$inboundSchema: z.ZodType<Deployment, z.ZodTypeDef, unknown> = z.object({
   id: z.string(),
   status: DeploymentStatus$inboundSchema,
   isCurrent: z.boolean(),
@@ -138,7 +119,7 @@ export const Deployment$inboundSchema: z.ZodType<
   availableActions: z.array(DeploymentAction$inboundSchema),
   regions: z.array(z.string()),
   error: DeploymentError$inboundSchema.optional(),
-  lastExit: DeploymentLastExit$inboundSchema.optional(),
+  issues: z.array(DeploymentIssue$inboundSchema),
   finishedAt: z.number().int().optional(),
   domains: z.array(z.string()).optional(),
   runtime: DeploymentRuntime$inboundSchema,

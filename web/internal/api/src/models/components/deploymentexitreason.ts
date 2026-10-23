@@ -7,12 +7,10 @@ import * as openEnums from "../../types/enums.js";
 import { OpenEnum } from "../../types/enums.js";
 
 /**
- * Why the app stopped, as of the last report from the instance:
+ * Why the app stopped:
  *
  * @remarks
  *
- * - `crash_loop`: the app exits right after each start, so Unkey waits longer
- *   before each restart.
  * - `out_of_memory`: the app used more memory than its limit and was stopped.
  * - `exited_with_error`: the app exited with a non-zero `exitCode`.
  * - `start_failed`: the start command could not run, for example because the
@@ -23,7 +21,6 @@ import { OpenEnum } from "../../types/enums.js";
  *   new reasons can be added.
  */
 export const DeploymentExitReason = {
-  CrashLoop: "crash_loop",
   OutOfMemory: "out_of_memory",
   ExitedWithError: "exited_with_error",
   StartFailed: "start_failed",
@@ -31,12 +28,10 @@ export const DeploymentExitReason = {
   Unknown: "unknown",
 } as const;
 /**
- * Why the app stopped, as of the last report from the instance:
+ * Why the app stopped:
  *
  * @remarks
  *
- * - `crash_loop`: the app exits right after each start, so Unkey waits longer
- *   before each restart.
  * - `out_of_memory`: the app used more memory than its limit and was stopped.
  * - `exited_with_error`: the app exited with a non-zero `exitCode`.
  * - `start_failed`: the start command could not run, for example because the
