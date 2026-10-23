@@ -150,13 +150,13 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 
 	srv, err := zen.New(zen.Config{
 		MaxRequestBodySize: 0,
-		TLS:               nil,
-		EnableH2C:         false,
-		StreamRequestBody: false,
-		TrustedProxyCIDRs: []string{"192.0.2.0/24"},
-		ReadTimeout:       0,
-		WriteTimeout:      0,
-		IdleTimeout:       0,
+		TLS:                nil,
+		EnableH2C:          false,
+		StreamRequestBody:  false,
+		TrustedProxyCIDRs:  []string{"192.0.2.0/24"},
+		ReadTimeout:        0,
+		WriteTimeout:       0,
+		IdleTimeout:        0,
 	})
 	require.NoError(t, err)
 
