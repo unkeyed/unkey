@@ -107,6 +107,8 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create vault service: %w", err)
 	}
 
+	r.Go(v.RunKeyringCleanup)
+
 	mux.Handle(vaultv1connect.NewVaultServiceHandler(v))
 
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

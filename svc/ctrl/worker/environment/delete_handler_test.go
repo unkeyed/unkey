@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -21,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/environment"
+	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
 
 // TestDeleteCancelsProgressingDeploymentsAndAuditsThem pins that the cascade
@@ -101,6 +104,16 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
 	require.NoError(t, err)
 
+	vaultClient := vault.NewConnectVaultServiceClient(vaulttestutil.StartTestVaultWithMemory(t).Client)
+	encrypted, err := vaultClient.Encrypt(ctx, &vaultv1.EncryptRequest{Keyring: env.ID, Data: "secret"})
+	require.NoError(t, err)
+	require.NoError(t, database.InsertAppEnvironmentVariable(ctx, db.InsertAppEnvironmentVariableParams{
+		ID: uid.New(uid.EnvironmentVariablePrefix), WorkspaceID: workspaceID, AppID: app.ID,
+		EnvironmentID: env.ID, EnvKey: "TOKEN", Value: encrypted.GetEncrypted(), CreatedAt: time.Now().UnixMilli(),
+	}))
+	_, err = vaultClient.Decrypt(ctx, &vaultv1.DecryptRequest{Keyring: env.ID, Encrypted: encrypted.GetEncrypted()})
+	require.NoError(t, err)
+
 	var svc *environment.Service
 	restateCfg := containers.Restate(t, hydrav1.NewEnvironmentServiceServer(&lazyEnvironmentService{svc: &svc}))
 
@@ -108,6 +121,7 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 		DB:        database,
 		Admin:     restateadmin.New(restateadmin.Config{BaseURL: restateCfg.AdminURL, APIKey: ""}),
 		Auditlogs: auditlogSvc,
+		Vault:     vaultClient,
 	})
 	require.NoError(t, err)
 
@@ -122,6 +136,13 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 
 	_, err = database.FindEnvironmentById(ctx, env.ID)
 	require.True(t, db.IsNotFound(err), "the environment row must be gone")
+	variables, err := database.CountAppEnvironmentVariablesByAppId(ctx, app.ID)
+	require.NoError(t, err)
+	require.Zero(t, variables)
+	_, err = vaultClient.Decrypt(ctx, &vaultv1.DecryptRequest{Keyring: env.ID, Encrypted: encrypted.GetEncrypted()})
+	require.Error(t, err, "saved ciphertext must no longer decrypt")
+	_, err = vaultClient.Encrypt(ctx, &vaultv1.EncryptRequest{Keyring: env.ID, Data: "new secret"})
+	require.Error(t, err, "the deleted environment keyring must not be recreated")
 	_, err = database.FindDeploymentById(ctx, building.ID)
 	require.True(t, db.IsNotFound(err), "the cascade must drop the building deployment")
 	_, err = database.FindDeploymentById(ctx, finished.ID)

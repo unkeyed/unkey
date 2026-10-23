@@ -18,6 +18,9 @@ func (s *Service) DecryptBulk(
 	if err := s.authenticate(req); err != nil {
 		return nil, err
 	}
+	if err := s.keyring.CheckActive(ctx, req.Msg.GetKeyring()); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 
 	ctx, span := tracing.Start(ctx, "vault.DecryptBulk")
 	defer span.End()

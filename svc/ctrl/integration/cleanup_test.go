@@ -12,6 +12,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -20,6 +22,7 @@ import (
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
+	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 
 	restatetest "github.com/restatedev/sdk-go/testing"
 )
@@ -38,6 +41,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	ctx := h.Context()
 	auditlogsService, err := auditlogs.New(auditlogs.Config{DB: h.DB})
 	require.NoError(t, err)
+	vaultClient := vault.NewConnectVaultServiceClient(vaulttestutil.StartTestVault(t).Client)
 
 	// The environment delete handler only calls Admin to cancel a deployment's
 	// in-flight Restate invocation, and seeded deployments have no invocation id,
@@ -46,6 +50,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		DB:        h.DB,
 		Admin:     restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
 		Auditlogs: auditlogsService,
+		Vault:     vaultClient,
 	})
 	require.NoError(t, err)
 
@@ -212,13 +217,15 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	require.NoError(t, err)
 
 	// App environment variable
+	encrypted, err := vaultClient.Encrypt(ctx, &vaultv1.EncryptRequest{Keyring: env.ID, Data: "test_value"})
+	require.NoError(t, err)
 	err = h.DB.InsertAppEnvironmentVariable(ctx, db.InsertAppEnvironmentVariableParams{
 		ID:            uid.New("aev"),
 		WorkspaceID:   workspaceID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
 		EnvKey:        "TEST_KEY",
-		Value:         "test_value",
+		Value:         encrypted.GetEncrypted(),
 		CreatedAt:     now,
 	})
 	require.NoError(t, err)
@@ -268,4 +275,6 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 			return n == 0
 		}, 30*time.Second, 250*time.Millisecond, "timed out waiting for %s to be empty", c.table)
 	}
+	_, err = vaultClient.Decrypt(ctx, &vaultv1.DecryptRequest{Keyring: env.ID, Encrypted: encrypted.GetEncrypted()})
+	require.Error(t, err, "project deletion must revoke the environment keyring")
 }

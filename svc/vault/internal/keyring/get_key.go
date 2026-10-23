@@ -14,6 +14,10 @@ func (k *Keyring) GetKey(ctx context.Context, ringID, keyID string) (*vaultv1.Da
 	ctx, span := tracing.Start(ctx, "keyring.GetKey")
 	defer span.End()
 
+	if err := k.CheckActive(ctx, ringID); err != nil {
+		return nil, err
+	}
+
 	lookupKey := k.buildLookupKey(ringID, keyID)
 	span.SetAttributes(attribute.String("lookupKey", lookupKey))
 

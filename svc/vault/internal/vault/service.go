@@ -20,14 +20,9 @@ const LATEST = "LATEST"
 
 type Service struct {
 	keyCache cache.Cache[string, *vaultv1.DataEncryptionKey]
-
-	storage storage.Storage
-
-	decryptionKeys map[string]*vaultv1.KeyEncryptionKey
-	encryptionKey  *vaultv1.KeyEncryptionKey
-
-	keyring *keyring.Keyring
-	bearer  string
+	storage  storage.Storage
+	keyring  *keyring.Keyring
+	bearer   string
 }
 
 var _ vaultv1connect.VaultServiceHandler = (*Service)(nil)
@@ -40,11 +35,9 @@ type Config struct {
 }
 
 func New(cfg Config) (*Service, error) {
-
 	encryptionKey, decryptionKeys, err := loadMasterKeys(cfg.MasterKey, cfg.PreviousMasterKey)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load master keys: %w", err)
-
 	}
 
 	kr, err := keyring.New(keyring.Config{
@@ -56,7 +49,7 @@ func New(cfg Config) (*Service, error) {
 		return nil, fmt.Errorf("failed to create keyring: %w", err)
 	}
 
-	cache, err := cache.New(cache.Config[string, *vaultv1.DataEncryptionKey]{
+	keyCache, err := cache.New(cache.Config[string, *vaultv1.DataEncryptionKey]{
 		Fresh:    time.Hour,
 		Stale:    24 * time.Hour,
 		MaxSize:  10000,
@@ -68,13 +61,10 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	return &Service{
-		storage:        cfg.Storage,
-		keyCache:       cacheMiddleware.WithTracing(cache),
-		decryptionKeys: decryptionKeys,
-
-		encryptionKey: encryptionKey,
-		keyring:       kr,
-		bearer:        cfg.BearerToken,
+		storage:  cfg.Storage,
+		keyCache: cacheMiddleware.WithTracing(keyCache),
+		keyring:  kr,
+		bearer:   cfg.BearerToken,
 	}, nil
 }
 

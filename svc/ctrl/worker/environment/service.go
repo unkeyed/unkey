@@ -6,6 +6,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -28,13 +29,15 @@ type Service struct {
 	db        db.Database
 	admin     *restateadmin.Client
 	auditlogs auditlogs.AuditLogService
+	vault     vault.VaultServiceClient
 }
 
 var _ hydrav1.EnvironmentServiceServer = (*Service)(nil)
 
 // Config holds configuration for creating a [Service].
 type Config struct {
-	DB db.Database
+	DB    db.Database
+	Vault vault.VaultServiceClient
 
 	// Admin cancels in-flight deployment invocations before the env delete
 	// cascade drops deployment rows. Required.
@@ -59,6 +62,7 @@ func New(cfg Config) (*Service, error) {
 		db:                                    cfg.DB,
 		admin:                                 cfg.Admin,
 		auditlogs:                             cfg.Auditlogs,
+		vault:                                 cfg.Vault,
 	}, nil
 }
 

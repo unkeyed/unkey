@@ -84,6 +84,18 @@ func (s *s3) PutObject(ctx context.Context, key string, data []byte) (err error)
 	return nil
 }
 
+func (s *s3) DeleteObject(ctx context.Context, key string) (err error) {
+	defer func() { observeS3("delete", err) }()
+	_, err = s.client.DeleteObject(ctx, &awsS3.DeleteObjectInput{
+		Bucket: aws.String(s.config.S3Bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete object: %w", err)
+	}
+	return nil
+}
+
 func (s *s3) GetObject(ctx context.Context, key string) (data []byte, found bool, err error) {
 	defer func() { observeS3("get", err) }()
 	o, err := s.client.GetObject(ctx, &awsS3.GetObjectInput{
@@ -118,13 +130,15 @@ func (s *s3) ListObjectKeys(ctx context.Context, prefix string) (keys []string, 
 		input.Prefix = aws.String(prefix)
 	}
 
-	o, err := s.client.ListObjectsV2(ctx, input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list objects: %w", err)
-	}
-	keys = make([]string, len(o.Contents))
-	for i, obj := range o.Contents {
-		keys[i] = *obj.Key
+	pages := awsS3.NewListObjectsV2Paginator(s.client, input)
+	for pages.HasMorePages() {
+		page, err := pages.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list objects: %w", err)
+		}
+		for _, obj := range page.Contents {
+			keys = append(keys, aws.ToString(obj.Key))
+		}
 	}
 	return keys, nil
 }

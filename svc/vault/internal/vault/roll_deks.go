@@ -2,11 +2,11 @@ package vault
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/svc/vault/internal/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/keyring"
 )
 
 func (s *Service) RollDeks(ctx context.Context) error {
@@ -18,30 +18,8 @@ func (s *Service) RollDeks(ctx context.Context) error {
 	}
 
 	for _, objectKey := range lookupKeys {
-		b, found, err := s.storage.GetObject(ctx, objectKey)
-		if err != nil {
-			return fmt.Errorf("failed to get object: %w", err)
-		}
-		if !found {
-			return storage.ErrObjectNotFound
-		}
-		dek, kekID, err := s.keyring.DecodeAndDecryptKey(ctx, b)
-		if err != nil {
-			return fmt.Errorf("failed to decode and decrypt key: %w", err)
-		}
-		if kekID == s.encryptionKey.GetId() {
-			logger.Info("key already encrypted with latest kek",
-				"dekId", dek.GetId(),
-			)
-			continue
-		}
-		reencrypted, err := s.keyring.EncryptAndEncodeKey(ctx, dek)
-		if err != nil {
-			return fmt.Errorf("failed to re-encrypt key: %w", err)
-		}
-		err = s.storage.PutObject(ctx, objectKey, reencrypted)
-		if err != nil {
-			return fmt.Errorf("failed to put re-encrypted key: %w", err)
+		if err := s.keyring.RewrapKey(ctx, objectKey); err != nil && !errors.Is(err, keyring.ErrDeleted) {
+			return err
 		}
 	}
 

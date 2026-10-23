@@ -15,6 +15,9 @@ func (s *Service) ReEncrypt(ctx context.Context, req *connect.Request[vaultv1.Re
 	if err := s.authenticate(req); err != nil {
 		return nil, err
 	}
+	if err := s.keyring.CheckActive(ctx, req.Msg.GetKeyring()); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	ctx, span := tracing.Start(ctx, "vault.ReEncrypt")
 	defer span.End()
 	logger.Info("reencrypting",

@@ -7,6 +7,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
@@ -115,6 +116,18 @@ func (s *Service) Delete(
 		return s.db.DeleteDeploymentsByEnvironmentId(runCtx, envID)
 	}, restate.WithName("delete deployments")); err != nil {
 		return nil, fmt.Errorf("delete deployments: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		if s.vault == nil {
+			return fmt.Errorf("vault is required to delete an environment keyring")
+		}
+		_, err := s.vault.DeleteKeyring(runCtx, &vaultv1.DeleteKeyringRequest{
+			Keyring: envID,
+		})
+		return err
+	}, restate.WithName("delete environment keyring")); err != nil {
+		return nil, fmt.Errorf("delete environment keyring: %w", err)
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
