@@ -1,43 +1,9 @@
 "use client";
 
-import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
-import { useAppCurrentDeployment } from "../hooks/use-app-current-deployment";
-import { useRecentDeployments } from "../hooks/use-recent-deployments";
-import { CreateDeploymentButton } from "../navigations/create-deployment-button";
-import { ActiveBranches } from "./components/active-branches";
-import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
-import { AppProductionCard } from "./components/app-production-card";
-import { OverviewPageTitle } from "./components/overview-page-title";
-import { RecentDeployments } from "./components/recent-deployments";
+import { useFlag } from "@/lib/flags/provider";
+import { Overview } from "./app-overview";
+import { Overview as LegacyOverview } from "./legacy/app-overview";
 
-export default function Overview() {
-  const { deployments, isLoading: isDeploymentsLoading } = useRecentDeployments();
-  const { app } = useAppCurrentDeployment();
-  const hasNoDeployments = !isDeploymentsLoading && deployments.length === 0;
-
-  return (
-    <PageContainer>
-      <PageHeader>
-        <PageHeaderContent>
-          <PageHeaderTitle>
-            <OverviewPageTitle />
-          </PageHeaderTitle>
-        </PageHeaderContent>
-      </PageHeader>
-      <PageBody>
-        {hasNoDeployments ? (
-          <CreateDeploymentButton
-            renderTrigger={({ onClick }) => (
-              <ActiveDeploymentCardEmpty onCreateDeployment={onClick} />
-            )}
-          />
-        ) : (
-          <div className="flex flex-col gap-5">
-            <AppProductionCard />
-            {app?.sourceType === "oci" ? <RecentDeployments /> : <ActiveBranches />}
-          </div>
-        )}
-      </PageBody>
-    </PageContainer>
-  );
+export default function OverviewPage() {
+  return useFlag("appV2") ? <Overview /> : <LegacyOverview />;
 }
