@@ -158,6 +158,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Limit:       limit,
 		Cost:        cost,
 		Time:        time.Time{},
+		UseGCRA:     ns.UseGcra,
 	}
 
 	if h.TestMode {
@@ -333,6 +334,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 				WorkspaceID:       principal.AuthorizedWorkspaceID,
 				ProjectID:         projectID,
 				Name:              name,
+				UseGcra:           false,
 				CreatedAtM:        now,
 				UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
 				DeletedAtM:        sql.NullInt64{Valid: false, Int64: 0},

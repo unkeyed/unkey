@@ -149,6 +149,7 @@ func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config Auth
 		Duration:    duration,
 		Cost:        1,
 		Time:        time.Time{}, //nolint:exhaustruct // use ratelimiter's clock
+		UseGCRA:     false,
 	})
 	if err != nil {
 		logger.Error("workspace rate limit: ratelimiter error",

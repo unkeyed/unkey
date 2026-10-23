@@ -253,6 +253,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Region:  "test-region",
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, ratelimitService.Close()) })
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {

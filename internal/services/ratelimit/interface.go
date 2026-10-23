@@ -79,6 +79,11 @@ type RatelimitRequest struct {
 	// Time is the request timestamp used to choose the sliding-window sequence.
 	// If zero, the service uses its own clock.
 	Time time.Time
+
+	// UseGCRA decides this request with the GCRA limiter instead of the
+	// regional counters, if the service has one. The standalone ratelimit API
+	// sets it from the namespace.
+	UseGCRA bool
 }
 
 // RatelimitResponse contains the result of a rate-limit check.

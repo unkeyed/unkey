@@ -211,6 +211,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:       limit,
 			Cost:        cost,
 			Time:        reqTime,
+			UseGCRA:     ns.UseGcra,
 		}
 
 		checkMetadata[i] = checkMeta{
@@ -408,6 +409,7 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principa
 					WorkspaceID:       principal.AuthorizedWorkspaceID,
 					ProjectID:         projectID,
 					Name:              name,
+					UseGcra:           false,
 					CreatedAtM:        now,
 					UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
 					DeletedAtM:        sql.NullInt64{Valid: false, Int64: 0},

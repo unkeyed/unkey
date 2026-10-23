@@ -12,6 +12,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
+	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/gcra"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql"
 
@@ -308,6 +310,10 @@ type service struct {
 	// when reading. Constant for the lifetime of the service.
 	region string
 
+	// gcra decides requests with UseGCRA instead of the regional counters. It
+	// is nil only in services from NewLocal, which have no database.
+	gcra *gcra.Limiter
+
 	// globalCircuitBreaker wraps the periodic bulk upsert for the
 	// cross-region ratelimit_global_counters table. When tripped, the flush
 	// logs and discards the batch so a sick database does not stall
@@ -402,7 +408,13 @@ func New(config Config) (*service, error) {
 		globalCircuitBreaker: circuitbreaker.New[any]("ratelimit_global_push"),
 		db:                   db.New(config.DB.RW(), config.DB.RO()),
 		stopBackground:       make(chan struct{}),
+		gcra:                 nil,
 	}
+	limiter, err := gcra.New(gcra.Config{DB: config.DB, Clock: config.Clock})
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("create gcra limiter"))
+	}
+	s.gcra = limiter
 	s.startGlobalPush()
 	s.startGlobalPull()
 
@@ -439,6 +451,7 @@ func NewLocal(clk clock.Clock) *service {
 		globalPullLastReconciledMs: 0,
 		stopBackground:             make(chan struct{}),
 		stopBackgroundOnce:         sync.Once{},
+		gcra:                       nil,
 	}
 	s.startJanitor()
 
@@ -451,6 +464,9 @@ func NewLocal(clk clock.Clock) *service {
 func (s *service) Close() error {
 	s.stopBackgroundOnce.Do(func() { close(s.stopBackground) })
 	s.replayBuffer.Close()
+	if s.gcra != nil {
+		s.gcra.Close()
+	}
 	return nil
 }
 
