@@ -2,13 +2,16 @@ package ratelimit
 
 import (
 	"cmp"
+	"context"
 	"fmt"
 	"maps"
+	"math/rand/v2"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/fuzz"
 )
 
@@ -141,4 +144,66 @@ func sessionsOf(table map[string]StoredSession) []session {
 		sessions = append(sessions, session{id: row.SessionID, anchorAtNs: row.AnchorAtNs, consumedNs: row.ConsumedNs})
 	}
 	return sessions
+}
+
+// TestCleanUpDeletesEveryIdleFingerprintInOnePass guarantees that one pass
+// reaches every due row: past its random start, before it after the wrap,
+// and across several pages. 900 fingerprints with 4 due rows each give 3,600
+// due rows, more than `dueRowsPerPage`, but fewer fingerprints than
+// `maxFingerprintsPerCleanupPass`.
+func TestCleanUpDeletesEveryIdleFingerprintInOnePass(t *testing.T) {
+	const fingerprints = 900
+	const rowsPerFingerprint = 4
+	for seed := range uint64(5) {
+		t.Run(fmt.Sprintf("seed %d", seed), func(t *testing.T) {
+			testClock := clock.NewTestClock(time.Unix(1_700_000_000, 0))
+			store := newMemoryStore()
+			l, err := newLimiter(Config{Clock: testClock, Store: store, Random: rand.New(rand.NewPCG(seed, 1))})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, l.Close()) })
+
+			// Anchors spread over 20 minutes and end 50 minutes ago, so every
+			// row is due and every limit has been idle for half an hour.
+			oldestAnchorNs := testClock.Now().Add(-70 * time.Minute).UnixNano()
+			var rows []StoredSession
+			for f := range fingerprints {
+				for r := range rowsPerFingerprint {
+					anchorAtNs := oldestAnchorNs + int64(f*rowsPerFingerprint+r)*(20*time.Minute).Nanoseconds()/(fingerprints*rowsPerFingerprint)
+					rows = append(rows, StoredSession{
+						Fingerprint:    fingerprint(fmt.Sprintf("idle %d", f)),
+						SessionID:      fmt.Sprintf("session %d", r),
+						AnchorAtNs:     anchorAtNs,
+						ConsumedNs:     time.Millisecond.Nanoseconds(),
+						CompactAfterMs: (anchorAtNs + compactAfter.Nanoseconds()) / time.Millisecond.Nanoseconds(),
+					})
+				}
+			}
+			require.NoError(t, store.WriteSessions(context.Background(), rows))
+
+			require.NoError(t, l.cleanUp(context.Background()))
+			for f := range fingerprints {
+				require.Empty(t, store.sessions(fingerprint(fmt.Sprintf("idle %d", f))), "fingerprint %d", f)
+			}
+		})
+	}
+}
+
+func TestCleanUpReturnsAFailedPrimaryRead(t *testing.T) {
+	testClock := clock.NewTestClock(time.Unix(1_700_000_000, 0))
+	store := newMemoryStore()
+	l, err := newLimiter(Config{Clock: testClock, Store: store, Random: rand.New(rand.NewPCG(1, 2))})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, l.Close()) })
+
+	anchorAtNs := testClock.Now().Add(-time.Hour).UnixNano()
+	require.NoError(t, store.WriteSessions(context.Background(), []StoredSession{{
+		Fingerprint:    fingerprint("idle"),
+		SessionID:      "session",
+		AnchorAtNs:     anchorAtNs,
+		ConsumedNs:     time.Millisecond.Nanoseconds(),
+		CompactAfterMs: (anchorAtNs + compactAfter.Nanoseconds()) / time.Millisecond.Nanoseconds(),
+	}}))
+	store.setFailReads(true)
+
+	require.Error(t, l.cleanUp(context.Background()))
 }
