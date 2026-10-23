@@ -77,7 +77,7 @@ func (c *Controller) resyncDeploymentSecrets(ctx context.Context) {
 		}
 		for i := range secrets.Items {
 			secret := &secrets.Items[i]
-			if !isDeploymentSecret(secret) {
+			if !isOrphanedDeploymentSecret(secret) {
 				continue
 			}
 			id := secret.Labels[labels.LabelKeyDeploymentID]

@@ -57,7 +57,10 @@ func deploymentResourcePrefix(deploymentID string) string {
 	return "deploy-" + strings.ToLower(strings.ReplaceAll(deploymentID, "_", "-"))
 }
 
-func isDeploymentSecret(secret *corev1.Secret) bool {
+func isOrphanedDeploymentSecret(secret *corev1.Secret) bool {
+	if len(secret.OwnerReferences) > 0 {
+		return false
+	}
 	id, ok := labels.GetDeploymentID(secret.Labels)
 	if !ok || id == "" || secret.Type != corev1.SecretTypeOpaque {
 		return false
@@ -77,7 +80,7 @@ func (c *Controller) deleteDeploymentSecret(ctx context.Context, namespace, depl
 	if err != nil {
 		return fmt.Errorf("failed to get deployment secret: %w", err)
 	}
-	if !isDeploymentSecret(secret) || secret.Labels[labels.LabelKeyDeploymentID] != deploymentID {
+	if !isOrphanedDeploymentSecret(secret) || secret.Labels[labels.LabelKeyDeploymentID] != deploymentID {
 		return nil
 	}
 	err = client.Delete(ctx, secret.Name, metav1.DeleteOptions{
