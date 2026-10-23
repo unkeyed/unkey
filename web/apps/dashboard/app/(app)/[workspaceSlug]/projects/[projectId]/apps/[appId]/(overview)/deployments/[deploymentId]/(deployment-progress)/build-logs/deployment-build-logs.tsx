@@ -51,7 +51,7 @@ export function DeploymentBuildLogs({
   const { derivedStatus } = useDeploymentStatus(deployment);
   const isFailed = derivedStatus === "failed";
   const isBuilding = BUILD_NOT_DONE_STATUSES.has(derivedStatus);
-  const [opening] = useState(() => panelOpening(derivedStatus));
+  const opening = panelOpening(derivedStatus);
   const [followsTail, setFollowsTail] = useState(opening.followsTail);
   const [pendingJump, setPendingJump] = useState<PendingJump | null>(
     opening.jumpsToLastError ? "last-error" : null,
@@ -65,8 +65,9 @@ export function DeploymentBuildLogs({
   const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
   const logHeight = `min(${fixedHeight}px, 60dvh)`;
   const readsToEnd = isFailed || followsTail || pendingJump !== null || query.trim() !== "";
-  useEffect(() => onReadsToEndChange(readsToEnd), [onReadsToEndChange, readsToEnd]);
-  useEffect(() => () => onReadsToEndChange(false), [onReadsToEndChange]);
+  useEffect(() => {
+    onReadsToEndChange(readsToEnd);
+  }, [onReadsToEndChange, readsToEnd]);
 
   const entries = logs.data?.entries;
   const hasMore = logs.data?.hasMore === true;
