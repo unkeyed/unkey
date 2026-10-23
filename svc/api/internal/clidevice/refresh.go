@@ -4,12 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 )
+
+var errRefreshRotated = errors.New("refresh token rotated concurrently")
 
 // Refresh rotates the refresh token and returns a new access token.
 // The user's current WorkOS roles are intersected with the stored permissions.
@@ -113,7 +116,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 			return err
 		}
 		if n != 1 {
-			return unauthenticated("This refresh token was already used. Run unkey login again.")
+			return errRefreshRotated
 		}
 
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
@@ -140,6 +143,9 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		}
 		return nil
 	})
+	if errors.Is(err, errRefreshRotated) {
+		return s.refreshPreviousToken(ctx, req, hashRefreshToken(strings.TrimSpace(req.RefreshToken)), row.RefreshFamily)
+	}
 	return tokens, err
 }
 
