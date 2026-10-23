@@ -137,10 +137,9 @@ describe("grantsToPolicies", () => {
     expect(grantsToPolicies(ws, [stray])).toEqual({ policies: [], unmapped: [stray] });
   });
 
-  it("hands back legacy names, alien workspaces and unknown paths untouched", () => {
+  it("hands back malformed grants, foreign workspaces, and unknown paths untouched", () => {
     const grants = [
-      "api.ks_1.read_key",
-      "*",
+      "malformed permission data",
       "unkey:v1:ws_other:projects/*/identities/*#read",
       "unkey:v1:ws_123:teleporters/*#read",
       "unkey:v1:ws_123:projects/*/identities/*#read_identity",
@@ -151,8 +150,7 @@ describe("grantsToPolicies", () => {
         { scope: "workspace", instances: [ALL_INSTANCES], selection: { identity: ["read"] } },
       ],
       unmapped: [
-        "api.ks_1.read_key",
-        "*",
+        "malformed permission data",
         "unkey:v1:ws_other:projects/*/identities/*#read",
         "unkey:v1:ws_123:teleporters/*#read",
         "unkey:v1:ws_123:projects/*/identities/*#read_identity",

@@ -45,9 +45,9 @@
     "reason": "underscores inside an action"
   },
   {
-    "input": "api.api_123.read_api",
+    "input": "documents.read",
     "valid": false,
-    "reason": "legacy tuple, not a URN"
+    "reason": "customer permission, not a URN"
   },
   {
     "input": "unkey:v1:ws_123:keyspaces/ks_123",
