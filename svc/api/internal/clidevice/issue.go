@@ -168,17 +168,25 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		}
 
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
-		if err := s.writeAudit(ctx, tx, auditEntry{
-			Event:       auditlog.CLISessionCreateEvent,
-			Display:     "Created CLI session " + sessionID,
-			UserID:      locked.ApproverUserID.String,
-			UserName:    locked.ApproverName.String,
-			WorkspaceID: workspace.ID,
-			SessionID:   sessionID,
-			DeviceName:  locked.DeviceName.String,
-			RemoteIP:    remoteIP,
-			UserAgent:   userAgent,
-		}); err != nil {
+		if err := s.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
+			Event:         auditlog.CLISessionCreateEvent,
+			Display:       "Created CLI session " + sessionID,
+			WorkspaceID:   workspace.ID,
+			ActorType:     auditlog.UserActor,
+			ActorID:       locked.ApproverUserID.String,
+			ActorName:     locked.ApproverName.String,
+			ActorMeta:     map[string]any{},
+			CorrelationID: "",
+			RemoteIP:      remoteIP,
+			UserAgent:     userAgent,
+			Targets: []auditlog.AuditLogTarget{{
+				Type:        auditlog.CLISessionTargetType,
+				ID:          sessionID,
+				Name:        locked.DeviceName.String,
+				DisplayName: locked.DeviceName.String,
+				Meta:        map[string]any{},
+			}},
+		}}); err != nil {
 			return err
 		}
 
