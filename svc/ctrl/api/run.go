@@ -140,11 +140,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := clock.New()
 	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
-		Fresh:    5 * time.Minute,
-		Stale:    30 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "deployment_topology_min_replicas",
-		Clock:    clk,
+		Fresh:     5 * time.Minute,
+		Stale:     30 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "deployment_topology_min_replicas",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create topology cache: %w", err)
@@ -198,11 +199,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize caches for ACME service (needed for certificate verification endpoint)
 	domainCache, err := cache.New(cache.Config[string, db.CustomDomain]{
-		Fresh:    5 * time.Minute,
-		Stale:    10 * time.Minute,
-		MaxSize:  10000,
-		Resource: "domains",
-		Clock:    clk,
+		Fresh:     5 * time.Minute,
+		Stale:     10 * time.Minute,
+		MaxSize:   10000,
+		Resource:  "domains",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create domain cache: %w", err)
@@ -210,11 +212,12 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(func() error { domainCache.Close(); return nil })
 
 	challengeCache, err := cache.New(cache.Config[string, db.AcmeChallenge]{
-		Fresh:    10 * time.Second,
-		Stale:    30 * time.Second,
-		MaxSize:  1000,
-		Resource: "acme_challenges",
-		Clock:    clk,
+		Fresh:     10 * time.Second,
+		Stale:     30 * time.Second,
+		MaxSize:   1000,
+		Resource:  "acme_challenges",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create challenge cache: %w", err)
