@@ -63,7 +63,7 @@ export function useStagesCard({
   // The ticker needs the newest line at once
   const { logs: buildLogs, panelProps: buildPanel } = useBuildLogsPanel(deployment, {
     status,
-    readsToEndFloor: !buildPanelOpen,
+    alwaysReadsToEnd: !buildPanelOpen,
     enabled: buildPanelOpen || buildStage?.resolution.status === "started",
   });
   const buildEntries = buildLogs.data?.entries;

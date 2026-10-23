@@ -129,22 +129,29 @@ function settledAt(deployment: Deployment): number {
   return deployment.updatedAt ?? deployment.createdAt;
 }
 
-// Pairs the query with a mounted log panel, which reads to the end while it
-// follows the tail, searches or jumps. A panel opens on the tail of a running
-// build and on the last error of a failed one.
+// A panel opens following the tail of a running build and on the last error
+// of a failed one; either way its first read goes to the end
+export function panelOpening(status: DeploymentStatus) {
+  return {
+    followsTail: BUILD_NOT_DONE_STATUSES.has(status),
+    jumpsToLastError: status === "failed",
+  };
+}
+
 export function useBuildLogsPanel(
   deployment: Deployment,
   {
     status,
     enabled,
-    readsToEndFloor,
-  }: { status: DeploymentStatus; enabled: boolean; readsToEndFloor: boolean },
+    alwaysReadsToEnd = false,
+  }: { status: DeploymentStatus; enabled: boolean; alwaysReadsToEnd?: boolean },
 ) {
-  const [panelReadsToEnd, setPanelReadsToEnd] = useState(
-    () => status === "failed" || BUILD_NOT_DONE_STATUSES.has(status),
-  );
+  const [panelReadsToEnd, setPanelReadsToEnd] = useState(() => {
+    const opening = panelOpening(status);
+    return opening.followsTail || opening.jumpsToLastError;
+  });
   const logs = useBuildLogs(deployment, {
-    readsToEnd: readsToEndFloor || panelReadsToEnd,
+    readsToEnd: alwaysReadsToEnd || panelReadsToEnd,
     enabled,
   });
   return { logs, panelProps: { logs, onReadsToEndChange: setPanelReadsToEnd } };

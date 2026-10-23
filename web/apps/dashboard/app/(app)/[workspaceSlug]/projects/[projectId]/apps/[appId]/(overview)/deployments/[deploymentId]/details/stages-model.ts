@@ -99,7 +99,7 @@ export function resolveStages({
       key: "instances",
       label: stageLabels.instances[instancesStep.status],
       resolution: withInstanceHealth(instancesStep, instances),
-      expandable: Boolean(deploying),
+      expandable: Boolean(deploying) || status === "ready",
     },
     {
       key: "domains",
