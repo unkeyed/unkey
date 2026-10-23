@@ -25,7 +25,7 @@ import { CreateDeploymentButton } from "../../navigations/create-deployment-butt
 import { useProductionPolicies } from "../../policies/hooks/use-policies-data";
 import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
 import { AppCanvas } from "./app-canvas";
-import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
+import { AppCanvasSkeleton } from "./app-canvas-skeleton";
 import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
 import { OverviewHeader, ProductionActions } from "./overview-header";
@@ -45,7 +45,7 @@ const UndoRollbackDialog = dynamic(
   { ssr: false },
 );
 
-type ProductionCardModel =
+type ProductionOverviewModel =
   | { kind: "loading" }
   | { kind: "no-deployments" }
   | { kind: "no-production" }
@@ -64,21 +64,21 @@ export function ProductionOverview({ children }: { children: ReactNode }) {
   const { gated, openPaywall, planGate } = useDeployActionGate();
   return (
     <>
-      <AppProductionCardView model={useAppProductionCard({ gated, openPaywall })}>
+      <ProductionOverviewView model={useProductionOverview({ gated, openPaywall })}>
         {children}
-      </AppProductionCardView>
+      </ProductionOverviewView>
       {planGate}
     </>
   );
 }
 
-function useAppProductionCard({
+function useProductionOverview({
   gated,
   openPaywall,
 }: {
   gated: boolean;
   openPaywall: () => void;
-}): ProductionCardModel {
+}): ProductionOverviewModel {
   const { projectId, environments, customDomains } = useProjectData();
   const { deployments, isLoading: isDeploymentsLoading } = useRecentDeployments();
   const appId = useAppId();
@@ -280,11 +280,11 @@ function useAppProductionCard({
   };
 }
 
-function AppProductionCardView({
+function ProductionOverviewView({
   model,
   children,
 }: {
-  model: ProductionCardModel;
+  model: ProductionOverviewModel;
   children: ReactNode;
 }) {
   const deployed = model.kind === "deployed" ? model : null;
@@ -317,10 +317,10 @@ function AppProductionCardView({
   );
 }
 
-function ProductionCardSlot({ model }: { model: ProductionCardModel }) {
+function ProductionCardSlot({ model }: { model: ProductionOverviewModel }) {
   const reduceMotion = useReducedMotion();
   return match(model)
-    .with({ kind: "loading" }, () => <AppProductionCardSkeleton />)
+    .with({ kind: "loading" }, () => <AppCanvasSkeleton />)
     .with({ kind: "no-deployments" }, () => (
       <CreateDeploymentButton
         renderTrigger={({ onClick }) => <ActiveDeploymentCardEmpty onCreateDeployment={onClick} />}

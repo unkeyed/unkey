@@ -17,10 +17,10 @@ function Bar({ className }: { className: string }) {
   return <Skeleton className={cn("inline-block h-3 rounded align-middle", className)} />;
 }
 
-export function AppProductionCardSkeleton() {
+export function AppCanvasSkeleton() {
   return (
     <Card className="flex flex-col">
-      <Canvas label="App canvas loading">
+      <Canvas label="App canvas loading" focusable={false}>
         <Group icon={<IconEarthOutline18 />} label="Domains">
           <Node>
             <NodeHeader icon={<IconEarthOutline18 />} name="Domains" />

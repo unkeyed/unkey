@@ -144,13 +144,21 @@ export function MoreRow({ count, href }: { count: number; href: Route }) {
   );
 }
 
-export function Canvas({ label, children }: { label: string; children: ReactNode }) {
+export function Canvas({
+  label,
+  focusable = true,
+  children,
+}: {
+  label: string;
+  focusable?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className="w-full rounded-t-lg bg-gray-3/40 last:rounded-b-lg">
       <section
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: focusable so keyboard users can scroll a wide canvas
-        tabIndex={0}
+        tabIndex={focusable ? 0 : undefined}
         aria-label={label}
+        aria-busy={!focusable || undefined}
         className="overflow-x-auto rounded-t-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-7"
       >
         <div className="flex w-full min-w-[900px] items-start px-5 py-5">{children}</div>
