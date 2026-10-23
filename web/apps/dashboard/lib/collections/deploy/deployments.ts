@@ -1,4 +1,5 @@
 "use client";
+import type { LastExit } from "@/lib/types/deploy";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { type LoadSubsetOptions, createCollection } from "@tanstack/react-db";
@@ -28,7 +29,7 @@ const lastExitSchema = z.object({
   reason: z.string().nullable(),
   finishedAt: z.number().nullable(),
   statusReason: z.string().nullable(),
-});
+}) satisfies z.ZodType<LastExit>;
 
 export const deploymentSchema = z.object({
   id: z.string(),

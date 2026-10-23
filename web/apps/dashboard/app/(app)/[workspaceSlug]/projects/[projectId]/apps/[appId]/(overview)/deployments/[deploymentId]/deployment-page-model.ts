@@ -63,7 +63,7 @@ export function deploymentPageModel({
   });
   return {
     status,
-    body: showBuild ? "build" : bodyOf(status),
+    body: showBuild ? "build" : BODY_BY_STATUS[status],
     instances,
     pageStatus: resolvePageStatus(status, instances),
     domains: domainPriority,
@@ -71,16 +71,21 @@ export function deploymentPageModel({
   };
 }
 
-function bodyOf(status: DeploymentStatus): DeploymentBody {
-  switch (status) {
-    case "skipped":
-    case "superseded":
-    case "cancelled":
-      return status;
-    default:
-      return "stages";
-  }
-}
+const BODY_BY_STATUS: Record<DeploymentStatus, DeploymentBody> = {
+  pending: "stages",
+  awaiting_approval: "stages",
+  starting: "stages",
+  building: "stages",
+  deploying: "stages",
+  network: "stages",
+  finalizing: "stages",
+  ready: "stages",
+  failed: "stages",
+  stopped: "stages",
+  skipped: "skipped",
+  superseded: "superseded",
+  cancelled: "cancelled",
+};
 
 export function resolvePageStatus(
   status: DeploymentStatus,

@@ -41,8 +41,13 @@ const BUILD_NOT_DONE_STATUSES: ReadonlySet<DeploymentStatus> = new Set([
 
 export function DeploymentBuildLogs({
   logs,
+  onReadsToEndChange,
   fixedHeight = 500,
-}: { logs: BuildLogsQuery; fixedHeight?: number }) {
+}: {
+  logs: BuildLogsQuery;
+  onReadsToEndChange: (readsToEnd: boolean) => void;
+  fixedHeight?: number;
+}) {
   const { deployment } = useDeployment();
   const { derivedStatus } = useDeploymentStatus(deployment);
   const isFailed = derivedStatus === "failed";
@@ -60,6 +65,7 @@ export function DeploymentBuildLogs({
   const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
   const logHeight = `min(${fixedHeight}px, 60dvh)`;
   const readsToEnd = isFailed || followsTail || pendingJump !== null || query.trim() !== "";
+  useEffect(() => onReadsToEndChange(readsToEnd), [onReadsToEndChange, readsToEnd]);
 
   const entries = logs.data?.entries;
   const hasMore = logs.data?.hasMore === true;

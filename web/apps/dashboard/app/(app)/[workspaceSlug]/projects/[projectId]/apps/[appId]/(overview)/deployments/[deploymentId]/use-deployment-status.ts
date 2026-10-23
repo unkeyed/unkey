@@ -11,7 +11,7 @@ export type StepsData = inferRouterOutputs<Router>["deploy"]["deployment"]["step
 const IN_FLIGHT_POLL_MS = 1_000;
 // While the build runs, a finished build step in the logs triggers a refetch,
 // see useBuildLogs. This poll catches a build that ends without a log line,
-// such as a cancel or a timeout
+// such as a cancel, a timeout, or a collapsed log panel that does not poll
 const BUILDING_POLL_MS = 5_000;
 
 /**

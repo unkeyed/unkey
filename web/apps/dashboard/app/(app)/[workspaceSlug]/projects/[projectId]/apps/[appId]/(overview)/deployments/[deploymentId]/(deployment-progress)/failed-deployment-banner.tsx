@@ -69,7 +69,7 @@ function firstStepError(data: NonNullable<StepsData>): string | undefined {
 }
 
 // Note: user-cancelled deployments are routed to DeploymentCancelled in
-// page.tsx before this banner is rendered, so we don't need special-case
+// deployment-overview.tsx before this banner is rendered, so we don't need special-case
 // handling for the "Cancelled by user" marker here.
 export function FailedDeploymentBanner({
   stepsData,
@@ -93,48 +93,46 @@ export function FailedDeploymentBanner({
   const actions = stepsData == null ? "loading" : limit ? "limit" : "generic";
 
   return (
-    <div>
-      <AlertBanner variant="error">
-        <AlertBannerTitle>Deployment failed</AlertBannerTitle>
-        <AlertBannerDescription className="max-w-200 break-words">
-          {limit ?? errorMessage}
-          {limit && (
+    <AlertBanner variant="error">
+      <AlertBannerTitle>Deployment failed</AlertBannerTitle>
+      <AlertBannerDescription className="max-w-200 break-words">
+        {limit ?? errorMessage}
+        {limit && (
+          <>
+            {" "}
+            <Link href={LIMITS_DOCS_URL} target="_blank" rel="noopener noreferrer">
+              Learn more
+            </Link>
+          </>
+        )}
+        {settingsTarget && (
+          <>
+            {" "}
+            <Link href={routes.projects.apps.settings({ ...appScope, ...settingsTarget })}>
+              Go to Settings
+            </Link>
+          </>
+        )}
+      </AlertBannerDescription>
+      <AlertBannerActions>
+        {match(actions)
+          .with("loading", () => null)
+          .with("limit", () => (
             <>
-              {" "}
-              <Link href={LIMITS_DOCS_URL} target="_blank" rel="noopener noreferrer">
-                Learn more
-              </Link>
+              <FailureActions deployment={deployment} redeployVariant="outline" />
+              <Button
+                variant="primary"
+                size="sm"
+                className="px-3"
+                render={<Link href={limitsUrl} />}
+              >
+                View limits
+              </Button>
             </>
-          )}
-          {settingsTarget && (
-            <>
-              {" "}
-              <Link href={routes.projects.apps.settings({ ...appScope, ...settingsTarget })}>
-                Go to Settings
-              </Link>
-            </>
-          )}
-        </AlertBannerDescription>
-        <AlertBannerActions>
-          {match(actions)
-            .with("loading", () => null)
-            .with("limit", () => (
-              <>
-                <FailureActions deployment={deployment} redeployVariant="outline" />
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="px-3"
-                  render={<Link href={limitsUrl} />}
-                >
-                  View limits
-                </Button>
-              </>
-            ))
-            .with("generic", () => <FailureActions deployment={deployment} />)
-            .exhaustive()}
-        </AlertBannerActions>
-      </AlertBanner>
-    </div>
+          ))
+          .with("generic", () => <FailureActions deployment={deployment} />)
+          .exhaustive()}
+      </AlertBannerActions>
+    </AlertBanner>
   );
 }
