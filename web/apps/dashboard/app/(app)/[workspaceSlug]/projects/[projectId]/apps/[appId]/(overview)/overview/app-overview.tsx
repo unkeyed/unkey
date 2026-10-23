@@ -1,6 +1,5 @@
 "use client";
 
-import { useFlag } from "@/lib/flags/provider";
 import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { useAppCurrentDeployment } from "../hooks/use-app-current-deployment";
 import { useRecentDeployments } from "../hooks/use-recent-deployments";
@@ -15,7 +14,6 @@ import { RecentDeployments } from "./components/recent-deployments";
 export function Overview() {
   const { deployments, isLoading: isDeploymentsLoading } = useRecentDeployments();
   const { app } = useAppCurrentDeployment();
-  const appMetrics = useFlag("appMetrics");
   const hasNoDeployments = !isDeploymentsLoading && deployments.length === 0;
 
   return (
@@ -37,7 +35,7 @@ export function Overview() {
         ) : (
           <div className="flex flex-col gap-5">
             <AppProductionCard />
-            {appMetrics && <MetricsGlance />}
+            <MetricsGlance />
             {app?.sourceType === "oci" ? <RecentDeployments /> : <ActiveBranches />}
           </div>
         )}
