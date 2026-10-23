@@ -63,7 +63,10 @@ export function InstanceTable({
                 className={cn(COLUMNS, "h-12 text-sm")}
               >
                 <span className={cn("truncate text-xs", TONE_TEXT[tone].name)}>{instance.key}</span>
-                <span className={cn("truncate text-xs", TONE_TEXT[tone].status)}>
+                <span
+                  className={cn("truncate text-xs", TONE_TEXT[tone].status)}
+                  title={instanceStatusText(instance)}
+                >
                   {instanceStatusText(instance)}
                 </span>
                 <span className="flex min-w-0 items-center gap-1.5 text-xs text-gray-11">

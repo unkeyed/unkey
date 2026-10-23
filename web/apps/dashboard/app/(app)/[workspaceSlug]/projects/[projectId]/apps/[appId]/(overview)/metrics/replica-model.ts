@@ -1,5 +1,4 @@
 import { type InstanceState, instanceStateOf } from "@/lib/collections/deploy/instance-status";
-import { exitBadge } from "@/lib/collections/deploy/last-exit";
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
 import type {
   Grid,
@@ -10,7 +9,6 @@ import type {
   ResourcePoint,
 } from "@/lib/metrics/app-metrics";
 import { type ChartState, METRIC_VIEWS, chartStateOf, seriesChart } from "@/lib/metrics/views";
-import type { LastExit } from "@/lib/types/deploy";
 import {
   ALLOCATION,
   type ChartScale,
@@ -126,15 +124,4 @@ export function replicaSheetModel({
     stopped: instances.status === "ready" && !live,
     usage: replicaUsage(usage, row.replica),
   };
-}
-
-export function lastExitDetail(lastExit: LastExit): string | null {
-  const shown = exitBadge(lastExit);
-  const parts = [
-    lastExit.reason !== shown.reason ? lastExit.reason : null,
-    lastExit.exitCode !== null && (shown.kind === "waiting" || shown.exit === null)
-      ? `exit code ${lastExit.exitCode}`
-      : null,
-  ];
-  return parts.filter(Boolean).join(" · ") || null;
 }

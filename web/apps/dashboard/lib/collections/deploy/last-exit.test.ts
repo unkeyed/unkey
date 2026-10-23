@@ -1,7 +1,7 @@
 import type { LastExit } from "@/lib/types/deploy";
 import type { ContainerStatus } from "@unkey/db/src/schema";
 import { describe, expect, it, test } from "vitest";
-import { exitBadge, exitSummary, lastExitOf, latestExit } from "./last-exit";
+import { exitBadge, exitDetail, exitSummary, lastExitOf, latestExit } from "./last-exit";
 
 const exit = (overrides: Partial<LastExit> = {}): LastExit => ({
   restartCount: 0,
@@ -182,6 +182,23 @@ describe("exitSummary", () => {
     expect(exitSummary(exit({ reason: "", exitCode: 1, restartCount: 2 }))).toBe(
       "Error · exit=1 · 2 restarts",
     );
-    expect(exitSummary(exit({ exitCode: 0 }))).toBe("Error");
+    expect(exitSummary(exit({ exitCode: 0 }))).toBe("Exited");
+  });
+});
+
+describe("exitDetail", () => {
+  test("adds the termination behind a waiting badge", () => {
+    expect(
+      exitDetail(exit({ statusReason: "CrashLoopBackOff", reason: "Error", exitCode: 1 })),
+    ).toBe("Error · exit code 1");
+  });
+
+  test("adds nothing the badge already shows", () => {
+    expect(exitDetail(exit({ statusReason: "ImagePullBackOff" }))).toBe(null);
+    expect(exitDetail(exit({ reason: "OOMKilled", exitCode: 137 }))).toBe(null);
+  });
+
+  test("shows a zero exit code the badge hides", () => {
+    expect(exitDetail(exit({ reason: "Completed", exitCode: 0 }))).toBe("exit code 0");
   });
 });
