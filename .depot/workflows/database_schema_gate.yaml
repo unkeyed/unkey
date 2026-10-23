@@ -20,6 +20,7 @@ env:
   PSCALE_DB: unkey
   FROM: main
   BRANCH: schema-check-${{ github.run_id }}-${{ github.run_attempt }}
+  BASE_REF: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
 jobs:
   gate:
     if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
@@ -31,6 +32,9 @@ jobs:
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
 
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: changes

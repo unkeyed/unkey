@@ -5,9 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"strings"
-
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -68,9 +67,14 @@ func NewResolver(sessions Sessions, clk clock.Clock, secrets ...[]byte) (*Resolv
 				fault.Internal(fmt.Sprintf("create cli verifier for secret %d", i)),
 			)
 		}
+
 		verifiers = append(verifiers, verifier)
 	}
-	return &Resolver{verifiers: verifiers, sessions: sessions}, nil
+
+	return &Resolver{
+		verifiers: verifiers,
+		sessions:  sessions,
+	}, nil
 }
 
 // Resolve claims CLI access tokens and leaves every other bearer for later resolvers.
@@ -88,7 +92,9 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 			fault.Public("Invalid bearer token."),
 		)
 	}
-	if claims.Subject == "" || claims.SessionID == "" || claims.WorkspaceID == "" || len(claims.Permissions) == 0 {
+
+	if claims.Subject == "" || claims.SessionID == "" ||
+		claims.WorkspaceID == "" || len(claims.Permissions) == 0 {
 		return nil, fault.New("invalid cli access token",
 			fault.Code(codes.Auth.Authentication.Malformed.URN()),
 			fault.Internal("cli token is missing subject, session, workspace, or permissions"),
@@ -105,12 +111,14 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 				fault.Public("This CLI session is no longer valid. Run unkey login again."),
 			)
 		}
+
 		return nil, fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to load cli session"),
 			fault.Public("Unable to verify the bearer token right now."),
 		)
 	}
+
 	if session.UserID != claims.Subject || session.WorkspaceID != claims.WorkspaceID {
 		return nil, fault.New("cli token does not match the session",
 			fault.Code(codes.Auth.Authentication.Malformed.URN()),
@@ -144,10 +152,16 @@ func (r *Resolver) verify(token string) (Claims, error) {
 		if err == nil {
 			return claims, nil
 		}
+
 		lastErr = err
 	}
+
 	var zero Claims
 	return zero, lastErr
+}
+
+type tokenUseClaims struct {
+	TokenUse string `json:"token_use"`
 }
 
 func tokenUse(token string) string {
@@ -155,16 +169,17 @@ func tokenUse(token string) string {
 	if len(parts) != 3 {
 		return ""
 	}
+
 	raw, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
 		return ""
 	}
-	var peek struct {
-		TokenUse string `json:"token_use"`
-	}
+
+	var peek tokenUseClaims
 	if err := json.Unmarshal(raw, &peek); err != nil {
 		return ""
 	}
+
 	return peek.TokenUse
 }
 
