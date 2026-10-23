@@ -2,7 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
-import { policyListLoad } from "@/lib/collections/deploy/policies";
+import { type PolicyRow, policyListLoad } from "@/lib/collections/deploy/policies";
 import { useCollectionLoad } from "@/lib/collections/use-collection-load";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
@@ -33,21 +33,18 @@ export function usePoliciesData(): PoliciesData {
   const productionId = productionEnv?.id ?? null;
   const previewId = previewEnv?.id ?? null;
 
-  const production = usePolicyRows(projectId, appId, productionId);
-  const preview = usePolicyRows(projectId, appId, previewId);
-  const productionRows = production.data;
-  const previewRows = preview.data;
+  const production = useEnvPolicies(projectId, appId, productionId);
+  const preview = useEnvPolicies(projectId, appId, previewId);
+  const productionRows = production.rows;
+  const previewRows = preview.rows;
 
   const merged = useMemo(
     () => mergePolicies(productionRows ?? [], previewRows ?? []),
     [productionRows, previewRows],
   );
 
-  const { failed: listFailed, retry } = useCollectionLoad(
-    ...[productionId, previewId].filter((id) => id !== null).map(policyListLoad),
-  );
   const isLoading = isEnvironmentsLoading || production.isLoading || preview.isLoading;
-  const isError = production.isError || preview.isError || listFailed;
+  const isError = production.isError || preview.isError;
 
   const envs = useMemo(
     () => ({
@@ -61,8 +58,48 @@ export function usePoliciesData(): PoliciesData {
     envs,
     merged,
     view: policiesView(isError, isLoading, merged.length),
-    retry,
+    retry: () => {
+      production.retry();
+      preview.retry();
+    },
     canWrite: !isLoading && !isError && productionId !== null && previewId !== null,
+  };
+}
+
+export type ProductionPolicies = {
+  policies: PolicyRow[];
+  view: PoliciesView;
+  retry: () => void;
+};
+
+export function useProductionPolicies(): ProductionPolicies {
+  const { environments, projectId, isEnvironmentsLoading } = useProjectData();
+  const appId = useAppId();
+  const productionId = environments.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id ?? null;
+  const production = useEnvPolicies(projectId, appId, productionId);
+  const policies = production.rows ?? [];
+
+  return {
+    policies,
+    view: policiesView(
+      production.isError,
+      isEnvironmentsLoading || production.isLoading,
+      policies.length,
+    ),
+    retry: production.retry,
+  };
+}
+
+function useEnvPolicies(projectId: string, appId: string, environmentId: string | null) {
+  const rows = usePolicyRows(projectId, appId, environmentId);
+  const { failed, retry } = useCollectionLoad(
+    ...(environmentId === null ? [] : [policyListLoad(environmentId)]),
+  );
+  return {
+    rows: rows.data,
+    isLoading: rows.isLoading,
+    isError: rows.isError || failed,
+    retry,
   };
 }
 
