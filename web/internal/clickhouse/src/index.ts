@@ -108,7 +108,6 @@ import {
   getRequestDetails,
   getRequestLogs,
 } from "./frontline";
-import { getEnvironmentRequests } from "./frontline/environment-requests";
 import { getRuntimeLogs } from "./runtime-logs";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
@@ -352,11 +351,6 @@ export class ClickHouse {
         egress: { timeseries: getResourceNetworkEgressTimeseries(this.querier) },
         ingress: { timeseries: getResourceNetworkIngressTimeseries(this.querier) },
       },
-    };
-  }
-  public get environment() {
-    return {
-      requests: getEnvironmentRequests(this.querier),
     };
   }
   public get appMetrics() {
