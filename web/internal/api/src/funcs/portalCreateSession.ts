@@ -56,8 +56,10 @@ import { Result } from "../types/fp.js";
  * returns 403 for the whole request rather than minting a reduced session, so a
  * missing grant is visible instead of surfacing later as a broken portal.
  *
- * Missing the portal permission itself returns **404**, not 403: a caller who
- * cannot mint for a portal is not told whether it exists.
+ * Missing the portal permission itself returns **404** when your root key
+ * cannot read the portal or its sessions, so a caller who cannot see a portal
+ * is not told whether it exists. A root key that can read the portal but lacks
+ * the permission gets **403**.
  *
  * Your root key must also be associated with a workspace that has an enabled portal.
  *
