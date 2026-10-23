@@ -8,7 +8,7 @@ import {
   infiniteListOf,
   listOf,
 } from "./list";
-import { fromQuery } from "./loadable";
+import { type QueryResult, fromQuery } from "./loadable";
 
 type Page = { rows: string[] };
 
@@ -152,7 +152,7 @@ describe("listOf", () => {
   test("no data with an error fails and carries the error", () => {
     expect(
       listOf(
-        fromQuery<string[]>({
+        fromQuery<QueryResult<string[]>>({
           data: undefined,
           error,
           isError: true,
@@ -166,7 +166,7 @@ describe("listOf", () => {
   test("no data and no error is loading", () => {
     expect(
       listOf(
-        fromQuery<string[]>({
+        fromQuery<QueryResult<string[]>>({
           data: undefined,
           error: null,
           isError: false,
