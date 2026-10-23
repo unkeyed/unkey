@@ -56,8 +56,7 @@ const input = (overrides: Partial<DeploymentPageInput> = {}): DeploymentPageInpu
     source: "git",
   },
   status: "ready",
-  buildRequested: false,
-  buildRequestedOnPage: false,
+  buildRequest: "none",
   domains: [],
   domainsLoading: false,
   customDomains: [],
@@ -75,9 +74,7 @@ describe("deploymentPageModel", () => {
   });
 
   test("?build asks for the build stage and keeps the status body", () => {
-    const model = deploymentPageModel(
-      input({ status: "building", buildRequested: true, buildRequestedOnPage: true }),
-    );
+    const model = deploymentPageModel(input({ status: "building", buildRequest: "active" }));
     expect(model.body).toBe("stages");
     expect(model.requestedStage).toBe("build");
     expect(deploymentPageModel(input({ status: "building" })).requestedStage).toBe(null);
@@ -85,8 +82,7 @@ describe("deploymentPageModel", () => {
 
   test("a build request shows the stages of a cancelled or superseded deployment", () => {
     const body = (status: DeploymentStatus) =>
-      deploymentPageModel(input({ status, buildRequested: false, buildRequestedOnPage: true }))
-        .body;
+      deploymentPageModel(input({ status, buildRequest: "seen" })).body;
     expect(body("cancelled")).toBe("stages");
     expect(body("superseded")).toBe("stages");
     expect(body("skipped")).toBe("skipped");
@@ -97,8 +93,7 @@ describe("deploymentPageModel", () => {
       input({
         deployment: { ...input().deployment, source: "oci" },
         status: "cancelled",
-        buildRequested: true,
-        buildRequestedOnPage: true,
+        buildRequest: "active",
       }),
     );
     expect(model.requestedStage).toBe(null);

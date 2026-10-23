@@ -183,6 +183,31 @@ describe("resolveStages", () => {
     });
   });
 
+  test("a cancel reason on a stopped deployment is not a failure", () => {
+    const stages = byKey(
+      resolveStages(
+        input({
+          status: "cancelled",
+          steps: {
+            building: step({ error: "cancelled by user", completed: false }),
+          },
+        }),
+      ),
+    );
+    expect(stages.build.resolution).toMatchObject({
+      status: "skipped",
+      description: "cancelled by user",
+    });
+    expect(stages.instances.resolution.status).toBe("skipped");
+    expect(stages.domains.resolution.status).toBe("skipped");
+  });
+
+  test("a superseded deployment without step records waits on nothing", () => {
+    const stages = byKey(resolveStages(input({ status: "superseded" })));
+    expect(stages.build.resolution.status).toBe("skipped");
+    expect(stages.instances.resolution.status).toBe("skipped");
+  });
+
   test("a ready deployment without step records reads as complete", () => {
     const stages = byKey(resolveStages(input({ status: "ready", domainCount: 1 })));
     expect(stages.build.resolution.status).toBe("completed");
@@ -206,9 +231,13 @@ describe("open stage", () => {
     expect(initialOpenStage(closed)).toEqual({ open: null, autoOpened: [], requested: null });
   });
 
-  test("a requested stage opens on landing, unless another stage failed", () => {
+  test("a requested stage opens on landing, even when another stage failed", () => {
     expect(initialOpenStage({ failed: null, requested: "build" }).open).toBe("build");
-    expect(initialOpenStage({ failed: "instances", requested: "build" }).open).toBe("instances");
+    expect(initialOpenStage({ failed: "instances", requested: "build" })).toEqual({
+      open: "build",
+      autoOpened: ["instances"],
+      requested: "build",
+    });
   });
 
   test("a request made on the page opens its stage once", () => {
