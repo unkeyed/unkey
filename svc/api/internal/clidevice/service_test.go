@@ -224,6 +224,51 @@ func TestReusedRefreshTokenRevokesTheSession(t *testing.T) {
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 }
 
+func TestRefreshTokenTwoRotationsOldRevokesTheFamily(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+
+	first, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+	require.NoError(t, err)
+	h.Clock.Tick(refreshReuseGrace + time.Millisecond)
+	second, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: first.RefreshToken})
+	require.NoError(t, err)
+
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+	require.Contains(t, fault.UserFacingMessage(err), "session was revoked")
+
+	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	require.True(t, row.RevokedAt.Valid)
+
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: second.RefreshToken})
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+}
+
+func TestUnknownTokenOfARevokedFamilyIsPlainlyInvalid(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+	family, ok := refreshTokenFamily(tokens.RefreshToken)
+	require.True(t, ok)
+
+	_, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: newRefreshToken(newRefreshFamily())})
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+	require.Equal(t, "The refresh token is invalid. Run unkey login again.", fault.UserFacingMessage(err))
+
+	require.NoError(t, svc.Revoke(t.Context(), RevokeRequest{
+		Principal: adminPrincipal(workspace, uid.New(uid.TestPrefix)),
+		SessionID: tokens.SessionID,
+	}))
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: newRefreshToken(family)})
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+	require.Equal(t, "The refresh token is invalid. Run unkey login again.", fault.UserFacingMessage(err))
+}
+
 func TestPreviousRefreshTokenWithinGraceDoesNotRevokeTheFamily(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
