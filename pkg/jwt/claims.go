@@ -1,9 +1,7 @@
 package jwt
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
 	"slices"
 	"time"
 
@@ -17,25 +15,17 @@ type Audience []string
 
 // UnmarshalJSON decodes a scalar or array audience claim.
 func (a *Audience) UnmarshalJSON(data []byte) error {
-	data = bytes.TrimSpace(data)
-	if len(data) == 0 {
-		return fmt.Errorf("aud must be a string or array of strings")
-	}
-
-	if data[0] == '"' {
-		var audience string
-		if err := json.Unmarshal(data, &audience); err != nil {
-			return fmt.Errorf("decode scalar aud: %w", err)
-		}
-		*a = Audience{audience}
+	var audiences []string
+	if err := json.Unmarshal(data, &audiences); err == nil {
+		*a = audiences
 		return nil
 	}
 
-	var audiences []string
-	if err := json.Unmarshal(data, &audiences); err != nil {
-		return fmt.Errorf("decode array aud: %w", err)
+	var audience string
+	if err := json.Unmarshal(data, &audience); err != nil {
+		return err
 	}
-	*a = audiences
+	*a = Audience{audience}
 	return nil
 }
 

@@ -3,10 +3,8 @@ package jwt
 import (
 	"context"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -48,22 +46,14 @@ type JWKSVerifier[T any] struct {
 	// verify against the cached key set. Only cold-start callers, which have
 	// no keys to serve anyway, and refetch callers, whose token already
 	// failed against the cache, ever wait on it.
-	current     atomic.Pointer[keySet[T]]
+	current     atomic.Pointer[keySet]
 	fetchMu     sync.Mutex
 	lastAttempt time.Time // guarded by fetchMu
 }
 
-type jwksVerifier struct {
-	*JWKSVerifier[Claims]
-}
+var _ claimsVerifier = (*JWKSVerifier[Claims])(nil)
 
-var _ claimsVerifier = (*jwksVerifier)(nil)
-
-func (v *jwksVerifier) verify(ctx context.Context, token string) (Claims, error) {
-	return v.Verify(ctx, token)
-}
-
-// NewJWKSVerifier creates a typed verifier backed by a remote JWKS endpoint.
+// NewJWKSVerifier creates a verifier backed by a remote JWKS endpoint.
 func NewJWKSVerifier[T any](issuer string, audience string, jwksURL string) (*JWKSVerifier[T], error) {
 	if strings.TrimSpace(issuer) == "" {
 		return nil, errors.New("JWT issuer is required")
@@ -77,7 +67,7 @@ func NewJWKSVerifier[T any](issuer string, audience string, jwksURL string) (*JW
 		issuer:      issuer,
 		audience:    audience,
 		clock:       clock.New(),
-		current:     atomic.Pointer[keySet[T]]{},
+		current:     atomic.Pointer[keySet]{},
 		fetchMu:     sync.Mutex{},
 		lastAttempt: time.Time{},
 	}, nil
@@ -94,10 +84,9 @@ func jwksHTTPTransport() http.RoundTripper {
 	return transport
 }
 
-// Verify checks a token against the cached JWKS keys and configured claims.
+// Verify validates the signature and registered claims before returning typed claims.
 func (v *JWKSVerifier[T]) Verify(ctx context.Context, token string) (T, error) {
 	var zero T
-
 	// Parsing the kid before touching the key source lets tokens with a
 	// garbage header fail without costing a fetch or a signature check.
 	kid, err := tokenKID(token)
@@ -118,7 +107,7 @@ func (v *JWKSVerifier[T]) Verify(ctx context.Context, token string) (T, error) {
 		)
 	}
 
-	claims, verifyErr := keys.verify(kid, token)
+	claims, verifyErr := v.verify(keys, kid, token)
 	if verifyErr == nil {
 		return claims, nil
 	}
@@ -129,7 +118,7 @@ func (v *JWKSVerifier[T]) Verify(ctx context.Context, token string) (T, error) {
 	// identically against a fresh fetch, so those rejections trigger nothing.
 	if kid == "" || !keys.contains(kid) {
 		if fresh, changed := v.refetch(ctx, keys); changed {
-			if claims, retryErr := fresh.verify(kid, token); retryErr == nil {
+			if claims, retryErr := v.verify(fresh, kid, token); retryErr == nil {
 				return claims, nil
 			}
 		}
@@ -143,7 +132,7 @@ func (v *JWKSVerifier[T]) Verify(ctx context.Context, token string) (T, error) {
 }
 
 // load returns the current key set, fetching it on first use.
-func (v *JWKSVerifier[T]) load(ctx context.Context) (*keySet[T], error) {
+func (v *JWKSVerifier[T]) load(ctx context.Context) (*keySet, error) {
 	if set := v.current.Load(); set != nil {
 		return set, nil
 	}
@@ -154,7 +143,7 @@ func (v *JWKSVerifier[T]) load(ctx context.Context) (*keySet[T], error) {
 // refetch refreshes the key set after a token failed against seen. It returns
 // the freshest available set and whether that set differs from seen and is
 // therefore worth retrying against.
-func (v *JWKSVerifier[T]) refetch(ctx context.Context, seen *keySet[T]) (*keySet[T], bool) {
+func (v *JWKSVerifier[T]) refetch(ctx context.Context, seen *keySet) (*keySet, bool) {
 	set, changed, err := v.fetchLatest(ctx, seen)
 	if err != nil {
 		return seen, false
@@ -173,7 +162,7 @@ func (v *JWKSVerifier[T]) refetch(ctx context.Context, seen *keySet[T]) (*keySet
 // not invalidate tokens signed by already known keys. Before the first
 // successful fetch the rate limit is not armed, so a transient cold-start
 // failure does not wedge all auth for the full interval.
-func (v *JWKSVerifier[T]) fetchLatest(ctx context.Context, seen *keySet[T]) (*keySet[T], bool, error) {
+func (v *JWKSVerifier[T]) fetchLatest(ctx context.Context, seen *keySet) (*keySet, bool, error) {
 	v.fetchMu.Lock()
 	defer v.fetchMu.Unlock()
 
@@ -196,7 +185,7 @@ func (v *JWKSVerifier[T]) fetchLatest(ctx context.Context, seen *keySet[T]) (*ke
 
 	fetchCtx, cancel := context.WithTimeout(ctx, jwksFetchTimeout)
 	defer cancel()
-	set, err := fetchKeySet[T](fetchCtx, v.issuer, v.audience, v.jwksURL)
+	set, err := fetchKeySet(fetchCtx, v.jwksURL)
 	if err != nil {
 		if seen != nil {
 			return seen, false, nil
@@ -209,34 +198,38 @@ func (v *JWKSVerifier[T]) fetchLatest(ctx context.Context, seen *keySet[T]) (*ke
 
 // keySet is one immutable JWKS fetch result; the verifier swaps whole sets
 // atomically and never mutates one in place.
-type keySet[T any] struct {
-	// byKID selects the verifier named by a token's kid header.
-	byKID map[string]tokenjwt.Verifier[T]
+type keySet struct {
+	// byKID selects the signing key named by a token's kid header.
+	byKID map[string]*rsa.PublicKey
 	// ordered preserves document order for tokens that name no kid.
-	ordered []tokenjwt.Verifier[T]
+	ordered []*rsa.PublicKey
 }
 
 // contains reports whether the set has a verifier for the kid.
-func (s *keySet[T]) contains(kid string) bool {
+func (s *keySet) contains(kid string) bool {
 	_, ok := s.byKID[kid]
 	return ok
 }
 
-// verify checks the token against the verifier its kid names, or against
+// verify checks the token against the signing key its kid names, or against
 // every key in document order when the token names no kid.
-func (s *keySet[T]) verify(kid string, token string) (T, error) {
+func (v *JWKSVerifier[T]) verify(keys *keySet, kid string, token string) (T, error) {
 	var zero T
-
+	selected := keys.ordered
 	if kid != "" {
-		verifier, ok := s.byKID[kid]
+		key, ok := keys.byKID[kid]
 		if !ok {
 			return zero, fmt.Errorf("no JWKS key matches kid %q", kid)
 		}
-		return verifier.Verify(token)
+		selected = []*rsa.PublicKey{key}
 	}
 
 	var lastErr error
-	for _, verifier := range s.ordered {
+	for _, key := range selected {
+		verifier, err := tokenjwt.NewRS256VerifierWithPublicKey[T](key, verifierOptions(v.issuer, v.audience)...)
+		if err != nil {
+			return zero, err
+		}
 		claims, err := verifier.Verify(token)
 		if err == nil {
 			return claims, nil
@@ -279,11 +272,11 @@ type jwkKey struct {
 	KeyID     string `json:"kid"`
 }
 
-// fetchKeySet downloads the JWKS document and indexes a verifier per usable
+// fetchKeySet downloads the JWKS document and indexes each usable
 // RS256 signing key. A malformed entry is skipped rather than failing the
 // fetch, so one bad key cannot invalidate the usable keys published next to
 // it; only a document with no usable key at all is an error.
-func fetchKeySet[T any](ctx context.Context, issuer string, audience string, jwksURL string) (*keySet[T], error) {
+func fetchKeySet(ctx context.Context, jwksURL string) (*keySet, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, jwksURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create JWKS request: %w", err)
@@ -309,23 +302,23 @@ func fetchKeySet[T any](ctx context.Context, issuer string, audience string, jwk
 		return nil, errors.New("JWKS contains no keys")
 	}
 
-	set := &keySet[T]{
-		byKID:   map[string]tokenjwt.Verifier[T]{},
+	set := &keySet{
+		byKID:   map[string]*rsa.PublicKey{},
 		ordered: nil,
 	}
 	var keyErrs []error
 	for _, key := range jwks.Keys {
-		verifier, err := verifierFromJWK[T](key, issuer, audience)
+		publicKey, err := publicKeyFromJWK(key)
 		if err != nil {
 			keyErrs = append(keyErrs, err)
 			continue
 		}
-		if verifier == nil {
+		if publicKey == nil {
 			continue
 		}
-		set.ordered = append(set.ordered, verifier)
+		set.ordered = append(set.ordered, publicKey)
 		if key.KeyID != "" {
-			set.byKID[key.KeyID] = verifier
+			set.byKID[key.KeyID] = publicKey
 		}
 	}
 	if len(set.ordered) == 0 {
@@ -335,9 +328,9 @@ func fetchKeySet[T any](ctx context.Context, issuer string, audience string, jwk
 	return set, nil
 }
 
-// verifierFromJWK converts one JWK into an RS256 verifier, returning nil for
+// publicKeyFromJWK converts one JWK into an RSA public key, returning nil for
 // keys with a different type, use, or algorithm so callers can skip them.
-func verifierFromJWK[T any](key jwkKey, issuer string, audience string) (tokenjwt.Verifier[T], error) {
+func publicKeyFromJWK(key jwkKey) (*rsa.PublicKey, error) {
 	if key.KeyType != "RSA" {
 		return nil, nil
 	}
@@ -369,15 +362,5 @@ func verifierFromJWK[T any](key jwkKey, issuer string, audience string) (tokenjw
 		return nil, fmt.Errorf("JWKS key %q has invalid modulus", key.KeyID)
 	}
 
-	der, err := x509.MarshalPKIXPublicKey(publicKey)
-	if err != nil {
-		return nil, fmt.Errorf("encode JWKS key %q public key: %w", key.KeyID, err)
-	}
-	publicKeyPEM := string(pem.EncodeToMemory(&pem.Block{
-		Type:    "PUBLIC KEY",
-		Headers: nil,
-		Bytes:   der,
-	}))
-
-	return tokenjwt.NewRS256Verifier[T](publicKeyPEM, verifierOptions(issuer, audience)...)
+	return publicKey, nil
 }

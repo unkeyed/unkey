@@ -539,7 +539,7 @@ func TestResolver_RefreshesJWKSAfterKeyRotation(t *testing.T) {
 	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	resolver.verifier.(*JWKSVerifier[Claims]).clock = testClock
 
 	oldToken := signRS256Token(t, oldKeyPEM, "user_old")
 	principal, err := resolver.Resolve(context.Background(), jwtSession(t, oldToken))
@@ -576,7 +576,7 @@ func TestResolver_ServesPreviousJWKSKeysDuringEndpointOutage(t *testing.T) {
 	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	resolver.verifier.(*JWKSVerifier[Claims]).clock = testClock
 
 	token := signRS256Token(t, keyPEM, "user_123")
 	_, err = resolver.Resolve(context.Background(), jwtSession(t, token))
@@ -772,7 +772,7 @@ func TestResolver_RefetchesOnlyForUnknownSigningKeys(t *testing.T) {
 	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	resolver.verifier.(*JWKSVerifier[Claims]).clock = testClock
 
 	valid := signRS256TokenWithKID(t, keyPEM, "test-key-1", rs256Claims("user_123", time.Now().Add(time.Minute)))
 	_, err = resolver.Resolve(context.Background(), jwtSession(t, valid))
@@ -898,7 +898,7 @@ func TestResolver_CachedKeysServeWhileRefetchHangs(t *testing.T) {
 	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	resolver.verifier.(*JWKSVerifier[Claims]).clock = testClock
 
 	valid := signRS256TokenWithKID(t, keyPEM, "test-key-1", rs256Claims("user_123", time.Now().Add(time.Minute)))
 	_, err = resolver.Resolve(context.Background(), jwtSession(t, valid))
@@ -958,7 +958,7 @@ func TestResolver_ColdStartSharesOneFetch(t *testing.T) {
 	require.NoError(t, err)
 	// A frozen clock keeps the backoff window open, so a second fetch within
 	// this test can only come from broken locking, never from elapsed time.
-	resolver.verifier.(*jwksVerifier).clock = clock.NewTestClock()
+	resolver.verifier.(*JWKSVerifier[Claims]).clock = clock.NewTestClock()
 
 	token := signRS256TokenWithKID(t, keyPEM, "test-key-1", rs256Claims("user_123", time.Now().Add(time.Minute)))
 
@@ -1001,7 +1001,7 @@ func TestResolver_ConcurrentMixedTraffic(t *testing.T) {
 	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	resolver.verifier.(*JWKSVerifier[Claims]).clock = testClock
 
 	valid := signRS256TokenWithKID(t, keyPEM, "test-key-1", rs256Claims("user_123", time.Now().Add(time.Minute)))
 	unknownKid := signRS256TokenWithKID(t, keyPEM, "rotated-key", rs256Claims("user_123", time.Now().Add(time.Minute)))
@@ -1122,7 +1122,7 @@ func TestResolver_RejectsTamperedTokens(t *testing.T) {
 	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	resolver.verifier.(*JWKSVerifier[Claims]).clock = testClock
 
 	valid := signRS256TokenWithKID(t, keyPEM, "test-key-1", rs256Claims("user_123", time.Now().Add(time.Minute)))
 	_, err = resolver.Resolve(context.Background(), jwtSession(t, valid))
@@ -1331,7 +1331,7 @@ func TestResolver_DroppedKeysStopVerifying(t *testing.T) {
 	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	resolver.verifier.(*JWKSVerifier[Claims]).clock = testClock
 
 	oldToken := signRS256TokenWithKID(t, oldKeyPEM, "key-old", rs256Claims("user_old", time.Now().Add(time.Minute)))
 	_, err = resolver.Resolve(context.Background(), jwtSession(t, oldToken))

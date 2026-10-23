@@ -3,6 +3,7 @@ package vercel
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -12,8 +13,11 @@ import (
 	"sync"
 
 	"github.com/unkeyed/unkey/pkg/auth/jwt"
+	oidcdb "github.com/unkeyed/unkey/pkg/auth/oidc/vercel/db"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -45,17 +49,9 @@ type Integration struct {
 	Permissions       []string
 }
 
-// IntegrationLookup resolves the audience selector to its trust policy.
-type IntegrationLookup interface {
-	FindOIDCVercelIntegration(ctx context.Context, audience string) (Integration, error)
-}
-
-// IntegrationLookupFunc adapts a function to IntegrationLookup.
-type IntegrationLookupFunc func(context.Context, string) (Integration, error)
-
-// FindOIDCVercelIntegration calls f with the token audience.
-func (f IntegrationLookupFunc) FindOIDCVercelIntegration(ctx context.Context, audience string) (Integration, error) {
-	return f(ctx, audience)
+// Database provides the read replica used to load integration trust policies and grants.
+type Database interface {
+	RO() *db.Replica
 }
 
 type claims struct {
@@ -68,22 +64,24 @@ type claims struct {
 }
 
 type Resolver struct {
-	lookup           IntegrationLookup
+	db               Database
+	integrationCache cache.Cache[string, Integration]
 	jwksURLForIssuer func(string) string
 	verifiersMu      sync.Mutex
 	verifiers        map[string]*jwt.JWKSVerifier[claims]
 }
 
 // NewResolver creates a Vercel OIDC resolver using Vercel's fixed JWKS endpoints.
-func NewResolver(lookup IntegrationLookup) *Resolver {
-	return newResolver(lookup, func(issuer string) string {
+func NewResolver(database Database, integrationCache cache.Cache[string, Integration]) *Resolver {
+	return newResolver(database, integrationCache, func(issuer string) string {
 		return issuer + "/.well-known/jwks"
 	})
 }
 
-func newResolver(lookup IntegrationLookup, jwksURLForIssuer func(string) string) *Resolver {
+func newResolver(database Database, integrationCache cache.Cache[string, Integration], jwksURLForIssuer func(string) string) *Resolver {
 	return &Resolver{
-		lookup:           lookup,
+		db:               database,
+		integrationCache: integrationCache,
 		jwksURLForIssuer: jwksURLForIssuer,
 		verifiersMu:      sync.Mutex{},
 		verifiers:        map[string]*jwt.JWKSVerifier[claims]{},
@@ -97,7 +95,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		return nil, nil
 	}
 
-	audience, unverified, ok := integrationFromToken(token)
+	audience, unverifiedClaims, ok := integrationFromToken(token)
 	if !ok {
 		return nil, nil
 	}
@@ -105,7 +103,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		return nil, malformed("invalid Vercel OIDC audience")
 	}
 
-	integration, err := r.lookup.FindOIDCVercelIntegration(ctx, audience)
+	integration, err := r.findIntegration(ctx, audience)
 	if err != nil {
 		if errors.Is(err, ErrIntegrationNotFound) {
 			return nil, malformed("Vercel OIDC integration does not exist")
@@ -128,11 +126,11 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	}
 
 	expectedTeamIssuer := globalIssuer + "/" + integration.VercelTeamSlug
-	if unverified.Issuer != globalIssuer && unverified.Issuer != expectedTeamIssuer {
+	if unverifiedClaims.Issuer != globalIssuer && unverifiedClaims.Issuer != expectedTeamIssuer {
 		return nil, malformed("unexpected Vercel OIDC issuer")
 	}
 
-	verifier, err := r.verifier(unverified.Issuer)
+	verifier, err := r.verifier(unverifiedClaims.Issuer)
 	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -189,6 +187,57 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	}, nil
 }
 
+func (r *Resolver) findIntegration(ctx context.Context, audience string) (Integration, error) {
+	integration, hit, err := r.integrationCache.SWR(ctx, audience, func(ctx context.Context) (Integration, error) {
+		rows, err := db.WithRetryContext(ctx, func() ([]oidcdb.FindOIDCVercelIntegrationByAudienceRow, error) {
+			return oidcdb.Query.FindOIDCVercelIntegrationByAudience(ctx, r.db.RO(), audience)
+		})
+		if err != nil {
+			return Integration{}, err
+		}
+		if len(rows) == 0 {
+			return Integration{}, sql.ErrNoRows
+		}
+		first := rows[0]
+		found := Integration{
+			ID:                first.ID,
+			WorkspaceID:       first.WorkspaceID,
+			Name:              first.Name,
+			Audience:          first.Audience,
+			VercelTeamSlug:    first.VercelTeamSlug,
+			VercelProjectName: first.VercelProjectName,
+			VercelEnvironment: first.VercelEnvironment,
+			Enabled:           first.Enabled,
+			WorkspaceEnabled:  first.WorkspaceEnabled,
+			Permissions:       make([]string, 0, len(rows)),
+		}
+		for _, row := range rows {
+			if row.PermissionSlug.Valid {
+				found.Permissions = append(found.Permissions, row.PermissionSlug.String)
+			}
+		}
+		return found, nil
+	}, func(err error) cache.Op {
+		if db.IsNotFound(err) {
+			return cache.WriteNull
+		}
+		if err == nil {
+			return cache.WriteValue
+		}
+		return cache.Noop
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return Integration{}, ErrIntegrationNotFound
+		}
+		return Integration{}, err
+	}
+	if hit == cache.Null {
+		return Integration{}, ErrIntegrationNotFound
+	}
+	return integration, nil
+}
+
 func (r *Resolver) verifier(issuer string) (*jwt.JWKSVerifier[claims], error) {
 	r.verifiersMu.Lock()
 	defer r.verifiersMu.Unlock()
@@ -204,26 +253,26 @@ func (r *Resolver) verifier(issuer string) (*jwt.JWKSVerifier[claims], error) {
 }
 
 func integrationFromToken(token string) (string, tokenjwt.RegisteredClaims, bool) {
-	var unverified tokenjwt.RegisteredClaims
+	var unverifiedClaims tokenjwt.RegisteredClaims
 	if len(token) > maxTokenSizeBytes {
-		return "", unverified, false
+		return "", unverifiedClaims, false
 	}
 	segments := strings.Split(token, ".")
 	payload, err := base64.RawURLEncoding.DecodeString(segments[1])
-	if err != nil || json.Unmarshal(payload, &unverified) != nil {
-		return "", unverified, false
+	if err != nil || json.Unmarshal(payload, &unverifiedClaims) != nil {
+		return "", unverifiedClaims, false
 	}
 
-	if unverified.Issuer != globalIssuer {
-		teamSlug, found := strings.CutPrefix(unverified.Issuer, globalIssuer+"/")
+	if unverifiedClaims.Issuer != globalIssuer {
+		teamSlug, found := strings.CutPrefix(unverifiedClaims.Issuer, globalIssuer+"/")
 		if !found || !validTeamSlug.MatchString(teamSlug) {
-			return "", unverified, false
+			return "", unverifiedClaims, false
 		}
 	}
-	if len(unverified.Audience) != 1 || unverified.Audience[0] == "" {
-		return "", unverified, true
+	if len(unverifiedClaims.Audience) != 1 || unverifiedClaims.Audience[0] == "" {
+		return "", unverifiedClaims, true
 	}
-	return unverified.Audience[0], unverified, true
+	return unverifiedClaims.Audience[0], unverifiedClaims, true
 }
 
 func malformed(internal string) error {

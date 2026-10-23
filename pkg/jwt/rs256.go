@@ -145,6 +145,16 @@ func NewRS256Verifier[T any](publicKeyPEM string, opts ...VerifyOption) (*RS256V
 		return nil, err
 	}
 
+	return NewRS256VerifierWithPublicKey[T](key, opts...)
+}
+
+// NewRS256VerifierWithPublicKey uses an already parsed RSA key without PEM encoding
+// or parsing. The caller must not modify the key after construction.
+func NewRS256VerifierWithPublicKey[T any](key *rsa.PublicKey, opts ...VerifyOption) (*RS256Verifier[T], error) {
+	if err := assert.True(key != nil, "public key must not be nil"); err != nil {
+		return nil, err
+	}
+
 	cfg := verifyConfig{clock: clock.New(), issuer: "", audience: ""}
 	for _, opt := range opts {
 		opt(&cfg)

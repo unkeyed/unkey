@@ -4,6 +4,7 @@ import { buildUrns } from "@/app/(app)/[workspaceSlug]/settings/root-keys/compon
 import { grantsToPolicies } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/lib/urn-parse";
 import { PolicyListEditor } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/policy-list";
 import { rootKeySchema } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/schema";
+import { OIDCVercelPolicyFields } from "@/components/oidc/provider-vercel";
 import { Switch } from "@/components/ui/switch";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
@@ -211,30 +212,7 @@ export function OIDCVercelIntegrationPanel({
                     error={form.formState.errors.name?.message}
                     {...form.register("name")}
                   />
-                  <FormInput
-                    requirement="required"
-                    label="Vercel team slug"
-                    description="The owner value in the Vercel OIDC subject."
-                    placeholder="acme"
-                    error={form.formState.errors.vercelTeamSlug?.message}
-                    {...form.register("vercelTeamSlug")}
-                  />
-                  <FormInput
-                    requirement="required"
-                    label="Vercel project name"
-                    description="The project value in the Vercel OIDC subject."
-                    placeholder="storefront"
-                    error={form.formState.errors.vercelProjectName?.message}
-                    {...form.register("vercelProjectName")}
-                  />
-                  <FormInput
-                    requirement="required"
-                    label="Vercel environment"
-                    description="Use development, preview, production, or a Custom Environment slug."
-                    placeholder="production"
-                    error={form.formState.errors.vercelEnvironment?.message}
-                    {...form.register("vercelEnvironment")}
-                  />
+                  <OIDCVercelPolicyFields disabled={pending} />
                   <fieldset disabled={pending} className="flex flex-col gap-3">
                     <legend className="mb-3 text-sm text-gray-10">Permissions</legend>
                     {isOpen && (

@@ -44,12 +44,11 @@ func (f WorkspaceLookupFunc) FindWorkspaceIDByOrgID(ctx context.Context, orgID s
 }
 
 // claimsVerifier verifies a bearer token's signature and registered claims
-// into Claims. Implementations classify their own failures with fault codes,
-// credential rejections as Auth.Authentication.Malformed and key availability
-// problems as App.Internal.ServiceUnavailable, so [Resolver.Resolve] passes
-// their errors through unchanged.
+// into Claims. Implementations classify credential rejections
+// as Auth.Authentication.Malformed and key availability problems as
+// App.Internal.ServiceUnavailable, so [Resolver.Resolve] passes errors through unchanged.
 type claimsVerifier interface {
-	verify(ctx context.Context, token string) (Claims, error)
+	Verify(ctx context.Context, token string) (Claims, error)
 }
 
 // Resolver authenticates bearer JWTs into auth principals.
@@ -109,7 +108,7 @@ func NewResolverWithJWKSURL(workspaceLookup WorkspaceLookup, issuer string, audi
 	}
 
 	return &Resolver{
-		verifier:        &jwksVerifier{JWKSVerifier: verifier},
+		verifier:        verifier,
 		workspaceLookup: workspaceLookup,
 	}, nil
 }
@@ -125,7 +124,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	}
 	segments := strings.Split(token, ".")
 
-	claims, err := r.verifier.verify(ctx, token)
+	claims, err := r.verifier.Verify(ctx, token)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +210,7 @@ type secretsVerifier struct {
 
 var _ claimsVerifier = (*secretsVerifier)(nil)
 
-func (s *secretsVerifier) verify(_ context.Context, token string) (Claims, error) {
+func (s *secretsVerifier) Verify(_ context.Context, token string) (Claims, error) {
 	var lastErr error
 	for _, verifier := range s.verifiers {
 		claims, err := verifier.Verify(token)

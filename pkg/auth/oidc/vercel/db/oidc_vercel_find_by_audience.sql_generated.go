@@ -46,7 +46,7 @@ type FindOIDCVercelIntegrationByAudienceRow struct {
 	PermissionSlug    sql.NullString `db:"permission_slug"`
 }
 
-// Loads the integration trust policy and permission grants selected by the
+// Loads the Vercel integration trust policy and permission grants selected by the
 // token's exact, case-sensitive audience. Grants are scoped to its workspace
 // and OIDC principal. The left join preserves integrations without grants.
 //

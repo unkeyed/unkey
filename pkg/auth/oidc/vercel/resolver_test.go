@@ -15,12 +15,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
-
-const testIntegrationID = "vco_4kWyCQtR6cPP"
 
 func TestResolverAuthenticatesVercelToken(t *testing.T) {
 	privateKey, jwks := generateJWKS(t)
@@ -33,10 +36,8 @@ func TestResolverAuthenticatesVercelToken(t *testing.T) {
 
 	integration := testIntegration()
 	resolver := newResolver(
-		IntegrationLookupFunc(func(_ context.Context, audience string) (Integration, error) {
-			require.Equal(t, integration.Audience, audience)
-			return integration, nil
-		}),
+		testDatabase(t, integration),
+		cache.NewNoopCache[string, Integration](),
 		func(string) string { return server.URL },
 	)
 
@@ -48,7 +49,7 @@ func TestResolverAuthenticatesVercelToken(t *testing.T) {
 	require.Equal(t, integration.ID, p.Subject.ID)
 	require.Equal(t, integration.Name, p.Subject.Name)
 	require.Equal(t, integration.WorkspaceID, p.AuthorizedWorkspaceID)
-	require.Equal(t, integration.Permissions, p.Permissions)
+	require.ElementsMatch(t, integration.Permissions, p.Permissions)
 	require.Equal(t, principal.OIDCVercelSource{
 		IntegrationID: integration.ID,
 		Owner: principal.OIDCVercelOwner{
@@ -72,14 +73,12 @@ func TestResolverAuthenticatesUsingStoredAudience(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	const audience = "https://auth.unkey.example/federation/vercel/production"
 	integration := testIntegration()
+	audience := "https://auth.unkey.example/federation/vercel/" + integration.ID
 	integration.Audience = audience
 	resolver := newResolver(
-		IntegrationLookupFunc(func(_ context.Context, requestedAudience string) (Integration, error) {
-			require.Equal(t, audience, requestedAudience)
-			return integration, nil
-		}),
+		testDatabase(t, integration),
+		cache.NewNoopCache[string, Integration](),
 		func(string) string { return server.URL },
 	)
 	claims := validClaims(integration)
@@ -100,9 +99,8 @@ func TestResolverAcceptsGlobalAndTeamIssuers(t *testing.T) {
 
 	integration := testIntegration()
 	resolver := newResolver(
-		IntegrationLookupFunc(func(context.Context, string) (Integration, error) {
-			return integration, nil
-		}),
+		testDatabase(t, integration),
+		cache.NewNoopCache[string, Integration](),
 		func(string) string { return server.URL },
 	)
 
@@ -127,9 +125,8 @@ func TestResolverRejectsMismatchedTrustClaims(t *testing.T) {
 
 	integration := testIntegration()
 	resolver := newResolver(
-		IntegrationLookupFunc(func(context.Context, string) (Integration, error) {
-			return integration, nil
-		}),
+		testDatabase(t, integration),
+		cache.NewNoopCache[string, Integration](),
 		func(string) string { return server.URL },
 	)
 
@@ -159,9 +156,8 @@ func TestResolverRejectsDisabledIntegration(t *testing.T) {
 	integration := testIntegration()
 	integration.Enabled = false
 	resolver := newResolver(
-		IntegrationLookupFunc(func(context.Context, string) (Integration, error) {
-			return integration, nil
-		}),
+		testDatabase(t, integration),
+		cache.NewNoopCache[string, Integration](),
 		func(string) string {
 			t.Fatal("disabled integration must be rejected before fetching JWKS")
 			return ""
@@ -185,9 +181,8 @@ func TestResolverRejectsInvalidSignatureAndMissingTimeClaims(t *testing.T) {
 
 	integration := testIntegration()
 	resolver := newResolver(
-		IntegrationLookupFunc(func(context.Context, string) (Integration, error) {
-			return integration, nil
-		}),
+		testDatabase(t, integration),
+		cache.NewNoopCache[string, Integration](),
 		func(string) string { return server.URL },
 	)
 
@@ -212,10 +207,8 @@ func TestResolverRejectsInvalidSignatureAndMissingTimeClaims(t *testing.T) {
 
 func TestResolverIgnoresOtherBearerTokens(t *testing.T) {
 	resolver := newResolver(
-		IntegrationLookupFunc(func(context.Context, string) (Integration, error) {
-			t.Fatal("unrelated tokens must not query integrations")
-			return Integration{}, nil
-		}),
+		nil,
+		cache.NewNoopCache[string, Integration](),
 		func(string) string { return "" },
 	)
 
@@ -230,11 +223,12 @@ func TestResolverIgnoresOtherBearerTokens(t *testing.T) {
 }
 
 func testIntegration() Integration {
+	id := uid.New("vco")
 	return Integration{
-		ID:                testIntegrationID,
-		WorkspaceID:       "ws_123",
+		ID:                id,
+		WorkspaceID:       uid.New(uid.WorkspacePrefix),
 		Name:              "Production API",
-		Audience:          "https://api.unkey.com/oidc/vercel/" + testIntegrationID,
+		Audience:          "https://api.unkey.com/oidc/vercel/" + id,
 		VercelTeamSlug:    "acme",
 		VercelProjectName: "storefront",
 		VercelEnvironment: "production",
@@ -242,6 +236,33 @@ func testIntegration() Integration {
 		WorkspaceEnabled:  true,
 		Permissions:       []string{"api.*.read_api", "api.*.create_key"},
 	}
+}
+
+func testDatabase(t *testing.T, integration Integration) db.Database {
+	t.Helper()
+	mysql := containers.MySQL(t)
+	database, err := db.New(db.Config{PrimaryDSN: mysql.DSN, Tags: sqlcomment.Disabled()})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	createdAt := time.Now().UnixMilli()
+	require.NoError(t, db.Query.InsertWorkspace(t.Context(), database.RW(), db.InsertWorkspaceParams{
+		ID: integration.WorkspaceID, OrgID: uid.New("org"), Name: "OIDC test", Slug: uid.New("slug"),
+		CreatedAt: createdAt, K8sNamespace: uid.DNS1035(),
+	}))
+	require.NoError(t, db.Query.InsertOIDCVercelIntegration(t.Context(), database.RW(), db.InsertOIDCVercelIntegrationParams{
+		ID: integration.ID, WorkspaceID: integration.WorkspaceID, Name: integration.Name,
+		Audience: integration.Audience, VercelTeamSlug: integration.VercelTeamSlug,
+		VercelProjectName: integration.VercelProjectName, VercelEnvironment: integration.VercelEnvironment,
+		Enabled: integration.Enabled, CreatedAt: createdAt,
+	}))
+	for _, slug := range integration.Permissions {
+		require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), database.RW(), db.InsertUnkeyPermissionParams{
+			ID: uid.New(uid.PermissionPrefix), WorkspaceID: integration.WorkspaceID,
+			PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeOidc, PrincipalID: integration.ID,
+			Slug: slug, CreatedAt: createdAt,
+		}))
+	}
+	return database
 }
 
 func validClaims(integration Integration) map[string]any {
