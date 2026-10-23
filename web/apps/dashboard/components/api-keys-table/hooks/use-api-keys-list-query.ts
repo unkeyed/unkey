@@ -5,6 +5,7 @@ import {
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { PAGINATED_LIST_QUERY_OPTIONS, normalizePageSize } from "@/hooks/use-paginated-list-query";
+import { fromQuery } from "@/lib/loadable/loadable";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
@@ -82,10 +83,11 @@ export function useApiKeysListQuery({
     setNavigation({ queryKey, cursors });
   }
 
-  const { data, isLoading, isFetching, isPreviousData, isError } = trpc.api.keys.list.useQuery(
+  const query = trpc.api.keys.list.useQuery(
     { ...queryParams, cursor: cursors.at(-1) },
     PAGINATED_LIST_QUERY_OPTIONS,
   );
+  const { data, isLoading, isFetching, isPreviousData, isError } = query;
   const page = cursors.length;
   const hasNextPage = !isPreviousData && !isError && data?.nextCursor != null;
   const onPageChange = (newPage: number) => {
@@ -119,6 +121,7 @@ export function useApiKeysListQuery({
 
   const isInitialLoading = isLoading && !data;
   return {
+    state: fromQuery(query),
     keys: data?.keys ?? [],
     isLoading: isInitialLoading,
     isInitialLoading,

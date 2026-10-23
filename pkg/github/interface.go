@@ -32,12 +32,8 @@ type GitHubClient interface {
 	// e.g. rate limited.
 	IsRepoPublic(repo string) (bool, error)
 
-	// GetInstallationRepo fetches repo ("owner/repo") using the installation's
-	// credentials. An installation token only sees the repositories the
-	// installation was granted, so a nil result (with a nil error) means the
-	// installation cannot access the repo: either it was not granted or it does
-	// not exist. Use this both to resolve repo metadata and to confirm access
-	// before connecting a repository to an app.
+	// GetInstallationRepo returns canonical metadata for repo ("owner/repo")
+	// only if granted to the installation, or nil if absent.
 	GetInstallationRepo(installationID int64, repo string) (*RepoInfo, error)
 
 	// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub

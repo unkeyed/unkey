@@ -1,0 +1,67 @@
+type: object
+required:
+  - requestId
+  - time
+  - host
+  - method
+  - path
+  - status
+  - latencyMs
+  - requestHeaders
+  - requestBody
+  - responseHeaders
+  - responseBody
+additionalProperties: false
+description: One request that the Unkey API served for your workspace.
+properties:
+  requestId:
+    type: string
+    description: The ID that the Unkey API returned in `meta.requestId` for this request.
+    example: req_1234abcd
+  time:
+    type: integer
+    format: int64
+    description: When the Unkey API received the request, in Unix milliseconds.
+    example: 1792021850123
+  host:
+    type: string
+    description: The host the request was sent to.
+    example: api.unkey.com
+  method:
+    type: string
+    description: The HTTP method of the request.
+    example: POST
+  path:
+    type: string
+    description: The path of the request.
+    example: /v2/keys.updateKey
+  status:
+    type: integer
+    format: int32
+    description: The HTTP status of the response.
+    example: 404
+  latencyMs:
+    type: integer
+    format: int64
+    description: How long the Unkey API took to serve the request, in milliseconds.
+    example: 38
+  requestHeaders:
+    type: array
+    items:
+      type: string
+    description: "Request headers as `Name: value` strings. Credential headers show `[REDACTED]`."
+    example: ["Content-Type: application/json", "Authorization: [REDACTED]"]
+  requestBody:
+    type: string
+    description: The request body. Secret values are redacted.
+    example: '{"keyId":"key_1234abcd","name":"Payments"}'
+  responseHeaders:
+    type: array
+    items:
+      type: string
+    description: "Response headers as `Name: value` strings."
+    example: ["Content-Type: application/json"]
+  responseBody:
+    type: string
+    description: The response body. Secret values are redacted.
+    example: '{"meta":{"requestId":"req_1234abcd"},"error":{"status":404}}'

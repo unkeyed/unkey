@@ -6,13 +6,22 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
+	"github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 )
 
 // Harness provides a test environment for ctrl service integration tests.
@@ -64,6 +73,41 @@ func (h *Harness) Resources() seed.Resources {
 // Now returns current time in milliseconds.
 func (h *Harness) Now() int64 {
 	return time.Now().UnixMilli()
+}
+
+// ClusterService returns a cluster service that accepts bearer and already
+// received a heartbeat from clusterKey, so the cluster's region exists.
+func (h *Harness) ClusterService(clusterKey *ctrlv1.ClusterKey, bearer string) *cluster.Service {
+	h.t.Helper()
+
+	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
+		Fresh:    time.Minute,
+		Stale:    time.Minute,
+		MaxSize:  10,
+		Resource: "test_topology",
+		Clock:    clock.New(),
+	})
+	require.NoError(h.t, err)
+
+	svc, err := cluster.New(cluster.Config{
+		Database:         h.DB,
+		Restate:          ingress.NewClient("http://127.0.0.1:1"),
+		RestateAdmin:     restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:1", APIKey: ""}),
+		Bearer:           bearer,
+		Clock:            clock.New(),
+		TopologyCache:    topologyCache,
+		DeploymentStream: nil,
+		RegionalDomain:   "",
+		InstanceEvents:   batch.NewNoop[schema.InstanceEventV1](),
+	})
+	require.NoError(h.t, err)
+
+	heartbeat := connect.NewRequest(&ctrlv1.HeartbeatRequest{Cluster: clusterKey})
+	heartbeat.Header().Set("Authorization", "Bearer "+bearer)
+	_, err = svc.Heartbeat(h.ctx, heartbeat)
+	require.NoError(h.t, err)
+
+	return svc
 }
 
 // CreateDeploymentRequest contains parameters for creating a test deployment.

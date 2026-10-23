@@ -1,0 +1,62 @@
+type: object
+properties:
+  limit:
+    type: integer
+    description: The maximum number of requests to return in one page.
+    default: 50
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    minLength: 1
+    maxLength: 1024
+    description: |
+      The `pagination.cursor` of the previous page. Send the same `filters` with every page of one listing.
+      Omit the cursor to get the first page.
+    example: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
+  filters:
+    "$ref": "./V2LogsListApiRequestsFilters.yaml"
+additionalProperties: false
+examples:
+  latest:
+    summary: Latest requests
+    description: Get the newest requests in your log retention.
+    value: {}
+  failedKeyRequests:
+    summary: Failed key requests in a time window
+    description: Get the 4xx and 5xx responses of the keys endpoints, except rate limited requests and `verifyKey`.
+    value:
+      limit: 50
+      filters:
+        time:
+          gte: 1791936000000
+          lt: 1792022400000
+        path:
+          startsWith: ["/v2/keys."]
+          notContains: ["verifyKey"]
+        method:
+          is: ["POST"]
+        status:
+          gte: 400
+          lt: 600
+          isNot: [429]
+  oneRequest:
+    summary: One request by ID
+    description: Get one request. Narrow the time window to the request time for a fast lookup.
+    value:
+      limit: 1
+      filters:
+        time:
+          gte: 1792021850123
+          lte: 1792021850123
+        requestId:
+          is: ["req_1234abcd"]
+  nextPage:
+    summary: Next page
+    description: Get the next page. Send the same filters as the first page.
+    value:
+      limit: 50
+      cursor: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
+      filters:
+        path:
+          startsWith: ["/v2/keys."]

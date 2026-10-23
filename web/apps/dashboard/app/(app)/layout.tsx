@@ -8,14 +8,18 @@ import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 import { LoadingState } from "@/components/loading-state";
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
+import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { redirectToSignIn } from "@/lib/auth/redirect-utils";
+import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { EmptyState, EmptyStateDescription, EmptyStateHeader, EmptyStateTitle } from "@unkey/ui";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
+import { resolveUsagePeriod } from "./[workspaceSlug]/settings/usage/period";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -65,6 +69,13 @@ export default function Layout({ children }: LayoutProps) {
     pathname === "/integrations/github/callback" ||
     /\/projects\/[^/]+\/apps\/new$/.test(pathname) ||
     /\/settings\/logdrains\/new$/.test(pathname);
+  const billingUpgrades = useBillingUIUpgrades();
+  const searchParams = useSearchParams();
+  // These reads need the authenticated organization, not the workspace response.
+  useWorkspaceLimits({ enabled: !isCreationWizard });
+  useWorkspaceUsage(resolveUsagePeriod(searchParams.get("period")), {
+    enabled: pathname.endsWith("/settings/usage") && billingUpgrades,
+  });
 
   useEffect(() => {
     // Don't navigate while loading
