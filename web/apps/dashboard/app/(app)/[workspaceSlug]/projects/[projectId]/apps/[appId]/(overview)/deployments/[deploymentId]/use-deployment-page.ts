@@ -13,7 +13,7 @@ const SUCCESS_BANNER_MS = 4_500;
 export type DeploymentPage = ReturnType<typeof useDeploymentPage>;
 
 export function useDeploymentPage() {
-  const showBuild = Boolean(useSearchParams().get("build"));
+  const buildRequested = Boolean(useSearchParams().get("build"));
   const { deployment } = useDeployment();
   const {
     getDomainsForDeployment,
@@ -43,7 +43,7 @@ export function useDeploymentPage() {
     ...deploymentPageModel({
       deployment,
       status: derivedStatus,
-      showBuild,
+      buildRequested,
       domains: getDomainsForDeployment(deployment.id),
       domainsLoading,
       customDomains,

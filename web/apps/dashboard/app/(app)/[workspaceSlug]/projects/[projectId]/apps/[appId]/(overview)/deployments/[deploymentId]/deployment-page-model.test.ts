@@ -1,4 +1,5 @@
 import type { CustomDomain, Domain } from "@/lib/collections";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { describe, expect, test } from "vitest";
 import {
@@ -54,7 +55,7 @@ const input = (overrides: Partial<DeploymentPageInput> = {}): DeploymentPageInpu
     desiredState: "running",
   },
   status: "ready",
-  showBuild: false,
+  buildRequested: false,
   domains: [],
   domainsLoading: false,
   customDomains: [],
@@ -72,10 +73,18 @@ describe("deploymentPageModel", () => {
   });
 
   test("?build asks for the build stage and keeps the status body", () => {
-    const model = deploymentPageModel(input({ status: "building", showBuild: true }));
+    const model = deploymentPageModel(input({ status: "building", buildRequested: true }));
     expect(model.body).toBe("stages");
     expect(model.requestedStage).toBe("build");
     expect(deploymentPageModel(input({ status: "building" })).requestedStage).toBe(null);
+  });
+
+  test("a build request shows the stages of a cancelled or superseded deployment", () => {
+    const body = (status: DeploymentStatus) =>
+      deploymentPageModel(input({ status, buildRequested: true })).body;
+    expect(body("cancelled")).toBe("stages");
+    expect(body("superseded")).toBe("stages");
+    expect(body("skipped")).toBe("skipped");
   });
 
   test("a current deployment lists its verified custom domain first", () => {
