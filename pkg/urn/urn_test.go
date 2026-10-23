@@ -326,6 +326,7 @@ func TestParseV1RejectsInvalidValues(t *testing.T) {
 		"unkey:v1:ws_123:projects/proj_123/unknown/value",
 		"unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway",
 		"unkey:v1:ws_123:projects/proj_123/rbac",
+		"unkey:v1:ws_123:logs/**",
 		"unkey:v1:ws_123:projects/*/apps/app_123",
 		"unkey:v1:ws_123:projects/*/portals/portal_123",
 		"unkey:v1:ws_123:projects/*/portals/*/sessions/sess_123",
@@ -414,6 +415,7 @@ func TestResourceCatalogBuilders(t *testing.T) {
 		got  string
 		want string
 	}{
+		{name: "request logs", got: workspace.ApiRequestLogs().String(), want: "unkey:v1:ws_123:logs/apiRequests"},
 		{name: "GitHub app", got: workspace.GitHubApp("github_123").String(), want: "unkey:v1:ws_123:github/apps/github_123"},
 		{name: "project", got: project.String(), want: "unkey:v1:ws_123:projects/proj_123"},
 		{name: "app", got: app.String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123"},

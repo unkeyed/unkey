@@ -1,9 +1,14 @@
 "use client";
 
+import { ListPager } from "@/components/list-pager";
+import { LoadError } from "@/components/load-error";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { listOf } from "@/lib/loadable/list";
+import { fromQuery } from "@/lib/loadable/loadable";
 import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
+import { match } from "@unkey/match";
 import {
   Button,
   EmptyState,
@@ -87,29 +92,16 @@ export function LogdrainsList({
   needsEnablement: boolean;
 }) {
   const workspace = useWorkspaceNavigation();
-  const query = trpc.logdrain.list.useQuery();
+  const view = listOf(fromQuery(trpc.logdrain.list.useQuery()));
 
-  if (query.isLoading) {
-    return <DrainListSkeleton />;
-  }
-
-  if (query.isError) {
-    return (
+  return match(view)
+    .with({ status: "loading" }, () => <DrainListSkeleton />)
+    .with({ status: "failed" }, ({ error, retry }) => (
       <ResourceListContent>
-        <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-          <span role="alert" className="text-sm text-gray-11">
-            We couldn't load log drains.
-          </span>
-          <Button variant="outline" onClick={() => query.refetch()}>
-            Retry
-          </Button>
-        </div>
+        <LoadError title="Could not load log drains" error={error} frame="none" onRetry={retry} />
       </ResourceListContent>
-    );
-  }
-
-  if (!query.data?.length) {
-    return (
+    ))
+    .with({ status: "empty" }, () => (
       <EmptyState>
         <EmptyStateHeader>
           <EmptyStateTitle>
@@ -131,16 +123,16 @@ export function LogdrainsList({
           )}
         </EmptyStateActions>
       </EmptyState>
-    );
-  }
-
-  return (
-    <ResourceListContent aria-live="polite">
-      <ResourceListBody aria-label="Log drains">
-        {query.data.map((drain) => (
-          <DrainRow key={drain.id} drain={drain} workspaceSlug={workspace.slug} />
-        ))}
-      </ResourceListBody>
-    </ResourceListContent>
-  );
+    ))
+    .with({ status: "ready" }, ({ rows, footer }) => (
+      <ResourceListContent aria-live="polite">
+        <ResourceListBody aria-label="Log drains">
+          {rows.map((drain) => (
+            <DrainRow key={drain.id} drain={drain} workspaceSlug={workspace.slug} />
+          ))}
+        </ResourceListBody>
+        <ListPager state={footer} noun="log drains" />
+      </ResourceListContent>
+    ))
+    .exhaustive();
 }

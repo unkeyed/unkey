@@ -70,6 +70,12 @@ type Querier interface {
 	// left out of the page
 	GetBuildLogs(ctx context.Context, req GetBuildLogsRequest) (BuildLogsPage, error)
 
+	// ListApiRequests returns up to req.Limit of a workspace's API request logs,
+	// newest first, that match req.Filters and are not older than
+	// req.RetentionStart.
+	// A query over a read limit returns an error that the API serves as a 422
+	ListApiRequests(ctx context.Context, req ListApiRequestsRequest) ([]ApiRequestLog, error)
+
 	// InsertAuditLogs synchronously writes a batch of audit log rows to
 	// audit_logs_raw_v1. Used by the AuditLogExport outbox worker — returns
 	// only after ClickHouse confirms the insert so the caller can safely

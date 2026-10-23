@@ -150,6 +150,17 @@ export function rootKeyRows(): PermissionRow[] {
   return [permissionRow({ id: "root_key", label: "Root keys", path: "rootKeys/*" })];
 }
 
+export function flagsRows(): PermissionRow[] {
+  return [
+    permissionRow({
+      id: "flags",
+      label: "Flags",
+      path: "flags",
+      actions: { delete: [] },
+    }),
+  ];
+}
+
 export function githubRows(): PermissionRow[] {
   return [
     permissionRow({

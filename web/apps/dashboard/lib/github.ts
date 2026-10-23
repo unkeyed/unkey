@@ -421,25 +421,8 @@ export async function getRepositoryById(
   installationId: number,
   repositoryId: number,
 ): Promise<GitHubRepository | null> {
-  const { token } = await getInstallationAccessToken(installationId);
-
-  const response = await fetch(`https://api.github.com/repositories/${repositoryId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...GITHUB_API_HEADERS,
-    },
-  });
-
-  if (response.status === 404) {
-    return null;
-  }
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to get repository: ${error}`);
-  }
-
-  return gitHubRepositorySchema.parse(await response.json());
+  const repositories = await getInstallationRepositories(installationId);
+  return repositories.find((repository) => repository.id === repositoryId) ?? null;
 }
 
 const pullRequestSchema = z.object({
