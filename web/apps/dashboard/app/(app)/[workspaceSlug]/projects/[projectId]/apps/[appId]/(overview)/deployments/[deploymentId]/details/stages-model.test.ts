@@ -48,6 +48,10 @@ describe("resolveStages", () => {
     expect(stages.instances.expandable).toBe(false);
   });
 
+  test("a ready deployment without step records still opens its instances", () => {
+    expect(byKey(resolveStages(input({ status: "ready" }))).instances.expandable).toBe(true);
+  });
+
   test("a running build ticks against now", () => {
     const stages = byKey(
       resolveStages(input({ steps: { building: step({ endedAt: null, completed: false }) } })),

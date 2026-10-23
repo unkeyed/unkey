@@ -17,6 +17,7 @@ import {
   BUILD_LOG_ENTRIES_SHOWN_MAX,
   BUILD_NOT_DONE_STATUSES,
   type BuildLogsQuery,
+  panelOpening,
 } from "../../use-build-logs";
 import { useDeploymentStatus } from "../../use-deployment-status";
 import { type BuildLogLine, type Tone, toBuildLogLines, toBuildLogText } from "./build-log-lines";
@@ -50,9 +51,10 @@ export function DeploymentBuildLogs({
   const { derivedStatus } = useDeploymentStatus(deployment);
   const isFailed = derivedStatus === "failed";
   const isBuilding = BUILD_NOT_DONE_STATUSES.has(derivedStatus);
-  const [followsTail, setFollowsTail] = useState(isBuilding);
+  const [opening] = useState(() => panelOpening(derivedStatus));
+  const [followsTail, setFollowsTail] = useState(opening.followsTail);
   const [pendingJump, setPendingJump] = useState<PendingJump | null>(
-    isFailed ? "last-error" : null,
+    opening.jumpsToLastError ? "last-error" : null,
   );
   const [jumpCursor, setJumpCursor] = useState<JumpCursor | null>(null);
   const [query, setQuery] = useState("");
@@ -63,10 +65,8 @@ export function DeploymentBuildLogs({
   const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
   const logHeight = `min(${fixedHeight}px, 60dvh)`;
   const readsToEnd = isFailed || followsTail || pendingJump !== null || query.trim() !== "";
-  useEffect(() => {
-    onReadsToEndChange(readsToEnd);
-    return () => onReadsToEndChange(false);
-  }, [onReadsToEndChange, readsToEnd]);
+  useEffect(() => onReadsToEndChange(readsToEnd), [onReadsToEndChange, readsToEnd]);
+  useEffect(() => () => onReadsToEndChange(false), [onReadsToEndChange]);
 
   const entries = logs.data?.entries;
   const hasMore = logs.data?.hasMore === true;

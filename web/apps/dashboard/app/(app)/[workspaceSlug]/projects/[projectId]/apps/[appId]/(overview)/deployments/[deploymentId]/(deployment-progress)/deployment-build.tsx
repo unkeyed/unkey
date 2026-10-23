@@ -18,7 +18,6 @@ export function DeploymentBuild() {
   const { panelProps } = useBuildLogsPanel(deployment, {
     status: derivedStatus,
     enabled: true,
-    readsToEndFloor: false,
   });
   const { projectId } = useProjectData();
   const router = useRouter();
