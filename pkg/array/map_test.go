@@ -1,12 +1,40 @@
 package array
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestMapErr(t *testing.T) {
+	for _, input := range [][]int{nil, {}, {7, 2}} {
+		result, err := MapErr(input, func(n int) (string, error) {
+			return strconv.Itoa(n), nil
+		})
+		require.NoError(t, err)
+		if len(input) == 0 {
+			require.Equal(t, []string{}, result)
+		} else {
+			require.Equal(t, []string{"7", "2"}, result)
+		}
+	}
+
+	wantErr := errors.New("conversion failed")
+	var visited []int
+	result, err := MapErr([]int{7, 0, 2}, func(n int) (string, error) {
+		visited = append(visited, n)
+		if n == 0 {
+			return "", wantErr
+		}
+		return strconv.Itoa(n), nil
+	})
+	require.ErrorIs(t, err, wantErr)
+	require.Nil(t, result)
+	require.Equal(t, []int{7, 0}, visited)
+}
 
 func TestMap(t *testing.T) {
 	t.Run("maps int slice to string slice", func(t *testing.T) {

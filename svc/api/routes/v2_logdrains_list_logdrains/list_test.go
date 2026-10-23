@@ -1,0 +1,136 @@
+package logdrains_test
+
+import (
+	"context"
+	"net/http"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_list_logdrains"
+	"google.golang.org/protobuf/proto"
+)
+
+func TestListPagesOnlyAuthorizedWorkspace(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &logdrains.Handler{DB: h.DB}
+	h.Register(route)
+	workspaceID := h.Resources().UserWorkspace.ID
+	prefix := uid.New("ld")
+	config, err := proto.Marshal(&logdrainv1.Config{
+		Destination: &logdrainv1.Config_Axiom{
+			Axiom: &logdrainv1.AxiomConfig{
+				Dataset:        "logs",
+				EncryptedToken: "private-ciphertext",
+			},
+		},
+	})
+	require.NoError(t, err)
+	for _, suffix := range []string{"c", "a", "b"} {
+		workspace := workspaceID
+		if suffix == "b" {
+			workspace = uid.New("ws")
+		}
+		_, err := h.DB.RW().ExecContext(context.Background(), "INSERT INTO logdrains (id, workspace_id, name, stream, config, lease_id, fencing_token, created_at) VALUES (?, ?, 'Drain', 'audit_logs', ?, '', '', 123)", prefix+suffix, workspace, config)
+		require.NoError(t, err)
+	}
+	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#read")
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
+	first := testutil.CallRoute[openapi.ListLogdrainsRequest, openapi.ListLogdrainsResponse](h, route, headers, openapi.ListLogdrainsRequest{Limit: new(1)})
+	require.Equal(t, http.StatusOK, first.Status, "%s", first.RawBody)
+	require.Len(t, first.Body.Data, 1)
+	require.Equal(t, prefix+"a", first.Body.Data[0].Id)
+	require.True(t, first.Body.Pagination.HasMore)
+	require.NotContains(t, first.RawBody, "private-ciphertext")
+	second := testutil.CallRoute[openapi.ListLogdrainsRequest, openapi.ListLogdrainsResponse](h, route, headers, openapi.ListLogdrainsRequest{
+		Limit:  new(1),
+		Cursor: first.Body.Pagination.Cursor,
+	})
+	require.Equal(t, http.StatusOK, second.Status, "%s", second.RawBody)
+	require.Len(t, second.Body.Data, 1)
+	require.Equal(t, prefix+"c", second.Body.Data[0].Id)
+	require.False(t, second.Body.Pagination.HasMore)
+}
+
+func TestListRefillsPagesForIndividualPermissions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &logdrains.Handler{DB: h.DB}
+	h.Register(route)
+	workspaceID := h.Resources().UserWorkspace.ID
+	prefix := uid.New("ld")
+	config, err := proto.Marshal(&logdrainv1.Config{
+		Destination: &logdrainv1.Config_Http{
+			Http: &logdrainv1.HttpConfig{Url: "https://logs.example.com"},
+		},
+	})
+	require.NoError(t, err)
+	for _, suffix := range []string{"a", "b", "c", "d", "e", "f", "g"} {
+		_, err := h.DB.RW().ExecContext(t.Context(), "INSERT INTO logdrains (id, workspace_id, name, stream, config, lease_id, fencing_token, created_at) VALUES (?, ?, 'Drain', 'audit_logs', ?, '', '', 123)", prefix+suffix, workspaceID, config)
+		require.NoError(t, err)
+	}
+	key := h.CreateRootKey(workspaceID,
+		"unkey:v1:"+workspaceID+":logdrains/"+prefix+"b#read",
+		"unkey:v1:"+workspaceID+":logdrains/"+prefix+"d#read",
+		"unkey:v1:"+workspaceID+":logdrains/"+prefix+"f#read",
+	)
+	headers := http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}
+	first := testutil.CallRoute[openapi.ListLogdrainsRequest, openapi.ListLogdrainsResponse](h, route, headers, openapi.ListLogdrainsRequest{Limit: new(2)})
+	require.Equal(t, http.StatusOK, first.Status, "%s", first.RawBody)
+	require.Len(t, first.Body.Data, 2)
+	require.Equal(t, prefix+"b", first.Body.Data[0].Id)
+	require.Equal(t, prefix+"d", first.Body.Data[1].Id)
+	require.True(t, first.Body.Pagination.HasMore)
+	require.Equal(t, new(prefix+"f"), first.Body.Pagination.Cursor)
+	second := testutil.CallRoute[openapi.ListLogdrainsRequest, openapi.ListLogdrainsResponse](h, route, headers, openapi.ListLogdrainsRequest{
+		Limit:  new(2),
+		Cursor: first.Body.Pagination.Cursor,
+	})
+	require.Equal(t, http.StatusOK, second.Status, "%s", second.RawBody)
+	require.Len(t, second.Body.Data, 1)
+	require.Equal(t, prefix+"f", second.Body.Data[0].Id)
+	require.False(t, second.Body.Pagination.HasMore)
+	require.Nil(t, second.Body.Pagination.Cursor)
+	for _, tc := range []struct {
+		name  string
+		grant string
+	}{
+		{"write only", "unkey:v1:" + workspaceID + ":logdrains/*#write"},
+		{"missing drain", "unkey:v1:" + workspaceID + ":logdrains/" + uid.New("ld") + "#read"},
+		{"foreign workspace", "unkey:v1:" + h.CreateWorkspace().ID + ":logdrains/*#read"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			denied := h.CreateRootKey(workspaceID, tc.grant)
+			result := testutil.CallRoute[openapi.ListLogdrainsRequest, openapi.ListLogdrainsResponse](h, route, http.Header{
+				"Authorization": {"Bearer " + denied},
+				"Content-Type":  {"application/json"},
+			}, openapi.ListLogdrainsRequest{Limit: new(2)})
+			require.Equal(t, http.StatusOK, result.Status, "%s", result.RawBody)
+			require.Empty(t, result.Body.Data)
+			require.False(t, result.Body.Pagination.HasMore)
+			require.Nil(t, result.Body.Pagination.Cursor)
+		})
+	}
+}
+
+func TestListRejectsUnboundedPageSize(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &logdrains.Handler{DB: h.DB}
+	h.Register(route)
+	workspaceID := h.Resources().UserWorkspace.ID
+	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#read")
+	response := testutil.CallRoute[openapi.ListLogdrainsRequest, openapi.BadRequestErrorResponse](h, route, http.Header{
+		"Authorization": {"Bearer " + key},
+		"Content-Type":  {"application/json"},
+	}, openapi.ListLogdrainsRequest{Limit: new(101)})
+	require.Equal(t, http.StatusBadRequest, response.Status, "%s", response.RawBody)
+	require.Contains(t, response.Body.Error.Type, "application/invalid_input")
+}
