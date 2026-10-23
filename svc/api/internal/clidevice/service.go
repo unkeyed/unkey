@@ -21,8 +21,9 @@ import (
 const (
 	pollIntervalSeconds = 5
 	deviceTTL           = 10 * time.Minute
-	accessTTL           = time.Hour
-	refreshIdle         = 30 * 24 * time.Hour
+	accessTTL           = 15 * time.Minute
+	sessionIdle         = 7 * 24 * time.Hour
+	sessionMax          = 30 * 24 * time.Hour
 	// refreshReuseGrace is how long the immediately previous refresh token
 	// still rotates the session. A client whose response was lost can retry
 	// inside this window without revoking the family. After it, that token
@@ -159,6 +160,12 @@ func (s *Service) limit(ctx context.Context, action string, remoteIP string, per
 		)
 	}
 	return nil
+}
+
+// sessionExpiry is the idle deadline for a session used at now. It never
+// passes the absolute maximum measured from createdAt.
+func sessionExpiry(createdAt int64, now int64) int64 {
+	return min(now+sessionIdle.Milliseconds(), createdAt+sessionMax.Milliseconds())
 }
 
 func (s *Service) deleteExpired(ctx context.Context) {

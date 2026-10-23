@@ -7,6 +7,7 @@ post:
     Exchanges a CLI refresh token for a new access token and a new refresh token.
     The user's current role is checked again. If they were removed, or their role no longer includes any of the session's permissions, the session is revoked.
     Reusing an old refresh token revokes the session.
+    Access tokens last 15 minutes. A session expires after 7 days without a refresh, and 30 days after login even when it is refreshed.
     No authentication header is required. The refresh token is the credential.
   operationId: cli.refreshToken
   x-speakeasy-name-override: refreshToken
