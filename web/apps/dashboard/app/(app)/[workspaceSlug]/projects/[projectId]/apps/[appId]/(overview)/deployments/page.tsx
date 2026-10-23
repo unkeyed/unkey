@@ -1,4 +1,5 @@
 "use client";
+import { useFlag } from "@/lib/flags/provider";
 import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
@@ -13,8 +14,10 @@ import {
 import { CreateDeploymentButton } from "../navigations/create-deployment-button";
 import { DeploymentsListControls } from "./components/controls";
 import { DeploymentsCardList } from "./components/deployments-card-list";
+import { DeploymentsCardList as LegacyDeploymentsCardList } from "./components/legacy/deployments-card-list";
 
 export default function Deployments() {
+  const appV2 = useFlag("appV2");
   return (
     <PageContainer>
       <PageHeader>
@@ -35,7 +38,7 @@ export default function Deployments() {
       <PageBody>
         <ResourceList>
           <DeploymentsListControls />
-          <DeploymentsCardList />
+          {appV2 ? <DeploymentsCardList /> : <LegacyDeploymentsCardList />}
         </ResourceList>
       </PageBody>
     </PageContainer>

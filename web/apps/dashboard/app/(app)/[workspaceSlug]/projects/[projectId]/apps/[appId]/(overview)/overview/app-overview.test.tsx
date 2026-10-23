@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DeploymentRow } from "../deployments/components/deployment-row";
-import Overview from "./page";
+import { Overview } from "./app-overview";
 
 vi.mock("@unkey/ui", () => ({
   PageBody: "div",
