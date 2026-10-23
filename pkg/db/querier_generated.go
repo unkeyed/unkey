@@ -3907,6 +3907,15 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id = ?
 	UpdateRatelimitNamespaceName(ctx context.Context, db DBTX, arg UpdateRatelimitNamespaceNameParams) error
+	//UpdateRatelimitNamespaceUseGcra
+	//
+	//  UPDATE ratelimit_namespaces
+	//  SET
+	//      use_gcra = ?,
+	//      updated_at_m = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdateRatelimitNamespaceUseGcra(ctx context.Context, db DBTX, arg UpdateRatelimitNamespaceUseGcraParams) error
 	//UpdateRole
 	//
 	//  UPDATE roles

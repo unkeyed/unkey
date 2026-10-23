@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	globalratelimit "github.com/unkeyed/unkey/pkg/ratelimit"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -39,6 +40,7 @@ type Handler struct {
 	DB              db.Database
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
 	Ratelimit       ratelimit.Service
+	GlobalRatelimit globalratelimit.Limiter
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
 }
@@ -166,9 +168,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Build ratelimit requests for all checks
 	ratelimitReqs := make([]ratelimit.RatelimitRequest, len(req))
 	checkMetadata := make([]checkMeta, len(req))
+	allGlobal := true
 
 	for i, check := range req {
 		ns := namespaces[check.Namespace]
+		allGlobal = allGlobal && ns.UseGcra
 
 		if ns.DeletedAtM.Valid {
 			return fault.New("namespace was deleted",
@@ -208,9 +212,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Batch rate limit all requests using RatelimitMany
+	// Batch rate limit all requests
 	start := time.Now()
-	results, err := h.Ratelimit.RatelimitMany(ctx, ratelimitReqs)
+	var results []ratelimit.RatelimitResponse
+	if allGlobal {
+		globalRequests, requestErr := toGlobalRequests(ratelimitReqs)
+		if requestErr != nil {
+			return requestErr
+		}
+		results, err = h.allowManyGlobal(ctx, ratelimitReqs, globalRequests)
+	} else {
+		results, err = h.Ratelimit.RatelimitMany(ctx, ratelimitReqs)
+	}
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -271,6 +284,52 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limits: limits,
 		},
 	})
+}
+
+// toGlobalRequests builds the requests for the global limiter. It returns a
+// validation error if two checks have the same fingerprint, which overrides
+// can cause after the request values passed the uniqueness check.
+func toGlobalRequests(reqs []ratelimit.RatelimitRequest) ([]globalratelimit.Request, error) {
+	requests := make([]globalratelimit.Request, len(reqs))
+	fingerprints := make(map[[32]byte]struct{}, len(reqs))
+	for i, req := range reqs {
+		fingerprint := namespace.GlobalFingerprint(req.WorkspaceID, req.Namespace, req.Identifier, req.Duration)
+		if _, duplicate := fingerprints[fingerprint]; duplicate {
+			return nil, fault.New("duplicate rate limit check after overrides",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Public("Each check must be unique by namespace, identifier and duration after overrides are applied."),
+			)
+		}
+		fingerprints[fingerprint] = struct{}{}
+		requests[i] = globalratelimit.Request{
+			Fingerprint: fingerprint,
+			Rate:        globalratelimit.Rate{Limit: req.Limit, Duration: req.Duration},
+			Units:       req.Cost,
+		}
+	}
+	return requests, nil
+}
+
+// allowManyGlobal decides the checks all or nothing when every namespace has
+// `UseGcra`. A call with a regional namespace stays regional, so
+// one call never mixes the two limiters. `requests[i]` must be built from
+// `reqs[i]`. It is safe to call concurrently.
+func (h *Handler) allowManyGlobal(ctx context.Context, reqs []ratelimit.RatelimitRequest, requests []globalratelimit.Request) ([]ratelimit.RatelimitResponse, error) {
+	results, err := h.GlobalRatelimit.AllowMany(ctx, requests)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]ratelimit.RatelimitResponse, len(results))
+	for i, result := range results {
+		responses[i] = ratelimit.RatelimitResponse{
+			Limit:     reqs[i].Limit,
+			Remaining: result.Remaining,
+			Reset:     result.ResetAt,
+			Success:   result.Allowed,
+			Current:   0,
+		}
+	}
+	return responses, nil
 }
 
 func (h *Handler) getNamespaces(ctx context.Context, workspaceID string, names []string) (map[string]db.FindRatelimitNamespace, []string, error) {
