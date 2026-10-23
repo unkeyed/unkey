@@ -2,6 +2,8 @@ package clickhouse
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -87,9 +89,17 @@ func TestGatewayRequestProjection(t *testing.T) {
 				require.NoError(t, rows.Err())
 				require.NoError(t, rows.Close())
 				require.Equal(t, tt.wantRows, count)
-				require.NoError(t, client.conn.Exec(ctx, "SYSTEM FLUSH LOGS"))
 				var read uint64
-				require.NoError(t, client.conn.QueryRow(ctx, `SELECT read_rows FROM system.query_log WHERE query_id = ? AND type = 'QueryFinish'`, id).Scan(&read))
+				// ClickHouse sends the HTTP response before enqueueing QueryFinish.
+				require.Eventually(t, func() bool {
+					err = client.conn.Exec(ctx, "SYSTEM FLUSH LOGS")
+					if err != nil {
+						return true
+					}
+					err = client.conn.QueryRow(ctx, `SELECT read_rows FROM system.query_log WHERE query_id = ? AND type = 'QueryFinish'`, id).Scan(&read)
+					return !errors.Is(err, sql.ErrNoRows)
+				}, 5*time.Second, 50*time.Millisecond, "QueryFinish not visible for query %s", id)
+				require.NoError(t, err)
 				return read
 			}
 			without, with := readRows(false), readRows(true)
