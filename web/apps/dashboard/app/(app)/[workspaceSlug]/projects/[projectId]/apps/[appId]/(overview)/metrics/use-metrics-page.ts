@@ -56,6 +56,7 @@ export function useMetricsPage() {
       ? { appId, environmentId: environment.environment.id, grid }
       : null;
 
+  const environmentId = scope?.environmentId ?? null;
   const sources = useMetricSources(scope);
   const perInstance = needsInstanceSeries(query.tab, query.expand);
   const instances = useMetricInstances(scope, perInstance);
@@ -64,7 +65,7 @@ export function useMetricsPage() {
     seriesInstancesOf({
       needed: perInstance,
       open: openReplica,
-      environmentId: scope?.environmentId ?? null,
+      environmentId,
       instances,
     }),
   );
@@ -83,7 +84,6 @@ export function useMetricsPage() {
     selected: query.instance,
   });
 
-  const environmentId = scope?.environmentId ?? null;
   const logsHref = (row: InstanceRow) =>
     routes.projects.logs({
       workspaceSlug: workspace.slug,

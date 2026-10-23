@@ -1,10 +1,11 @@
 import { failed, loading, ready } from "@/lib/loadable/fixtures";
-import type {
-  Grid,
-  InstanceRow,
-  InstanceSeries,
-  ReplicaTarget,
-  ResourcePoint,
+import {
+  type Grid,
+  INSTANCE_SERIES_MAX,
+  type InstanceRow,
+  type InstanceSeries,
+  type ReplicaTarget,
+  type ResourcePoint,
 } from "@/lib/metrics/app-metrics";
 import { describe, expect, it } from "vitest";
 import { replicaSheetModel, replicaUsage, seriesInstancesOf } from "./replica-model";
@@ -243,5 +244,18 @@ describe("seriesInstancesOf", () => {
     expect(
       seriesInstancesOf({ needed: true, open: live, environmentId: "env_prod", instances: rows }),
     ).toEqual(["pod-a", "pod-b"]);
+  });
+
+  it("keeps the open sheet's pod when the list is over the cap", () => {
+    const many = ready(Array.from({ length: INSTANCE_SERIES_MAX + 5 }, (_, i) => row(`pod-${i}`)));
+    const sheet = { environmentId: "env_prod", row: row("pod-zz") };
+    const names = seriesInstancesOf({
+      needed: true,
+      open: sheet,
+      environmentId: "env_prod",
+      instances: many,
+    });
+    expect(names).toHaveLength(INSTANCE_SERIES_MAX);
+    expect(names).toContain("pod-zz");
   });
 });
