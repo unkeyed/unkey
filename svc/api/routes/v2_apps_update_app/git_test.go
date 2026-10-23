@@ -28,6 +28,53 @@ func appSlug() string {
 	return strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 }
 
+func TestUpdateAppGitRejectsOutOfScopeGrantsWithoutChanges(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+	}
+	h.Register(route)
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Payments",
+		Slug:        appSlug(),
+	})
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "App",
+		Slug:        appSlug(),
+	})
+	for _, grant := range []string{
+		rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(app.ID), permissions.Read).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(uid.New(uid.AppPrefix)), permissions.Write).Value,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(uid.New(uid.ProjectPrefix)).App(app.ID), permissions.Write).Value,
+	} {
+		t.Run(grant, func(t *testing.T) {
+			rootKey := h.CreateRootKey(workspace.ID, grant)
+			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {"Bearer " + rootKey},
+			}, handler.Request{
+				Project: project.ID,
+				App:     app.ID,
+				Name:    new("Unauthorized rename"),
+				Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey")}),
+			})
+			require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
+			stored, err := db.Query.FindAppById(t.Context(), h.DB.RO(), app.ID)
+			require.NoError(t, err)
+			require.Equal(t, app.Name, stored.Name)
+			_, err = db.Query.FindGithubRepoConnectionByAppId(t.Context(), h.DB.RO(), app.ID)
+			require.True(t, db.IsNotFound(err))
+		})
+	}
+}
+
 func TestUpdateAppConnectRepository(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -45,7 +92,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.update_app", "app.*.connect_repository")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -209,7 +256,7 @@ func TestUpdateAppDisconnectRepository(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.update_app", "app.*.connect_repository")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -267,7 +314,7 @@ func TestUpdateAppConnectRepositoryNotConfigured(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.update_app", "app.*.connect_repository")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -295,47 +342,6 @@ func TestUpdateAppConnectRepositoryNotConfigured(t *testing.T) {
 	require.GreaterOrEqual(t, res.Status, 500, "unconfigured GitHub connection should fail, received: %s", res.RawBody)
 }
 
-func TestUpdateAppConnectRepositoryForbidden(t *testing.T) {
-	h := testutil.NewHarness(t)
-
-	route := &handler.Handler{
-		DB:            h.DB,
-		Auditlogs:     h.Auditlogs,
-		GitHubAppName: "unkey-app",
-		GitHubClient:  github.NewNoop(),
-	}
-	h.Register(route)
-
-	workspace := h.Resources().UserWorkspace
-	// Has update_app but NOT connect_repository.
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.update_app")
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
-
-	project := h.CreateProject(seed.CreateProjectRequest{
-		ID:          uid.New(uid.ProjectPrefix),
-		WorkspaceID: workspace.ID,
-		Name:        "Payments",
-		Slug:        appSlug(),
-	})
-	app := h.CreateApp(seed.CreateAppRequest{
-		ID:          uid.New(uid.AppPrefix),
-		WorkspaceID: workspace.ID,
-		ProjectID:   project.ID,
-		Name:        "App",
-		Slug:        appSlug(),
-	})
-
-	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{
-		Project: project.ID,
-		App:     app.ID,
-		Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey")}),
-	})
-	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
-}
-
 func TestUpdateAppOCIImageWithAppSettings(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctrlClient := &testutil.MockAppClient{
@@ -351,7 +357,7 @@ func TestUpdateAppOCIImageWithAppSettings(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.update_app")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -416,7 +422,7 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.update_app", "app.*.connect_repository")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

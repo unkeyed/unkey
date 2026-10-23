@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_set_environment_variables"
@@ -22,7 +25,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 
 	ctx := context.Background()
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_environment_variables")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*").Environment("*").Variable("*"), permissions.Write).Value, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*").Environment("*").Variable("*"), permissions.Delete).Value)
 	headers := authHeaders(rootKey)
 
 	call := func(t *testing.T, req handler.Request) handler.Response {

@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
@@ -21,7 +24,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 
 	t.Run("create deployment with docker image", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-			Permissions: []string{"project.*.create_deployment"},
+			Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value},
 		})
 
 		headers := http.Header{
@@ -60,7 +63,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 	t.Run("create deployment with git commit info", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 			ProjectName: "test-git-project",
-			Permissions: []string{"project.*.create_deployment"},
+			Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value},
 		})
 
 		headers := http.Header{
@@ -117,7 +120,7 @@ func TestCreateDeploymentWithWildcardPermission(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{rbac.U(urn.New().Workspace("{workspaceID}").Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value},
 	})
 
 	headers := http.Header{
@@ -153,7 +156,7 @@ func TestCreateDeploymentWithSpecificProjectPermission(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup()
 
 	// Now create a root key with project-specific permission
-	rootKey := h.CreateRootKey(setup.Workspace.ID, fmt.Sprintf("project.%s.create_deployment", setup.Project.ID))
+	rootKey := h.CreateRootKey(setup.Workspace.ID, rbac.U(urn.New().Workspace(setup.Workspace.ID).Project(setup.Project.ID).App("*").Environment("*").Deployment("*"), permissions.Write).Value)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
