@@ -141,7 +141,7 @@ func TestListDomains(t *testing.T) {
 		req.CnameVerified = true
 	})
 	second := attachDomain(t, h, env, nil)
-	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+env.workspaceID+":**#read")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -206,7 +206,7 @@ func TestListDomainsOptionalScopes(t *testing.T) {
 
 	otherProject := seedEnvironment(t, h)
 	other := attachDomain(t, h, otherProject, nil)
-	rootKey := h.CreateRootKey(env.workspaceID, "unkey:v1:"+env.workspaceID+":**#read")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 
 	testCases := []struct {
 		name    string
@@ -250,7 +250,7 @@ func TestListDomainsFiltersAreCumulative(t *testing.T) {
 	firstDomain := attachDomain(t, h, first, nil)
 	second := seedEnvironment(t, h)
 	secondDomain := attachDomain(t, h, second, nil)
-	headers := authHeaders(h.CreateRootKey(first.workspaceID, "unkey:v1:"+first.workspaceID+":**#read"))
+	headers := authHeaders(h.CreateRootKey(first.workspaceID, rbac.U(urn.New().Workspace(first.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Project: new(first.projectID),

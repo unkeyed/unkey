@@ -23,7 +23,7 @@ func TestKeyDeleteBadRequest(t *testing.T) {
 	h.Register(route)
 
 	// Create root key with read permissions
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.delete_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, "*", "*", "*", "delete"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

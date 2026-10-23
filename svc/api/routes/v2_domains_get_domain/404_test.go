@@ -6,7 +6,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -19,7 +22,7 @@ func TestGetDomainNotFound(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 	headers := authHeaders(rootKey)
 
 	testCases := []struct {
@@ -61,7 +64,7 @@ func TestGetDomainCrossWorkspace(t *testing.T) {
 	h.Register(route)
 
 	seeded := seedDomain(t, h, nil)
-	rootKey := h.CreateRootKey(seeded.workspaceID, "unkey:v1:"+(seeded.workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(seeded.workspaceID, rbac.U(urn.New().Workspace(seeded.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Read).Value)
 	headers := authHeaders(rootKey)
 
 	otherWorkspace := h.CreateWorkspace()

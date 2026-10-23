@@ -33,7 +33,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_permission_from_key")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -124,11 +124,12 @@ func TestNotFoundErrors(t *testing.T) {
 
 		// Create a permission in the other workspace
 		otherPermissionID := uid.New(uid.TestPrefix)
+		otherPermissionSlug := uid.New("other.workspace.permission.remove.404")
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: otherPermissionID,
 			WorkspaceID:  otherWorkspaceID,
-			Name:         "other.workspace.permission.remove.404",
-			Slug:         "other.workspace.permission.remove.404",
+			Name:         otherPermissionSlug,
+			Slug:         otherPermissionSlug,
 			Description:  dbtype.NullString{Valid: true, String: "Permission in other workspace"},
 		})
 		require.NoError(t, err)

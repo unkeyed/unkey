@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
@@ -210,7 +211,7 @@ func Test200_WildcardCanReadWorkspaceWithoutNamespacePredicate(t *testing.T) {
 func Test200_WildcardUnionReadsWorkspaceBranch(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	allowed, other := createNamespace(t, h, workspaceID), createNamespace(t, h, workspaceID)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").RatelimitNamespace("*").Logs(), permissions.Read).Value)
 	for _, id := range []string{allowed, other} {
 		h.RatelimitEvents.Buffer(schema.Ratelimit{RequestID: uid.New(uid.RequestPrefix), Time: time.Now().UnixMilli(), WorkspaceID: workspaceID, NamespaceID: id, Identifier: id, Passed: true, Limit: 10})
 	}
@@ -314,8 +315,8 @@ func Test200_WildcardUnknownAndForeignNamespaces(t *testing.T) {
 	foreignWorkspace := h.CreateWorkspace()
 	foreign := createNamespace(t, h, foreignWorkspace.ID)
 	h.SetupAnalytics(foreignWorkspace.ID)
-	rootKey := h.CreateRootKey(workspaceID, "unkey:v1:"+(workspaceID)+":**#*")
-	foreignRootKey := h.CreateRootKey(foreignWorkspace.ID, "unkey:v1:"+(foreignWorkspace.ID)+":**#*")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").RatelimitNamespace("*").Logs(), permissions.Read).Value)
+	foreignRootKey := h.CreateRootKey(foreignWorkspace.ID, rbac.U(urn.New().Workspace(foreignWorkspace.ID).Project("*").RatelimitNamespace("*").Logs(), permissions.Read).Value)
 	h.RatelimitEvents.Buffer(schema.Ratelimit{RequestID: uid.New(uid.RequestPrefix), Time: time.Now().UnixMilli(), WorkspaceID: foreignWorkspace.ID, NamespaceID: foreign, Identifier: "foreign", Passed: true, Limit: 10})
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {

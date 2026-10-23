@@ -8,7 +8,10 @@ import (
 
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -46,7 +49,7 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 		Name:        "Restate Failure",
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("app"), "_", "-")),
 	})
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.delete_app")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Delete).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
