@@ -18,7 +18,16 @@ import (
 
 type config struct {
 	ProjectName string `yaml:"project_name"`
-	Includes    []struct {
+	Monorepo    struct {
+		TagPrefix string `yaml:"tag_prefix"`
+	} `yaml:"monorepo"`
+	Changelog struct {
+		Filters struct {
+			Exclude []string `yaml:"exclude"`
+			Include []string `yaml:"include"`
+		} `yaml:"filters"`
+	} `yaml:"changelog"`
+	Includes []struct {
 		FromFile struct {
 			Path string `yaml:"path"`
 		} `yaml:"from_file"`
@@ -37,7 +46,12 @@ type config struct {
 
 type goPackage struct {
 	Dir           string
+	ImportPath    string
+	Name          string
 	Standard      bool
+	GoFiles       []string
+	CgoFiles      []string
+	EmbedFiles    []string
 	EmbedPatterns []string
 }
 
@@ -65,7 +79,12 @@ func run(filename string, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if err := cfg.addDependencies(root, paths); err != nil {
+	analysis := reachability{
+		packages: map[string]goPackage{},
+		files:    map[string]bool{},
+		symbols:  map[string]bool{},
+	}
+	if err := cfg.addDependencies(root, paths, &analysis); err != nil {
 		return err
 	}
 	for _, docker := range cfg.Dockers {
@@ -78,16 +97,20 @@ func run(filename string, output io.Writer) error {
 		ordered = append(ordered, path)
 	}
 	slices.Sort(ordered)
+	changelog, err := analysis.changelog(cfg, ordered)
+	if err != nil {
+		return err
+	}
 	return json.NewEncoder(output).Encode(map[string]interface{}{
 		"version": 2,
 		"includes": []interface{}{
 			map[string]interface{}{"from_file": map[string]string{"path": filename}},
 		},
-		"changelog": map[string]interface{}{"use": "git", "paths": ordered},
+		"changelog": changelog,
 	})
 }
 
-func (cfg config) addDependencies(root string, paths map[string]bool) error {
+func (cfg config) addDependencies(root string, paths map[string]bool, analysis *reachability) error {
 	for _, build := range cfg.Builds {
 		if build.Main == "" || len(build.Goos) == 0 || len(build.Goarch) == 0 {
 			return errors.New("release builds must specify main, goos, and goarch")
@@ -110,7 +133,10 @@ func (cfg config) addDependencies(root string, paths map[string]bool) error {
 				if err != nil {
 					return fmt.Errorf("list dependencies for %s %s/%s: %w", entrypoint.String(), goos, goarch, err)
 				}
-				if err := addPackages(root, data, paths); err != nil {
+				if err := addPackages(root, data, paths, analysis); err != nil {
+					return err
+				}
+				if err := analysis.link(entrypoint.String(), build.Tags, cmd.Env); err != nil {
 					return err
 				}
 			}
@@ -144,6 +170,12 @@ func readConfig(filename string, paths map[string]bool) (config, error) {
 		if cfg.ProjectName == "" {
 			cfg.ProjectName = base.ProjectName
 		}
+		if cfg.Monorepo.TagPrefix == "" {
+			cfg.Monorepo = base.Monorepo
+		}
+		if cfg.Changelog.Filters.Exclude == nil && cfg.Changelog.Filters.Include == nil {
+			cfg.Changelog = base.Changelog
+		}
 		if len(cfg.Builds) == 0 {
 			cfg.Builds = base.Builds
 		}
@@ -154,7 +186,7 @@ func readConfig(filename string, paths map[string]bool) (config, error) {
 	return cfg, nil
 }
 
-func addPackages(root string, data []byte, paths map[string]bool) error {
+func addPackages(root string, data []byte, paths map[string]bool, analysis *reachability) error {
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	for {
 		var pkg goPackage
@@ -175,6 +207,14 @@ func addPackages(root string, data []byte, paths map[string]bool) error {
 			continue
 		}
 		dir = filepath.ToSlash(dir)
+		pkg.EmbedFiles = append(pkg.EmbedFiles, analysis.packages[dir].EmbedFiles...)
+		pkg.EmbedPatterns = append(pkg.EmbedPatterns, analysis.packages[dir].EmbedPatterns...)
+		slices.Sort(pkg.EmbedFiles)
+		pkg.EmbedFiles = slices.Compact(pkg.EmbedFiles)
+		analysis.packages[dir] = pkg
+		for _, name := range append(pkg.GoFiles, pkg.CgoFiles...) {
+			analysis.files[filepath.ToSlash(filepath.Join(dir, name))] = true
+		}
 		paths[":(top,glob)"+dir+"/*"] = true
 		for _, pattern := range pkg.EmbedPatterns {
 			pattern = strings.TrimPrefix(pattern, "all:")
