@@ -1,7 +1,6 @@
 "use client";
 
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   IconBoltOutline18,
@@ -14,7 +13,11 @@ import { Loading, formatTimestamp } from "@unkey/ui";
 import { cn } from "cn";
 import { type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useDeployment } from "../../layout-provider";
-import { BUILD_LOG_ENTRIES_SHOWN_MAX, type BuildLogsQuery } from "../../use-build-logs";
+import {
+  BUILD_LOG_ENTRIES_SHOWN_MAX,
+  BUILD_NOT_DONE_STATUSES,
+  type BuildLogsQuery,
+} from "../../use-build-logs";
 import { useDeploymentStatus } from "../../use-deployment-status";
 import { type BuildLogLine, type Tone, toBuildLogLines, toBuildLogText } from "./build-log-lines";
 import { BuildLogsHeader } from "./build-logs-header";
@@ -33,11 +36,6 @@ const LINE_HEIGHT_ESTIMATE_PX = 22;
 const TAIL_FOLLOW_SLACK_PX = 2 * LINE_HEIGHT_ESTIMATE_PX;
 // About three pages of listBuildLogs
 const LINES_AHEAD_MIN = 300;
-const BUILD_NOT_DONE_STATUSES: ReadonlySet<DeploymentStatus> = new Set([
-  "pending",
-  "starting",
-  "building",
-]);
 
 export function DeploymentBuildLogs({
   logs,
@@ -65,7 +63,10 @@ export function DeploymentBuildLogs({
   const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
   const logHeight = `min(${fixedHeight}px, 60dvh)`;
   const readsToEnd = isFailed || followsTail || pendingJump !== null || query.trim() !== "";
-  useEffect(() => onReadsToEndChange(readsToEnd), [onReadsToEndChange, readsToEnd]);
+  useEffect(() => {
+    onReadsToEndChange(readsToEnd);
+    return () => onReadsToEndChange(false);
+  }, [onReadsToEndChange, readsToEnd]);
 
   const entries = logs.data?.entries;
   const hasMore = logs.data?.hasMore === true;

@@ -62,8 +62,7 @@ export function resolveInstancesView(input: InstancesInput): InstancesView {
     }
     return { kind: "empty", message: instancesText(null, input.desiredState) };
   }
-  const regions = liveRegions(input);
-  return { kind: "diagram", regions };
+  return { kind: "diagram", regions: liveRegions(input) };
 }
 
 function regionOrder(desiredRegions: InstancesInput["desiredRegions"]) {

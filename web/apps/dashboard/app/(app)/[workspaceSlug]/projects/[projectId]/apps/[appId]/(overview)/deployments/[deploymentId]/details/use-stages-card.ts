@@ -2,7 +2,7 @@ import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useMemo, useState } from "react";
 import { toBuildLogLines } from "../(deployment-progress)/build-logs/build-log-lines";
-import { useBuildLogs } from "../use-build-logs";
+import { useBuildLogsPanel } from "../use-build-logs";
 import type { DeploymentPage } from "../use-deployment-page";
 import {
   type OpenStage,
@@ -60,11 +60,10 @@ export function useStagesCard({
 
   const buildStage = stages.find((s) => s.key === "build");
   const buildPanelOpen = buildStage !== undefined && isOpen(buildStage);
-  // The ticker needs the newest line at once; the open panel reads to the end
-  // only when it follows the tail, searches or jumps
-  const [panelReadsToEnd, setPanelReadsToEnd] = useState(false);
-  const buildLogs = useBuildLogs(deployment, {
-    readsToEnd: !buildPanelOpen || panelReadsToEnd,
+  // The ticker needs the newest line at once
+  const { logs: buildLogs, panelProps: buildPanel } = useBuildLogsPanel(deployment, {
+    status,
+    readsToEndFloor: !buildPanelOpen,
     enabled: buildPanelOpen || buildStage?.resolution.status === "started",
   });
   const buildEntries = buildLogs.data?.entries;
@@ -81,8 +80,7 @@ export function useStagesCard({
     failedStage,
     isOpen,
     toggle,
-    buildLogs,
-    setPanelReadsToEnd,
+    buildPanel,
     tickerFor: (stage: Stage) => stageTickerLine(stage, tickerSources),
   };
 }

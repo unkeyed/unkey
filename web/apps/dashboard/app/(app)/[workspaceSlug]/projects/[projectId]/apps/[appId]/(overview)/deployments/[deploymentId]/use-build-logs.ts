@@ -1,14 +1,22 @@
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { queryKeys } from "@/lib/query-keys";
 import { trpc } from "@/lib/trpc/client";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { BuildLogEntry } from "@unkey/api/models/components";
+import { useState } from "react";
 
 // Rendering every entry of a noisy build is slow, and the end of a build is
 // where a failure shows, so only the newest entries are kept
 export const BUILD_LOG_ENTRIES_SHOWN_MAX = 5000;
+
+export const BUILD_NOT_DONE_STATUSES: ReadonlySet<DeploymentStatus> = new Set([
+  "pending",
+  "starting",
+  "building",
+]);
 
 const IN_FLIGHT_POLL_MS = 1_000;
 // A quiet step, such as a long compile, prints nothing for a while, so each
@@ -119,4 +127,25 @@ function pollInterval(deployment: Deployment, logs: BuildLogs | undefined): numb
 
 function settledAt(deployment: Deployment): number {
   return deployment.updatedAt ?? deployment.createdAt;
+}
+
+// Pairs the query with a mounted log panel, which reads to the end while it
+// follows the tail, searches or jumps. A panel opens on the tail of a running
+// build and on the last error of a failed one.
+export function useBuildLogsPanel(
+  deployment: Deployment,
+  {
+    status,
+    enabled,
+    readsToEndFloor,
+  }: { status: DeploymentStatus; enabled: boolean; readsToEndFloor: boolean },
+) {
+  const [panelReadsToEnd, setPanelReadsToEnd] = useState(
+    () => status === "failed" || BUILD_NOT_DONE_STATUSES.has(status),
+  );
+  const logs = useBuildLogs(deployment, {
+    readsToEnd: readsToEndFloor || panelReadsToEnd,
+    enabled,
+  });
+  return { logs, panelProps: { logs, onReadsToEndChange: setPanelReadsToEnd } };
 }
