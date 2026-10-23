@@ -454,11 +454,12 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 		cliService.Signer = cliSigner
 		sessionCache, cacheErr := cache.New[string, clidevice.SessionVerdict](cache.Config[string, clidevice.SessionVerdict]{
-			Fresh:    10 * time.Second,
-			Stale:    10 * time.Second,
-			MaxSize:  10_000,
-			Resource: "cli_session",
-			Clock:    clk,
+			Fresh:     10 * time.Second,
+			Stale:     10 * time.Second,
+			MaxSize:   10_000,
+			Resource:  "cli_session",
+			Clock:     clk,
+			Scheduler: nil,
 		})
 		if cacheErr != nil {
 			return fmt.Errorf("unable to create cli session cache: %w", cacheErr)
