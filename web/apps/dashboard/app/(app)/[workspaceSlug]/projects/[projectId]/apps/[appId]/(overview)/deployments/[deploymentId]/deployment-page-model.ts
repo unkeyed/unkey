@@ -13,8 +13,9 @@ import {
   summarizeInstances,
 } from "@/lib/collections/deploy/instance-status";
 import { type DomainPriorityResult, getDomainPriority } from "../../../components/domain-priority";
+import type { StageKey } from "./details/stages-model";
 
-export type DeploymentBody = "build" | "skipped" | "superseded" | "cancelled" | "stages";
+export type DeploymentBody = "skipped" | "superseded" | "cancelled" | "stages";
 
 export type DeploymentPageInput = {
   deployment: Pick<
@@ -38,6 +39,7 @@ export type PageStatus = {
 export type DeploymentPageModel = {
   status: DeploymentStatus;
   body: DeploymentBody;
+  requestedStage: StageKey | null;
   instances: InstanceSummary | null;
   pageStatus: PageStatus;
   domains: DomainPriorityResult;
@@ -63,7 +65,8 @@ export function deploymentPageModel({
   });
   return {
     status,
-    body: showBuild ? "build" : BODY_BY_STATUS[status],
+    body: BODY_BY_STATUS[status],
+    requestedStage: showBuild ? "build" : null,
     instances,
     pageStatus: resolvePageStatus(status, instances),
     domains: domainPriority,

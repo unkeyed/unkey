@@ -197,6 +197,11 @@ describe("open stage", () => {
   test("a stage that failed before mount starts open", () => {
     expect(initialOpenStage("build")).toEqual({ open: "build", autoOpened: ["build"] });
     expect(initialOpenStage(null)).toEqual({ open: null, autoOpened: [] });
+    expect(initialOpenStage(null, "build")).toEqual({ open: "build", autoOpened: [] });
+    expect(initialOpenStage("instances", "build")).toEqual({
+      open: "build",
+      autoOpened: ["instances"],
+    });
   });
 
   test("opens a stage the first time it fails and keeps it open when it recovers", () => {
