@@ -54,7 +54,7 @@ func TestSaveSwitchAndDelete(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, workspaceA, active.WorkspaceID)
 
-	removed, err := Delete(workspaceA)
+	removed, err := Delete(workspaceA, sessionA)
 	require.NoError(t, err)
 	require.Equal(t, sessionA, removed.SessionID)
 	active, err = Active()
@@ -71,6 +71,70 @@ func TestSaveRoundTripsALargeSession(t *testing.T) {
 	active, err := Active()
 	require.NoError(t, err)
 	require.Equal(t, session, active)
+}
+
+func TestLogoutDoesNotRestoreAKeychainSession(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	store := useMemoryStore(t)
+	current := largeSession()
+	current.WorkspaceID = uid.New(uid.WorkspacePrefix)
+	current.SessionID = uid.New(uid.CLISessionPrefix)
+	require.NoError(t, Save(current))
+	store.SetError(keystore.ErrUnavailable)
+	_, err := Delete(current.WorkspaceID, current.SessionID)
+	require.NoError(t, err)
+	store.SetError(nil)
+	_, err = Active()
+	require.ErrorIs(t, err, ErrNotFound)
+	_, sessions, err := List()
+	require.NoError(t, err)
+	require.Empty(t, sessions)
+}
+
+func TestDeletePreservesAReplacementSession(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	useMemoryStore(t)
+	current := largeSession()
+	current.WorkspaceID = uid.New(uid.WorkspacePrefix)
+	current.SessionID = uid.New(uid.CLISessionPrefix)
+	require.NoError(t, Save(current))
+	next := current
+	next.SessionID = uid.New(uid.CLISessionPrefix)
+	require.NoError(t, Save(next))
+	_, err := Delete(current.WorkspaceID, current.SessionID)
+	require.ErrorIs(t, err, ErrNotFound)
+	stored, err := Active()
+	require.NoError(t, err)
+	require.Equal(t, next, stored)
+}
+
+type obstructingStore struct {
+	MemoryStore
+	path string
+}
+
+func (s *obstructingStore) Set(secret string) error {
+	if err := os.MkdirAll(s.path, 0o700); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(s.path, "blocked"), nil, 0o600); err != nil {
+		return err
+	}
+	return s.MemoryStore.Set(secret)
+}
+
+func TestSaveReportsAnUnusableFallback(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	SetStore(&obstructingStore{path: filepath.Join(home, ".unkey", "sessions.json")})
+	t.Cleanup(func() { SetStore(nil) })
+	err := Save(Session{
+		WorkspaceID:  uid.New(uid.WorkspacePrefix),
+		SessionID:    uid.New(uid.CLISessionPrefix),
+		AccessToken:  "access",
+		RefreshToken: "refresh",
+	})
+	require.Error(t, err)
 }
 
 func TestKeychainFailureWritesAPrivateSessionFile(t *testing.T) {
