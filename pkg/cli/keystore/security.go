@@ -1,8 +1,6 @@
 package keystore
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -20,13 +18,15 @@ const securityMaxLineLen = 4095
 // interactive line limit after the command and quoting are added.
 const chunkPieceBytes = 3500
 
-// chunkHeader is the legacy manifest: the primary item holds the piece count
-// and piece i is stored at account/i.
+// chunkHeader starts the manifest written last. Pieces live at
+// account/<slot>/<i> and are invisible until this one item is replaced. A write
+// uses the slot the current manifest does not reference, so at most two slots
+// ever hold pieces and a delete can sweep both.
 const chunkHeader = "unkey-keystore-chunks:v1:"
 
-// nonceHeader is the manifest written last. Pieces live at
-// account/<nonce>/<i> and are invisible until this one item is replaced.
-const nonceHeader = "unkey-keystore-nonce:v1:"
+const chunkPiecesMax = 1024
+
+var chunkSlots = [2]string{"a", "b"}
 
 func securityGet(bin, service, account string) (string, error) {
 	unlock, err := lockKeystore()
@@ -51,11 +51,11 @@ func securityGetUnlocked(bin, service, account string) (string, error) {
 	}
 	var b strings.Builder
 	for i := 0; i < ref.n; i++ {
-		part, err := readItem(bin, service, chunkAccount(account, ref.nonce, i))
+		part, err := readItem(bin, service, chunkAccount(account, ref.slot, i))
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				_ = deleteItem(bin, service, account)
-				_ = discardNonce(bin, service, account, ref.nonce)
+				_ = discardSlot(bin, service, account, ref.slot, ref.n)
 				return "", fmt.Errorf("stored secret is unreadable; run unkey login again: %w", ErrNotFound)
 			}
 			return "", err
@@ -70,9 +70,9 @@ func securityGetUnlocked(bin, service, account string) (string, error) {
 //
 // Interactive mode reads at most 4095 bytes of a command and does not reliably
 // report that it dropped the rest. A secret that does not fit in one command
-// is split across several items under a fresh nonce. The primary item is
-// replaced only after those pieces are stored, so a crash keeps the previous
-// secret. The write is confirmed by reading the value back. A mismatch, or a
+// is split across several items in the slot the current manifest does not
+// reference. The primary item is replaced only after those pieces are stored,
+// so a crash keeps the previous secret. The write is confirmed by reading the value back. A mismatch, or a
 // missing item, restores the previous manifest. Any other read error leaves
 // the stored items in place.
 func securitySet(bin, service, account, secret string) error {
@@ -88,25 +88,33 @@ func securitySetUnlocked(bin, service, account, secret string) error {
 	if strings.ContainsAny(secret, "\r\n") {
 		return fmt.Errorf("security: secret must not contain line breaks")
 	}
-	nonce, err := newNonce()
-	if err != nil {
-		return err
-	}
-	parts, chunked, err := planChunks(service, account, nonce, secret)
-	if err != nil {
-		return err
-	}
 	oldRaw := ""
-	oldRef := chunkRef{nonce: "", n: 0}
-	if raw, readErr := readItem(bin, service, account); readErr == nil {
+	oldRef := chunkRef{slot: "", n: 0}
+	raw, readErr := readItem(bin, service, account)
+	if readErr == nil {
 		oldRaw = raw
 		if ref, parseErr := parseChunkHeader(raw); parseErr == nil {
 			oldRef = ref
 		}
+	} else if !errors.Is(readErr, ErrNotFound) {
+		return readErr
 	}
-	if err := storeChunks(bin, service, account, nonce, parts, chunked); err != nil {
+	slot := chunkSlots[0]
+	if oldRef.slot == chunkSlots[0] {
+		slot = chunkSlots[1]
+	}
+	parts, chunked, err := planChunks(service, account, slot, secret)
+	if err != nil {
+		return err
+	}
+	if chunked {
+		if err := sweepSlot(bin, service, account, slot); err != nil {
+			return err
+		}
+	}
+	if err := storeChunks(bin, service, account, slot, parts, chunked); err != nil {
 		if chunked {
-			_ = discardNonce(bin, service, account, nonce)
+			_ = discardSlot(bin, service, account, slot, len(parts))
 		}
 		return err
 	}
@@ -121,17 +129,17 @@ func securitySetUnlocked(bin, service, account, secret string) error {
 			_ = deleteItem(bin, service, account)
 		}
 		if chunked {
-			_ = discardNonce(bin, service, account, nonce)
+			_ = discardSlot(bin, service, account, slot, len(parts))
 		}
 		return withDetail(ErrUnavailable, "keychain did not keep the secret")
 	}
-	if oldRef.n > 0 && oldRef.nonce != nonce {
-		_ = discardNonce(bin, service, account, oldRef.nonce)
+	if oldRef.n > 0 {
+		_ = discardSlot(bin, service, account, oldRef.slot, oldRef.n)
 	}
 	return nil
 }
 
-func planChunks(service, account, nonce, secret string) ([]string, bool, error) {
+func planChunks(service, account, slot, secret string) ([]string, bool, error) {
 	if lineFits(service, account, secret) {
 		return []string{secret}, false, nil
 	}
@@ -143,7 +151,7 @@ func planChunks(service, account, nonce, secret string) ([]string, bool, error) 
 			n = len(rest)
 		}
 		n = cutUTF8(rest, n)
-		name := chunkAccount(account, nonce, len(parts))
+		name := chunkAccount(account, slot, len(parts))
 		for n > 0 && !lineFits(service, name, rest[:n]) {
 			n = cutUTF8(rest, n-1)
 		}
@@ -152,27 +160,30 @@ func planChunks(service, account, nonce, secret string) ([]string, bool, error) 
 		}
 		parts = append(parts, rest[:n])
 		rest = rest[n:]
-		if len(parts) > 1024 {
+		if len(parts) > chunkPiecesMax {
 			return nil, false, fmt.Errorf("security: secret cannot be stored")
 		}
 	}
-	header := nonceHeader + nonce + ":" + strconv.Itoa(len(parts))
-	if !lineFits(service, account, header) {
+	if !lineFits(service, account, chunkManifest(slot, len(parts))) {
 		return nil, false, fmt.Errorf("security: secret cannot be stored")
 	}
 	return parts, true, nil
 }
 
-func storeChunks(bin, service, account, nonce string, parts []string, chunked bool) error {
+func storeChunks(bin, service, account, slot string, parts []string, chunked bool) error {
 	if !chunked {
 		return writeItem(bin, service, account, parts[0])
 	}
 	for i, part := range parts {
-		if err := writeItem(bin, service, chunkAccount(account, nonce, i), part); err != nil {
+		if err := writeItem(bin, service, chunkAccount(account, slot, i), part); err != nil {
 			return err
 		}
 	}
-	return writeItem(bin, service, account, nonceHeader+nonce+":"+strconv.Itoa(len(parts)))
+	return writeItem(bin, service, account, chunkManifest(slot, len(parts)))
+}
+
+func chunkManifest(slot string, n int) string {
+	return chunkHeader + slot + ":" + strconv.Itoa(n)
 }
 
 func writeItem(bin, service, account, secret string) error {
@@ -204,46 +215,27 @@ func lineFits(service, account, secret string) bool {
 }
 
 type chunkRef struct {
-	nonce string
-	n     int
+	slot string
+	n    int
 }
 
-func chunkAccount(account, nonce string, index int) string {
-	if nonce == "" {
-		return account + "/" + strconv.Itoa(index)
-	}
-	return account + "/" + nonce + "/" + strconv.Itoa(index)
+func chunkAccount(account, slot string, index int) string {
+	return account + "/" + slot + "/" + strconv.Itoa(index)
 }
 
 func parseChunkHeader(raw string) (chunkRef, error) {
-	if strings.HasPrefix(raw, nonceHeader) {
-		rest := strings.TrimPrefix(raw, nonceHeader)
-		nonce, count, ok := strings.Cut(rest, ":")
-		if !ok || nonce == "" || strings.ContainsAny(nonce, "/:") {
-			return chunkRef{}, fmt.Errorf("security: unparseable keychain chunk header")
-		}
-		n, err := strconv.Atoi(count)
-		if err != nil || n <= 0 || n > 1024 {
-			return chunkRef{}, fmt.Errorf("security: unparseable keychain chunk header")
-		}
-		return chunkRef{nonce: nonce, n: n}, nil
-	}
 	if !strings.HasPrefix(raw, chunkHeader) {
-		return chunkRef{nonce: "", n: 0}, nil
+		return chunkRef{slot: "", n: 0}, nil
 	}
-	n, err := strconv.Atoi(strings.TrimPrefix(raw, chunkHeader))
-	if err != nil || n <= 0 || n > 1024 {
+	slot, count, ok := strings.Cut(strings.TrimPrefix(raw, chunkHeader), ":")
+	if !ok || (slot != chunkSlots[0] && slot != chunkSlots[1]) {
 		return chunkRef{}, fmt.Errorf("security: unparseable keychain chunk header")
 	}
-	return chunkRef{nonce: "", n: n}, nil
-}
-
-func newNonce() (string, error) {
-	buf := make([]byte, 8)
-	if _, err := rand.Read(buf); err != nil {
-		return "", err
+	n, err := strconv.Atoi(count)
+	if err != nil || n <= 0 || n > chunkPiecesMax {
+		return chunkRef{}, fmt.Errorf("security: unparseable keychain chunk header")
 	}
-	return hex.EncodeToString(buf), nil
+	return chunkRef{slot: slot, n: n}, nil
 }
 
 func cutUTF8(s string, n int) int {
@@ -283,34 +275,40 @@ func securityDelete(bin, service, account string) error {
 		return err
 	}
 	defer unlock()
-	raw, readErr := readItem(bin, service, account)
-	ref := chunkRef{nonce: "", n: 0}
-	if readErr == nil {
-		if parsed, parseErr := parseChunkHeader(raw); parseErr == nil {
-			ref = parsed
-		}
-	} else if !errors.Is(readErr, ErrNotFound) {
-		return readErr
+	if _, err := readItem(bin, service, account); err != nil && !errors.Is(err, ErrNotFound) {
+		return err
 	}
 	if err := deleteItem(bin, service, account); err != nil {
 		return err
 	}
-	if err := discardNonce(bin, service, account, ref.nonce); err != nil {
-		return err
-	}
-	if ref.nonce != "" {
-		return discardNonce(bin, service, account, "")
+	for _, slot := range chunkSlots {
+		if err := sweepSlot(bin, service, account, slot); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func discardNonce(bin, service, account, nonce string) error {
-	for i := 0; i < 1024; i++ {
-		err := removeItem(bin, service, chunkAccount(account, nonce, i))
+// sweepSlot removes every piece in a slot whose count is unknown. Pieces are
+// written from index 0 up and removed from the top down, so a slot always
+// holds a contiguous run starting at 0 and the first missing index ends it.
+func sweepSlot(bin, service, account, slot string) error {
+	n := 0
+	for ; n < chunkPiecesMax; n++ {
+		_, err := readItem(bin, service, chunkAccount(account, slot, n))
 		if errors.Is(err, ErrNotFound) {
-			return nil
+			break
 		}
 		if err != nil {
+			return err
+		}
+	}
+	return discardSlot(bin, service, account, slot, n)
+}
+
+func discardSlot(bin, service, account, slot string, n int) error {
+	for i := n - 1; i >= 0; i-- {
+		if err := deleteItem(bin, service, chunkAccount(account, slot, i)); err != nil {
 			return err
 		}
 	}
