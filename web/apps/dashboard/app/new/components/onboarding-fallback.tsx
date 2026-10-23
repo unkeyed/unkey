@@ -19,15 +19,9 @@ export function OnboardingFallback() {
             <Skeleton className="h-5 w-3/4 mt-2" />
           </OnboardingCardHeader>
           <OnboardingCardContent>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-9 w-full rounded-lg" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Skeleton className="h-4 w-1/3" />
-                <Skeleton className="h-9 w-full rounded-lg" />
-              </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Skeleton className="h-[180px] w-full rounded-lg" />
+              <Skeleton className="h-[180px] w-full rounded-lg" />
             </div>
           </OnboardingCardContent>
           <OnboardingCardFooter>

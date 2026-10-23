@@ -264,6 +264,12 @@ const (
 	// DeploymentIsProduction indicates the action does not apply to production
 	// deployments, which cannot be stopped or started directly.
 	UnkeyAppErrorsPreconditionDeploymentIsProduction URN = "err:unkey:application:deployment_is_production"
+	// DeploymentNotAwaitingApproval indicates the target deployment is not
+	// waiting for approval, so there is nothing to authorize.
+	UnkeyAppErrorsPreconditionDeploymentNotAwaitingApproval URN = "err:unkey:application:deployment_not_awaiting_approval"
+	// DeploymentNotInProgress indicates the target deployment already finished,
+	// so there is nothing to cancel.
+	UnkeyAppErrorsPreconditionDeploymentNotInProgress URN = "err:unkey:application:deployment_not_in_progress"
 
 	// ----------------
 	// UnkeyLimitsErrors
@@ -317,6 +323,8 @@ const (
 	// InvalidConfiguration represents a 422 error - the deployment's policy configuration could not be parsed.
 	// This is the config author's fault, not frontline's, hence the config domain rather than platform.
 	UnkeyFrontlineErrorsInternalInvalidConfiguration URN = "err:frontline:config:invalid_configuration"
+	// RatelimitNotConfigured represents a 422 error when a policy requires a named rate limit absent from both the key and its identity, without an inline override.
+	UnkeyFrontlineErrorsInternalRatelimitNotConfigured URN = "err:frontline:config:ratelimit_not_configured"
 
 	// Auth
 

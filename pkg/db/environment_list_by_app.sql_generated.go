@@ -10,18 +10,28 @@ import (
 )
 
 const listEnvironmentsByApp = `-- name: ListEnvironmentsByApp :many
-SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 FROM environments
 WHERE app_id = ?
+  AND environments.deleted_at IS NULL
+  AND EXISTS (
+    SELECT 1 FROM apps a JOIN projects p ON p.id = a.project_id
+    WHERE a.id = environments.app_id AND a.deleted_at IS NULL AND p.deleted_at IS NULL
+  )
 ORDER BY id ASC
 `
 
 // An app has only a handful of environments, so this returns all of them
 // without pagination.
 //
-//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 //	FROM environments
 //	WHERE app_id = ?
+//	  AND environments.deleted_at IS NULL
+//	  AND EXISTS (
+//	    SELECT 1 FROM apps a JOIN projects p ON p.id = a.project_id
+//	    WHERE a.id = environments.app_id AND a.deleted_at IS NULL AND p.deleted_at IS NULL
+//	  )
 //	ORDER BY id ASC
 func (q *Queries) ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error) {
 	rows, err := db.QueryContext(ctx, listEnvironmentsByApp, appID)
@@ -44,6 +54,7 @@ func (q *Queries) ListEnvironmentsByApp(ctx context.Context, db DBTX, appID stri
 			&i.DeleteProtection,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}

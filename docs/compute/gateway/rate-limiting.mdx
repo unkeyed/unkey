@@ -14,12 +14,13 @@ sources:
   - svc/frontline/internal/policies/ratelimit/headers.go
   - svc/frontline/internal/policies/engine.go
   - svc/frontline/internal/policies/principal/principal.go
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/schema.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/policy-kinds/ratelimit/model.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/policy-kinds/ratelimit/identifier-sources.ts
 ---
 
 A rate limit policy tells the [gateway](/compute/gateway/overview) to count requests over a fixed window, such as 100 per minute, and reject the extra ones before they reach your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. This <Tooltip tip="Here: a gateway rate limit policy. Not the per-key limits an authentication policy enforces or the standalone ratelimit API.">rate limiting</Tooltip> works without API keys. You choose what to count by, such as the remote IP or a header. For limits per API key, use the `ratelimits` setting on the [API key authentication policy](/compute/gateway/api-key-auth) instead.
 
-To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Rate Limit**. The form starts at 100 requests per 60 seconds per remote IP.
+To add one, open the app, go to **Policies**, click **Add policy**, and set **Type** to **Rate Limit**. The form starts at 100 requests per 60 seconds per client IP.
 
 ## Settings
 
@@ -56,7 +57,7 @@ The older single `identifier` field still works, but responses always return `id
 ```
 
 <Visibility for="agents">
-  In the dashboard this is the **Rate Limit** type in **Policies > Add Policy**. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`, placed after any `keyauth` policy whose principal it depends on. The change applies to the next deployment.
+  In the dashboard this is the **Rate Limit** type in **Policies > Add policy**. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`, placed after any `keyauth` policy whose principal it depends on. The change applies to the next deployment.
 </Visibility>
 
 ## When a value is missing

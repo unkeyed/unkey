@@ -22,9 +22,9 @@ import {
 export type FieldMatch = {
   name: string;
   /**
-   * Matches when the field is present, regardless of value.
+   * Matches when the field is present if true, or absent if false, regardless of value.
    */
-  present?: true | undefined;
+  present?: boolean | undefined;
   /**
    * String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
    */
@@ -38,13 +38,13 @@ export const FieldMatch$inboundSchema: z.ZodType<
   unknown
 > = z.object({
   name: z.string(),
-  present: z.literal(true).optional(),
+  present: z.boolean().optional(),
   value: StringMatch$inboundSchema.optional(),
 });
 /** @internal */
 export type FieldMatch$Outbound = {
   name: string;
-  present?: true | undefined;
+  present?: boolean | undefined;
   value?: StringMatch$Outbound | undefined;
 };
 
@@ -55,7 +55,7 @@ export const FieldMatch$outboundSchema: z.ZodType<
   FieldMatch
 > = z.object({
   name: z.string(),
-  present: z.literal(true).optional(),
+  present: z.boolean().optional(),
   value: StringMatch$outboundSchema.optional(),
 });
 

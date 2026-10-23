@@ -8,9 +8,8 @@ import {
   IconEyeOutline12,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoTooltip, formatTimestamp } from "@unkey/ui";
 import { cn } from "cn";
-import { format } from "date-fns";
 
 export type EnvironmentBadgeRollout = "none" | "live" | "liveAfterRollback" | "rolledBackFrom";
 
@@ -41,7 +40,7 @@ export function EnvironmentBadge({
   }
 
   const liveLabel =
-    liveSince === null ? "Live" : `Live since ${format(liveSince, "d MMM yyyy, HH:mm")}`;
+    liveSince === null ? "Live" : `Live since ${formatTimestamp(liveSince, "MMM d, yyyy, h:mm a")}`;
 
   const { Icon, className, title, detail } = match(rollout)
     .with("none", () => ({

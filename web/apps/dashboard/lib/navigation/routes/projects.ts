@@ -11,7 +11,7 @@ import { type WorkspaceScope, buildRoute } from "./shared";
 type ProjectScope = WorkspaceScope & { projectId: string };
 export type AppScope = ProjectScope & { appId: string };
 
-export const APP_SETTINGS_PAGES = ["build", "runtime", "environments", "advanced"] as const;
+export const APP_SETTINGS_PAGES = ["build", "environments", "advanced"] as const;
 export type AppSettingsPage = (typeof APP_SETTINGS_PAGES)[number];
 
 export type AppSettingsTarget =
@@ -100,10 +100,11 @@ export const projectRoutes = {
       );
     },
 
-    envVars(scope: AppScope): Route {
+    envVars({ search, ...scope }: AppScope & { search?: string }): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/env-vars",
         appParams(scope),
+        { search: search || undefined },
       );
     },
 

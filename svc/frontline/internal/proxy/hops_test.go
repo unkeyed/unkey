@@ -2,6 +2,8 @@ package proxy
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/paseto"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 )
@@ -82,7 +85,7 @@ func TestForwardToRegion_AllowsLastHop(t *testing.T) {
 	clk := clock.NewTestClock(now)
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
-	transport, recorder := newMetadataTransport(t, metadata)
+	transport, recorder := newMetadataTransport(t)
 	//nolint:exhaustruct
 	svc := &service{
 		instanceID: "frontline_3",
@@ -104,6 +107,7 @@ func TestForwardToRegion_AllowsLastHop(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, recorder.seen, 1)
 	require.Len(t, recorder.seen[0].Hops, 3)
+	require.False(t, recorder.seen[0].DebugTelemetryEnabled)
 }
 
 func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
@@ -113,7 +117,7 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 	clk := clock.NewTestClock(now)
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
-	transport, recorder := newMetadataTransport(t, metadata)
+	transport, recorder := newMetadataTransport(t)
 
 	//nolint:exhaustruct
 	first := &service{
@@ -129,18 +133,22 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "https://api.example.com/v1/items?page=2", nil)
 	req.RemoteAddr = "198.51.100.42:12345"
 	req.Header.Set("X-Forwarded-For", "203.0.113.77")
+	req.Header.Set("X-Unkey-Debug", "true")
 	firstSession := newProxySession(t, req)
+	req.Header.Del("X-Unkey-Debug")
 	ctx := WithRequestStartTime(context.Background(), now)
 	require.NoError(t, first.ForwardToRegion(ctx, firstSession, "us-west-2.aws", nil))
 	require.Len(t, recorder.seen, 1)
 	require.Equal(t, now.Add(frontlineMetadataTTL), recorder.seen[0].ExpiresAt)
 	require.Equal(t, "198.51.100.42", recorder.seen[0].ClientIP)
+	require.True(t, recorder.seen[0].DebugTelemetryEnabled)
 	require.Equal(t, []meta.Hop{
 		{
-			Region:        "aws::us-east-1",
-			RequestID:     firstSession.RequestID(),
-			FrontlineID:   "frontline_1",
-			TimeUnixMilli: now.UnixMilli(),
+			Region:         "aws::us-east-1",
+			RegionPlatform: "us-east-1.aws",
+			RequestID:      firstSession.RequestID(),
+			FrontlineID:    "frontline_1",
+			TimeUnixMilli:  now.UnixMilli(),
 		},
 	}, recorder.seen[0].Hops)
 	require.Empty(t, req.Header.Get(HeaderFrontlineMeta))
@@ -162,23 +170,27 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 	secondReq.RemoteAddr = "10.1.2.3:443"
 	secondSession := newProxySession(t, secondReq)
 	secondSession.SetClientIP(netip.MustParseAddr(recorder.seen[0].ClientIP))
+	secondSession.SetDebugTelemetryEnabled(recorder.seen[0].DebugTelemetryEnabled)
 	ctx = WithRequestStartTime(context.Background(), secondNow)
 	require.NoError(t, second.ForwardToRegion(ctx, secondSession, "eu-west-1.aws", incomingHops))
 	require.Len(t, recorder.seen, 2)
 	require.Equal(t, "198.51.100.42", recorder.seen[1].ClientIP)
+	require.True(t, recorder.seen[1].DebugTelemetryEnabled)
 	require.Equal(t, secondNow.Add(frontlineMetadataTTL), recorder.seen[1].ExpiresAt)
 	require.Equal(t, []meta.Hop{
 		{
-			Region:        "aws::us-east-1",
-			RequestID:     firstSession.RequestID(),
-			FrontlineID:   "frontline_1",
-			TimeUnixMilli: now.UnixMilli(),
+			Region:         "aws::us-east-1",
+			RegionPlatform: "us-east-1.aws",
+			RequestID:      firstSession.RequestID(),
+			FrontlineID:    "frontline_1",
+			TimeUnixMilli:  now.UnixMilli(),
 		},
 		{
-			Region:        "aws::us-west-2",
-			RequestID:     secondSession.RequestID(),
-			FrontlineID:   "frontline_2",
-			TimeUnixMilli: secondNow.UnixMilli(),
+			Region:         "aws::us-west-2",
+			RegionPlatform: "us-west-2.aws",
+			RequestID:      secondSession.RequestID(),
+			FrontlineID:    "frontline_2",
+			TimeUnixMilli:  secondNow.UnixMilli(),
 		},
 	}, recorder.seen[1].Hops)
 	require.Empty(t, secondReq.Header.Get(HeaderFrontlineMeta))
@@ -192,7 +204,7 @@ func TestForwardToRegion_PreservesDuplicateRegions(t *testing.T) {
 	clk := clock.NewTestClock(now)
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
-	transport, recorder := newMetadataTransport(t, metadata)
+	transport, recorder := newMetadataTransport(t)
 	//nolint:exhaustruct
 	svc := &service{
 		instanceID: "frontline_2",
@@ -215,15 +227,20 @@ func TestForwardToRegion_PreservesDuplicateRegions(t *testing.T) {
 }
 
 type metadataTransport struct {
-	codec  *meta.Codec
-	seen   []*meta.Metadata
-	tokens []string
+	verifier *paseto.PublicVerifier[meta.Metadata]
+	seen     []*meta.Metadata
+	tokens   []string
 }
 
-func newMetadataTransport(t *testing.T, codec *meta.Codec) (*http.Transport, *metadataTransport) {
+func newMetadataTransport(t *testing.T) (*http.Transport, *metadataTransport) {
 	t.Helper()
 
-	recorder := &metadataTransport{codec: codec}
+	seed, err := hex.DecodeString(testMetadataSigningKey)
+	require.NoError(t, err)
+	publicKey := ed25519.NewKeyFromSeed(seed).Public().(ed25519.PublicKey)
+	verifier, err := paseto.NewVerifier[meta.Metadata](publicKey)
+	require.NoError(t, err)
+	recorder := &metadataTransport{verifier: verifier}
 	transport := &http.Transport{}
 	transport.RegisterProtocol("https", recorder)
 	t.Cleanup(transport.CloseIdleConnections)
@@ -232,11 +249,11 @@ func newMetadataTransport(t *testing.T, codec *meta.Codec) (*http.Transport, *me
 
 func (t *metadataTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	token := req.Header.Get(HeaderFrontlineMeta)
-	metadata, err := t.codec.Unmarshal(token)
+	message, err := t.verifier.Verify(token)
 	if err != nil {
 		return nil, err
 	}
-	t.seen = append(t.seen, metadata)
+	t.seen = append(t.seen, &message.Payload)
 	t.tokens = append(t.tokens, token)
 	//nolint:exhaustruct
 	return &http.Response{

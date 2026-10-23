@@ -7,7 +7,7 @@ import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCircleInfoOutline18 } from "@unkey/icons";
 import { Button, FormInput, FormTextarea, InfoTooltip, useReportUnsavedChanges } from "@unkey/ui";
-import { type ClipboardEvent, useCallback } from "react";
+import { type ClipboardEvent, useCallback, useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { pastedEntries } from "../env-file";
@@ -35,7 +35,7 @@ export function EnvVarEditRow({ envVar, onClose }: { envVar: EnvVar; onClose: ()
     setValue,
     setError,
     control,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, isSubmitting },
   } = useForm<EditEnvVarFormValues>({
     mode: "onChange",
     resolver: zodResolver(isWriteonly ? editWriteonlySchema : editRecoverableSchema),
@@ -47,9 +47,16 @@ export function EnvVarEditRow({ envVar, onClose }: { envVar: EnvVar; onClose: ()
     },
   });
   useReportUnsavedChanges(isDirty);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const onSubmit = useCallback(
-    (values: EditEnvVarFormValues) => {
+    async (values: EditEnvVarFormValues) => {
       if (isWriteonly && !values.value) {
         if ((values.description || "") !== (note ?? "")) {
           setError("value", { message: WRITEONLY_VALUE_REQUIRED });
@@ -61,13 +68,20 @@ export function EnvVarEditRow({ envVar, onClose }: { envVar: EnvVar; onClose: ()
         }
       }
 
-      collection.envVars.update(envVarId, (draft) => {
-        draft.key = values.key;
-        draft.value = values.value;
-        draft.description = values.description || null;
-        draft.type = values.sensitive ? "writeonly" : "recoverable";
-      });
-      onClose();
+      const saved = await collection.envVars
+        .update(envVarId, { optimistic: false }, (draft) => {
+          draft.key = values.key;
+          draft.value = values.value;
+          draft.description = values.description || null;
+          draft.type = values.sensitive ? "writeonly" : "recoverable";
+        })
+        .isPersisted.promise.then(
+          () => true,
+          () => false,
+        );
+      if (saved && mounted.current) {
+        onClose();
+      }
     },
     [envVarId, isWriteonly, note, variableKey, setError, onClose],
   );
@@ -79,8 +93,8 @@ export function EnvVarEditRow({ envVar, onClose }: { envVar: EnvVar; onClose: ()
         return;
       }
       e.preventDefault();
-      setValue("key", entry.key);
-      setValue("value", entry.value);
+      setValue("key", entry.key, { shouldDirty: true, shouldValidate: true });
+      setValue("value", entry.value, { shouldDirty: true, shouldValidate: true });
     },
     [setValue],
   );
@@ -146,7 +160,14 @@ export function EnvVarEditRow({ envVar, onClose }: { envVar: EnvVar; onClose: ()
           <Button type="button" variant="outline" size="sm" onClick={onClose} className="px-3">
             Cancel
           </Button>
-          <Button type="submit" className="px-3" variant="primary" size="sm">
+          <Button
+            type="submit"
+            className="px-3"
+            variant="primary"
+            size="sm"
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          >
             Save
           </Button>
         </div>

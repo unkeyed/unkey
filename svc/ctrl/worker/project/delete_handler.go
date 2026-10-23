@@ -40,7 +40,7 @@ func (s *Service) Delete(
 	}
 
 	apps, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
-		return s.db.ListAppIdsByProject(runCtx, projectID)
+		return s.db.ListAppIdsByProject(runCtx, db.ListAppIdsByProjectParams{ProjectID: projectID})
 	}, restate.WithName("list apps"))
 	if err != nil {
 		return nil, fmt.Errorf("list apps: %w", err)

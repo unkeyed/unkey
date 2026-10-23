@@ -1,5 +1,5 @@
 import { type RegionInfo, regionInfo } from "@/lib/regions";
-import BoringAvatar from "boring-avatars";
+import { GeneratedAvatar } from "@unkey/ui";
 import { cn } from "cn";
 
 type Shape = "circle" | "rounded" | "rect";
@@ -22,7 +22,7 @@ const SHAPES: Record<
     glyph: { xs: "size-4", sm: "size-4", md: "size-4", lg: "size-[22px]" },
   },
   rect: {
-    frame: "overflow-hidden bg-grayA-3 ring-1 ring-grayA-6",
+    frame: "overflow-hidden rounded-xs bg-grayA-3",
     art: "/images/flags/rect",
     container: { xs: "h-3 w-4", sm: "h-3.5 w-5", md: "h-5 w-7", lg: "h-7 w-10" },
     glyph: { xs: "size-full", sm: "size-full", md: "size-full", lg: "size-full" },
@@ -57,7 +57,7 @@ function FlagArt({ flag, shape, size }: { flag: RegionInfo["flag"]; shape: Shape
     return null;
   }
   if (flag === "local") {
-    return <BoringAvatar size="100%" variant="marble" />;
+    return <GeneratedAvatar name="Clara Barton" variant="marble" />;
   }
   const { art, glyph } = SHAPES[shape];
   return <img src={`${art}/${flag}.svg`} alt={flag} className={glyph[size]} />;

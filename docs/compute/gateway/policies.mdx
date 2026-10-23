@@ -25,8 +25,11 @@ sources:
   - cmd/api/gateway/set_policies.go
   - cmd/api/gateway/update_policy.go
   - cmd/api/gateway/list_policies.go
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/index.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/add-panel/schema.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/policy-form/add-policy-panel.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/policy-form/edit-policy-panel.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/components/policy-form/rule/index.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/policy-kinds/conditions/kinds.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/policies/model/duplicate-name.ts
 ---
 
 A policy is one rule the [gateway](/compute/gateway/overview) applies to the requests you pick, such as "require an API key" or "100 requests per minute". Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> of an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> has its own list, so production and preview can have different rules.
@@ -38,16 +41,18 @@ Each <Tooltip tip="One built and running version of an app in one environment.">
 ## Add a policy in the dashboard
 
 1. Open the app and click **Policies** in the sidebar.
-2. Click **Add Policy** and pick a type: Key Auth, Rate Limit, Firewall, OpenAPI Validation, or Logging.
-3. Pick the environment. The default, **All Environments**, adds the same policy to both production and preview.
-4. Add match conditions if the policy should only apply to some requests.
-5. Save, then redeploy.
+2. Click **Add policy**, enter a **Name**, and pick a **Type**: Key Auth, Rate Limit, Firewall, OpenAPI Validation, or Logging.
+3. In the **Rule** card, click **Add condition** for each match condition if the policy should only apply to some requests. With no conditions, the **If** row reads "Every request". Open the **Then** row to set the type's settings.
+4. Pick the **Environment**. The default, **All environments**, adds the same policy to both production and preview.
+5. Click **Add policy**, then redeploy.
 
 <Frame>
-  <img src="/images/dashboard/compute--gateway-policies--policies.png" alt="Policies page with no policies yet and the Add policy button" />
+  <img src="/images/dashboard/compute--gateway-policies--policies.png" alt="Add policy panel with the Name and Type fields, the Rule card with If and Then rows, and the Environment select set to All environments" />
 </Frame>
 
-You can't have two policies with the same type and name in one environment. The dashboard suggests adding the existing policy to the other environment instead.
+Click a policy's row to edit it in the same panel. The type can't change there. The **Environments** switches in that panel turn the policy on or off in production and preview. **How policies work** on the page header explains the evaluation order and what each type rejects.
+
+You can't have two policies with the same type and name in one environment. The dashboard shows a policy with the same type and name in both environments as one row, and suggests opening the existing policy to add it to the other environment instead.
 
 <Visibility for="agents">
   The dashboard steps above correspond to `POST /v2/gateway.setPolicies` with the environment's complete policy list, or `POST /v2/gateway.updatePolicy` to change one policy. To scope a policy to one environment, call the endpoint once with that environment's slug. Read the current list first with `POST /v2/gateway.listPolicies`. The ids it returns are the only valid `policyId` values for `updatePolicy`.
@@ -137,7 +142,7 @@ Each match expression sets exactly one of `path`, `method`, `header`, `queryPara
 </ParamField>
 
 <ParamField body="remoteIp" type="RemoteIpMatch">
-  Matches the remote IP. Set exactly one of `in` (the remote IP is in one of the ranges) or `notIn` (the remote IP is in none of them). Each is a list of 1 to 100 IP addresses or CIDRs, such as `203.0.113.7`, `203.0.113.0/24`, or `2001:db8::/32`. A single address is saved as `/32` or `/128`. Ranges with host bits set, such as `10.1.2.3/8`, are rejected. The gateway accepts IPv4 connections today, so IPv6 entries match no request yet. In the dashboard this is **Remote IP**, with **In range** or **Not in range**.
+  Matches the remote IP. Set exactly one of `in` (the remote IP is in one of the ranges) or `notIn` (the remote IP is in none of them). Each is a list of 1 to 100 IP addresses or CIDRs, such as `203.0.113.7`, `203.0.113.0/24`, or `2001:db8::/32`. A single address is saved as `/32` or `/128`. Ranges with host bits set, such as `10.1.2.3/8`, are rejected. The gateway accepts IPv4 connections today, so IPv6 entries match no request yet. In the dashboard this is **Client IP**, with **is in** or **is not in**.
 </ParamField>
 
 ```json Example: block POST and DELETE on internal paths
@@ -154,14 +159,14 @@ Each match expression sets exactly one of `path`, `method`, `header`, `queryPara
 
 ## Put policies in the right order
 
-The gateway runs every enabled policy that matches, from top to bottom. Order matters in four ways:
+The gateway runs matching, enabled authentication, rate limit, firewall, and OpenAPI validation policies from top to bottom. In the dashboard, drag a row by its handle to reorder. Order matters in four ways:
 
 - **IP blocks before authentication.** Put a firewall policy that blocks by `remoteIp` above your API key policies, so blocked clients can't try keys.
 - **Authentication first.** The first API key policy that succeeds decides who the caller is. Later API key policies are skipped.
 - **Rate limits by caller go after authentication.** A rate limit that counts by `authenticatedSubject` or `principalField` needs to know the caller. If it runs first, every request counts as `unknown`.
-- **A rejection stops everything.** After a firewall block, a failed key check, a used-up rate limit, or an OpenAPI error, no later policy runs, including logging.
+- A rejection stops enforcement. After a firewall block, a failed key check, a used-up rate limit, or an OpenAPI error, no later authentication, rate limit, firewall, or validation check runs.
 
-Logging policies never reject. If several match, the request is logged with all of their settings combined.
+Logging policies apply to accepted and rejected requests, regardless of their position. If several match, their settings combine. Body redaction from matching, enabled OpenAPI policies also applies when a request is rejected before validation.
 
 ## Limits
 

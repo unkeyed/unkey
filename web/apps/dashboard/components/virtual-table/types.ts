@@ -77,7 +77,7 @@ export type VirtualTableProps<TTableData> = {
    */
   onRowMouseLeave?: () => void;
   /**
-   * Override auto-calculated table height in pixels
+   * Fixed table height in pixels. Without it the table fills its flex parent on desktop
    */
   fixedHeight?: number;
   /**

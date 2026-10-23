@@ -2,6 +2,7 @@
   "name": "@unkey/migrate",
   "version": "1.0.0",
   "scripts": {
+    "deployment-first-ready-at": "tsx ./deployment-first-ready-at.ts",
     "environment-kind": "tsx ./environment-kind.ts",
     "key-prefix": "tsx ./key-prefix.ts",
     "logging-policy": "tsx ./logging-policy.ts",
@@ -11,7 +12,7 @@
   },
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0",
+  "license": "FSL-1.1-ALv2",
   "dependencies": {
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
@@ -25,7 +26,7 @@
   },
   "devDependencies": {
     "@clickhouse/client-web": "catalog:",
-    "@types/node": "20.14.9",
+    "@types/node": "24.19.2",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "7.4.1",
     "tsx": "4.19.1",

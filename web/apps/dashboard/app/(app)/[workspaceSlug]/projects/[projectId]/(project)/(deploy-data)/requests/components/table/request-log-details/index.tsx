@@ -5,6 +5,7 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-id-link";
 import { DeploymentStatusLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/dotted-link";
+import { GatewayKeyVerification } from "@/components/logs/details/gateway-request-details/key-verification";
 import { EMPTY_TEXT, LogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
 import { RegionFlag } from "@/components/region-flag";
@@ -24,7 +25,7 @@ import {
   IconUserOutline12,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, CopyButton } from "@unkey/ui";
+import { Badge, CopyButton, formatTimestamp } from "@unkey/ui";
 import { cn } from "cn";
 import type React from "react";
 
@@ -67,6 +68,10 @@ export const RequestLogDetails = ({ distanceToTop }: Props) => {
       <LogDetails.Header>
         <RequestLogHeader log={log} />
       </LogDetails.Header>
+
+      <LogDetails.Section>
+        <GatewayKeyVerification log={log} />
+      </LogDetails.Section>
 
       <LogDetails.Section>
         <LogSection
@@ -414,14 +419,7 @@ const formatDeploymentInfo = (
 // Format meta information
 const formatMetaInfo = (log: RequestLogsResponse): React.ReactNode => {
   const timestamp = new Date(log.time);
-  const formattedTime = timestamp.toLocaleString("en-US", {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  const formattedTime = formatTimestamp(timestamp, "MMM dd, HH:mm:ss");
 
   // Format query params if present
   const queryParamsEntries = Object.entries(log.query_params);

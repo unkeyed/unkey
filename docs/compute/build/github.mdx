@@ -10,7 +10,7 @@ sources:
   - svc/ctrl/api/webhooks/github/push.go
   - svc/ctrl/api/webhooks/github/pull_request.go
   - svc/ctrl/worker/githubwebhook/handle_push.go
-  - svc/ctrl/services/deployment/authorize_deployment.go
+  - svc/ctrl/worker/deployment/authorize_handler.go
   - svc/ctrl/internal/db/github_repo_connection_list_deploy_context.sql_generated.go
   - svc/ctrl/worker/githubstatus/init_handler.go
   - svc/ctrl/worker/githubstatus/report_handler.go
@@ -18,10 +18,12 @@ sources:
   - svc/ctrl/worker/deploy/deploy_handler.go
   - svc/ctrl/worker/deploy/domains.go
   - svc/ctrl/worker/deploy/build.go
+  - svc/ctrl/worker/deploy/submodules.go
   - pkg/match/watchpath.go
   - web/internal/db/src/schema/github_app.ts
   - web/apps/dashboard/lib/trpc/routers/github.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/disconnect-github.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/repository/repo-name-list.tsx
 ---
 
 Connect a GitHub repository to an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> and every push becomes a deployment. You install the Unkey GitHub App once, connect a repository, and push.
@@ -30,22 +32,32 @@ Connect a GitHub repository to an <Tooltip tip="A Compute app: a deployable serv
 
 You install the Unkey GitHub App once per workspace, on a GitHub organization or personal account, and choose which repositories it can see.
 
-1. Start from any of these places in the dashboard: the **Import from GitHub** step when you create an app, the **GitHub** card in an app's settings, or [workspace settings](/platform/workspace/settings).
+1. Start from any of these places in the dashboard: **Connect GitHub** when you create an app, the **Repository** row on an app's **App settings** > **Build** page, or [workspace settings](/platform/workspace/settings).
 2. Approve the installation on GitHub. GitHub sends you back to Unkey.
 
 To do it with the API, call `github.installApp` with a root key that has `workspace.*.install_github`, and open the URL it returns.
 
-You can install the app on more than one GitHub account. An installation belongs to one workspace only, so a second workspace can't use it.
+An installation belongs to one workspace only, so a second workspace can't use it.
+
+### Add another GitHub account or organization
+
+You can install the app on more than one GitHub account. For example, install it on your personal account and on your company's organization.
+
+1. In the new-app flow, open the account menu above the repository list.
+2. Choose **Add GitHub account** at the bottom of the menu.
+3. On GitHub, pick the account or organization, choose its repositories, and approve. GitHub sends you back to Unkey.
+
+The new account now shows in the account menu. To install the app on an organization, you must be an owner of it on GitHub. Otherwise, GitHub sends the request to an owner to approve.
 
 ## Connect a repository to an app
 
-Pick the repository when you create the app, or later in the app's settings. From the CLI, pass `--git` to [create-app](/compute/cli/apps/create-app) or [update-app](/compute/cli/apps/update-app).
+Pick the repository when you create the app, or later under **App settings** > **Build**. From the CLI, pass `--git` to [create-app](/compute/cli/apps/create-app) or [update-app](/compute/cli/apps/update-app).
 
-You connect a repository per app, not per project. In a monorepo, two apps can connect to the same repository and use different build settings.
+You connect a repository per app, not per <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>. In a monorepo, two apps can connect to the same repository and use different build settings.
 
 The app's default branch deploys to production. It starts as the repository's default branch on GitHub, and you can change it with `apps.updateApp`.
 
-To stop deploying from pushes, click **Disconnect repository** in the app's settings. The dashboard warns that "Deployments will no longer be triggered by pushes to this repository." Existing deployments keep running.
+To stop deploying from pushes, click **Disconnect repository** in the danger zone of the app's **App settings** > **General** page. The dashboard warns that "Unkey will stop building pushes to this repository. Running deployments stay live."
 
 ## What deploys when you push
 
@@ -78,6 +90,26 @@ Pushes from people with write access to the repository don't need approval.
 
 Fork previews get their own hostname prefix, `<project>[-<app>]-fork-<fork owner>-...`, so you can't confuse them with your own branches. You can also deploy a fork yourself from the **Create Deployment** dialog, or with `deployments.createDeployment` by passing `git.repository` as `owner/repo` and a `commitSha`.
 
+## Use Git submodules
+
+We clone your repository's submodules with it, at the commits your repository pins. Public submodules always clone. A private submodule clones when all of these are true:
+
+- Its `url` in `.gitmodules` is an HTTPS GitHub URL, such as `https://github.com/acme/shared.git`, or a relative URL, such as `../shared.git`.
+- The same GitHub account owns the submodule and the repository you deploy.
+- The Unkey GitHub App has access to the submodule's repository. To add it, change the app's repository access in your GitHub account or organization settings.
+
+These private submodules don't clone:
+
+- Submodules with SSH URLs, such as `git@github.com:acme/shared.git`
+- Submodules nested inside another submodule
+- Any private submodule in a build of a fork pull request
+
+If a submodule can't be cloned, the build fails with "A Git submodule could not be cloned."
+
+<Note>
+  The build reads every private submodule that `.gitmodules` lists and the GitHub App can access. Anyone who can push to the repository can add a submodule. Give the GitHub App access only to the repositories your builds need.
+</Note>
+
 ## What you'll see on GitHub
 
 Each deployment of a connected app reports back to GitHub:
@@ -91,8 +123,8 @@ Each deployment of a connected app reports back to GitHub:
 Check these in order:
 
 1. The Unkey GitHub App is installed on the account that owns the repository, and has access to it.
-2. The repository is connected to the app in its settings.
-3. Auto deploy is on for the environment the branch maps to.
+2. The repository is connected to the app under **App settings** > **Build**.
+3. Auto deploy is on for the environment the branch maps to (the **Auto-deploy** switch on the environment's page under **App settings** > **Environments**).
 4. The push changed a file that matches the watch paths, if any are set.
 5. The app's deployments list shows a `skipped` or `failed` row with the reason.
 

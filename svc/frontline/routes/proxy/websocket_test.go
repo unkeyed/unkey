@@ -63,10 +63,6 @@ func TestWebSocketUpgrade_HTTP1_Succeeds(t *testing.T) {
 	require.Equal(t, "hello-ws", string(payload))
 }
 
-// TestWebSocketUpgrade_BackendDown_DoesNotHang verifies the proxy returns
-// promptly with a 503 Service Unavailable (the URN ECONNREFUSED maps to
-// in proxy/error.go) when the upstream is unreachable, rather than hanging
-// or letting the client think it has an upgraded connection.
 func TestWebSocketUpgrade_BackendDown_DoesNotHang(t *testing.T) {
 	t.Parallel()
 
@@ -89,7 +85,7 @@ func TestWebSocketUpgrade_BackendDown_DoesNotHang(t *testing.T) {
 	br := bufio.NewReader(conn)
 	statusLine, err := br.ReadString('\n')
 	require.NoError(t, err, "expected a status line, not a hang")
-	require.Contains(t, statusLine, " 503 ", "expected 503 Service Unavailable for ECONNREFUSED, got: %q", strings.TrimSpace(statusLine))
+	require.Contains(t, statusLine, " 502 ", "expected 502 Bad Gateway for ECONNREFUSED, got: %q", strings.TrimSpace(statusLine))
 }
 
 func startFrontline(t *testing.T, backendAddr string) (string, func()) {
@@ -142,6 +138,7 @@ func startFrontline(t *testing.T, backendAddr string) (string, func()) {
 	zenSrv, err := zen.New(zen.Config{
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
+		IdleTimeout:        0,
 		MaxRequestBodySize: 0,
 		StreamRequestBody:  true,
 	})
@@ -255,7 +252,7 @@ type stubRouter struct {
 	decision router.RouteDecision
 }
 
-func (s *stubRouter) Route(_ context.Context, _ string) (router.RouteDecision, error) {
+func (s *stubRouter) Route(_ context.Context, _ string, _ ...string) (router.RouteDecision, error) {
 	return s.decision, nil
 }
 

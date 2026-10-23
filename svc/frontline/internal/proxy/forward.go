@@ -8,6 +8,7 @@ import (
 	"net/http/httptrace"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -16,17 +17,18 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// forwardConfig bundles the per-attempt inputs to forward. targetURL is the
-// upstream endpoint, transport selects the RoundTripper (HTTP/1.1 vs h2c vs
-// peer-region), and directorFunc applies header / hop adjustments specific
-// to the destination kind (instance vs region peer). destination is a stable
-// label used in metrics — for instance hops it is the deployment's host,
-// for region hops it is "region.platform".
+type proxyDestination string
+
+const (
+	destinationInstance  proxyDestination = "instance"
+	destinationFrontline proxyDestination = "frontline"
+)
+
 type forwardConfig struct {
 	targetURL    *url.URL
 	startTime    time.Time
 	directorFunc func(*http.Request)
-	destination  string
+	destination  proxyDestination
 	transport    http.RoundTripper
 }
 
@@ -59,7 +61,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	defer func() {
 		totalTime := s.clock.Now().Sub(cfg.startTime)
 		if !proxyStartTime.IsZero() {
-			timing.Write(sess.ResponseWriter(), timing.Entry{
+			timing.Write(sess, timing.Entry{
 				Name:     "frontline",
 				Duration: proxyStartTime.Sub(cfg.startTime),
 				Attributes: map[string]string{
@@ -67,7 +69,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 				},
 			})
 		}
-		timing.Write(sess.ResponseWriter(), timing.Entry{
+		timing.Write(sess, timing.Entry{
 			Name:     "total",
 			Duration: totalTime,
 			Attributes: map[string]string{
@@ -89,7 +91,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		if backendStart.IsZero() {
 			return
 		}
-		upstreamSeconds.WithLabelValues(cfg.destination).Observe(end.Sub(backendStart).Seconds())
+		upstreamSeconds.WithLabelValues(string(cfg.destination)).Observe(end.Sub(backendStart).Seconds())
 		backendStart = time.Time{}
 	}
 
@@ -100,7 +102,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			if err != nil {
 				outcome = dialOutcomeError
 			}
-			upstreamDialsTotal.WithLabelValues(cfg.destination, outcome).Inc()
+			upstreamDialsTotal.WithLabelValues(string(cfg.destination), outcome).Inc()
 		},
 	}
 
@@ -133,7 +135,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		ModifyResponse: func(resp *http.Response) error {
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
-				timing.Write(sess.ResponseWriter(), timing.Entry{
+				timing.Write(sess, timing.Entry{
 					Name:     "frontline",
 					Duration: proxyStartTime.Sub(cfg.startTime),
 					Attributes: map[string]string{
@@ -141,13 +143,23 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 					},
 				})
 			}
-			timing.Write(sess.ResponseWriter(), timing.Entry{
+			timing.Write(sess, timing.Entry{
 				Name:     "total",
 				Duration: totalTime,
 				Attributes: map[string]string{
 					"scope": "frontline",
 				},
 			})
+
+			resp.Header.Del(HeaderRequestID)
+			headers := sess.ResponseWriter().Header()
+			for _, name := range []string{HeaderFrontlineID, HeaderRegion, timing.HeaderName} {
+				values := append(headers.Values(name), resp.Header.Values(name)...)
+				if len(values) > 0 {
+					resp.Header.Set(name, strings.Join(values, ","))
+					headers.Del(name)
+				}
+			}
 
 			// Capture response body for logging via TeeReader.
 			// Streaming: bytes flow to the client while accumulating in responseBuf.

@@ -1,6 +1,7 @@
 package openapi_test
 
 import (
+	"slices"
 	"sort"
 	"testing"
 
@@ -16,16 +17,17 @@ import (
 // as the redaction paths next door: the flag lives in one file and its effect is
 // felt somewhere else entirely.
 //
-// The portal is not launched. Every one of its operations is excluded, so a new
-// portal path that forgets the flag fails here rather than surfacing in the docs.
-// Deleting an entry is the launch decision for that operation — treat it as the
-// change under review, not as test maintenance.
+// The portal's data routes authenticate with the end user's session cookie and
+// are internal to the hosted portal, so only the customer-facing operations are
+// published. A portal path not listed as public must be excluded, so a new one
+// that forgets the flag fails here rather than surfacing in the docs. Adding to
+// the public list is the launch decision for that operation.
 //
 // Note what this does not do: `x-excluded` hides an operation from the reference,
 // not from the SDK. Nothing in this repo reads it at runtime and the routes are
 // registered and reachable regardless, so it is a documentation gate and never an
 // access control.
-func TestSpecExcludesUnlaunchedPortalOperations(t *testing.T) {
+func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 	t.Parallel()
 
 	var doc struct {
@@ -58,19 +60,25 @@ func TestSpecExcludesUnlaunchedPortalOperations(t *testing.T) {
 
 	require.Equal(t, []string{
 		"liveness", // infrastructure endpoint, not part of the customer-facing reference
+		"portal.exchangeCode",
+		"portal.getVerifications",
+		"portal.listKeys",
+		"portal.rerollKey",
+	}, excluded, "every excluded operation is accounted for")
+
+	public := []string{
 		"portal.createPortal",
 		"portal.createSession",
 		"portal.deletePortal",
-		"portal.exchangeCode",
 		"portal.getPortal",
-		"portal.getVerifications",
-		"portal.listKeys",
 		"portal.listSessions",
-		"portal.rerollKey",
 		"portal.revokeSession",
 		"portal.updatePortal",
-	}, excluded, "every excluded operation is accounted for")
-
-	require.Subset(t, excluded, portal,
-		"every portal operation is excluded from the published reference until launch")
+	}
+	for _, op := range portal {
+		if !slices.Contains(public, op) {
+			require.Contains(t, excluded, op,
+				"portal operations stay out of the published reference unless listed as public")
+		}
+	}
 }

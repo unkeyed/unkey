@@ -23,7 +23,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
-	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -32,7 +31,9 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
 	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
+	keyleakwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/keyleak"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -220,21 +221,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(func() error { challengeCache.Close(); return nil })
 
-	// Create GitHub client for deployment authorization (optional)
-	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
-	if cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
-		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
-			AppID:         cfg.GitHub.AppID,
-			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
-			WebhookSecret: cfg.GitHub.WebhookSecret,
-		})
-		if ghErr != nil {
-			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
-		}
-		ghClient = client
-		logger.Info("GitHub client initialized for deployment authorization")
-	}
-
 	// Create the connect handler
 	mux := http.NewServeMux()
 
@@ -248,12 +234,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	deploymentSvc := deployment.New(deployment.Config{
-		Database:     database,
-		Auditlogs:    auditlogSvc,
-		Restate:      restateClient,
-		RestateAdmin: restateAdminClient,
-		GitHub:       ghClient,
-		Bearer:       cfg.AuthToken,
+		Database: database,
+		Restate:  restateClient,
+		Bearer:   cfg.AuthToken,
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
@@ -313,6 +296,13 @@ func Run(ctx context.Context, cfg Config) error {
 	} else {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
 	}
+
+	keyLeakVerifier, err := githubsecrets.New("https://api.github.com/meta/public_keys/secret_scanning", clk)
+	if err != nil {
+		return fmt.Errorf("failed to create key leak verifier: %w", err)
+	}
+	r.Defer(func() error { keyLeakVerifier.Close(); return nil })
+	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(restateClient, database, keyLeakVerifier))
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
 		mux.Handle("POST /webhooks/stripe", stripewebhook.New(

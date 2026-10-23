@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/internal/metrics"
+	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -52,12 +53,14 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 
 			ctx, span := tracing.Start(ctx, "frontline.proxy")
 			span.SetAttributes(
-				attribute.String("request_id", s.RequestID()),
 				attribute.String("host", s.Request().Host),
 				attribute.String("method", s.Request().Method),
 				attribute.String("path", s.Request().URL.Path),
 			)
-			defer span.End()
+			defer func() {
+				span.SetAttributes(attribute.String("request_id", s.RequestID()))
+				span.End()
+			}()
 
 			err := next(ctx, s)
 
@@ -68,6 +71,10 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 			var domain string
 
 			if hasError {
+				if tracking, ok := proxy.RequestTrackingFromContext(ctx); ok && tracking.LogRequestBody && tracking.InstanceID == "" && s.Request().Body != nil {
+					tracking.RequestBody = captureRejectedBody(ctx, s)
+				}
+				s.ResponseWriter().Header().Set(proxy.HeaderRequestID, s.RequestID())
 				tracing.RecordError(span, err)
 
 				var ok bool
@@ -96,8 +103,10 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 				statusCode = pageInfo.Status
 
 				userMessage := pageInfo.Message
-				if userMessage == "" {
-					userMessage = fault.UserFacingMessage(err)
+				if userMessage == "" || code.Category == codes.CategoryUpstream {
+					if publicMessage := fault.UserFacingMessage(err); publicMessage != "" {
+						userMessage = publicMessage
+					}
 				}
 
 				// Log the precise URN for every error so it can be correlated
@@ -351,6 +360,12 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Status:  http.StatusUnprocessableEntity,
 			Title:   http.StatusText(http.StatusUnprocessableEntity),
 			Message: "The deployment configuration is invalid. Please check your config or contact support at support@unkey.com.",
+		}
+	case codes.Frontline.Internal.RatelimitNotConfigured.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnprocessableEntity,
+			Title:   http.StatusText(http.StatusUnprocessableEntity),
+			Message: "A rate limit required by the gateway policy is not configured for this key or its identity.",
 		}
 	case codes.Frontline.Internal.InternalServerError.URN():
 		return errorPageInfo{

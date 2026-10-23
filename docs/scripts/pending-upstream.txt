@@ -3,16 +3,9 @@
 # fails `mint validate`, so they stay out of the reference until upstream publishes
 # them; docs-lint downgrades their coverage gap to a warning while they are here.
 # `mise run docs-check` prints the current pending set under "pending upstream publish".
-/v2/portal.createPortal
-/v2/portal.deletePortal
-/v2/portal.getPortal
-/v2/portal.updatePortal
 /v2/workspace.getLimits
 /v2/workspace.getUsage
-# The five published portal endpoints are excluded too: `mint validate` fails with
-# "Failed to generate OpenAPI endpoint page" for them from the current published spec.
-# Relist the Portal group once the spec renders.
-/v2/portal.createSession
+# Internal to the hosted portal and x-excluded on purpose; never listed.
 /v2/portal.exchangeCode
 /v2/portal.getVerifications
 /v2/portal.listKeys

@@ -7,12 +7,22 @@ import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";
 import { InfoTooltip } from "./info-tooltip";
 import { type GroupSave, type SaveState, resolveGroupSave } from "./settings-save";
+import {
+  SlidePanel,
+  SlidePanelClose,
+  SlidePanelCloseButton,
+  SlidePanelContent,
+  SlidePanelDescription,
+  SlidePanelFooter,
+  SlidePanelHeader,
+  SlidePanelTitle,
+} from "./slide-panel";
 import { useReportUnsavedChanges } from "./unsaved-changes";
 
 type Member = {
   dirty: boolean;
   saveState: SaveState;
-  submit: () => void;
+  submit: () => Promise<boolean>;
 };
 
 type GroupContext = {
@@ -23,6 +33,38 @@ type GroupContext = {
 const SettingsGroupContext = React.createContext<GroupContext | null>(null);
 
 const PendingNoteContext = React.createContext<React.ReactNode>(null);
+
+type SettingsLayout = "rows" | "stacked";
+
+const SettingsLayoutContext = React.createContext<SettingsLayout>("rows");
+
+const LAYOUT_CLASS: Record<
+  SettingsLayout,
+  Record<"shell" | "body" | "row" | "header" | "title" | "content" | "description", string>
+> = {
+  rows: {
+    shell: "@container border rounded-lg overflow-hidden bg-raised",
+    body: "divide-y divide-grayA-4",
+    row: "flex flex-col gap-4 px-5 py-5 @2xl:flex-row",
+    header: "flex shrink-0 flex-col gap-1 @2xl:w-2/5",
+    title: "text-sm font-medium text-gray-12",
+    content: "min-w-0 flex-1 [--setting-w:30rem]",
+    description: "text-xs leading-5 text-gray-11",
+  },
+  stacked: {
+    shell: "@container",
+    body: "flex flex-col gap-5",
+    row: "flex flex-col gap-1.5",
+    header: "contents",
+    title: "order-1 text-sm font-medium text-gray-12",
+    content: "order-2 min-w-0 [--setting-w:100%]",
+    description: "order-3 text-xs leading-5 text-gray-11",
+  },
+};
+
+function useLayoutClass(slot: keyof (typeof LAYOUT_CLASS)["rows"]): string {
+  return LAYOUT_CLASS[React.use(SettingsLayoutContext)][slot];
+}
 
 const SHOWS_PENDING_NOTE: Record<GroupSave<Member>["status"], boolean> = {
   clean: false,
@@ -104,45 +146,56 @@ function useSettingsGroupMembers() {
   return { context, values, dirty };
 }
 
-function SettingsGroupBody({ values, children }: { values: Member[]; children: React.ReactNode }) {
-  const pendingNote = React.use(PendingNoteContext);
-  const save = resolveGroupSave(values);
+function GroupSaveButton({
+  save,
+  size,
+  onSaved,
+}: {
+  save: GroupSave<Member>;
+  size: "sm" | "md";
+  onSaved?: () => void;
+}) {
   const blockedReasons = save.status === "blocked" ? save.reasons : [];
-  const note = groupNote(save, pendingNote);
-
-  const saveReady = () => {
+  const saveReady = async () => {
     if (save.status !== "ready") {
       return;
     }
-    for (const member of save.submit) {
-      member.submit();
+    const results = await Promise.all(save.submit.map((member) => member.submit()));
+    if (save.complete && results.every(Boolean)) {
+      onSaved?.();
     }
   };
 
   return (
+    <InfoTooltip content={blockedReasons.join(" ")} disabled={blockedReasons.length === 0} asChild>
+      <span>
+        <Button
+          variant="primary"
+          size={size}
+          className="px-3"
+          disabled={save.status === "clean" || save.status === "blocked"}
+          loading={save.status === "saving"}
+          onClick={saveReady}
+        >
+          Save
+        </Button>
+      </span>
+    </InfoTooltip>
+  );
+}
+
+function SettingsGroupBody({ values, children }: { values: Member[]; children: React.ReactNode }) {
+  const pendingNote = React.use(PendingNoteContext);
+  const save = resolveGroupSave(values);
+  const note = groupNote(save, pendingNote);
+
+  return (
     <>
-      <div className="divide-y divide-grayA-4">{children}</div>
+      <div className={useLayoutClass("body")}>{children}</div>
       {values.length > 0 ? (
         <div className="border-t border-grayA-4 px-5 py-3 flex items-center justify-end gap-3">
           {note ? <span className="text-xs text-gray-11">{note}</span> : null}
-          <InfoTooltip
-            content={blockedReasons.join(" ")}
-            disabled={blockedReasons.length === 0}
-            asChild
-          >
-            <span>
-              <Button
-                variant="primary"
-                size="sm"
-                className="px-3"
-                disabled={save.status === "clean" || save.status === "blocked"}
-                loading={save.status === "saving"}
-                onClick={saveReady}
-              >
-                Save
-              </Button>
-            </span>
-          </InfoTooltip>
+          <GroupSaveButton save={save} size="sm" />
         </div>
       ) : null}
     </>
@@ -150,12 +203,7 @@ function SettingsGroupBody({ values, children }: { values: Member[]; children: R
 }
 
 function SettingsGroupShell({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      className={cn("@container border rounded-lg overflow-hidden bg-raised", className)}
-      {...props}
-    />
-  );
+  return <div className={cn(useLayoutClass("shell"), className)} {...props} />;
 }
 
 function SettingsGroupContent({ className, children, ...props }: React.ComponentProps<"div">) {
@@ -224,6 +272,63 @@ function SettingsGroupCollapsible({
 
 SettingsGroupCollapsible.displayName = "SettingsGroupCollapsible";
 
+type SettingsPanelProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  /** Runs after Save when every changed row saved. */
+  onSaved: () => void;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  children: React.ReactNode;
+};
+
+function SettingsPanel({ isOpen, onClose, ...props }: SettingsPanelProps) {
+  return (
+    <SlidePanel isOpen={isOpen} onClose={onClose}>
+      <SettingsPanelBody {...props} />
+    </SlidePanel>
+  );
+}
+
+function SettingsPanelBody({
+  onSaved,
+  title,
+  description,
+  children,
+}: Omit<SettingsPanelProps, "isOpen" | "onClose">) {
+  const { context, values } = useSettingsGroupMembers();
+  const save = resolveGroupSave(values);
+  return (
+    <SettingsGroupContext.Provider value={context}>
+      <SlidePanelHeader>
+        <div className="flex flex-col gap-0.5">
+          <SlidePanelTitle>{title}</SlidePanelTitle>
+          {description ? <SlidePanelDescription>{description}</SlidePanelDescription> : null}
+        </div>
+        <SlidePanelCloseButton className="mt-0.5" />
+      </SlidePanelHeader>
+      <SlidePanelContent className="overflow-y-auto px-6 pt-4 pb-8">
+        <SettingsLayoutContext.Provider value="stacked">
+          <div data-slot="settings-panel-content" className={LAYOUT_CLASS.stacked.shell}>
+            <div className={LAYOUT_CLASS.stacked.body}>{children}</div>
+          </div>
+        </SettingsLayoutContext.Provider>
+      </SlidePanelContent>
+      <SlidePanelFooter className="flex items-center justify-end gap-3">
+        <SlidePanelClose
+          disabled={save.status === "saving"}
+          render={<Button type="button" variant="outline" size="md" />}
+        >
+          Cancel
+        </SlidePanelClose>
+        <GroupSaveButton save={save} size="md" onSaved={onSaved} />
+      </SlidePanelFooter>
+    </SettingsGroupContext.Provider>
+  );
+}
+
+SettingsPanel.displayName = "SettingsPanel";
+
 function SettingsForm({
   dirty,
   saveState,
@@ -233,28 +338,36 @@ function SettingsForm({
 }: {
   dirty: boolean;
   saveState: SaveState;
-  onSubmit: React.FormEventHandler<HTMLFormElement>;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void | Promise<void> | Promise<boolean>;
   className?: string;
   children: React.ReactNode;
 }) {
   const formRef = React.useRef<HTMLFormElement>(null);
+  const resultRef = React.useRef<Promise<boolean> | null>(null);
 
   useSettingsGroupMember({
     dirty,
     saveState,
-    submit: () => formRef.current?.requestSubmit(),
+    submit: () => {
+      resultRef.current = null;
+      formRef.current?.requestSubmit();
+      return resultRef.current ?? Promise.resolve(false);
+    },
   });
 
   return (
     <form
       ref={formRef}
-      className={className}
+      className={cn(useLayoutClass("body"), className)}
       onSubmit={(e) => {
         if (saveState.status !== "ready") {
           e.preventDefault();
           return;
         }
-        onSubmit(e);
+        resultRef.current = Promise.resolve(onSubmit(e)).then(
+          (result) => result !== false,
+          () => false,
+        );
       }}
     >
       {children}
@@ -266,11 +379,7 @@ SettingsForm.displayName = "SettingsForm";
 
 function SettingsRow({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div
-      data-slot="settings-row"
-      className={cn("flex flex-col gap-4 px-5 py-5 @2xl:flex-row", className)}
-      {...props}
-    />
+    <div data-slot="settings-row" className={cn(useLayoutClass("row"), className)} {...props} />
   );
 }
 
@@ -280,7 +389,7 @@ function SettingsRowHeader({ className, ...props }: React.ComponentProps<"div">)
   return (
     <div
       data-slot="settings-row-header"
-      className={cn("flex shrink-0 flex-col gap-1 @2xl:w-2/5", className)}
+      className={cn(useLayoutClass("header"), className)}
       {...props}
     />
   );
@@ -292,7 +401,7 @@ function SettingsRowTitle({ className, ...props }: React.ComponentProps<"div">) 
   return (
     <div
       data-slot="settings-row-title"
-      className={cn("text-sm font-medium text-gray-12", className)}
+      className={cn(useLayoutClass("title"), className)}
       {...props}
     />
   );
@@ -304,7 +413,7 @@ function SettingsRowDescription({ className, ...props }: React.ComponentProps<"d
   return (
     <div
       data-slot="settings-row-description"
-      className={cn("text-xs leading-5 text-gray-11", className)}
+      className={cn(useLayoutClass("description"), className)}
       {...props}
     />
   );
@@ -316,7 +425,7 @@ function SettingsRowContent({ className, ...props }: React.ComponentProps<"div">
   return (
     <div
       data-slot="settings-row-content"
-      className={cn("min-w-0 flex-1 [--setting-w:30rem]", className)}
+      className={cn(useLayoutClass("content"), className)}
       {...props}
     />
   );
@@ -355,6 +464,7 @@ export {
   SettingsGroupContent,
   SettingsGroupTitle,
   SettingsGroups,
+  SettingsPanel,
   SettingsRow,
   SettingsRowContent,
   SettingsRowDescription,

@@ -160,10 +160,11 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 
 	now := s.clock.Now()
 	hops = append(hops, meta.Hop{
-		Region:        srcRegion,
-		RequestID:     sess.RequestID(),
-		FrontlineID:   s.instanceID,
-		TimeUnixMilli: now.UnixMilli(),
+		Region:         srcRegion,
+		RegionPlatform: s.region + "." + s.platform,
+		RequestID:      sess.RequestID(),
+		FrontlineID:    s.instanceID,
+		TimeUnixMilli:  now.UnixMilli(),
 	})
 
 	metadata := &meta.Metadata{
@@ -171,8 +172,9 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		Claims: paseto.Claims{
 			ExpiresAt: now.Add(frontlineMetadataTTL),
 		},
-		Hops:     hops,
-		ClientIP: sess.Location(),
+		Hops:                  hops,
+		ClientIP:              sess.Location(),
+		DebugTelemetryEnabled: sess.DebugTelemetryEnabled(),
 	}
 	signedMetadata, err := s.metadata.Marshal(metadata)
 	if err != nil {

@@ -1,26 +1,20 @@
 "use client";
-import { format } from "date-fns";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { type RelativePrecision, useRelativeTime } from "../hooks/use-relative-time";
-import { parseTimestamp } from "../lib/time";
+import { formatTimestamp, parseTimestamp } from "../lib/time";
 import { cn } from "../lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./dialog/popover";
 import { toast } from "./toaster";
 
-const timestampLocalFormatter = (value: string | number) => {
-  return format(parseTimestamp(value), "MMM dd HH:mm:ss");
-};
+const timestampLocalFormatter = (value: string | number) =>
+  formatTimestamp(parseTimestamp(value), "MMM dd, HH:mm:ss");
 
-const timestampLocalHoursWithMillisFormatter = (value: string | number) => {
-  return format(parseTimestamp(value), "HH:mm:ss.SSS");
-};
+const timestampLocalHoursWithMillisFormatter = (value: string | number) =>
+  formatTimestamp(parseTimestamp(value), "HH:mm:ss.SSS");
 
-const timestampUtcFormatter = (value: string | number) => {
-  const isoDate = parseTimestamp(value).toISOString();
-  const utcDate = `${isoDate.substring(0, 10)} ${isoDate.substring(11, 19)}`;
-  return format(utcDate, "MMM d,yyyy HH:mm:ss");
-};
+const timestampUtcFormatter = (value: string | number) =>
+  formatTimestamp(parseTimestamp(value), "MMM d, yyyy, HH:mm:ss", "UTC");
 
 const TooltipRow = ({ label, value }: { label: string; value: string }) => {
   const [copied, setCopied] = useState(false);
@@ -182,4 +176,4 @@ const TimestampInfo: React.FC<{
   );
 };
 TimestampInfo.displayName = "TimestampInfo";
-export { TimestampInfo };
+export { RelativeTime, TimestampInfo };

@@ -60,6 +60,20 @@ allowed if effective count + cost <= limit
 
 For example, with a limit of 100 per minute, a caller who made 100 requests at the end of one minute still counts as 75 fifteen seconds into the next (100 × 0.75), so the burst can't repeat right away. Denied requests don't count, so retrying while limited doesn't push the reset further away.
 
+## Change a limit mid-window
+
+Unkey stores counts per namespace, identifier and `duration`. The `limit` isn't part of that key. Unkey compares the stored count with whatever `limit` arrives on each call, so a new number applies on the very next request.
+
+| What you change | What happens to the count |
+| --- | --- |
+| `limit`, with the same namespace, identifier and `duration` | Usage so far in the window is kept and checked against the new limit. No reset, and no wait for the window to end. |
+| `duration` | A separate counter starts at zero. Usage under the old window length isn't carried over. |
+| `identifier` or namespace | A separate counter starts at zero. |
+
+For example, a caller on 100 per 5 hours has used 100 when they upgrade to 1,000. If your code sends `limit: 1000` with the same identifier and duration, their next request passes and `remaining` is about 899.
+
+To give upgraded users higher limits right away, look up their plan when you make the call and send that plan's `limit`, keeping the identifier and `duration` the same. An [override](/api-management/ratelimiting/overrides) that changes only the limit behaves the same way. An override that changes `duration` starts a fresh count.
+
 ## Make some requests cost more
 
 Each check spends `cost` tokens, 1 by default, so a heavy operation can use more of the limit than a light one. With `limit: 100`, a caller can make 100 checks at cost 1, 20 at cost 5, or any mix. A cost of 0 reads the current state without spending anything.

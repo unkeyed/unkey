@@ -17,28 +17,54 @@ sources:
   - web/apps/dashboard/lib/schemas/env-var.ts
   - web/apps/dashboard/lib/trpc/routers/deploy/env-vars/make-sensitive.ts
   - web/apps/dashboard/lib/trpc/routers/deploy/env-vars/rename.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/env-vars/hooks/use-drop-zone.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/env-vars/components/add/add-env-var-expandable.tsx
+  - web/apps/dashboard/lib/collections/deploy/env-vars.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/env-file.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/variables-table/variables-table.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/variables-table/variable-rows.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/add/add-env-vars-fields.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/add/add-env-vars-button.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/config-blocks.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/env-vars/list/env-var-edit-row.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/env-vars/model.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/env-vars/app-group-card.tsx
 ---
 
 Environment variables give your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> configuration and secrets, both while it builds and while it runs. Each variable belongs to one <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, so production and preview can have different values for `DATABASE_URL`. Every value is encrypted at rest.
 
 ## Add variables in the dashboard
 
-1. Open the app and go to **Environment Variables**.
-2. Click **Add Environment Variable**.
-3. Enter one or more key-value pairs. To import a `.env` file, drop it on the page, pick it with the file button, or paste its contents into a value field.
-4. Pick the target environment, or **All Environments** to set the same value everywhere.
-5. Turn on **Sensitive** for secrets, and add a description if you like.
+1. Open the app and go to **Environment variables**.
+2. Click **Add environment variable**. A panel opens with a table of keys and values.
+3. Enter one or more key-value pairs. To import a `.env` file, drop it on the table, click **Import .env**, or paste its contents into a key cell.
+4. Turn on **Sensitive** in a row for secrets.
+5. Pick the target **Environment**, or keep **All environments** to set the same value everywhere.
 6. Save, then redeploy. See [When a change takes effect](#when-a-change-takes-effect).
 
 <Frame>
-  <img src="/images/dashboard/compute--configure-environment-variables--add.png" alt="Add Environment Variable panel with a key and value, the environment picker set to All Environments, the Sensitive toggle, and the .env import option" />
+  <img src="/images/dashboard/compute--configure-environment-variables--add.png" alt="Add environment variables panel with a LOG_LEVEL row and a sensitive STRIPE_SECRET_KEY row, the Add variable and Import .env actions, the Environment select set to All environments, and Cancel and Save buttons" />
 </Frame>
 
-The `.env` import skips comments, strips surrounding quotes, and handles multi-line values such as PEM keys. If a key appears twice in the file, the last one wins. Keys that already exist in the target environment are flagged with "Variable already exists in this environment". Unsaved entries are lost if you reload the page.
+The `.env` import skips comments, strips surrounding quotes, and handles multi-line values such as PEM keys. If a key appears twice in the file, the last one wins. You can save up to 200 variables at once. If a key already exists in the target environment, nothing is saved, the row shows "A variable with this key already exists.", and the panel stays open. If you close the panel with unsaved rows, the dashboard asks before it discards them.
 
-The list can be filtered by environment, searched, and sorted by name or last update.
+The saved list has one row for each variable in each environment. You can filter it by environment, search it by key, and sort it by name or newest. Click a row to edit its key, value, note, or sensitive setting.
+
+### While you set up a new app
+
+In the new-app flow, you can also change the value of a saved variable or delete it. Sensitive rows and rows marked "Varies by environment" can only be deleted. Changes apply to every selected environment.
+
+<Frame>
+  <img src="/images/dashboard/compute--configure-environment-variables--new-app.png" alt="Environment variables panel in the new-app flow with saved DATABASE_URL and LOG_LEVEL values, a masked sensitive STRIPE_SECRET_KEY, an empty row for a new variable, and the Environment select set to All environments" />
+</Frame>
+
+## Find a variable across the workspace
+
+To see where a key is set, for example to rotate a leaked secret, open **Environment Variables** in the dashboard sidebar. The page lists every variable in the workspace, in one card for each app. It never shows values.
+
+1. Type the key in **Search by key**.
+2. To narrow the list, filter by type (**Sensitive** or **Not sensitive**) or by environment (**Production** or **Preview**). To change the order, sort by **Last updated**, **Name**, or **Type**.
+3. Click a row. The app's **Environment variables** page opens, filtered to that key. Edit the variable there.
+
+Each card shows 15 rows per page. The search, filters, and sort are kept in the URL, so you can share or bookmark a filtered view.
 
 ## Recoverable or write-only
 
@@ -47,15 +73,15 @@ Every variable is either `recoverable` or `writeonly`. Both are encrypted the sa
 - **`recoverable`**: shown in the dashboard and returned by `environments.listEnvironmentVariables`. Use it for configuration you want to check later.
 - **`writeonly`**: never shown or returned. You can only replace or delete it. Use it for API keys and other credentials.
 
-The dashboard's **Sensitive** toggle makes a variable `writeonly`, with the note "Permanently hides values after saving. Use for API keys and secrets." In the API, `writeonly` is the default.
+The dashboard's **Sensitive** switch makes a variable `writeonly`, with the note "Hidden in the dashboard and the API after you save. Unkey encrypts every value." In the API, `writeonly` is the default.
 
 ## Rename, mark sensitive, or delete
 
 These actions are only in the dashboard:
 
-- **Mark as sensitive** turns selected `recoverable` variables into `writeonly`. This can't be undone.
-- **Rename** changes a key in every environment that has it. It fails if the new name is already used in any of them, and it isn't available for sensitive variables.
-- **Delete** removes a variable from one environment or from all of them.
+- **Make Sensitive** turns selected `recoverable` variables into `writeonly`. This can't be undone.
+- **Rename** changes the key in the edit form of a row. It changes the key in that row's environment only, and fails if the new name is already used there. It works for sensitive variables too.
+- **Delete** removes a variable from the row's environment. Select several rows to delete them together.
 
 ## When a change takes effect
 

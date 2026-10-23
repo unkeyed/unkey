@@ -11,7 +11,7 @@ import (
 
 func TestMapPoliciesToProtoValidation(t *testing.T) {
 	firewall := &openapi.FirewallPolicy{Action: "ACTION_DENY"}
-	present := openapi.FieldMatchPresent(true)
+	present := true
 
 	testCases := []struct {
 		name     string

@@ -1,6 +1,7 @@
 ---
-title: Plans
-description: "See what the API Management tiers and Compute plans include and how a change takes effect."
+title: Unkey plans and free tier
+sidebarTitle: "Plans"
+description: "Free API Management has 150,000 valid requests a month, and Compute Starter is $5 a month after a free first month."
 sources:
   - web/internal/db/src/schema/workspace_billing.ts
   - web/internal/db/src/schema/billing_subscriptions.ts
@@ -18,7 +19,29 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/constants.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/cancel-plan.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/billing-summary.tsx
+  - https://www.unkey.com/pricing
+  - https://www.unkey.com/pricing.md
 ---
+
+The free API Management plan is \$0 a month with 150,000 valid requests a month, 1,000 API keys, 1 day of logs, and 3 days of audit logs.
+
+Compute plans deploy and run your APIs:
+
+- Starter (\$0 for the first month, then \$5 a month)
+- Pro (\$20 for the first month, then \$25 a month)
+- Business (\$45 for the first month, then \$50 a month)
+
+Every Compute plan includes monthly usage credits for compute, storage, egress, and active keys, and you get \$5 off your first month through December 31, 2026.
+
+## What each product includes
+
+Paid API tiers, and the CPU, memory, disk, replica, and domain limits on each Compute plan, are on [Limits](/platform/billing/limits). Prices are on [unkey.com/pricing](https://unkey.com/pricing).
+
+| | API Management | Compute |
+| --- | --- | --- |
+| Starting point | Free tier. Every workspace starts here | Starter, Pro, or Business. Required before you can deploy |
+| Included from the start | 150,000 valid requests a month, 1,000 API keys, 1 day of logs, 3 days of audit logs | Starter is \$0 for the first month, then \$5 a month, with monthly usage credits for compute, storage, egress, and active keys, and \$5 off your first month through December 31, 2026. See [Usage](/platform/billing/usage) |
+| What you get by paying more | A higher monthly quota, longer retention, and team members | Resource limits differ by plan and are listed on [Limits](/platform/billing/limits). Pro and Business also include team members |
 
 Your workspace pays for the two products separately. API Management has a tier and Compute has a plan, and you can have either one without the other. Both use one payment method and one set of invoices.
 
@@ -44,10 +67,10 @@ You need a Compute plan before you can deploy an <Tooltip tip="A Compute app: a 
 
 Every plan includes git push to deploy, a preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> per pull request, instant rollback, autoscaling, and a monthly usage credit. The plans differ in their resource limits (CPU, memory, disk, replicas, and custom domains), listed on [Limits](/platform/billing/limits). Pro and Business also include team members, so they give a team to a workspace on the free API tier.
 
-Pick a plan under **Settings > Billing** in the **Choose a Compute plan** dialog. If you try to create a project or deploy without one, the dashboard opens the same dialog.
+Pick a plan under **Settings > Billing**. **Change** opens the **Compute plans** screen. If you try to create a project or deploy without a plan, the dashboard opens the same screen.
 
 <Frame>
-  <img src="/images/dashboard/platform--billing-plans--change-compute-plan.png" alt="Change Compute plan dialog listing Starter, Pro, and Business with their monthly prices and what every plan includes" />
+  <img src="/images/dashboard/platform--billing-plans--change-compute-plan.png" alt="Compute plans screen listing Starter, Pro, and Business with their monthly prices and what every plan includes" />
 </Frame>
 
 Usage above the included credit is billed on average actual vCPU and memory (not your configured ceilings), allocated ephemeral disk, egress, and active keys verified through Compute Key Auth. Details are on [Usage](/platform/billing/usage) and [unkey.com/pricing](https://unkey.com/pricing). To cap it, set a monthly [spend budget](/compute/configure/spend-budget). It emails you at 50, 75, and 100 percent and can stop your usage at 100 percent.

@@ -12,7 +12,7 @@ import type { EnvironmentVariable } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
-import { listAppEnvironments } from "./app-environments";
+import { cachedAppEnvironmentIds } from "./app-environments";
 import { trackSave } from "./pending-redeploy";
 import { extractStringFilter } from "./utils";
 
@@ -63,12 +63,12 @@ export const envVars = createCollection<EnvVar, string, QueryCollectionUtils<Env
 
       // The API lists the variables of one environment, so get the app's
       // environments first.
-      const appEnvironments = await listAppEnvironments(projectId, appId);
+      const environmentIds = await cachedAppEnvironmentIds(projectId, appId);
 
       const perEnvironment = await Promise.all(
-        appEnvironments.map(async (environment) => {
-          const variables = await listAllVariables(projectId, appId, environment.id);
-          return variables.map((v) => toEnvVar(projectId, appId, environment.id, v));
+        environmentIds.map(async (environmentId) => {
+          const variables = await listAllVariables(projectId, appId, environmentId);
+          return variables.map((v) => toEnvVar(projectId, appId, environmentId, v));
         }),
       );
 
@@ -209,69 +209,77 @@ export async function addVariables({
     return { status: "taken", keys: taken };
   }
 
+  await writeEnvironments(environmentIds, async (environmentId, sent) => {
+    await inChunks(variables, async (chunk) => {
+      await getUnkeyClient().environments.setEnvironmentVariables({
+        project: projectId,
+        app: appId,
+        environment: environmentId,
+        variables: chunk,
+      });
+      sent();
+    });
+  });
+  return { status: "added", count: variables.length };
+}
+
+export type SaveEnvVarsInput = AddEnvVarsInput & { edited: EnvVar[]; removed: EnvVar[] };
+
+export async function saveVariables({
+  edited,
+  removed,
+  ...add
+}: SaveEnvVarsInput): Promise<AddEnvVarsResult> {
+  const edits = groupByEnvironment(edited);
+  const removals = groupByEnvironment(removed);
+  const environmentIds = [...new Set([...removals.keys(), ...edits.keys()])];
+  if (environmentIds.length > 0) {
+    const client = getUnkeyClient().environments;
+    await writeEnvironments(environmentIds, async (environment, sent) => {
+      const target = { project: add.projectId, app: add.appId, environment };
+      await inChunks(
+        (removals.get(environment) ?? []).map((v) => v.key),
+        async (chunk) => {
+          await client.removeEnvironmentVariables({ ...target, variables: chunk });
+          sent();
+        },
+      );
+      await inChunks(
+        (edits.get(environment) ?? []).map((v) => ({ key: v.key, value: v.value, kind: v.type })),
+        async (chunk) => {
+          await client.setEnvironmentVariables({ ...target, variables: chunk });
+          sent();
+        },
+      );
+    }).catch((error: unknown) => {
+      throw error instanceof PartialAddError ? error.cause : error;
+    });
+  }
+  return add.variables.length > 0 ? addVariables(add) : { status: "added", count: 0 };
+}
+
+async function writeEnvironments(
+  environmentIds: string[],
+  write: (environmentId: string, sent: () => void) => Promise<void>,
+): Promise<void> {
   let wroteAny = false;
   const writes = await Promise.allSettled(
     environmentIds.map((environmentId) =>
-      inChunks(variables, async (chunk) => {
-        await getUnkeyClient().environments.setEnvironmentVariables({
-          project: projectId,
-          app: appId,
-          environment: environmentId,
-          variables: chunk,
-        });
+      write(environmentId, () => {
         wroteAny = true;
       }),
     ),
   );
   const failed = writes.find((w): w is PromiseRejectedResult => w.status === "rejected");
+  if (failed && !wroteAny) {
+    await envVars.utils.refetch().catch(() => {});
+    throw failed.reason;
+  }
+  await trackSave(envVars.utils.refetch().catch(() => {}));
   if (failed) {
-    if (!wroteAny) {
-      await envVars.utils.refetch().catch(() => {});
-      throw failed.reason;
-    }
-    await trackSave(envVars.utils.refetch().catch(() => {}));
     const savedEnvironmentIds = environmentIds.filter((_, i) => writes[i].status === "fulfilled");
     throw new PartialAddError(savedEnvironmentIds, failed.reason);
   }
-
-  await trackSave(envVars.utils.refetch().catch(() => {}));
-  return { status: "added", count: variables.length };
-}
-
-export type EnvVarChange = { environmentId: string; set: VariableInput[]; remove: string[] };
-
-export type EnvVarChangeResult =
-  | { change: EnvVarChange; ok: true }
-  | { change: EnvVarChange; ok: false; error: unknown };
-
-export async function applyVariableChanges({
-  projectId,
-  appId,
-  changes,
-}: {
-  projectId: string;
-  appId: string;
-  changes: EnvVarChange[];
-}): Promise<EnvVarChangeResult[]> {
-  const settled = await Promise.allSettled(
-    changes.map(async ({ environmentId, set, remove }) => {
-      const target = { project: projectId, app: appId, environment: environmentId };
-      const client = getUnkeyClient().environments;
-      await inChunks(remove, (chunk) =>
-        client.removeEnvironmentVariables({ ...target, variables: chunk }),
-      );
-      await inChunks(set, (chunk) =>
-        client.setEnvironmentVariables({ ...target, variables: chunk }),
-      );
-    }),
-  );
-  await envVars.utils.refetch().catch(() => {});
-  return changes.map((change, i) => {
-    const result = settled[i];
-    return result.status === "rejected"
-      ? { change, ok: false, error: result.reason }
-      : { change, ok: true };
-  });
 }
 
 export function envVarErrorToast(
@@ -297,20 +305,17 @@ export async function makeVariablesSensitive(variables: EnvVar[]): Promise<numbe
   }
 }
 
-/** Removes variables by key. Sends one request for each environment. */
-async function removeVariables(variables: EnvVar[]): Promise<void> {
+function groupByEnvironment(variables: readonly EnvVar[]): Map<string, EnvVar[]> {
   const byEnvironment = new Map<string, EnvVar[]>();
   for (const v of variables) {
-    const existing = byEnvironment.get(v.environmentId);
-    if (existing) {
-      existing.push(v);
-    } else {
-      byEnvironment.set(v.environmentId, [v]);
-    }
+    byEnvironment.set(v.environmentId, [...(byEnvironment.get(v.environmentId) ?? []), v]);
   }
+  return byEnvironment;
+}
 
+async function removeVariables(variables: EnvVar[]): Promise<void> {
   await Promise.all(
-    Array.from(byEnvironment.values(), (group) =>
+    Array.from(groupByEnvironment(variables).values(), (group) =>
       inChunks(
         group.map((v) => v.key),
         (chunk) =>

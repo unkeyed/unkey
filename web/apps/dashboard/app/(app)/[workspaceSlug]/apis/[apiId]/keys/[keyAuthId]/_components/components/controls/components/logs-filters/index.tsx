@@ -80,7 +80,7 @@ export const LogsFilters = () => {
           ),
         },
         {
-          id: "keyids",
+          id: "keyIds",
           label: "Key ID",
           shortcut: "k",
           component: (

@@ -10,22 +10,25 @@ sources:
   - svc/ctrl/worker/deploy/railpack.go
   - pkg/match/watchpath.go
   - web/internal/db/src/schema/app_build_settings.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/deployment-settings.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/dockerfile-settings.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/root-directory-settings.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/build-command-settings.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/watch-paths-settings.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/auto-deploy-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/environment-provider.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/build-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/dockerfile-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/root-directory-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/build-command-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/watch-paths-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/environments/[environment]/auto-deploy.tsx
 ---
 
 Build settings control how a git-connected <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> is built, and which pushes build at all. Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> has its own, so production and preview can differ. Apps deployed from an image have no build settings.
 
 ## Change build settings
 
-Edit them under **App Settings** in the dashboard, with `environments.updateSettings` in the API, or with `unkey api environments update-settings` in the CLI. In the API, send only the fields you want to change. To read the current values, call `environments.getEnvironment` and look under `build`.
+Edit them under **App settings** > **Build** in the dashboard, with `environments.updateSettings` in the API, or with `unkey api environments update-settings` in the CLI. In the API, send only the fields you want to change. To read the current values, call `environments.getEnvironment` and look under `build`.
+
+The **Build** page shows the production values, and saving there writes to every environment of the app. To give production and preview different build settings, use the API or CLI. **Auto-deploy** is the exception: each environment has its own switch, on its page under **App settings** > **Environments**.
 
 <Frame>
-  <img src="/images/dashboard/compute--configure-build-settings--build.png" alt="App Settings build section showing repository, root directory, Dockerfile, build command, watch paths, and auto deploy" />
+  <img src="/images/dashboard/compute--configure-build-settings--build.png" alt="App settings Build page showing the repository, root directory, Dockerfile, build command, and watch paths" />
 </Frame>
 
 A change applies from the next deployment. Existing deployments keep the settings they were built with.
@@ -33,7 +36,7 @@ A change applies from the next deployment. Existing deployments keep the setting
 ## Fields
 
 <ParamField body="dockerfile" type="string | null">
-  Path to the Dockerfile, relative to the root directory, 1 to 500 characters. When it's unset (the default), we detect your language and build without a Dockerfile. Send `null` to go back to automatic builds. In the dashboard, the **Dockerfile** card lists Dockerfiles in your repository and shows "File not found on this branch" if the path is missing. See [Dockerfile builds](/compute/build/dockerfile).
+  Path to the Dockerfile, relative to the root directory, 1 to 500 characters. When it's unset (the default), we detect your language and build without a Dockerfile. Send `null` to go back to automatic builds. In the dashboard, the **Dockerfile** row lists Dockerfiles in your repository and shows "File not found on this branch" if the path is missing. See [Dockerfile builds](/compute/build/dockerfile).
 </ParamField>
 
 <ParamField body="rootDirectory" type="string" default=".">
@@ -41,7 +44,7 @@ A change applies from the next deployment. Existing deployments keep the setting
 </ParamField>
 
 <ParamField body="buildCommand" type="string | null">
-  Replaces the build command automatic detection would run, 1 to 1000 characters, for example `pnpm --filter api build`. Ignored when a Dockerfile is set, and the dashboard disables the field with "Disabled because a Dockerfile is configured. Build commands only apply to automatic (Railpack) builds." Send `null` to go back to the detected command.
+  Replaces the build command automatic detection would run, 1 to 1000 characters, for example `pnpm --filter api build`. Ignored when a Dockerfile is set, and the dashboard marks the field "Not used with a Dockerfile." Send `null` to go back to the detected command.
 </ParamField>
 
 <ParamField body="watchPaths" type="string[]" default="[]">
@@ -49,7 +52,7 @@ A change applies from the next deployment. Existing deployments keep the setting
 </ParamField>
 
 <ParamField body="autoDeploy" type="boolean" default="true">
-  Whether GitHub pushes create deployments in this environment. When it's off, a push shows up as a `skipped` deployment with "Auto deploy is disabled for this environment." A common setup is auto deploy on for preview and off for production: every branch gets a preview, and you release to production on purpose from the dashboard, API, or CLI.
+  Whether GitHub pushes create deployments in this environment. In the dashboard, it's the **Auto-deploy** switch under **Branch tracking** on the environment's page. When it's off, a push shows up as a `skipped` deployment with "Auto deploy is disabled for this environment." A common setup is auto deploy on for preview and off for production: every branch gets a preview, and you release to production on purpose from the dashboard, API, or CLI.
 </ParamField>
 
 ## Example

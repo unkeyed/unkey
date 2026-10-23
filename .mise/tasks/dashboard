@@ -3,7 +3,7 @@
 #MISE depends=["build", "install-web", "docker-builder"]
 set -euo pipefail
 
-docker compose -f web/apps/dashboard/dev/docker-compose.yaml build --builder unkey
-docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait --no-build
+docker compose --env-file web/apps/dashboard/.env -f web/apps/dashboard/dev/docker-compose.yaml build --builder unkey
+docker compose --env-file web/apps/dashboard/.env -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait --no-build
 bin/unkey dev seed local
 pnpm --dir=web turbo run dev --filter=@unkey/dashboard

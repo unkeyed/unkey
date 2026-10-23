@@ -13,7 +13,7 @@
   "scripts": {
     "test": "vitest run"
   },
-  "license": "MIT",
+  "license": "FSL-1.1-ALv2",
   "devDependencies": {
     "@unkey/tsconfig": "workspace:*",
     "typescript": "5.5.3",

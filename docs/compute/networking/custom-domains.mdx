@@ -21,6 +21,8 @@ sources:
   - cmd/api/domains/create_domain.go
   - cmd/api/domains/verify_domain.go
   - web/apps/dashboard/lib/limits.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/domains/add-domain-dialog.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/domains/domain-row.tsx
 ---
 
 A custom domain lets you serve an <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> of your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> from a hostname you own, such as `api.acme.com`. You add the domain, publish two DNS records to prove you own it, and we route it and get a certificate for it. It always serves the environment's current deployment, like the [automatic hostnames](/compute/networking/automatic-domains).
@@ -38,10 +40,10 @@ A custom domain lets you serve an <Tooltip tip="A production or preview environm
   <Step title="Add the domain">
 
     <Frame>
-      <img src="/images/dashboard/compute--networking-custom-domains--add-domain.png" alt="App Settings with the Custom Domains row expanded, showing an environment picker and a domain field" />
+      <img src="/images/dashboard/compute--networking-custom-domains--add-domain.png" alt="Add custom domain dialog on the app's Domains page, with a Domain field and an Environment select" />
     </Frame>
 
-    In the dashboard, open the app, go to **App Settings**, add the domain under **Custom Domains**, and pick the environment it should serve. Or use the CLI:
+    In the dashboard, open the app, go to **Domains**, and click **Add domain**. Enter the domain and pick the **Environment** it should serve. Or use the CLI:
 
     ```bash
     unkey api domains create-domain --project=payments --app=api --environment=production --domain=api.acme.com
@@ -52,7 +54,7 @@ A custom domain lets you serve an <Tooltip tip="A production or preview environm
     </Visibility>
   </Step>
   <Step title="Publish the DNS records">
-    We show the records to create at your DNS provider:
+    We show the records to create at your DNS provider. On the **Domains** page, click a domain's row to see them:
 
     | Type | Name | Value | When |
     | --- | --- | --- | --- |
@@ -64,7 +66,7 @@ A custom domain lets you serve an <Tooltip tip="A production or preview environm
 
     Some providers want names without the zone. In zone `acme.com`, enter `api` instead of `api.acme.com`, and `_unkey.api` instead of `_unkey.api.acme.com`. The zone itself is usually `@`.
 
-    If your DNS is hosted at Cloudflare or Vercel, you can skip the manual step. We give you a Domain Connect link (`domainConnect` in the API). Open it, approve the pre-filled records at your provider, and you're sent back to the app's settings.
+    If your DNS is hosted at Cloudflare or Vercel, you can skip the manual step. We give you a Domain Connect link (`domainConnect` in the API, **Connect** under "Automatic setup available" in the domain's row). Open it, approve the pre-filled records at your provider, and you're sent back to the app's settings.
   </Step>
   <Step title="Wait for verification">
     We check DNS once a minute for up to 24 hours after you added the domain. The status goes from `pending` to `verifying` to `verified`. Each record also shows whether we've found it yet.
@@ -75,7 +77,7 @@ A custom domain lets you serve an <Tooltip tip="A production or preview environm
 
 ## Verification failed or is stuck
 
-After 24 hours without the right records, the status becomes `failed` and `verificationError` says why. Fix the records, then retry. Retrying starts a new 24 hour window:
+After 24 hours without the right records, the status becomes `failed` and `verificationError` says why. Fix the records, then retry with **Retry verification** on the domain's row, or with the CLI. Retrying starts a new 24 hour window:
 
 ```bash
 unkey api domains verify-domain --domain=api.acme.com
@@ -101,4 +103,4 @@ A custom domain normally moves to each new live deployment. While the app is rol
 
 ## Remove a domain
 
-Delete the domain, and requests to it stop reaching your app right away. Deleting the app or project also deletes its domains. Remove the DNS records yourself.
+Delete the domain, and requests to it stop reaching your app right away. Deleting the app or <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> also deletes its domains. Remove the DNS records yourself.

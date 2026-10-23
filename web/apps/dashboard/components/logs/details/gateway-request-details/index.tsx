@@ -9,6 +9,7 @@ import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import { TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
+import { GatewayKeyVerification } from "./key-verification";
 
 type Props = {
   distanceToTop: number;
@@ -30,6 +31,10 @@ export const GatewayRequestDetails = ({ distanceToTop, log, onClose }: Props) =>
       <LogDetails.Header>
         <LogHeader log={log} onClose={onClose} />
       </LogDetails.Header>
+
+      <LogDetails.Section>
+        <GatewayKeyVerification log={log} />
+      </LogDetails.Section>
 
       <LogDetails.Section>
         <LogSection

@@ -239,6 +239,10 @@ func Run(ctx context.Context, cfg Config) error {
 		TrustedProxyCIDRs:  cfg.TrustedProxyCIDRs,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
+		// The idle timeout must exceed the ALB idle timeout (60s by default), or the
+		// ALB can reuse a connection the server has already closed and return a 502.
+		// https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html
+		IdleTimeout: 120 * time.Second,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)

@@ -73,8 +73,8 @@ func (k *KeyVerifier) VerifyRootKey(ctx context.Context, opts ...VerifyOption) e
 }
 
 // Verify performs key verification with the given options.
-// For root keys: returns fault errors for validation failures.
-// For normal keys: returns error only for system problems, check k.Valid and k.Status for validation results.
+// Authentication failures set Status; configuration and system failures return errors.
+// A requested limit without a stored definition or complete inline override returns an error wrapping *RatelimitNotConfiguredError.
 func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	before := k.Status
 	defer k.recordVerifyOutcome(before)

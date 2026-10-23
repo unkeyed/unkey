@@ -1,7 +1,8 @@
 "use client";
 
 import type { DeploymentSummary } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useProjectData } from "../../../../../data-provider";
 import { DeploymentCard } from "./components/deployment-card";
@@ -17,32 +18,24 @@ type CancelDialogProps = {
 };
 
 export const CancelDialog = ({ isOpen, onClose, onCancelled, deployment }: CancelDialogProps) => {
-  const { refetchDeployments } = useProjectData();
+  const { awaitDeploymentStatus } = useProjectData();
 
-  const cancel = trpc.deploy.deployment.cancel.useMutation({
+  const cancel = useMutation({
+    mutationFn: (deploymentId: string) =>
+      getUnkeyClient().deployments.cancelDeployment({ deploymentId }),
     onSuccess: () => {
-      refetchDeployments();
-      toast.success("Deployment cancelled", {
-        description: `Cancelled deployment ${deployment.id}`,
-      });
+      awaitDeploymentStatus({ deploymentId: deployment.id, status: "cancelled" });
       onCancelled?.();
       onClose();
     },
-    onError: (error) => {
-      toast.error("Cancel failed", {
-        description: error.message,
-      });
-    },
   });
 
-  const handleCancel = async () => {
-    await cancel
-      .mutateAsync({
-        deploymentId: deployment.id,
-      })
-      .catch((error) => {
-        console.error("Cancel error:", error);
-      });
+  const handleCancel = () => {
+    toast.promise(cancel.mutateAsync(deployment.id), {
+      loading: "Cancelling deployment...",
+      success: "Deployment cancelled",
+      error: (err) => getErrorToast(err, "Failed to cancel deployment"),
+    });
   };
 
   return (

@@ -20,6 +20,7 @@ export const env = () =>
       UNKEY_API_ID: z.string(),
       UNKEY_API_URL: z.url().optional().default("https://api.unkey.com"),
       UNKEY_JWT_SECRET: z.string().optional(),
+      UNKEY_JWT_AUDIENCE: z.string().min(1).default("api.unkey.com"),
 
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
@@ -36,10 +37,8 @@ export const env = () =>
       VAULT_URL: z.url(),
       VAULT_TOKEN: z.string(),
 
-      CTRL_URL: z.url().optional(),
+      CTRL_URL: z.url().default("https://control.unkey.cloud"),
       CTRL_API_KEY: z.string().optional(),
-
-      GITHUB_KEYS_URI: z.string().optional(),
 
       // This key is used for ratelimiting our trpc procedures
       // It requires the following permission:

@@ -379,6 +379,11 @@ func startFrontlineWith(t *testing.T, decision router.RouteDecision, proxySvc pr
 
 func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, proxySvc proxy.Service, enableH2CIngress bool) (string, func()) {
 	t.Helper()
+	return startFrontlineWithRouter(t, &stubRouter{decision: decision}, proxySvc, enableH2CIngress)
+}
+
+func startFrontlineWithRouter(t *testing.T, routes router.Service, proxySvc proxy.Service, enableH2CIngress bool) (string, func()) {
+	t.Helper()
 	clk := clock.New()
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
@@ -400,7 +405,7 @@ func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, p
 	}
 
 	h := &handler.Handler{
-		RouterService: &stubRouter{decision: decision},
+		RouterService: routes,
 		ProxyService:  proxySvc,
 		Engine:        nil,
 		Clock:         clk,
@@ -411,6 +416,7 @@ func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, p
 	zenSrv, err := zen.New(zen.Config{
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
+		IdleTimeout:        0,
 		MaxRequestBodySize: 0,
 		EnableH2C:          enableH2CIngress,
 		StreamRequestBody:  true,

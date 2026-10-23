@@ -778,6 +778,7 @@ type App struct {
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
 	CreatedAt           int64          `db:"created_at"`
 	UpdatedAt           sql.NullInt64  `db:"updated_at"`
+	DeletedAt           sql.NullInt64  `db:"deleted_at"`
 }
 
 type AppBuildSetting struct {
@@ -850,12 +851,14 @@ type Deployment struct {
 	Port                          int32                             `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal         `db:"shutdown_signal"`
 	UpstreamProtocol              DeploymentsUpstreamProtocol       `db:"upstream_protocol"`
+	Capabilities                  mysqltype.DeploymentCapabilities  `db:"capabilities"`
 	Healthcheck                   dbtype.NullHealthcheck            `db:"healthcheck"`
 	PrNumber                      sql.NullInt64                     `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString                    `db:"fork_repository_full_name"`
 	GithubDeploymentID            sql.NullInt64                     `db:"github_deployment_id"`
 	InvocationID                  sql.NullString                    `db:"invocation_id"`
 	Status                        mysqltype.DeploymentsStatus       `db:"status"`
+	FirstReadyAt                  sql.NullInt64                     `db:"first_ready_at"`
 	Trigger                       DeploymentsTrigger                `db:"trigger"`
 	TriggeredBy                   sql.NullString                    `db:"triggered_by"`
 	TriggerReason                 sql.NullString                    `db:"trigger_reason"`
@@ -898,6 +901,7 @@ type Environment struct {
 	DeleteProtection sql.NullBool              `db:"delete_protection"`
 	CreatedAt        int64                     `db:"created_at"`
 	UpdatedAt        sql.NullInt64             `db:"updated_at"`
+	DeletedAt        sql.NullInt64             `db:"deleted_at"`
 }
 
 type FrontlineRoute struct {
@@ -1045,6 +1049,7 @@ type Project struct {
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	DeletedAt        sql.NullInt64  `db:"deleted_at"`
 }
 
 type Ratelimit struct {

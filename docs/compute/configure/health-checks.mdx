@@ -6,8 +6,9 @@ sources:
   - svc/api/openapi/spec/paths/v2/environments/updateSettings/V2EnvironmentsUpdateSettingsRequestBody.yaml
   - svc/api/routes/v2_environments_update_settings/handler.go
   - svc/krane/internal/deployment/apply.go
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/healthcheck/schema.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/healthcheck/index.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/runtime/model.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/runtime/healthcheck-fields.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/environments/[environment]/runtime-overview.tsx
   - web/apps/dashboard/lib/collections/deploy/environment-settings.ts
 ---
 
@@ -28,11 +29,7 @@ Check the process, not its dependencies. A failing check restarts the container,
 
 ## Add a health check
 
-<Frame>
-  <img src="/images/dashboard/compute--configure-runtime-settings--runtime.png" alt="App Settings runtime section showing instances, max CPU, memory, storage, healthcheck, port, and command for production and preview" />
-</Frame>
-
-In the dashboard, open the app's settings and use the **Health check** card. In the API, set `healthcheck` in [runtime settings](/compute/configure/runtime-settings) with `environments.updateSettings`:
+In the dashboard, go to **App settings** > **Environments**, open the environment, and click **Configure** on its **Runtime** card. Pick `GET` or `POST`, enter the path under **Health check path**, and set the **Health check interval**. Saving there applies the check to that environment only. In the API, set `healthcheck` in [runtime settings](/compute/configure/runtime-settings) with `environments.updateSettings`:
 
 ```bash Add a check with a shorter timeout
 curl -X POST https://api.unkey.com/v2/environments.updateSettings \
@@ -53,7 +50,7 @@ curl -X POST https://api.unkey.com/v2/environments.updateSettings \
   }'
 ```
 
-Like every runtime setting, it applies from the next deployment. To remove the check, use the remove action on the card, or send `"healthcheck": null`.
+Like every runtime setting, it applies from the next deployment. To remove the check, clear the **Health check path** in the dashboard, or send `"healthcheck": null`.
 
 ## Fields
 
@@ -68,19 +65,19 @@ Only `method` and `path` are required. The others use the defaults below.
 </ParamField>
 
 <ParamField body="intervalSeconds" type="integer" default="10">
-  Seconds between checks, 1 to 3600. The dashboard defaults to `30s` and accepts values like `15s`, `2m`, or `1h`.
+  Seconds between checks, 1 to 3600. The dashboard's **Health check interval** field takes whole seconds and starts at 10.
 </ParamField>
 
 <ParamField body="timeoutSeconds" type="integer" default="5">
-  Seconds to wait for a response before the check fails, 1 to 3600. Only settable in the API. Saving from the dashboard sets 5.
+  Seconds to wait for a response before the check fails, 1 to 3600. Only settable in the API. Saving from the dashboard keeps the current value, or sets 5 for a new check.
 </ParamField>
 
 <ParamField body="failureThreshold" type="integer" default="3">
-  Failures in a row before the instance is restarted, 1 to 100. Only settable in the API. Saving from the dashboard sets 3.
+  Failures in a row before the instance is restarted, 1 to 100. Only settable in the API. Saving from the dashboard keeps the current value, or sets 3 for a new check.
 </ParamField>
 
 <ParamField body="initialDelaySeconds" type="integer" default="0">
-  Seconds after the container starts before the first check, 0 to 3600. Only settable in the API. Saving from the dashboard sets 0.
+  Seconds after the container starts before the first check, 0 to 3600. Only settable in the API. Saving from the dashboard keeps the current value, or sets 0 for a new check.
 </ParamField>
 
 ## Next steps

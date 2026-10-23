@@ -2,8 +2,8 @@
 
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { IconCheckOutline12, IconChevronDownOutline18 } from "@unkey/icons";
-import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
+import { type VariantProps, cva } from "../../lib/cva";
 import { popupTransition } from "../../lib/popup";
 import { cn } from "../../lib/utils";
 import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./input-group";
@@ -117,6 +117,7 @@ function SelectContent({
   // below the trigger). Base UI defaults to item-aligned (popup overlaps
   // the trigger and ignores side/sideOffset), so default it off.
   alignItemWithTrigger = false,
+  maxRows,
   ref,
   ...props
 }: SelectPrimitive.Popup.Props &
@@ -124,6 +125,8 @@ function SelectContent({
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
   > & {
+    /** Caps the list at this many rows of height. The rest scrolls. */
+    maxRows?: number;
     ref?: React.Ref<React.ComponentRef<typeof SelectPrimitive.Popup>>;
   }) {
   return (
@@ -146,7 +149,12 @@ function SelectContent({
           )}
           {...props}
         >
-          <SelectPrimitive.List className="p-1">{children}</SelectPrimitive.List>
+          <SelectPrimitive.List
+            className="overflow-y-auto overscroll-contain p-1"
+            style={maxRows ? { maxHeight: `calc(${maxRows} * 2rem + 0.5rem)` } : undefined}
+          >
+            {children}
+          </SelectPrimitive.List>
         </SelectPrimitive.Popup>
       </SelectPrimitive.Positioner>
     </SelectPrimitive.Portal>

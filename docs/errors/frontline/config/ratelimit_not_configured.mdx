@@ -1,0 +1,42 @@
+---
+title: "ratelimit_not_configured"
+sidebarTitle: "ratelimit_not_configured"
+description: "A gateway policy references a named rate limit that is not configured for the key or its identity."
+sources:
+  - internal/services/keys/validation.go
+  - svc/frontline/internal/policies/keyauth/executor.go
+  - svc/frontline/middleware/observability.go
+---
+
+<Danger>`err:frontline:config:ratelimit_not_configured`</Danger>
+
+This error means the gateway can't enforce a named rate limit. The policy
+references a limit that doesn't exist on the API key or its identity, and the
+policy doesn't provide both an inline `limit` and `duration`.
+
+The gateway rejects the request with `422 Unprocessable Entity`. This is a
+configuration error, not an exhausted rate limit or an invalid API key.
+
+The response message is:
+
+> A rate limit required by the gateway policy is not configured for this key or its identity.
+
+## If you're calling an API hosted on Unkey
+
+Contact the API owner with the request ID. Retrying the same request won't fix
+the missing rate-limit configuration.
+
+## How to fix
+
+If you own this API, check the rate-limit names in the matching key-auth policy.
+For each required name, configure a matching rate limit on the key or its
+identity, or supply both `limit` and `duration` in the policy to define an inline
+limit.
+
+This error code applies to gateway requests. The `verifyKey` API returns
+`412 Precondition Failed` for a missing named rate limit.
+
+## Related errors
+
+- [`rate_limited`](/errors/frontline/client/rate_limited): a configured rate limit is exhausted, so the gateway returns 429.
+- [`invalid_configuration`](/errors/frontline/config/invalid_configuration): the gateway policy can't be parsed or has an invalid value.

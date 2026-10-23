@@ -3,10 +3,12 @@ SELECT
    w.id,
    w.org_id,
    w.name,
+   w.slug,
    b.stripe_customer_id,
    b.tier,
    w.enabled,
-   l.api_billable_operations_count_max_per_month AS requests_per_month
+   l.api_billable_operations_count_max_per_month AS requests_per_month,
+   l.api_requests_count_max_per_minute AS requests_per_minute
 FROM `workspaces` w
 LEFT JOIN `limits` l ON l.workspace_id = w.id
 LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id

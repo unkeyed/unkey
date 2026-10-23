@@ -106,6 +106,28 @@ func TestProcessBuildStatusWritesLogRows(t *testing.T) {
 	}, got)
 }
 
+func TestProcessBuildStatusSkipsBuilderAuthLogs(t *testing.T) {
+	buildStepLogs, closeAndCollect := collectRows[schema.BuildStepLogV1](t)
+	w := &Workflow{buildSteps: batch.NewNoop[schema.BuildStepV1](), buildStepLogs: buildStepLogs}
+
+	vertex := digest.FromString(uid.New("vertex"))
+	now := time.Now()
+	statusCh := make(chan *client.SolveStatus, 1)
+	statusCh <- &client.SolveStatus{Logs: []*client.VertexLog{
+		{Vertex: vertex, Stream: 1, Data: []byte("[auth] Started resolving credentials from the client for registry.depot.dev\n"), Timestamp: now},
+		{Vertex: vertex, Stream: 1, Data: []byte("[auth] Completed getting token authority from the client for registry-1.docker.io after 0.229s\n"), Timestamp: now},
+		{Vertex: vertex, Stream: 1, Data: []byte("KEBAP from a RUN step\n"), Timestamp: now},
+	}}
+	close(statusCh)
+	w.processBuildStatus(statusCh, uid.New(uid.WorkspacePrefix), uid.New(uid.ProjectPrefix), uid.New(uid.DeploymentPrefix), newLogSequence())
+
+	got := []string{}
+	for _, row := range closeAndCollect() {
+		got = append(got, row.Message)
+	}
+	require.Equal(t, []string{"KEBAP from a RUN step\n"}, got)
+}
+
 func TestProcessBuildStatusWritesStepEventLines(t *testing.T) {
 	buildStepLogs, closeAndCollect := collectRows[schema.BuildStepLogV1](t)
 	w := &Workflow{buildSteps: batch.NewNoop[schema.BuildStepV1](), buildStepLogs: buildStepLogs}

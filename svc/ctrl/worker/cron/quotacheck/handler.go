@@ -17,11 +17,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/number"
@@ -67,6 +69,13 @@ type Config struct {
 	// SlackWebhookURL is the Slack webhook for quota-exceeded
 	// notifications. Empty disables Slack notifications.
 	SlackWebhookURL string
+	AlertDelivery   *AlertDelivery
+	BillingBaseURL  string
+}
+
+type AlertDelivery struct {
+	Admins workos.Resolver
+	Email  email.Sender
 }
 
 // Handler executes RunQuotaCheck.
@@ -75,6 +84,8 @@ type Handler struct {
 	clickhouse      clickhouse.ClickHouse
 	heartbeat       healthcheck.Heartbeat
 	slackWebhookURL string
+	delivery        *AlertDelivery
+	billingBaseURL  string
 }
 
 // New constructs a Handler.
@@ -86,11 +97,21 @@ func New(cfg Config) (*Handler, error) {
 	); err != nil {
 		return nil, err
 	}
+	if cfg.AlertDelivery != nil {
+		if err := assert.All(
+			assert.NotNil(cfg.AlertDelivery.Admins, "AlertDelivery.Admins must not be nil"),
+			assert.NotNil(cfg.AlertDelivery.Email, "AlertDelivery.Email must not be nil"),
+		); err != nil {
+			return nil, err
+		}
+	}
 	return &Handler{
 		db:              cfg.DB,
 		clickhouse:      cfg.Clickhouse,
 		heartbeat:       cfg.Heartbeat,
 		slackWebhookURL: cfg.SlackWebhookURL,
+		delivery:        cfg.AlertDelivery,
+		billingBaseURL:  cfg.BillingBaseURL,
 	}, nil
 }
 
@@ -124,6 +145,12 @@ func (h *Handler) Handle(
 		return nil, fmt.Errorf("get current time: %w", err)
 	}
 	now := nowTime.Unix()
+
+	if prev, ok := previousPeriodToRecheck(p, nowTime); ok {
+		hydrav1.NewCronServiceClient(ctx, "quota-check-"+prev.Key()).
+			RunQuotaCheck().
+			Send(&hydrav1.RunQuotaCheckRequest{})
+	}
 
 	usageAboveThreshold, err := restate.Run(ctx, func(rc restate.RunContext) (map[string]int64, error) {
 		return h.clickhouse.GetBillableUsageAboveThreshold(rc, p.Year, int(p.Month), minUsageThreshold)
@@ -176,8 +203,17 @@ func (h *Handler) Handle(
 				continue
 			}
 
+			if shouldEnforceFreeTier(ws) {
+				hydrav1.NewCronServiceClient(ctx, freeTierKey(ws.ID)).
+					EnforceFreeTier().
+					Send(&hydrav1.EnforceFreeTierRequest{WorkspaceId: ws.ID, Used: usage})
+			}
+
 			lastNotified := notifiedAt[ws.ID]
 			isFollowUp := lastNotified > 0
+			if isFreeTier(ws.Tier) && (isFollowUp || isThrottled(ws.RequestsPerMinute)) {
+				continue
+			}
 			if isFollowUp {
 				timeSinceLastNotification := time.Duration(now-lastNotified) * time.Second
 				if timeSinceLastNotification < followUpInterval {
@@ -228,6 +264,22 @@ func (h *Handler) Handle(
 		WorkspacesExceeded: int32(len(exceeded)),
 		NotificationsSent:  int32(len(newlyNotified)),
 	}, nil
+}
+
+func previousPeriodToRecheck(p billingperiod.Period, now time.Time) (billingperiod.Period, bool) {
+	var none billingperiod.Period
+	if !isCurrentPeriod(p, now) || now.UTC().Day() != 1 {
+		return none, false
+	}
+	return p.Prev(), true
+}
+
+func shouldEnforceFreeTier(ws db.GetWorkspacesForQuotaCheckByIDsRow) bool {
+	return isFreeTier(ws.Tier) && !isThrottled(ws.RequestsPerMinute)
+}
+
+func isCurrentPeriod(p billingperiod.Period, now time.Time) bool {
+	return p == billingperiod.From(now)
 }
 
 func sendSlackNotification(ctx context.Context, webhookURL string, e exceededWorkspace) error {

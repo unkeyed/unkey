@@ -163,27 +163,69 @@ func TestParseEntries(t *testing.T) {
 }
 
 func TestRecord(t *testing.T) {
-	t.Run("writes header when session exists", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		recorder := httptest.NewRecorder()
-		session := &zen.Session{}
-		err := session.Init(recorder, req, 0)
-		require.NoError(t, err)
+	for value, enabled := range map[string]bool{
+		"1":     true,
+		"t":     true,
+		"T":     true,
+		"true":  true,
+		"TRUE":  true,
+		"True":  true,
+		"":      false,
+		"0":     false,
+		"f":     false,
+		"F":     false,
+		"false": false,
+		"FALSE": false,
+		"False": false,
+		"yes":   false,
+		"2":     false,
+	} {
+		t.Run("debug="+value, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			if value != "" {
+				req.Header.Set("X-Unkey-Debug", value)
+			}
+			req.Header.Set(HeaderName, "1")
+			recorder := httptest.NewRecorder()
+			session := &zen.Session{}
+			require.NoError(t, session.Init(recorder, req, 0))
+			req.Header.Del("X-Unkey-Debug")
 
-		ctx := zen.WithSession(context.Background(), session)
-		Record(ctx, Entry{Name: "cache_get", Duration: time.Millisecond})
+			ctx := zen.WithSession(context.Background(), session)
+			Record(ctx, Entry{Name: "cache_get", Duration: time.Millisecond})
+			Record(ctx, Entry{Name: "db_query", Attributes: map[string]string{"table": "keys", "status": "miss"}, Duration: 3 * time.Millisecond})
 
-		values := recorder.Header().Values(HeaderName)
-		require.Len(t, values, 1)
-		require.Equal(t, "cache_get=1ms", values[0])
-	})
+			if enabled {
+				require.Equal(t, []string{"cache_get=1ms,db_query{status=miss,table=keys}=3ms"}, recorder.Header().Values(HeaderName))
+			} else {
+				require.Empty(t, recorder.Header().Values(HeaderName))
+			}
+		})
+	}
 
 	t.Run("no session is a no-op", func(t *testing.T) {
 		Record(context.Background(), Entry{Name: "cache_get", Duration: time.Millisecond})
 	})
 
+	t.Run("reused sessions do not retain debug mode", func(t *testing.T) {
+		session := &zen.Session{}
+		for _, value := range []string{"1", ""} {
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("X-Unkey-Debug", value)
+			recorder := httptest.NewRecorder()
+			require.NoError(t, session.Init(recorder, req, 0))
+			Record(zen.WithSession(context.Background(), session), Entry{Name: "cache_get", Duration: time.Millisecond})
+			if value == "1" {
+				require.Equal(t, []string{"cache_get=1ms"}, recorder.Header().Values(HeaderName))
+			} else {
+				require.Empty(t, recorder.Header().Values(HeaderName))
+			}
+		}
+	})
+
 	t.Run("rejects invalid entry", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("X-Unkey-Debug", "1")
 		recorder := httptest.NewRecorder()
 		session := &zen.Session{}
 		err := session.Init(recorder, req, 0)

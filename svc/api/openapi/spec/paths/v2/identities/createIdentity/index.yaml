@@ -43,6 +43,7 @@ post:
 
   responses:
     "200":
+      description: Identity created successfully.
       content:
         application/json:
           schema:

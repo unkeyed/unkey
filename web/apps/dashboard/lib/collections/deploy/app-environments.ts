@@ -7,8 +7,8 @@ function appEnvironmentsKey(projectId: string, appId: string) {
   return ["listEnvironments", projectId, appId];
 }
 
-export function listAppEnvironments(projectId: string, appId: string): Promise<Environment[]> {
-  return queryClient.fetchQuery({
+function appEnvironmentsQuery(projectId: string, appId: string) {
+  return {
     queryKey: appEnvironmentsKey(projectId, appId),
     queryFn: async () => {
       const { data } = await getUnkeyClient().environments.listEnvironments({
@@ -17,8 +17,17 @@ export function listAppEnvironments(projectId: string, appId: string): Promise<E
       });
       return data;
     },
-    staleTime: 0,
-  });
+  };
+}
+
+export function listAppEnvironments(projectId: string, appId: string): Promise<Environment[]> {
+  return queryClient.fetchQuery({ ...appEnvironmentsQuery(projectId, appId), staleTime: 0 });
+}
+
+export function cachedAppEnvironmentIds(projectId: string, appId: string): Promise<string[]> {
+  return queryClient
+    .ensureQueryData(appEnvironmentsQuery(projectId, appId))
+    .then((environments) => environments.map((environment) => environment.id));
 }
 
 /**

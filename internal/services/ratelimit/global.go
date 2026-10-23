@@ -81,8 +81,8 @@ const globalPullTimeout = 2 * globalPullInterval
 // starting in lockstep does not converge on the same MySQL write
 // timestamp.
 func (s *service) startGlobalPush() {
-	stop := repeat.Every(globalPushInterval, s.runGlobalPushOnce, globalJitter)
-	s.stopBackground = append(s.stopBackground, stop)
+	repeat.Every(globalPushInterval, func(context.Context) { s.runGlobalPushOnce() },
+		repeat.WithJitter(globalJitter), repeat.UntilClose(s.stopBackground))
 }
 
 // runGlobalPushOnce walks every counterEntry currently in memory,
@@ -218,8 +218,8 @@ func compareGlobalPushRows(a, b db.UpsertRatelimitGlobalCountersParams) int {
 // counterEntry.globalCount. Jitter desynchronizes reads across the fleet so the
 // database is not hit by every region's sync at the same instant.
 func (s *service) startGlobalPull() {
-	stop := repeat.Every(globalPullInterval, s.runGlobalPullOnce, globalJitter)
-	s.stopBackground = append(s.stopBackground, stop)
+	repeat.Every(globalPullInterval, func(context.Context) { s.runGlobalPullOnce() },
+		repeat.WithJitter(globalJitter), repeat.UntilClose(s.stopBackground))
 }
 
 // runGlobalPullOnce fetches the per-key own-region count and foreign-region sum.

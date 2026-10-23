@@ -17,7 +17,10 @@ function PageContainer({
   return (
     <div
       data-width={width}
-      className={cn("group/page flex w-full flex-col", className)}
+      className={cn(
+        "group/page flex w-full flex-col md:data-[width=full]:flex-1 md:data-[width=full]:min-h-0",
+        className,
+      )}
       {...props}
     />
   );

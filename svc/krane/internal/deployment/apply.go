@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strconv"
+	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -16,19 +18,20 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet
+// ApplyDeployment creates or updates a user workload as a Kubernetes Deployment
 // with an associated HorizontalPodAutoscaler (HPA) and PodDisruptionBudget (PDB).
 //
-// The method uses server-side apply to create or update the ReplicaSet.
-// spec.replicas is omitted so the HPA owns the replica count. The HPA's
-// minReplicas determines the minimum capacity; users should set this high
-// enough to handle traffic during rollouts.
+// The method uses server-side apply to update the Deployment. spec.replicas
+// and spec.paused are omitted so the HPA owns the replica count and the
+// rollout gate owns when a template change rolls out. A legacy ReplicaSet with
+// the same name is adopted by the Deployment; see [Controller.createDeployment].
 //
 // After applying, it queries the resulting pods and reports their addresses and status
 // to the control plane so the routing layer knows where to send traffic.
@@ -38,8 +41,8 @@ import (
 // and Image must be non-empty; CpuMillicores and MemoryMib must be > 0.
 //
 // The namespace is created automatically if it doesn't exist. After the
-// ReplicaSet is applied a CiliumNetworkPolicy is installed in the same
-// namespace, owned by the ReplicaSet, that permits ingress only from
+// Deployment is applied a CiliumNetworkPolicy is installed in the same
+// namespace, owned by the Deployment, that permits ingress only from
 // frontline pods on the deployment's container port. Pods run under the
 // configured RuntimeClass, gVisor in production, since they execute untrusted
 // user code, and are scheduled on Karpenter-managed untrusted nodes with
@@ -86,12 +89,12 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	hasSecrets := len(plaintext) > 0
 
-	desired := c.buildReplicaSet(req, hasSecrets)
+	desired := c.buildDeployment(req, hasSecrets)
 
-	// Create the Secret and ServiceAccount before the ReplicaSet so they
+	// Create the Secret and ServiceAccount before the Deployment so they
 	// exist by the time pods are scheduled. This prevents the
 	// "serviceaccount not found" race condition. We patch ownerReferences
-	// onto them after the RS is created so K8s still garbage-collects them.
+	// onto them after the Deployment is created so K8s still garbage-collects them.
 	if hasSecrets {
 		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext); err != nil {
 			return fmt.Errorf("failed to ensure deployment secret: %w", err)
@@ -102,38 +105,43 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
-	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
-
-	patch, err := json.Marshal(desired)
+	undrained, err := c.hasUndrainedPods(ctx, req.GetK8SNamespace(), req.GetDeploymentId())
 	if err != nil {
-		return fmt.Errorf("failed to marshal replicaset: %w", err)
+		return err
+	}
+	if undrained {
+		useReplacementStrategy(desired)
 	}
 
-	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
-		FieldManager: fieldManagerKrane,
-	})
+	applied, err := c.applyDeploymentObject(ctx, desired)
 	if err != nil {
-		return fmt.Errorf("failed to apply replicaset: %w", err)
+		return err
 	}
+	owner := deploymentOwnerRef(applied)
 
 	// Patch ownerReferences onto the Secret and SA so K8s garbage-collects
-	// them when the ReplicaSet is deleted.
+	// them when the Deployment is deleted.
 	if hasSecrets {
 		resName := deploymentResourcePrefix(req.GetDeploymentId())
-		if err := c.patchOwnerRef(ctx, req.GetK8SNamespace(), resName, replicaSetOwnerRef(applied)); err != nil {
+		if err := c.patchOwnerRef(ctx, req.GetK8SNamespace(), resName, owner); err != nil {
 			return fmt.Errorf("failed to patch owner references: %w", err)
 		}
 	}
 
-	if err := c.ensureHPAExists(ctx, req, applied); err != nil {
+	if err := c.ensureHPAExists(ctx, req, owner); err != nil {
 		return fmt.Errorf("failed to ensure HPA: %w", err)
 	}
 
-	if err := c.ensureCiliumNetworkPolicy(ctx, req, applied); err != nil {
+	if err := c.ensureCiliumNetworkPolicy(ctx, req, owner); err != nil {
 		return fmt.Errorf("failed to ensure cilium network policy: %w", err)
 	}
 
-	status, err := c.buildDeploymentStatus(ctx, applied)
+	status, err := c.buildDeploymentStatus(ctx, workload{
+		namespace:    applied.Namespace,
+		k8sName:      applied.Name,
+		deploymentID: req.GetDeploymentId(),
+		selector:     applied.Spec.Selector,
+	})
 	if err != nil {
 		return err
 	}
@@ -144,20 +152,160 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return err
 	}
 
-	if err := c.ensurePodDisruptionBudget(ctx, req, applied); err != nil {
+	if err := c.ensurePodDisruptionBudget(ctx, req, owner); err != nil {
 		logger.Error("failed to ensure pod disruption budget", "deployment_id", req.GetDeploymentId(), "error", err)
 	}
 
 	return nil
 }
 
-// buildReplicaSet renders the desired ReplicaSet for a deployment request.
+// applyDeploymentObject creates the Deployment if it does not exist, then
+// server-side applies the desired spec.
+//
+// Krane is the only manager of the fields it sends, so a field it stops
+// sending is removed. Krane never sends spec.paused or spec.replicas: the
+// rollout gate and the HPA own them. The apply forces ownership so that manual
+// edits to krane's fields are overwritten.
+func (c *Controller) applyDeploymentObject(ctx context.Context, desired *appsv1.Deployment) (*appsv1.Deployment, error) {
+	client := c.clientSet.AppsV1().Deployments(desired.Namespace)
+
+	live, err := client.Get(ctx, desired.Name, metav1.GetOptions{})
+	switch {
+	case k8serrors.IsNotFound(err):
+		live, err = c.createDeployment(ctx, desired)
+		if err != nil {
+			return nil, err
+		}
+	case err != nil:
+		return nil, fmt.Errorf("failed to get deployment: %w", err)
+	}
+
+	if err := c.handOverScaleFields(ctx, live); err != nil {
+		return nil, err
+	}
+
+	applied, err := c.serverSideApply(ctx, desired)
+	if err != nil {
+		return nil, fmt.Errorf("failed to apply deployment: %w", err)
+	}
+
+	return applied, nil
+}
+
+func (c *Controller) serverSideApply(ctx context.Context, d *appsv1.Deployment) (*appsv1.Deployment, error) {
+	patch, err := json.Marshal(d)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal deployment: %w", err)
+	}
+
+	return c.clientSet.AppsV1().Deployments(d.Namespace).Patch(ctx, d.Name, types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: fieldManagerKrane,
+		Force:        new(true),
+	})
+}
+
+// handOverScaleFields makes the rollout gate co-own spec.paused and
+// spec.replicas while krane owns them, which is the case right after krane
+// adopted a legacy ReplicaSet. Krane's next apply leaves both fields out; with
+// a co-owner, server-side apply keeps their values instead of resetting the
+// Deployment to unpaused with one replica.
+func (c *Controller) handOverScaleFields(ctx context.Context, live *appsv1.Deployment) error {
+	if !ownsField(live, fieldManagerKrane, "f:paused") && !ownsField(live, fieldManagerKrane, "f:replicas") {
+		return nil
+	}
+
+	spec := map[string]any{"paused": live.Spec.Paused}
+	if live.Spec.Replicas != nil {
+		spec["replicas"] = *live.Spec.Replicas
+	}
+
+	patch, err := json.Marshal(map[string]any{
+		"apiVersion": "apps/v1",
+		"kind":       "Deployment",
+		"metadata": map[string]any{
+			"name":            live.Name,
+			"namespace":       live.Namespace,
+			"resourceVersion": live.ResourceVersion,
+		},
+		"spec": spec,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal scale fields: %w", err)
+	}
+
+	_, err = c.clientSet.AppsV1().Deployments(live.Namespace).Patch(ctx, live.Name, types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: fieldManagerRolloutGate,
+		Force:        new(true),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to hand over scale fields: %w", err)
+	}
+
+	return nil
+}
+
+// ownsField reports whether manager owns the spec field with the given
+// managed-fields key, such as "f:paused".
+func ownsField(d *appsv1.Deployment, manager, field string) bool {
+	for _, entry := range d.ManagedFields {
+		if entry.Manager != manager || entry.FieldsV1 == nil {
+			continue
+		}
+
+		var fields map[string]map[string]any
+		if err := json.Unmarshal(entry.FieldsV1.Raw, &fields); err != nil {
+			continue
+		}
+
+		if _, ok := fields["f:spec"][field]; ok {
+			return true
+		}
+	}
+
+	return false
+}
+
+// createDeployment creates the Deployment for a workload that has none.
+//
+// A new workload starts unpaused so its first pods come up at once; a paused
+// Deployment without a matching ReplicaSet runs no pods. A legacy ReplicaSet
+// with the same name is adopted instead: the Deployment starts paused, with
+// the ReplicaSet's replica count, so adoption restarts no pods and does not
+// scale the ReplicaSet to the default of one replica. If the rendered template
+// differs from the legacy one, the rollout gate rolls the workload later.
+func (c *Controller) createDeployment(ctx context.Context, desired *appsv1.Deployment) (*appsv1.Deployment, error) {
+	initial := desired.DeepCopy()
+
+	legacy, err := c.clientSet.AppsV1().ReplicaSets(desired.Namespace).Get(ctx, desired.Name, metav1.GetOptions{})
+	switch {
+	case k8serrors.IsNotFound(err):
+	case err != nil:
+		return nil, fmt.Errorf("failed to get legacy replicaset: %w", err)
+	case isLegacyReplicaSet(legacy):
+		initial.Spec.Replicas = legacy.Spec.Replicas
+		initial.Spec.Paused = true
+		logger.Info("adopting legacy replicaset", "namespace", desired.Namespace, "name", desired.Name)
+	}
+
+	created, err := c.serverSideApply(ctx, initial)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create deployment: %w", err)
+	}
+
+	return created, nil
+}
+
+// buildDeployment renders the desired Deployment for a deployment request.
 //
 // It performs no I/O so the mapping from every ApplyDeployment proto field to
 // the Kubernetes object is unit-testable without a cluster (see apply_test.go).
 // hasSecrets indicates whether a per-deployment K8s Secret will be mounted via
 // envFrom; the caller computes it from the decrypted environment variables.
-func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets bool) *appsv1.ReplicaSet {
+//
+// The pod template must stay identical to what krane rendered for legacy
+// ReplicaSets, so a Deployment adopts an unchanged legacy ReplicaSet without
+// replacing its pods.
+func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets bool) *appsv1.Deployment {
 	usedLabels := deploymentLabels(req).
 		BuildID(req.GetBuildId()).
 		Platform(c.platform)
@@ -258,17 +406,7 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		container.ReadinessProbe = probe
 	}
 
-	// For non-SIGTERM shutdown signals, use a preStop lifecycle hook
-	// since K8s always sends SIGTERM natively
-	if req.GetShutdownSignal() != "" && req.GetShutdownSignal() != "SIGTERM" {
-		container.Lifecycle = &corev1.Lifecycle{
-			PreStop: &corev1.LifecycleHandler{
-				Exec: &corev1.ExecAction{
-					Command: []string{"kill", fmt.Sprintf("-%s", req.GetShutdownSignal()), "1"},
-				},
-			},
-		}
-	}
+	container.Lifecycle = &corev1.Lifecycle{PreStop: preStopHandler(req.GetShutdownSignal())}
 
 	// Mount the deployment secret as env vars if present
 	if hasSecrets {
@@ -285,14 +423,15 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 	}
 
 	podSpec := corev1.PodSpec{
-		RuntimeClassName:             runtimeClass,
-		RestartPolicy:                corev1.RestartPolicyAlways,
-		AutomountServiceAccountToken: new(false),
-		EnableServiceLinks:           new(false),
-		NodeSelector:                 map[string]string{nodeClassLabelKey: CustomerNodeClass},
-		Tolerations:                  []corev1.Toleration{untrustedToleration},
-		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId(), req.GetAutoscaling().GetMaxReplicas()),
-		Containers:                   []corev1.Container{container},
+		TerminationGracePeriodSeconds: new(preStopDrainSeconds + shutdownGraceSeconds),
+		RuntimeClassName:              runtimeClass,
+		RestartPolicy:                 corev1.RestartPolicyAlways,
+		AutomountServiceAccountToken:  new(false),
+		EnableServiceLinks:            new(false),
+		NodeSelector:                  map[string]string{nodeClassLabelKey: CustomerNodeClass},
+		Tolerations:                   []corev1.Toleration{untrustedToleration},
+		TopologySpreadConstraints:     deploymentTopologySpread(req.GetDeploymentId(), req.GetAutoscaling().GetMaxReplicas()),
+		Containers:                    []corev1.Container{container},
 	}
 
 	if len(volumes) > 0 {
@@ -305,17 +444,17 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 
 	podSpec.ImagePullSecrets = c.imagePullSecrets
 
-	return &appsv1.ReplicaSet{
+	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
-			Kind:       "ReplicaSet",
+			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.GetK8SName(),
 			Namespace: req.GetK8SNamespace(),
 			Labels:    usedLabels,
 		},
-		Spec: appsv1.ReplicaSetSpec{
+		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
 			},
@@ -326,8 +465,93 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 				},
 				Spec: podSpec,
 			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxSurge:       new(intstr.FromInt32(rolloutMaxSurge)),
+					MaxUnavailable: new(intstr.FromInt32(rolloutMaxUnavailable)),
+				},
+			},
+			RevisionHistoryLimit: new(revisionHistoryLimit),
 		},
 	}
+}
+
+// useReplacementStrategy makes d replace pods that cannot drain without
+// dropping requests: all new pods start first, krane stops reporting the old
+// pods once the new ones are ready (see routablePods), and Kubernetes deletes
+// the old pods only after preStopDrainSeconds, when frontline no longer routes
+// to them.
+func useReplacementStrategy(d *appsv1.Deployment) {
+	d.Spec.Strategy.RollingUpdate.MaxSurge = new(intstr.FromString(replacementMaxSurge))
+	d.Spec.MinReadySeconds = int32(preStopDrainSeconds)
+}
+
+// hasUndrainedPods reports whether the deployment runs pods whose preStop hook
+// drains for less than preStopDrainSeconds, such as pods from before krane
+// added the drain.
+func (c *Controller) hasUndrainedPods(ctx context.Context, namespace, deploymentID string) (bool, error) {
+	pods, err := c.clientSet.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.New().DeploymentID(deploymentID).ToString(),
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to list pods: %w", err)
+	}
+
+	for i := range pods.Items {
+		pod := &pods.Items[i]
+		if pod.DeletionTimestamp == nil && podDrainSeconds(pod) < preStopDrainSeconds {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// podDrainSeconds returns how long the preStop hook of pod keeps it serving.
+func podDrainSeconds(pod *corev1.Pod) int64 {
+	if len(pod.Spec.Containers) == 0 {
+		return 0
+	}
+
+	lifecycle := pod.Spec.Containers[0].Lifecycle
+	if lifecycle == nil || lifecycle.PreStop == nil {
+		return 0
+	}
+
+	if sleep := lifecycle.PreStop.Sleep; sleep != nil {
+		return sleep.Seconds
+	}
+
+	exec := lifecycle.PreStop.Exec
+	if exec == nil || len(exec.Command) != 3 || exec.Command[0] != "sh" || exec.Command[1] != "-c" {
+		return 0
+	}
+
+	var seconds int64
+	if _, err := fmt.Sscanf(exec.Command[2], "sleep %d;", &seconds); err != nil {
+		return 0
+	}
+
+	return seconds
+}
+
+var signalNamePattern = regexp.MustCompile(`^[A-Z0-9]+$`)
+
+// preStopHandler keeps a terminating pod serving for preStopDrainSeconds.
+//
+// Kubernetes stops containers with SIGTERM, so a custom shutdown signal is sent
+// from the hook through the shell, whose kill builtin works in images without
+// a kill binary. The hook then waits for PID 1 to exit, because the kubelet
+// sends SIGTERM as soon as the hook returns.
+func preStopHandler(shutdownSignal string) *corev1.LifecycleHandler {
+	name := strings.TrimPrefix(shutdownSignal, "SIG")
+	if name == "" || name == "TERM" || !signalNamePattern.MatchString(name) {
+		return &corev1.LifecycleHandler{Sleep: &corev1.SleepAction{Seconds: preStopDrainSeconds}}
+	}
+
+	script := fmt.Sprintf("sleep %d; kill -s %s 1; while kill -0 1 2>/dev/null; do sleep 1; done", preStopDrainSeconds, name)
+	return &corev1.LifecycleHandler{Exec: &corev1.ExecAction{Command: []string{"sh", "-c", script}}}
 }
 
 // buildProbeHandler creates the K8s probe handler based on the healthcheck method.
@@ -367,9 +591,9 @@ func unmarshalHealthcheck(data []byte) *dbtype.Healthcheck {
 }
 
 // ensureHPAExists creates or updates a HorizontalPodAutoscaler that scales the
-// deployment's ReplicaSet using the autoscaling policy from the control plane.
-// The HPA is owned by the ReplicaSet for automatic garbage collection.
-func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) error {
+// workload's Deployment using the autoscaling policy from the control plane.
+// The HPA is owned by the Deployment for automatic garbage collection.
+func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeployment, owner metav1.OwnerReference) error {
 	client := c.clientSet.AutoscalingV2().HorizontalPodAutoscalers(req.GetK8SNamespace())
 
 	policy := req.GetAutoscaling()
@@ -427,13 +651,13 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 			Name:            req.GetK8SName(),
 			Namespace:       req.GetK8SNamespace(),
 			Labels:          deploymentLabels(req),
-			OwnerReferences: []metav1.OwnerReference{replicaSetOwnerRef(rs)},
+			OwnerReferences: []metav1.OwnerReference{owner},
 		},
 		//nolint:exhaustruct
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				APIVersion: "apps/v1",
-				Kind:       "ReplicaSet",
+				Kind:       "Deployment",
 				Name:       req.GetK8SName(),
 			},
 			MinReplicas: new(minReplicas),
@@ -462,12 +686,12 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 // ensurePodDisruptionBudget creates or updates a PodDisruptionBudget that caps
 // voluntary disruptions (Karpenter consolidation, node drains, cluster upgrades)
-// of the deployment's pods. The PDB is owned by the ReplicaSet for automatic
+// of the deployment's pods. The PDB is owned by the Deployment for automatic
 // garbage collection.
-func (c *Controller) ensurePodDisruptionBudget(ctx context.Context, req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) error {
+func (c *Controller) ensurePodDisruptionBudget(ctx context.Context, req *ctrlv1.ApplyDeployment, owner metav1.OwnerReference) error {
 	client := c.clientSet.PolicyV1().PodDisruptionBudgets(req.GetK8SNamespace())
 
-	desired := buildPodDisruptionBudget(req, rs)
+	desired := buildPodDisruptionBudget(req, owner)
 
 	patch, err := json.Marshal(desired)
 	if err != nil {
@@ -480,8 +704,8 @@ func (c *Controller) ensurePodDisruptionBudget(ctx context.Context, req *ctrlv1.
 	return err
 }
 
-// buildPodDisruptionBudget constructs the PDB for a deployment, owned by its
-// ReplicaSet and selecting pods by deployment ID.
+// buildPodDisruptionBudget constructs the PDB for a deployment, owned by
+// owner and selecting pods by deployment ID.
 //
 // maxUnavailable is the absolute integer 1, deliberately not a percentage: a
 // percentage maxUnavailable rounds down, so anything under 100% of a
@@ -492,7 +716,7 @@ func (c *Controller) ensurePodDisruptionBudget(ctx context.Context, req *ctrlv1.
 // through planned node churn. If a multi-replica deployment is already degraded,
 // the PDB can still block voluntary eviction; the untrusted NodePool
 // terminationGracePeriod is the bounded escape hatch for that case.
-func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) *policyv1.PodDisruptionBudget {
+func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, owner metav1.OwnerReference) *policyv1.PodDisruptionBudget {
 	maxUnavailable := intstr.FromInt32(1)
 	alwaysAllow := policyv1.AlwaysAllow
 
@@ -506,7 +730,7 @@ func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet
 			Name:            req.GetK8SName(),
 			Namespace:       req.GetK8SNamespace(),
 			Labels:          deploymentLabels(req),
-			OwnerReferences: []metav1.OwnerReference{replicaSetOwnerRef(rs)},
+			OwnerReferences: []metav1.OwnerReference{owner},
 		},
 		//nolint:exhaustruct
 		Spec: policyv1.PodDisruptionBudgetSpec{
@@ -531,12 +755,12 @@ func deploymentLabels(req *ctrlv1.ApplyDeployment) labels.Labels {
 		ComponentDeployment()
 }
 
-func replicaSetOwnerRef(rs *appsv1.ReplicaSet) metav1.OwnerReference {
+func deploymentOwnerRef(d *appsv1.Deployment) metav1.OwnerReference {
 	return metav1.OwnerReference{
 		APIVersion:         "apps/v1",
-		Kind:               "ReplicaSet",
-		Name:               rs.Name,
-		UID:                rs.UID,
+		Kind:               "Deployment",
+		Name:               d.Name,
+		UID:                d.UID,
 		Controller:         new(true),
 		BlockOwnerDeletion: new(true),
 	}

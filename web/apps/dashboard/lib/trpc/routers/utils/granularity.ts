@@ -38,20 +38,20 @@ export type TimeseriesConfig<TContext extends TimeseriesContext> = {
 };
 
 export const TIMESERIES_GRANULARITIES = {
-  perMinute: { ms: MINUTE_IN_MS, format: "h:mm:ssa" },
-  per5Minutes: { ms: 5 * MINUTE_IN_MS, format: "h:mma" },
-  per15Minutes: { ms: 15 * MINUTE_IN_MS, format: "h:mma" },
-  per30Minutes: { ms: 30 * MINUTE_IN_MS, format: "h:mma" },
-  perHour: { ms: HOUR_IN_MS, format: "MMM d h:mma" },
-  per2Hours: { ms: 2 * HOUR_IN_MS, format: "MMM d h:mma" },
-  per4Hours: { ms: 4 * HOUR_IN_MS, format: "MMM d h:mma" },
-  per6Hours: { ms: 6 * HOUR_IN_MS, format: "MMM d h:mma" },
-  per12Hours: { ms: 12 * HOUR_IN_MS, format: "MMM d h:mma" },
-  perDay: { ms: DAY_IN_MS, format: "MMM d" },
-  per3Days: { ms: 3 * DAY_IN_MS, format: "MMM d" },
-  perWeek: { ms: WEEK_IN_MS, format: "MMM d" },
-  perMonth: { ms: MONTH_IN_MS, format: "MMM yy" },
-  perQuarter: { ms: QUARTER_IN_MS, format: "MMM yy" },
+  perMinute: { ms: MINUTE_IN_MS },
+  per5Minutes: { ms: 5 * MINUTE_IN_MS },
+  per15Minutes: { ms: 15 * MINUTE_IN_MS },
+  per30Minutes: { ms: 30 * MINUTE_IN_MS },
+  perHour: { ms: HOUR_IN_MS },
+  per2Hours: { ms: 2 * HOUR_IN_MS },
+  per4Hours: { ms: 4 * HOUR_IN_MS },
+  per6Hours: { ms: 6 * HOUR_IN_MS },
+  per12Hours: { ms: 12 * HOUR_IN_MS },
+  perDay: { ms: DAY_IN_MS },
+  per3Days: { ms: 3 * DAY_IN_MS },
+  perWeek: { ms: WEEK_IN_MS },
+  perMonth: { ms: MONTH_IN_MS },
+  perQuarter: { ms: QUARTER_IN_MS },
 } as const;
 
 /**

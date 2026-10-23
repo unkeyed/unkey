@@ -62,7 +62,7 @@ The gateway keeps the original `Host` header and adds these:
 
 Callers can't fake these. We remove any `X-Unkey-*` header a client sends before policies run. To get the deployment ID, read the `UNKEY_DEPLOYMENT_ID` environment variable.
 
-The response to the caller includes `X-Unkey-Request-Id`, `X-Unkey-Region`, and `X-Unkey-Frontline-Id`, plus `X-Unkey-Timing` entries for time spent in the gateway. Rate limit headers are added when a rate limit applied.
+The response to the caller includes `X-Unkey-Request-Id`, `X-Unkey-Region`, and `X-Unkey-Frontline-Id`. Rate limit headers are added when a rate limit applied.
 
 ## Use keys from API Management
 

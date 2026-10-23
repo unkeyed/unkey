@@ -16,13 +16,12 @@ export type {
 } from "./types";
 
 // Constants
-export { DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT, BREATHING_SPACE, STATUS_STYLES } from "./constants";
+export { DEFAULT_CONFIG, STATUS_STYLES } from "./constants";
 export type { StatusStyle } from "./constants";
 
 // Hooks
 export { useDataTable } from "./hooks/use-data-table";
 export { useRealtimeData } from "./hooks/use-realtime-data";
-export { useTableHeight } from "./hooks/use-table-height";
 
 // Cell components
 export { CheckboxCell, CheckboxHeaderCell, RowActionSkeleton } from "./components/cells";
@@ -78,8 +77,9 @@ export type { SortableHeaderProps } from "./components/headers";
 export { SkeletonRow } from "./components/rows";
 
 // Footer components
-export { LoadMoreFooter, PaginationFooter } from "./components/footer";
+export { LoadMoreFooter, PaginationControls, PaginationFooter } from "./components/footer";
 export type { LoadMoreFooterComponentProps } from "./components/footer/load-more-footer";
+export type { PaginationControlsProps } from "./components/footer/pagination-controls";
 export type { PaginationFooterProps } from "./components/footer/pagination-footer";
 
 // Utility components

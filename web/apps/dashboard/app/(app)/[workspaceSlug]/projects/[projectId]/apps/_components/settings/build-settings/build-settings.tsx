@@ -1,7 +1,8 @@
 "use client";
 
 import { match } from "@unkey/match";
-import { SettingsGroup, SettingsGroupContent } from "@unkey/ui";
+import { SettingsForm, SettingsGroup, SettingsGroupContent } from "@unkey/ui";
+import { useBuildRecipe } from "../hooks/use-build-recipe";
 import { useBuildSource } from "../hooks/use-build-source";
 import { OCIImage } from "../oci-image";
 import { BuildCommand } from "./build-command-settings";
@@ -24,15 +25,22 @@ export function BuildSettings({ githubReadOnly = false }: { githubReadOnly?: boo
               .with("git", "unknown", () => <GitHub readOnly={githubReadOnly} />)
               .exhaustive()
           : null}
-        {hasRepository ? (
-          <>
-            <RootDirectory />
-            <Dockerfile />
-            <BuildCommand />
-            <WatchPaths />
-          </>
-        ) : null}
+        {hasRepository ? <GitBuildRows /> : null}
       </SettingsGroupContent>
     </SettingsGroup>
+  );
+}
+
+function GitBuildRows() {
+  const { form, formProps } = useBuildRecipe();
+  return (
+    <>
+      <SettingsForm {...formProps}>
+        <RootDirectory form={form} />
+        <Dockerfile form={form} />
+        <BuildCommand form={form} />
+      </SettingsForm>
+      <WatchPaths />
+    </>
   );
 }

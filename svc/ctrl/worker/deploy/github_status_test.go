@@ -12,6 +12,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/internal/services/flags"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -45,7 +46,7 @@ func TestGitHubStatusReportsBuildFailure(t *testing.T) {
 	audit, err := auditlogs.New(auditlogs.Config{DB: database})
 	require.NoError(t, err)
 	workflow, err := deploy.New(deploy.Config{
-		DB: database, Auditlogs: audit, GitHub: github,
+		DB: database, Auditlogs: audit, Flags: flags.NewNoop(), GitHub: github,
 		DashboardURL: "https://app.unkey.com", DefaultDomain: "unkey.app",
 	})
 	require.NoError(t, err)
@@ -79,6 +80,79 @@ func TestGitHubStatusReportsBuildFailure(t *testing.T) {
 	after, err := database.FindDeploymentById(ctx, row.ID)
 	require.NoError(t, err)
 	require.Equal(t, mysqltype.DeploymentsStatusFailed, after.Status)
+}
+
+func TestDeploymentShowsSafeMessagesForUnrecognizedBuildFailures(t *testing.T) {
+	for _, scenario := range []struct {
+		name           string
+		dockerfilePath string
+		tokenError     error
+		fileError      error
+	}{
+		{
+			name:           "repository access denied for Dockerfile build",
+			dockerfilePath: "Dockerfile",
+			tokenError:     fmt.Errorf("status 422: There is at least one repository that does not exist or is not accessible to the parent installation"),
+		},
+		{
+			name:       "repository access denied for automatic build",
+			tokenError: fmt.Errorf("status 422: There is at least one repository that does not exist or is not accessible to the parent installation"),
+		},
+		{
+			name:           "unrecognized token failure",
+			dockerfilePath: "Dockerfile",
+			tokenError:     fmt.Errorf("status 503: GitHub unavailable"),
+		},
+		{
+			name:      "source preparation keeps internal details private",
+			fileError: fmt.Errorf("source checkout unavailable at https://builder.internal?token=%s", uid.New(uid.TestPrefix)),
+		},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+			t.Cleanup(cancel)
+			database, fixture := newDeployFixture(t, ctx)
+			github := &deploymentGitHub{Noop: githubclient.NewNoop(), tokenError: scenario.tokenError, fileError: scenario.fileError}
+			row := fixture.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+				ID:          uid.New(uid.DeploymentPrefix),
+				WorkspaceID: fixture.workspaceID, ProjectID: fixture.projectID,
+				AppID: fixture.appID, EnvironmentID: fixture.environmentID,
+				Status: mysqltype.DeploymentsStatusPending,
+			})
+			audit, err := auditlogs.New(auditlogs.Config{DB: database})
+			require.NoError(t, err)
+			workflow, err := deploy.New(deploy.Config{
+				DB: database, Auditlogs: audit, Flags: flags.NewNoop(), GitHub: github,
+				DashboardURL: "https://app.unkey.com", DefaultDomain: "unkey.app",
+			})
+			require.NoError(t, err)
+			cfg := containers.Restate(t, hydrav1.NewDeployWorkflowServer(workflow))
+			invocation, err := hydrav1.NewDeployWorkflowIngressClient(cfg.IngressClient, row.ID).Submit(ctx, &hydrav1.DeployRequest{
+				DeploymentId: row.ID,
+				Source: &hydrav1.DeployRequest_Git{Git: &hydrav1.GitSource{
+					InstallationId: 12345,
+					Repository:     fixtureRepo,
+					CommitSha:      fixtureCommitSHA,
+					DockerfilePath: scenario.dockerfilePath,
+				}},
+			})
+			require.NoError(t, err)
+			_, err = invocation.Attach(ctx)
+			require.Error(t, err)
+
+			after, err := database.FindDeploymentById(ctx, row.ID)
+			require.NoError(t, err)
+			require.Equal(t, mysqltype.DeploymentsStatusFailed, after.Status)
+			step, err := database.FindDeploymentStepByDeploymentAndStep(ctx, db.FindDeploymentStepByDeploymentAndStepParams{
+				DeploymentID: row.ID,
+				Step:         db.DeploymentStepsStepBuilding,
+			})
+			require.NoError(t, err)
+			require.True(t, step.EndedAt.Valid)
+			require.True(t, step.Error.Valid)
+			require.Equal(t, "An unexpected build error occurred. Contact support with the deployment ID.", step.Error.String)
+		})
+	}
 }
 
 func TestGitHubStatusCommitLifecycle(t *testing.T) {
@@ -169,8 +243,18 @@ type deploymentCommitStatus struct {
 
 type deploymentGitHub struct {
 	*githubclient.Noop
-	mu       sync.Mutex
-	statuses []deploymentCommitStatus
+	mu         sync.Mutex
+	statuses   []deploymentCommitStatus
+	tokenError error
+	fileError  error
+}
+
+func (g *deploymentGitHub) GetFileContents(_ int64, _, _, _ string) ([]byte, bool, error) {
+	return nil, false, g.fileError
+}
+
+func (g *deploymentGitHub) GetScopedInstallationToken(_ int64, _ []string, _ map[string]string) (githubclient.InstallationToken, error) {
+	return githubclient.InstallationToken{}, g.tokenError
 }
 
 func (g *deploymentGitHub) CreateDeployment(_ int64, repo, _, _, _ string, _ bool) (int64, error) {

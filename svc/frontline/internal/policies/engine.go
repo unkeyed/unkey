@@ -25,8 +25,8 @@ import (
 // to upstream services.
 const PrincipalHeader = "X-Unkey-Principal"
 
-// KeyAuthenticator must return a principal on success and Frontline faults on
-// failure. Implementations own authentication response headers and must support
+// KeyAuthenticator must return a principal on success and an error on failure.
+// Implementations own authentication response headers and must support
 // concurrent requests. appID is for telemetry attribution, not authorization.
 type KeyAuthenticator interface {
 	Execute(ctx context.Context, sess *zen.Session, req *http.Request, appID string, cfg *frontlinev1.KeyAuth) (*principal.Principal, error)
@@ -41,6 +41,7 @@ type Config struct {
 
 // Evaluator evaluates policies against incoming requests.
 type Evaluator interface {
+	// Evaluate returns logging settings even when an enforcement policy rejects the request.
 	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID, appID string, mw []*frontlinev1.Policy) (Result, error)
 }
 
@@ -124,15 +125,21 @@ func ParseMiddleware(raw []byte) ([]*frontlinev1.Policy, error) {
 	return cfg.GetPolicies(), nil
 }
 
-// Evaluate processes all policies against the incoming request.
-// Policies are evaluated in order. Disabled policies are skipped.
-// Authentication policies produce a Principal; the first successful auth sets it.
-//
-// Firewall policies short-circuit the request with a Firewall.Denied fault
-// when their match expressions hit and the action is ACTION_DENY. The
-// action enum exists for forward compatibility — additional outcomes will
-// be wired into the dispatch when they're added to the proto.
-func (e *Engine) Evaluate(
+// Evaluate enforces policies in order and returns logging settings even on rejection.
+// Logging and body redaction apply independently of enforcement order.
+func (e *Engine) Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID, appID string, policies []*frontlinev1.Policy) (Result, error) {
+	result, evalErr := e.evaluatePolicies(ctx, sess, req, workspaceID, appID, policies)
+	if err := e.evaluateLogging(ctx, sess, req, policies, &result); err != nil {
+		result.LogRequestBody = false
+		result.LogResponseBody = false
+		if evalErr == nil {
+			evalErr = err
+		}
+	}
+	return result, evalErr
+}
+
+func (e *Engine) evaluatePolicies(
 	ctx context.Context,
 	sess *zen.Session,
 	req *http.Request,
@@ -143,7 +150,7 @@ func (e *Engine) Evaluate(
 	var result Result
 
 	for _, policy := range policies {
-		if !policy.GetEnabled() {
+		if !policy.GetEnabled() || policy.GetLogging() != nil {
 			continue
 		}
 
@@ -210,33 +217,15 @@ func (e *Engine) Evaluate(
 
 		case *frontlinev1.Policy_Openapi:
 			t := time.Now()
-			bodyRedactor, execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
+			_, execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
 			engineEvaluationDuration.WithLabelValues("openapi").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {
 				engineEvaluationsTotal.WithLabelValues("openapi", "rejected").Inc()
 				return result, execErr
 			}
-			if bodyRedactor != nil {
-				result.BodyRedactors = append(result.BodyRedactors, bodyRedactor)
-			}
 
 			engineEvaluationsTotal.WithLabelValues("openapi", "success").Inc()
-
-		case *frontlinev1.Policy_Logging:
-			// Logging is observational, not an enforcement action: a matching
-			// enabled policy opts the request into capturing headers and/or
-			// bodies in the ClickHouse request log. The base row is written
-			// unconditionally by the logging middleware. Multiple matching
-			// policies OR their capture flags. The actual capture and
-			// emission happen in the handler and the ClickHouse logging
-			// middleware.
-			result.LogRequestHeaders = result.LogRequestHeaders || cfg.Logging.GetRequestHeaders()
-			result.LogResponseHeaders = result.LogResponseHeaders || cfg.Logging.GetResponseHeaders()
-			result.LogRequestBody = result.LogRequestBody || cfg.Logging.GetRequestBody()
-			result.LogResponseBody = result.LogResponseBody || cfg.Logging.GetResponseBody()
-			result.LogQuery = result.LogQuery || cfg.Logging.GetQuery()
-			engineEvaluationsTotal.WithLabelValues("logging", "success").Inc()
 
 		default:
 			continue
@@ -244,4 +233,40 @@ func (e *Engine) Evaluate(
 	}
 
 	return result, nil
+}
+
+func (e *Engine) evaluateLogging(ctx context.Context, sess *zen.Session, req *http.Request, policies []*frontlinev1.Policy, result *Result) error {
+	for _, policy := range policies {
+		if !policy.GetEnabled() || (policy.GetLogging() == nil && policy.GetOpenapi() == nil) {
+			continue
+		}
+		matched, err := matchesRequest(req, sess.ClientIP(), policy.GetMatch(), e.regexCache)
+		if err != nil {
+			return err
+		}
+		if !matched {
+			continue
+		}
+
+		switch cfg := policy.GetConfig().(type) {
+		case *frontlinev1.Policy_Logging:
+			result.LogRequestHeaders = result.LogRequestHeaders || cfg.Logging.GetRequestHeaders()
+			result.LogResponseHeaders = result.LogResponseHeaders || cfg.Logging.GetResponseHeaders()
+			result.LogRequestBody = result.LogRequestBody || cfg.Logging.GetRequestBody()
+			result.LogResponseBody = result.LogResponseBody || cfg.Logging.GetResponseBody()
+			result.LogQuery = result.LogQuery || cfg.Logging.GetQuery()
+			engineEvaluationsTotal.WithLabelValues("logging", "success").Inc()
+
+		case *frontlinev1.Policy_Openapi:
+			bodyRedactor, err := e.openapi.BodyRedactor(ctx, cfg.Openapi)
+			if err != nil {
+				return err
+			}
+			if bodyRedactor != nil {
+				result.BodyRedactors = append(result.BodyRedactors, bodyRedactor)
+			}
+		}
+	}
+
+	return nil
 }

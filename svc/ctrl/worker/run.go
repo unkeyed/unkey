@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/email"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -40,6 +41,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -55,8 +57,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
 
+	"github.com/unkeyed/unkey/internal/services/flags"
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
@@ -285,9 +289,16 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create audit log service: %w", err)
 	}
 
+	flagSvc, err := flags.New(flags.Config{DB: database, Clock: cfg.Clock})
+	if err != nil {
+		return fmt.Errorf("failed to create flags service: %w", err)
+	}
+	r.Defer(func() error { flagSvc.Close(); return nil })
+
 	deployWorkflow, err := deploy.New(deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
+		Flags:         flagSvc,
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
 
@@ -350,8 +361,11 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("Build", restate.WithIngressPrivate(true), buildRetryPolicy,
 			restate.WithInactivityTimeout(deploy.BuildKeepAliveWindow)))
 	deploymentSvc, err := deployment.New(deployment.Config{
-		DB:        database,
-		Auditlogs: auditlogSvc,
+		DB:                              database,
+		Auditlogs:                       auditlogSvc,
+		GitHub:                          ghClient,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
+		RestateAdmin:                    restateAdminClient,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deployment service: %w", err)
@@ -364,7 +378,9 @@ func Run(ctx context.Context, cfg Config) error {
 		Handler("ChangeDesiredState", restate.NewObjectHandler(deploymentSvc.ChangeDesiredState, privateHandler)).
 		Handler("ClearScheduledStateChanges", restate.NewObjectHandler(deploymentSvc.ClearScheduledStateChanges, privateHandler)).
 		Handler("StopDeployment", restate.NewObjectHandler(deploymentSvc.StopDeployment)).
-		Handler("WakeDeployment", restate.NewObjectHandler(deploymentSvc.WakeDeployment)))
+		Handler("WakeDeployment", restate.NewObjectHandler(deploymentSvc.WakeDeployment)).
+		Handler("AuthorizeDeployment", restate.NewObjectHandler(deploymentSvc.AuthorizeDeployment)).
+		Handler("CancelDeployment", restate.NewObjectHandler(deploymentSvc.CancelDeployment)))
 
 	// DeployTeardownService stops all of a workspace's running Deploy compute and
 	// confirms it drained. Invoked over Restate ingress by cancel (ARCHIVE) and,
@@ -412,6 +428,24 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHub:                          ghClient,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
+
+	restateSrv.Bind(keyleak.New(keyleak.Config{
+		Members:         workos.New(cfg.WorkOSAPIKey),
+		Email:           email.NewResend(cfg.Email.ResendAPIKey, cfg.Email.From),
+		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
+	}).Definition(
+		restate.WithJournalRetention(time.Hour),
+		restate.WithIdempotencyRetention(24*time.Hour),
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(time.Second),
+			restate.WithMaxRetryInterval(time.Minute),
+			restate.WithRetryIntervalFactor(2),
+			restate.WithMaxRetryAttempts(360),
+			restate.KillOnMaxAttempts(),
+		),
+	).
+		ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
+		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
 
 	projectSvc, err := workerproject.New(workerproject.Config{
 		DB:        database,
@@ -579,8 +613,11 @@ func Run(ctx context.Context, cfg Config) error {
 		// Derived from StripeSecretKey; only tests inject these directly.
 		BillingPusher:  nil,
 		BillingCloser:  nil,
+		AlertAdmins:    nil,
+		AlertEmail:     nil,
 		WorkOSAPIKey:   cfg.WorkOSAPIKey,
 		ResendAPIKey:   cfg.Email.ResendAPIKey,
+		EmailFrom:      cfg.Email.From,
 		BillingBaseURL: cfg.DashboardURL,
 		Heartbeats: cron.Heartbeats{
 			BuildLimitSync:     cronHeartbeat(cfg.Heartbeat.BuildLimitSyncURL),
@@ -740,6 +777,8 @@ func Run(ctx context.Context, cfg Config) error {
 		// ~1440 dead invocations/day.
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour), cronAuditLogExportRetry).
 		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
+		ConfigureHandler("EnforceFreeTier", cronQuotaCheckRetry).
+		ConfigureHandler("ThrottleFreeTierWorkspace", cronQuotaCheckRetry).
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).

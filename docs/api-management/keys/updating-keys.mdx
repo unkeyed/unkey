@@ -40,7 +40,7 @@ The root key needs `api.*.update_key` or `api.<api_id>.update_key`. Without it y
 </ParamField>
 
 <ParamField body="externalId" type="string | null">
-  1 to 255 characters matching `^[a-zA-Z0-9_.-]+$`. Moves the key to the identity with that `externalId`, creating the identity in the keyspace's project if it doesn't exist yet. An existing identity in a different project is rejected with HTTP 404 [`err:unkey:data:identity_not_found`](/errors/unkey/data/identity_not_found). `null` unlinks the key from its identity. See [Identities](/api-management/identities/overview).
+  1 to 255 characters matching `^[a-zA-Z0-9_.-]+$`. Moves the key to the identity with that `externalId`, creating the identity in the keyspace's <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> if it doesn't exist yet. An existing identity in a different project is rejected with HTTP 404 [`err:unkey:data:identity_not_found`](/errors/unkey/data/identity_not_found). `null` unlinks the key from its identity. See [Identities](/api-management/identities/overview).
 </ParamField>
 
 <ParamField body="meta" type="object | null">

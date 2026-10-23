@@ -6,8 +6,8 @@ import {
   IconChevronExpandYOutline12,
   IconMagnifierOutline12,
 } from "@unkey/icons";
-import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
+import { type VariantProps, cva } from "../../lib/cva";
 import { popupTransition } from "../../lib/popup";
 import { cn } from "../../lib/utils";
 import {
@@ -260,12 +260,16 @@ export type ComboboxOption = {
   disabled?: boolean;
 };
 
+const ACTION_VALUE = "__combobox-action__";
+
 type DocumentedComboboxProps = DocumentedComboboxTriggerProps & {
   options: ComboboxOption[];
   value: string;
   onSelect: (value: string) => void;
   /** Fires on every keystroke in the search field. */
   onChange?: (event: React.FormEvent<HTMLInputElement>) => void;
+  /** Fires whenever the search text changes, including when it clears on select or close. */
+  onQueryChange?: (query: string) => void;
   placeholder?: React.ReactNode;
   searchPlaceholder?: string;
   emptyMessage?: React.ReactNode;
@@ -276,8 +280,17 @@ type DocumentedComboboxProps = DocumentedComboboxTriggerProps & {
   wrapperClassName?: string;
   /** Offers the typed query as an option when it matches none of `options`. */
   creatable?: boolean;
+  /** Where the typed-query option sits. "last" lets Enter pick a partial match first. */
+  createPosition?: "first" | "last";
   /** Class name applied to the popup container. */
   popoverClassName?: string;
+  /** Pinned last row that runs `onSelect` instead of choosing a value. Ignores the search query. */
+  action?: {
+    label: React.ReactNode;
+    icon?: React.ReactNode;
+    disabled?: boolean;
+    onSelect: () => void;
+  };
 };
 
 type ComboboxProps = DocumentedComboboxProps &
@@ -291,6 +304,7 @@ function Combobox({
   value,
   onSelect,
   onChange,
+  onQueryChange,
   placeholder,
   searchPlaceholder = "Search...",
   emptyMessage = "No results found.",
@@ -301,7 +315,9 @@ function Combobox({
   className,
   variant = "default",
   creatable = false,
+  createPosition = "first",
   popoverClassName,
+  action,
   ...triggerProps
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
@@ -323,7 +339,9 @@ function Combobox({
     const loweredQuery = trimmedQuery.toLowerCase();
     if (
       effectiveOptions.some(
-        (option) => (option.searchValue || option.value).toLowerCase() === loweredQuery,
+        (option) =>
+          option.value === trimmedQuery ||
+          (option.searchValue || option.value).toLowerCase() === loweredQuery,
       )
     ) {
       return undefined;
@@ -335,22 +353,33 @@ function Combobox({
     };
   }, [creatable, trimmedQuery, effectiveOptions]);
 
-  const listOptions = React.useMemo(
-    () => (createOption ? [createOption, ...effectiveOptions] : effectiveOptions),
-    [createOption, effectiveOptions],
-  );
+  const listOptions = React.useMemo(() => {
+    if (!createOption) {
+      return effectiveOptions;
+    }
+    return createPosition === "last"
+      ? [...effectiveOptions, createOption]
+      : [createOption, ...effectiveOptions];
+  }, [createOption, createPosition, effectiveOptions]);
 
   const optionsByValue = React.useMemo(
     () => new Map(listOptions.map((option) => [option.value, option])),
     [listOptions],
   );
 
-  const itemValues = React.useMemo(() => listOptions.map((option) => option.value), [listOptions]);
+  const hasAction = action !== undefined;
+  const itemValues = React.useMemo(() => {
+    const values = listOptions.map((option) => option.value);
+    return hasAction ? [...values, ACTION_VALUE] : values;
+  }, [listOptions, hasAction]);
 
   const selectedOption = effectiveOptions.find((option) => option.value === value);
 
   const filterOption = React.useCallback(
     (itemValue: string, itemQuery: string) => {
+      if (itemValue === ACTION_VALUE) {
+        return true;
+      }
       const option = optionsByValue.get(itemValue);
       if (!option) {
         return false;
@@ -361,21 +390,33 @@ function Combobox({
     [optionsByValue],
   );
 
+  const hasMatches =
+    hasAction &&
+    listOptions.some((option) => !option.disabled && filterOption(option.value, query));
+
   return (
     <ComboboxRoot<string>
       items={itemValues}
       filter={filterOption}
-      autoHighlight
+      // A typo must not leave Enter on the action row.
+      autoHighlight={!hasAction || hasMatches}
       // Not `selectedOption?.value || null`: an option whose value is the empty
       // string still has to resolve to itself.
       value={selectedOption ? selectedOption.value : null}
       onValueChange={(next) => {
+        if (next === ACTION_VALUE) {
+          action?.onSelect();
+          return;
+        }
         if (next !== null) {
           onSelect(next);
         }
       }}
       inputValue={query}
-      onInputValueChange={setQuery}
+      onInputValueChange={(next) => {
+        setQuery(next);
+        onQueryChange?.(next);
+      }}
       open={open}
       onOpenChange={setOpen}
     >
@@ -407,9 +448,32 @@ function Combobox({
         <div className="p-1">
           <ComboboxInput placeholder={searchPlaceholder} onInput={onChange} />
         </div>
-        <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
+        {action ? (
+          <ComboboxStatus className="py-6 text-center text-sm text-grayA-9 empty:hidden">
+            {hasMatches ? null : emptyMessage}
+          </ComboboxStatus>
+        ) : (
+          <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
+        )}
         <ComboboxList>
           {(itemValue: string) => {
+            if (itemValue === ACTION_VALUE && action) {
+              return (
+                <React.Fragment key={ACTION_VALUE}>
+                  {hasMatches ? <div aria-hidden className="-mx-1 my-1 h-px bg-grayA-4" /> : null}
+                  <ComboboxItem
+                    value={ACTION_VALUE}
+                    disabled={action.disabled}
+                    className="text-gray-11"
+                  >
+                    {action.icon ? (
+                      <span className="flex shrink-0 items-center">{action.icon}</span>
+                    ) : null}
+                    <span className="min-w-0 flex-1 truncate">{action.label}</span>
+                  </ComboboxItem>
+                </React.Fragment>
+              );
+            }
             const option = optionsByValue.get(itemValue);
             if (!option) {
               return null;

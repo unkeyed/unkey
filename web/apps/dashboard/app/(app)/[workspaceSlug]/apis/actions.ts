@@ -6,7 +6,7 @@
 // Next.js registers every async export as a publicly callable Server Action
 // whose action id is a deterministic hash of the file path + export name.
 // Because the workspaceId is taken straight from a function parameter, an
-// authenticated user could compute the action id from this open-source repo
+// authenticated user could compute the action id from this source-available repo
 // and POST any other workspace's id to leak that workspace's API list and
 // key counts (a cross-tenant info-disclosure).
 import { and, count, db, eq, inArray, isNull, schema, sql } from "@/lib/db";

@@ -3,7 +3,7 @@
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formSaveState } from "@unkey/ui";
-import type { BaseSyntheticEvent } from "react";
+import { type BaseSyntheticEvent, useEffect, useRef } from "react";
 import { type FieldValues, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../environment-provider";
@@ -12,15 +12,23 @@ export function useSavableForm<TValues extends FieldValues>({
   schema,
   values,
   save,
-  blockedReason,
 }: {
   schema: z.ZodType<TValues, TValues>;
   values: TValues;
   save: (values: TValues) => Promise<unknown>;
-  blockedReason?: string;
 }) {
   const form = useForm<TValues>({ resolver: zodResolver(schema), mode: "onChange", values });
   const { isSubmitting, isValid, isDirty } = form.formState;
+  const stored = useRef(values);
+  useEffect(() => {
+    stored.current = values;
+  });
+
+  const valuesKey = JSON.stringify(values);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: valuesKey is the trigger; stored values can break a rule, so show it before the first edit
+  useEffect(() => {
+    void form.trigger();
+  }, [form, valuesKey]);
 
   const submit = async (event?: BaseSyntheticEvent): Promise<boolean> => {
     let saved = false;
@@ -30,6 +38,10 @@ export function useSavableForm<TValues extends FieldValues>({
         () => false,
       );
     })(event);
+    // A save that stores nothing new leaves `values` unchanged, so RHF never resets on its own.
+    if (saved) {
+      form.reset(stored.current);
+    }
     return saved;
   };
 
@@ -38,26 +50,25 @@ export function useSavableForm<TValues extends FieldValues>({
     submit,
     formProps: {
       dirty: isDirty,
-      saveState: formSaveState({ isSubmitting, isValid, isDirty, blockedReason }),
+      saveState: formSaveState({ isSubmitting, isValid, isDirty }),
       onSubmit: submit,
     },
   };
 }
 
 export function useSettingForm<TValues extends FieldValues>({
+  schema,
   read,
   write,
-  ...options
 }: {
   schema: z.ZodType<TValues, TValues>;
   read: (settings: EnvironmentSettings) => TValues;
   write: (draft: EnvironmentSettings, values: TValues, saved: TValues) => void;
-  blockedReason?: string;
 }) {
   const context = useEnvironmentSettings();
   const saved = read(context.settings);
   const form = useSavableForm({
-    ...options,
+    schema,
     values: saved,
     save: (submitted) =>
       context.update((draft) => write(draft, submitted, saved)).isPersisted.promise,
@@ -71,7 +82,6 @@ type FieldValuesOf<K extends keyof EnvironmentSettings> = Pick<EnvironmentSettin
 export function useSettingField<K extends keyof EnvironmentSettings>(
   key: K,
   field: z.ZodType<EnvironmentSettings[K], EnvironmentSettings[K]>,
-  options: { blockedReason?: string } = {},
 ) {
   return useSettingForm<FieldValuesOf<K>>({
     // A computed key widens to a string index, so the one-key shape is asserted once here.
@@ -80,6 +90,5 @@ export function useSettingField<K extends keyof EnvironmentSettings>(
     write: (draft, values) => {
       draft[key] = values[key];
     },
-    ...options,
   });
 }

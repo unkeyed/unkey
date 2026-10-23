@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -121,4 +122,86 @@ func TestWrapClickHouseError_ContextCancellation(t *testing.T) {
 		require.Equal(t, codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(), code)
 		require.ErrorIs(t, err, contextErr)
 	}
+}
+
+// TestWrapClickHouseError_InfrastructureFailures guarantees transport,
+// coordination, and storage failures reach the caller as internal errors
+// instead of a bad request blamed on the caller's query.
+func TestWrapClickHouseError_InfrastructureFailures(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{
+			name: "dial refused",
+			err:  errors.New("clickhouse: failed to dial: dial tcp 10.0.0.1:9440: connect: connection refused"),
+		},
+		{
+			name: "acquire connection timeout",
+			err:  errors.New("clickhouse: acquire conn timeout. you can increase the number of max open conn or the dial timeout"),
+		},
+		{
+			name: "connection closed",
+			err:  errors.New("clickhouse: connection is closed"),
+		},
+		{
+			name: "network error exception",
+			err:  &ch.Exception{Code: 210, Name: "DB::NetException", Message: "Connection reset by peer"},
+		},
+		{
+			name: "socket timeout exception",
+			err:  &ch.Exception{Code: 209, Name: "DB::NetException", Message: "Timeout exceeded while reading from socket (peer: clickhouse:9440)"},
+		},
+		{
+			name: "keeper exception",
+			err:  &ch.Exception{Code: 999, Name: "DB::Exception", Message: "KeeperErrorCode = ConnectionLoss for /clickhouse/tables/replicated"},
+		},
+		{
+			name: "all connection tries failed",
+			err:  &ch.Exception{Code: 279, Name: "DB::Exception", Message: "All connection tries failed while inserting to shard"},
+		},
+		{
+			name: "s3 error",
+			err:  &ch.Exception{Code: 499, Name: "DB::Exception", Message: "S3 request failed: Connection timed out"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wrapped := WrapClickHouseError(tt.err)
+			code, ok := fault.GetCode(wrapped)
+			require.False(t, ok, "infrastructure failures must not carry a user error code, got %q", code)
+			require.ErrorIs(t, wrapped, tt.err)
+		})
+	}
+}
+
+// TestWrapClickHouseError_UserQueryError guarantees a query error the parser did
+// not catch is still reported as an invalid analytics query.
+func TestWrapClickHouseError_UserQueryError(t *testing.T) {
+	err := &ch.Exception{Code: 47, Name: "DB::Exception", Message: "Unknown expression identifier 'external_idd' in scope SELECT external_id"}
+
+	wrapped := WrapClickHouseError(err)
+	code, ok := fault.GetCode(wrapped)
+	require.True(t, ok)
+	require.Equal(t, codes.User.BadRequest.InvalidAnalyticsQuery.URN(), code)
+	require.ErrorIs(t, wrapped, err)
+}
+
+func TestWrapClickHouseError_UnsupportedResultType(t *testing.T) {
+	interval := new(column.Interval)
+	conversionErr := interval.ScanRow(new(ch.Dynamic), 0)
+	require.Error(t, conversionErr)
+	err := fault.Wrap(
+		&ch.OpError{Op: "Scan", ColumnName: "x", Err: conversionErr},
+		fault.Public("Failed to read query results"),
+	)
+
+	wrapped := WrapClickHouseError(err)
+	code, ok := fault.GetCode(wrapped)
+	require.True(t, ok)
+	require.Equal(t, codes.User.BadRequest.InvalidAnalyticsQuery.URN(), code)
+	require.Contains(t, fault.UserFacingMessage(wrapped), "Invalid analytics query")
+	require.NotContains(t, fault.UserFacingMessage(wrapped), "Interval")
+	require.ErrorIs(t, wrapped, err)
 }

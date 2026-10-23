@@ -21,7 +21,7 @@ func TestService_CachesMetadataAndReturnsIndependentCopies(t *testing.T) {
 		Slug: flags.HelloWorldSlug, Description: "Original description", DefaultEnabled: true,
 		AllowOptIn: false, AllowOptOut: true,
 	}))
-	setOverride(t, database, workspaceID, false)
+	setOverride(t, database, workspaceID, flags.HelloWorldSlug, false)
 	values, err := service.Values(t.Context(), workspaceID)
 	require.NoError(t, err)
 	want := map[string]flags.Flag{flags.HelloWorldSlug: {
@@ -63,9 +63,9 @@ func TestService_Precedence(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			workspaceID := uid.New(uid.WorkspacePrefix)
-			upsertHelloWorld(t, database, tt.defaultValue)
+			upsertFlag(t, database, flags.HelloWorldSlug, tt.defaultValue)
 			if tt.override.Valid {
-				setOverride(t, database, workspaceID, tt.override.Bool)
+				setOverride(t, database, workspaceID, flags.HelloWorldSlug, tt.override.Bool)
 			}
 			require.Equal(t, tt.want, service.IsHelloWorldEnabled(ctx, workspaceID))
 			require.Equal(t, tt.defaultValue, service.IsHelloWorldEnabled(ctx, uid.New(uid.WorkspacePrefix)))
@@ -86,7 +86,7 @@ func TestService_Precedence(t *testing.T) {
 func TestService_MissingDefinitionUsesCodeDefault(t *testing.T) {
 	database, service, _ := newService(t)
 	workspaceID := uid.New(uid.WorkspacePrefix)
-	setOverride(t, database, workspaceID, true)
+	setOverride(t, database, workspaceID, flags.HelloWorldSlug, true)
 	require.False(t, service.IsHelloWorldEnabled(t.Context(), workspaceID))
 }
 
@@ -97,10 +97,10 @@ func TestService_RefreshesOverridesAndRestoresInheritance(t *testing.T) {
 	database, service, testClock := newService(t)
 	ctx := t.Context()
 	workspaceID := uid.New(uid.WorkspacePrefix)
-	upsertHelloWorld(t, database, true)
+	upsertFlag(t, database, flags.HelloWorldSlug, true)
 	require.True(t, service.IsHelloWorldEnabled(ctx, workspaceID))
 
-	setOverride(t, database, workspaceID, false)
+	setOverride(t, database, workspaceID, flags.HelloWorldSlug, false)
 	testClock.Tick(9 * time.Second)
 	require.True(t, service.IsHelloWorldEnabled(ctx, workspaceID))
 	testClock.Tick(time.Second)
@@ -122,7 +122,7 @@ func TestService_LoadFailureDoesNotCacheFallback(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	workspaceID := uid.New(uid.WorkspacePrefix)
-	upsertHelloWorld(t, database, true)
+	upsertFlag(t, database, flags.HelloWorldSlug, true)
 
 	require.False(t, service.IsHelloWorldEnabled(ctx, workspaceID))
 	require.True(t, service.IsHelloWorldEnabled(t.Context(), workspaceID))
@@ -135,7 +135,7 @@ func TestService_ExpiresDuringDatabaseOutage(t *testing.T) {
 	database, service, testClock := newService(t)
 	ctx := t.Context()
 	workspaceID := uid.New(uid.WorkspacePrefix)
-	upsertHelloWorld(t, database, true)
+	upsertFlag(t, database, flags.HelloWorldSlug, true)
 	require.True(t, service.IsHelloWorldEnabled(ctx, workspaceID))
 	require.NoError(t, database.Close())
 
@@ -151,6 +151,45 @@ func TestNoop_UsesCodeDefaultWithoutDatabase(t *testing.T) {
 	service := flags.NewNoop()
 	t.Cleanup(service.Close)
 	require.False(t, service.IsHelloWorldEnabled(t.Context(), uid.New(uid.WorkspacePrefix)))
+}
+
+// TestService_PrivateNetworkingIsOffUnlessTheDatabaseEnablesIt guarantees that
+// private networking is rolled out only through the private_network_enable
+// definition: without it, even an override row leaves the workspace disabled.
+func TestService_PrivateNetworkingIsOffUnlessTheDatabaseEnablesIt(t *testing.T) {
+	database, service, _ := newService(t)
+	ctx := t.Context()
+	const slug = "private_network_enable"
+
+	orphaned := uid.New(uid.WorkspacePrefix)
+	setOverride(t, database, orphaned, slug, true)
+	require.False(t, service.IsPrivateNetworkingEnabled(ctx, orphaned))
+
+	upsertFlag(t, database, slug, false)
+	enabled := uid.New(uid.WorkspacePrefix)
+	setOverride(t, database, enabled, slug, true)
+	require.True(t, service.IsPrivateNetworkingEnabled(ctx, enabled))
+	require.False(t, service.IsPrivateNetworkingEnabled(ctx, uid.New(uid.WorkspacePrefix)))
+}
+
+// TestService_GlobalCounterRatelimitIsOffUnlessTheDatabaseEnablesIt guarantees
+// that counting through the global counter is rolled out only through the
+// ratelimit_global_counter definition and a per-workspace choice: without the
+// definition even an override row leaves the workspace on the regional counters.
+func TestService_GlobalCounterRatelimitIsOffUnlessTheDatabaseEnablesIt(t *testing.T) {
+	database, service, _ := newService(t)
+	ctx := t.Context()
+	const slug = "ratelimit_global_counter"
+
+	orphaned := uid.New(uid.WorkspacePrefix)
+	setOverride(t, database, orphaned, slug, true)
+	require.False(t, service.IsRatelimitGlobalCounterEnabled(ctx, orphaned))
+
+	upsertFlag(t, database, slug, false)
+	enabled := uid.New(uid.WorkspacePrefix)
+	setOverride(t, database, enabled, slug, true)
+	require.True(t, service.IsRatelimitGlobalCounterEnabled(ctx, enabled))
+	require.False(t, service.IsRatelimitGlobalCounterEnabled(ctx, uid.New(uid.WorkspacePrefix)))
 }
 
 type helloWorldService interface {
@@ -170,10 +209,10 @@ func newService(t *testing.T) (db.Database, helloWorldService, *clock.TestClock)
 	return database, service, testClock
 }
 
-func upsertHelloWorld(t *testing.T, database db.Database, defaultValue bool) {
+func upsertFlag(t *testing.T, database db.Database, slug string, defaultValue bool) {
 	t.Helper()
 	require.NoError(t, db.Query.UpsertFlag(t.Context(), database.RW(), db.UpsertFlagParams{
-		Slug:           flags.HelloWorldSlug,
+		Slug:           slug,
 		Description:    t.Name(),
 		DefaultEnabled: defaultValue,
 		AllowOptIn:     false,
@@ -181,11 +220,11 @@ func upsertHelloWorld(t *testing.T, database db.Database, defaultValue bool) {
 	}))
 }
 
-func setOverride(t *testing.T, database db.Database, workspaceID string, value bool) {
+func setOverride(t *testing.T, database db.Database, workspaceID, slug string, value bool) {
 	t.Helper()
 	require.NoError(t, db.Query.UpsertWorkspaceFlagOverride(t.Context(), database.RW(), db.UpsertWorkspaceFlagOverrideParams{
 		WorkspaceID: workspaceID,
-		FlagSlug:    flags.HelloWorldSlug,
+		FlagSlug:    slug,
 		Enabled:     value,
 	}))
 }

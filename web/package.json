@@ -15,17 +15,17 @@
     "migrate": "pnpm turbo run migrate"
   },
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0",
+  "license": "FSL-1.1-ALv2",
   "packageManager": "pnpm@11.28.5",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@types/node": "22.14.0",
+    "@types/node": "24.19.2",
     "@vitest/ui": "5.0.1",
     "turbo": "2.4.3",
     "typescript": "5.7.3",
     "vitest": "5.0.1"
   },
   "engines": {
-    "node": ">=22.11"
+    "node": ">=24.22.1 <25"
   }
 }

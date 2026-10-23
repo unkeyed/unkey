@@ -1,12 +1,99 @@
 package github
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 )
+
+func TestGetInstallationRepoMembership(t *testing.T) {
+	member := ghRepoResponse{ID: 42, FullName: "Acme/App", DefaultBranch: "develop", Private: true}
+	public := ghRepoResponse{ID: 43, FullName: "other/app", DefaultBranch: "main", Private: false}
+	pageFull := make([]ghRepoResponse, 100)
+	for i := range pageFull {
+		pageFull[i] = public
+	}
+	tests := []struct {
+		name      string
+		repo      string
+		pages     [][]ghRepoResponse
+		status    int
+		malformed bool
+		transport bool
+		want      *RepoInfo
+		wantErr   bool
+	}{
+		{name: "public nonmember is not authorized by public metadata", repo: public.FullName, pages: [][]ghRepoResponse{{member}}},
+		{name: "same bare name under another owner is not a match", repo: member.FullName, pages: [][]ghRepoResponse{{public}}},
+		{name: "private member beyond first page matches case insensitively", repo: "acme/app", pages: [][]ghRepoResponse{pageFull, {member}}, want: &RepoInfo{ID: member.ID, FullName: member.FullName, DefaultBranch: member.DefaultBranch, Private: true}},
+		{name: "public member retains canonical metadata", repo: "OTHER/APP", pages: [][]ghRepoResponse{{public}}, want: &RepoInfo{ID: public.ID, FullName: public.FullName, DefaultBranch: public.DefaultBranch, Private: false}},
+		{name: "absence after full page", repo: member.FullName, pages: [][]ghRepoResponse{pageFull, {}}},
+		{name: "rate limit is an error", repo: member.FullName, status: http.StatusForbidden, wantErr: true},
+		{name: "upstream failure is an error", repo: member.FullName, status: http.StatusBadGateway, wantErr: true},
+		{name: "installation endpoint not found is an error", repo: member.FullName, status: http.StatusNotFound, wantErr: true},
+		{name: "malformed response is an error", repo: member.FullName, malformed: true, wantErr: true},
+		{name: "transport failure is an error", repo: member.FullName, transport: true, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tokens, err := cache.New(cache.Config[int64, InstallationToken]{
+				Fresh: time.Hour, Stale: time.Hour, MaxSize: 100, Resource: "test_github_token", Clock: clock.New(),
+			})
+			require.NoError(t, err)
+			t.Cleanup(tokens.Close)
+			const installationID int64 = 123
+			tokens.Set(t.Context(), installationID, InstallationToken{Token: "installation-token"})
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/installation/repositories" {
+					if err := json.NewEncoder(w).Encode(public); err != nil {
+						t.Error(err)
+					}
+					return
+				}
+				if tt.status != 0 {
+					w.WriteHeader(tt.status)
+					return
+				}
+				if tt.malformed {
+					if _, err := w.Write([]byte("{")); err != nil {
+						t.Error(err)
+					}
+					return
+				}
+				page, err := strconv.Atoi(r.URL.Query().Get("page"))
+				if err != nil || page < 1 || page > len(tt.pages) {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				response := ghInstallationReposResponse{Repositories: tt.pages[page-1]}
+				if err := json.NewEncoder(w).Encode(response); err != nil {
+					t.Error(err)
+				}
+			}))
+			t.Cleanup(server.Close)
+			if tt.transport {
+				server.Close()
+			}
+			client := &Client{baseURL: server.URL, httpClient: server.Client(), tokenCache: tokens}
+			info, err := client.GetInstallationRepo(installationID, tt.repo)
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Nil(t, info)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.want, info)
+			}
+		})
+	}
+}
 
 func TestResolveCommitAuthor(t *testing.T) {
 	tests := []struct {
@@ -137,6 +224,44 @@ func TestProbeRepoVisibility(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, tt.wantPublic, public)
+		})
+	}
+}
+
+// TestGetRawFile pins that a missing file is not an error: most repositories
+// have no .gitmodules, and treating 404 as a failure would break their builds.
+func TestGetRawFile(t *testing.T) {
+	tests := []struct {
+		name      string
+		status    int
+		body      string
+		wantFound bool
+		wantErr   bool
+	}{
+		{name: "200 returns the body", status: http.StatusOK, body: "[submodule \"lib\"]\n", wantFound: true},
+		{name: "404 means not found", status: http.StatusNotFound, body: "{}", wantFound: false},
+		{name: "403 is an error", status: http.StatusForbidden, body: "{}", wantErr: true},
+		{name: "body over the limit is an error", status: http.StatusOK, body: strings.Repeat("a", maxFileContentBytes+1), wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.status)
+				_, _ = w.Write([]byte(tt.body))
+			}))
+			defer srv.Close()
+
+			content, found, err := getRawFile(srv.Client(), srv.URL, nil)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantFound, found)
+			if tt.wantFound {
+				require.Equal(t, tt.body, string(content))
+			}
 		})
 	}
 }

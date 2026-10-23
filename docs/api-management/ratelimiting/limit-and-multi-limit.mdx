@@ -129,6 +129,8 @@ Every check is recorded in rate limit analytics and writes a `ratelimit.limit` a
 
 Send an array of 1 to 100 objects with the same fields as `ratelimit.limit`. Use it when one action must pass several limits, for example a per-user and a per-organization limit, or a request count and a token budget.
 
+Each check must have a different combination of namespace, identifier and duration. A repeated combination returns a 400 error with `invalid_input` before any namespace is created.
+
 ```bash
 curl -X POST https://api.unkey.com/v2/ratelimit.multiLimit \
   -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
@@ -173,4 +175,5 @@ Nothing was counted, so `remaining` on the passing checks doesn't include this r
 - **Pick the window for the job.** Short windows, such as 20 per 10 seconds, stop bursts. Longer windows, such as 1,000 per hour, work as quotas. Windows of a minute or more are more accurate across regions.
 - **Use `cost` for expensive operations** instead of a second namespace.
 - **Keep identifiers stable.** An identifier with a timestamp or request ID in it is never seen twice, so it limits nothing.
+- **Send plan limits per call.** To raise limits when a user upgrades, send the new `limit` with the same identifier and `duration`. Usage already counted in the window carries over. See [Change a limit mid-window](/api-management/ratelimiting/how-it-works#change-a-limit-mid-window).
 - **Use an [override](/api-management/ratelimiting/overrides)** when one customer needs a different number, instead of a code path.

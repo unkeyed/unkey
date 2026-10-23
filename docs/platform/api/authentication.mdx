@@ -47,6 +47,6 @@ Treat a root key like a database password:
 
 - Create one per service with only the permissions that service needs. A leaked key then does less damage and is easy to replace.
 - Never put a root key in client-side code, a mobile app, or a public repository.
-- If one leaks, rotate or delete it under **Settings > Root Keys**. See [Root keys](/platform/root-keys/overview).
+- If one leaks, rotate or delete it under **Root Keys** in the dashboard sidebar. See [Root keys](/platform/root-keys/overview).
 
 Root keys are for managing Unkey. They aren't the API keys you issue to your own users, which you check with `keys.verifyKey`. See [Verifying keys](/api-management/keys/verifying-keys).

@@ -10,6 +10,8 @@
 -- addressed as projects/{project_id}/apps/{app_id}: a caller that arrived with
 -- an app id alone would otherwise need a second read to say anything about the
 -- app it just proved it owns.
-SELECT id, project_id FROM apps
-WHERE id = sqlc.arg('id')
-  AND workspace_id = sqlc.arg('workspace_id');
+SELECT apps.id, apps.project_id FROM apps
+WHERE apps.id = sqlc.arg('id')
+  AND apps.deleted_at IS NULL
+  AND EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id AND p.deleted_at IS NULL)
+  AND apps.workspace_id = sqlc.arg('workspace_id');

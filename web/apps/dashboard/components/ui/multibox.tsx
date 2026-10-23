@@ -2,7 +2,7 @@
 
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
 import { IconCheckOutline12, IconChevronExpandYOutline12, IconXmarkOutline12 } from "@unkey/icons";
-import { type VariantProps, cva } from "class-variance-authority";
+import { type VariantProps, cva } from "@unkey/ui";
 import { cn } from "cn";
 import * as React from "react";
 

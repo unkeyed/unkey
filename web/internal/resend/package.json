@@ -6,14 +6,14 @@
   "types": "./src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0",
+  "license": "FSL-1.1-ALv2",
   "scripts": {
     "dev": "email dev",
     "test": "vitest run",
     "sync-templates": "tsx ./scripts/sync-templates.tsx"
   },
   "devDependencies": {
-    "@types/node": "20.14.9",
+    "@types/node": "24.19.2",
     "@types/react": "19.2.4",
     "@types/react-dom": "19.2.3",
     "@unkey/tsconfig": "workspace:^",

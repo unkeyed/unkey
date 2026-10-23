@@ -1,6 +1,6 @@
 module github.com/unkeyed/unkey
 
-go 1.27.1
+go 1.27.3
 
 // Yaml parsing errors
 replace github.com/dprotaso/go-yit => github.com/dprotaso/go-yit v0.0.0-20191028211022-135eb7262960
@@ -30,7 +30,7 @@ tool (
 
 require (
 	buf.build/gen/go/depot/api/connectrpc/go v1.19.1-20250915125527-3af9e416de91.2
-	buf.build/gen/go/depot/api/protocolbuffers/go v1.36.11-20250915125527-3af9e416de91.1
+	buf.build/gen/go/depot/api/protocolbuffers/go v1.36.12-20261019144514-21d9da72374f.2
 	connectrpc.com/connect v1.19.1
 	github.com/AfterShip/clickhouse-sql-parser v0.4.18
 	github.com/BurntSushi/toml v1.6.0
@@ -95,7 +95,7 @@ require (
 	golang.org/x/term v0.45.0
 	golang.org/x/text v0.41.0
 	google.golang.org/grpc v1.78.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.35.3
 	k8s.io/apimachinery v0.35.3

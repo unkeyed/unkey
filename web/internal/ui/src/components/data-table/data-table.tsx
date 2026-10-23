@@ -11,16 +11,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { useIsMobile } from "../../hooks/use-mobile";
 import { cn } from "../../lib/utils";
 import { LoadMoreFooter } from "./components/footer/load-more-footer";
 import { SkeletonRow } from "./components/rows/skeleton-row";
 import { DataTableEmptyState } from "./components/utils/empty-state";
 import { RealtimeSeparator } from "./components/utils/realtime-separator";
-import { DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT } from "./constants/constants";
+import { DEFAULT_CONFIG } from "./constants/constants";
 import { useDataTable } from "./hooks/use-data-table";
 import { useRealtimeData } from "./hooks/use-realtime-data";
-import { useTableHeight } from "./hooks/use-table-height";
 import type { DataTableProps } from "./types";
 import { calculateColumnWidth } from "./utils/column-width";
 
@@ -32,12 +30,9 @@ export type DataTableRef = {
 function StickyHeaderUnderline({ colSpan, hasPadding }: { colSpan: number; hasPadding: boolean }) {
   return (
     <tr>
-      <th colSpan={colSpan} className="p-0">
+      <th colSpan={colSpan} className="relative p-0">
         <div
-          className={cn(
-            "absolute inset-y-0 -z-10 border-b bg-table-header",
-            hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-          )}
+          className={cn("absolute bottom-0 border-b", hasPadding ? "inset-x-[-8px]" : "inset-x-0")}
         />
       </th>
     </tr>
@@ -67,7 +62,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
     loadMoreFooterProps,
     rowClassName,
     selectedClassName,
-    fixedHeight: fixedHeightProp,
+    fixedHeight,
     enableKeyboardNav = true,
     enableSorting = true,
     enableRowSelection = false,
@@ -86,13 +81,6 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
 
   // Roving tabindex: track which row is the current tab stop
   const [focusedRowIndex, setFocusedRowIndex] = useState(0);
-
-  // Mobile detection
-  const isMobile = useIsMobile({ defaultValue: false });
-
-  // Height calculation
-  const calculatedHeight = useTableHeight(containerRef);
-  const fixedHeight = fixedHeightProp ?? calculatedHeight;
 
   // Real-time data merging
   const tableDataHelper = useRealtimeData(getRowId, realtimeData, historicData);
@@ -181,61 +169,24 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
     config.tableLayout === "fixed" ? "table-fixed" : "table-auto",
   );
 
-  const containerClassName = cn(
-    "overflow-auto relative pb-4 bg-background",
-    config.containerPadding || "px-2",
-  );
+  const isEmpty = !isLoading && historicData.length === 0 && realtimeData.length === 0;
+  const fillsParent = fixedHeight === undefined;
 
-  // Empty state
-  if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
-    return (
-      <div
-        className="w-full flex flex-col h-full"
-        style={{ height: `${fixedHeight}px` }}
-        ref={containerRef}
-      >
-        <table className={tableClassName}>
-          <colgroup>
-            {columns.map((col, idx) => (
-              <col key={col.id ?? idx} style={{ width: colWidths[idx] }} />
-            ))}
-          </colgroup>
-          <thead className="sticky top-0 z-10 bg-table-header">
-            <tr>
-              {table.getHeaderGroups()[0]?.headers.map((header) => (
-                <th
-                  key={header.id}
-                  className={cn(
-                    "text-sm font-medium text-gray-12 py-1 text-left",
-                    header.column.columnDef.meta?.headerClassName,
-                    header.column.columnDef.meta?.cellClassName,
-                  )}
-                >
-                  {header.isPlaceholder ? null : (
-                    <div className="truncate text-gray-12">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </div>
-                  )}
-                </th>
-              ))}
-            </tr>
-            <StickyHeaderUnderline colSpan={columns.length} hasPadding={hasPadding} />
-          </thead>
-        </table>
-        <div className="flex-1 flex items-center justify-center">
-          {emptyState ?? <DataTableEmptyState />}
-        </div>
-      </div>
-    );
-  }
-
-  // Main render
   return (
-    <div className="w-full flex flex-col" ref={containerRef}>
+    <div
+      className={cn("w-full flex flex-col", fillsParent && "md:flex-1 md:min-h-0")}
+      ref={containerRef}
+    >
       <div
         ref={parentRef}
-        className={containerClassName}
-        style={isMobile ? { height: MOBILE_TABLE_HEIGHT } : { height: `${fixedHeight}px` }}
+        className={cn(
+          "overflow-auto relative pb-4 bg-background",
+          config.containerPadding || "px-2",
+          "max-md:h-[400px]",
+          fillsParent && "md:flex-1 md:min-h-0",
+          isEmpty && "flex flex-col",
+        )}
+        style={fixedHeight === undefined ? undefined : { height: fixedHeight }}
       >
         <table className={tableClassName}>
           <colgroup>
@@ -253,6 +204,8 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                     key={header.id}
                     className={cn(
                       "text-sm font-medium text-gray-12 py-1 text-left relative",
+                      hasPadding &&
+                        "first:shadow-[-8px_0_0_var(--background-color-table-header)] last:shadow-[8px_0_0_var(--background-color-table-header)]",
                       header.column.columnDef.meta?.headerClassName,
                       header.column.columnDef.meta?.cellClassName,
                     )}
@@ -420,10 +373,15 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                 })()}
           </tbody>
         </table>
+        {isEmpty && (
+          <div className="flex-1 flex items-center justify-center">
+            {emptyState ?? <DataTableEmptyState />}
+          </div>
+        )}
       </div>
 
       {/* Legacy load more footer */}
-      {loadMoreFooterProps && (
+      {!isEmpty && loadMoreFooterProps && (
         <LoadMoreFooter
           {...loadMoreFooterProps}
           totalVisible={tableDataHelper.data.length}

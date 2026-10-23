@@ -8,12 +8,16 @@ import {
   type Preset,
   type SizeUnlock,
   type UnitField,
+  resolveLimits,
   sizeOptions,
+  storageOptions,
   unitFields,
   unitOptions,
 } from "@/lib/compute/sizing";
 import { regionInfo } from "@/lib/regions";
+import { trpc } from "@/lib/trpc/client";
 import { formatCpu, formatMemory, formatStorage } from "@/lib/utils/deployment-formatters";
+import { useWorkspace } from "@/providers/workspace-provider";
 import {
   IconHardDriveOutline18,
   IconLockOutline12,
@@ -24,6 +28,10 @@ import { match } from "@unkey/match";
 import {
   Badge,
   FormField,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
   Select,
   SelectContent,
   SelectItem,
@@ -31,37 +39,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { cn } from "cn";
 import { useState } from "react";
-import type { Replicas } from "./draft";
-import { REGION_STATES, regionChoices, regionsNote } from "./status";
-import type { ComputeForm } from "./use-compute";
+import type { UseFormReturn } from "react-hook-form";
+import type { RuntimeValues } from "../runtime/model";
+import type { Replicas, SetCompute } from "./draft";
+import { REGION_STATES, availableFrom, regionChoices, regionsNote } from "./status";
 import { CUSTOM_VALUE, useSizeChoice } from "./use-size-choice";
-import { useStorageChoice } from "./use-storage-choice";
 
-type FieldProps = { compute: ComputeForm };
+type RuntimeForm = UseFormReturn<RuntimeValues>;
+
+type FieldProps = { compute: ReturnType<typeof useComputeControls> };
+
+function useComputeControls(form: RuntimeForm) {
+  const { limits } = useWorkspace();
+  const regionsQuery = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
+  const change: SetCompute = (key, value) =>
+    form.setValue(
+      "compute",
+      { ...form.getValues("compute"), [key]: value },
+      { shouldDirty: true, shouldValidate: true },
+    );
+  return {
+    values: form.watch("compute"),
+    errors: form.formState.errors.compute,
+    busy: form.formState.isSubmitting,
+    change,
+    limits: resolveLimits(limits),
+    available: availableFrom(regionsQuery),
+  };
+}
 
 export function ComputeFields({
-  compute,
-  className,
+  form,
   hideLockedSizes = false,
-}: FieldProps & { className?: string; hideLockedSizes?: boolean }) {
+}: {
+  form: RuntimeForm;
+  hideLockedSizes?: boolean;
+}) {
+  const compute = useComputeControls(form);
   return (
-    <div className={cn("grid gap-6", className)}>
+    <>
       <RegionsField compute={compute} />
       <SizeField compute={compute} hideLocked={hideLockedSizes} />
       <InstancesField compute={compute} />
       <StorageField compute={compute} />
-    </div>
+    </>
   );
 }
 
 function RegionsField({ compute }: FieldProps) {
-  const { values, available, busy } = compute;
+  const { values, available, busy, errors } = compute;
   const choices = regionChoices(available, values.regions);
   const states = new Map(choices.map((choice) => [choice.name, REGION_STATES[choice.state]]));
   return (
-    <FormField label="Regions" description={regionsNote(available)} className="col-span-full">
+    <FormField
+      label="Regions"
+      description={regionsNote(available)}
+      error={errors?.regions?.message}
+    >
       {({ id, describedBy }) => (
         <Select
           multiple
@@ -83,7 +118,7 @@ function RegionsField({ compute }: FieldProps) {
               ))}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent maxRows={5}>
             {choices.map((choice) => {
               const state = REGION_STATES[choice.state];
               return (
@@ -167,7 +202,7 @@ function SizeField({ compute, hideLocked }: FieldProps & { hideLocked: boolean }
                 <PresetSpec preset={values} />
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent maxRows={5}>
               {options.map((option) => (
                 <SelectItem key={option.preset.id} value={option.preset.id}>
                   <span className="flex w-full items-center gap-3">
@@ -256,47 +291,50 @@ function UnitSelect({
 }
 
 function InstancesField({ compute }: FieldProps) {
-  const { values, limits, busy } = compute;
-  const { min, max } = values.replicas;
-  const counts = Array.from({ length: limits.replicas }, (_, i) => i + 1);
-  const bounds: { key: keyof Replicas; label: string; next: (n: number) => Replicas }[] = [
-    { key: "min", label: "Min", next: (n) => ({ min: n, max: Math.max(n, max) }) },
-    { key: "max", label: "Max", next: (n) => ({ min: Math.min(n, min), max: n }) },
+  const { values, limits, busy, errors } = compute;
+  const bounds: { key: keyof Replicas; label: string }[] = [
+    { key: "min", label: "Min" },
+    { key: "max", label: "Max" },
   ];
   return (
     <FormField
       label="Instances"
       description={`Scales between min and max on CPU usage. Up to ${limits.replicas} per region.`}
+      error={errors?.replicas?.message}
     >
-      {({ describedBy }) => (
+      {({ describedBy, invalid, variant }) => (
         <div className="grid grid-cols-2 gap-3">
-          {bounds.map((bound) => (
-            <Select
-              key={bound.key}
-              value={String(values.replicas[bound.key])}
-              disabled={busy}
-              onValueChange={(next) => {
-                const n = Number(next);
-                if (Number.isInteger(n) && n > 0) {
-                  compute.change("replicas", bound.next(n));
-                }
-              }}
-            >
-              <SelectTrigger aria-label={`${bound.label} instances`} aria-describedby={describedBy}>
-                <SelectValue>
-                  <span className="mr-2 text-gray-10">{bound.label}</span>
-                  <span className="font-mono tabular-nums">{values.replicas[bound.key]}</span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {counts.map((n) => (
-                  <SelectItem key={n} value={String(n)}>
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ))}
+          {bounds.map((bound) => {
+            const value = values.replicas[bound.key];
+            return (
+              <InputGroup key={bound.key} variant={variant}>
+                <InputGroupAddon align="inline-start">
+                  <InputGroupText>{bound.label}</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupInput
+                  data-1p-ignore
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={limits.replicas}
+                  step={1}
+                  aria-label={`${bound.label} instances`}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                  disabled={busy}
+                  className="pl-2 font-mono tabular-nums"
+                  value={Number.isNaN(value) ? "" : String(value)}
+                  onWheelCapture={(e) => e.currentTarget.blur()}
+                  onChange={(e) =>
+                    compute.change("replicas", {
+                      ...values.replicas,
+                      [bound.key]: e.target.valueAsNumber,
+                    })
+                  }
+                />
+              </InputGroup>
+            );
+          })}
         </div>
       )}
     </FormField>
@@ -305,46 +343,33 @@ function InstancesField({ compute }: FieldProps) {
 
 function StorageField({ compute }: FieldProps) {
   const { values, limits, busy } = compute;
-  const storage = useStorageChoice({ values, limits, onChange: compute.change });
   return (
     <FormField label="Storage" description="Ephemeral disk per instance.">
       {({ id, describedBy }) => (
-        <div className="flex flex-col gap-3">
-          <Select
-            value={storage.selected}
-            disabled={busy}
-            onValueChange={(next) => {
-              if (typeof next === "string") {
-                storage.pick(next);
-              }
-            }}
+        <Select
+          value={String(values.storageMib)}
+          disabled={busy}
+          onValueChange={(next) => {
+            if (typeof next === "string") {
+              compute.change("storageMib", Number(next));
+            }
+          }}
+        >
+          <SelectTrigger
+            id={id}
+            aria-describedby={describedBy}
+            leftIcon={<IconHardDriveOutline18 className="size-3.5 text-gray-11" />}
           >
-            <SelectTrigger
-              id={id}
-              aria-describedby={describedBy}
-              leftIcon={<IconHardDriveOutline18 className="size-3.5 text-gray-11" />}
-            >
-              <SelectValue>{formatStorage(values.storageMib)}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {storage.options.map((mib) => (
-                <SelectItem key={mib} value={String(mib)}>
-                  {formatStorage(mib)}
-                </SelectItem>
-              ))}
-              <SelectSeparator />
-              <SelectItem value={CUSTOM_VALUE}>Custom…</SelectItem>
-            </SelectContent>
-          </Select>
-          {storage.custom ? (
-            <UnitSelect
-              field={storage.field}
-              disabled={busy}
-              value={storage.customValue}
-              onChange={(storageMib) => compute.change("storageMib", storageMib)}
-            />
-          ) : null}
-        </div>
+            <SelectValue>{formatStorage(values.storageMib)}</SelectValue>
+          </SelectTrigger>
+          <SelectContent maxRows={5}>
+            {storageOptions(limits, values.storageMib).map((mib) => (
+              <SelectItem key={mib} value={String(mib)}>
+                {formatStorage(mib)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
     </FormField>
   );

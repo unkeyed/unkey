@@ -14,14 +14,14 @@ sources:
   - svc/frontline/routes/proxy/handler.go
   - web/internal/db/src/schema/limits.ts
   - web/apps/dashboard/lib/limits.ts
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/runtime-settings/instances.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/compute/compute-fields.tsx
 ---
 
 An instance is one running container of a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> in one region. A deployment with two regions and two replicas each has four instances, all running the same image with the same variables. Instances are ephemeral: nothing written inside one survives its replacement.
 
 ## How many replicas you get
 
-Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> sets, per region, a minimum and a maximum replica count. A new <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> starts with one replica in its default region, and the dashboard's **Instances** control defaults both bounds to 1. With minimum and maximum equal, the count is pinned and autoscaling is off. Autoscaling starts only when you raise the maximum above the minimum.
+Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> sets, per region, a minimum and a maximum replica count. A new <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> created with the API or CLI starts with one replica in its default region. In the dashboard, the **Instances** field on the environment's **Runtime** card sets the bounds as **Min** and **Max**, and both start at 1. With minimum and maximum equal, the count is pinned and autoscaling is off. Autoscaling starts only when you raise the maximum above the minimum.
 
 The minimum is at least 1, so you can't scale to zero. The maximum is capped by your plan's replicas-per-region limit: 4 on Starter, 8 on Pro, and 16 on Business. Every region uses the same minimum and maximum.
 

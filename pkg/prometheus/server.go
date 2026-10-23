@@ -40,6 +40,7 @@ func NewWithRegistry(reg *prometheus.Registry) (*zen.Server, error) {
 		StreamRequestBody:  false,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
+		IdleTimeout:        0,
 	})
 	if err != nil {
 		return nil, err

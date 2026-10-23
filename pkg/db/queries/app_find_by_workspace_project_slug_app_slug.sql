@@ -5,5 +5,7 @@ SELECT
 FROM apps a
 INNER JOIN projects p ON a.project_id = p.id
 WHERE p.workspace_id = sqlc.arg(workspace_id)
+  AND p.deleted_at IS NULL
+  AND a.deleted_at IS NULL
   AND p.slug = sqlc.arg(project_slug)
   AND a.slug = sqlc.arg(app_slug);

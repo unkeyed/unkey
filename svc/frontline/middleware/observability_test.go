@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
 
 // TestGetErrorPageInfoFrontline_StatusMapping locks in the URN → HTTP status
@@ -56,6 +57,7 @@ func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 		// Deployment's own config is invalid — caller-side (422), not a 5xx
 		// frontline fault.
 		{codes.Frontline.Internal.InvalidConfiguration.URN(), http.StatusUnprocessableEntity},
+		{codes.Frontline.Internal.RatelimitNotConfigured.URN(), http.StatusUnprocessableEntity},
 
 		// Genuine server-side faults — 5xx is correct.
 		{codes.Frontline.Routing.DeploymentSelectionFailed.URN(), http.StatusInternalServerError},
@@ -137,6 +139,7 @@ func TestWithObservability_JSONErrorIncludesMetaRequestID(t *testing.T) {
 
 			require.NotEmpty(t, body.Meta.RequestID, "JSON error must include meta.requestId")
 			require.Equal(t, sess.RequestID(), body.Meta.RequestID)
+			require.Equal(t, []string{body.Meta.RequestID}, w.Result().Header.Values(proxy.HeaderRequestID))
 			require.NotEmpty(t, body.Error.Code)
 		})
 	}
@@ -170,6 +173,7 @@ func TestWithObservability_HTMLFallbackIncludesMetaRequestID(t *testing.T) {
 
 	require.NotEmpty(t, body.Meta.RequestID, "JSON fallback must include meta.requestId")
 	require.Equal(t, sess.RequestID(), body.Meta.RequestID)
+	require.Equal(t, []string{body.Meta.RequestID}, w.Result().Header.Values(proxy.HeaderRequestID))
 }
 
 // TestWithObservability_ResponseExposesURN verifies that callers receive the

@@ -353,21 +353,6 @@ func (e EnvironmentVariableKind) Valid() bool {
 	}
 }
 
-// Defines values for FieldMatchPresent.
-const (
-	True FieldMatchPresent = true
-)
-
-// Valid indicates whether the value is a known member of the FieldMatchPresent enum.
-func (e FieldMatchPresent) Valid() bool {
-	switch e {
-	case True:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for FirewallPolicyAction.
 const (
 	ACTIONDENY FirewallPolicyAction = "ACTION_DENY"
@@ -1664,17 +1649,14 @@ type EnvironmentVariableKind string
 type FieldMatch struct {
 	Name string `json:"name"`
 
-	// Present Matches when the field is present, regardless of value.
-	Present *FieldMatchPresent `json:"present,omitempty"`
+	// Present Matches when the field is present if true, or absent if false, regardless of value.
+	Present *bool `json:"present,omitempty"`
 
 	// Value String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
 	//
 	// Example: {"ignoreCase":true,"prefix":"/api/"}
 	Value *StringMatch `json:"value,omitempty"`
 }
-
-// FieldMatchPresent Matches when the field is present, regardless of value.
-type FieldMatchPresent bool
 
 // FirewallPolicy Blocks matching requests.
 //
@@ -3380,6 +3362,44 @@ type V2DeployGitCommit struct {
 	//
 	// Example: 1704067200000
 	Timestamp *int64 `json:"timestamp,omitempty"`
+}
+
+// V2DeploymentsAuthorizeDeploymentRequestBody defines model for V2DeploymentsAuthorizeDeploymentRequestBody.
+type V2DeploymentsAuthorizeDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsAuthorizeDeploymentResponseBody Authorize a deployment that is awaiting approval.
+type V2DeploymentsAuthorizeDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsCancelDeploymentRequestBody defines model for V2DeploymentsCancelDeploymentRequestBody.
+type V2DeploymentsCancelDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsCancelDeploymentResponseBody Cancel a deployment that is still in progress.
+type V2DeploymentsCancelDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2DeploymentsCreateDeploymentRequestBody Create a deployment. Provide exactly one of git, image, or deployment.
@@ -6959,7 +6979,7 @@ type V2RatelimitMultiLimitCheck struct {
 	Reset int64 `json:"reset"`
 }
 
-// V2RatelimitMultiLimitRequestBody Array of rate limit checks to perform
+// V2RatelimitMultiLimitRequestBody Array of rate limit checks to perform. Each check must have a different combination of namespace, identifier and duration. A repeated combination returns a 400 error with `invalid_input` before any namespace is created.
 type V2RatelimitMultiLimitRequestBody = []V2RatelimitLimitRequestBody
 
 // V2RatelimitMultiLimitResponseBody defines model for V2RatelimitMultiLimitResponseBody.
@@ -7703,6 +7723,12 @@ type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
 //
 // Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
+
+// DeploymentsAuthorizeDeploymentJSONRequestBody defines body for DeploymentsAuthorizeDeployment for application/json ContentType.
+type DeploymentsAuthorizeDeploymentJSONRequestBody = V2DeploymentsAuthorizeDeploymentRequestBody
+
+// DeploymentsCancelDeploymentJSONRequestBody defines body for DeploymentsCancelDeployment for application/json ContentType.
+type DeploymentsCancelDeploymentJSONRequestBody = V2DeploymentsCancelDeploymentRequestBody
 
 // DeploymentsCreateDeploymentJSONRequestBody defines body for DeploymentsCreateDeployment for application/json ContentType.
 //

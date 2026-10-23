@@ -5,8 +5,15 @@ redis_url = "redis://redis:6379"
 [[auth]]
 type = "jwt"
 issuer = "app.unkey.com"
-audience = "api.unkey.com"
+audience = "api.unkey.local"
 secrets = ["local-dev-jwt-secret-with-at-least-32-bytes"]
+provider = "workos"
+
+[[auth]]
+type = "jwt"
+issuer = "https://api.workos.com"
+audience = "api.unkey.local"
+jwks_url = "https://api.workos.com/sso/jwks/${WORKOS_CLIENT_ID}"
 provider = "workos"
 
 [[auth]]

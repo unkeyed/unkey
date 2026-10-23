@@ -42,7 +42,7 @@ export const RequestLogsTable = () => {
   const columns = useMemo(() => createRequestLogsColumns(), []);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col md:flex-1 md:min-h-0">
       <DataTable
         data={historicalLogs}
         realtimeData={realtimeLogs}

@@ -3,6 +3,7 @@
 import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatBytesPerSecondParts } from "@/lib/utils/deployment-formatters";
+import { formatTimestamp } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useId, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
@@ -418,12 +419,7 @@ function formatXAxisTick(v: number, spanMs: number, utc?: boolean): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
   }
-  const tz: Intl.DateTimeFormatOptions = utc ? { timeZone: "UTC" } : {};
-  const d = new Date(v);
-  if (spanMs >= TWO_DAYS_MS) {
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", ...tz });
-  }
-  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", ...tz });
+  return formatTimestamp(v, spanMs >= TWO_DAYS_MS ? "MMM d" : "h:mm a", utc ? "UTC" : undefined);
 }
 
 function formatCompactInterval(

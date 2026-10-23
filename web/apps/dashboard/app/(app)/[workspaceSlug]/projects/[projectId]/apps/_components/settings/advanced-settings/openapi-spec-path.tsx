@@ -8,32 +8,38 @@ import {
   SettingsRowHeader,
   SettingsRowTitle,
 } from "@unkey/ui";
+import { useState } from "react";
 import { z } from "zod";
 import { RemoveButton } from "../../remove-button";
 import { useSettingForm } from "../hooks/use-setting-form";
 
 const openapiSpecPathSchema = z.object({
-  openapiSpecPath: z.string().max(512),
+  openapiSpecPath: z.string().trim().max(512),
 });
 
 export function OpenapiSpecPath() {
-  const { settings, form, formProps, submit } = useSettingForm({
+  const { settings, update, form, formProps } = useSettingForm({
     schema: openapiSpecPathSchema,
     read: (s) => ({ openapiSpecPath: s.openapiSpecPath ?? "" }),
     write: (draft, values) => {
-      const trimmed = values.openapiSpecPath.trim();
-      draft.openapiSpecPath = trimmed === "" ? null : trimmed;
+      draft.openapiSpecPath = values.openapiSpecPath || null;
     },
   });
   const error = form.formState.errors.openapiSpecPath;
 
+  const [removing, setRemoving] = useState(false);
+
   const handleRemove = () => {
-    form.setValue("openapiSpecPath", "");
-    void submit();
+    setRemoving(true);
+    void update((draft) => {
+      draft.openapiSpecPath = null;
+    })
+      .isPersisted.promise.catch(() => undefined)
+      .finally(() => setRemoving(false));
   };
 
   return (
-    <SettingsForm {...formProps}>
+    <SettingsForm {...formProps} saveState={removing ? { status: "saving" } : formProps.saveState}>
       <SettingsRow>
         <SettingsRowHeader>
           <SettingsRowTitle>OpenAPI spec path</SettingsRowTitle>
@@ -53,6 +59,7 @@ export function OpenapiSpecPath() {
               <RemoveButton
                 label="Remove OpenAPI spec path"
                 onClick={handleRemove}
+                disabled={removing || form.formState.isSubmitting}
                 className="shrink-0"
               />
             ) : null}

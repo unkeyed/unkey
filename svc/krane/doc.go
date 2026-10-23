@@ -3,7 +3,7 @@
 //
 // Krane acts as a node-level agent that exposes gRPC endpoints for container
 // orchestration operations. It manages deployments (application workloads
-// implemented as ReplicaSets) along with their supporting Kubernetes resources.
+// implemented as Deployments) along with their supporting Kubernetes resources.
 // The agent handles authentication, secrets decryption, and resource lifecycle
 // management through streaming APIs.
 //
@@ -13,7 +13,7 @@
 // plane. A [watcher.Watcher] dispatches each change to the controllers that
 // reconcile the corresponding Kubernetes resources:
 //
-//   - [deployment.Controller]: Manages user workload ReplicaSets, their
+//   - [deployment.Controller]: Manages user workload Deployments, their
 //     HorizontalPodAutoscalers, and per-deployment CiliumNetworkPolicies. Reports
 //     observed pod state back to the control plane.
 //
@@ -31,7 +31,7 @@
 // # Key Services
 //
 // [kubernetes.Service]: Implements the SchedulerService gRPC interface for
-// deployment management operations. Handles ReplicaSet creation, updates,
+// deployment management operations. Handles Deployment creation, updates,
 // deletion, and real-time status streaming.
 //
 // [secrets.Service]: Implements the SecretsService gRPC interface for decrypting
@@ -40,7 +40,7 @@
 //
 // # Resource Types
 //
-// Deployment: Application workloads implemented as Kubernetes ReplicaSets with
+// Deployment: Application workloads implemented as Kubernetes Deployments with
 // specified container images, resource limits, and replica counts. Each deployment
 // receives standardized environment variables and optional encrypted secrets.
 //

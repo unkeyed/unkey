@@ -8,14 +8,13 @@
 //
 // # Format
 //
-// Each entry is encoded as a single header value for the X-Unkey-Timing header.
-// A typical example is:
+// Entries are joined with commas in one X-Unkey-Timing header value:
 //
-//	X-Unkey-Timing: cache_get{status=miss,cache=ApiByID}=1.25ms
+//	X-Unkey-Timing: cache_get{status=miss,cache=ApiByID}=1.25ms,db_query=3ms
 //
 // An entry has a name, optional attributes in braces, and a numeric value with a
-// unit suffix. One header value should encode one entry to keep parsing small and
-// avoid quoting edge cases. Whitespace is not permitted anywhere in the entry.
+// unit suffix. [ParseEntries] distinguishes commas inside attribute braces from
+// entry separators. Whitespace is not permitted in the header value.
 // Names and label keys follow the same grammar as Prometheus metric names. Label
 // values are unquoted, must be non-empty, and must not contain whitespace or any
 // of the characters '{', '}', ',', or '='. Values are unsigned numbers and cannot
@@ -45,9 +44,12 @@
 // # Usage
 //
 // Callers record entries directly on the current request context. If a zen
-// session is present, the entry is serialized and added to the response headers.
+// session has debug telemetry enabled, the entry is added to the response headers.
 // This keeps observability wiring close to the request without exposing sessions
 // to application code.
+// Record and Write respect the session's debug telemetry opt-in, captured from
+// X-Unkey-Debug using strconv.ParseBool or restored from verified peer metadata.
+// Use Write when the session is already available.
 //
 //	 timing.Record(ctx, timing.Entry{
 //		Name:     "cache_get",

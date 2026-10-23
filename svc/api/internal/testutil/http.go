@@ -159,6 +159,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		TrustedProxyCIDRs: []string{"192.0.2.0/24"},
 		ReadTimeout:       0,
 		WriteTimeout:      0,
+		IdleTimeout:       0,
 	})
 	require.NoError(t, err)
 

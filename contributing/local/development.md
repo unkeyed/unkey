@@ -244,6 +244,29 @@ uses WorkOS User Profile and User Security for managed account settings. See
 [Dashboard authentication](./dashboard-auth.md) for provider
 configuration and release checks.
 
+Set `UNKEY_JWT_AUDIENCE=api.unkey.local` in the dashboard `.env`. This overrides
+the audience of fallback tokens used by `AUTH_PROVIDER=local`. Keep
+`UNKEY_JWT_SECRET` matched to the local API's `auth.secrets` entry.
+
+WorkOS sessions forward their access token unchanged. Both local API configs
+verify these tokens with WorkOS JWKS and audience `api.unkey.local`. Configure
+the development WorkOS environment's JWT template as follows:
+
+```json
+{
+  "org": { "id": {{organization.id}} },
+  "aud": ["api.unkey.local"]
+}
+```
+
+The dashboard audience override does not change WorkOS tokens. Don't change
+the production WorkOS template. Sign in again after updating the development
+template to get a token with the new claims.
+
+`mise run dashboard` reads `WORKOS_CLIENT_ID` from the dashboard `.env` and
+passes it to the Docker API. For Kubernetes, also set `WORKOS_CLIENT_ID` in
+`dev/.env.workos`; Tilt loads it into the `workos-credentials` secret. Restart
+the local API after changing its config or environment.
 
 Stripe billing:
 

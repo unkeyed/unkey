@@ -26,7 +26,7 @@ const (
 // in shuffled order — the caller attempts them sequentially, advancing on
 // dial failures. RemoteRegionAddress, when non-empty, is a standby peer
 // region for the caller to fall through to once every local instance has
-// dial-failed; empty when this is the only region with running instances.
+// dial-failed; empty when no unexcluded peer has running instances.
 //
 // For DestinationRemoteRegion: only RemoteRegionAddress is populated.
 // LocalInstances is empty.
@@ -47,8 +47,8 @@ type Service interface {
 	// Route resolves a hostname to a forwarding decision. For local routes
 	// the returned decision includes the candidate instances in the order
 	// the caller should try them, plus the parsed policies to evaluate
-	// before forwarding.
-	Route(ctx context.Context, hostname string) (RouteDecision, error)
+	// before forwarding. Excluded peer regions use the region.platform format.
+	Route(ctx context.Context, hostname string, excludedRegions ...string) (RouteDecision, error)
 
 	// ValidateHostname checks if a hostname has a configured frontline route.
 	ValidateHostname(ctx context.Context, hostname string) error

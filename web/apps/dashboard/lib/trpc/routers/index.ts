@@ -27,8 +27,6 @@ import { queryRoles } from "./authorization/roles/query";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
-import { authorizeDeployment } from "./deploy/deployment/authorize";
-import { cancelDeployment } from "./deploy/deployment/cancel";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
@@ -38,6 +36,7 @@ import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { listDisplayDomains } from "./deploy/domains/list-display-domains";
+import { listEnvVars } from "./deploy/env-vars/list";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
@@ -63,6 +62,7 @@ import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
 import { queryRequestDetails } from "./deploy/request-logs/details";
+import { queryRequestKeyVerification } from "./deploy/request-logs/key-verification";
 import { llmSearch as requestLogsLlmSearch } from "./deploy/request-logs/llm-search";
 import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
@@ -284,6 +284,7 @@ export const router = t.router({
       }),
     }),
     envVar: t.router({
+      list: listEnvVars,
       makeSensitive,
       rename: renameEnvVars,
     }),
@@ -299,12 +300,11 @@ export const router = t.router({
       runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       getOpenApiDiff: getOpenApiDiff,
-      authorize: authorizeDeployment,
-      cancel: cancelDeployment,
     }),
     requestLogs: t.router({
       query: queryRequestLogs,
       details: queryRequestDetails,
+      keyVerification: queryRequestKeyVerification,
       llmSearch: requestLogsLlmSearch,
     }),
     runtimeLogs: t.router({

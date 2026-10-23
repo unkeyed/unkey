@@ -37,7 +37,7 @@ Please find what is in scope in the [SECURITY](./SECURITY.md) file.
 
 Unkey has paused external code contributions while the team focuses on platform direction and stability. Pull requests opened by people outside the Unkey team will not be reviewed or merged.
 
-Issues remain open for bug reports, feature requests, and documentation feedback. This repository remains public and source-available so you can read the code, fork it under the terms of the AGPL, and self-host. Unkey may revisit this policy in the future, and any change will be announced here.
+Issues remain open for bug reports, feature requests, and documentation feedback. This repository remains public and source-available so you can read the code, fork it under the terms of the FSL-1.1-ALv2, and self-host. Unkey may revisit this policy in the future, and any change will be announced here.
 
 ## Let's Talk
 

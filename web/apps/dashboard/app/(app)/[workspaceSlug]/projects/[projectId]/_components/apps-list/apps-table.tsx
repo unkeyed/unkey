@@ -1,5 +1,6 @@
 import { useWarmAppPage } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-warm-app-page";
 import { DeploymentStatusIndicator } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
+import { SourceIcon } from "@/components/deploy/app-source";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import {
   InfoTooltip,
@@ -12,7 +13,7 @@ import {
 import { cn } from "cn";
 import Link from "next/link";
 import type { AppRowData } from "./app-row-model";
-import { AppActionsButton, DeployedAgo, LinkOrText, SourceIcon, SourceLabel } from "./app-source";
+import { AppActionsButton, DeployedAgo, LinkOrText, SourceLabel } from "./app-source";
 
 export function AppsTable({ rows, projectId }: { rows: AppRowData[]; projectId: string }) {
   return (

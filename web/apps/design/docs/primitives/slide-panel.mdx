@@ -18,7 +18,7 @@ The panel reports outward as well, so a page guard above it knows the panel hold
 - `useUnsavedChanges()` returns `{ isDirty, report }` for the component that owns a scope.
 - `UnsavedChangesScope` passes `report` to its children.
 - `useReportUnsavedChanges(dirty)` reports from a child. It does nothing outside a scope.
-- `DiscardChangesDialog` is the shared confirm dialog. Use it only when you build a new guard.
+- `DiscardChangesDialog` is the shared confirm dialog. Use it only when you build a new guard. Pass `copy` to change its title, description and button labels, and `loading` while the discard runs. A loading dialog cannot be dismissed.
 
 ## Closing from a footer
 

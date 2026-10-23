@@ -12,6 +12,7 @@ vi.mock("@/lib/env", () => ({
   env: () => ({
     UNKEY_API_URL: "https://api.example.test",
     UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
+    UNKEY_JWT_AUDIENCE: "api.unkey.com",
   }),
 }));
 
@@ -61,6 +62,7 @@ it("loads server flags directly with the session credential and preserves disabl
     expect(request.cache).toBe("no-store");
     expect(request.redirect).toBe("error");
     expect(request.headers.get("authorization")).toBe("Bearer session-token");
+    expect(request.headers.get("x-unkey-client")).toBe("unkey-dashboard");
     return Response.json({ meta: { requestId: crypto.randomUUID() }, data });
   });
   vi.mocked(getAuth).mockResolvedValue({

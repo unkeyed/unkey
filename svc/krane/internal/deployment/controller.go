@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Controller manages deployment ReplicaSets in a Kubernetes cluster by maintaining
+// Controller manages workload Deployments in a Kubernetes cluster by maintaining
 // bidirectional state synchronization with the control plane.
 //
 // The controller receives desired state from the unified WatchDeploymentChanges stream
@@ -43,9 +43,9 @@ type Controller struct {
 	region           string
 	platform         string
 
-	// fingerprints tracks the most recently reported state per ReplicaSet
+	// fingerprints tracks the most recently reported state per workload
 	// so we can skip redundant reports during resync. Entries auto-expire
-	// via the cache's TTL, preventing unbounded growth from deleted RSs.
+	// via the cache's TTL, preventing unbounded growth from deleted workloads.
 	fingerprints cache.Cache[string, string]
 
 	// eventDedup deduplicates instance lifecycle events by
@@ -57,7 +57,7 @@ type Controller struct {
 
 	// reportLocks serializes reportIfChanged per k8s_name so the fingerprint
 	// Get and post-RPC Set can't race with another concurrent event for the
-	// same ReplicaSet and both report the same state.
+	// same workload and both report the same state.
 	reportLocks keymutex.KeyMutex
 
 	// lagRecorder records pod watch delivery lag, deduplicated per
@@ -69,6 +69,8 @@ type Controller struct {
 
 	// disableGvisor drops the gVisor sandbox from user workloads.
 	disableGvisor bool
+
+	maxConcurrentRollouts int
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -77,7 +79,8 @@ type Controller struct {
 // operations, while Cluster provides the control plane RPC client for state
 // synchronization. Region determines which deployments this controller manages.
 type Config struct {
-	// ClientSet provides typed Kubernetes API access for ReplicaSet and Pod operations.
+	// ClientSet provides typed Kubernetes API access for Deployment, ReplicaSet
+	// and Pod operations.
 	ClientSet kubernetes.Interface
 
 	// DynamicClient provides unstructured Kubernetes API access for CiliumNetworkPolicy
@@ -124,6 +127,11 @@ type Config struct {
 	// DisableGvisor drops the gVisor sandbox from user workloads, leaving them
 	// on the node's default runtime.
 	DisableGvisor bool
+
+	// MaxConcurrentRollouts caps how many healthy workloads roll out a
+	// template change at the same time. Zero holds every template change of
+	// an existing workload.
+	MaxConcurrentRollouts int
 }
 
 // New creates a [Controller] ready to be run with [Controller.Run].
@@ -154,17 +162,21 @@ func New(cfg Config) *Controller {
 		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
 		storageClassName: cfg.StorageClassName,
 		disableGvisor:    cfg.DisableGvisor,
+
+		maxConcurrentRollouts: cfg.MaxConcurrentRollouts,
 	}
 }
 
 // Run runs the background control loops until ctx is cancelled.
 //
-// Three independent loops run concurrently:
+// Four independent loops run concurrently:
 //   - [Controller.runActualStateResyncLoop]: periodic safety net for instance
 //     state reporting (complements the real-time pod watch).
 //   - [Controller.runDesiredStateResyncLoop]: periodic reconciliation of desired
 //     state from the control plane (complements the streaming channel).
 //   - [Controller.runPodWatchLoop]: real-time Kubernetes watch for pod events.
+//   - [Controller.runRolloutGateLoop]: admits template rollouts up to the
+//     concurrency limit.
 //
 // The actual-state and desired-state loops are decoupled so that slow control
 // plane RPCs cannot delay instance reporting.
@@ -175,6 +187,7 @@ func (c *Controller) Run(ctx context.Context) {
 	wg.Go(func() { c.runActualStateResyncLoop(ctx) })
 	wg.Go(func() { c.runDesiredStateResyncLoop(ctx) })
 	wg.Go(func() { c.runPodWatchLoop(ctx) })
+	wg.Go(func() { c.runRolloutGateLoop(ctx) })
 
 	wg.Wait()
 }
@@ -229,7 +242,7 @@ func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.
 // reportIfChanged reports deployment status only when the instance list differs
 // from the last successful report. Returns true if a report was sent.
 //
-// Serialized per k8s_name: pod events for the same ReplicaSet are processed
+// Serialized per k8s_name: pod events for the same workload are processed
 // concurrently, so the fingerprint Get/RPC/Set window would otherwise race
 // and let two events both pass the dedupe check.
 func (c *Controller) reportIfChanged(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) (bool, error) {

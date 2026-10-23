@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar";
-import BoringAvatar from "boring-avatars";
+import { GeneratedAvatar } from "@unkey/ui";
 import * as React from "react";
 
 import { cn } from "cn";
@@ -34,7 +34,7 @@ const AvatarFallback = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Fallback>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback> & {
     name: string;
-    variant?: "marble" | "beam" | "pixel" | "sunset" | "ring" | "bauhaus";
+    variant?: "marble" | "beam";
     square?: boolean;
   }
 >(({ className, name, variant = "beam", square = false, ...props }, ref) => (
@@ -43,7 +43,7 @@ const AvatarFallback = React.forwardRef<
     className={cn("flex h-full w-full items-center justify-center rounded-full", className)}
     {...props}
   >
-    <BoringAvatar size="100%" name={name} variant={variant} square={square} />
+    <GeneratedAvatar name={name} variant={variant} square={square} />
   </AvatarPrimitive.Fallback>
 ));
 AvatarFallback.displayName = "AvatarFallback";
