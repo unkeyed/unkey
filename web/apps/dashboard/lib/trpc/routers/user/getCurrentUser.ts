@@ -17,6 +17,7 @@ export const getCurrentUser = protectedProcedure.query(async ({ ctx }) => {
       ...user,
       orgId: ctx.tenant?.id ?? null,
       role: ctx.tenant?.role ?? null,
+      impersonator: ctx.user.impersonator,
     };
     return result;
   } catch (error) {
