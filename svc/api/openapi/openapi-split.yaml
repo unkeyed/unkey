@@ -139,6 +139,8 @@ paths:
     $ref: "./spec/paths/v2/liveness/index.yaml"
 
   # Logs Endpoints
+  /v2/logs.getApiRequestMetrics:
+    $ref: "./spec/paths/v2/logs/getApiRequestMetrics/index.yaml"
   /v2/logs.listApiRequests:
     $ref: "./spec/paths/v2/logs/listApiRequests/index.yaml"
 

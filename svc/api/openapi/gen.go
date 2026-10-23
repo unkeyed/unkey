@@ -678,6 +678,34 @@ type ApiRequestLog struct {
 	Time int64 `json:"time"`
 }
 
+// ApiRequestMetricsPoint The number of requests in one bucket.
+type ApiRequestMetricsPoint struct {
+	// ClientError The number of requests with a 4xx status.
+	//
+	// Example: 31
+	ClientError int64 `json:"clientError"`
+
+	// ServerError The number of requests with a 5xx status.
+	//
+	// Example: 2
+	ServerError int64 `json:"serverError"`
+
+	// Success The number of requests with a 2xx status.
+	//
+	// Example: 1200
+	Success int64 `json:"success"`
+
+	// Time The start of the bucket, in Unix milliseconds.
+	//
+	// Example: 1792020600000
+	Time int64 `json:"time"`
+
+	// Total The number of requests with any status. It also counts 1xx and 3xx responses, which have no field of their own.
+	//
+	// Example: 1233
+	Total int64 `json:"total"`
+}
+
 // App defines model for App.
 type App struct {
 	// CreatedAt Unix timestamp in milliseconds when the app was created.
@@ -2859,7 +2887,7 @@ type TextFilter struct {
 }
 
 // TimeFilter Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
-// Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
+// Rows older than the workspace's retention are never returned or counted, whatever the bounds.
 //
 // Example: {"gte":1791936000000,"lt":1792022400000}
 type TimeFilter struct {
@@ -5730,6 +5758,51 @@ type V2LivenessResponseData struct {
 	Message string `json:"message"`
 }
 
+// V2LogsGetApiRequestMetricsFilters Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+type V2LogsGetApiRequestMetricsFilters struct {
+	// Method Filters by HTTP method.
+	//
+	// Example: {"is":["POST","PUT"]}
+	Method *MethodFilter `json:"method,omitempty"`
+
+	// Path Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+	// The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+	// The negated operators (`isNot`, `notContains`) are combined with AND.
+	//
+	//
+	// Example: {"notContains":["verifyKey"],"startsWith":["/v2/keys."]}
+	Path *TextFilter `json:"path,omitempty"`
+
+	// Status Filters an integer field. `is` keeps rows that equal one of its values.
+	// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+	//
+	//
+	// Example: {"gte":400,"isNot":[429],"lt":600}
+	Status *IntFilter `json:"status,omitempty"`
+
+	// Time Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+	// Rows older than the workspace's retention are never returned or counted, whatever the bounds.
+	//
+	//
+	// Example: {"gte":1791936000000,"lt":1792022400000}
+	Time *TimeFilter `json:"time,omitempty"`
+}
+
+// V2LogsGetApiRequestMetricsRequestBody defines model for V2LogsGetApiRequestMetricsRequestBody.
+type V2LogsGetApiRequestMetricsRequestBody struct {
+	// Filters Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+	Filters *V2LogsGetApiRequestMetricsFilters `json:"filters,omitempty"`
+}
+
+// V2LogsGetApiRequestMetricsResponseBody defines model for V2LogsGetApiRequestMetricsResponseBody.
+type V2LogsGetApiRequestMetricsResponseBody struct {
+	// Data One point per bucket, oldest first, with no gaps. A bucket with no requests has a point with zero counts. The bucket width is the distance between the `time` of two points.
+	Data []ApiRequestMetricsPoint `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2LogsListApiRequestsFilters Filters for the listing. A missing field does not filter. Different fields are combined with AND.
 type V2LogsListApiRequestsFilters struct {
 	// Method Filters by HTTP method.
@@ -5760,7 +5833,7 @@ type V2LogsListApiRequestsFilters struct {
 	Status *IntFilter `json:"status,omitempty"`
 
 	// Time Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
-	// Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
+	// Rows older than the workspace's retention are never returned or counted, whatever the bounds.
 	//
 	//
 	// Example: {"gte":1791936000000,"lt":1792022400000}
@@ -8133,6 +8206,9 @@ type KeysVerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 
 // KeysWhoamiJSONRequestBody defines body for KeysWhoami for application/json ContentType.
 type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
+
+// LogsGetApiRequestMetricsJSONRequestBody defines body for LogsGetApiRequestMetrics for application/json ContentType.
+type LogsGetApiRequestMetricsJSONRequestBody = V2LogsGetApiRequestMetricsRequestBody
 
 // LogsListApiRequestsJSONRequestBody defines body for LogsListApiRequests for application/json ContentType.
 type LogsListApiRequestsJSONRequestBody = V2LogsListApiRequestsRequestBody

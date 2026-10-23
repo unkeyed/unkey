@@ -1,0 +1,35 @@
+type: object
+required:
+  - time
+  - success
+  - clientError
+  - serverError
+  - total
+additionalProperties: false
+description: The number of requests in one bucket.
+properties:
+  time:
+    type: integer
+    format: int64
+    description: The start of the bucket, in Unix milliseconds.
+    example: 1792020600000
+  success:
+    type: integer
+    format: int64
+    description: The number of requests with a 2xx status.
+    example: 1200
+  clientError:
+    type: integer
+    format: int64
+    description: The number of requests with a 4xx status.
+    example: 31
+  serverError:
+    type: integer
+    format: int64
+    description: The number of requests with a 5xx status.
+    example: 2
+  total:
+    type: integer
+    format: int64
+    description: The number of requests with any status. It also counts 1xx and 3xx responses, which have no field of their own.
+    example: 1233
