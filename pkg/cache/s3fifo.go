@@ -83,18 +83,20 @@ const (
 // goroutines can read the node; `key` and `value` are fixed once the node is
 // published.
 type node[K comparable, V any] struct {
-	key        K
-	value      V
-	frequency  atomic.Int32
-	queue      *queue[K, V]
-	prev, next *node[K, V]
+	key       K
+	value     V
+	frequency atomic.Int32
+	queue     *queue[K, V]
+	prev      *node[K, V]
+	next      *node[K, V]
 }
 
 // queue is a doubly linked FIFO. `push` adds at `head` and `pop` removes from
 // `tail`, so `tail` is always the oldest entry.
 type queue[K comparable, V any] struct {
-	head, tail *node[K, V]
-	len        int
+	head *node[K, V]
+	tail *node[K, V]
+	len  int
 }
 
 func (q *queue[K, V]) push(n *node[K, V]) {

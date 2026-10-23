@@ -185,18 +185,29 @@ func TestStoreDeleteAndClear(t *testing.T) {
 // with slices instead of linked lists, so the store can be checked against an
 // implementation that shares none of its code. Queues are oldest first.
 type refEntry struct {
-	key, value, frequency int
+	key       int
+	value     int
+	frequency int
 }
 
 type refStore struct {
-	capacity, capacitySmall int
-	small, main             []*refEntry
-	ghost                   []int
-	entries                 map[int]*refEntry
+	capacity      int
+	capacitySmall int
+	small         []*refEntry
+	main          []*refEntry
+	ghost         []int
+	entries       map[int]*refEntry
 }
 
 func newRefStore(capacity int) *refStore {
-	return &refStore{capacity: capacity, capacitySmall: max(1, capacity/10), small: nil, main: nil, ghost: nil, entries: map[int]*refEntry{}}
+	return &refStore{
+		capacity:      capacity,
+		capacitySmall: max(1, capacity/10),
+		small:         nil,
+		main:          nil,
+		ghost:         nil,
+		entries:       map[int]*refEntry{},
+	}
 }
 
 func (r *refStore) get(key int) (int, bool) {
@@ -216,7 +227,11 @@ func (r *refStore) set(key, value int) bool {
 	for len(r.entries) >= r.capacity {
 		r.evict()
 	}
-	e := &refEntry{key: key, value: value, frequency: 0}
+	e := &refEntry{
+		key:       key,
+		value:     value,
+		frequency: 0,
+	}
 	if i := slices.Index(r.ghost, key); i >= 0 {
 		r.ghost = slices.Delete(r.ghost, i, i+1)
 		r.main = append(r.main, e)
