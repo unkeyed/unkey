@@ -12,3 +12,7 @@ func NewNoop() noop { return noop{} }
 func (noop) AdminEmails(_ context.Context, _ string) ([]string, error) { return nil, nil }
 
 func (noop) MemberEmails(_ context.Context, _ string) ([]string, error) { return nil, nil }
+
+func (noop) ActiveRoles(context.Context, string, string) ([]string, bool, error) {
+	return nil, false, nil
+}
