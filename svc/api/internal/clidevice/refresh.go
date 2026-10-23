@@ -15,20 +15,22 @@ import (
 // The user's current WorkOS roles are intersected with the stored permissions.
 // Removal fails the refresh and revokes the session. The immediately previous
 // refresh token still rotates the session during [refreshReuseGrace]. After
-// that window, presenting it revokes the family.
+// that window, presenting it or any older token of the family revokes the
+// family.
 func (s *Service) Refresh(ctx context.Context, req RefreshRequest) (Tokens, error) {
 	if err := s.requireEnabled(); err != nil {
 		return Tokens{}, err
 	}
 	token := strings.TrimSpace(req.RefreshToken)
-	if token == "" {
-		return Tokens{}, unauthenticated("The refresh token is invalid. Run unkey login again.")
+	family, ok := refreshTokenFamily(token)
+	if !ok {
+		return Tokens{}, invalidRefreshToken()
 	}
 	presented := hashRefreshToken(token)
 	row, err := db.Query.FindCLISessionByRefreshTokenHash(ctx, s.DB.RW(), presented)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return s.refreshPreviousToken(ctx, req, presented)
+			return s.refreshPreviousToken(ctx, req, presented, family)
 		}
 		return Tokens{}, err
 	}
@@ -75,13 +77,13 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		return Tokens{}, forbidden("Your role no longer includes the permissions on this CLI session. Run unkey login again.")
 	}
 
-	next := newRefreshToken()
+	next := newRefreshToken(row.RefreshFamily)
 	now := s.Clock.Now().UnixMilli()
 	permsJSON, err := json.Marshal(narrowed)
 	if err != nil {
 		return Tokens{}, err
 	}
-	accessToken, err := s.signAccessToken(row.UserID, "", workspace.ID, row.ID, row.DeviceName.String, narrowed)
+	accessToken, err := s.signAccessToken(row.UserID, row.UserName.String, workspace.ID, row.ID, row.DeviceName.String, narrowed)
 	if err != nil {
 		return Tokens{}, err
 	}
@@ -93,7 +95,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 			PreviousRefreshTokenHash: sql.NullString{String: currentHash, Valid: true},
 			RotatedAt:                sql.NullInt64{Int64: now, Valid: true},
 			LastUsedAt:               now,
-			ExpiresAt:                now + refreshIdle.Milliseconds(),
+			ExpiresAt:                sessionExpiry(row.CreatedAt, now),
 			Permissions:              permsJSON,
 			ID:                       row.ID,
 			CurrentRefreshTokenHash:  currentHash,
@@ -109,7 +111,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 			Event:       auditlog.CLISessionRefreshEvent,
 			Display:     "Refreshed CLI session " + row.ID,
 			UserID:      row.UserID,
-			UserName:    "",
+			UserName:    row.UserName.String,
 			WorkspaceID: workspace.ID,
 			SessionID:   row.ID,
 			DeviceName:  row.DeviceName.String,
@@ -130,11 +132,11 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 	return tokens, err
 }
 
-func (s *Service) refreshPreviousToken(ctx context.Context, req RefreshRequest, presented string) (Tokens, error) {
+func (s *Service) refreshPreviousToken(ctx context.Context, req RefreshRequest, presented string, family string) (Tokens, error) {
 	row, err := db.Query.FindCLISessionByPreviousRefreshTokenHash(ctx, s.DB.RW(), sql.NullString{String: presented, Valid: true})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return Tokens{}, unauthenticated("The refresh token is invalid. Run unkey login again.")
+			return Tokens{}, s.refreshOlderToken(ctx, family)
 		}
 		return Tokens{}, err
 	}
@@ -147,7 +149,32 @@ func (s *Service) refreshPreviousToken(ctx context.Context, req RefreshRequest, 
 	if err := s.endSession(ctx, row); err != nil {
 		return Tokens{}, err
 	}
-	return Tokens{}, unauthenticated("This refresh token was already used. The CLI session was revoked. Run unkey login again.")
+	return Tokens{}, reusedRefreshToken()
+}
+
+// refreshOlderToken handles a well-formed token that is neither the current
+// nor the previous one. If its family still has a live session, the token was
+// rotated away more than once, so it is reuse and the family is revoked.
+func (s *Service) refreshOlderToken(ctx context.Context, family string) error {
+	row, err := db.Query.FindUnrevokedCLISessionByRefreshFamily(ctx, s.DB.RW(), family)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return invalidRefreshToken()
+		}
+		return err
+	}
+	if err := s.endSession(ctx, row); err != nil {
+		return err
+	}
+	return reusedRefreshToken()
+}
+
+func invalidRefreshToken() error {
+	return unauthenticated("The refresh token is invalid. Run unkey login again.")
+}
+
+func reusedRefreshToken() error {
+	return unauthenticated("This refresh token was already used. The CLI session was revoked. Run unkey login again.")
 }
 
 func refreshReuseAllowed(rotatedAt sql.NullInt64, now int64) bool {

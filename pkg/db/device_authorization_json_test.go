@@ -55,6 +55,7 @@ func TestDeviceAuthorizationJSONRoundTrip(t *testing.T) {
 		ID:               sessionID,
 		WorkspaceID:      stored.WorkspaceID.String,
 		UserID:           stored.ApproverUserID.String,
+		UserName:         sql.NullString{String: "Ada", Valid: true},
 		Permissions:      sessionPermissions,
 		DeviceName:       sql.NullString{String: "laptop", Valid: true},
 		RefreshTokenHash: refreshHash,
@@ -72,7 +73,7 @@ func TestDeviceAuthorizationJSONRoundTrip(t *testing.T) {
 		PreviousRefreshTokenHash: sql.NullString{String: refreshHash, Valid: true},
 		RotatedAt:                sql.NullInt64{Int64: now, Valid: true},
 		LastUsedAt:               now,
-		ExpiresAt:                now + time.Hour.Milliseconds(),
+		ExpiresAt:                now + 2*time.Hour.Milliseconds(),
 		Permissions:              rotatedPermissions,
 		ID:                       sessionID,
 		CurrentRefreshTokenHash:  refreshHash,
@@ -83,6 +84,8 @@ func TestDeviceAuthorizationJSONRoundTrip(t *testing.T) {
 	session, err := Query.FindCLISessionByID(ctx, database.RO(), sessionID)
 	require.NoError(t, err)
 	requireJSONStrings(t, session.Permissions, []string{"api.*.read_api", "api.*.read_key"})
+	require.Equal(t, sql.NullString{String: "Ada", Valid: true}, session.UserName)
+	require.Equal(t, now+2*time.Hour.Milliseconds(), session.ExpiresAt)
 }
 
 // TestDeviceAuthorizationStatusTransitions guarantees that a consumed login
@@ -245,6 +248,41 @@ func TestRevokeCLISessionFamilyReturnsAffectedRows(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, int64(0), again)
+}
+
+// TestFindUnrevokedCLISessionByRefreshFamily guarantees that refresh reuse
+// detection finds a live session by family and ignores a revoked one.
+func TestFindUnrevokedCLISessionByRefreshFamily(t *testing.T) {
+	skipWithoutDatabase(t)
+	ctx := context.Background()
+	database := openCLILoginDB(t, containers.MySQL(t))
+	now := time.Now().UnixMilli()
+	family := uid.New(uid.TestPrefix, 20)
+
+	session := insertActiveCLISession(t, ctx, database, cliSessionFixture{
+		WorkspaceID:   uid.New(uid.WorkspacePrefix),
+		UserID:        uid.New(uid.TestPrefix),
+		RefreshFamily: family,
+		CreatedAt:     now,
+		ExpiresAt:     now + time.Hour.Milliseconds(),
+	})
+
+	found, err := Query.FindUnrevokedCLISessionByRefreshFamily(ctx, database.RW(), family)
+	require.NoError(t, err)
+	require.Equal(t, session.ID, found.ID)
+
+	_, err = Query.FindUnrevokedCLISessionByRefreshFamily(ctx, database.RW(), uid.New(uid.TestPrefix, 20))
+	require.True(t, IsNotFound(err))
+
+	revoked, err := Query.RevokeCLISessionFamily(ctx, database.RW(), RevokeCLISessionFamilyParams{
+		RevokedAt:     sql.NullInt64{Int64: now, Valid: true},
+		RefreshFamily: family,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), revoked)
+
+	_, err = Query.FindUnrevokedCLISessionByRefreshFamily(ctx, database.RW(), family)
+	require.True(t, IsNotFound(err))
 }
 
 // TestDeleteExpiredCLISessionsRemovesOnlyExpiredRows guarantees that idle

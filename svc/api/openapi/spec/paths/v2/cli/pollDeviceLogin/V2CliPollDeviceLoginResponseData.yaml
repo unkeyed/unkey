@@ -30,7 +30,7 @@ properties:
   expiresIn:
     type: integer
     format: int64
-    description: Seconds until the access token expires. Present only when status is complete.
+    description: Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
   workspaceId:
     type: string
     description: Workspace the session belongs to. Present only when status is complete.

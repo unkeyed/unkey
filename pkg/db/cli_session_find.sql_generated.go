@@ -16,6 +16,7 @@ SELECT
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -37,6 +38,7 @@ WHERE id = ?
 //	    id,
 //	    workspace_id,
 //	    user_id,
+//	    user_name,
 //	    permissions,
 //	    device_name,
 //	    refresh_token_hash,
@@ -57,6 +59,7 @@ func (q *Queries) FindCLISessionByID(ctx context.Context, db DBTX, id string) (C
 		&i.ID,
 		&i.WorkspaceID,
 		&i.UserID,
+		&i.UserName,
 		&i.Permissions,
 		&i.DeviceName,
 		&i.RefreshTokenHash,
@@ -77,6 +80,7 @@ SELECT
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -98,6 +102,7 @@ WHERE previous_refresh_token_hash = ?
 //	    id,
 //	    workspace_id,
 //	    user_id,
+//	    user_name,
 //	    permissions,
 //	    device_name,
 //	    refresh_token_hash,
@@ -118,6 +123,7 @@ func (q *Queries) FindCLISessionByPreviousRefreshTokenHash(ctx context.Context, 
 		&i.ID,
 		&i.WorkspaceID,
 		&i.UserID,
+		&i.UserName,
 		&i.Permissions,
 		&i.DeviceName,
 		&i.RefreshTokenHash,
@@ -138,6 +144,7 @@ SELECT
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -159,6 +166,7 @@ WHERE refresh_token_hash = ?
 //	    id,
 //	    workspace_id,
 //	    user_id,
+//	    user_name,
 //	    permissions,
 //	    device_name,
 //	    refresh_token_hash,
@@ -179,6 +187,75 @@ func (q *Queries) FindCLISessionByRefreshTokenHash(ctx context.Context, db DBTX,
 		&i.ID,
 		&i.WorkspaceID,
 		&i.UserID,
+		&i.UserName,
+		&i.Permissions,
+		&i.DeviceName,
+		&i.RefreshTokenHash,
+		&i.PreviousRefreshTokenHash,
+		&i.RefreshFamily,
+		&i.RotatedAt,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+	)
+	return i, err
+}
+
+const findUnrevokedCLISessionByRefreshFamily = `-- name: FindUnrevokedCLISessionByRefreshFamily :one
+SELECT
+    pk,
+    id,
+    workspace_id,
+    user_id,
+    user_name,
+    permissions,
+    device_name,
+    refresh_token_hash,
+    previous_refresh_token_hash,
+    refresh_family,
+    rotated_at,
+    created_at,
+    last_used_at,
+    expires_at,
+    revoked_at
+FROM cli_sessions
+WHERE refresh_family = ?
+  AND revoked_at IS NULL
+LIMIT 1
+`
+
+// FindUnrevokedCLISessionByRefreshFamily
+//
+//	SELECT
+//	    pk,
+//	    id,
+//	    workspace_id,
+//	    user_id,
+//	    user_name,
+//	    permissions,
+//	    device_name,
+//	    refresh_token_hash,
+//	    previous_refresh_token_hash,
+//	    refresh_family,
+//	    rotated_at,
+//	    created_at,
+//	    last_used_at,
+//	    expires_at,
+//	    revoked_at
+//	FROM cli_sessions
+//	WHERE refresh_family = ?
+//	  AND revoked_at IS NULL
+//	LIMIT 1
+func (q *Queries) FindUnrevokedCLISessionByRefreshFamily(ctx context.Context, db DBTX, refreshFamily string) (CliSession, error) {
+	row := db.QueryRowContext(ctx, findUnrevokedCLISessionByRefreshFamily, refreshFamily)
+	var i CliSession
+	err := row.Scan(
+		&i.Pk,
+		&i.ID,
+		&i.WorkspaceID,
+		&i.UserID,
+		&i.UserName,
 		&i.Permissions,
 		&i.DeviceName,
 		&i.RefreshTokenHash,
@@ -199,6 +276,7 @@ SELECT
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -231,6 +309,7 @@ type ListCLISessionsByUserParams struct {
 //	    id,
 //	    workspace_id,
 //	    user_id,
+//	    user_name,
 //	    permissions,
 //	    device_name,
 //	    refresh_token_hash,
@@ -262,6 +341,7 @@ func (q *Queries) ListCLISessionsByUser(ctx context.Context, db DBTX, arg ListCL
 			&i.ID,
 			&i.WorkspaceID,
 			&i.UserID,
+			&i.UserName,
 			&i.Permissions,
 			&i.DeviceName,
 			&i.RefreshTokenHash,
@@ -292,6 +372,7 @@ SELECT
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -322,6 +403,7 @@ type ListCLISessionsByWorkspaceParams struct {
 //	    id,
 //	    workspace_id,
 //	    user_id,
+//	    user_name,
 //	    permissions,
 //	    device_name,
 //	    refresh_token_hash,
@@ -352,6 +434,7 @@ func (q *Queries) ListCLISessionsByWorkspace(ctx context.Context, db DBTX, arg L
 			&i.ID,
 			&i.WorkspaceID,
 			&i.UserID,
+			&i.UserName,
 			&i.Permissions,
 			&i.DeviceName,
 			&i.RefreshTokenHash,
