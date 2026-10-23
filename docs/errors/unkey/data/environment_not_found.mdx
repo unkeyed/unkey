@@ -33,7 +33,7 @@ The <Tooltip tip="A production or preview environment of a Compute app, not the 
 
 - The environment slug is wrong.
 - The project or app slug is wrong. That's also reported as a missing environment. On `deployments.createDeployment` the message says so: `The requested project, app, or environment does not exist.`
-- Your root key doesn't have permission on the environment. `environments.getEnvironment` and `domains.createDomain` return this 404 instead of a 403.
+- Your root key can't read the environment. `environments.getEnvironment`, `domains.createDomain`, and `deployments.createDeployment` return this 404 instead of a 403. A key that can read the environment but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 
 ## How to fix
 

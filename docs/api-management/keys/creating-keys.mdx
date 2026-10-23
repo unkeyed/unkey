@@ -21,7 +21,7 @@ Create a key with `keys.createKey`. The only required field is the keyspace's AP
 
 <RootKeyPrereq />
 
-The root key needs `api.*.create_key` or `api.<api_id>.create_key`. Creating a recoverable key also needs `api.*.encrypt_key` or `api.<api_id>.encrypt_key`. Without it you get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), not a permission error, so a missing grant looks like a missing API. See [Root key permissions](/platform/root-keys/permissions).
+The root key needs `api.*.create_key` or `api.<api_id>.create_key`. Creating a recoverable key also needs `api.*.encrypt_key` or `api.<api_id>.encrypt_key`. Without it you get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), not a permission error, so a missing grant looks like a missing API. If the root key can read the keyspace, you get HTTP 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) naming the missing permission instead. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Request fields
 
@@ -74,7 +74,7 @@ The root key needs `api.*.create_key` or `api.<api_id>.create_key`. Creating a r
 </ParamField>
 
 <ParamField body="recoverable" type="boolean" default="false">
-  Store an encrypted copy of the key so `keys.getKey` and `apis.listKeys` can show it later with `decrypt: true`. If the keyspace doesn't have encrypted storage turned on, you get HTTP 412 [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed). If the root key lacks the encrypt permission, you get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found). See [Recoverable keys](/api-management/keys/recoverable-keys).
+  Store an encrypted copy of the key so `keys.getKey` and `apis.listKeys` can show it later with `decrypt: true`. If the keyspace doesn't have encrypted storage turned on, you get HTTP 412 [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed). If the root key lacks the encrypt permission, you get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), or HTTP 403 naming the missing permission if it can read the keyspace. See [Recoverable keys](/api-management/keys/recoverable-keys).
 </ParamField>
 
 ## Example

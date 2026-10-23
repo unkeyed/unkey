@@ -86,7 +86,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`portal.*.update_portal` or `portal.<portalId>.update_portal`. Without it you get a 404, as if the portal didn't exist. Pointing the portal at a new resource also needs read on it: `api.*.read_api` or `api.<apiId>.read_api` for a keyspace, `app.*.read_app` or `app.<appId>.read_app` for an app. Without that, the call fails with 403 and "You do not have permission to point a portal at that resource." See [Root key permissions](/platform/root-keys/permissions).
+`portal.*.update_portal` or `portal.<portalId>.update_portal`. Without it you get a 404, as if the portal didn't exist. If your key can read the portal, you get a 403 that names the missing permission instead. Pointing the portal at a new resource also needs read on it: `api.*.read_api` or `api.<apiId>.read_api` for a keyspace, `app.*.read_app` or `app.<appId>.read_app` for an app. Without that, the call fails with 403 and "You do not have permission to point a portal at that resource." See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 
