@@ -132,6 +132,20 @@ var (
 		[]string{"resource"},
 	)
 
+	// CacheOperationDuration measures how long Get, SWR, and SWRWithFallback
+	// take, from the call until the value is returned. A miss includes the
+	// origin read the caller waits for.
+	CacheOperationDuration = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "operation_duration_seconds",
+			Help:      "Duration of cache reads by resource type, operation (get, swr, swr_fallback), and status (fresh, stale, miss).",
+			Buckets:   prometheus.ExponentialBuckets(0.000001, 4, 12),
+		},
+		[]string{"resource", "operation", "status"},
+	)
+
 	CacheRevalidationDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
