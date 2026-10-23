@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -75,7 +76,7 @@ func TestRollbackDeploymentLegacyReadDoesNotReveal(t *testing.T) {
 	require.NotContains(t, res.RawBody, dep.ID)
 }
 
-func TestRollbackDeploymentEnvironmentReaderIsForbidden(t *testing.T) {
+func TestRollbackDeploymentReadVisibility(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
@@ -83,8 +84,6 @@ func TestRollbackDeploymentEnvironmentReaderIsForbidden(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{},
 	})
-	rootKey := h.CreateRootKey(setup.Workspace.ID, environmentRead(setup))
-
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
 		WorkspaceID:   setup.Workspace.ID,
@@ -93,10 +92,26 @@ func TestRollbackDeploymentEnvironmentReaderIsForbidden(t *testing.T) {
 		EnvironmentID: setup.Environment.ID,
 	})
 
-	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: dep.ID})
-	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "rollback_deployment")
-	require.Contains(t, res.Body.Error.Detail, "Log in again")
+	for _, tc := range []struct {
+		name   string
+		grant  string
+		status int
+	}{
+		{"environment read", environmentRead(setup), http.StatusNotFound},
+		{"deployment read", strings.TrimSuffix(environmentRead(setup), "#read") + "/deployments/" + dep.ID + "#read", http.StatusForbidden},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rootKey := h.CreateRootKey(setup.Workspace.ID, tc.grant)
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: dep.ID})
+			require.Equal(t, tc.status, res.Status, "%s", res.RawBody)
+			if tc.status == http.StatusNotFound {
+				missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: uid.New(uid.DeploymentPrefix)})
+				require.Equal(t, missing.Body.Error, res.Body.Error)
+			} else {
+				require.Contains(t, res.Body.Error.Detail, "rollback_deployment")
+			}
+		})
+	}
 }
 
 // A deployment in another workspace must be indistinguishable from one that does
