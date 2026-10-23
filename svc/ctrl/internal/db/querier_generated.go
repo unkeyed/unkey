@@ -302,6 +302,14 @@ type Querier interface {
 	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
 	//  WHERE d.id = ?
 	DeleteCustomDomainByID(ctx context.Context, id string) error
+	//DeleteCustomDomainsByAppId
+	//
+	//  DELETE d, c, cert
+	//  FROM custom_domains d
+	//  LEFT JOIN acme_challenges c ON c.domain_id = d.id
+	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
+	//  WHERE d.app_id = ?
+	DeleteCustomDomainsByAppId(ctx context.Context, appID string) error
 	//DeleteCustomDomainsByEnvironmentId
 	//
 	//  DELETE d, c, cert
@@ -398,6 +406,10 @@ type Querier interface {
 	//  WHERE fully_qualified_domain_name = ?
 	//    AND project_id = ?
 	DeleteFrontlineRouteByFQDNAndProject(ctx context.Context, arg DeleteFrontlineRouteByFQDNAndProjectParams) error
+	//DeleteFrontlineRoutesByAppId
+	//
+	//  DELETE FROM frontline_routes WHERE app_id = ?
+	DeleteFrontlineRoutesByAppId(ctx context.Context, appID string) error
 	//DeleteFrontlineRoutesByEnvironmentId
 	//
 	//  DELETE FROM frontline_routes WHERE environment_id = ?
