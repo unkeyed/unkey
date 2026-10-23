@@ -60,7 +60,7 @@ type ProductionCardModel =
       undoDialog: { open: boolean; close: () => void } | null;
     };
 
-export function AppProductionCard({ children }: { children: ReactNode }) {
+export function ProductionOverview({ children }: { children: ReactNode }) {
   const { gated, openPaywall, planGate } = useDeployActionGate();
   return (
     <>
@@ -287,107 +287,79 @@ function AppProductionCardView({
   model: ProductionCardModel;
   children: ReactNode;
 }) {
-  const reduceMotion = useReducedMotion();
-  return match(model)
-    .with({ kind: "loading" }, () => (
-      <>
-        <OverviewHeader />
-        <OverviewBody card={<AppProductionCardSkeleton />}>{children}</OverviewBody>
-      </>
-    ))
-    .with({ kind: "no-deployments" }, () => (
-      <>
-        <OverviewHeader />
-        <PageBody>
-          <CreateDeploymentButton
-            renderTrigger={({ onClick }) => (
-              <ActiveDeploymentCardEmpty onCreateDeployment={onClick} />
-            )}
-          />
-        </PageBody>
-      </>
-    ))
-    .with({ kind: "no-production" }, () => (
-      <>
-        <OverviewHeader />
-        <OverviewBody
-          card={
-            <CreateDeploymentButton
-              renderTrigger={({ onClick }) => (
-                <ActiveDeploymentCardEmpty
-                  onCreateDeployment={onClick}
-                  title="No production deployment yet"
-                  description="This app hasn't been deployed to production. Deploy to production to make it live."
-                />
-              )}
-            />
-          }
-        >
-          {children}
-        </OverviewBody>
-      </>
-    ))
-    .with({ kind: "deployed" }, ({ card, newer, rollbackDialog, undoDialog }) => (
-      <ProductionCardProvider value={card}>
-        <OverviewHeader actions={<ProductionActions />} />
-        <OverviewBody
-          card={
-            <div className="relative">
-              {card.isRolledBack && <ProductionCardRollbackBanner />}
-              <Card className="relative z-10 flex flex-col">
-                <AppCanvas />
-                <AnimatePresence initial={false} mode="wait">
-                  {newer && (
-                    <motion.div
-                      key={newer.deployment.id}
-                      className="overflow-hidden"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={
-                        reduceMotion
-                          ? { duration: 0 }
-                          : { duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }
-                      }
-                    >
-                      <NewerDeploymentRow {...newer} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Card>
-            </div>
-          }
-        >
-          {children}
-        </OverviewBody>
-        {rollbackDialog && (
-          <RollbackDialog
-            isOpen
-            onClose={rollbackDialog.close}
-            targetDeployment={rollbackDialog.target}
-            currentDeployment={card.deployment}
-          />
-        )}
-        {undoDialog && (
-          <UndoRollbackDialog
-            isOpen={undoDialog.open}
-            onClose={undoDialog.close}
-            deployments={card.undoCandidates}
-            currentDeploymentId={card.deployment.id}
-          />
-        )}
-      </ProductionCardProvider>
-    ))
-    .exhaustive();
+  const deployed = model.kind === "deployed" ? model : null;
+  return (
+    <ProductionCardProvider value={deployed?.card ?? null}>
+      <OverviewHeader actions={deployed ? <ProductionActions /> : undefined} />
+      <PageBody>
+        <div className="flex flex-col gap-5">
+          <ProductionCardSlot model={model} />
+          {model.kind !== "no-deployments" && children}
+        </div>
+      </PageBody>
+      {deployed?.rollbackDialog && (
+        <RollbackDialog
+          isOpen
+          onClose={deployed.rollbackDialog.close}
+          targetDeployment={deployed.rollbackDialog.target}
+          currentDeployment={deployed.card.deployment}
+        />
+      )}
+      {deployed?.undoDialog && (
+        <UndoRollbackDialog
+          isOpen={deployed.undoDialog.open}
+          onClose={deployed.undoDialog.close}
+          deployments={deployed.card.undoCandidates}
+          currentDeploymentId={deployed.card.deployment.id}
+        />
+      )}
+    </ProductionCardProvider>
+  );
 }
 
-function OverviewBody({ card, children }: { card: ReactNode; children: ReactNode }) {
-  return (
-    <PageBody>
-      <div className="flex flex-col gap-5">
-        {card}
-        {children}
+function ProductionCardSlot({ model }: { model: ProductionCardModel }) {
+  const reduceMotion = useReducedMotion();
+  return match(model)
+    .with({ kind: "loading" }, () => <AppProductionCardSkeleton />)
+    .with({ kind: "no-deployments" }, () => (
+      <CreateDeploymentButton
+        renderTrigger={({ onClick }) => <ActiveDeploymentCardEmpty onCreateDeployment={onClick} />}
+      />
+    ))
+    .with({ kind: "no-production" }, () => (
+      <CreateDeploymentButton
+        renderTrigger={({ onClick }) => (
+          <ActiveDeploymentCardEmpty
+            onCreateDeployment={onClick}
+            title="No production deployment yet"
+            description="This app hasn't been deployed to production. Deploy to production to make it live."
+          />
+        )}
+      />
+    ))
+    .with({ kind: "deployed" }, ({ card, newer }) => (
+      <div className="relative">
+        {card.isRolledBack && <ProductionCardRollbackBanner />}
+        <Card className="relative z-10 flex flex-col">
+          <AppCanvas />
+          <AnimatePresence initial={false} mode="wait">
+            {newer && (
+              <motion.div
+                key={newer.deployment.id}
+                className="overflow-hidden"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={
+                  reduceMotion ? { duration: 0 } : { duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }
+                }
+              >
+                <NewerDeploymentRow {...newer} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
       </div>
-    </PageBody>
-  );
+    ))
+    .exhaustive();
 }

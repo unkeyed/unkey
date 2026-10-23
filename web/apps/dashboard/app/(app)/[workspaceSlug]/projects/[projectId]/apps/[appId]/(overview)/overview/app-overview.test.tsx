@@ -52,10 +52,7 @@ vi.mock("./components/active-branches", () => ({
   ActiveBranches: () => <h2>Active Branches</h2>,
 }));
 vi.mock("./components/app-production-card", () => ({
-  AppProductionCard: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-vi.mock("../navigations/create-deployment-button", () => ({
-  CreateDeploymentButton: () => <button type="button">Create deployment</button>,
+  ProductionOverview: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 vi.mock("../deployments/components/deployment-row", () => ({
   DeploymentRow: ({ deployment, href }: ComponentProps<typeof DeploymentRow>) => (

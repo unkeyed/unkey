@@ -8,11 +8,15 @@ import type { ReactNode } from "react";
 
 export type NodeTone = "default" | "error";
 
-const NODE_TONE: Record<NodeTone, string> = {
-  default:
-    "bg-raised shadow-xs ring-1 ring-grayA-4 hover:ring-gray-10 hover:shadow-[0_0_0_3px_var(--color-grayA-3)]",
-  error:
-    "bg-error-2 shadow-xs ring-1 ring-error-6 hover:ring-error-9 hover:shadow-[0_0_0_3px_var(--color-errorA-3)]",
+const NODE_TONE: Record<NodeTone, { base: string; linkHover: string }> = {
+  default: {
+    base: "bg-raised shadow-xs ring-1 ring-grayA-4",
+    linkHover: "hover:ring-gray-10 hover:shadow-[0_0_0_3px_var(--color-grayA-3)]",
+  },
+  error: {
+    base: "bg-error-2 shadow-xs ring-1 ring-error-6",
+    linkHover: "hover:ring-error-9 hover:shadow-[0_0_0_3px_var(--color-errorA-3)]",
+  },
 };
 
 export function Node({
@@ -28,7 +32,8 @@ export function Node({
     <div
       className={cn(
         "relative flex min-w-0 flex-col overflow-hidden rounded-lg transition-shadow",
-        NODE_TONE[tone],
+        NODE_TONE[tone].base,
+        link && NODE_TONE[tone].linkHover,
       )}
     >
       {link && (
