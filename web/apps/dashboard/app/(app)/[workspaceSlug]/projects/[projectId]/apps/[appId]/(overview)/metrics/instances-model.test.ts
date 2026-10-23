@@ -10,7 +10,6 @@ import { describe, expect, it } from "vitest";
 import {
   instanceChart,
   instanceSrLabel,
-  instanceStatusText,
   instancesTabView,
   percentOfLimit,
 } from "./instances-model";
@@ -149,7 +148,7 @@ describe("instance tones and instanceSrLabel", () => {
   });
 
   it("shows the crash, then the previous deploy, then the state as row status", () => {
-    const [crashed, , current, old] = view().rows.map((r) => instanceStatusText(r.instance));
+    const [crashed, , current, old] = view().rows.map((r) => r.instance.statusText);
     expect([crashed, current, old]).toEqual([
       "CrashLoopBackOff · 7 restarts",
       "Running",

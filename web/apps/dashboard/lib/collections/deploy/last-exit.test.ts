@@ -182,7 +182,7 @@ describe("exitSummary", () => {
     expect(exitSummary(exit({ reason: "", exitCode: 1, restartCount: 2 }))).toBe(
       "Error · exit=1 · 2 restarts",
     );
-    expect(exitSummary(exit({ exitCode: 0 }))).toBe("Exited");
+    expect(exitSummary(exit({ exitCode: 0 }))).toBe("Completed");
   });
 });
 
@@ -190,7 +190,7 @@ describe("exitDetail", () => {
   test("adds the termination behind a waiting badge", () => {
     expect(
       exitDetail(exit({ statusReason: "CrashLoopBackOff", reason: "Error", exitCode: 1 })),
-    ).toBe("Error · exit code 1");
+    ).toBe("Error · exit=1");
   });
 
   test("adds nothing the badge already shows", () => {
@@ -199,6 +199,6 @@ describe("exitDetail", () => {
   });
 
   test("shows a zero exit code the badge hides", () => {
-    expect(exitDetail(exit({ reason: "Completed", exitCode: 0 }))).toBe("exit code 0");
+    expect(exitDetail(exit({ reason: "Completed", exitCode: 0 }))).toBe("exit=0");
   });
 });

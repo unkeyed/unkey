@@ -58,27 +58,26 @@ export function instanceSrLabel({ state, role }: RoleState): string {
   return [instanceLabel[state], ROLE_COPY[role].sr].filter(Boolean).join(", ");
 }
 
-export function instanceStatusText(instance: InstanceView): string {
-  return instance.crash || ROLE_COPY[instance.role].status || instanceLabel[instance.state];
-}
-
 export type InstanceView = InstanceRow & {
   key: string;
   state: InstanceState;
   tone: LineTone;
   crash: string | null;
+  statusText: string;
 };
 
 function instanceViews(instances: InstanceRow[]): InstanceView[] {
   return instances.map((row) => {
     const state = instanceStateOf(row);
     const tone = lineToneOf({ state, role: row.role });
+    const crash = tone === "unhealthy" && row.lastExit ? exitSummary(row.lastExit) : null;
     return {
       ...row,
       key: row.replica.k8sName,
       state,
       tone,
-      crash: tone === "unhealthy" && row.lastExit ? exitSummary(row.lastExit) : null,
+      crash,
+      statusText: crash || ROLE_COPY[row.role].status || instanceLabel[state],
     };
   });
 }

@@ -15,7 +15,7 @@ export function exitBadge(lastExit: LastExit): ExitBadge {
   const { exitCode } = lastExit;
   return {
     kind: "exit",
-    reason: lastExit.reason || (exitCode === 0 ? "Exited" : "Error"),
+    reason: lastExit.reason || (exitCode === 0 ? "Completed" : "Error"),
     exit: exitCode !== null && exitCode !== 0 ? `exit=${exitCode}` : null,
   };
 }
@@ -39,7 +39,10 @@ export function lastExitOf(containerStatus: ContainerStatus | null): LastExit | 
 
 export function exitSummary(lastExit: LastExit): string {
   const badge = exitBadge(lastExit);
-  const cause = badge.kind === "waiting" ? [badge.reason] : [badge.reason, badge.exit];
+  const cause = match(badge)
+    .with({ kind: "waiting" }, ({ reason }) => [reason])
+    .with({ kind: "exit" }, ({ reason, exit }) => [reason, exit])
+    .exhaustive();
   const restarts = lastExit.restartCount > 0 ? plural(lastExit.restartCount, "restart") : null;
   return [...cause, restarts].filter(Boolean).join(" · ");
 }
@@ -70,13 +73,11 @@ function outranks(a: LastExit, b: LastExit): boolean {
   return atA > atB || (atA === atB && a.restartCount > b.restartCount);
 }
 
-// What the badge leaves out: the termination behind a waiting reason, or a
-// zero exit code
 export function exitDetail(lastExit: LastExit): string | null {
   const { reason, exitCode } = lastExit;
   const parts = match(exitBadge(lastExit))
-    .with({ kind: "waiting" }, () => [reason, exitCode !== null ? `exit code ${exitCode}` : null])
-    .with({ kind: "exit" }, () => [exitCode === 0 ? "exit code 0" : null])
+    .with({ kind: "waiting" }, () => [reason, exitCode !== null ? `exit=${exitCode}` : null])
+    .with({ kind: "exit" }, () => [exitCode === 0 ? "exit=0" : null])
     .exhaustive();
   return parts.filter(Boolean).join(" · ") || null;
 }
