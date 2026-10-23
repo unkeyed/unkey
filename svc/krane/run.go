@@ -172,11 +172,12 @@ func Run(ctx context.Context, cfg Config) error {
 	// Cache for deduplicating deployment status reports. Entries auto-expire
 	// so deleted workloads don't leak memory.
 	fingerprintCache, err := cache.New(cache.Config[string, string]{
-		Fresh:    5 * time.Minute,
-		Stale:    10 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "deployment_fingerprints",
-		Clock:    clock.New(),
+		Fresh:     5 * time.Minute,
+		Stale:     10 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "deployment_fingerprints",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
@@ -188,11 +189,12 @@ func Run(ctx context.Context, cfg Config) error {
 	// is visible on every pod-watch tick until kubelet GCs the pod, so
 	// dedup must outlive the eviction grace period to be useful.
 	instanceEventDedupCache, err := cache.New(cache.Config[string, struct{}]{
-		Fresh:    1 * time.Hour,
-		Stale:    2 * time.Hour,
-		MaxSize:  100_000,
-		Resource: "instance_event_dedup",
-		Clock:    clock.New(),
+		Fresh:     1 * time.Hour,
+		Stale:     2 * time.Hour,
+		MaxSize:   100_000,
+		Resource:  "instance_event_dedup",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create instance event dedup cache: %w", err)
@@ -203,11 +205,12 @@ func Run(ctx context.Context, cfg Config) error {
 	// transition time). Entries auto-expire so deleted pods don't
 	// leak memory.
 	deploymentTransitionsCache, err := cache.New(cache.Config[string, time.Time]{
-		Fresh:    5 * time.Minute,
-		Stale:    15 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "deployment_pod_transitions",
-		Clock:    clock.New(),
+		Fresh:     5 * time.Minute,
+		Stale:     15 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "deployment_pod_transitions",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deployment transitions cache: %w", err)

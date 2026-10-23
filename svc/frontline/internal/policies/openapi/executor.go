@@ -26,11 +26,12 @@ type Executor struct {
 
 func New(clk clock.Clock) (*Executor, error) {
 	c, err := cache.New(cache.Config[string, *compiledSpec]{
-		Fresh:    time.Hour,
-		Stale:    24 * time.Hour,
-		MaxSize:  64,
-		Resource: "openapi_validators",
-		Clock:    clk,
+		Fresh:     time.Hour,
+		Stale:     24 * time.Hour,
+		MaxSize:   64,
+		Resource:  "openapi_validators",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, err

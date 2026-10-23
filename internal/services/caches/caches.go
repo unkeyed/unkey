@@ -81,99 +81,108 @@ type Config struct {
 // and resource names for tracing.
 func New(config Config) (Caches, error) {
 	ratelimitNamespace, err := cache.New(cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
-		Fresh:    time.Minute,
-		Stale:    24 * time.Hour,
-		MaxSize:  1_000_000,
-		Resource: "ratelimit_namespace",
-		Clock:    config.Clock,
+		Fresh:     time.Minute,
+		Stale:     24 * time.Hour,
+		MaxSize:   1_000_000,
+		Resource:  "ratelimit_namespace",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return Caches{}, err
 	}
 
 	verificationKeyByHash, err := cache.New(cache.Config[string, keysdb.CachedKeyData]{
-		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
-		MaxSize:  1_000_000,
-		Resource: "verification_key_by_hash",
-		Clock:    config.Clock,
+		Fresh:     10 * time.Second,
+		Stale:     10 * time.Minute,
+		MaxSize:   1_000_000,
+		Resource:  "verification_key_by_hash",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return Caches{}, err
 	}
 
 	rootKeyByHash, err := cache.New(cache.Config[string, keysdb.CachedRootKeyData]{
-		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
-		MaxSize:  1_000_000,
-		Resource: "root_key_by_hash",
-		Clock:    config.Clock,
+		Fresh:     10 * time.Second,
+		Stale:     10 * time.Minute,
+		MaxSize:   1_000_000,
+		Resource:  "root_key_by_hash",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return Caches{}, err
 	}
 
 	liveApiByID, err := cache.New(cache.Config[cache.ScopedKey, db.FindLiveApiByIDRow]{
-		Fresh:    10 * time.Second,
-		Stale:    24 * time.Hour,
-		MaxSize:  1_000_000,
-		Resource: "live_api_by_id",
-		Clock:    config.Clock,
+		Fresh:     10 * time.Second,
+		Stale:     24 * time.Hour,
+		MaxSize:   1_000_000,
+		Resource:  "live_api_by_id",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return Caches{}, err
 	}
 
 	clickhouseSetting, err := cache.New(cache.Config[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]{
-		Fresh:    time.Minute,
-		Stale:    24 * time.Hour,
-		MaxSize:  1_000_000,
-		Resource: "clickhouse_setting",
-		Clock:    config.Clock,
+		Fresh:     time.Minute,
+		Stale:     24 * time.Hour,
+		MaxSize:   1_000_000,
+		Resource:  "clickhouse_setting",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return Caches{}, err
 	}
 
 	apiToKeyAuthRow, err := cache.New(cache.Config[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{
-		Fresh:    10 * time.Minute,
-		Stale:    24 * time.Hour,
-		MaxSize:  1_000_000,
-		Resource: "api_to_key_auth_row",
-		Clock:    config.Clock,
+		Fresh:     10 * time.Minute,
+		Stale:     24 * time.Hour,
+		MaxSize:   1_000_000,
+		Resource:  "api_to_key_auth_row",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return Caches{}, err
 	}
 
 	workspaceLimits, err := cache.New(cache.Config[string, keysdb.Limit]{
-		Fresh:    time.Minute,
-		Stale:    24 * time.Hour,
-		MaxSize:  100_000,
-		Resource: "workspace_limits",
-		Clock:    config.Clock,
+		Fresh:     time.Minute,
+		Stale:     24 * time.Hour,
+		MaxSize:   100_000,
+		Resource:  "workspace_limits",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return Caches{}, err
 	}
 
 	portalSession, err := cache.New(cache.Config[string, db.PortalSession]{
-		Fresh:    10 * time.Second,
-		Stale:    5 * time.Minute,
-		MaxSize:  100_000,
-		Resource: "portal_session",
-		Clock:    config.Clock,
+		Fresh:     10 * time.Second,
+		Stale:     5 * time.Minute,
+		MaxSize:   100_000,
+		Resource:  "portal_session",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return Caches{}, err
 	}
 
 	workspaceByOrgID, err := cache.New(cache.Config[string, db.Workspace]{
-		Fresh:    10 * time.Second,
-		Stale:    24 * time.Hour,
-		MaxSize:  100_000,
-		Resource: "workspace_by_org_id",
-		Clock:    config.Clock,
+		Fresh:     10 * time.Second,
+		Stale:     24 * time.Hour,
+		MaxSize:   100_000,
+		Resource:  "workspace_by_org_id",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return Caches{}, err

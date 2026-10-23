@@ -21,22 +21,24 @@ type keyFetchResult struct {
 // The supplied clock must be non-nil. Call Close at shutdown.
 func New(keysURL string, clk clock.Clock) (*Verifier, error) {
 	keys, err := cache.New(cache.Config[string, map[string]*ecdsa.PublicKey]{
-		Fresh:    time.Hour,
-		Stale:    24 * time.Hour,
-		MaxSize:  10,
-		Resource: "github_secret_scanning_keys",
-		Clock:    clk,
+		Fresh:     time.Hour,
+		Stale:     24 * time.Hour,
+		MaxSize:   10,
+		Resource:  "github_secret_scanning_keys",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	fetchResults, err := cache.New(cache.Config[string, keyFetchResult]{
-		Fresh:    time.Minute,
-		Stale:    time.Minute,
-		MaxSize:  10,
-		Resource: "github_secret_scanning_key_fetches",
-		Clock:    clk,
+		Fresh:     time.Minute,
+		Stale:     time.Minute,
+		MaxSize:   10,
+		Resource:  "github_secret_scanning_key_fetches",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		keys.Close()
