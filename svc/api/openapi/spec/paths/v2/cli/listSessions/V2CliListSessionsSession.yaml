@@ -26,6 +26,7 @@ properties:
   expiresAt:
     type: integer
     format: int64
+    description: Unix millisecond time the session expires. Each refresh moves it to 7 days later, but never past 30 days after createdAt.
   revokedAt:
     type: integer
     format: int64
