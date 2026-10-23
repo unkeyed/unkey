@@ -1,7 +1,4 @@
-import {
-  type DeploymentStatus,
-  isDeploymentInFlight,
-} from "@/lib/collections/deploy/deployment-status";
+import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useMemo, useState } from "react";
 import { toBuildLogLines } from "../(deployment-progress)/build-logs/build-log-lines";
@@ -14,25 +11,18 @@ import {
   followFailedStage,
   followRequestedStage,
   initialOpenStage,
+  isPrebuilt,
   resolveStages,
   toggleStage,
 } from "./stages-model";
 import { type TickerSources, stageTickerLine } from "./ticker-model";
 
 const TICK_MS = 500;
-const STOPPED_STATUSES: ReadonlySet<DeploymentStatus> = new Set(["cancelled", "superseded"]);
 const DEPLOYING_LOGS_POLL_MS = 2_000;
 
 export type StagesCardPage = Pick<
   DeploymentPage,
-  | "deployment"
-  | "steps"
-  | "status"
-  | "instances"
-  | "domains"
-  | "domainCount"
-  | "requestedStage"
-  | "clearRequestedStage"
+  "deployment" | "steps" | "status" | "instances" | "domains" | "domainCount" | "requestedStage"
 >;
 
 export function useStagesCard({
@@ -42,7 +32,6 @@ export function useStagesCard({
   instances,
   domainCount,
   requestedStage,
-  clearRequestedStage,
 }: StagesCardPage) {
   const inFlight = isDeploymentInFlight(status);
   const now = useTickingNow(inFlight);
@@ -50,15 +39,13 @@ export function useStagesCard({
     steps,
     now,
     status,
-    isPrebuilt: deployment.source === "oci",
+    isPrebuilt: isPrebuilt(deployment),
     instances,
     desiredState: deployment.desiredState,
     domainCount,
   });
 
-  const failedStage = STOPPED_STATUSES.has(status)
-    ? null
-    : (stages.find((s) => s.resolution.status === "error")?.key ?? null);
+  const failedStage = stages.find((s) => s.resolution.status === "error")?.key ?? null;
   const [openStage, setOpenStage] = useState<OpenStage>(() =>
     initialOpenStage({ failed: failedStage, requested: requestedStage }),
   );
@@ -69,11 +56,6 @@ export function useStagesCard({
   const isOpen = (stage: Stage) => stage.expandable && followed.open === stage.key;
   const scrollTarget =
     requestedStage !== null && followed.open === requestedStage ? requestedStage : null;
-  useEffect(() => {
-    if (requestedStage) {
-      clearRequestedStage();
-    }
-  }, [requestedStage, clearRequestedStage]);
   const toggle = (key: StageKey) => setOpenStage((state) => toggleStage(state, key));
 
   const deploying = steps?.deploying;

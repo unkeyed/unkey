@@ -13,9 +13,26 @@ import {
   summarizeInstances,
 } from "@/lib/collections/deploy/instance-status";
 import { type DomainPriorityResult, getDomainPriority } from "../../../components/domain-priority";
-import type { StageKey } from "./details/stages-model";
+import { type StageKey, isPrebuilt } from "./details/stages-model";
 
 export type DeploymentBody = "skipped" | "superseded" | "cancelled" | "stages";
+
+export type BuildRequest = "none" | "seen" | "active";
+
+export function buildRequestOf({
+  inUrl,
+  seenOnPage,
+  stepsSettled,
+}: {
+  inUrl: boolean;
+  seenOnPage: boolean;
+  stepsSettled: boolean;
+}): BuildRequest {
+  if (inUrl && stepsSettled) {
+    return "active";
+  }
+  return seenOnPage ? "seen" : "none";
+}
 
 export type DeploymentPageInput = {
   deployment: Pick<
@@ -23,8 +40,7 @@ export type DeploymentPageInput = {
     "id" | "environmentId" | "instances" | "targetRegions" | "desiredState" | "source"
   >;
   status: DeploymentStatus;
-  buildRequested: boolean;
-  buildRequestedOnPage: boolean;
+  buildRequest: BuildRequest;
   domains: ReadonlyArray<Domain>;
   domainsLoading: boolean;
   customDomains: ReadonlyArray<CustomDomain>;
@@ -50,15 +66,14 @@ export type DeploymentPageModel = {
 export function deploymentPageModel({
   deployment,
   status,
-  buildRequested,
-  buildRequestedOnPage,
+  buildRequest,
   domains,
   domainsLoading,
   customDomains,
   currentDeploymentId,
 }: DeploymentPageInput): DeploymentPageModel {
   const instances = summarizeInstances(deployment);
-  const hasBuildLogs = deployment.source !== "oci";
+  const hasBuildLogs = !isPrebuilt(deployment);
   const domainPriority = getDomainPriority({
     domains,
     customDomains,
@@ -68,8 +83,9 @@ export function deploymentPageModel({
   });
   return {
     status,
-    body: hasBuildLogs && buildRequestedOnPage ? BODY_WITH_BUILD[status] : BODY_BY_STATUS[status],
-    requestedStage: hasBuildLogs && buildRequested ? "build" : null,
+    body:
+      hasBuildLogs && buildRequest !== "none" ? BODY_WITH_BUILD[status] : BODY_BY_STATUS[status],
+    requestedStage: hasBuildLogs && buildRequest === "active" ? "build" : null,
     instances,
     pageStatus: resolvePageStatus(status, instances),
     domains: domainPriority,

@@ -41,6 +41,10 @@ type StageBase = { label: string; resolution: StepResolution };
 
 export type Stage = StageBase & { key: StageKey; expandable: boolean };
 
+export function isPrebuilt(deployment: Pick<Deployment, "source">): boolean {
+  return deployment.source === "oci";
+}
+
 export type StagesInput = {
   steps: StepsData | undefined;
   now: number;
@@ -62,11 +66,12 @@ export function resolveStages({
 }: StagesInput): Stage[] {
   const { building, deploying, network } = steps ?? {};
   const isFailed = status === "failed";
+  const isStopped = status === "cancelled" || status === "superseded";
   const isSettled = status === "ready" || status === "stopped";
 
   const build = resolveStep(
     building,
-    { now, isFailed, implicitlyComplete: isPrebuilt || isSettled },
+    { now, isFailed, isStopped, implicitlyComplete: isPrebuilt || isSettled },
     {
       completed: isPrebuilt ? "Image was prebuilt" : "Build complete",
       inProgress: "Building",
@@ -75,7 +80,7 @@ export function resolveStages({
   );
   const instancesStep = resolveStep(
     deploying,
-    { now, isFailed, implicitlyComplete: isSettled },
+    { now, isFailed, isStopped, implicitlyComplete: isSettled },
     {
       completed: instancesText(instances, desiredState),
       inProgress: "Starting instances",
@@ -84,7 +89,7 @@ export function resolveStages({
   );
   const domains = resolveStep(
     network,
-    { now, isFailed, implicitlyComplete: isSettled },
+    { now, isFailed, isStopped, implicitlyComplete: isSettled },
     {
       completed:
         domainCount === null ? "Assigning domains" : `${plural(domainCount, "domain")} assigned`,
@@ -115,24 +120,28 @@ function resolveStep(
   {
     now,
     isFailed,
+    isStopped,
     implicitlyComplete,
-  }: { now: number; isFailed: boolean; implicitlyComplete: boolean },
+  }: { now: number; isFailed: boolean; isStopped: boolean; implicitlyComplete: boolean },
   messages: StepMessages,
 ): StepResolution {
   if (!step) {
     if (implicitlyComplete) {
       return { status: "completed", description: messages.completed, duration: undefined };
     }
-    return isFailed
+    return isFailed || isStopped
       ? { status: "skipped", description: "Skipped", duration: undefined }
       : { status: "pending", description: messages.waiting, duration: undefined };
   }
   const duration = (step.endedAt ?? now) - step.startedAt;
-  if (step.error) {
+  if (step.error && !isStopped) {
     return { status: "error", description: step.error, duration };
   }
-  return step.completed
-    ? { status: "completed", description: messages.completed, duration }
+  if (step.completed) {
+    return { status: "completed", description: messages.completed, duration };
+  }
+  return isStopped
+    ? { status: "skipped", description: step.error ?? "Skipped", duration }
     : { status: "started", description: messages.inProgress, duration };
 }
 
@@ -156,7 +165,6 @@ export type OpenStage = {
   requested: StageKey | null;
 };
 
-// On landing a failed stage wins over a requested one
 export function initialOpenStage({
   failed,
   requested,
@@ -164,7 +172,7 @@ export function initialOpenStage({
   failed: StageKey | null;
   requested: StageKey | null;
 }): OpenStage {
-  return { open: failed ?? requested, autoOpened: failed ? [failed] : [], requested };
+  return { open: requested ?? failed, autoOpened: failed ? [failed] : [], requested };
 }
 
 export function followRequestedStage(state: OpenStage, requested: StageKey | null): OpenStage {
