@@ -96,6 +96,17 @@ export type ReplicaSheetModel = {
   usage: ReplicaUsage;
 };
 
+export function stoppedReplicaOf(
+  open: OpenReplica | null,
+  instances: Loadable<InstanceRow[]>,
+): string | null {
+  if (!open || instances.status !== "ready") {
+    return null;
+  }
+  const live = instances.data.some((row) => row.instanceId === open.row.instanceId);
+  return live ? null : open.row.replica.k8sName;
+}
+
 export function replicaSheetModel({
   open,
   environmentId,
