@@ -57,7 +57,7 @@ export function SidebarBody() {
       case "project": {
         const { projectId, appId } = context;
         return appId
-          ? buildAppLinks(slug, projectId, appId, segments, appV2).map((link) =>
+          ? buildAppLinks(slug, projectId, appId, segments, { metrics: appV2 }).map((link) =>
               link.key === "deployments"
                 ? { ...link, onIntent: () => warmDeploymentsTable(projectId, appId) }
                 : link,

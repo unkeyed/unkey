@@ -278,17 +278,16 @@ describe("instanceDetail", () => {
     expect(instanceDetail(instance("ins_a", "us-east-1"))).toBe(null);
   });
 
-  test("has no detail with no restarts and no reason", () => {
+  test("has no detail without a last exit", () => {
     expect(failed(null)).toBe(null);
-    expect(failed(exit())).toBe(null);
   });
 
   test("omits a zero restart count but keeps the exit", () => {
     expect(failed(exit({ reason: "OOMKilled", exitCode: 137 }))).toBe("OOMKilled · exit=137");
   });
 
-  test("counts restarts when no reason is known", () => {
-    expect(failed(exit({ restartCount: 4 }))).toBe("4 restarts");
+  test("reads an exit without a reason as Error, like the badge", () => {
+    expect(failed(exit({ restartCount: 4 }))).toBe("Error · 4 restarts");
     expect(failed(exit({ restartCount: 1, reason: "Error", exitCode: 1 }))).toBe(
       "Error · exit=1 · 1 restart",
     );

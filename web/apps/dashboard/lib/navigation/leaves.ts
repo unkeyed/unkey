@@ -161,7 +161,7 @@ export function buildAppLinks(
   projectId: string,
   appId: string,
   segments: string[],
-  appV2: boolean,
+  { metrics }: { metrics: boolean },
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
@@ -180,7 +180,7 @@ export function buildAppLinks(
       icon: IconCubeOutline18,
       isActive: page === "overview",
     },
-    ...(appV2 ? [metricsLink] : []),
+    ...(metrics ? [metricsLink] : []),
     {
       key: "deployments",
       label: "Deployments",

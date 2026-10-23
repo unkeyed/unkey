@@ -52,7 +52,11 @@ function trimZeros(label: string): string {
 }
 
 function percentOfRatio(ratio: number): string {
-  return trimZeros(formatTooltipPercent(ratio * 100));
+  const percent = ratio * 100;
+  if (percent > 0 && percent < 0.01) {
+    return "<0.01%";
+  }
+  return trimZeros(formatTooltipPercent(percent));
 }
 
 function latency(ms: number): string {

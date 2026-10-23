@@ -86,7 +86,7 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
-  // main's deployment-wide exit, read only by the pre-app_v2 pages
+  // Deployment-wide exit for the pre-app_v2 pages; delete with their legacy/ folders
   lastExit: lastExitSchema.nullable(),
 });
 

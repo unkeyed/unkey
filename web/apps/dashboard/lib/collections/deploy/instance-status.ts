@@ -36,16 +36,22 @@ export type RegionInstances = InstanceSummary & {
   waiting: number;
 };
 
-const FATAL_WAITING_REASONS: ReadonlySet<string> = new Set([
+export const FATAL_WAITING_REASONS = [
   "CrashLoopBackOff",
   "ImagePullBackOff",
   "ErrImagePull",
   "CreateContainerConfigError",
   "InvalidImageName",
-]);
+] as const;
 
-export function isFatalWaitingReason(statusReason: string | null): statusReason is string {
-  return statusReason !== null && FATAL_WAITING_REASONS.has(statusReason);
+export type FatalWaitingReason = (typeof FATAL_WAITING_REASONS)[number];
+
+const fatalWaitingReasons: ReadonlySet<string> = new Set(FATAL_WAITING_REASONS);
+
+export function isFatalWaitingReason(
+  statusReason: string | null,
+): statusReason is FatalWaitingReason {
+  return statusReason !== null && fatalWaitingReasons.has(statusReason);
 }
 
 export function instanceStateOf({ status, lastExit }: InstanceHealth): InstanceState {
