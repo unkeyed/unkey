@@ -21,6 +21,7 @@ func TestNewWithoutAPIKeyResolvesNoRecipients(t *testing.T) {
 	admins, err := resolver.AdminEmails(ctx, orgID)
 	require.NoError(t, err)
 	require.Empty(t, admins)
+
 	members, err := resolver.MemberEmails(ctx, orgID)
 	require.NoError(t, err)
 	require.Empty(t, members)
@@ -33,16 +34,19 @@ func TestMemberEmailsAndAdminEmails(t *testing.T) {
 	duplicateID := uid.New(uid.TestPrefix)
 	emptyID := uid.New(uid.TestPrefix)
 	cursor := uid.New(uid.TestPrefix)
+
 	for _, adminsOnly := range []bool{false, true} {
 		t.Run(map[bool]string{false: "members", true: "admins"}[adminsOnly], func(t *testing.T) {
 			var cursors []string
 			var users []string
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, "Bearer test-key", r.Header.Get("Authorization"))
+
 				if r.URL.Path == "/user_management/organization_memberships" {
 					assert.Equal(t, orgID, r.URL.Query().Get("organization_id"))
 					assert.Equal(t, "active", r.URL.Query().Get("statuses"))
 					assert.Equal(t, "100", r.URL.Query().Get("limit"))
+
 					after := r.URL.Query().Get("after")
 					cursors = append(cursors, after)
 					page := membershipsPage{}
@@ -59,13 +63,17 @@ func TestMemberEmailsAndAdminEmails(t *testing.T) {
 							{UserID: emptyID, Role: membershipRole{Slug: "admin"}},
 						}
 					}
+
 					assert.NoError(t, json.NewEncoder(w).Encode(page))
 					return
 				}
+
 				users = append(users, r.URL.Path)
 				emails := map[string]string{
-					memberID: "member@example.com", adminID: "admin@example.com",
-					duplicateID: "admin@example.com", emptyID: "",
+					memberID:    "member@example.com",
+					adminID:     "admin@example.com",
+					duplicateID: "admin@example.com",
+					emptyID:     "",
 				}
 				for id, email := range emails {
 					if r.URL.Path == "/user_management/users/"+id {
@@ -73,9 +81,11 @@ func TestMemberEmailsAndAdminEmails(t *testing.T) {
 						return
 					}
 				}
+
 				http.NotFound(w, r)
 			}))
 			t.Cleanup(server.Close)
+
 			c := New("test-key", server.URL)
 			lookup := c.MemberEmails
 			want := []string{"member@example.com", "admin@example.com"}
@@ -83,6 +93,7 @@ func TestMemberEmailsAndAdminEmails(t *testing.T) {
 				lookup = c.AdminEmails
 				want = []string{"admin@example.com", "admin@example.com"}
 			}
+
 			emails, err := lookup(t.Context(), orgID)
 			require.NoError(t, err)
 			require.Equal(t, want, emails)
@@ -107,6 +118,7 @@ func TestMemberEmailsPropagatesProviderErrors(t *testing.T) {
 					w.WriteHeader(http.StatusServiceUnavailable)
 					return
 				}
+
 				if isList {
 					assert.NoError(t, json.NewEncoder(w).Encode(membershipsPage{
 						Data:         []membership{{UserID: userID, Role: membershipRole{Slug: "member"}}},
@@ -114,9 +126,11 @@ func TestMemberEmailsPropagatesProviderErrors(t *testing.T) {
 					}))
 					return
 				}
+
 				assert.NoError(t, json.NewEncoder(w).Encode(user{Email: "member@example.com"}))
 			}))
 			t.Cleanup(server.Close)
+
 			c := New("test-key", server.URL)
 			emails, err := c.MemberEmails(t.Context(), uid.New(uid.TestPrefix))
 			require.Error(t, err)
