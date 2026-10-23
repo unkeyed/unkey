@@ -38,6 +38,26 @@ func TestFormatUserCode(t *testing.T) {
 	require.Equal(t, "Z H V G - S X Q M", formatUserCode("  ZHVG-SXQM  "))
 }
 
+func TestBrowserRequiresAnExplicitYes(t *testing.T) {
+	for _, tc := range []struct {
+		input string
+		want  bool
+	}{
+		{"y\n", true},
+		{" YES \n", true},
+		{"n\n", false},
+		{"\n", false},
+		{"", false},
+		{"maybe\n", false},
+	} {
+		t.Run(tc.input, func(t *testing.T) {
+			confirmed, err := readBrowserConfirmation(strings.NewReader(tc.input))
+			require.NoError(t, err)
+			require.Equal(t, tc.want, confirmed)
+		})
+	}
+}
+
 func TestRootKeyFlagStoresTheKey(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

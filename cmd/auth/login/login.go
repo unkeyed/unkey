@@ -56,7 +56,7 @@ Pass --root-key=- to store an existing root key without a browser. The key is re
 				noBrowser: cmd.Bool("no-browser"),
 				client:    &http.Client{Timeout: 30 * time.Second},
 				sleep:     nil,
-				open:      cli.OpenBrowser,
+				open:      openBrowser,
 				keys:      keys,
 			})
 		},
@@ -122,6 +122,31 @@ func run(ctx context.Context, opts options) error {
 	}
 	fmt.Printf("Authentication successful. Session stored for workspace %s.\n", issued.WorkspaceID)
 	return nil
+}
+
+func openBrowser(url string) error {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return nil
+	}
+	fmt.Fprint(os.Stderr, "Open this URL in your browser? [y/N] ")
+	confirmed, err := readBrowserConfirmation(os.Stdin)
+	if err != nil || !confirmed {
+		return err
+	}
+	return cli.OpenBrowser(url)
+}
+
+func readBrowserConfirmation(input io.Reader) (bool, error) {
+	line, err := bufio.NewReader(io.LimitReader(input, 1024)).ReadString('\n')
+	if err != nil && err != io.EOF {
+		return false, fmt.Errorf("read browser confirmation: %w", err)
+	}
+	switch strings.ToLower(strings.TrimSpace(line)) {
+	case "y", "yes":
+		return true, nil
+	default:
+		return false, nil
+	}
 }
 
 func readRootKey(stdin *os.File) (string, error) {
