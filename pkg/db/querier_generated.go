@@ -1075,7 +1075,7 @@ type Querier interface {
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
 	//FindManyRatelimitNamespaces
 	//
-	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
+	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.use_global_counter, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                                 json_object(
@@ -1301,7 +1301,7 @@ type Querier interface {
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
 	//FindRatelimitNamespace
 	//
-	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
+	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.use_global_counter, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                                 json_object(

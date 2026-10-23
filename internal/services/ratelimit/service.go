@@ -3,6 +3,7 @@ package ratelimit
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -12,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
+	"github.com/unkeyed/unkey/pkg/globalcounter"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql"
 
@@ -308,6 +310,10 @@ type service struct {
 	// when reading. Constant for the lifetime of the service.
 	region string
 
+	// globalCounter, when set, counts requests with UseGlobalCounter instead of
+	// the regional counters.
+	globalCounter *globalcounter.Counter
+
 	// globalCircuitBreaker wraps the periodic bulk upsert for the
 	// cross-region ratelimit_global_counters table. When tripped, the flush
 	// logs and discards the batch so a sick database does not stall
@@ -357,6 +363,13 @@ type Config struct {
 	// for skipping own-region rows on read. Required; [New] returns
 	// [ErrRegionRequired] if empty.
 	Region string
+
+	// GlobalCounter creates the cross-region global counter, which shares counts
+	// through MySQL without the regional Redis. Only requests with
+	// UseGlobalCounter use it. Services that never set that, such as frontline,
+	// leave it false, so they do not run the counter's background passes against
+	// MySQL.
+	GlobalCounter bool
 }
 
 // New creates a new rate limiting service.
@@ -402,6 +415,14 @@ func New(config Config) (*service, error) {
 		globalCircuitBreaker: circuitbreaker.New[any]("ratelimit_global_push"),
 		db:                   db.New(config.DB.RW(), config.DB.RO()),
 		stopBackground:       make(chan struct{}),
+		globalCounter:        nil,
+	}
+	if config.GlobalCounter {
+		counter, err := globalcounter.New(globalcounter.Config{DB: config.DB, Clock: config.Clock})
+		if err != nil {
+			return nil, fmt.Errorf("ratelimit: create global counter: %w", err)
+		}
+		s.globalCounter = counter
 	}
 	s.startGlobalPush()
 	s.startGlobalPull()
@@ -439,6 +460,7 @@ func NewLocal(clk clock.Clock) *service {
 		globalPullLastReconciledMs: 0,
 		stopBackground:             make(chan struct{}),
 		stopBackgroundOnce:         sync.Once{},
+		globalCounter:              nil,
 	}
 	s.startJanitor()
 
@@ -451,6 +473,9 @@ func NewLocal(clk clock.Clock) *service {
 func (s *service) Close() error {
 	s.stopBackgroundOnce.Do(func() { close(s.stopBackground) })
 	s.replayBuffer.Close()
+	if s.globalCounter != nil {
+		s.globalCounter.Close()
+	}
 	return nil
 }
 

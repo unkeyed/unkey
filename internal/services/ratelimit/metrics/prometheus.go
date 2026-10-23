@@ -16,6 +16,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
+// decisionBuckets reach below a millisecond, because most decisions on either
+// system take only microseconds, then continue with latencyBuckets.
+var decisionBuckets = append([]float64{0.000025, 0.00005, 0.0001, 0.00025, 0.0005}, latencyBuckets...)
+
 // latencyBuckets are standard histogram buckets for latency metrics in seconds.
 // Range covers sub-millisecond local decisions through multi-second origin
 // failures where the circuit breaker should have tripped.
@@ -109,6 +113,27 @@ var (
 			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin) and outcome (passed|denied).",
 		},
 		[]string{"workspace_id", "source", "outcome"},
+	)
+
+	// RatelimitDecisionDuration observes how long Ratelimit and RatelimitMany
+	// take to decide, including input validation, so the regional counters and
+	// the global counter can be compared.
+	//
+	// Labels:
+	//   - op: "limit" for Ratelimit, "multi_limit" for RatelimitMany.
+	//   - system: "regional" or "global_counter", the system that decided.
+	//
+	// Example usage:
+	//   metrics.RatelimitDecisionDuration.WithLabelValues("limit", "regional").Observe(seconds)
+	RatelimitDecisionDuration = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "decision_duration_seconds",
+			Help:      "Duration of rate-limit decisions in seconds, labeled by op (limit|multi_limit) and system (regional|global_counter).",
+			Buckets:   decisionBuckets,
+		},
+		[]string{"op", "system"},
 	)
 
 	// RatelimitCASExhausted counts Ratelimit() calls that exhausted the CAS

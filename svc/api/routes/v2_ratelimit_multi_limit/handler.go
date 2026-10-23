@@ -204,13 +204,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		cost := ptr.SafeDeref(check.Cost, 1)
 		ratelimitReqs[i] = ratelimit.RatelimitRequest{
-			WorkspaceID: principal.AuthorizedWorkspaceID,
-			Namespace:   ns.ID,
-			Identifier:  check.Identifier,
-			Duration:    time.Duration(duration) * time.Millisecond,
-			Limit:       limit,
-			Cost:        cost,
-			Time:        reqTime,
+			WorkspaceID:      principal.AuthorizedWorkspaceID,
+			Namespace:        ns.ID,
+			Identifier:       check.Identifier,
+			Duration:         time.Duration(duration) * time.Millisecond,
+			Limit:            limit,
+			Cost:             cost,
+			Time:             reqTime,
+			UseGlobalCounter: ns.UseGlobalCounter,
 		}
 
 		checkMetadata[i] = checkMeta{
@@ -408,6 +409,7 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principa
 					WorkspaceID:       principal.AuthorizedWorkspaceID,
 					ProjectID:         projectID,
 					Name:              name,
+					UseGlobalCounter:  false,
 					CreatedAtM:        now,
 					UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
 					DeletedAtM:        sql.NullInt64{Valid: false, Int64: 0},

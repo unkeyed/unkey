@@ -288,10 +288,11 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(func() error { flagSvc.Close(); return nil })
 
 	rlSvc, err := ratelimit.New(ratelimit.Config{
-		Clock:   clk,
-		Counter: ctr,
-		DB:      db.ToMySQL(database),
-		Region:  cfg.Region,
+		Clock:         clk,
+		Counter:       ctr,
+		DB:            db.ToMySQL(database),
+		Region:        cfg.Region,
+		GlobalCounter: true,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
