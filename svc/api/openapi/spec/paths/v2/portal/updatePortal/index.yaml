@@ -23,7 +23,8 @@ post:
     - `portal.*.update_portal` (to update any portal in the workspace)
     - `portal.<portal_id>.update_portal` (to update a specific portal)
 
-    Without the permission this returns **404**, not 403.
+    A root key that cannot read the portal gets **404**. One that can read it
+    but lacks the permission gets **403**.
   operationId: portal.updatePortal
   x-speakeasy-name-override: updatePortal
   security:
@@ -54,10 +55,16 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Your root key can read the portal but lacks the permission to update it, or it cannot use the named app or keyspace.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: |
         No such portal, the named app or keyspace is not in your workspace, or
-        your root key may not update it.
+        your root key cannot read it.
       content:
         application/json:
           schema:
