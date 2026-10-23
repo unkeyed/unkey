@@ -51,7 +51,7 @@ vi.mock("../hooks/use-app-current-deployment", () => ({
 vi.mock("./components/active-branches", () => ({
   ActiveBranches: () => <h2>Active Branches</h2>,
 }));
-vi.mock("./components/app-production-card", () => ({
+vi.mock("./components/production-overview", () => ({
   ProductionOverview: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 vi.mock("../deployments/components/deployment-row", () => ({
