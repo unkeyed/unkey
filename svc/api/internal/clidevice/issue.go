@@ -86,8 +86,8 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 	}
 
 	sessionID := uid.New(uid.CLISessionPrefix)
-	refreshToken := newRefreshToken()
-	family := uid.Secure(20)
+	family := newRefreshFamily()
+	refreshToken := newRefreshToken(family)
 	now := s.Clock.Now().UnixMilli()
 	permsJSON, err := json.Marshal(narrowed)
 	if err != nil {
@@ -115,13 +115,14 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			ID:               sessionID,
 			WorkspaceID:      workspace.ID,
 			UserID:           locked.ApproverUserID.String,
+			UserName:         locked.ApproverName,
 			Permissions:      permsJSON,
 			DeviceName:       locked.DeviceName,
 			RefreshTokenHash: hashRefreshToken(refreshToken),
 			RefreshFamily:    family,
 			CreatedAt:        now,
 			LastUsedAt:       now,
-			ExpiresAt:        now + refreshIdle.Milliseconds(),
+			ExpiresAt:        sessionExpiry(now, now),
 		}); err != nil {
 			return err
 		}

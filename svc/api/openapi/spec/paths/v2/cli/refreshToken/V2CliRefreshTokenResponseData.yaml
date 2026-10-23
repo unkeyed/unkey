@@ -16,7 +16,7 @@ properties:
   expiresIn:
     type: integer
     format: int64
-    description: Seconds until the access token expires.
+    description: Seconds until the access token expires. Access tokens last 15 minutes.
   workspaceId:
     type: string
   sessionId:

@@ -7,8 +7,9 @@ import { primaryKey } from "./util/primary_key";
 // short-lived JWT and is not stored. The refresh token is stored only as a
 // hash. previous_refresh_token_hash keeps the token just rotated away so a
 // replay of that token revokes the refresh_family. expires_at is an idle
-// deadline moved forward on each successful refresh. revoked_at wins over
-// expiry: a revoked row must never authenticate.
+// deadline moved forward on each successful refresh, never past the absolute
+// maximum measured from created_at. revoked_at wins over expiry: a revoked
+// row must never authenticate.
 export const cliSessions = mysqlTable(
   "cli_sessions",
   {
@@ -16,6 +17,7 @@ export const cliSessions = mysqlTable(
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     userId: caseSensitiveVarchar("user_id", { length: 256 }).notNull(),
+    userName: varchar("user_name", { length: 256 }),
     permissions: json("permissions").$type<string[]>().notNull(),
     deviceName: varchar("device_name", { length: 512 }),
     refreshTokenHash: caseSensitiveVarchar("refresh_token_hash", { length: 256 })
