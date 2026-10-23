@@ -2,6 +2,7 @@ package workos
 
 import (
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -30,13 +31,16 @@ type client struct {
 var _ Resolver = (*client)(nil)
 
 // New returns a WorkOS client, or a noop when apiKey is empty.
-func New(apiKey string) Client {
+func New(apiKey, apiBaseURL string) Client {
 	if apiKey == "" {
 		return NewNoop()
 	}
+	if strings.TrimSpace(apiBaseURL) == "" {
+		apiBaseURL = baseURL
+	}
 	return &client{
 		apiKey:  apiKey,
-		baseURL: baseURL,
+		baseURL: strings.TrimRight(apiBaseURL, "/"),
 		http:    &http.Client{Timeout: requestTimeout}, //nolint:exhaustruct // default transport, only the timeout matters
 	}
 }

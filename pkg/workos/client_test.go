@@ -15,7 +15,7 @@ import (
 func TestNewWithoutAPIKeyResolvesNoRecipients(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	resolver := New("")
+	resolver := New("", "")
 	orgID := uid.New(uid.TestPrefix)
 
 	admins, err := resolver.AdminEmails(ctx, orgID)
@@ -76,7 +76,7 @@ func TestMemberEmailsAndAdminEmails(t *testing.T) {
 				http.NotFound(w, r)
 			}))
 			t.Cleanup(server.Close)
-			c, ok := New("test-key").(*client)
+			c, ok := New("test-key", "").(*client)
 			require.True(t, ok)
 			c.baseURL = server.URL
 			lookup := c.MemberEmails
@@ -119,7 +119,7 @@ func TestMemberEmailsPropagatesProviderErrors(t *testing.T) {
 				assert.NoError(t, json.NewEncoder(w).Encode(user{Email: "member@example.com"}))
 			}))
 			t.Cleanup(server.Close)
-			c, ok := New("test-key").(*client)
+			c, ok := New("test-key", "").(*client)
 			require.True(t, ok)
 			c.baseURL = server.URL
 			emails, err := c.MemberEmails(t.Context(), uid.New(uid.TestPrefix))
