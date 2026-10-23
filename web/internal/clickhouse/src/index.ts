@@ -39,23 +39,6 @@ import { getKeysOverviewLogs } from "./keys/keys";
 import { getLatestVerifications } from "./latest_verifications";
 import { getLogdrainMetrics, getRecentLogdrainDeliveries } from "./logdrains";
 import {
-  getDailyLogsTimeseries,
-  getFifteenMinuteLogsTimeseries,
-  getFiveMinuteLogsTimeseries,
-  getFourHourlyLogsTimeseries,
-  getHourlyLogsTimeseries,
-  getLogs,
-  getMinutelyLogsTimeseries,
-  getMonthlyLogsTimeseries,
-  getQuarterlyLogsTimeseries,
-  getSixHourlyLogsTimeseries,
-  getThirtyMinuteLogsTimeseries,
-  getThreeDayLogsTimeseries,
-  getTwelveHourlyLogsTimeseries,
-  getTwoHourlyLogsTimeseries,
-  getWeeklyLogsTimeseries,
-} from "./logs";
-import {
   getBatchDailyRatelimitTimeseries,
   getBatchFifteenMinuteRatelimitTimeseries,
   getBatchFiveMinuteRatelimitTimeseries,
@@ -315,7 +298,6 @@ export class ClickHouse {
   public get api() {
     return {
       insert: insertApiRequest(this.inserter),
-      logs: getLogs(this.querier),
       keys: {
         logs: getKeysOverviewLogs(this.querier),
       },
@@ -344,22 +326,6 @@ export class ClickHouse {
           perMonth: getMonthlyIdentityTimeseries(this.querier),
           perQuarter: getQuarterlyIdentityTimeseries(this.querier),
         },
-      },
-      timeseries: {
-        perMinute: getMinutelyLogsTimeseries(this.querier),
-        per5Minutes: getFiveMinuteLogsTimeseries(this.querier),
-        per15Minutes: getFifteenMinuteLogsTimeseries(this.querier),
-        per30Minutes: getThirtyMinuteLogsTimeseries(this.querier),
-        perHour: getHourlyLogsTimeseries(this.querier),
-        per2Hours: getTwoHourlyLogsTimeseries(this.querier),
-        per4Hours: getFourHourlyLogsTimeseries(this.querier),
-        per6Hours: getSixHourlyLogsTimeseries(this.querier),
-        per12Hours: getTwelveHourlyLogsTimeseries(this.querier),
-        perDay: getDailyLogsTimeseries(this.querier),
-        per3Days: getThreeDayLogsTimeseries(this.querier),
-        perWeek: getWeeklyLogsTimeseries(this.querier),
-        perMonth: getMonthlyLogsTimeseries(this.querier),
-        perQuarter: getQuarterlyLogsTimeseries(this.querier),
       },
     };
   }

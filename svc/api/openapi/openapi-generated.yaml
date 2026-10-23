@@ -2812,6 +2812,27 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2LivenessResponseData"
+        V2LogsGetApiRequestMetricsRequestBody:
+            type: object
+            properties:
+                filters:
+                    "$ref": "#/components/schemas/V2LogsGetApiRequestMetricsFilters"
+            additionalProperties: false
+        V2LogsGetApiRequestMetricsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 200
+                    items:
+                        "$ref": "#/components/schemas/ApiRequestMetricsPoint"
+                    description: One point per bucket, oldest first, with no gaps. A bucket with no requests has a point with zero counts. The bucket width is the distance between the `time` of two points.
+            additionalProperties: false
         V2LogsListApiRequestsRequestBody:
             type: object
             properties:
@@ -7841,11 +7862,11 @@ components:
             required:
                 - message
             description: Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy.
-        V2LogsListApiRequestsFilters:
+        V2LogsGetApiRequestMetricsFilters:
             type: object
             additionalProperties: false
             description: |
-                Filters for the listing. A missing field does not filter. Different fields are combined with AND.
+                Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
             properties:
                 time:
                     "$ref": "#/components/schemas/TimeFilter"
@@ -7853,8 +7874,6 @@ components:
                     "$ref": "#/components/schemas/TextFilter"
                 method:
                     "$ref": "#/components/schemas/MethodFilter"
-                requestId:
-                    "$ref": "#/components/schemas/ExactFilter"
                 status:
                     "$ref": "#/components/schemas/IntFilter"
         TimeFilter:
@@ -7862,7 +7881,7 @@ components:
             additionalProperties: false
             description: |
                 Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
-                Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
+                Rows older than the workspace's retention are never returned or counted, whatever the bounds.
             properties:
                 gt:
                     type: integer
@@ -7937,21 +7956,6 @@ components:
                     description: Remove rows with one of these methods.
             example:
                 is: ["POST", "PUT"]
-        ExactFilter:
-            type: object
-            additionalProperties: false
-            description: |
-                Filters a field that matches only as a whole value, such as a host or a request ID.
-                Matching is exact and case-sensitive.
-            properties:
-                is:
-                    "$ref": "#/components/schemas/ExactValues"
-                    description: Keep rows where the field equals one of the values.
-                isNot:
-                    "$ref": "#/components/schemas/ExactValues"
-                    description: Remove rows where the field equals one of the values.
-            example:
-                isNot: ["api.unkey.dev"]
         IntFilter:
             type: object
             additionalProperties: false
@@ -8008,6 +8012,83 @@ components:
                 - OPTIONS
             description: An HTTP method in upper case.
             example: POST
+        IntValues:
+            type: array
+            minItems: 1
+            maxItems: 10
+            items:
+                type: integer
+                format: int64
+            description: |
+                The values of one filter operator. A row matches `is` when it equals any value in the list.
+                A row matches `isNot` only when it equals none of the values.
+        ApiRequestMetricsPoint:
+            type: object
+            required:
+                - time
+                - success
+                - clientError
+                - serverError
+                - total
+            additionalProperties: false
+            description: The number of requests in one bucket.
+            properties:
+                time:
+                    type: integer
+                    format: int64
+                    description: The start of the bucket, in Unix milliseconds.
+                    example: 1792020600000
+                success:
+                    type: integer
+                    format: int64
+                    description: The number of requests with a 2xx status.
+                    example: 1200
+                clientError:
+                    type: integer
+                    format: int64
+                    description: The number of requests with a 4xx status.
+                    example: 31
+                serverError:
+                    type: integer
+                    format: int64
+                    description: The number of requests with a 5xx status.
+                    example: 2
+                total:
+                    type: integer
+                    format: int64
+                    description: The number of requests with any status. It also counts 1xx and 3xx responses, which have no field of their own.
+                    example: 1233
+        V2LogsListApiRequestsFilters:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters for the listing. A missing field does not filter. Different fields are combined with AND.
+            properties:
+                time:
+                    "$ref": "#/components/schemas/TimeFilter"
+                path:
+                    "$ref": "#/components/schemas/TextFilter"
+                method:
+                    "$ref": "#/components/schemas/MethodFilter"
+                requestId:
+                    "$ref": "#/components/schemas/ExactFilter"
+                status:
+                    "$ref": "#/components/schemas/IntFilter"
+        ExactFilter:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters a field that matches only as a whole value, such as a host or a request ID.
+                Matching is exact and case-sensitive.
+            properties:
+                is:
+                    "$ref": "#/components/schemas/ExactValues"
+                    description: Keep rows where the field equals one of the values.
+                isNot:
+                    "$ref": "#/components/schemas/ExactValues"
+                    description: Remove rows where the field equals one of the values.
+            example:
+                isNot: ["api.unkey.dev"]
         ExactValues:
             type: array
             minItems: 1
@@ -8020,16 +8101,6 @@ components:
                 The values of one exact filter operator. A row matches `is` when it equals any value in the list.
                 A row matches `isNot` only when it equals none of the values.
                 Exact matches take up to 25 values, so one call can look up a page of requests by ID.
-        IntValues:
-            type: array
-            minItems: 1
-            maxItems: 10
-            items:
-                type: integer
-                format: int64
-            description: |
-                The values of one filter operator. A row matches `is` when it equals any value in the list.
-                A row matches `isNot` only when it equals none of the values.
         ApiRequestLog:
             type: object
             required:
@@ -16033,6 +16104,152 @@ paths:
                 - liveness
             x-excluded: true
             x-speakeasy-ignore: true
+    /v2/logs.getApiRequestMetrics:
+        post:
+            description: |
+                Count the requests that the Unkey API served for your workspace per time bucket, split by status class.
+
+                The filters have the same shape as in `logs.listApiRequests`, without `requestId`. In one field, values under `is`, `contains`, `startsWith`, and `endsWith` are combined with OR. Values under `isNot` and `notContains`, and the range operators `gt`, `gte`, `lt`, and `lte`, are combined with AND. Different fields are combined with AND. Every text match is exact and case-sensitive.
+
+                `filters.time` sets the window. A missing lower bound is the start of your log retention, and a missing upper bound is now. Unkey picks the bucket width from the window. It is the distance between the `time` of two points. The first bucket starts at or before the window start and counts its whole width. Windows reach back at most 100 days, and requests outside the log retention of your workspace are not counted.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:logs/apiRequests#read`
+            operationId: logs.getApiRequestMetrics
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2LogsGetApiRequestMetricsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                empty:
+                                    summary: A window that ends before it starts
+                                    value:
+                                        data: []
+                                        meta:
+                                            requestId: req_1234abcd
+                                series:
+                                    summary: Two buckets of 30 minutes
+                                    value:
+                                        data:
+                                            - clientError: 31
+                                              serverError: 2
+                                              success: 1200
+                                              time: 1792018800000
+                                              total: 1233
+                                            - clientError: 0
+                                              serverError: 0
+                                              success: 0
+                                              time: 1792020600000
+                                              total: 0
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2LogsGetApiRequestMetricsResponseBody'
+                    description: One point per bucket, oldest first, with zero counts for buckets without requests.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                unknownField:
+                                    summary: A filter field the metrics do not have
+                                    value:
+                                        error:
+                                            detail: POST request body for '/v2/logs.getApiRequestMetrics' failed to validate schema
+                                            errors:
+                                                - location: /properties/filters/$ref/additionalProperties
+                                                  message: additional properties 'requestId' not allowed
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:logs/apiRequests#read'''
+                                            status: 403
+                                            title: Insufficient Permissions
+                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:logs/apiRequests#read`)
+                "422":
+                    content:
+                        application/json:
+                            examples:
+                                timeout:
+                                    summary: Query took too long
+                                    value:
+                                        error:
+                                            detail: The query exceeds a read limit. Send a narrower `filters.time` window or more filters, then try again.
+                                            status: 422
+                                            title: Unprocessable Entity
+                                            type: https://unkey.com/docs/errors/user/unprocessable_entity/query_execution_timeout
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: The query exceeds a query limit
+                "429":
+                    content:
+                        application/json:
+                            examples:
+                                workspaceRateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: The workspace rate limit is exceeded
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: The log store is not available
+            security:
+                - bearer: []
+            summary: Get API request metrics
+            tags:
+                - logs
+            x-speakeasy-name-override: getApiRequestMetrics
+            x-unkey-idempotency: idempotent
     /v2/logs.listApiRequests:
         post:
             description: |

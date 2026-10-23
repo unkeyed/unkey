@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { TRPCError } from "@trpc/server";
+import { HttpMethod } from "@unkey/api/models/components";
 import { getStructuredSearchFromLLM, getSystemPrompt } from "./utils";
 
 describe("getSystemPrompt", () => {
@@ -12,7 +13,8 @@ describe("getSystemPrompt", () => {
     expect(prompt).toContain('field: "methods"');
     expect(prompt).toContain('field: "status"');
     expect(prompt).toContain('operator: "startsWith"');
-    expect(prompt).toContain("GET, POST, PUT, DELETE");
+    expect(prompt).toContain(Object.values(HttpMethod).join(", "));
+    expect(prompt).not.toContain("- appId accepts");
   });
 });
 
