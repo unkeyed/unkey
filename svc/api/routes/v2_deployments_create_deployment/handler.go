@@ -52,8 +52,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// A caller without create permission gets 403 whether or not the slugs
-	// resolve, so it cannot probe which ones exist
 	scope, err := db.Query.ResolveDeploymentScope(ctx, h.DB.RO(), db.ResolveDeploymentScopeParams{
 		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
@@ -65,6 +63,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	notFound := err != nil || !scope.AppID.Valid || !scope.EnvironmentID.Valid
 
+	environmentURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).
+		Project(cmp.Or(scope.ProjectID, "*")).
+		App(cmp.Or(scope.AppID.String, "*")).
+		Environment(cmp.Or(scope.EnvironmentID.String, "*"))
 	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
@@ -77,22 +79,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateDeployment,
 		}),
 		rbac.U(
-			// A level that did not resolve becomes "*", so only a wildcard
-			// permission can reach the 404
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).
-				Project(cmp.Or(scope.ProjectID, "*")).
-				App(cmp.Or(scope.AppID.String, "*")).
-				Environment(cmp.Or(scope.EnvironmentID.String, "*")).
-				Deployment("*"),
+			environmentURN.Deployment("*"),
 			permissions.Write,
 		),
 	)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
 			err,
 			principal.Permissions,
 			permissionQuery,
+			deployment.CreateVisibility(environmentURN),
 			codes.Data.Environment.NotFound.URN(),
 			"The requested project, app, or environment does not exist.",
 		)

@@ -195,6 +195,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// imply minting sessions for its end users. A stored `**#*` still satisfies
 	// the canonical arm, so requireRootKeyCredential above is what actually
 	// keeps a dashboard admin from minting.
+	portalURN := urn.New().Workspace(workspaceID).Project(portal.ProjectID).Portal(portal.ID)
 	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Portal,
@@ -207,7 +208,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreatePortalSession,
 		}),
 		rbac.U(
-			urn.New().Workspace(workspaceID).Project(portal.ProjectID).Portal(portal.ID).Session("*"),
+			portalURN.Session("*"),
 			permissions.Write,
 		),
 	)
@@ -219,10 +220,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// UserFacingMessage concatenates every public message. Principal.Authorize
 		// already logs the denied query and the granted set. Anything that is not
 		// an authorization denial passes through unmasked.
-		return apierrors.MaskInsufficientPermissionsAsNotFound(
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
 			err,
 			principal.Permissions,
 			permissionQuery,
+			rbac.Or(
+				rbac.U(portalURN, permissions.Read),
+				rbac.U(portalURN.Session("*"), permissions.Read),
+			),
 			codes.Data.Portal.NotFound.URN(),
 		)
 	}

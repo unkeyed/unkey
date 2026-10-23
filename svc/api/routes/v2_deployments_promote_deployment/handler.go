@@ -73,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskDeploymentPermission(
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
 			err,
 			principal.Permissions,
 			permissionQuery,
