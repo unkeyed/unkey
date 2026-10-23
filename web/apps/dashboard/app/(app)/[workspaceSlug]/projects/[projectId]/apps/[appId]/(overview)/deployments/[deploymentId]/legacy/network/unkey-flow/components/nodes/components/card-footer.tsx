@@ -1,5 +1,5 @@
 import { RegionFlag } from "@/components/region-flag";
-import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
+import { formatCpuParts, formatMemoryParts } from "@/lib/utils/legacy/deployment-formatters";
 import { IconChartActivityOutline12, IconMicrochipOutline18, IconRamOutline18 } from "@unkey/icons";
 import { MetricPill } from "./metric-pill";
 

@@ -13,7 +13,6 @@ import {
   type DeploymentStatus,
 } from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
-import { latestExit } from "./last-exit";
 import { type ParsedFilter, extractStringFilter, extractStringValues } from "./utils";
 
 const regionSchema = z.object({
@@ -87,7 +86,7 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
-  // The latest exit across instances
+  // main's deployment-wide exit, read only by the pre-app_v2 pages
   lastExit: lastExitSchema.nullable(),
 });
 
@@ -144,6 +143,7 @@ type RowDetails = Pick<
   | "desiredInstanceCount"
   | "desiredRegions"
   | "triggerReason"
+  | "lastExit"
 > & {
   // A server older than this bundle omits it, as after a rollback with a tab still open
   targetRegions?: Deployment["targetRegions"];
@@ -236,7 +236,7 @@ function toDeployment(
     createdAt: deployment.createdAt,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
-    lastExit: latestExit(details.instances.map((i) => i.lastExit)),
+    lastExit: details.lastExit,
   };
 }
 

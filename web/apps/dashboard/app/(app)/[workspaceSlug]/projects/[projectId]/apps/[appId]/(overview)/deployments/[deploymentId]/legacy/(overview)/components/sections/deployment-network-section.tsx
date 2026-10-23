@@ -4,7 +4,7 @@ import {
   bytesToMib,
   formatMemoryParts,
   formatTooltipPercent,
-} from "@/lib/utils/deployment-formatters";
+} from "@/lib/utils/legacy/deployment-formatters";
 import type { PERCENTILE_VALUES } from "@unkey/clickhouse/src/frontline";
 import {
   IconChartActivityOutline18,

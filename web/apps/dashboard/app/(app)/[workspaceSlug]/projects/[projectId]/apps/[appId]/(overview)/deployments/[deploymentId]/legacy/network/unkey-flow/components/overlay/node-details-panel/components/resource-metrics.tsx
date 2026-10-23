@@ -4,7 +4,7 @@ import {
   type AreaChartPoint,
   AreaTimeseriesChart,
   formatYAxisCompactBytesPerSecond,
-} from "@/components/charts/area-timeseries";
+} from "@/components/charts/legacy/area-timeseries";
 import { trpc } from "@/lib/trpc/client";
 import {
   bytesToMib,
@@ -14,7 +14,7 @@ import {
   formatMemoryParts,
   formatStorage,
   formatTooltipPercent,
-} from "@/lib/utils/deployment-formatters";
+} from "@/lib/utils/legacy/deployment-formatters";
 import type { TimeWindow } from "@unkey/clickhouse";
 import {
   IconArrowsOppositeDirectionYOutline12,

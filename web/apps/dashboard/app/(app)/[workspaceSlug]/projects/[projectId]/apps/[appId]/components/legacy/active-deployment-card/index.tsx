@@ -13,7 +13,7 @@ import {
   formatMemoryParts,
   formatStorage,
   formatStorageParts,
-} from "@/lib/utils/deployment-formatters";
+} from "@/lib/utils/legacy/deployment-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
