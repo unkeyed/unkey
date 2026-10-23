@@ -15,9 +15,7 @@ func WithCompression() Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			previous := s.sendResponse
-			s.sendResponse = func(status int, body []byte) error {
-				return writeCompressed(s, status, body)
-			}
+			s.sendResponse = writeCompressed
 			defer func() { s.sendResponse = previous }()
 			return next(ctx, s)
 		}

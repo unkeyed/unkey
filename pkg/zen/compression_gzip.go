@@ -2,9 +2,9 @@ package zen
 
 import (
 	"bytes"
-	"compress/gzip"
 	"sync"
 
+	"github.com/klauspost/compress/gzip"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 

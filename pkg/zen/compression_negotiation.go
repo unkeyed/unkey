@@ -6,46 +6,60 @@ import (
 )
 
 func selectEncoding(values []string) string {
-	qualities := make(map[string]float64, 4)
+	gzip, zstd := -1.0, -1.0
+	var wildcard, identity float64
 	for _, value := range values {
-		for _, item := range strings.Split(value, ",") {
-			name, parameter, hasParameter := strings.Cut(item, ";")
-			name = strings.ToLower(strings.TrimSpace(name))
-			if name == "x-gzip" {
-				name = "gzip"
+		for item := range strings.SplitSeq(value, ",") {
+			name, quality := parseEncoding(item)
+			switch strings.ToLower(name) {
+			case "gzip", "x-gzip":
+				gzip = max(gzip, quality)
+			case "zstd":
+				zstd = max(zstd, quality)
+			case "identity":
+				identity = max(identity, quality)
+			case "*":
+				wildcard = max(wildcard, quality)
 			}
-			quality := 1.0
-			if hasParameter {
-				key, weight, ok := strings.Cut(parameter, "=")
-				parsed, err := strconv.ParseFloat(strings.TrimSpace(weight), 64)
-				if !ok || !strings.EqualFold(strings.TrimSpace(key), "q") || err != nil || !(parsed >= 0 && parsed <= 1) {
-					quality = 0
-				} else {
-					quality = parsed
-				}
-			}
-			qualities[name] = max(qualities[name], quality)
 		}
 	}
 
-	selected := ""
-	bestQuality := qualities["identity"]
-	for _, encoding := range []string{"zstd", "gzip"} {
-		quality, explicit := qualities[encoding]
-		if !explicit {
-			quality = qualities["*"]
-		}
-		if quality > bestQuality {
-			selected = encoding
-			bestQuality = quality
-		}
+	if gzip < 0 {
+		gzip = wildcard
 	}
-	return selected
+	if zstd < 0 {
+		zstd = wildcard
+	}
+	switch {
+	case zstd > identity && zstd >= gzip:
+		return "zstd"
+	case gzip > identity:
+		return "gzip"
+	default:
+		return ""
+	}
+}
+
+func parseEncoding(value string) (name string, quality float64) {
+	name, parameter, hasParameter := strings.Cut(value, ";")
+	name = strings.TrimSpace(name)
+	if !hasParameter {
+		return name, 1
+	}
+	key, weight, ok := strings.Cut(parameter, "=")
+	if !ok || !strings.EqualFold(strings.TrimSpace(key), "q") {
+		return name, 0
+	}
+	quality, err := strconv.ParseFloat(strings.TrimSpace(weight), 64)
+	if err != nil || !(quality >= 0 && quality <= 1) {
+		return name, 0
+	}
+	return name, quality
 }
 
 func hasToken(values []string, token string) bool {
 	for _, value := range values {
-		for _, item := range strings.Split(value, ",") {
+		for item := range strings.SplitSeq(value, ",") {
 			if strings.EqualFold(strings.TrimSpace(item), token) {
 				return true
 			}

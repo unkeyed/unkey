@@ -48,7 +48,7 @@ type Session struct {
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
-	sendResponse   func(int, []byte) error
+	sendResponse   func(*Session, int, []byte) error
 
 	streamRequestBody bool
 
@@ -478,7 +478,7 @@ func (s *Session) send(status int, body []byte) error {
 	s.responseBody = body
 
 	if s.sendResponse != nil {
-		return s.sendResponse(status, body)
+		return s.sendResponse(s, status, body)
 	}
 	return s.writeResponse(status, body)
 }
