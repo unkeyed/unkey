@@ -527,6 +527,18 @@ func TestRevokeAndListAreScopedToTheCaller(t *testing.T) {
 	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), owned.SessionID)
 	require.NoError(t, err)
 	require.True(t, row.RevokedAt.Valid)
+	logs := h.FindAuditLogsByTargetID(t.Context(), t, owned.SessionID)
+	found := false
+	for _, log := range logs {
+		if log.Event != "cli.session.revoke" {
+			continue
+		}
+		found = true
+		require.Equal(t, admin.Subject.ID, log.Actor.ID)
+		require.NotContains(t, log.Actor.Meta, "session_id")
+		require.NotContains(t, log.Actor.Meta, "device")
+	}
+	require.True(t, found)
 }
 
 func TestConcurrentPollsIssueOneSession(t *testing.T) {

@@ -112,7 +112,7 @@ const (
 	DomainVerifyEvent AuditLogEvent = "domain.verify"
 
 	// CLI session events
-	CLISessionCreateEvent  AuditLogEvent = "cli_session.create"
-	CLISessionRefreshEvent AuditLogEvent = "cli_session.refresh"
-	CLISessionRevokeEvent  AuditLogEvent = "cli_session.revoke"
+	CLISessionCreateEvent  AuditLogEvent = "cli.session.create"
+	CLISessionRefreshEvent AuditLogEvent = "cli.session.refresh"
+	CLISessionRevokeEvent  AuditLogEvent = "cli.session.revoke"
 )
