@@ -5,7 +5,7 @@ import {
   AnimatePresence,
   type MotionValue,
   animate,
-  motion,
+  m,
   useMotionValue,
   useReducedMotion,
   useTransform,
@@ -127,7 +127,7 @@ function ColumnCard({ id, current }: { id: Pane; current: boolean }) {
   }
   const ref = useRef<HTMLDivElement>(null);
   return (
-    <motion.div
+    <m.div
       ref={ref}
       className="relative flex min-h-0 flex-col"
       initial={false}
@@ -145,7 +145,7 @@ function ColumnCard({ id, current }: { id: Pane; current: boolean }) {
       ) : (
         <div style={{ height: heights.get(id) ?? COLUMN_CARD_MAX_HEIGHT }} />
       )}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -259,7 +259,7 @@ function StepColumn({
   ];
 
   return (
-    <motion.div
+    <m.div
       ref={setView}
       className="relative min-h-0 flex-1 overflow-hidden"
       style={{ maskImage: mask, WebkitMaskImage: mask }}
@@ -267,7 +267,7 @@ function StepColumn({
       <ColumnGrid>
         <AnimatePresence initial={false}>
           {items.map(({ role, id }) => (
-            <motion.div
+            <m.div
               key={id}
               layoutId={`new-app-card-${id}`}
               layout="position"
@@ -287,10 +287,10 @@ function StepColumn({
             >
               <CardSurface className="absolute inset-0" />
               <ColumnCard id={id} current={role === "current"} />
-            </motion.div>
+            </m.div>
           ))}
         </AnimatePresence>
       </ColumnGrid>
-    </motion.div>
+    </m.div>
   );
 }
