@@ -53,13 +53,18 @@ const stageStatusLabel: Record<StageStatus, string> = {
 };
 
 export function DeploymentStagesCard({ page }: { page: StagesCardPage }) {
-  const { stages, failedStage, isOpen, toggle, buildLogs, tickerFor } = useStagesCard(page);
+  const { stages, failedStage, isOpen, toggle, buildLogs, setPanelReadsToEnd, tickerFor } =
+    useStagesCard(page);
 
   const panel = (key: StageKey, status: StageStatus) =>
     match(key)
       .with("build", () => (
         // A remount on a build failure starts the logs at the last error
-        <DeploymentBuildLogs key={failedStage === "build" ? "failed" : "live"} logs={buildLogs} />
+        <DeploymentBuildLogs
+          key={failedStage === "build" ? "failed" : "live"}
+          logs={buildLogs}
+          onReadsToEndChange={setPanelReadsToEnd}
+        />
       ))
       .with("instances", () => <InstancesDiagram stage={status} />)
       .with("domains", () => (

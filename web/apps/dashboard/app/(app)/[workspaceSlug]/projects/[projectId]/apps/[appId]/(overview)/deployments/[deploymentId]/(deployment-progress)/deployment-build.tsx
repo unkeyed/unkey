@@ -5,6 +5,7 @@ import { IconHammer2Outline18 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
 import { useBuildLogs } from "../use-build-logs";
@@ -13,7 +14,8 @@ import { DeploymentStep } from "./deployment-step";
 
 export function DeploymentBuild() {
   const { deployment } = useDeployment();
-  const logs = useBuildLogs(deployment, { readsToEnd: false, enabled: true });
+  const [readsToEnd, setReadsToEnd] = useState(false);
+  const logs = useBuildLogs(deployment, { readsToEnd, enabled: true });
   const { projectId } = useProjectData();
   const router = useRouter();
   const params = useParams();
@@ -37,7 +39,11 @@ export function DeploymentBuild() {
           status="completed"
           expandable={
             <div className="bg-grayA-2">
-              <DeploymentBuildLogs logs={logs} fixedHeight={750} />
+              <DeploymentBuildLogs
+                logs={logs}
+                onReadsToEndChange={setReadsToEnd}
+                fixedHeight={750}
+              />
             </div>
           }
           defaultExpanded

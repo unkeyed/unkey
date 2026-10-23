@@ -60,9 +60,11 @@ export function useStagesCard({
 
   const buildStage = stages.find((s) => s.key === "build");
   const buildPanelOpen = buildStage !== undefined && isOpen(buildStage);
-  // The ticker needs the newest line at once; the open panel pages on demand
+  // The ticker needs the newest line at once; the open panel reads to the end
+  // only when it follows the tail, searches or jumps
+  const [panelReadsToEnd, setPanelReadsToEnd] = useState(false);
   const buildLogs = useBuildLogs(deployment, {
-    readsToEnd: !buildPanelOpen,
+    readsToEnd: !buildPanelOpen || panelReadsToEnd,
     enabled: buildPanelOpen || buildStage?.resolution.status === "started",
   });
   const buildEntries = buildLogs.data?.entries;
@@ -80,6 +82,7 @@ export function useStagesCard({
     isOpen,
     toggle,
     buildLogs,
+    setPanelReadsToEnd,
     tickerFor: (stage: Stage) => stageTickerLine(stage, tickerSources),
   };
 }

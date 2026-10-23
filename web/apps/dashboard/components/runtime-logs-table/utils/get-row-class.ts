@@ -12,7 +12,9 @@ type StatusStyle = {
   focusRing: string;
 };
 
-const STATUS_STYLES: Record<"success" | "warning" | "error", StatusStyle> = {
+export type SeverityTone = "success" | "warning" | "error";
+
+const STATUS_STYLES: Record<SeverityTone, StatusStyle> = {
   success: {
     base: "text-grayA-9",
     hover: "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
@@ -45,16 +47,19 @@ const STATUS_STYLES: Record<"success" | "warning" | "error", StatusStyle> = {
   },
 };
 
-export const getSeverityStyle = (severity: string): StatusStyle => {
+export function severityTone(severity: string): SeverityTone {
   const upper = severity.toUpperCase();
   if (upper === "ERROR") {
-    return STATUS_STYLES.error;
+    return "error";
   }
   if (upper === "WARN" || upper === "WARNING") {
-    return STATUS_STYLES.warning;
+    return "warning";
   }
-  return STATUS_STYLES.success;
-};
+  return "success";
+}
+
+export const getSeverityStyle = (severity: string): StatusStyle =>
+  STATUS_STYLES[severityTone(severity)];
 
 // Rows that predate log_id (or arrived from an old Vector during rollout) read
 // as an empty string. Keep content identity as a fallback until those rows expire.

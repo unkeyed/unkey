@@ -1,3 +1,7 @@
+import {
+  type SeverityTone,
+  severityTone,
+} from "@/components/runtime-logs-table/utils/get-row-class";
 import { type InstanceSummary, runningCountText } from "@/lib/collections/deploy/instance-status";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -71,9 +75,10 @@ export function tickerReducer(state: TickerState, event: TickerEvent): TickerSta
   return { ...state, incoming: line };
 }
 
-const toneBySeverity: Partial<Record<string, TickerTone>> = {
-  ERROR: "error",
-  WARN: "warn",
+const toneBySeverity: Record<SeverityTone, TickerTone> = {
+  error: "error",
+  warning: "warn",
+  success: "plain",
 };
 
 const waitingLine = {
@@ -128,7 +133,7 @@ function lastRuntimeLine(logs: readonly ContainerLogRow[]): TickerLine | null {
   return {
     id: `${latest.time}-${latest.instance_id}-${text}`,
     text,
-    tone: toneBySeverity[latest.severity.toUpperCase()] ?? "plain",
+    tone: toneBySeverity[severityTone(latest.severity)],
   };
 }
 
