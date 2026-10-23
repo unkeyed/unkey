@@ -1,75 +1,72 @@
 "use client";
 
+import { ListPager } from "@/components/list-pager";
+import { LoadError } from "@/components/load-error";
 import { IconCircleXmarkOutline18 } from "@unkey/icons";
-import { Badge, Button, Card, CopyButton, Skeleton, TimestampInfo, cn } from "@unkey/ui";
+import { match } from "@unkey/match";
+import { Badge, Card, CopyButton, Skeleton, TimestampInfo, cn } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { type Delivery, detailText, isFailure, useDeliveries } from "./use-deliveries";
 
 export function DrainLogsTable({ drainId }: { drainId: string }) {
-  const { deliveries, isError, retry } = useDeliveries(drainId);
+  const view = useDeliveries(drainId);
 
   return (
     <Card className="overflow-hidden">
       <div className="border-b px-4 py-3">
         <span className="text-sm font-medium text-gray-12">Deliveries</span>
       </div>
-      <div className="overflow-x-auto">
-        <LogRows deliveries={deliveries} isError={isError} retry={retry} />
-      </div>
+      {match(view)
+        .with({ status: "loading" }, () => <LogRowsSkeleton />)
+        .with({ status: "failed" }, ({ error, retry }) => (
+          <LoadError
+            title="Could not load delivery attempts"
+            error={error}
+            frame="none"
+            onRetry={retry}
+          />
+        ))
+        .with({ status: "empty" }, () => (
+          <div className="px-4 py-8 text-center text-xs text-gray-9">No delivery attempts yet.</div>
+        ))
+        .with({ status: "ready" }, ({ rows, footer }) => (
+          <>
+            <div className="overflow-x-auto">
+              <LogRows deliveries={rows} />
+            </div>
+            <ListPager state={footer} noun="delivery attempts" />
+          </>
+        ))
+        .exhaustive()}
     </Card>
   );
 }
 
 const SKELETON_ROWS = 5;
 
-function LogRows({
-  deliveries,
-  isError,
-  retry,
-}: {
-  deliveries: Delivery[] | undefined;
-  isError: boolean;
-  retry: () => void;
-}) {
-  if (isError) {
-    return (
-      <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
-        <span role="alert" className="text-xs text-gray-11">
-          We couldn't load delivery attempts.
-        </span>
-        <Button variant="outline" size="sm" onClick={retry}>
-          Retry
-        </Button>
-      </div>
-    );
-  }
-  if (!deliveries) {
-    return (
-      <div aria-busy="true" aria-live="polite" className="divide-y divide-gray-4">
-        <output className="sr-only">Loading delivery attempts…</output>
-        {Array.from({ length: SKELETON_ROWS }).map((_, index) => (
-          <div
-            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows are static and never reorder
-            key={index}
-            aria-hidden="true"
-            className="flex items-center gap-4 px-4 py-2.5"
-          >
-            <Skeleton className="h-3.5 w-32" />
-            <Skeleton className="h-5 w-12 rounded-md" />
-            <Skeleton className="h-3.5 w-8" />
-            <Skeleton className="h-3.5 w-12" />
-            <Skeleton className="h-3.5 flex-1" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-  if (deliveries.length === 0) {
-    return (
-      <div className="px-4 py-8 text-center text-xs text-gray-9">No delivery attempts yet.</div>
-    );
-  }
+function LogRowsSkeleton() {
+  return (
+    <div aria-busy="true" aria-live="polite" className="divide-y divide-gray-4">
+      <output className="sr-only">Loading delivery attempts…</output>
+      {Array.from({ length: SKELETON_ROWS }).map((_, index) => (
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows are static and never reorder
+          key={index}
+          aria-hidden="true"
+          className="flex items-center gap-4 px-4 py-2.5"
+        >
+          <Skeleton className="h-3.5 w-32" />
+          <Skeleton className="h-5 w-12 rounded-md" />
+          <Skeleton className="h-3.5 w-8" />
+          <Skeleton className="h-3.5 w-12" />
+          <Skeleton className="h-3.5 flex-1" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
+function LogRows({ deliveries }: { deliveries: readonly Delivery[] }) {
   return (
     <table
       aria-label="Recent delivery attempts"
