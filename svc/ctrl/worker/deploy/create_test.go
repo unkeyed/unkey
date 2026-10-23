@@ -1023,7 +1023,7 @@ func TestCreateDedupsOnlyTheBranchTheCallerNamed(t *testing.T) {
 
 		require.Equal(t, "main", h.deployment(t, ctx, deploymentID).GitBranch.String,
 			"the row still records the branch the image was built from")
-		h.requireNotSuperseded(t, ctx, sibling.ID)
+		require.Equal(t, mysqltype.DeploymentsStatusPending, h.deployment(t, ctx, sibling.ID).Status)
 	})
 
 	t.Run("an explicit image supersedes its branch", func(t *testing.T) {
@@ -1051,7 +1051,7 @@ func TestCreateDedupsOnlyTheBranchTheCallerNamed(t *testing.T) {
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
 			h.create(t, ctx, deploymentID, req).GetOutcome())
 		h.awaitDeploy(t, deploymentID)
-		h.requireSuperseded(t, ctx, sibling.ID)
+		require.Equal(t, mysqltype.DeploymentsStatusSuperseded, h.deployment(t, ctx, sibling.ID).Status)
 	})
 
 	t.Run("a git build supersedes its branch", func(t *testing.T) {
@@ -1064,7 +1064,7 @@ func TestCreateDedupsOnlyTheBranchTheCallerNamed(t *testing.T) {
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
 			h.create(t, ctx, deploymentID, h.gitRequest()).GetOutcome())
 		h.awaitDeploy(t, deploymentID)
-		h.requireSuperseded(t, ctx, sibling.ID)
+		require.Equal(t, mysqltype.DeploymentsStatusSuperseded, h.deployment(t, ctx, sibling.ID).Status)
 	})
 }
 
@@ -1529,22 +1529,6 @@ func (h *createHarness) queuedSibling(t *testing.T, ctx context.Context, branch 
 		CreatedAt:     createdAt,
 		GitBranch:     sql.NullString{Valid: true, String: branch},
 	})
-}
-
-func (h *createHarness) requireSuperseded(t *testing.T, ctx context.Context, deploymentID string) {
-	t.Helper()
-	require.Eventually(t, func() bool {
-		return h.deployment(t, ctx, deploymentID).Status == mysqltype.DeploymentsStatusSuperseded
-	}, 15*time.Second, 100*time.Millisecond, "deployment %s must be superseded", deploymentID)
-}
-
-// requireNotSuperseded has to outlast the dedup step, or it passes for the
-// wrong reason: dedup runs after Create has already dispatched Deploy.
-func (h *createHarness) requireNotSuperseded(t *testing.T, ctx context.Context, deploymentID string) {
-	t.Helper()
-	require.Never(t, func() bool {
-		return h.deployment(t, ctx, deploymentID).Status == mysqltype.DeploymentsStatusSuperseded
-	}, 5*time.Second, 200*time.Millisecond, "deployment %s must not be superseded", deploymentID)
 }
 
 func (h *createHarness) awaitDeploy(t *testing.T, deploymentID string) *hydrav1.DeployRequest {
