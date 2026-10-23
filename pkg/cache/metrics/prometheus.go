@@ -142,6 +142,12 @@ var (
 	//   - status: "fresh" when the entry was within its fresh time, "stale"
 	//     when it was past fresh but within stale, and "miss" when the cache
 	//     had no usable entry.
+	//
+	// Buckets start at 1µs and each is 4 times the previous one, for 12
+	// buckets: 1µs, 4µs, 16µs, 64µs, 256µs, 1ms, 4ms, 16ms, 66ms, 262ms, 1s,
+	// and 4s. The low buckets resolve in-memory hits, which take well under
+	// 1µs to a few µs. The high buckets cover misses that wait for an origin
+	// read. Anything slower than 4s falls into +Inf.
 	CacheOperationDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
