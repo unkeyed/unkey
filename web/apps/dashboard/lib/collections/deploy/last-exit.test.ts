@@ -24,7 +24,7 @@ describe("exitBadge", () => {
     });
   });
 
-  test("an exit without a reason reads as Error, and a zero exit code is not shown", () => {
+  test("an exit without a reason reads as Error, or Completed for exit 0, and a zero exit code is not shown", () => {
     expect(exitBadge(exit({ reason: "", exitCode: 1 }))).toEqual({
       kind: "exit",
       reason: "Error",
@@ -35,7 +35,7 @@ describe("exitBadge", () => {
       reason: "Error",
       exit: "exit=1",
     });
-    expect(exitBadge(exit({ reason: "Completed", exitCode: 0 }))).toEqual({
+    expect(exitBadge(exit({ exitCode: 0 }))).toEqual({
       kind: "exit",
       reason: "Completed",
       exit: null,
