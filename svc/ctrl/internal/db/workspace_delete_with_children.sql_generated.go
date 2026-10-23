@@ -18,7 +18,7 @@ LEFT JOIN projects p ON p.workspace_id = w.id
 LEFT JOIN apps a ON a.workspace_id = w.id
 LEFT JOIN environments e ON e.workspace_id = w.id
 LEFT JOIN deployments d ON d.workspace_id = w.id
-LEFT JOIN app_connections b ON b.workspace_id = w.id
+LEFT JOIN app_connections b FORCE INDEX (app_connections_workspace_idx) ON b.workspace_id = w.id
 LEFT JOIN connection_app_targets bt ON bt.connection_id = b.id
 WHERE w.id IN (/*SLICE:ids*/?)
 `
@@ -29,6 +29,8 @@ WHERE w.id IN (/*SLICE:ids*/?)
 // runs, while the ctrl crons scan the whole database rather than one workspace.
 // Rows a test leaves behind are rescanned by every later run, so the seeder
 // deletes what it created once the test finishes.
+// Keep connection locks workspace-scoped even when a small table makes a full
+// scan cheaper, otherwise concurrent fixture cleanup can deadlock.
 //
 //	DELETE w, wb, p, a, e, d, b, bt
 //	FROM workspaces w
@@ -37,7 +39,7 @@ WHERE w.id IN (/*SLICE:ids*/?)
 //	LEFT JOIN apps a ON a.workspace_id = w.id
 //	LEFT JOIN environments e ON e.workspace_id = w.id
 //	LEFT JOIN deployments d ON d.workspace_id = w.id
-//	LEFT JOIN app_connections b ON b.workspace_id = w.id
+//	LEFT JOIN app_connections b FORCE INDEX (app_connections_workspace_idx) ON b.workspace_id = w.id
 //	LEFT JOIN connection_app_targets bt ON bt.connection_id = b.id
 //	WHERE w.id IN (/*SLICE:ids*/?)
 func (q *Queries) DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error {
