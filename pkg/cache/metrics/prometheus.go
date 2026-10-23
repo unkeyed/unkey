@@ -132,6 +132,36 @@ var (
 		[]string{"resource"},
 	)
 
+	// CacheOperationDuration measures how long Get, SWR, and SWRWithFallback
+	// take, from the call until the value is returned. A miss includes the
+	// origin read the caller waits for.
+	//
+	// Labels:
+	//   - resource: the cache's Config.Resource, for example "live_api_by_id".
+	//   - operation: "get", "swr", or "swr_fallback".
+	//   - status: "fresh" when the entry was within its fresh time, "stale"
+	//     when it was past fresh but within stale, and "miss" when the cache
+	//     had no usable entry.
+	//
+	// Buckets start at 100ns and each is 2 times the previous one, for 24
+	// buckets: 100ns, 200ns, 400ns, 800ns, 1.6µs, 3.2µs, 6.4µs, and so on up
+	// to about 0.84s. In-memory hits take a few hundred nanoseconds, so the
+	// fine buckets below 10µs are the ones that show whether a change to the
+	// cache makes hits faster or slower. The higher buckets cover misses that
+	// wait for an origin read. Anything slower than 0.84s falls into +Inf.
+	// Durations below about 100ns are not reliable, because reading the clock
+	// and observing the histogram cost about that much.
+	CacheOperationDuration = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "operation_duration_seconds",
+			Help:      "Duration of cache reads by resource type, operation (get, swr, swr_fallback), and status (fresh, stale, miss).",
+			Buckets:   prometheus.ExponentialBuckets(100e-9, 2, 24),
+		},
+		[]string{"resource", "operation", "status"},
+	)
+
 	CacheRevalidationDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",

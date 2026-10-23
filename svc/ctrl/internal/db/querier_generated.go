@@ -302,6 +302,14 @@ type Querier interface {
 	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
 	//  WHERE d.id = ?
 	DeleteCustomDomainByID(ctx context.Context, id string) error
+	//DeleteCustomDomainsByAppId
+	//
+	//  DELETE d, c, cert
+	//  FROM custom_domains d
+	//  LEFT JOIN acme_challenges c ON c.domain_id = d.id
+	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
+	//  WHERE d.app_id = ?
+	DeleteCustomDomainsByAppId(ctx context.Context, appID string) error
 	//DeleteCustomDomainsByEnvironmentId
 	//
 	//  DELETE d, c, cert
@@ -398,6 +406,10 @@ type Querier interface {
 	//  WHERE fully_qualified_domain_name = ?
 	//    AND project_id = ?
 	DeleteFrontlineRouteByFQDNAndProject(ctx context.Context, arg DeleteFrontlineRouteByFQDNAndProjectParams) error
+	//DeleteFrontlineRoutesByAppId
+	//
+	//  DELETE FROM frontline_routes WHERE app_id = ?
+	DeleteFrontlineRoutesByAppId(ctx context.Context, appID string) error
 	//DeleteFrontlineRoutesByEnvironmentId
 	//
 	//  DELETE FROM frontline_routes WHERE environment_id = ?
@@ -2406,17 +2418,18 @@ type Querier interface {
 	ReassignFrontlineRoute(ctx context.Context, arg ReassignFrontlineRouteParams) error
 	// Records that kubelet has put a container into CrashLoopBackOff by setting
 	// container_status.waiting.reason. The lastTerminationState carries the
-	// most recent exit info and is left untouched — the dashboard renders both
+	// most recent exit info and is left untouched. The dashboard renders both
 	// the underlying exit and the "currently throttling" indicator together.
 	//
 	// Called once per (pod_uid, container_name, restart_count) when krane sees
 	// the waiting container reach the BackOff state. The next terminated event
-	// (or a successful start) will remove $.waiting via RecordInstanceExit.
+	// (RecordInstanceExit) or the next start (RecordInstanceRunning) removes
+	// $.waiting.
 	//
 	// Out-of-order events are dropped via the restartCount guard: a delayed
 	// crashloop RPC from an earlier container life cannot flip the waiting
-	// reason back after RecordInstanceExit has already advanced restartCount
-	// and removed $.waiting.
+	// reason back after RecordInstanceExit or RecordInstanceRunning moved
+	// restartCount forward.
 	//
 	//  UPDATE instances
 	//  SET container_status = JSON_SET(
@@ -2461,6 +2474,22 @@ type Querier interface {
 	//  		)
 	//  	)
 	RecordInstanceExit(ctx context.Context, arg RecordInstanceExitParams) error
+	// Records that a container is running again after a restart.
+	//
+	// The guard is strict. A delayed running event of the life that then crashed
+	// has the same restart_count as the row and must not remove that crash loop.
+	// After restartCount moves forward, RecordInstanceCrashLoopBackOff rejects
+	// delayed crash loop events of earlier lives.
+	//
+	//  UPDATE instances
+	//  SET container_status = JSON_SET(
+	//  	JSON_REMOVE(container_status, '$.waiting'),
+	//  	'$.restartCount', CAST(? AS UNSIGNED)
+	//  )
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(? AS UNSIGNED)
+	RecordInstanceRunning(ctx context.Context, arg RecordInstanceRunningParams) error
 	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
 	// This is a bulk operation to minimize database round trips.
 	//

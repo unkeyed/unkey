@@ -2983,6 +2983,44 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2LivenessResponseData"
+        V2LogsListApiRequestsRequestBody:
+            type: object
+            properties:
+                limit:
+                    type: integer
+                    description: The maximum number of requests to return in one page.
+                    default: 50
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    minLength: 1
+                    maxLength: 1024
+                    description: |
+                        The `pagination.cursor` of the previous page. Send the same `filters` with every page of one listing.
+                        Omit the cursor to get the first page.
+                    example: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
+                filters:
+                    "$ref": "#/components/schemas/V2LogsListApiRequestsFilters"
+            additionalProperties: false
+        V2LogsListApiRequestsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 100
+                    items:
+                        "$ref": "#/components/schemas/ApiRequestLog"
+                    description: The requests that match the filters, newest first.
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
         V2PermissionsCreatePermissionRequestBody:
             type: object
             required:
@@ -8043,6 +8081,263 @@ components:
             required:
                 - message
             description: Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy.
+        V2LogsListApiRequestsFilters:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters for the listing. A missing field does not filter. Different fields are combined with AND.
+            properties:
+                time:
+                    "$ref": "#/components/schemas/TimeFilter"
+                path:
+                    "$ref": "#/components/schemas/TextFilter"
+                method:
+                    "$ref": "#/components/schemas/MethodFilter"
+                requestId:
+                    "$ref": "#/components/schemas/ExactFilter"
+                status:
+                    "$ref": "#/components/schemas/IntFilter"
+        TimeFilter:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+                Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
+            properties:
+                gt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: Keep events after this time.
+                gte:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: Keep events at or after this time.
+                lt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: Keep events before this time.
+                lte:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: Keep events at or before this time.
+            example:
+                gte: 1791936000000
+                lt: 1792022400000
+        TextFilter:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+                The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+                The negated operators (`isNot`, `notContains`) are combined with AND.
+            properties:
+                is:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Keep rows where the field equals one of the values.
+                isNot:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Remove rows where the field equals one of the values.
+                contains:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Keep rows where the field contains one of the values.
+                notContains:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Remove rows where the field contains one of the values.
+                startsWith:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Keep rows where the field starts with one of the values.
+                endsWith:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Keep rows where the field ends with one of the values.
+            example:
+                startsWith: ["/v2/keys."]
+                notContains: ["verifyKey"]
+        MethodFilter:
+            type: object
+            additionalProperties: false
+            description: Filters by HTTP method.
+            properties:
+                is:
+                    type: array
+                    minItems: 1
+                    uniqueItems: true
+                    items:
+                        "$ref": "#/components/schemas/HttpMethod"
+                    description: Keep rows with one of these methods.
+                isNot:
+                    type: array
+                    minItems: 1
+                    uniqueItems: true
+                    items:
+                        "$ref": "#/components/schemas/HttpMethod"
+                    description: Remove rows with one of these methods.
+            example:
+                is: ["POST", "PUT"]
+        ExactFilter:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters a field that matches only as a whole value, such as a host or a request ID.
+                Matching is exact and case-sensitive.
+            properties:
+                is:
+                    "$ref": "#/components/schemas/ExactValues"
+                    description: Keep rows where the field equals one of the values.
+                isNot:
+                    "$ref": "#/components/schemas/ExactValues"
+                    description: Remove rows where the field equals one of the values.
+            example:
+                isNot: ["api.unkey.dev"]
+        IntFilter:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters an integer field. `is` keeps rows that equal one of its values.
+                `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+            properties:
+                is:
+                    "$ref": "#/components/schemas/IntValues"
+                    description: Keep rows where the field equals one of the values.
+                isNot:
+                    "$ref": "#/components/schemas/IntValues"
+                    description: Remove rows where the field equals one of the values.
+                gt:
+                    type: integer
+                    format: int64
+                    description: Keep rows where the field is greater than this value.
+                gte:
+                    type: integer
+                    format: int64
+                    description: Keep rows where the field is greater than or equal to this value.
+                lt:
+                    type: integer
+                    format: int64
+                    description: Keep rows where the field is less than this value.
+                lte:
+                    type: integer
+                    format: int64
+                    description: Keep rows where the field is less than or equal to this value.
+            example:
+                gte: 400
+                lt: 600
+                isNot: [429]
+        StringValues:
+            type: array
+            minItems: 1
+            maxItems: 10
+            items:
+                type: string
+                minLength: 1
+                maxLength: 1024
+            description: |
+                The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+                A row matches a negated operator only when it matches none of the values.
+        HttpMethod:
+            type: string
+            enum:
+                - GET
+                - POST
+                - PUT
+                - PATCH
+                - DELETE
+                - HEAD
+                - OPTIONS
+            description: An HTTP method in upper case.
+            example: POST
+        ExactValues:
+            type: array
+            minItems: 1
+            maxItems: 25
+            items:
+                type: string
+                minLength: 1
+                maxLength: 1024
+            description: |
+                The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+                A row matches `isNot` only when it equals none of the values.
+                Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+        IntValues:
+            type: array
+            minItems: 1
+            maxItems: 10
+            items:
+                type: integer
+                format: int64
+            description: |
+                The values of one filter operator. A row matches `is` when it equals any value in the list.
+                A row matches `isNot` only when it equals none of the values.
+        ApiRequestLog:
+            type: object
+            required:
+                - requestId
+                - time
+                - host
+                - method
+                - path
+                - status
+                - latencyMs
+                - requestHeaders
+                - requestBody
+                - responseHeaders
+                - responseBody
+            additionalProperties: false
+            description: One request that the Unkey API served for your workspace.
+            properties:
+                requestId:
+                    type: string
+                    description: The ID that the Unkey API returned in `meta.requestId` for this request.
+                    example: req_1234abcd
+                time:
+                    type: integer
+                    format: int64
+                    description: When the Unkey API received the request, in Unix milliseconds.
+                    example: 1792021850123
+                host:
+                    type: string
+                    description: The host the request was sent to.
+                    example: api.unkey.com
+                method:
+                    type: string
+                    description: The HTTP method of the request.
+                    example: POST
+                path:
+                    type: string
+                    description: The path of the request.
+                    example: /v2/keys.updateKey
+                status:
+                    type: integer
+                    format: int32
+                    description: The HTTP status of the response.
+                    example: 404
+                latencyMs:
+                    type: integer
+                    format: int64
+                    description: How long the Unkey API took to serve the request, in milliseconds.
+                    example: 38
+                requestHeaders:
+                    type: array
+                    items:
+                        type: string
+                    description: "Request headers as `Name: value` strings. Credential headers show `[REDACTED]`."
+                    example: ["Content-Type: application/json", "Authorization: [REDACTED]"]
+                requestBody:
+                    type: string
+                    description: The request body. Secret values are redacted.
+                    example: '{"keyId":"key_1234abcd","name":"Payments"}'
+                responseHeaders:
+                    type: array
+                    items:
+                        type: string
+                    description: "Response headers as `Name: value` strings."
+                    example: ["Content-Type: application/json"]
+                responseBody:
+                    type: string
+                    description: The response body. Secret values are redacted.
+                    example: '{"meta":{"requestId":"req_1234abcd"},"error":{"status":404}}'
         V2PermissionsCreatePermissionResponseData:
             type: object
             properties:
@@ -16341,6 +16636,169 @@ paths:
                 - liveness
             x-excluded: true
             x-speakeasy-ignore: true
+    /v2/logs.listApiRequests:
+        post:
+            description: |
+                List the requests that the Unkey API served for your workspace, newest first.
+
+                Filter by time, path, method, request ID, and status. In one field, values under `is`, `contains`, `startsWith`, and `endsWith` are combined with OR. Values under `isNot` and `notContains`, and the range operators `gt`, `gte`, `lt`, and `lte`, are combined with AND. Different fields are combined with AND. Every text match is exact and case-sensitive.
+
+                To get the next page, send the `pagination.cursor` of the previous page together with the same `filters`. A cursor does not expire, but rows older than the log retention leave the listing.
+
+                Unkey returns only requests inside the log retention of your workspace. The calls to this endpoint are not logged.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:logs/apiRequests#read`
+            operationId: logs.listApiRequests
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2LogsListApiRequestsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                empty:
+                                    summary: No matching requests
+                                    value:
+                                        data: []
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            hasMore: false
+                                page:
+                                    summary: A page with more results
+                                    value:
+                                        data:
+                                            - host: api.unkey.com
+                                              latencyMs: 38
+                                              method: POST
+                                              path: /v2/keys.updateKey
+                                              requestBody: '{"keyId":"key_1234abcd","name":"Payments"}'
+                                              requestHeaders:
+                                                - 'Content-Type: application/json'
+                                                - 'Authorization: [REDACTED]'
+                                              requestId: req_5678efgh
+                                              responseBody: '{"meta":{"requestId":"req_5678efgh"},"error":{"status":404}}'
+                                              responseHeaders:
+                                                - 'Content-Type: application/json'
+                                              status: 404
+                                              time: 1792021850123
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            cursor: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
+                                            hasMore: true
+                            schema:
+                                $ref: '#/components/schemas/V2LogsListApiRequestsResponseBody'
+                    description: A page of requests, newest first. When `hasMore` is true, send `pagination.cursor` to get the next page.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidCursor:
+                                    summary: Invalid cursor
+                                    value:
+                                        error:
+                                            detail: The cursor is not valid. Send the `pagination.cursor` of the previous response, or omit it to get the first page.
+                                            errors: []
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:logs/apiRequests#read'''
+                                            status: 403
+                                            title: Insufficient Permissions
+                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:logs/apiRequests#read`)
+                "422":
+                    content:
+                        application/json:
+                            examples:
+                                resultTooLarge:
+                                    summary: Result too large
+                                    value:
+                                        error:
+                                            detail: The query exceeds a read limit. Send a lower `limit`, a narrower `filters.time` window, or more filters, then try again.
+                                            status: 422
+                                            title: Unprocessable Entity
+                                            type: https://unkey.com/docs/errors/user/unprocessable_entity/query_memory_limit_exceeded
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: The query exceeds a query limit
+                "429":
+                    content:
+                        application/json:
+                            examples:
+                                workspaceRateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: The workspace rate limit is exceeded
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: The log store is not available
+            security:
+                - bearer: []
+            summary: List API requests
+            tags:
+                - logs
+            x-speakeasy-name-override: listApiRequests
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
+            x-unkey-idempotency: idempotent
     /v2/permissions.createPermission:
         post:
             description: |
@@ -21042,6 +21500,8 @@ tags:
       name: keys
     - description: Health check operations
       name: liveness
+    - description: Log listing operations
+      name: logs
     - description: Permission and role management operations
       name: permissions
     - description: Gateway policy operations

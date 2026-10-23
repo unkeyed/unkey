@@ -1,15 +1,11 @@
 "use client";
 
+import { ListPager } from "@/components/list-pager";
+import { LoadError } from "@/components/load-error";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import {
-  Button,
-  ResourceList,
-  ResourceListBody,
-  ResourceListContent,
-  ResourceListFooter,
-  ResourceListHeader,
-} from "@unkey/ui";
+import { match } from "@unkey/match";
+import { ResourceList, ResourceListBody, ResourceListContent, ResourceListHeader } from "@unkey/ui";
 import Link from "next/link";
 import { useAppId, useProjectData } from "../../../data-provider";
 import { DeploymentsSkeleton } from "../../../deployments/components/deployments-skeleton";
@@ -21,8 +17,7 @@ export function ActiveBranches() {
   const workspace = useWorkspaceNavigation();
   const { projectId, environments } = useProjectData();
   const appId = useAppId();
-  const { branches, isLoading, isError, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useActiveBranches();
+  const view = useActiveBranches();
   const {
     app,
     currentDeployment,
@@ -30,12 +25,11 @@ export function ActiveBranches() {
     isLoading: isAppLoading,
   } = useAppCurrentDeployment();
 
-  const loading = isLoading || isAppLoading;
   const repoFullName = app?.repositoryFullName ?? null;
   if (app?.sourceType === "oci") {
     return null;
   }
-  if (!loading && !isError && repoFullName === null && branches.length === 0) {
+  if (!isAppLoading && view.status === "empty" && repoFullName === null) {
     return null;
   }
 
@@ -56,58 +50,53 @@ export function ActiveBranches() {
           View all deployments
         </Link>
       </ResourceListHeader>
-      {loading ? (
+      {isAppLoading ? (
         <DeploymentsSkeleton rows={4} />
       ) : (
-        <ResourceListContent>
-          {isError ? (
-            <div className="flex items-center justify-center gap-3 px-4 py-10">
-              <span role="alert" className="text-error-11 text-sm">
-                We couldn't load active branches.
-              </span>
-              <Button size="md" variant="outline" onClick={() => refetch()}>
-                Retry
-              </Button>
-            </div>
-          ) : branches.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-gray-9">
-              No branch deployments yet.
-            </div>
-          ) : (
-            <ResourceListBody>
-              {branches.map((deployment) => (
-                <ActiveBranchRow
-                  key={deployment.id}
-                  branch={deployment.gitBranch}
-                  deployment={deployment}
-                  environment={environmentById.get(deployment.environmentId)}
-                  repoFullName={repoFullName}
-                  currentDeployment={currentDeployment}
-                  isRolledBack={isRolledBack}
-                  href={routes.projects.apps.deployment({
-                    workspaceSlug: workspace.slug,
-                    projectId,
-                    appId,
-                    deploymentId: deployment.id,
-                  })}
-                />
-              ))}
-            </ResourceListBody>
-          )}
-          {hasNextPage && (
-            <ResourceListFooter>
-              <Button
-                size="md"
-                variant="outline"
-                disabled={isFetchingNextPage}
-                loading={isFetchingNextPage}
-                onClick={() => fetchNextPage()}
-              >
-                Load more
-              </Button>
-            </ResourceListFooter>
-          )}
-        </ResourceListContent>
+        match(view)
+          .with({ status: "loading" }, () => <DeploymentsSkeleton rows={4} />)
+          .with({ status: "failed" }, ({ error, retry }) => (
+            <ResourceListContent>
+              <LoadError
+                title="Could not load active branches"
+                error={error}
+                frame="none"
+                onRetry={retry}
+              />
+            </ResourceListContent>
+          ))
+          .with({ status: "empty" }, () => (
+            <ResourceListContent>
+              <div className="px-4 py-10 text-center text-sm text-gray-9">
+                No branch deployments yet.
+              </div>
+            </ResourceListContent>
+          ))
+          .with({ status: "ready" }, ({ rows, footer }) => (
+            <ResourceListContent>
+              <ResourceListBody>
+                {rows.map((deployment) => (
+                  <ActiveBranchRow
+                    key={deployment.id}
+                    branch={deployment.gitBranch}
+                    deployment={deployment}
+                    environment={environmentById.get(deployment.environmentId)}
+                    repoFullName={repoFullName}
+                    currentDeployment={currentDeployment}
+                    isRolledBack={isRolledBack}
+                    href={routes.projects.apps.deployment({
+                      workspaceSlug: workspace.slug,
+                      projectId,
+                      appId,
+                      deploymentId: deployment.id,
+                    })}
+                  />
+                ))}
+              </ResourceListBody>
+              <ListPager state={footer} noun="active branches" />
+            </ResourceListContent>
+          ))
+          .exhaustive()
       )}
     </ResourceList>
   );
