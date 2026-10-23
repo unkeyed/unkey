@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -13,20 +12,56 @@ import (
 	"strings"
 )
 
-func (analysis *reachability) changelog(cfg config, paths []string) (map[string]any, error) {
-	if len(cfg.Changelog.Filters.Include) != 0 {
-		return nil, errors.New("release changelog include filters are not supported")
+type changelogEntry struct {
+	sha     string
+	subject string
+	reason  string
+}
+
+type changeImpact struct {
+	symbol string
+	reason string
+}
+
+func (impact changeImpact) String() string {
+	if impact.symbol != "" {
+		return "linked `" + impact.symbol + "`"
 	}
-	result := map[string]any{"use": "git", "paths": paths}
+	return impact.reason
+}
+
+func (analysis *reachability) changelog(cfg config, paths []string) (changelogConfig, error) {
+	result := changelogConfig{Use: "git", Paths: paths, Format: "", Filters: nil}
+	if len(cfg.Changelog.Filters.Include) != 0 {
+		return result, errors.New("release changelog include filters are not supported")
+	}
 	previous := os.Getenv("GORELEASER_PREVIOUS_TAG")
 	if previous == "" {
 		output, err := exec.Command("git", "describe", "--tags", "--abbrev=0", "--match", cfg.Monorepo.TagPrefix+"*", "HEAD^").Output()
 		if err != nil {
-			result["format"] = "{{ .SHA }} {{ .Message }} — dependency change; no previous release to analyze (conservative)"
+			result.Format = "{{ .SHA }} {{ .Message }} — dependency change; no previous release to analyze (conservative)"
 			return result, nil
 		}
 		previous = strings.TrimSpace(string(output))
 	}
+
+	entries, err := analysis.analyzeHistory(previous, paths)
+	if err != nil {
+		return result, err
+	}
+	excluded := slices.Clone(cfg.Changelog.Filters.Exclude)
+	for _, entry := range entries {
+		if entry.reason == "" {
+			excluded = append(excluded, "^"+regexp.QuoteMeta(entry.subject)+"$")
+		}
+	}
+	slices.Sort(excluded)
+	result.Filters = &changelogFilters{Exclude: slices.Compact(excluded), Include: nil}
+	result.Format = changelogFormat(entries)
+	return result, nil
+}
+
+func (analysis *reachability) analyzeHistory(previous string, paths []string) ([]changelogEntry, error) {
 	commits, err := gitOutput("rev-list", previous+"..HEAD")
 	if err != nil {
 		return nil, err
@@ -39,8 +74,7 @@ func (analysis *reachability) changelog(cfg config, paths []string) (map[string]
 	if err != nil {
 		return nil, err
 	}
-	type entry struct{ sha, subject, reason string }
-	var entries []entry
+	var entries []changelogEntry
 	retained := map[string]bool{}
 	for line := range strings.SplitSeq(strings.TrimSpace(history), "\n") {
 		sha, subject, ok := strings.Cut(line, "\x00")
@@ -55,35 +89,34 @@ func (analysis *reachability) changelog(cfg config, paths []string) (map[string]
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, entry{sha, subject, reason})
+		entries = append(entries, changelogEntry{sha: sha, subject: subject, reason: reason})
 		if reason != "" {
 			retained[subject] = true
 		}
 	}
-	excluded := slices.Clone(cfg.Changelog.Filters.Exclude)
+	for index := range entries {
+		entry := &entries[index]
+		if entry.reason == "" && retained[entry.subject] {
+			entry.reason = "duplicate commit subject (conservative)"
+		}
+	}
+	return entries, nil
+}
+
+func changelogFormat(entries []changelogEntry) string {
 	var format strings.Builder
 	format.WriteString("{{ .SHA }} {{ .Message }} — ")
+	branches := 0
 	for _, entry := range entries {
-		if !retained[entry.subject] {
-			excluded = append(excluded, "^"+regexp.QuoteMeta(entry.subject)+"$")
+		if entry.reason == "" {
 			continue
 		}
-		reason := entry.reason
-		if reason == "" {
-			reason = "duplicate commit subject (conservative)"
-		}
-		fmt.Fprintf(&format, "{{ if eq .SHA %s }}{{ %s }}{{ else }}", strconv.Quote(entry.sha), strconv.Quote(reason))
+		fmt.Fprintf(&format, "{{ if eq .SHA %s }}{{ %s }}{{ else }}", strconv.Quote(entry.sha), strconv.Quote(entry.reason))
+		branches++
 	}
 	format.WriteString("dependency change outside analyzed range (conservative)")
-	for _, entry := range entries {
-		if retained[entry.subject] {
-			format.WriteString("{{ end }}")
-		}
-	}
-	slices.Sort(excluded)
-	result["filters"] = map[string]any{"exclude": slices.Compact(excluded)}
-	result["format"] = format.String()
-	return result, nil
+	format.WriteString(strings.Repeat("{{ end }}", branches))
+	return format.String()
 }
 
 func (analysis *reachability) commitReason(sha string, paths []string) (string, error) {
@@ -98,20 +131,21 @@ func (analysis *reachability) commitReason(sha string, paths []string) (string, 
 	if err != nil {
 		return "", err
 	}
+
 	fields := strings.Split(strings.TrimSuffix(changes, "\x00"), "\x00")
 	reason := ""
 	var linked []string
 	for index := 0; index+1 < len(fields); index += 2 {
 		status, filename := fields[index], fields[index+1]
-		candidate, err := analysis.fileReason(sha, status, filename)
+		impact, err := analysis.fileImpact(sha, status, filename)
 		if err != nil {
 			return "", err
 		}
-		if strings.HasPrefix(candidate, "linked ") {
-			linked = append(linked, candidate)
+		if impact.symbol != "" {
+			linked = append(linked, impact.String())
 		}
-		if reason == "" && candidate != "" {
-			reason = filename + ": " + candidate
+		if reason == "" && impact.reason != "" {
+			reason = filename + ": " + impact.reason
 		}
 	}
 	if len(linked) != 0 {
@@ -120,69 +154,63 @@ func (analysis *reachability) commitReason(sha string, paths []string) (string, 
 	return reason, nil
 }
 
-func (analysis *reachability) fileReason(sha, status, filename string) (string, error) {
-	embedded := false
-	assetPossible := status == "D"
-	for dir, pkg := range analysis.packages {
-		relative, err := filepath.Rel(dir, filename)
-		if err != nil {
-			return "", err
-		}
-		for _, pattern := range pkg.EmbedPatterns {
-			for candidate := filepath.ToSlash(relative); candidate != "." && candidate != ".."; candidate = path.Dir(candidate) {
-				matched, err := path.Match(strings.TrimPrefix(pattern, "all:"), candidate)
-				if err != nil {
-					return "", err
-				}
-				assetPossible = assetPossible || matched
-			}
-		}
-		if slices.Contains(pkg.EmbedFiles, filepath.ToSlash(relative)) {
-			embedded = true
-			linked, err := analysis.embedded(dir, pkg)
-			if err != nil {
-				return "", err
-			}
-			if linked {
-				return "embedded asset in linked package (conservative)", nil
-			}
-		}
+func (analysis *reachability) fileImpact(sha, status, filename string) (changeImpact, error) {
+	asset, err := analysis.assetUsage(filename)
+	if err != nil {
+		return changeImpact{}, err
 	}
-	if embedded {
-		return "", nil
+	if asset.linked {
+		return changeImpact{symbol: "", reason: "embedded asset in linked package (conservative)"}, nil
 	}
-	if strings.HasSuffix(filename, "_test.go") {
-		return "", nil
+	if asset.embedded || strings.HasSuffix(filename, "_test.go") {
+		return changeImpact{symbol: "", reason: ""}, nil
 	}
-	pkg, ok := analysis.packages[filepath.ToSlash(filepath.Dir(filename))]
 	if !strings.HasSuffix(filename, ".go") {
 		switch filepath.Ext(filename) {
 		case ".md", ".mdx":
-			if !assetPossible {
-				return "", nil
+			if !asset.possible && status != "D" {
+				return changeImpact{symbol: "", reason: ""}, nil
 			}
 		}
-		return "build input or asset (conservative)", nil
+		return changeImpact{symbol: "", reason: "build input or asset (conservative)"}, nil
 	}
+
+	pkg, ok := analysis.packages[filepath.ToSlash(filepath.Dir(filename))]
 	if !ok {
-		return "removed dependency (conservative)", nil
+		return changeImpact{symbol: "", reason: "removed dependency (conservative)"}, nil
 	}
 	if !analysis.files[filename] {
-		return "unselected or removed Go source (conservative)", nil
+		return changeImpact{symbol: "", reason: "unselected or removed Go source (conservative)"}, nil
 	}
+	before, after, err := gitFileVersions(sha, status, filename)
+	if err != nil {
+		return changeImpact{}, err
+	}
+	return analysis.changedGo([]byte(before), []byte(after), pkg), nil
+}
+
+func gitFileVersions(sha, status, filename string) (string, string, error) {
 	var before, after string
 	var err error
 	if status != "A" {
 		before, err = gitOutput("show", sha+"^:"+filename)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 	if status != "D" {
 		after, err = gitOutput("show", sha+":"+filename)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
-	return analysis.changedGo([]byte(before), []byte(after), pkg), nil
+	return before, after, nil
+}
+
+func gitOutput(args ...string) (string, error) {
+	output, err := exec.Command("git", args...).CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("git %s: %s: %w", strings.Join(args, " "), output, err)
+	}
+	return string(output), nil
 }
