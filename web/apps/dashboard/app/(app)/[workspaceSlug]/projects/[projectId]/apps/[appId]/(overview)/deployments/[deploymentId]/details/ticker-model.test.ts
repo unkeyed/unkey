@@ -174,6 +174,15 @@ describe("stageTickerLine", () => {
     );
   });
 
+  it("reads WARN and WARNING runtime lines as warnings", () => {
+    for (const severity of ["WARN", "WARNING"]) {
+      const runtimeLogs = [{ time: 9, severity, message: "slow", instance_id: "i1", region: "r" }];
+      expect(stageTickerLine(stage("instances", "started"), sources({ runtimeLogs }))?.tone).toBe(
+        "warn",
+      );
+    }
+  });
+
   it("falls back to the instance count, then a waiting line", () => {
     const instances = { state: "starting" as const, running: 1, total: 3 };
     expect(
