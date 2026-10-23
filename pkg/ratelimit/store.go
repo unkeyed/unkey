@@ -2,10 +2,10 @@ package ratelimit
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
 	"github.com/unkeyed/unkey/pkg/assert"
+	shareddb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ratelimit/db"
 )
@@ -54,15 +54,22 @@ type StoredSession struct {
 	CompactAfterMs int64
 }
 
+// Primary is the connection that a [NewMySQLStore] writes to and cleans up
+// on. A `*db.Replica` from `pkg/db` satisfies it and tags every query and
+// transaction for Query Insights.
+type Primary interface {
+	db.DBTX
+	Begin(ctx context.Context) (shareddb.DBTx, error)
+}
+
 type mysqlStore struct {
-	primary *sql.DB
+	primary Primary
 	replica db.DBTX
 }
 
 // NewMySQLStore returns a [Store] that writes to the primary and reads from
-// the replica. The replica must be safe for concurrent use, as a `*sql.DB`
-// is.
-func NewMySQLStore(primary *sql.DB, replica db.DBTX) Store {
+// the replica. Both must be safe for concurrent use, as a `*db.Replica` is.
+func NewMySQLStore(primary Primary, replica db.DBTX) Store {
 	return &mysqlStore{primary: primary, replica: replica}
 }
 
@@ -104,7 +111,7 @@ func (s *mysqlStore) ListDueRows(ctx context.Context, beforeMs int64, after DueR
 }
 
 func (s *mysqlStore) ApplyCleanup(ctx context.Context, deleted []StoredSession, inserted []StoredSession) (bool, error) {
-	tx, err := s.primary.BeginTx(ctx, nil)
+	tx, err := s.primary.Begin(ctx)
 	if err != nil {
 		return false, fault.Wrap(err, fault.Internal("unable to begin the rate limit cleanup"))
 	}
