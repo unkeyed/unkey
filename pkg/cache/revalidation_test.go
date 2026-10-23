@@ -300,3 +300,52 @@ func readStale(c Cache[string, string], method, key string) (string, CacheHit, e
 		return "", Miss, fmt.Errorf("unknown stale read method: %s", method)
 	}
 }
+
+// Every read records one duration under its operation and lowercase status.
+func TestOperationDurationCountsEachRead(t *testing.T) {
+	clk := clock.NewTestClock()
+	created, err := New(Config[string, string]{
+		Fresh:    time.Minute,
+		Stale:    time.Hour,
+		MaxSize:  10,
+		Resource: t.Name(),
+		Clock:    clk,
+	})
+	require.NoError(t, err)
+	c := created.(*cache[string, string])
+	t.Cleanup(c.Close)
+
+	c.Get(t.Context(), "key")
+	c.Set(t.Context(), "key", "value")
+	c.Get(t.Context(), "key")
+	_, _, err = c.SWR(t.Context(), "key", func(context.Context) (string, error) {
+		return "value", nil
+	}, func(error) Op { return WriteValue })
+	require.NoError(t, err)
+	clk.Tick(2 * time.Minute)
+	c.Get(t.Context(), "key")
+
+	counts := map[string]uint64{}
+	families, err := testMetrics.Gather()
+	require.NoError(t, err)
+	for _, family := range families {
+		if family.GetName() != "unkey_cache_operation_duration_seconds" {
+			continue
+		}
+		for _, metric := range family.GetMetric() {
+			labels := map[string]string{}
+			for _, label := range metric.GetLabel() {
+				labels[label.GetName()] = label.GetValue()
+			}
+			if labels["resource"] == t.Name() {
+				counts[labels["operation"]+"/"+labels["status"]] = metric.GetHistogram().GetSampleCount()
+			}
+		}
+	}
+	require.Equal(t, map[string]uint64{
+		"get/miss":  1,
+		"get/fresh": 1,
+		"get/stale": 1,
+		"swr/fresh": 1,
+	}, counts)
+}
