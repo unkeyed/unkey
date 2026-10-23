@@ -4,6 +4,7 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { describe, expect, test } from "vitest";
 import {
   type DeploymentPageInput,
+  buildRequestOf,
   deploymentPageModel,
   resolvePageStatus,
 } from "./deployment-page-model";
@@ -62,6 +63,14 @@ const input = (overrides: Partial<DeploymentPageInput> = {}): DeploymentPageInpu
   customDomains: [],
   currentDeploymentId: null,
   ...overrides,
+});
+
+describe("buildRequestOf", () => {
+  test("a request in the URL is active, and stays seen on the page after the URL drops it", () => {
+    expect(buildRequestOf({ inUrl: true, seenOnPage: true })).toBe("active");
+    expect(buildRequestOf({ inUrl: false, seenOnPage: true })).toBe("seen");
+    expect(buildRequestOf({ inUrl: false, seenOnPage: false })).toBe("none");
+  });
 });
 
 describe("deploymentPageModel", () => {

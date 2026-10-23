@@ -42,7 +42,6 @@ export function useDeploymentPage() {
   const buildRequest = buildRequestOf({
     inUrl: buildRequested,
     seenOnPage: buildRequestedOnPage,
-    stepsSettled: steps.data !== undefined || steps.fetchStatus === "idle",
   });
   useEffect(() => {
     if (buildRequest === "active") {

@@ -93,6 +93,10 @@ export const deploymentSchema = z.object({
 
 export type Deployment = z.infer<typeof deploymentSchema>;
 
+export function isPrebuilt(deployment: Pick<Deployment, "source">): boolean {
+  return deployment.source === "oci";
+}
+
 // The fields the deployment cards, dialogs, and table cells read. Both a
 // collection row and a deployments-table row satisfy it.
 export type DeploymentSummary = Pick<

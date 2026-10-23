@@ -6,14 +6,14 @@ import {
   deploymentStatusColor,
   statusGroupOf,
 } from "@/lib/collections/deploy/deployment-status";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { type Deployment, isPrebuilt } from "@/lib/collections/deploy/deployments";
 import {
   type InstanceSummary,
   instanceLabel,
   summarizeInstances,
 } from "@/lib/collections/deploy/instance-status";
 import { type DomainPriorityResult, getDomainPriority } from "../../../components/domain-priority";
-import { type StageKey, isPrebuilt } from "./details/stages-model";
+import type { StageKey } from "./details/stages-model";
 
 export type DeploymentBody = "skipped" | "superseded" | "cancelled" | "stages";
 
@@ -22,13 +22,11 @@ export type BuildRequest = "none" | "seen" | "active";
 export function buildRequestOf({
   inUrl,
   seenOnPage,
-  stepsSettled,
 }: {
   inUrl: boolean;
   seenOnPage: boolean;
-  stepsSettled: boolean;
 }): BuildRequest {
-  if (inUrl && stepsSettled) {
+  if (inUrl) {
     return "active";
   }
   return seenOnPage ? "seen" : "none";

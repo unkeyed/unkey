@@ -202,10 +202,13 @@ describe("resolveStages", () => {
     expect(stages.domains.resolution.status).toBe("skipped");
   });
 
-  test("a superseded deployment without step records waits on nothing", () => {
+  test("a superseded deployment without step records names why it stopped", () => {
     const stages = byKey(resolveStages(input({ status: "superseded" })));
-    expect(stages.build.resolution.status).toBe("skipped");
-    expect(stages.instances.resolution.status).toBe("skipped");
+    expect(stages.build.resolution).toMatchObject({ status: "skipped", description: "Superseded" });
+    expect(stages.instances.resolution).toMatchObject({
+      status: "skipped",
+      description: "Superseded",
+    });
   });
 
   test("a ready deployment without step records reads as complete", () => {
@@ -227,8 +230,14 @@ describe("open stage", () => {
       open: "build",
       autoOpened: ["build"],
       requested: null,
+      pinned: false,
     });
-    expect(initialOpenStage(closed)).toEqual({ open: null, autoOpened: [], requested: null });
+    expect(initialOpenStage(closed)).toEqual({
+      open: null,
+      autoOpened: [],
+      requested: null,
+      pinned: false,
+    });
   });
 
   test("a requested stage opens on landing, even when another stage failed", () => {
@@ -237,6 +246,7 @@ describe("open stage", () => {
       open: "build",
       autoOpened: ["instances"],
       requested: "build",
+      pinned: true,
     });
   });
 
@@ -249,12 +259,27 @@ describe("open stage", () => {
 
   test("opens a stage the first time it fails and keeps it open when it recovers", () => {
     const failed = followFailedStage(initialOpenStage(closed), "instances");
-    expect(failed).toEqual({ open: "instances", autoOpened: ["instances"], requested: null });
+    expect(failed).toEqual({
+      open: "instances",
+      autoOpened: ["instances"],
+      requested: null,
+      pinned: false,
+    });
     expect(followFailedStage(failed, null)).toEqual({
       open: "instances",
       autoOpened: ["instances"],
       requested: null,
+      pinned: false,
     });
+  });
+
+  test("a stage failing later does not close a requested stage until the user toggles", () => {
+    let state = followRequestedStage(initialOpenStage(closed), "build");
+    state = followRequestedStage(state, null);
+    state = followFailedStage(state, "instances");
+    expect(state.open).toBe("build");
+    state = toggleStage(state, "build");
+    expect(followFailedStage(state, "domains").open).toBe("domains");
   });
 
   test("a flapping stage does not reopen after the user closes it", () => {
@@ -262,7 +287,12 @@ describe("open stage", () => {
     state = toggleStage(state, "instances");
     state = followFailedStage(state, null);
     state = followFailedStage(state, "instances");
-    expect(state).toEqual({ open: null, autoOpened: ["instances"], requested: null });
+    expect(state).toEqual({
+      open: null,
+      autoOpened: ["instances"],
+      requested: null,
+      pinned: false,
+    });
   });
 
   test("a flapping stage does not steal focus from the stage the user opened", () => {
@@ -279,6 +309,7 @@ describe("open stage", () => {
       open: "instances",
       autoOpened: ["build", "instances"],
       requested: null,
+      pinned: false,
     });
   });
 });
