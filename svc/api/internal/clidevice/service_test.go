@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/auth/workos"
@@ -307,6 +308,32 @@ func TestActiveSessionEndsAtSessionMax(t *testing.T) {
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: refreshToken})
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 	require.Contains(t, fault.UserFacingMessage(err), "no longer valid")
+}
+
+func TestUserNameSurvivesRefresh(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+
+	refreshed, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+	require.NoError(t, err)
+
+	verifier, err := tokenjwt.NewHS256Verifier[clisession.Claims]([]byte(testSecret),
+		tokenjwt.WithIssuer(clisession.Issuer),
+		tokenjwt.WithAudience(clisession.Audience),
+		tokenjwt.WithClock(h.Clock),
+	)
+	require.NoError(t, err)
+	claims, err := verifier.Verify(refreshed.AccessToken)
+	require.NoError(t, err)
+	require.Equal(t, "Admin", claims.Name)
+
+	names := map[string]string{}
+	for _, log := range h.FindAuditLogsByTargetID(t.Context(), t, tokens.SessionID) {
+		names[log.Event] = log.Actor.Name
+	}
+	require.Equal(t, "Admin", names[string(auditlog.CLISessionRefreshEvent)])
 }
 
 func TestRootKeyCannotApprove(t *testing.T) {

@@ -81,7 +81,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 	if err != nil {
 		return Tokens{}, err
 	}
-	accessToken, err := s.signAccessToken(row.UserID, "", workspace.ID, row.ID, row.DeviceName.String, narrowed)
+	accessToken, err := s.signAccessToken(row.UserID, row.UserName.String, workspace.ID, row.ID, row.DeviceName.String, narrowed)
 	if err != nil {
 		return Tokens{}, err
 	}
@@ -109,7 +109,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 			Event:       auditlog.CLISessionRefreshEvent,
 			Display:     "Refreshed CLI session " + row.ID,
 			UserID:      row.UserID,
-			UserName:    "",
+			UserName:    row.UserName.String,
 			WorkspaceID: workspace.ID,
 			SessionID:   row.ID,
 			DeviceName:  row.DeviceName.String,
