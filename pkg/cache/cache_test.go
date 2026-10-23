@@ -21,11 +21,11 @@ import (
 func TestWriteRead(t *testing.T) {
 
 	c, err := cache.New(cache.Config[string, string]{
-		MaxSize: 10_000,
-
+		MaxSize:  10_000,
 		Fresh:    time.Minute,
 		Stale:    time.Minute * 5,
-		Resource: "test", Clock: clock.New(),
+		Resource: "test",
+		Clock:    clock.New(),
 	})
 	require.NoError(t, err)
 	c.Set(context.Background(), "key", "value")
@@ -121,17 +121,28 @@ func TestNull(t *testing.T) {
 }
 
 func TestNewRejectsInvalidConfig(t *testing.T) {
-	_, err := cache.New(cache.Config[string, string]{MaxSize: 10, Resource: "test"})
+	_, err := cache.New(cache.Config[string, string]{
+		MaxSize:  10,
+		Resource: "test",
+	})
 	require.ErrorContains(t, err, "clock is required")
 
 	for _, maxSize := range []int{0, -1} {
-		_, err := cache.New(cache.Config[string, string]{MaxSize: maxSize, Resource: "test", Clock: clock.NewTestClock()})
+		_, err := cache.New(cache.Config[string, string]{
+			MaxSize:  maxSize,
+			Resource: "test",
+			Clock:    clock.NewTestClock(),
+		})
 		require.ErrorContains(t, err, "MaxSize must be positive")
 	}
 }
 
 func TestName(t *testing.T) {
-	c, err := cache.New(cache.Config[string, string]{MaxSize: 1, Resource: "keys", Clock: clock.NewTestClock()})
+	c, err := cache.New(cache.Config[string, string]{
+		MaxSize:  1,
+		Resource: "keys",
+		Clock:    clock.NewTestClock(),
+	})
 	require.NoError(t, err)
 	t.Cleanup(c.Close)
 	require.Equal(t, "keys", c.Name())
@@ -142,7 +153,13 @@ func TestName(t *testing.T) {
 // cache's clock, and drops entries that are already expired.
 func TestDumpRestore(t *testing.T) {
 	clk := clock.NewTestClock()
-	config := cache.Config[string, string]{Fresh: time.Minute, Stale: time.Hour, MaxSize: 10, Resource: "test", Clock: clk}
+	config := cache.Config[string, string]{
+		Fresh:    time.Minute,
+		Stale:    time.Hour,
+		MaxSize:  10,
+		Resource: "test",
+		Clock:    clk,
+	}
 	source, err := cache.New(config)
 	require.NoError(t, err)
 	t.Cleanup(source.Close)
@@ -161,8 +178,15 @@ func TestDumpRestore(t *testing.T) {
 	require.NoError(t, target.Restore(t.Context(), b))
 
 	values, hits := target.GetMany(t.Context(), []string{"expired", "stale", "fresh"})
-	require.Equal(t, map[string]string{"stale": "s", "fresh": "f"}, values)
-	require.Equal(t, map[string]cache.CacheHit{"expired": cache.Miss, "stale": cache.Hit, "fresh": cache.Hit}, hits)
+	require.Equal(t, map[string]string{
+		"stale": "s",
+		"fresh": "f",
+	}, values)
+	require.Equal(t, map[string]cache.CacheHit{
+		"expired": cache.Miss,
+		"stale":   cache.Hit,
+		"fresh":   cache.Hit,
+	}, hits)
 
 	clk.Tick(59 * time.Minute)
 	_, hit := target.Get(t.Context(), "stale")
@@ -172,7 +196,13 @@ func TestDumpRestore(t *testing.T) {
 }
 
 func TestDumpReportsUnencodableValues(t *testing.T) {
-	c, err := cache.New(cache.Config[string, chan int]{Fresh: time.Minute, Stale: time.Hour, MaxSize: 1, Resource: "test", Clock: clock.NewTestClock()})
+	c, err := cache.New(cache.Config[string, chan int]{
+		Fresh:    time.Minute,
+		Stale:    time.Hour,
+		MaxSize:  1,
+		Resource: "test",
+		Clock:    clock.NewTestClock(),
+	})
 	require.NoError(t, err)
 	t.Cleanup(c.Close)
 	c.Set(t.Context(), "key", make(chan int))
@@ -183,7 +213,13 @@ func TestDumpReportsUnencodableValues(t *testing.T) {
 // An op that returns a value outside the Op constants writes nothing, and the
 // read reports a miss while still returning what the origin gave it.
 func TestSWRWithUnknownOpWritesNothing(t *testing.T) {
-	c, err := cache.New(cache.Config[string, string]{Fresh: time.Minute, Stale: time.Hour, MaxSize: 1, Resource: "test", Clock: clock.NewTestClock()})
+	c, err := cache.New(cache.Config[string, string]{
+		Fresh:    time.Minute,
+		Stale:    time.Hour,
+		MaxSize:  1,
+		Resource: "test",
+		Clock:    clock.NewTestClock(),
+	})
 	require.NoError(t, err)
 	t.Cleanup(c.Close)
 	value, hit, err := c.SWR(t.Context(), "key", func(context.Context) (string, error) {
@@ -212,7 +248,10 @@ func TestNoopCacheStoresNothing(t *testing.T) {
 	require.Equal(t, cache.Miss, hit)
 	values, hits := c.GetMany(ctx, []string{"a", "b"})
 	require.Empty(t, values)
-	require.Equal(t, map[string]cache.CacheHit{"a": cache.Miss, "b": cache.Miss}, hits)
+	require.Equal(t, map[string]cache.CacheHit{
+		"a": cache.Miss,
+		"b": cache.Miss,
+	}, hits)
 
 	b, err := c.Dump(ctx)
 	require.NoError(t, err)
@@ -243,7 +282,10 @@ func TestNoopCacheStoresNothing(t *testing.T) {
 }
 
 func TestScopedKeyRoundTrip(t *testing.T) {
-	key := cache.ScopedKey{WorkspaceID: "ws_1", Key: "name:with:colons"}
+	key := cache.ScopedKey{
+		WorkspaceID: "ws_1",
+		Key:         "name:with:colons",
+	}
 	require.Equal(t, "ws_1:name:with:colons", cache.ScopedKeyToString(key))
 	parsed, err := cache.ScopedKeyFromString(key.String())
 	require.NoError(t, err)
@@ -258,8 +300,18 @@ func TestScopedKeyRoundTrip(t *testing.T) {
 func newHeldCache(t *testing.T) (cache.Cache[string, string], *clock.TestClock, *refreshQueue) {
 	t.Helper()
 	clk := clock.NewTestClock()
-	queue := &refreshQueue{refreshes: nil, limit: 100}
-	c, err := cache.New(cache.Config[string, string]{Fresh: time.Minute, Stale: time.Hour, MaxSize: 10, Resource: "test", Clock: clk, Scheduler: queue})
+	queue := &refreshQueue{
+		refreshes: nil,
+		limit:     100,
+	}
+	c, err := cache.New(cache.Config[string, string]{
+		Fresh:     time.Minute,
+		Stale:     time.Hour,
+		MaxSize:   10,
+		Resource:  "test",
+		Clock:     clk,
+		Scheduler: queue,
+	})
 	require.NoError(t, err)
 	t.Cleanup(c.Close)
 	return c, clk, queue
@@ -345,7 +397,10 @@ func TestSWRManyWritesNothingWithoutValues(t *testing.T) {
 	values, hits, err := c.SWRMany(t.Context(), []string{"a", "b"}, noValues, writeValue)
 	require.NoError(t, err)
 	require.Empty(t, values)
-	require.Equal(t, map[string]cache.CacheHit{"a": cache.Miss, "b": cache.Miss}, hits)
+	require.Equal(t, map[string]cache.CacheHit{
+		"a": cache.Miss,
+		"b": cache.Miss,
+	}, hits)
 	_, hit := c.Get(t.Context(), "a")
 	require.Equal(t, cache.Miss, hit)
 

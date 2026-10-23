@@ -96,14 +96,20 @@ func TestRevalidationMetricsSeparateQueueWaitFromExecution(t *testing.T) {
 	for _, fails := range []bool{false, true} {
 		t.Run(fmt.Sprintf("fails=%t", fails), func(t *testing.T) {
 			c, clk := newPausedRefreshCache(t)
-			c.SetMany(t.Context(), map[string]string{"a": "old-a", "b": "old-b"})
+			c.SetMany(t.Context(), map[string]string{
+				"a": "old-a",
+				"b": "old-b",
+			})
 			clk.Tick(2 * time.Minute)
 			_, _, err := c.SWRMany(t.Context(), []string{"a", "b"}, func(_ context.Context, keys []string) (map[string]string, error) {
 				clk.Tick(125 * time.Millisecond)
 				if fails {
 					return nil, fmt.Errorf("origin unavailable")
 				}
-				return map[string]string{keys[0]: "new-a", keys[1]: "new-b"}, nil
+				return map[string]string{
+					keys[0]: "new-a",
+					keys[1]: "new-b",
+				}, nil
 			}, func(err error) Op {
 				if err != nil {
 					return Noop
@@ -137,7 +143,10 @@ func TestRevalidationMetricsSeparateQueueWaitFromExecution(t *testing.T) {
 
 func TestStaleReadsDeduplicateQueuedRefreshes(t *testing.T) {
 	c, clk := newPausedRefreshCache(t)
-	c.SetMany(t.Context(), map[string]string{"a": "old-a", "b": "old-b"})
+	c.SetMany(t.Context(), map[string]string{
+		"a": "old-a",
+		"b": "old-b",
+	})
 	clk.Tick(2 * time.Minute)
 
 	for range 20 {
@@ -156,8 +165,14 @@ func TestStaleReadsDeduplicateQueuedRefreshes(t *testing.T) {
 		return map[string]string{"b": "new-b"}, nil
 	}, func(error) Op { return WriteValue })
 	require.NoError(t, err)
-	require.Equal(t, map[string]string{"a": "old-a", "b": "old-b"}, values)
-	require.Equal(t, map[string]CacheHit{"a": Hit, "b": Hit}, hits)
+	require.Equal(t, map[string]string{
+		"a": "old-a",
+		"b": "old-b",
+	}, values)
+	require.Equal(t, map[string]CacheHit{
+		"a": Hit,
+		"b": Hit,
+	}, hits)
 	require.Len(t, queued(c), 2)
 	(<-queued(c))()
 	(<-queued(c))()
@@ -248,7 +263,11 @@ func newPausedRefreshCache(t *testing.T) (*cache[string, string], *clock.TestClo
 	t.Helper()
 	clk := clock.NewTestClock()
 	created, err := New(Config[string, string]{
-		Fresh: time.Minute, Stale: time.Hour, MaxSize: 100, Resource: t.Name(), Clock: clk,
+		Fresh:    time.Minute,
+		Stale:    time.Hour,
+		MaxSize:  100,
+		Resource: t.Name(),
+		Clock:    clk,
 	})
 	require.NoError(t, err)
 	c := created.(*cache[string, string])
@@ -335,12 +354,21 @@ func counterValue(t *testing.T, name string, labels map[string]string) float64 {
 
 func TestDeletedMetricCountsEachReason(t *testing.T) {
 	clk := clock.NewTestClock()
-	c, err := New(Config[string, string]{Fresh: time.Minute, Stale: time.Hour, MaxSize: 2, Resource: t.Name(), Clock: clk})
+	c, err := New(Config[string, string]{
+		Fresh:    time.Minute,
+		Stale:    time.Hour,
+		MaxSize:  2,
+		Resource: t.Name(),
+		Clock:    clk,
+	})
 	require.NoError(t, err)
 	t.Cleanup(c.Close)
 	ctx := t.Context()
 	deleted := func(reason string) float64 {
-		return counterValue(t, "unkey_cache_deleted_total", map[string]string{"resource": t.Name(), "reason": reason})
+		return counterValue(t, "unkey_cache_deleted_total", map[string]string{
+			"resource": t.Name(),
+			"reason":   reason,
+		})
 	}
 
 	c.Set(ctx, "a", "1")
@@ -375,7 +403,10 @@ func TestDeletedMetricCountsEachReason(t *testing.T) {
 		require.NoError(t, err)
 	}
 	require.Equal(t, float64(1), deleted("Replaced"), "SWRMany must write each fetched key once")
-	require.Zero(t, counterValue(t, "unkey_cache_revalidation_enqueues_total", map[string]string{"resource": t.Name(), "outcome": "deduplicated"}),
+	require.Zero(t, counterValue(t, "unkey_cache_revalidation_enqueues_total", map[string]string{
+		"resource": t.Name(),
+		"outcome":  "deduplicated",
+	}),
 		"fresh reads must not ask for a refresh")
 }
 
@@ -387,10 +418,16 @@ func TestBatchRefreshReleasesEveryKey(t *testing.T) {
 	var refreshed []string
 	origin := func(_ context.Context, keys []string) (map[string]string, error) {
 		refreshed = keys
-		return map[string]string{"a": "new-a", "b": "new-b"}, nil
+		return map[string]string{
+			"a": "new-a",
+			"b": "new-b",
+		}, nil
 	}
 	op := func(error) Op { return WriteValue }
-	c.SetMany(ctx, map[string]string{"a": "old-a", "b": "old-b"})
+	c.SetMany(ctx, map[string]string{
+		"a": "old-a",
+		"b": "old-b",
+	})
 
 	clk.Tick(2 * time.Minute)
 	_, _, err := c.SWRMany(ctx, []string{"a", "b"}, origin, op)
