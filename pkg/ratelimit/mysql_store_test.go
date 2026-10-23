@@ -1,7 +1,6 @@
 package ratelimit
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"testing"
 	"time"
@@ -44,11 +43,12 @@ func TestMySQLStoreCleanup(t *testing.T) {
 	// The database outlives test runs, so each run lists its own range.
 	dueMs := time.Now().UnixNano()
 	beforeDue := DueRow{Fingerprint: lastFingerprint, CompactAfterMs: dueMs - 1}
+	// `first` sorts before `second`, and `first[0] > first[1]`, so a cursor
+	// that lost its first byte would sort before `first` and list it again.
 	first := sha256.Sum256([]byte(uid.New(uid.TestPrefix)))
+	first[0], first[1] = 1, 0
 	second := sha256.Sum256([]byte(uid.New(uid.TestPrefix)))
-	if bytes.Compare(first[:], second[:]) > 0 {
-		first, second = second, first
-	}
+	second[0] = 2
 	a := StoredSession{Fingerprint: second, SessionID: uid.New("", 16), AnchorAtNs: 100, ConsumedNs: 10, CompactAfterMs: dueMs}
 	b := StoredSession{Fingerprint: second, SessionID: uid.New("", 16), AnchorAtNs: 105, ConsumedNs: 5, CompactAfterMs: dueMs}
 	c := StoredSession{Fingerprint: first, SessionID: uid.New("", 16), AnchorAtNs: 100, ConsumedNs: 1, CompactAfterMs: dueMs}
@@ -83,6 +83,27 @@ func TestMySQLStoreCleanup(t *testing.T) {
 	sessions, err = store.ReadSessionsFromPrimary(ctx, second, 10)
 	require.NoError(t, err)
 	require.Equal(t, []StoredSession{merged}, sessions)
+}
+
+// TestMySQLStoreReturnsDatabaseErrors guarantees that a failed query reaches
+// the caller, so flush keeps its sessions and cleanup stops its pass.
+func TestMySQLStoreReturnsDatabaseErrors(t *testing.T) {
+	ctx := t.Context()
+	database, err := shareddb.New(shareddb.Config{PrimaryDSN: containers.MySQL(t).DSN, ReadOnlyDSN: "", Tags: sqlcomment.Static{}})
+	require.NoError(t, err)
+	store := NewMySQLStore(database.RW(), database.RO())
+	require.NoError(t, database.Close())
+
+	row := StoredSession{Fingerprint: sha256.Sum256([]byte(uid.New(uid.TestPrefix))), SessionID: uid.New("", 16), AnchorAtNs: 100, ConsumedNs: 1, CompactAfterMs: 1}
+	require.Error(t, store.WriteSessions(ctx, []StoredSession{row}))
+	_, err = store.ReadSessions(ctx, row.Fingerprint, 10)
+	require.Error(t, err)
+	_, err = store.ReadSessionsFromPrimary(ctx, row.Fingerprint, 10)
+	require.Error(t, err)
+	_, err = store.ListDueRows(ctx, 2, firstDueRow, 10)
+	require.Error(t, err)
+	_, err = store.ApplyCleanup(ctx, []StoredSession{row}, nil)
+	require.Error(t, err)
 }
 
 // newMySQLTestStore returns a store on the test container through `pkg/db`,

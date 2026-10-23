@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"math"
 	"math/rand/v2"
 	"slices"
 	"testing"
@@ -239,4 +240,56 @@ func TestCleanUpPagesPastRowsItKeeps(t *testing.T) {
 	require.NoError(t, l.cleanUp(context.Background()))
 	require.Len(t, store.sessions(busy), 2*(dueRowsPerPage+1))
 	require.Empty(t, store.sessions(idle))
+}
+
+// TestPlanCleanupRejectsInvalidRows guarantees that cleanup leaves rows alone
+// that it cannot reason about, instead of deleting or merging them.
+func TestPlanCleanupRejectsInvalidRows(t *testing.T) {
+	const nowNs = int64(time.Hour)
+	dueMs := nowNs/time.Millisecond.Nanoseconds() - 1
+	valid := StoredSession{Fingerprint: [32]byte{1}, SessionID: "valid", AnchorAtNs: 100, ConsumedNs: 10, CompactAfterMs: dueMs}
+	with := func(change func(*StoredSession)) StoredSession {
+		row := valid
+		row.SessionID = "changed"
+		change(&row)
+		return row
+	}
+
+	cases := []struct {
+		name  string
+		nowNs int64
+		rows  []StoredSession
+	}{
+		{name: "time at the Unix epoch", nowNs: 0, rows: []StoredSession{valid}},
+		{name: "two fingerprints", nowNs: nowNs, rows: []StoredSession{valid, with(func(r *StoredSession) { r.Fingerprint = [32]byte{2} })}},
+		{name: "repeated session ID", nowNs: nowNs, rows: []StoredSession{valid, valid}},
+		{name: "zero anchor", nowNs: nowNs, rows: []StoredSession{valid, with(func(r *StoredSession) { r.AnchorAtNs = 0 })}},
+		{name: "negative consumed time", nowNs: nowNs, rows: []StoredSession{valid, with(func(r *StoredSession) { r.ConsumedNs = -1 })}},
+		{name: "consumed sum overflows", nowNs: nowNs, rows: []StoredSession{
+			with(func(r *StoredSession) { r.SessionID = "a"; r.ConsumedNs = math.MaxInt64/2 + 1 }),
+			with(func(r *StoredSession) { r.SessionID = "b"; r.ConsumedNs = math.MaxInt64/2 + 1 }),
+		}},
+		{name: "anchor plus consumed overflows", nowNs: nowNs, rows: []StoredSession{with(func(r *StoredSession) { r.AnchorAtNs = math.MaxInt64 - 5 })}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := planCleanup(tc.rows, true, tc.nowNs, func() string { return "merged" })
+			require.Error(t, err)
+		})
+	}
+}
+
+// TestPlanCleanupLeavesALoneDueRowThatIsStillCounted guarantees that a single
+// due row that cannot be deleted is not rewritten on every pass.
+func TestPlanCleanupLeavesALoneDueRowThatIsStillCounted(t *testing.T) {
+	const nowNs = int64(time.Hour)
+	dueMs := nowNs/time.Millisecond.Nanoseconds() - 1
+	rows := []StoredSession{
+		{SessionID: "due", AnchorAtNs: 100, ConsumedNs: 10, CompactAfterMs: dueMs},
+		{SessionID: "not due", AnchorAtNs: 105, ConsumedNs: 5, CompactAfterMs: dueMs + 2},
+	}
+	plan, err := planCleanup(rows, true, nowNs, func() string { return "merged" })
+	require.NoError(t, err)
+	require.Empty(t, plan.deleted)
+	require.Empty(t, plan.inserted)
 }
