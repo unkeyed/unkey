@@ -91,9 +91,10 @@ func newFixture(t *testing.T) *fixture {
 		actorID:     uid.New("user"),
 	}
 	f.env = f.newProductionEnvironment(t, "production")
-	f.live = f.newReadyDeployment(t)
-	f.candidate = f.newReadyDeployment(t)
-	f.other = f.newReadyDeployment(t)
+	createdAt := time.Now().UnixMilli()
+	f.live = f.newReadyDeployment(t, createdAt-2)
+	f.candidate = f.newReadyDeployment(t, createdAt-1)
+	f.other = f.newReadyDeployment(t, createdAt)
 
 	f.insertRoute(t, f.live.ID, db.FrontlineRoutesStickyLive)
 	f.insertRoute(t, f.live.ID, db.FrontlineRoutesStickyEnvironment)
@@ -134,7 +135,7 @@ func (f *fixture) newProductionEnvironment(t *testing.T, slug string) db.Environ
 	})
 }
 
-func (f *fixture) newReadyDeployment(t *testing.T) db.Deployment {
+func (f *fixture) newReadyDeployment(t *testing.T, createdAt int64) db.Deployment {
 	t.Helper()
 	return f.seeder.CreateDeployment(f.ctx, seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -143,6 +144,7 @@ func (f *fixture) newReadyDeployment(t *testing.T) db.Deployment {
 		AppID:         f.app.ID,
 		EnvironmentID: f.env.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
+		CreatedAt:     createdAt,
 	})
 }
 
