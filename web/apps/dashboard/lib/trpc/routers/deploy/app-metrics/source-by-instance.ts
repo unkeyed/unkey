@@ -1,22 +1,19 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db, schema } from "@/lib/db";
 import type { InstanceSeries } from "@/lib/metrics/app-metrics";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { instanceSeriesInput, liveInstancesOf, loadMetricsScope, orThrow } from "./scope";
+import { z } from "zod";
+import { loadMetricsScope, metricsScopeInput, orThrow } from "./scope";
+
+const instanceSeriesInput = metricsScopeInput.extend({
+  instances: z.array(z.string().max(255)).max(500),
+});
 
 export const appMetricsSourceByInstance = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(instanceSeriesInput)
   .query(async ({ ctx, input }): Promise<InstanceSeries> => {
     const scope = await loadMetricsScope(ctx.workspace.id, input);
-    const live = await db
-      .select({ k8sName: schema.instances.k8sName })
-      .from(schema.instances)
-      .where(liveInstancesOf(scope));
-    const instances = live.map((i) => i.k8sName);
-    if (input.stoppedInstance !== null) {
-      instances.push(input.stoppedInstance);
-    }
+    const instances = [...new Set(input.instances)];
     if (instances.length === 0) {
       return { grid: scope.grid, instances: [] };
     }
