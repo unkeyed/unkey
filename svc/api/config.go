@@ -509,6 +509,20 @@ func (c *Config) Validate() error {
 	if c.Restate.APIKey != strings.TrimSpace(c.Restate.APIKey) {
 		return fmt.Errorf("restate.api_key must not have surrounding whitespace")
 	}
+	return c.CLIAuth.validate()
+}
+
+func (c CLIAuthConfig) validate() error {
+	for i, secret := range c.SigningSecrets {
+		if strings.TrimSpace(secret) == "" {
+			return fmt.Errorf("cli_auth.signing_secrets[%d] must not be blank", i)
+		}
+	}
+	hasWorkOSAPIKey := strings.TrimSpace(c.WorkOSAPIKey) != ""
+	hasSigningSecrets := len(c.SigningSecrets) > 0
+	if hasWorkOSAPIKey != hasSigningSecrets {
+		return fmt.Errorf("cli_auth requires both workos_api_key and signing_secrets, or neither")
+	}
 	return nil
 }
 
