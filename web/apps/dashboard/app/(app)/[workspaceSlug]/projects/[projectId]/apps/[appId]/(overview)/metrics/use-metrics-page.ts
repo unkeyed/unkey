@@ -61,7 +61,12 @@ export function useMetricsPage() {
   const instances = useMetricInstances(scope, perInstance);
   const byInstance = useMetricSourceByInstance(
     scope,
-    seriesInstancesOf(openReplica, scope?.environmentId ?? null, instances),
+    seriesInstancesOf({
+      needed: perInstance,
+      open: openReplica,
+      environmentId: scope?.environmentId ?? null,
+      instances,
+    }),
   );
   const deploys = useDeployMarkers(scope);
 

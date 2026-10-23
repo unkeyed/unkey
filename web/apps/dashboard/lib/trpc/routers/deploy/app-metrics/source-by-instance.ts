@@ -1,11 +1,11 @@
 import { clickhouse } from "@/lib/clickhouse";
-import type { InstanceSeries } from "@/lib/metrics/app-metrics";
+import { INSTANCE_SERIES_MAX, type InstanceSeries } from "@/lib/metrics/app-metrics";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { loadMetricsScope, metricsScopeInput, orThrow } from "./scope";
 
 const instanceSeriesInput = metricsScopeInput.extend({
-  instances: z.array(z.string().max(255)).max(500),
+  instances: z.array(z.string().max(255)).max(INSTANCE_SERIES_MAX),
 });
 
 export const appMetricsSourceByInstance = workspaceProcedure
