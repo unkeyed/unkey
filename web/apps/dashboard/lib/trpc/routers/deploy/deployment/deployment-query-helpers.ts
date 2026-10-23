@@ -1,7 +1,6 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import { lastExitOf } from "@/lib/collections/deploy/last-exit";
 import { ne } from "@/lib/db";
-import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 
 // A skipped row records a push the platform declined to build at all (watch

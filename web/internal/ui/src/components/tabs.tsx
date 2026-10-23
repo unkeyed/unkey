@@ -1,8 +1,8 @@
 "use client";
 
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
-import { cva } from "class-variance-authority";
 import * as React from "react";
+import { cva } from "../lib/cva";
 import { cn } from "../lib/utils";
 
 const Tabs = TabsPrimitive.Root;

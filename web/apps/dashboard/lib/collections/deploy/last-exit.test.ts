@@ -1,6 +1,6 @@
 import type { LastExit } from "@/lib/types/deploy";
-import { describe, expect, it, test } from "vitest";
 import type { ContainerStatus } from "@unkey/db/src/schema";
+import { describe, expect, it, test } from "vitest";
 import { exitBadge, lastExitOf, latestExit } from "./last-exit";
 
 const exit = (overrides: Partial<LastExit> = {}): LastExit => ({

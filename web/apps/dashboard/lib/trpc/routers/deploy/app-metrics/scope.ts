@@ -1,7 +1,6 @@
 import { and, db, desc, eq, gte, lt, or, schema, sql } from "@/lib/db";
 import { RANGE_PRESETS, clampedGrid, rollupsServe } from "@/lib/metrics/app-metrics";
 import { TRPCError } from "@trpc/server";
-import type { Result } from "@unkey/error";
 import { z } from "zod";
 
 export const environmentScopeInput = z.object({
@@ -94,8 +93,8 @@ export function loadMarkerDeployments(scope: MetricsScope) {
     );
 }
 
-export function orThrow<T>(result: Result<T>): T {
-  if (result.err) {
+export function orThrow<T>(result: { val?: T; err?: Error }): T {
+  if (result.err || result.val === undefined) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to load app metrics",
