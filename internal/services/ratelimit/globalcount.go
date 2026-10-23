@@ -57,6 +57,26 @@ func (s *service) counterEnabled(req RatelimitRequest) bool {
 	return s.globalCounter != nil && req.UseGlobalCounter
 }
 
+func strictKeyOf(req RatelimitRequest) strictKey {
+	return strictKey{workspaceID: req.WorkspaceID, namespace: req.Namespace, identifier: req.Identifier, durationMs: req.Duration.Milliseconds()}
+}
+
+// strictPeerMaxAge is how old a peer count a limiter in strict mode accepts.
+// Concurrent requests share one replica read, so a busy limiter costs at most
+// about one replica read per name per 100 ms per pod.
+const strictPeerMaxAge = 100 * time.Millisecond
+
+// peerMaxAge is how old a peer count the global counter may use for req. Near
+// the limit, the peer counts the cache still hides are what let other pods
+// overshoot, so after a denial of this limiter, until the window ends, it reads
+// the replica far more often. The request path still never writes.
+func (s *service) peerMaxAge(key strictKey, req RatelimitRequest) time.Duration {
+	if req.Time.UnixMilli() < s.loadStrictUntil(key) {
+		return strictPeerMaxAge
+	}
+	return 0
+}
+
 // previousWindowShare is what the previous window still contributes to the
 // sliding window. It is never negative, so deductions in the previous window
 // cannot grant credit in this one.
@@ -70,7 +90,9 @@ func previousWindowShare(previousTotal int64, elapsed float64) int64 {
 // share, so a plain Get is enough.
 func (s *service) ratelimitCounted(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
 	w := windowOf(req)
-	previousTotal, err := s.globalCounter.Get(ctx, globalcounter.GetParams{Name: globalCounterName(req, w.sequence-1)})
+	sk := strictKeyOf(req)
+	maxAge := s.peerMaxAge(sk, req)
+	previousTotal, err := s.globalCounter.Get(ctx, globalcounter.GetParams{Name: globalCounterName(req, w.sequence-1), PeerMaxAge: maxAge})
 	if err != nil {
 		return RatelimitResponse{}, fault.Wrap(err, fault.Internal("read the previous window from the global counter"))
 	}
@@ -80,6 +102,7 @@ func (s *service) ratelimitCounted(ctx context.Context, req RatelimitRequest) (R
 	passed := false
 	_, err = s.globalCounter.ConditionalAdd(ctx, globalcounter.ConditionalAddParams{
 		Name:        globalCounterName(req, w.sequence),
+		PeerMaxAge:  maxAge,
 		DeleteAfter: time.UnixMilli((w.sequence + 2) * req.Duration.Milliseconds()),
 		Delta: func(current int64) int64 {
 			effective = current + previousShare + req.Cost
@@ -99,6 +122,8 @@ func (s *service) ratelimitCounted(ctx context.Context, req RatelimitRequest) (R
 	if passed {
 		outcome = "passed"
 		remaining = max(0, req.Limit-effective)
+	} else {
+		s.setStrictUntil(sk, req.Time.Add(req.Duration).UnixMilli())
 	}
 	metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, "global_counter", outcome).Inc()
 	return RatelimitResponse{
@@ -117,12 +142,16 @@ func (s *service) ratelimitCounted(ctx context.Context, req RatelimitRequest) (R
 // error, because the counter cannot add those atomically.
 func (s *service) ratelimitManyCounted(ctx context.Context, reqs []RatelimitRequest) ([]RatelimitResponse, error) {
 	windows := make([]window, len(reqs))
+	strictKeys := make([]strictKey, len(reqs))
+	maxAges := make([]time.Duration, len(reqs))
 	currentNames := make([]string, len(reqs))
 	previousNames := make([]string, len(reqs))
 	previousShares := make([]int64, len(reqs))
 	seen := make(map[string]struct{}, len(reqs))
 	for i, req := range reqs {
 		windows[i] = windowOf(req)
+		strictKeys[i] = strictKeyOf(req)
+		maxAges[i] = s.peerMaxAge(strictKeys[i], req)
 		currentNames[i] = globalCounterName(req, windows[i].sequence)
 		previousNames[i] = globalCounterName(req, windows[i].sequence-1)
 		if _, duplicate := seen[currentNames[i]]; duplicate {
@@ -136,7 +165,7 @@ func (s *service) ratelimitManyCounted(ctx context.Context, reqs []RatelimitRequ
 		}
 	}
 	for i := range reqs {
-		previousTotal, err := s.globalCounter.Get(ctx, globalcounter.GetParams{Name: previousNames[i]})
+		previousTotal, err := s.globalCounter.Get(ctx, globalcounter.GetParams{Name: previousNames[i], PeerMaxAge: maxAges[i]})
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Internal("read the previous window from the global counter"))
 		}
@@ -149,6 +178,7 @@ func (s *service) ratelimitManyCounted(ctx context.Context, reqs []RatelimitRequ
 	for i, req := range reqs {
 		checks[i] = globalcounter.ConditionalAddCheck{
 			Name:        currentNames[i],
+			PeerMaxAge:  maxAges[i],
 			DeleteAfter: time.UnixMilli((windows[i].sequence + 2) * req.Duration.Milliseconds()),
 			Delta: func(current int64) (int64, bool) {
 				effective[i] = current + previousShares[i] + req.Cost
@@ -175,6 +205,8 @@ func (s *service) ratelimitManyCounted(ctx context.Context, reqs []RatelimitRequ
 		outcome := "denied"
 		if passed[i] {
 			outcome = "passed"
+		} else {
+			s.setStrictUntil(strictKeys[i], req.Time.Add(req.Duration).UnixMilli())
 		}
 		metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, "global_counter", outcome).Inc()
 		responses[i] = RatelimitResponse{

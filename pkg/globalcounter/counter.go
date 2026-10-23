@@ -251,6 +251,9 @@ func (c *Counter) Add(params AddParams) error {
 type ConditionalAddParams struct {
 	Name string
 
+	// PeerMaxAge works like [GetParams.PeerMaxAge].
+	PeerMaxAge time.Duration
+
 	// DeleteAfter is when the counter may be deleted; zero means never.
 	DeleteAfter time.Time
 
@@ -273,7 +276,7 @@ type ConditionalAddParams struct {
 func (c *Counter) ConditionalAdd(ctx context.Context, params ConditionalAddParams) (int64, error) {
 	for range conditionalAttemptsMax {
 		current := c.sequence.Load()
-		peers, err := c.peerTotal(ctx, params.Name, current)
+		peers, err := c.peerTotal(ctx, params.Name, current, params.PeerMaxAge)
 		if err != nil {
 			return 0, err
 		}
@@ -344,6 +347,9 @@ func (c *Counter) addDecided(params ConditionalAddParams, key entryKey, peers in
 type ConditionalAddCheck struct {
 	Name string
 
+	// PeerMaxAge works like [GetParams.PeerMaxAge].
+	PeerMaxAge time.Duration
+
 	// DeleteAfter is when the counter may be deleted; zero means never.
 	DeleteAfter time.Time
 
@@ -395,8 +401,8 @@ func (c *Counter) ConditionalAddMany(ctx context.Context, params ConditionalAddM
 		}
 		current = c.sequence.Load()
 		peers := make([]int64, count)
-		for i, name := range names {
-			peer, err := c.peerTotal(ctx, name, current)
+		for i, check := range params.Checks {
+			peer, err := c.peerTotal(ctx, check.Name, current, check.PeerMaxAge)
 			if err != nil {
 				return nil, err
 			}

@@ -137,7 +137,7 @@ func (mw *tracingMiddleware[K, V]) Close() {
 	mw.next.Close()
 }
 
-func (mw *tracingMiddleware[K, V]) SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(err error) cache.Op) (V, cache.CacheHit, error) {
+func (mw *tracingMiddleware[K, V]) SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(err error) cache.Op, opts ...cache.SWROption) (V, cache.CacheHit, error) {
 	ctx, span := tracing.Start(ctx, "cache.SWR")
 	defer span.End()
 	span.SetAttributes(attribute.String("key", fmt.Sprintf("%v", key)))
@@ -146,7 +146,7 @@ func (mw *tracingMiddleware[K, V]) SWR(ctx context.Context, key K, refreshFromOr
 		innerCtx, innerSpan := tracing.Start(innerCtx, "refreshFromOrigin")
 		defer innerSpan.End()
 		return refreshFromOrigin(innerCtx)
-	}, op)
+	}, op, opts...)
 
 	if err != nil {
 		tracing.RecordError(span, err)

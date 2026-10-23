@@ -15,4 +15,8 @@ type swrEntry[T any] struct {
 	// Before this time, the entry should be revalidated
 	// After this time, the entry must be discarded
 	Stale time.Time `json:"stale"`
+
+	// LoadedAt is when the value was written, so a read can apply a lower
+	// maximum age than Fresh and Stale allow.
+	LoadedAt time.Time `json:"loadedAt"`
 }

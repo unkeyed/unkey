@@ -109,6 +109,30 @@ var (
 		},
 	)
 
+	// PeerReadsTotal counts replica reads of other writers' rows. They happen
+	// when the peer cache has no usable sum, either for every caller or only for
+	// a caller that set a lower maximum age, and when it refreshes a stale sum.
+	//
+	// Possible reason values are:
+	// - "cache": the cache's own limits required the read.
+	// - "max_age": a read with PeerMaxAge required it.
+	// Possible result values are "ok" and "error".
+	//
+	// Concurrent reads of a name share one replica read, which counts with the
+	// reason of the read that started it.
+	//
+	// Example usage:
+	//   metrics.PeerReadsTotal.WithLabelValues("max_age", "ok").Inc()
+	PeerReadsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "globalcounter",
+			Name:      "peer_reads_total",
+			Help:      "Replica reads of other writers' rows by reason and result",
+		},
+		[]string{"reason", "result"},
+	)
+
 	// PersistDurationSeconds tracks how long one batch takes to persist,
 	// including retries. Failed batches are included.
 	PersistDurationSeconds = lazy.NewHistogram(
