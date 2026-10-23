@@ -1,4 +1,4 @@
-package zen
+package compression
 
 import (
 	"strconv"

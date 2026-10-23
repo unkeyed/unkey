@@ -39,6 +39,5 @@ func writeCompressed(s *Session, status int, body []byte) error {
 		return s.writeResponse(status, body)
 	}
 
-	encoding := selectEncoding(s.Request().Header.Values("Accept-Encoding"))
-	return compression.WriteResponse(s.ResponseWriter(), body, encoding)
+	return compression.WriteResponse(s.ResponseWriter(), body, s.Request().Header.Values("Accept-Encoding"))
 }

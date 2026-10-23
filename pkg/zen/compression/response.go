@@ -8,11 +8,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// WriteResponse sends body with status 200 using gzip or zstd. Unsupported
-// encodings and bodies that do not shrink are sent unchanged. Callers must
-// negotiate encoding and check whether the response permits compression.
-func WriteResponse(w http.ResponseWriter, body []byte, encoding string) error {
-	switch encoding {
+// WriteResponse sends body with status 200, negotiating gzip or zstd from
+// acceptEncoding header values. If neither is selected or the body does not
+// shrink, it is sent unchanged. Callers must check response eligibility.
+func WriteResponse(w http.ResponseWriter, body []byte, acceptEncoding []string) error {
+	switch selectEncoding(acceptEncoding) {
 	case "gzip":
 		return writeGzip(w, body)
 	case "zstd":
