@@ -41,11 +41,9 @@ const LINES_AHEAD_MIN = 300;
 export function DeploymentBuildLogs({
   logs,
   onReadsToEndChange,
-  fixedHeight = 500,
 }: {
   logs: BuildLogsQuery;
   onReadsToEndChange: (readsToEnd: boolean) => void;
-  fixedHeight?: number;
 }) {
   const { deployment } = useDeployment();
   const { derivedStatus } = useDeploymentStatus(deployment);
@@ -63,7 +61,7 @@ export function DeploymentBuildLogs({
   // Rows near a jump target are not measured yet, so the jump repeats as they
   // are, until the viewer scrolls
   const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
-  const logHeight = `min(${fixedHeight}px, 60dvh)`;
+  const logHeight = "min(500px, 60dvh)";
   const readsToEnd = isFailed || followsTail || pendingJump !== null || query.trim() !== "";
   useEffect(() => {
     onReadsToEndChange(readsToEnd);

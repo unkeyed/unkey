@@ -153,20 +153,33 @@ function withInstanceHealth(
 export type OpenStage = {
   open: StageKey | null;
   autoOpened: readonly StageKey[];
+  requested: StageKey | null;
 };
 
-export function initialOpenStage(
-  failed: StageKey | null,
-  requested: StageKey | null = null,
-): OpenStage {
-  return { open: requested ?? failed, autoOpened: failed ? [failed] : [] };
+// On landing a failed stage wins over a requested one
+export function initialOpenStage({
+  failed,
+  requested,
+}: {
+  failed: StageKey | null;
+  requested: StageKey | null;
+}): OpenStage {
+  return { open: failed ?? requested, autoOpened: failed ? [failed] : [], requested };
+}
+
+// A request made on the page, such as "Go to build logs", opens its stage
+export function followRequestedStage(state: OpenStage, requested: StageKey | null): OpenStage {
+  if (requested === state.requested) {
+    return state;
+  }
+  return { ...state, requested, open: requested ?? state.open };
 }
 
 export function followFailedStage(state: OpenStage, failed: StageKey | null): OpenStage {
   if (!failed || state.autoOpened.includes(failed)) {
     return state;
   }
-  return { open: failed, autoOpened: [...state.autoOpened, failed] };
+  return { ...state, open: failed, autoOpened: [...state.autoOpened, failed] };
 }
 
 export function toggleStage(state: OpenStage, key: StageKey): OpenStage {

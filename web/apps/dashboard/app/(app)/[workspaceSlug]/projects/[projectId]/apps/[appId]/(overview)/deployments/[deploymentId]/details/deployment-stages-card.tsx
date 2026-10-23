@@ -53,7 +53,8 @@ const stageStatusLabel: Record<StageStatus, string> = {
 };
 
 export function DeploymentStagesCard({ page }: { page: StagesCardPage }) {
-  const { stages, failedStage, isOpen, toggle, buildPanel, tickerFor } = useStagesCard(page);
+  const { stages, failedStage, isOpen, toggle, buildPanel, scrollTarget, tickerFor } =
+    useStagesCard(page);
 
   const panel = (key: StageKey, status: StageStatus) =>
     match(key)
@@ -77,7 +78,7 @@ export function DeploymentStagesCard({ page }: { page: StagesCardPage }) {
             stage={stage}
             ticker={tickerFor(stage)}
             open={open}
-            scrollOnMount={stage.key === page.requestedStage}
+            scrollTo={stage.key === scrollTarget}
             onToggle={() => toggle(stage.key)}
           >
             {open && panel(stage.key, stage.resolution.status)}
@@ -92,21 +93,21 @@ type StageRowProps = {
   stage: Stage;
   ticker: TickerLine | null;
   open: boolean;
-  scrollOnMount: boolean;
+  scrollTo: boolean;
   onToggle: () => void;
   children: ReactNode;
 };
 
-function StageRow({ stage, ticker, open, scrollOnMount, onToggle, children }: StageRowProps) {
+function StageRow({ stage, ticker, open, scrollTo, onToggle, children }: StageRowProps) {
   const { label, resolution, expandable } = stage;
   const failed = resolution.status === "error";
   const panelId = useId();
   const rowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (scrollOnMount) {
+    if (scrollTo) {
       rowRef.current?.scrollIntoView({ block: "start" });
     }
-  }, [scrollOnMount]);
+  }, [scrollTo]);
   return (
     <div ref={rowRef}>
       <button

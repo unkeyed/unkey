@@ -9,6 +9,7 @@ import {
   type Stage,
   type StageKey,
   followFailedStage,
+  followRequestedStage,
   initialOpenStage,
   resolveStages,
   toggleStage,
@@ -44,14 +45,16 @@ export function useStagesCard({
   });
 
   const failedStage = stages.find((s) => s.resolution.status === "error")?.key ?? null;
+  const requested = stages.find((s) => s.key === requestedStage && s.expandable)?.key ?? null;
   const [openStage, setOpenStage] = useState<OpenStage>(() =>
-    initialOpenStage(failedStage, requestedStage),
+    initialOpenStage({ failed: failedStage, requested }),
   );
-  const followed = followFailedStage(openStage, failedStage);
+  const followed = followRequestedStage(followFailedStage(openStage, failedStage), requested);
   if (followed !== openStage) {
     setOpenStage(followed);
   }
   const isOpen = (stage: Stage) => stage.expandable && followed.open === stage.key;
+  const scrollTarget = requested !== null && followed.open === requested ? requested : null;
   const toggle = (key: StageKey) => setOpenStage((state) => toggleStage(state, key));
 
   const deploying = steps?.deploying;
@@ -84,6 +87,7 @@ export function useStagesCard({
     isOpen,
     toggle,
     buildPanel,
+    scrollTarget,
     tickerFor: (stage: Stage) => stageTickerLine(stage, tickerSources),
   };
 }

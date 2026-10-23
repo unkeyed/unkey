@@ -3,6 +3,7 @@ import type { StepsData } from "../use-deployment-status";
 import {
   type StagesInput,
   followFailedStage,
+  followRequestedStage,
   initialOpenStage,
   resolveStages,
   toggleStage,
@@ -194,35 +195,49 @@ describe("resolveStages", () => {
 });
 
 describe("open stage", () => {
+  const closed = { failed: null, requested: null };
+
   test("a stage that failed before mount starts open", () => {
-    expect(initialOpenStage("build")).toEqual({ open: "build", autoOpened: ["build"] });
-    expect(initialOpenStage(null)).toEqual({ open: null, autoOpened: [] });
-    expect(initialOpenStage(null, "build")).toEqual({ open: "build", autoOpened: [] });
-    expect(initialOpenStage("instances", "build")).toEqual({
+    expect(initialOpenStage({ failed: "build", requested: null })).toEqual({
       open: "build",
-      autoOpened: ["instances"],
+      autoOpened: ["build"],
+      requested: null,
     });
+    expect(initialOpenStage(closed)).toEqual({ open: null, autoOpened: [], requested: null });
+  });
+
+  test("a requested stage opens on landing, unless another stage failed", () => {
+    expect(initialOpenStage({ failed: null, requested: "build" }).open).toBe("build");
+    expect(initialOpenStage({ failed: "instances", requested: "build" }).open).toBe("instances");
+  });
+
+  test("a request made on the page opens its stage once", () => {
+    let state = followRequestedStage(initialOpenStage(closed), "build");
+    expect(state.open).toBe("build");
+    state = toggleStage(state, "build");
+    expect(followRequestedStage(state, "build")).toBe(state);
   });
 
   test("opens a stage the first time it fails and keeps it open when it recovers", () => {
-    const failed = followFailedStage(initialOpenStage(null), "instances");
-    expect(failed).toEqual({ open: "instances", autoOpened: ["instances"] });
+    const failed = followFailedStage(initialOpenStage(closed), "instances");
+    expect(failed).toEqual({ open: "instances", autoOpened: ["instances"], requested: null });
     expect(followFailedStage(failed, null)).toEqual({
       open: "instances",
       autoOpened: ["instances"],
+      requested: null,
     });
   });
 
   test("a flapping stage does not reopen after the user closes it", () => {
-    let state = followFailedStage(initialOpenStage(null), "instances");
+    let state = followFailedStage(initialOpenStage(closed), "instances");
     state = toggleStage(state, "instances");
     state = followFailedStage(state, null);
     state = followFailedStage(state, "instances");
-    expect(state).toEqual({ open: null, autoOpened: ["instances"] });
+    expect(state).toEqual({ open: null, autoOpened: ["instances"], requested: null });
   });
 
   test("a flapping stage does not steal focus from the stage the user opened", () => {
-    let state = followFailedStage(initialOpenStage(null), "instances");
+    let state = followFailedStage(initialOpenStage(closed), "instances");
     state = toggleStage(state, "build");
     state = followFailedStage(state, null);
     state = followFailedStage(state, "instances");
@@ -230,10 +245,11 @@ describe("open stage", () => {
   });
 
   test("a different stage failing for the first time still opens", () => {
-    const state = toggleStage(followFailedStage(initialOpenStage(null), "build"), "build");
+    const state = toggleStage(followFailedStage(initialOpenStage(closed), "build"), "build");
     expect(followFailedStage(state, "instances")).toEqual({
       open: "instances",
       autoOpened: ["build", "instances"],
+      requested: null,
     });
   });
 });

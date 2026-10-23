@@ -23,7 +23,7 @@ export type DeploymentPageInput = {
     "id" | "environmentId" | "instances" | "targetRegions" | "desiredState"
   >;
   status: DeploymentStatus;
-  showBuild: boolean;
+  buildRequested: boolean;
   domains: ReadonlyArray<Domain>;
   domainsLoading: boolean;
   customDomains: ReadonlyArray<CustomDomain>;
@@ -49,7 +49,7 @@ export type DeploymentPageModel = {
 export function deploymentPageModel({
   deployment,
   status,
-  showBuild,
+  buildRequested,
   domains,
   domainsLoading,
   customDomains,
@@ -65,8 +65,8 @@ export function deploymentPageModel({
   });
   return {
     status,
-    body: BODY_BY_STATUS[status],
-    requestedStage: showBuild ? "build" : null,
+    body: buildRequested ? BODY_WITH_BUILD[status] : BODY_BY_STATUS[status],
+    requestedStage: buildRequested ? "build" : null,
     instances,
     pageStatus: resolvePageStatus(status, instances),
     domains: domainPriority,
@@ -88,6 +88,14 @@ const BODY_BY_STATUS: Record<DeploymentStatus, DeploymentBody> = {
   skipped: "skipped",
   superseded: "superseded",
   cancelled: "cancelled",
+};
+
+// A cancelled or superseded deployment may have built, so a build request shows
+// its stages; a skipped one never did
+const BODY_WITH_BUILD: Record<DeploymentStatus, DeploymentBody> = {
+  ...BODY_BY_STATUS,
+  superseded: "stages",
+  cancelled: "stages",
 };
 
 export function resolvePageStatus(
