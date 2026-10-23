@@ -299,7 +299,7 @@ function PoliciesNode({ policies, href }: { policies: PolicyRow[]; href: Route }
               {p.name}
               {!p.enabled && <span className="sr-only"> (disabled)</span>}
             </span>
-            <span className="ml-auto shrink-0 font-mono text-[10px] text-gray-10">
+            <span className="ml-auto shrink-0 font-mono text-3xs text-gray-10">
               {POLICY_KINDS[p.type].label}
             </span>
           </span>

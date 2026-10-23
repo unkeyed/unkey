@@ -16,7 +16,6 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
 import { type ReactNode, useState } from "react";
-import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
 import { getDomainPriority } from "../../../components/domain-priority";
 import { useAppId, useProjectData } from "../../data-provider";
 import { appDeploymentQueryFor } from "../../data-provider-queries";
@@ -24,6 +23,7 @@ import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment"
 import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
 import { useProductionPolicies } from "../../policies/hooks/use-policies-data";
+import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
 import { AppCanvas } from "./app-canvas";
 import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
 import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
