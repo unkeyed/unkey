@@ -3,22 +3,19 @@ package ratelimit
 import (
 	"bytes"
 	"crypto/sha256"
-	"database/sql"
 	"testing"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
+	shareddb "github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestMySQLStoreRoundTrip(t *testing.T) {
 	ctx := t.Context()
-	conn, err := sql.Open("mysql", containers.MySQL(t).DSN)
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, conn.Close()) })
-	store := NewMySQLStore(conn, conn)
+	store := newMySQLTestStore(t)
 
 	fingerprint := sha256.Sum256([]byte(uid.New(uid.TestPrefix)))
 	older := StoredSession{Fingerprint: fingerprint, SessionID: uid.New("", 16), AnchorAtNs: 100, ConsumedNs: 7, CompactAfterMs: 1}
@@ -42,10 +39,7 @@ func TestMySQLStoreRoundTrip(t *testing.T) {
 // changed after it read them changes nothing.
 func TestMySQLStoreCleanup(t *testing.T) {
 	ctx := t.Context()
-	conn, err := sql.Open("mysql", containers.MySQL(t).DSN)
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, conn.Close()) })
-	store := NewMySQLStore(conn, conn)
+	store := newMySQLTestStore(t)
 
 	// The database outlives test runs, so each run lists its own range.
 	dueMs := time.Now().UnixNano()
@@ -89,4 +83,14 @@ func TestMySQLStoreCleanup(t *testing.T) {
 	sessions, err = store.ReadSessionsFromPrimary(ctx, second, 10)
 	require.NoError(t, err)
 	require.Equal(t, []StoredSession{merged}, sessions)
+}
+
+// newMySQLTestStore returns a store on the test container through `pkg/db`,
+// as the API builds it.
+func newMySQLTestStore(t *testing.T) Store {
+	t.Helper()
+	database, err := shareddb.New(shareddb.Config{PrimaryDSN: containers.MySQL(t).DSN, ReadOnlyDSN: "", Tags: sqlcomment.Static{}})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	return NewMySQLStore(database.RW(), database.RO())
 }

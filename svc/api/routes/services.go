@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	globalratelimit "github.com/unkeyed/unkey/pkg/ratelimit"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
@@ -76,6 +77,10 @@ type Services struct {
 
 	// Ratelimit provides distributed rate limiting across API requests.
 	Ratelimit ratelimit.Service
+
+	// GlobalRatelimit decides the limits of namespaces with
+	// `use_gcra`. All pods share its state through MySQL.
+	GlobalRatelimit globalratelimit.Limiter
 
 	// Auditlogs records security-relevant events for compliance and debugging.
 	Auditlogs auditlogs.AuditLogService

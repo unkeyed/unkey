@@ -49,6 +49,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	globalratelimit "github.com/unkeyed/unkey/pkg/ratelimit"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
@@ -145,6 +146,19 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	r.Defer(database.Close)
+
+	// Deferred cleanups run in reverse order. Registered here, the limiter
+	// closes after the HTTP server stopped taking requests and before the
+	// database closes, so its final flush still reaches MySQL.
+	globalRatelimit, err := globalratelimit.New(globalratelimit.Config{
+		Clock:  clk,
+		Store:  globalratelimit.NewMySQLStore(database.RW(), database.RO()),
+		Random: nil,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create global ratelimit: %w", err)
+	}
+	r.Defer(globalRatelimit.Close)
 
 	if cfg.Observability.Metrics != nil {
 		prom, promErr := prometheus.NewWithRegistry(reg)
@@ -524,6 +538,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Validator:         validator,
 		Redactor:          redactor,
 		Ratelimit:         rlSvc,
+		GlobalRatelimit:   globalRatelimit,
 		Auditlogs:         auditlogSvc,
 		Caches:            caches,
 		Vault:             vaultClient,
