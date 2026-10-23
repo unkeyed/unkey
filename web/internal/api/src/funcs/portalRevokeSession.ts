@@ -53,7 +53,8 @@ import { Result } from "../types/fp.js";
  * which dashboard roles carry. Unlike `portal.createSession`, a dashboard
  * session can call this, not just a root key.
  *
- * Without the permission this returns **404**, not 403.
+ * A root key that cannot read the portal's sessions gets **404**. One that can
+ * read them but lacks the permission gets **403**.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
@@ -66,6 +67,7 @@ export function portalRevokeSession(
     components.V2PortalRevokeSessionResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -96,6 +98,7 @@ async function $do(
       components.V2PortalRevokeSessionResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
+      | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
@@ -194,6 +197,7 @@ async function $do(
     components.V2PortalRevokeSessionResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -209,6 +213,7 @@ async function $do(
     M.json(200, components.V2PortalRevokeSessionResponseBody$inboundSchema),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
+    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
