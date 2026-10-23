@@ -118,6 +118,8 @@ tags:
     description: API key management operations
   - name: liveness
     description: Health check operations
+  - name: logs
+    description: Log listing operations
   - name: permissions
     description: Permission and role management operations
   - name: gateway
@@ -154,6 +156,10 @@ paths:
     $ref: "./spec/paths/v2/cli/revokeSession/index.yaml"
   /v2/cli.listSessions:
     $ref: "./spec/paths/v2/cli/listSessions/index.yaml"
+
+  # Logs Endpoints
+  /v2/logs.listApiRequests:
+    $ref: "./spec/paths/v2/logs/listApiRequests/index.yaml"
 
   # Analytics Endpoints
   /v2/analytics.getGatewayRequests:

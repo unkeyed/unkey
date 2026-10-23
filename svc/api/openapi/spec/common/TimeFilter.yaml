@@ -1,0 +1,29 @@
+type: object
+additionalProperties: false
+description: |
+  Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+  Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
+properties:
+  gt:
+    type: integer
+    format: int64
+    minimum: 0
+    description: Keep events after this time.
+  gte:
+    type: integer
+    format: int64
+    minimum: 0
+    description: Keep events at or after this time.
+  lt:
+    type: integer
+    format: int64
+    minimum: 0
+    description: Keep events before this time.
+  lte:
+    type: integer
+    format: int64
+    minimum: 0
+    description: Keep events at or before this time.
+example:
+  gte: 1791936000000
+  lt: 1792022400000

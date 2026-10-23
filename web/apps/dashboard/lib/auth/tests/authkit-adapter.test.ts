@@ -72,8 +72,14 @@ describe("toAuthenticatedUser", () => {
         accessToken: "access_token",
         permissions: ["admin:*"],
         user,
+        impersonator: { email: "support@example.com", reason: "Customer support" },
       }),
-    ).toEqual({ ...user, orgId: "org_123", role: "member" });
+    ).toEqual({
+      ...user,
+      orgId: "org_123",
+      role: "member",
+      impersonator: { email: "support@example.com", reason: "Customer support" },
+    });
   });
 
   it("returns null when the session has no profile", () => {

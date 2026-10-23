@@ -11,6 +11,8 @@ import "fmt"
 //	├── rootKeys/{key_id}
 //	├── limits
 //	├── usage
+//	├── flags
+//	├── logs/apiRequests
 //	└── projects/{project_id}
 type workspace struct {
 	workspaceID string
@@ -46,6 +48,12 @@ func (w workspace) Usage() V1 {
 
 func (w workspace) Flags() V1 {
 	return V1{WorkspaceID: w.workspaceID, Resource: "flags"}
+}
+
+// ApiRequestLogs returns the resource name of the workspace's Unkey API
+// request logs.
+func (w workspace) ApiRequestLogs() V1 {
+	return V1{WorkspaceID: w.workspaceID, Resource: "logs/apiRequests"}
 }
 
 // Project returns builders for project resource paths.

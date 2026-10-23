@@ -191,12 +191,15 @@ func (c *cache[K, V]) enqueueRevalidation(keys []K, fn func([]K)) {
 }
 
 func (c *cache[K, V]) recordTiming(ctx context.Context, name, status string, start time.Time) {
+	duration := time.Since(start)
+	status = strings.ToLower(status)
+	metrics.CacheOperationDuration.WithLabelValues(c.resource, strings.TrimPrefix(name, "cache_"), status).Observe(duration.Seconds())
 	timing.Record(ctx, timing.Entry{
 		Name:     name,
-		Duration: time.Since(start),
+		Duration: duration,
 		Attributes: map[string]string{
 			"cache":  c.resource,
-			"status": strings.ToLower(status),
+			"status": status,
 		},
 	})
 }

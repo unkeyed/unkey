@@ -56,6 +56,22 @@ func (s *Service) Delete(
 		})
 	}
 
+	// The environment deletes above are fire-and-forget and only reach domains
+	// whose environment they know about. A leftover domain row blocks the
+	// customer from attaching the hostname to another app, so remove the app's
+	// domains and their routes here as well.
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return s.db.DeleteCustomDomainsByAppId(runCtx, appID)
+	}, restate.WithName("delete custom domains")); err != nil {
+		return nil, fmt.Errorf("delete custom domains: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return s.db.DeleteFrontlineRoutesByAppId(runCtx, appID)
+	}, restate.WithName("delete frontline routes")); err != nil {
+		return nil, fmt.Errorf("delete frontline routes: %w", err)
+	}
+
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteGithubRepoConnectionsByAppId(runCtx, appID)
 	}, restate.WithName("delete github repo connections")); err != nil {

@@ -14,6 +14,7 @@ import { Github } from "./github.js";
 import { Identities } from "./identities.js";
 import { Internal } from "./internal.js";
 import { Keys } from "./keys.js";
+import { Logs } from "./logs.js";
 import { Permissions } from "./permissions.js";
 import { Portal } from "./portal.js";
 import { Projects } from "./projects.js";
@@ -75,6 +76,11 @@ export class Unkey extends ClientSDK {
   private _keys?: Keys;
   get keys(): Keys {
     return (this._keys ??= new Keys(this._options));
+  }
+
+  private _logs?: Logs;
+  get logs(): Logs {
+    return (this._logs ??= new Logs(this._options));
   }
 
   private _permissions?: Permissions;
