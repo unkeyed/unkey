@@ -488,14 +488,13 @@ func Run(ctx context.Context, cfg Config) error {
 		Resolver:    domainverify.SystemResolver{},
 		CnameDomain: cfg.CnameDomain,
 	}),
-		// Retry every 1 minute for up to 24 hours (1440 attempts). Pause (not
-		// kill) on exhaustion so compensations remain possible via operator
-		// cancel.
+		// Pause (not kill) on exhaustion so compensations remain possible via
+		// operator cancel.
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialRetryInterval(1*time.Minute),
-			restate.WithRetryIntervalFactor(1.0), // Fixed interval, no exponential backoff
-			restate.WithMaxRetryInterval(1*time.Minute),
-			restate.WithMaxRetryAttempts(1440),
+			restate.WithInitialRetryInterval(domainverify.RetryInterval),
+			restate.WithRetryIntervalFactor(1.0),
+			restate.WithMaxRetryInterval(domainverify.RetryInterval),
+			restate.WithMaxRetryAttempts(domainverify.RetryAttemptsMax),
 			restate.PauseOnMaxAttempts(),
 		),
 	))
@@ -507,10 +506,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}),
 		// Same cadence and exhaustion behavior as custom domain verification.
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialRetryInterval(1*time.Minute),
+			restate.WithInitialRetryInterval(domainverify.RetryInterval),
 			restate.WithRetryIntervalFactor(1.0),
-			restate.WithMaxRetryInterval(1*time.Minute),
-			restate.WithMaxRetryAttempts(1440),
+			restate.WithMaxRetryInterval(domainverify.RetryInterval),
+			restate.WithMaxRetryAttempts(domainverify.RetryAttemptsMax),
 			restate.PauseOnMaxAttempts(),
 		),
 	))

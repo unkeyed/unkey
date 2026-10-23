@@ -249,7 +249,7 @@ func (s *Service) AddCustomDomain(
 		// Submitting inside the transaction makes the RPC all-or-nothing: a failed
 		// submit rolls the row and its audit entry back, so retrying createDomain is
 		// the recovery. The workflow tolerates reading before the commit lands (see
-		// rowVisibilityGrace in the worker), and a TxRetry rerun re-submitting is
+		// domainverify.RowCommitGrace), and a TxRetry rerun re-submitting is
 		// safe because the invocation is keyed by domainID, a virtual object Restate
 		// runs one at a time per domain.
 		sendResp, sendErr := s.startVerification(txCtx, domainID)

@@ -16,15 +16,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/domainverify"
 )
 
-// maxVerificationDuration limits how long DNS verification retries before the
-// row is marked failed.
-const maxVerificationDuration = 24 * time.Hour
-
-// rowVisibilityGrace is how long a missing row stays retryable before it means
-// deletion. AddPortalDomain submits this workflow inside the transaction that
-// inserts the row, so the first attempts can run before the commit lands.
-const rowVisibilityGrace = 2 * time.Minute
-
 // errNotVerified signals incomplete verification and triggers Restate retries.
 var errNotVerified = errors.New("domain not verified yet")
 
@@ -47,7 +38,7 @@ func (s *Service) VerifyDomain(
 	dom, err := s.db.FindPortalDomainById(ctx, domainID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			if time.Since(startedAt) < rowVisibilityGrace {
+			if time.Since(startedAt) < domainverify.RowCommitGrace {
 				return nil, fault.Wrap(err, fault.Internal("portal domain row not visible yet"))
 			}
 			logger.Info("portal domain record deleted, stopping verification workflow",
@@ -66,7 +57,7 @@ func (s *Service) VerifyDomain(
 	}
 
 	elapsed := time.Since(startedAt)
-	if elapsed > maxVerificationDuration {
+	if elapsed > domainverify.DurationMax {
 		return s.onVerificationFailed(ctx, dom, "domain verification timed out after 24 hours")
 	}
 

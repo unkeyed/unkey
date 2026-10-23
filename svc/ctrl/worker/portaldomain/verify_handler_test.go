@@ -19,6 +19,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/domainverify"
 )
 
 const (
@@ -318,7 +319,7 @@ func TestVerifyPortalDomainMissingRow(t *testing.T) {
 		terminal bool
 	}{
 		"inside the grace window": {age: 0, terminal: false},
-		"past the grace window":   {age: rowVisibilityGrace + time.Second, terminal: true},
+		"past the grace window":   {age: domainverify.RowCommitGrace + time.Second, terminal: true},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -344,7 +345,7 @@ func TestVerifyPortalDomainPastWindowMarksFailed(t *testing.T) {
 	f := newVerifyDB(row)
 	svc := newService(f, fakeResolver{cname: "", txt: nil, hosts: nil})
 
-	mockCtx := newVerifyContext(t, row.ID, time.Now().Add(-maxVerificationDuration-time.Second))
+	mockCtx := newVerifyContext(t, row.ID, time.Now().Add(-domainverify.DurationMax-time.Second))
 
 	err := verify(t, svc, mockCtx)
 	require.True(t, restate.IsTerminalError(err), "got: %v", err)

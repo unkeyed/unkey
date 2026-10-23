@@ -16,17 +16,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/domainverify"
 )
 
-// maxVerificationDuration limits how long we retry DNS verification before
-// marking a domain as failed.
-const maxVerificationDuration = 24 * time.Hour
-
-// rowVisibilityGrace is how long a missing domain row stays retryable before it
-// means deletion. AddCustomDomain submits this workflow inside the transaction
-// that inserts the row, so the first attempts can run before the commit lands;
-// treating that as terminal would kill the workflow and strand the row in
-// `pending`. The race resolves in milliseconds, the window is padding.
-const rowVisibilityGrace = 2 * time.Minute
-
 // errNotVerified signals incomplete verification and triggers Restate retries.
 var errNotVerified = errors.New("domain not verified yet")
 
@@ -64,7 +53,7 @@ func (s *Service) VerifyDomain(
 	dom, err := s.db.FindCustomDomainById(ctx, domainID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			if time.Since(startedAt) < rowVisibilityGrace {
+			if time.Since(startedAt) < domainverify.RowCommitGrace {
 				return nil, fault.Wrap(err, fault.Internal("domain row not visible yet"))
 			}
 
@@ -87,7 +76,7 @@ func (s *Service) VerifyDomain(
 	}
 
 	elapsed := time.Since(startedAt)
-	if elapsed > maxVerificationDuration {
+	if elapsed > domainverify.DurationMax {
 		return s.onVerificationFailed(ctx, dom, "domain verification timed out after 24 hours")
 	}
 
