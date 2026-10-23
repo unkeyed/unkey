@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+description: |
+  Filters for the listing. A missing field does not filter. Different fields are combined with AND.
+properties:
+  time:
+    "$ref": "../../../../common/TimeFilter.yaml"
+  path:
+    "$ref": "../../../../common/TextFilter.yaml"
+  method:
+    "$ref": "../../../../common/MethodFilter.yaml"
+  requestId:
+    "$ref": "../../../../common/ExactFilter.yaml"
+  status:
+    "$ref": "../../../../common/IntFilter.yaml"
