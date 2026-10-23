@@ -24,13 +24,13 @@ import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import {
   type CancellationFeedback,
+  cancelJustScheduled,
   cancellationFeedbackUpdate,
   isAutomatedBillingRenewal,
-  isCancelJustScheduled,
-  isCancellationFeedbackOnly,
+  isCancelling,
   isCardUpdateOnly,
   isPaymentFailureRelatedUpdate,
-  isScheduleUpdateOnly,
+  onlyChanged,
 } from "@/lib/stripe/subscriptionUtils";
 import { keepsTeamAfterDelete, stripeWebhookResponse } from "@/lib/stripe/webhookRouting";
 import {
@@ -65,8 +65,7 @@ async function mirrorDeployPlan(
   orgId: string,
   sub: Stripe.Subscription,
 ): Promise<void> {
-  const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
-  const plan = cancelling ? null : detectDeployPlan(sub);
+  const plan = isCancelling(sub) ? null : detectDeployPlan(sub);
   const changed = plan !== billing.plan;
   if (changed) {
     const preserveApiLimits = (billing.tier ?? "Free") !== "Free";
@@ -88,43 +87,17 @@ async function mirrorDeployPlan(
   }
 }
 
-type AlertCustomerFailure = "customer_lookup_failed" | "customer_contact_missing";
+type AlertCustomer = {
+  name: string;
+  email: string | null;
+  stripeCustomerId: string;
+  livemode: boolean;
+};
 
-type AlertCustomer = { name: string; email: string; stripeCustomerId: string; livemode: boolean };
+type AlertCustomerLookup = AlertCustomer | "customer_lookup_failed" | "customer_contact_missing";
 
-async function retrieveStripeCustomer(
-  stripe: Stripe,
-  sub: Stripe.Subscription,
-): Promise<Stripe.Customer | AlertCustomerFailure> {
-  if (!sub.customer) {
-    return "customer_contact_missing";
-  }
-
-  let customer: Stripe.Customer | Stripe.DeletedCustomer;
-  try {
-    customer = await stripe.customers.retrieve(
-      typeof sub.customer === "string" ? sub.customer : sub.customer.id,
-    );
-  } catch (err) {
-    console.error("Failed to retrieve customer for subscription alert:", {
-      subscriptionId: sub.id,
-      error: err instanceof Error ? err.message : err,
-    });
-    return "customer_lookup_failed";
-  }
-
-  return customer.deleted ? "customer_contact_missing" : customer;
-}
-
-async function retrieveAlertCustomer(
-  stripe: Stripe,
-  sub: Stripe.Subscription,
-): Promise<AlertCustomer | AlertCustomerFailure> {
-  const customer = await retrieveStripeCustomer(stripe, sub);
-  if (typeof customer === "string") {
-    return customer;
-  }
-  if (!customer.email) {
+function toAlertCustomer(customer: Stripe.Customer | Stripe.DeletedCustomer): AlertCustomerLookup {
+  if (customer.deleted) {
     return "customer_contact_missing";
   }
   return {
@@ -135,57 +108,43 @@ async function retrieveAlertCustomer(
   };
 }
 
-async function cancellingProductLabel(
+async function retrieveAlertCustomer(
   stripe: Stripe,
   sub: Stripe.Subscription,
-  product: BillingProduct,
-): Promise<string> {
-  if (product === "compute") {
-    const plan = detectDeployPlan(sub);
-    return plan ? computeProductLabel(plan) : PRODUCT_LABELS.compute;
-  }
-
-  const apiItem = findApiItem(await deployBillingConfig(), sub.items?.data ?? []);
-  const productRef = apiItem?.price?.product;
-  if (!productRef) {
-    return PRODUCT_LABELS.api;
+): Promise<AlertCustomerLookup> {
+  if (!sub.customer) {
+    return "customer_contact_missing";
   }
   try {
-    const apiProduct = await stripe.products.retrieve(
-      typeof productRef === "string" ? productRef : productRef.id,
+    return toAlertCustomer(
+      await stripe.customers.retrieve(
+        typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+      ),
     );
-    return apiProduct.name;
   } catch (err) {
-    console.error("Failed to retrieve product for cancellation reason alert:", {
+    console.error("Failed to retrieve customer for subscription alert:", {
       subscriptionId: sub.id,
       error: err instanceof Error ? err.message : err,
     });
-    return PRODUCT_LABELS.api;
+    return "customer_lookup_failed";
   }
 }
 
-async function sendCancellationReasonAlert(
-  stripe: Stripe,
-  sub: Stripe.Subscription,
-  feedback: CancellationFeedback,
-  ws: { id: string; name: string },
-  productLabel: string,
-): Promise<void> {
-  const customer = await retrieveStripeCustomer(stripe, sub);
-  const known = typeof customer === "string" ? null : customer;
-  if (customer !== "customer_lookup_failed" && !known?.email) {
-    console.warn("Cancellation reason alert has no customer email:", { subscriptionId: sub.id });
-  }
-  await alertCancellationReason({
-    ...feedback,
-    name: known?.name || "Unknown",
-    email: known?.email || "Unknown",
-    workspaceId: ws.id,
-    workspaceName: ws.name,
-    product: productLabel,
-    stripeCustomer: known ? { id: known.id, livemode: known.livemode } : null,
-  });
+/** Fetches the customer at most once per event, however many alerts the event sends. */
+function alertCustomerCache(stripe: Stripe, sub: Stripe.Subscription) {
+  let cached: Promise<AlertCustomerLookup> | undefined;
+  return {
+    get: () => {
+      cached ??= retrieveAlertCustomer(stripe, sub);
+      return cached;
+    },
+    set: (customer: Stripe.Customer | Stripe.DeletedCustomer) => {
+      cached = Promise.resolve(toAlertCustomer(customer));
+    },
+  };
 }
+
+type AlertCustomerCache = ReturnType<typeof alertCustomerCache>;
 
 /**
  * Sends the operational Slack alert for a Compute (Deploy) subscription lifecycle
@@ -196,23 +155,32 @@ async function sendCancellationReasonAlert(
  * (an event that warrants no alert) is a no-op.
  */
 async function sendComputeAlert(
-  stripe: Stripe,
-  sub: Stripe.Subscription,
+  customers: AlertCustomerCache,
   alert: ComputeLifecycleAlert | null,
   ws: { id: string; name: string } | null,
-): Promise<SlackPostStatus | "not_applicable" | AlertCustomerFailure> {
+): Promise<
+  SlackPostStatus | "not_applicable" | "customer_lookup_failed" | "customer_contact_missing"
+> {
   if (!alert) {
     return "not_applicable";
   }
-  const customer = await retrieveAlertCustomer(stripe, sub);
+  const customer = await customers.get();
   if (typeof customer === "string") {
     return customer;
+  }
+  if (!customer.email) {
+    return "customer_contact_missing";
   }
 
   // Common customer/workspace facts every Compute lifecycle alert renders. ws is null when a
   // created event races ahead of the checkout link that writes the billing_subscriptions row;
   // the workspace fields are simply omitted from the alert in that case.
-  const base = { ...customer, workspaceId: ws?.id, workspaceName: ws?.name };
+  const base = {
+    ...customer,
+    email: customer.email,
+    workspaceId: ws?.id,
+    workspaceName: ws?.name,
+  };
 
   switch (alert.type) {
     case "created":
@@ -282,8 +250,7 @@ async function deprovisionOnCancel(
   billing: { workspaceId: string; plan: string | null },
   sub: Stripe.Subscription,
 ): Promise<void> {
-  const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
-  if (!cancelling || !billing.plan) {
+  if (!isCancelling(sub) || !billing.plan) {
     return;
   }
 
@@ -433,6 +400,252 @@ async function resolveApiSubscriptionContext(
   return { unitAmount: price.unit_amount, customer, product };
 }
 
+type SubscriptionUpdate = {
+  stripe: Stripe;
+  event: Stripe.Event;
+  eventSub: Stripe.Subscription;
+  sub: Stripe.Subscription;
+  ws: { id: string; orgId: string; name: string };
+  billing: {
+    workspaceId: string;
+    plan: string | null;
+    planOverride: string | null;
+    tier: string | null;
+  };
+  previousAttributes: Partial<Stripe.Subscription> | undefined;
+  customers: AlertCustomerCache;
+};
+
+async function sendCancellationReasonAlert(
+  { sub, ws, customers }: SubscriptionUpdate,
+  column: BillingProduct,
+  feedback: CancellationFeedback,
+): Promise<void> {
+  const customer = await customers.get();
+  const known = typeof customer === "string" ? null : customer;
+  if (customer === "customer_contact_missing" || (known && !known.email)) {
+    console.warn("Cancellation reason alert has no customer email:", { subscriptionId: sub.id });
+  }
+  const plan = column === "compute" ? detectDeployPlan(sub) : null;
+  await alertCancellationReason({
+    ...feedback,
+    name: known?.name ?? "Unknown",
+    email: known?.email || "Unknown",
+    stripeCustomerId: known?.stripeCustomerId,
+    livemode: known?.livemode,
+    workspaceId: ws.id,
+    workspaceName: ws.name,
+    product: plan ? computeProductLabel(plan) : PRODUCT_LABELS[column],
+  });
+}
+
+// Deploy-matched: mirror the plan, announce the change, and stop. The
+// Deploy subscription never carries API tier/limit state, so there is
+// nothing else to reconcile. mirrorDeployPlan only writes when the plan
+// changed, so a renewal event does no DB write; the alert is derived
+// from the Stripe event (a DB plan diff is unreliable because the
+// dashboard mutations write the plan optimistically before this fires).
+async function reconcileComputeUpdate(update: SubscriptionUpdate): Promise<Response> {
+  const { sub, ws, billing, previousAttributes, customers } = update;
+  await deprovisionOnCancel(billing, sub);
+  await mirrorDeployPlan(billing, ws.orgId, sub);
+  const deployConfig = await deployBillingConfig();
+  await sendComputeAlert(customers, computeUpdatedAlert(deployConfig, sub, previousAttributes), ws);
+  return new Response("OK", { status: 200 });
+}
+
+async function reconcileApiUpdate(update: SubscriptionUpdate): Promise<Response> {
+  const { stripe, event, eventSub, sub, ws, billing, previousAttributes, customers } = update;
+  // Skip heuristics correlate the event snapshot with previous_attributes,
+  // so they read eventSub (what the event reported), not the re-retrieved
+  // subscription.
+  // Skip database updates and notifications for automated billing renewals
+  if (isAutomatedBillingRenewal(eventSub, previousAttributes)) {
+    return new Response("OK", { status: 201 });
+  }
+
+  // Skip database updates and notifications for payment failure related updates
+  // Payment failures are handled by the invoice.payment_failed webhook
+  if (isPaymentFailureRelatedUpdate(eventSub, previousAttributes)) {
+    return new Response("OK", { status: 201 });
+  }
+
+  // Skip database updates and notifications for payment recovery scenarios
+  // Payment recoveries are handled by the invoice.payment_succeeded webhook
+  const isRecovery = await isPaymentRecoveryUpdate(stripe, eventSub, previousAttributes, event);
+  if (isRecovery) {
+    return new Response("OK", { status: 201 });
+  }
+
+  // Skip database updates and notifications for card/payment method updates only
+  // These don't affect subscription pricing, limits, or other business logic
+  if (isCardUpdateOnly(eventSub, previousAttributes)) {
+    return new Response("OK", { status: 201 });
+  }
+
+  // Reconcile tier/limits from the API plan item. A missing item/price is
+  // a degenerate API subscription with nothing to derive a tier from; ack
+  // rather than guess.
+  const apiContext = await resolveApiSubscriptionContext(stripe, sub);
+  if (!apiContext) {
+    return new Response("OK", { status: 200 });
+  }
+  const { unitAmount, customer, product } = apiContext;
+  customers.set(customer);
+
+  /**
+   * In our case, when a user cancels their subscription, it's not in effect until the beginning of the next month.
+   * So we get a subscription updated event, which we should handle accordingly.
+   */
+  if (sub.cancel_at) {
+    // Other updates on a cancelling subscription must not re-alert. Return
+    // unconditionally: the tier and limit update below is for active plan
+    // changes, never a cancelling one.
+    if (cancelJustScheduled(sub, previousAttributes) && !customer.deleted && customer.email) {
+      await alertCustomerLifecycle({
+        action: "cancelling",
+        name: customer.name || "Unknown",
+        email: customer.email,
+        workspaceId: ws.id,
+        workspaceName: ws.name,
+        product: product.name,
+        price: formatPrice(unitAmount),
+        stripeCustomerId: customer.id,
+        livemode: customer.livemode,
+      });
+    }
+    return new Response("OK");
+  }
+
+  // Validate and parse Stripe limit metadata.
+  const quotas = validateAndParseQuotas(product);
+  if (!quotas.valid) {
+    // Without valid quota metadata the tier sync is skipped while Stripe
+    // bills the new plan; page a human to fix the product.
+    console.error("Subscription update skipped: invalid product quota metadata", {
+      productId: product.id,
+      productName: product.name,
+      subscriptionId: sub.id,
+      eventId: event.id,
+    });
+    await alertInvalidProductQuotaMetadata({
+      productId: product.id,
+      productName: product.name,
+      subscriptionId: sub.id,
+      eventId: event.id,
+    });
+    return new Response("OK", { status: 200 });
+  }
+
+  const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
+
+  /**
+   * To make the updates more useful, we detect if they are downgrading or upgrading their subscription
+   * We can then send a good or bad update based upon it.
+   */
+  let changeType = "updated";
+  let previousTier: string | undefined;
+
+  if (previousAttributes?.items?.data?.[0]?.price?.id) {
+    try {
+      const previousPrice = await stripe.prices.retrieve(previousAttributes.items.data[0].price.id);
+
+      if (previousPrice.product && previousPrice.unit_amount !== null) {
+        const previousProduct = await stripe.products.retrieve(
+          typeof previousPrice.product === "string"
+            ? previousPrice.product
+            : previousPrice.product.id,
+        );
+
+        previousTier = previousProduct.name;
+
+        // Compare amounts to determine upgrade/downgrade
+        const currentAmount = unitAmount;
+        const previousAmount = previousPrice.unit_amount;
+
+        if (currentAmount !== previousAmount && previousAmount !== null) {
+          if (currentAmount > previousAmount) {
+            changeType = "upgraded";
+          } else if (currentAmount < previousAmount) {
+            changeType = "downgraded";
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error retrieving previous subscription details:", {
+        error,
+        eventId: event.id,
+        subscriptionId: sub.id,
+      });
+    }
+  }
+
+  // The tRPC mutation clears these synchronously. Repeat it here because
+  // Stripe is the source of truth and subscriptions can also be changed
+  // outside the dashboard.
+  const rateLimitReset = changeType === "upgraded" ? { apiRequestsCountMaxPerMinute: null } : {};
+
+  // Update limits and workspace tier
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.workspaceBilling)
+      .set({
+        tier: product.name,
+      })
+      .where(eq(schema.workspaceBilling.workspaceId, ws.id));
+
+    await setWorkspaceLimits(tx, {
+      workspaceId: ws.id,
+      plan: parseDeployPlan(billing.planOverride) ?? parseDeployPlan(billing.plan),
+      preserveApiLimits: true,
+      limitUpdate: {
+        apiBillableOperationsCountMaxPerMonth: requestsPerMonth,
+        logsRetentionDaysMax: logsRetentionDays,
+        logsAuditRetentionDaysMax: auditLogsRetentionDays,
+        teamEnabled: true,
+        ...rateLimitReset,
+      },
+    });
+
+    await insertAuditLogs(tx, {
+      workspaceId: ws.id,
+      actor: {
+        type: "system",
+        id: "stripe",
+      },
+      event: "workspace.update",
+      description: `Subscription updated to ${product.name} plan.`,
+      targets: [{ type: "workspace", id: ws.id }],
+      context: {
+        location: "",
+        userAgent: undefined,
+      },
+    });
+  });
+
+  // Send notification for subscription update
+  if (customer && !customer.deleted && customer.email) {
+    await alertCustomerLifecycle({
+      action:
+        changeType === "upgraded"
+          ? "upgrade"
+          : changeType === "downgraded"
+            ? "downgrade"
+            : "update",
+      name: customer.name || "Unknown",
+      email: customer.email,
+      workspaceId: ws.id,
+      workspaceName: ws.name,
+      product: product.name,
+      previousProduct: previousTier,
+      price: formatPrice(unitAmount),
+      stripeCustomerId: customer.id,
+      livemode: customer.livemode,
+    });
+  }
+  return new Response("OK");
+}
+
 export const runtime = "nodejs";
 
 // If the memberlist is too big, we will process the downgrade but the revoking of team members
@@ -561,254 +774,38 @@ export const POST = async (req: Request): Promise<Response> => {
         // Creating or releasing a schedule leaves the active price and limits
         // unchanged. The later phase transition carries the item price change
         // and is reconciled normally.
-        if (isScheduleUpdateOnly(previousAttributes)) {
+        if (onlyChanged(previousAttributes, "schedule")) {
           return new Response("OK", { status: 200 });
         }
 
         const feedback = cancellationFeedbackUpdate(previousAttributes, eventSub);
-        if (isCancellationFeedbackOnly(previousAttributes)) {
-          if (feedback) {
-            await sendCancellationReasonAlert(
-              stripe,
-              sub,
-              feedback,
-              ws,
-              await cancellingProductLabel(stripe, sub, column),
-            );
-          }
-          return new Response("OK", { status: 200 });
-        }
-
-        // Deploy-matched: mirror the plan, announce the change, and stop. The
-        // Deploy subscription never carries API tier/limit state, so there is
-        // nothing else to reconcile. mirrorDeployPlan only writes when the plan
-        // changed, so a renewal event does no DB write; the alert is derived
-        // from the Stripe event (a DB plan diff is unreliable because the
-        // dashboard mutations write the plan optimistically before this fires).
-        if (column === "compute") {
-          await deprovisionOnCancel(billing, sub);
-          await mirrorDeployPlan(billing, ws.orgId, sub);
-          const deployConfig = await deployBillingConfig();
-          await sendComputeAlert(
-            stripe,
-            sub,
-            computeUpdatedAlert(deployConfig, sub, previousAttributes),
-            ws,
-          );
-          if (feedback) {
-            await sendCancellationReasonAlert(
-              stripe,
-              sub,
-              feedback,
-              ws,
-              await cancellingProductLabel(stripe, sub, column),
-            );
-          }
-          return new Response("OK", { status: 200 });
-        }
-
-        // Skip heuristics correlate the event snapshot with previous_attributes,
-        // so they read eventSub (what the event reported), not the re-retrieved
-        // subscription.
-        // Skip database updates and notifications for automated billing renewals
-        if (isAutomatedBillingRenewal(eventSub, previousAttributes)) {
-          return new Response("OK", { status: 201 });
-        }
-
-        // Skip database updates and notifications for payment failure related updates
-        // Payment failures are handled by the invoice.payment_failed webhook
-        if (isPaymentFailureRelatedUpdate(eventSub, previousAttributes)) {
-          return new Response("OK", { status: 201 });
-        }
-
-        // Skip database updates and notifications for payment recovery scenarios
-        // Payment recoveries are handled by the invoice.payment_succeeded webhook
-        const isRecovery = await isPaymentRecoveryUpdate(
+        const update: SubscriptionUpdate = {
           stripe,
-          eventSub,
-          previousAttributes,
           event,
-        );
-        if (isRecovery) {
-          return new Response("OK", { status: 201 });
+          eventSub,
+          sub,
+          ws,
+          billing,
+          previousAttributes,
+          customers: alertCustomerCache(stripe, sub),
+        };
+        let response = new Response("OK", { status: 200 });
+        if (!onlyChanged(previousAttributes, "cancellation_details")) {
+          response =
+            column === "compute"
+              ? await reconcileComputeUpdate(update)
+              : await reconcileApiUpdate(update);
         }
 
-        // Skip database updates and notifications for card/payment method updates only
-        // These don't affect subscription pricing, limits, or other business logic
-        if (isCardUpdateOnly(eventSub, previousAttributes)) {
-          return new Response("OK", { status: 201 });
-        }
-
-        // Reconcile tier/limits from the API plan item. A missing item/price is
-        // a degenerate API subscription with nothing to derive a tier from; ack
-        // rather than guess.
-        const apiContext = await resolveApiSubscriptionContext(stripe, sub);
-        if (!apiContext) {
-          return new Response("OK", { status: 200 });
-        }
-        const { unitAmount, customer, product } = apiContext;
-
-        /**
-         * In our case, when a user cancels their subscription, it's not in effect until the beginning of the next month.
-         * So we get a subscription updated event, which we should handle accordingly.
-         */
-        if (sub.cancel_at) {
-          // Other updates on a cancelling subscription must not re-alert. Return
-          // unconditionally: the tier and limit update below is for active plan
-          // changes, never a cancelling one.
-          if (
-            isCancelJustScheduled(previousAttributes) &&
-            customer &&
-            !customer.deleted &&
-            customer.email
-          ) {
-            await alertCustomerLifecycle({
-              action: "cancelling",
-              name: customer.name || "Unknown",
-              email: customer.email,
-              workspaceId: ws.id,
-              workspaceName: ws.name,
-              product: product.name,
-              price: formatPrice(unitAmount),
-              stripeCustomerId: customer.id,
-              livemode: customer.livemode,
-            });
-          }
-          if (feedback) {
-            await sendCancellationReasonAlert(stripe, sub, feedback, ws, product.name);
-          }
-          return new Response("OK");
-        }
-
-        // Validate and parse Stripe limit metadata.
-        const quotas = validateAndParseQuotas(product);
-        if (!quotas.valid) {
-          // Without valid quota metadata the tier sync is skipped while Stripe
-          // bills the new plan; page a human to fix the product.
-          console.error("Subscription update skipped: invalid product quota metadata", {
-            productId: product.id,
-            productName: product.name,
+        if (feedback && "unknownReason" in feedback) {
+          console.warn("Unknown cancellation feedback reason, skipping alert:", {
             subscriptionId: sub.id,
-            eventId: event.id,
+            feedback: feedback.unknownReason,
           });
-          await alertInvalidProductQuotaMetadata({
-            productId: product.id,
-            productName: product.name,
-            subscriptionId: sub.id,
-            eventId: event.id,
-          });
-          return new Response("OK", { status: 200 });
+        } else if (feedback) {
+          await sendCancellationReasonAlert(update, column, feedback);
         }
-
-        const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
-
-        /**
-         * To make the updates more useful, we detect if they are downgrading or upgrading their subscription
-         * We can then send a good or bad update based upon it.
-         */
-        let changeType = "updated";
-        let previousTier: string | undefined;
-
-        if (previousAttributes?.items?.data?.[0]?.price?.id) {
-          try {
-            const previousPrice = await stripe.prices.retrieve(
-              previousAttributes.items.data[0].price.id,
-            );
-
-            if (previousPrice.product && previousPrice.unit_amount !== null) {
-              const previousProduct = await stripe.products.retrieve(
-                typeof previousPrice.product === "string"
-                  ? previousPrice.product
-                  : previousPrice.product.id,
-              );
-
-              previousTier = previousProduct.name;
-
-              // Compare amounts to determine upgrade/downgrade
-              const currentAmount = unitAmount;
-              const previousAmount = previousPrice.unit_amount;
-
-              if (currentAmount !== previousAmount && previousAmount !== null) {
-                if (currentAmount > previousAmount) {
-                  changeType = "upgraded";
-                } else if (currentAmount < previousAmount) {
-                  changeType = "downgraded";
-                }
-              }
-            }
-          } catch (error) {
-            console.error("Error retrieving previous subscription details:", {
-              error,
-              eventId: event.id,
-              subscriptionId: sub.id,
-            });
-          }
-        }
-
-        // The tRPC mutation clears these synchronously. Repeat it here because
-        // Stripe is the source of truth and subscriptions can also be changed
-        // outside the dashboard.
-        const rateLimitReset =
-          changeType === "upgraded" ? { apiRequestsCountMaxPerMinute: null } : {};
-
-        // Update limits and workspace tier
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.workspaceBilling)
-            .set({
-              tier: product.name,
-            })
-            .where(eq(schema.workspaceBilling.workspaceId, ws.id));
-
-          await setWorkspaceLimits(tx, {
-            workspaceId: ws.id,
-            plan: parseDeployPlan(billing.planOverride) ?? parseDeployPlan(billing.plan),
-            preserveApiLimits: true,
-            limitUpdate: {
-              apiBillableOperationsCountMaxPerMonth: requestsPerMonth,
-              logsRetentionDaysMax: logsRetentionDays,
-              logsAuditRetentionDaysMax: auditLogsRetentionDays,
-              teamEnabled: true,
-              ...rateLimitReset,
-            },
-          });
-
-          await insertAuditLogs(tx, {
-            workspaceId: ws.id,
-            actor: {
-              type: "system",
-              id: "stripe",
-            },
-            event: "workspace.update",
-            description: `Subscription updated to ${product.name} plan.`,
-            targets: [{ type: "workspace", id: ws.id }],
-            context: {
-              location: "",
-              userAgent: undefined,
-            },
-          });
-        });
-
-        // Send notification for subscription update
-        if (customer && !customer.deleted && customer.email) {
-          await alertCustomerLifecycle({
-            action:
-              changeType === "upgraded"
-                ? "upgrade"
-                : changeType === "downgraded"
-                  ? "downgrade"
-                  : "update",
-            name: customer.name || "Unknown",
-            email: customer.email,
-            workspaceId: ws.id,
-            workspaceName: ws.name,
-            product: product.name,
-            previousProduct: previousTier,
-            price: formatPrice(unitAmount),
-            stripeCustomerId: customer.id,
-            livemode: customer.livemode,
-          });
-        }
+        return response;
       } catch (error) {
         console.error("Subscription update webhook error:", {
           error:
@@ -824,7 +821,6 @@ export const POST = async (req: Request): Promise<Response> => {
         });
         return new Response("Error", { status: 500 });
       }
-      break;
     }
     case "customer.subscription.deleted": {
       try {
@@ -1095,7 +1091,11 @@ export const POST = async (req: Request): Promise<Response> => {
           if (billing && ws) {
             await mirrorDeployPlan(billing, ws.orgId, sub);
           }
-          const slackDelivery = await sendComputeAlert(stripe, sub, computeCreatedAlert(sub), ws);
+          const slackDelivery = await sendComputeAlert(
+            alertCustomerCache(stripe, sub),
+            computeCreatedAlert(sub),
+            ws,
+          );
           return stripeWebhookResponse(event, "compute_signup_alert_processed", {
             workspaceLinked: Boolean(ws),
             slackDelivery,

@@ -7,7 +7,7 @@ import { deployBillingConfig, findApiItem } from "./deployBilling";
 import { parseDeployPlan } from "./deployPlan";
 import { validateAndParseQuotas } from "./productUtils";
 import { setWorkspaceLimits } from "./setWorkspaceLimits";
-import { isDeadSubscription } from "./subscriptionUtils";
+import { isCancelling, isDeadSubscription } from "./subscriptionUtils";
 
 export type LinkApiAudit = {
   actor: { type: "user" | "system"; id: string };
@@ -75,8 +75,7 @@ export async function linkApiSubscription(
   }
 
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
-  const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
-  if ((sub.status !== "active" && sub.status !== "trialing") || cancelling) {
+  if ((sub.status !== "active" && sub.status !== "trialing") || isCancelling(sub)) {
     return { ok: false, reason: "not_active", message: "Subscription is not active." };
   }
 

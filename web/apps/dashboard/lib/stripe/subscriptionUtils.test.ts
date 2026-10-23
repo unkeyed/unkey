@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { isScheduleUpdateOnly } from "./subscriptionUtils";
+import { onlyChanged } from "./subscriptionUtils";
 
-describe("isScheduleUpdateOnly", () => {
+describe("onlyChanged", () => {
   it("matches a schedule attachment without a plan change", () => {
-    expect(isScheduleUpdateOnly({ schedule: null })).toBe(true);
+    expect(onlyChanged({ schedule: null }, "schedule")).toBe(true);
   });
 
   it("does not hide a schedule update that also changes items", () => {
-    expect(isScheduleUpdateOnly({ schedule: null, items: { data: [] } })).toBe(false);
+    expect(onlyChanged({ schedule: null, items: { data: [] } }, "schedule")).toBe(false);
   });
 
   it("does not match missing previous attributes", () => {
-    expect(isScheduleUpdateOnly(undefined)).toBe(false);
+    expect(onlyChanged(undefined, "schedule")).toBe(false);
   });
 });

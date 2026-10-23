@@ -1,6 +1,8 @@
 import type Stripe from "stripe";
 import { isDeadSubscription } from "./subscriptionUtils";
 
+export type DeploySubscriptionCancel = "scheduled" | "already-ended";
+
 /**
  * Stops the Stripe renewal for the Deploy subscription, no refund. Deploy owns
  * its own subscription now, so this is a native whole-subscription cancel at
@@ -8,8 +10,6 @@ import { isDeadSubscription } from "./subscriptionUtils";
  * subscription (already cancelled, deleted-webhook lagging) is an idempotent
  * no-op. Lives here rather than in ctrl so Stripe knowledge stays in one place.
  */
-export type DeploySubscriptionCancel = "scheduled" | "already-ended";
-
 export async function cancelDeploySubscription(
   stripe: Stripe,
   subscriptionId: string,

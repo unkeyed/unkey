@@ -1,3 +1,4 @@
+import { CLEARED_CANCELLATION_DETAILS } from "@/lib/billing/cancellation-reasons";
 import { getStripeClient } from "@/lib/stripe";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
@@ -23,6 +24,6 @@ export const uncancelSubscription = workspaceProcedure
     // Native cancel: clearing cancel_at_period_end resumes the API subscription.
     await stripe.subscriptions.update(ctx.workspace.stripeSubscriptionId, {
       cancel_at_period_end: false,
-      cancellation_details: { feedback: "", comment: "" },
+      cancellation_details: CLEARED_CANCELLATION_DETAILS,
     });
   });

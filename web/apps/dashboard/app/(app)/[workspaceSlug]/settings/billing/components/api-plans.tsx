@@ -9,7 +9,7 @@ import { IconUserOutline18 } from "@unkey/icons";
 import { Button, Skeleton, toast } from "@unkey/ui";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CancelApiDialog, CancelPlanLink } from "./cancel-actions";
+import { CancelApiDialog, type CancelOutcome, CancelPlanLink } from "./cancel-actions";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { PlanOptionList } from "./plan-option-list";
 
@@ -23,7 +23,7 @@ type ApiPlansProps = {
   manage: boolean;
   usedThisMonth: number | null;
   onChanged: () => void;
-  onCancelled: () => void;
+  onCancelled: (outcome: CancelOutcome) => void;
 };
 
 export function ApiPlans({

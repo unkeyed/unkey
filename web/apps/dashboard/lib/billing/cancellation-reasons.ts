@@ -2,6 +2,8 @@ import type Stripe from "stripe";
 
 export const CANCELLATION_COMMENT_MAX_LENGTH = 2000;
 
+export const CLEARED_CANCELLATION_DETAILS = { feedback: "", comment: "" } as const;
+
 export type CancellationReason = Stripe.SubscriptionUpdateParams.CancellationDetails.Feedback;
 
 export const CANCELLATION_REASON_LABELS: Record<CancellationReason, string> = {

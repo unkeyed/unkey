@@ -257,6 +257,33 @@ export type CustomerLifecycleAlert = {
   livemode?: boolean;
 };
 
+type CustomerFacts = Pick<
+  CustomerLifecycleAlert,
+  "name" | "email" | "workspaceId" | "workspaceName" | "stripeCustomerId" | "livemode"
+>;
+
+function customerFields(alert: CustomerFacts): Mrkdwn[] {
+  const fields: Mrkdwn[] = [mrkdwn`*Customer*\n${alert.name}`, mrkdwn`*Email*\n${alert.email}`];
+  if (alert.workspaceName) {
+    fields.push(mrkdwn`*Workspace*\n${alert.workspaceName}`);
+  }
+  if (alert.workspaceId) {
+    fields.push(mrkdwn`*Workspace ID*\n${alert.workspaceId}`);
+  }
+  return fields;
+}
+
+function pushStripeCustomerButton(blocks: SlackBlock[], alert: CustomerFacts): void {
+  if (alert.stripeCustomerId) {
+    blocks.push(
+      linkButton(
+        "View customer in Stripe",
+        stripeCustomerUrl(alert.stripeCustomerId, alert.livemode ?? true),
+      ),
+    );
+  }
+}
+
 /**
  * Posts the Block Kit alert for a subscription-lifecycle event: a header naming the action, a
  * two-column grid of the customer/workspace/plan facts the team acts on, an optional standing
@@ -268,13 +295,7 @@ export async function alertCustomerLifecycle(
 ): Promise<SlackPostStatus> {
   const meta = ACTION_META[alert.action];
 
-  const fields: Mrkdwn[] = [mrkdwn`*Customer*\n${alert.name}`, mrkdwn`*Email*\n${alert.email}`];
-  if (alert.workspaceName) {
-    fields.push(mrkdwn`*Workspace*\n${alert.workspaceName}`);
-  }
-  if (alert.workspaceId) {
-    fields.push(mrkdwn`*Workspace ID*\n${alert.workspaceId}`);
-  }
+  const fields = customerFields(alert);
   if (alert.product) {
     fields.push(
       alert.previousProduct
@@ -290,29 +311,17 @@ export async function alertCustomerLifecycle(
   if (meta.note) {
     blocks.push(section(meta.note));
   }
-  if (alert.stripeCustomerId) {
-    blocks.push(
-      linkButton(
-        "View customer in Stripe",
-        stripeCustomerUrl(alert.stripeCustomerId, alert.livemode ?? true),
-      ),
-    );
-  }
+  pushStripeCustomerButton(blocks, alert);
 
   return postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, `subscription_${alert.action}`, {
     blocks,
   });
 }
 
-export type CancellationReasonAlert = {
+export type CancellationReasonAlert = CustomerFacts & {
+  product: string;
   reason: CancellationReason;
   comment: string | null;
-  name: string;
-  email: string;
-  workspaceId: string;
-  workspaceName: string;
-  product: string;
-  stripeCustomer: { id: string; livemode: boolean } | null;
 };
 
 export async function alertCancellationReason(
@@ -321,10 +330,7 @@ export async function alertCancellationReason(
   const blocks: SlackBlock[] = [
     header(":speech_balloon: Cancellation reason"),
     fieldsSection([
-      mrkdwn`*Customer*\n${alert.name}`,
-      mrkdwn`*Email*\n${alert.email}`,
-      mrkdwn`*Workspace*\n${alert.workspaceName}`,
-      mrkdwn`*Workspace ID*\n${alert.workspaceId}`,
+      ...customerFields(alert),
       mrkdwn`*Tier / Product*\n${alert.product}`,
       mrkdwn`*Reason*\n${CANCELLATION_REASON_LABELS[alert.reason]}`,
     ]),
@@ -332,14 +338,7 @@ export async function alertCancellationReason(
   if (alert.comment) {
     blocks.push(plainSection(alert.comment));
   }
-  if (alert.stripeCustomer) {
-    blocks.push(
-      linkButton(
-        "View customer in Stripe",
-        stripeCustomerUrl(alert.stripeCustomer.id, alert.stripeCustomer.livemode),
-      ),
-    );
-  }
+  pushStripeCustomerButton(blocks, alert);
 
   return postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "cancellation_reason", { blocks });
 }

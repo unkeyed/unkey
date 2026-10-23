@@ -28,11 +28,6 @@ import {
 } from "@unkey/ui";
 import { useState } from "react";
 
-const REASON_ITEMS = CANCELLATION_REASONS.map((reason) => ({
-  value: reason,
-  label: CANCELLATION_REASON_LABELS[reason],
-}));
-
 export function CancellationFeedbackDialog({
   product,
   onClose,
@@ -86,14 +81,14 @@ export function CancellationFeedbackDialog({
         >
           <FormField label="Reason">
             {(control) => (
-              <Select items={REASON_ITEMS} value={reason} onValueChange={setReason}>
+              <Select items={CANCELLATION_REASON_LABELS} value={reason} onValueChange={setReason}>
                 <SelectTrigger id={control.id} aria-describedby={control.describedBy} aria-required>
                   <SelectValue placeholder="Pick a reason" />
                 </SelectTrigger>
                 <SelectContent>
-                  {REASON_ITEMS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
+                  {CANCELLATION_REASONS.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {CANCELLATION_REASON_LABELS[value]}
                     </SelectItem>
                   ))}
                 </SelectContent>

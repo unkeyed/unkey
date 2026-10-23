@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { subscriptionIdsByProduct, upsertBillingSubscription } from "./billingSubscriptions";
 import { type DeployPlan, detectDeployPlan } from "./deployPlan";
 import { setWorkspaceLimits } from "./setWorkspaceLimits";
-import { isDeadSubscription } from "./subscriptionUtils";
+import { isCancelling, isDeadSubscription } from "./subscriptionUtils";
 
 /**
  * Audit provenance for the write. The tRPC caller passes the acting user; the
@@ -110,8 +110,7 @@ export async function linkDeploySubscription(
   // redelivered after the user cancelled would otherwise re-detect the plan-fee
   // item and resurrect the plan the cancel cleared, the same failure
   // mirrorDeployPlan guards against.
-  const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
-  if ((sub.status !== "active" && sub.status !== "trialing") || cancelling) {
+  if ((sub.status !== "active" && sub.status !== "trialing") || isCancelling(sub)) {
     return { ok: false, reason: "not_active", message: "Subscription is not active." };
   }
 

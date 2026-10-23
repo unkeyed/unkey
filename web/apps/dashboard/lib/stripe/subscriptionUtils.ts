@@ -167,18 +167,31 @@ export function isCardUpdateOnly(
   return false;
 }
 
+export function isCancelling(
+  sub: Pick<Stripe.Subscription, "cancel_at_period_end" | "cancel_at">,
+): boolean {
+  return Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
+}
+
 /**
- * True when this update changed the cancel fields. An unrelated update on an already-cancelling
- * subscription does not carry them in previous_attributes, so gating on this stops a re-alert.
+ * An unrelated update on an already-cancelling subscription does not carry the cancel fields in
+ * previous_attributes, so gating on them stops a re-alert. A resume carries them too, hence the
+ * isCancelling check.
  */
-export function isCancelJustScheduled(previousAttributes: PreviousAttributes | undefined): boolean {
-  if (!previousAttributes) {
-    return false;
-  }
-  return "cancel_at_period_end" in previousAttributes || "cancel_at" in previousAttributes;
+export function cancelJustScheduled(
+  sub: Pick<Stripe.Subscription, "cancel_at_period_end" | "cancel_at">,
+  previousAttributes: PreviousAttributes | undefined,
+): boolean {
+  return (
+    isCancelling(sub) &&
+    previousAttributes !== undefined &&
+    ("cancel_at_period_end" in previousAttributes || "cancel_at" in previousAttributes)
+  );
 }
 
 export type CancellationFeedback = { reason: CancellationReason; comment: string | null };
+
+export type CancellationFeedbackUpdate = CancellationFeedback | { unknownReason: string };
 
 /**
  * The customer's reason, when this update set or changed it. previous_attributes may carry only the
@@ -186,8 +199,8 @@ export type CancellationFeedback = { reason: CancellationReason; comment: string
  */
 export function cancellationFeedbackUpdate(
   previousAttributes: PreviousAttributes | undefined,
-  sub: Pick<Stripe.Subscription, "id" | "cancellation_details">,
-): CancellationFeedback | null {
+  sub: Pick<Stripe.Subscription, "cancellation_details">,
+): CancellationFeedbackUpdate | null {
   if (!previousAttributes || !("cancellation_details" in previousAttributes)) {
     return null;
   }
@@ -203,35 +216,17 @@ export function cancellationFeedbackUpdate(
   if (!feedbackChanged && !commentChanged) {
     return null;
   }
-  if (!isCancellationReason(feedback)) {
-    console.warn("Unknown cancellation feedback reason, skipping alert:", {
-      subscriptionId: sub.id,
-      feedback,
-    });
-    return null;
-  }
-  return { reason: feedback, comment };
+  return isCancellationReason(feedback)
+    ? { reason: feedback, comment }
+    : { unknownReason: feedback };
 }
 
-/** Attaching or releasing a schedule does not change the active API plan. */
-export function isScheduleUpdateOnly(previousAttributes: PreviousAttributes | undefined): boolean {
-  if (!previousAttributes) {
-    return false;
-  }
-
-  const changedKeys = Object.keys(previousAttributes);
-  return changedKeys.length === 1 && changedKeys[0] === "schedule";
-}
-
-export function isCancellationFeedbackOnly(
+export function onlyChanged(
   previousAttributes: PreviousAttributes | undefined,
+  key: keyof PreviousAttributes,
 ): boolean {
-  if (!previousAttributes) {
-    return false;
-  }
-
-  const changedKeys = Object.keys(previousAttributes);
-  return changedKeys.length === 1 && changedKeys[0] === "cancellation_details";
+  const changedKeys = previousAttributes ? Object.keys(previousAttributes) : [];
+  return changedKeys.length === 1 && changedKeys[0] === key;
 }
 
 export type { PreviousAttributes };
