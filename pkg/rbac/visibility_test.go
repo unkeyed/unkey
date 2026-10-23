@@ -5,17 +5,20 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 )
 
 func TestCanRead(t *testing.T) {
 	t.Parallel()
 
-	workspace := urn.New().Workspace("ws_123")
-	keyspace := workspace.Project("proj_123").Keyspace("ks_123")
-	keys := keyspace.Key("*")
-	otherKeys := workspace.Project("proj_123").Keyspace("ks_other").Key("*")
-	deployment := workspace.Project("proj_123").App("app_123").Environment("env_123").Deployment("dep_123")
+	project := urn.New().Workspace(uid.New(uid.WorkspacePrefix)).Project(uid.New(uid.ProjectPrefix))
+	environmentID := uid.New(uid.EnvironmentPrefix)
+	environment := project.App(uid.New(uid.AppPrefix)).Environment(environmentID)
+	apiID := uid.New(uid.APIPrefix)
+	keys := project.Keyspace(uid.New(uid.KeySpacePrefix)).Key("*")
+	otherKeys := project.Keyspace(uid.New(uid.KeySpacePrefix)).Key("*")
+	deployment := environment.Deployment(uid.New(uid.DeploymentPrefix))
 
 	writeKeys := U(keys, permissions.Write)
 	readKeys := keys.String() + "#read"
@@ -54,17 +57,17 @@ func TestCanRead(t *testing.T) {
 		{
 			name:    "wildcard read covers a concrete resource",
 			query:   U(deployment, permissions.Write),
-			granted: []string{workspace.Project("proj_123").App("app_123").Environment("env_123").Deployment("*").String() + "#read"},
+			granted: []string{environment.Deployment("*").String() + "#read"},
 			want:    true,
 		},
 		{
-			name: "legacy read api reveals a create key denial",
+			name: "legacy read api does not reveal a create key denial",
 			query: Or(
-				T(Tuple{ResourceType: Api, ResourceID: "api_123", Action: CreateKey}),
+				T(Tuple{ResourceType: Api, ResourceID: apiID, Action: CreateKey}),
 				T(Tuple{ResourceType: Api, ResourceID: "*", Action: CreateKey}),
 			),
 			granted: []string{"api.*.read_api"},
-			want:    true,
+			want:    false,
 		},
 		{
 			name: "legacy create key does not reveal the api",
@@ -94,7 +97,7 @@ func TestCanRead(t *testing.T) {
 			name: "legacy deployment read does not reveal a rollback",
 			query: Or(
 				T(Tuple{ResourceType: Environment, ResourceID: "*", Action: RollbackDeployment}),
-				T(Tuple{ResourceType: Environment, ResourceID: "env_123", Action: RollbackDeployment}),
+				T(Tuple{ResourceType: Environment, ResourceID: environmentID, Action: RollbackDeployment}),
 				U(deployment, permissions.Write),
 			),
 			granted: []string{"environment.*.read_deployment"},
@@ -104,15 +107,15 @@ func TestCanRead(t *testing.T) {
 			name: "environment read reveals a rollback on that environment",
 			query: Or(
 				T(Tuple{ResourceType: Environment, ResourceID: "*", Action: RollbackDeployment}),
-				U(workspace.Project("proj_123").App("app_123").Environment("env_123"), permissions.Write),
+				U(environment, permissions.Write),
 			),
-			granted: []string{workspace.Project("proj_123").App("app_123").Environment("env_123").String() + "#read"},
+			granted: []string{environment.String() + "#read"},
 			want:    true,
 		},
 		{
 			name: "read analytics does not reveal an api",
 			query: Or(
-				T(Tuple{ResourceType: Api, ResourceID: "api_123", Action: CreateKey}),
+				T(Tuple{ResourceType: Api, ResourceID: apiID, Action: CreateKey}),
 			),
 			granted: []string{"api.*.read_analytics"},
 			want:    false,
@@ -120,7 +123,7 @@ func TestCanRead(t *testing.T) {
 		{
 			name: "read portal does not reveal a session grant",
 			query: Or(
-				T(Tuple{ResourceType: Portal, ResourceID: "portal_123", Action: CreatePortalSession}),
+				T(Tuple{ResourceType: Portal, ResourceID: uid.New(uid.PortalPrefix), Action: CreatePortalSession}),
 			),
 			granted: []string{"portal.*.read_portal"},
 			want:    false,
@@ -143,7 +146,7 @@ func TestCanRead(t *testing.T) {
 		{
 			name:    "environment read does not reveal a deployment",
 			query:   U(deployment, permissions.Write),
-			granted: []string{workspace.Project("proj_123").App("app_123").Environment("env_123").String() + "#read"},
+			granted: []string{environment.String() + "#read"},
 			want:    false,
 		},
 		{
@@ -164,7 +167,7 @@ func TestCanRead(t *testing.T) {
 		{
 			name: "or is readable when any branch is",
 			query: Or(
-				T(Tuple{ResourceType: Api, ResourceID: "api_123", Action: CreateKey}),
+				T(Tuple{ResourceType: Api, ResourceID: apiID, Action: CreateKey}),
 				U(keys, permissions.Write),
 			),
 			granted: []string{readKeys},
@@ -181,7 +184,8 @@ func TestCanRead(t *testing.T) {
 func TestPermissionDeniedDetailNamesTheMissingPermission(t *testing.T) {
 	t.Parallel()
 
-	query := U(urn.New().Workspace("ws_123").Project("proj_123").Keyspace("ks_123").Key("*"), permissions.Write)
+	keys := urn.New().Workspace(uid.New(uid.WorkspacePrefix)).Project(uid.New(uid.ProjectPrefix)).Keyspace(uid.New(uid.KeySpacePrefix)).Key("*")
+	query := U(keys, permissions.Write)
 	detail := PermissionDeniedDetail(query, []string{query.Value[:len(query.Value)-len("#write")] + "#read"})
 
 	require.Contains(t, detail, "Missing permission: '"+query.Value+"'")
@@ -192,14 +196,15 @@ func TestPermissionDeniedDetailNamesTheMissingPermission(t *testing.T) {
 func TestPermissionDeniedDetailNamesEveryAlternative(t *testing.T) {
 	t.Parallel()
 
+	apiID := uid.New(uid.APIPrefix)
 	query := Or(
 		T(Tuple{ResourceType: Api, ResourceID: "*", Action: CreateKey}),
-		T(Tuple{ResourceType: Api, ResourceID: "api_123", Action: CreateKey}),
+		T(Tuple{ResourceType: Api, ResourceID: apiID, Action: CreateKey}),
 	)
 	detail := PermissionDeniedDetail(query, nil)
 
 	require.Contains(t, detail, "Missing one of these permissions:")
 	require.Contains(t, detail, "api.*.create_key")
-	require.Contains(t, detail, "api.api_123.create_key")
+	require.Contains(t, detail, "api."+apiID+".create_key")
 	require.Contains(t, detail, "Log in again with one of those permissions, or grant it.")
 }
