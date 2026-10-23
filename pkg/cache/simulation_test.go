@@ -107,7 +107,13 @@ func (s *state) answer(rng *rand.Rand) outcome {
 	s.calls++
 	s.version++
 	s.outcome = pickOutcome(rng)
-	s.nextOp = map[outcome]cache.Op{found: cache.WriteValue, notFound: cache.WriteNull, empty: cache.WriteNull, skipped: cache.Noop, failed: cache.Noop}[s.outcome]
+	s.nextOp = map[outcome]cache.Op{
+		found:    cache.WriteValue,
+		notFound: cache.WriteNull,
+		empty:    cache.WriteNull,
+		skipped:  cache.Noop,
+		failed:   cache.Noop,
+	}[s.outcome]
 	s.record("origin %d %d", s.version, s.outcome)
 	return s.outcome
 }
@@ -122,7 +128,12 @@ func (s *state) record(format string, args ...any) {
 
 func (s *state) remember(key, value uint64, hit cache.CacheHit) {
 	now := s.clk.Now()
-	s.model[key] = modelEntry{value: value, hit: hit, fresh: now.Add(s.fresh), stale: now.Add(s.stale)}
+	s.model[key] = modelEntry{
+		value: value,
+		hit:   hit,
+		fresh: now.Add(s.fresh),
+		stale: now.Add(s.stale),
+	}
 }
 
 // anyStale reports whether one of keys is past its fresh time but still
@@ -516,7 +527,10 @@ func runSimulation(t *testing.T, seed sim.Seed) uint64 {
 			fresh := time.Second + time.Duration(rng.Int64N(int64(time.Minute)))
 			stale := fresh + time.Duration(rng.Int64N(int64(10*time.Minute)))
 			maxSize := 1 + rng.IntN(32)
-			queue := &refreshQueue{refreshes: nil, limit: 1 + rng.IntN(8)}
+			queue := &refreshQueue{
+				refreshes: nil,
+				limit:     1 + rng.IntN(8),
+			}
 			c, err := cache.New(cache.Config[uint64, uint64]{
 				Fresh:     fresh,
 				Stale:     stale,

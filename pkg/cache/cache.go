@@ -95,7 +95,10 @@ type workers struct {
 
 // startWorkers starts count goroutines that run refreshes until done is closed.
 func startWorkers(count, queueSize int, resource string, done <-chan struct{}) *workers {
-	w := &workers{refreshes: make(chan func(), queueSize), resource: resource}
+	w := &workers{
+		refreshes: make(chan func(), queueSize),
+		resource:  resource,
+	}
 	for range count {
 		go func() {
 			for {
@@ -341,7 +344,12 @@ func (c *cache[K, V]) SetMany(ctx context.Context, values map[K]V) {
 func (c *cache[K, V]) setInOrder(keys []K, values map[K]V) {
 	now := c.clock.Now()
 	entry := func(v V) swrEntry[V] {
-		return swrEntry[V]{Value: v, Fresh: now.Add(c.fresh), Stale: now.Add(c.stale), Hit: Hit}
+		return swrEntry[V]{
+			Value: v,
+			Fresh: now.Add(c.fresh),
+			Stale: now.Add(c.stale),
+			Hit:   Hit,
+		}
 	}
 	requested := make(map[K]struct{}, len(keys))
 	for _, key := range keys {
@@ -490,7 +498,14 @@ func (c *cache[K, V]) load(
 	} else {
 		loadCtx, cancel = context.WithCancel(loadCtx)
 	}
-	f := &inflight[V]{done: make(chan struct{}), cancel: cancel, waiters: 1, value: zero, hit: Miss, err: errLoadPanicked} //faultline:equivalent zero is the zero value
+	f := &inflight[V]{
+		done:    make(chan struct{}),
+		cancel:  cancel,
+		waiters: 1,
+		value:   zero, //faultline:equivalent zero is the zero value
+		hit:     Miss,
+		err:     errLoadPanicked,
+	}
 	c.loads[key] = f
 	c.loadsMu.Unlock()
 
