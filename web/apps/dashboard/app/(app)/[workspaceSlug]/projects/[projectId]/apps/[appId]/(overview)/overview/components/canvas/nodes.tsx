@@ -63,7 +63,7 @@ export function NodeHeader({
 
 export function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-sm border border-grayA-5 bg-grayA-3 px-1 font-mono text-[10px] font-medium leading-4 text-gray-12">
+    <span className="rounded-sm border border-grayA-5 bg-grayA-3 px-1 font-mono text-3xs font-medium leading-4 text-gray-12">
       {children}
     </span>
   );
@@ -84,7 +84,7 @@ export function StatusBadge({
   children: ReactNode;
 }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 text-[11px]", STATUS_TEXT[tone])}>
+    <span className={cn("inline-flex items-center gap-1 text-2xs", STATUS_TEXT[tone])}>
       <span className={cn("size-1.5 shrink-0 rounded-full", dotClass)} />
       {children}
     </span>
@@ -93,7 +93,7 @@ export function StatusBadge({
 
 export function Rows({ children }: { children: ReactNode }) {
   return (
-    <span className="flex flex-col gap-1 border-t border-grayA-4 px-3 py-2 text-[11px]">
+    <span className="flex flex-col gap-1 border-t border-grayA-4 px-3 py-2 text-2xs">
       {children}
     </span>
   );
@@ -165,7 +165,7 @@ export function Group({
 }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-2 rounded-xl border border-grayA-3 bg-grayA-2 p-2">
-      <span className="flex items-center gap-1.5 px-1 text-[11px] text-gray-11 [&_svg]:size-3.5">
+      <span className="flex items-center gap-1.5 px-1 text-2xs text-gray-11 [&_svg]:size-3.5">
         {icon}
         {label}
       </span>
@@ -193,7 +193,7 @@ export function GhostNode({
       <span className="mt-px text-gray-10 group-hover:text-gray-12 [&_svg]:size-3.5">{icon}</span>
       <span className="flex min-w-0 flex-col">
         <span className="text-xs font-medium text-gray-12">{name}</span>
-        <span className="text-[11px] text-gray-10">{description}</span>
+        <span className="text-2xs text-gray-10">{description}</span>
       </span>
       <IconPlusOutline12 className="mt-0.5 ml-auto size-3 shrink-0 text-gray-10 group-hover:text-gray-12" />
     </Link>
