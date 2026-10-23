@@ -62,11 +62,10 @@ type ProductionOverviewModel =
 
 export function ProductionOverview({ children }: { children: ReactNode }) {
   const { gated, openPaywall, planGate } = useDeployActionGate();
+  const model = useProductionOverview({ gated, openPaywall });
   return (
     <>
-      <ProductionOverviewView model={useProductionOverview({ gated, openPaywall })}>
-        {children}
-      </ProductionOverviewView>
+      <ProductionOverviewView model={model}>{children}</ProductionOverviewView>
       {planGate}
     </>
   );
