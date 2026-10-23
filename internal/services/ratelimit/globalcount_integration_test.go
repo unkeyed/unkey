@@ -10,7 +10,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	gcdb "github.com/unkeyed/unkey/pkg/globalcounter/db"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -40,6 +42,17 @@ func decisions(t *testing.T, op, system string) uint64 {
 		}
 	}
 	return 0
+}
+
+// newGlobalCounterTestEnv isolates database-wide eviction from tests whose
+// clocks would treat this test's active windows as expired.
+func newGlobalCounterTestEnv(t *testing.T) *integrationTestEnv {
+	t.Helper()
+	cfg := containers.MySQLIsolated(t)
+	database, err := mysql.New(mysql.Config{PrimaryDSN: cfg.DSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	return &integrationTestEnv{t: t, db: database}
 }
 
 // newCountedRegion builds a region that counts requests with UseGlobalCounter
@@ -82,7 +95,7 @@ func regionalRequest(workspaceID, identifier string, at time.Time, cost, limit i
 func TestGlobalCounter_SharesCountsAcrossRegionsAndOnlyForEnabledNamespaces(t *testing.T) {
 	t.Parallel()
 
-	env := newIntegrationTestEnv(t)
+	env := newGlobalCounterTestEnv(t)
 	clk := clock.NewTestClock(time.Date(2026, 1, 1, 0, 10, 0, 0, time.UTC))
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	regionA := env.newCountedRegion(clk, "region-a")
@@ -123,13 +136,18 @@ func TestGlobalCounter_SharesCountsAcrossRegionsAndOnlyForEnabledNamespaces(t *t
 	require.Eventually(t, func() bool {
 		return env.persistedCount(hourRequest(workspaceID, identifier, clk.Now(), 0, 10)) == 10
 	}, 10*time.Second, 50*time.Millisecond, "region A's 6 and region B's 4 are stored once persisted")
+	regionC := env.newCountedRegion(clk, "region-c")
+	denied, err = regionC.Ratelimit(ctx, hourRequest(workspaceID, identifier, clk.Now(), 1, 10))
+	require.NoError(t, err)
+	require.False(t, denied.Success, "a new region must enforce the persisted total without either writer's local state")
+	require.Equal(t, int64(11), denied.Current)
 	require.Zero(t, env.persistedCount(hourRequest(workspaceID, regional, clk.Now(), 0, 10)), "a namespace without the global counter must not write to it")
 }
 
 func TestGlobalCounter_DenialMakesLaterChecksSeeOtherRegionsWithinTheStrictPeerMaxAge(t *testing.T) {
 	t.Parallel()
 
-	env := newIntegrationTestEnv(t)
+	env := newGlobalCounterTestEnv(t)
 	clk := clock.NewTestClock(time.Date(2026, 1, 1, 0, 10, 0, 0, time.UTC))
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	regionA := env.newCountedRegion(clk, "region-a")
@@ -162,7 +180,7 @@ func TestGlobalCounter_DenialMakesLaterChecksSeeOtherRegionsWithinTheStrictPeerM
 func TestGlobalCounter_PreviousWindowCountsForItsRemainingShare(t *testing.T) {
 	t.Parallel()
 
-	env := newIntegrationTestEnv(t)
+	env := newGlobalCounterTestEnv(t)
 	clk := clock.NewTestClock(time.Date(2026, 1, 1, 0, 30, 0, 0, time.UTC))
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	region := env.newCountedRegion(clk, "region-a")
@@ -190,7 +208,7 @@ func TestGlobalCounter_PreviousWindowCountsForItsRemainingShare(t *testing.T) {
 func TestGlobalCounter_NamesTooLongForMySQLAreHashed(t *testing.T) {
 	t.Parallel()
 
-	env := newIntegrationTestEnv(t)
+	env := newGlobalCounterTestEnv(t)
 	clk := clock.NewTestClock(time.Date(2026, 1, 1, 0, 10, 0, 0, time.UTC))
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	region := env.newCountedRegion(clk, "region-a")
@@ -212,7 +230,7 @@ func TestGlobalCounter_NamesTooLongForMySQLAreHashed(t *testing.T) {
 func TestGlobalCounter_ManyAddsEveryCostOrNone(t *testing.T) {
 	t.Parallel()
 
-	env := newIntegrationTestEnv(t)
+	env := newGlobalCounterTestEnv(t)
 	clk := clock.NewTestClock(time.Date(2026, 1, 1, 0, 10, 0, 0, time.UTC))
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	region := env.newCountedRegion(clk, "region-a")
@@ -253,7 +271,7 @@ func TestGlobalCounter_ManyAddsEveryCostOrNone(t *testing.T) {
 func TestGlobalCounter_ManyWithTheSameCellTwiceFails(t *testing.T) {
 	t.Parallel()
 
-	env := newIntegrationTestEnv(t)
+	env := newGlobalCounterTestEnv(t)
 	clk := clock.NewTestClock(time.Date(2026, 1, 1, 0, 10, 0, 0, time.UTC))
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	region := env.newCountedRegion(clk, "region-a")
@@ -270,7 +288,7 @@ func TestGlobalCounter_ManyWithTheSameCellTwiceFails(t *testing.T) {
 func TestGlobalCounter_ManyWithAPreviousWindowThatAnotherCheckAddsToFails(t *testing.T) {
 	t.Parallel()
 
-	env := newIntegrationTestEnv(t)
+	env := newGlobalCounterTestEnv(t)
 	clk := clock.NewTestClock(time.Date(2026, 1, 1, 0, 30, 0, 0, time.UTC))
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	region := env.newCountedRegion(clk, "region-a")
@@ -287,7 +305,7 @@ func TestGlobalCounter_ManyWithAPreviousWindowThatAnotherCheckAddsToFails(t *tes
 // TestGlobalCounter_DecisionDurationNamesTheSystemThatDecided is not parallel, so
 // no other test adds decisions while it counts them.
 func TestGlobalCounter_DecisionDurationNamesTheSystemThatDecided(t *testing.T) {
-	env := newIntegrationTestEnv(t)
+	env := newGlobalCounterTestEnv(t)
 	clk := clock.NewTestClock(time.Date(2026, 1, 1, 0, 10, 0, 0, time.UTC))
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	region := env.newCountedRegion(clk, "region-a")
