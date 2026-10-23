@@ -5,7 +5,6 @@ import { match } from "@unkey/match";
 import { PageBody } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { DeploymentApproval } from "./(deployment-progress)/deployment-approval";
-import { DeploymentBuild } from "./(deployment-progress)/deployment-build";
 import { DeploymentCancelled } from "./(deployment-progress)/deployment-cancelled";
 import { DeploymentSkipped } from "./(deployment-progress)/deployment-skipped";
 import { FailedDeploymentBanner } from "./(deployment-progress)/failed-deployment-banner";
@@ -42,7 +41,6 @@ export function DeploymentOverview() {
       ) : (
         <div key={page.body} className="animate-fade-slide-in">
           {match(page.body)
-            .with("build", () => <DeploymentBuild />)
             .with("skipped", () => <DeploymentSkipped />)
             .with("superseded", "cancelled", (reason) => (
               <DeploymentCancelled deployment={deployment} stepsData={steps} reason={reason} />

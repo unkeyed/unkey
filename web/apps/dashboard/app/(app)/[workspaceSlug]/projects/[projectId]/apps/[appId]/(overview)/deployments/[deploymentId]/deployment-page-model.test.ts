@@ -71,8 +71,11 @@ describe("deploymentPageModel", () => {
     expect(deploymentPageModel(input({ status: "cancelled" })).body).toBe("cancelled");
   });
 
-  test("the build view wins over every status", () => {
-    expect(deploymentPageModel(input({ status: "cancelled", showBuild: true })).body).toBe("build");
+  test("?build asks for the build stage and keeps the status body", () => {
+    const model = deploymentPageModel(input({ status: "building", showBuild: true }));
+    expect(model.body).toBe("stages");
+    expect(model.requestedStage).toBe("build");
+    expect(deploymentPageModel(input({ status: "building" })).requestedStage).toBe(null);
   });
 
   test("a current deployment lists its verified custom domain first", () => {

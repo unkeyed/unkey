@@ -20,7 +20,7 @@ const DEPLOYING_LOGS_POLL_MS = 2_000;
 
 export type StagesCardPage = Pick<
   DeploymentPage,
-  "deployment" | "steps" | "status" | "instances" | "domains" | "domainCount"
+  "deployment" | "steps" | "status" | "instances" | "domains" | "domainCount" | "requestedStage"
 >;
 
 export function useStagesCard({
@@ -29,6 +29,7 @@ export function useStagesCard({
   status,
   instances,
   domainCount,
+  requestedStage,
 }: StagesCardPage) {
   const inFlight = isDeploymentInFlight(status);
   const now = useTickingNow(inFlight);
@@ -43,7 +44,9 @@ export function useStagesCard({
   });
 
   const failedStage = stages.find((s) => s.resolution.status === "error")?.key ?? null;
-  const [openStage, setOpenStage] = useState<OpenStage>(() => initialOpenStage(failedStage));
+  const [openStage, setOpenStage] = useState<OpenStage>(() =>
+    initialOpenStage(failedStage, requestedStage),
+  );
   const followed = followFailedStage(openStage, failedStage);
   if (followed !== openStage) {
     setOpenStage(followed);

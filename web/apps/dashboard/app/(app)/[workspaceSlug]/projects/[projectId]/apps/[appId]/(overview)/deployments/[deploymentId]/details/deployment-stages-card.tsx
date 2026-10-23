@@ -10,7 +10,7 @@ import {
 import { match } from "@unkey/match";
 import { Card, Loading, Skeleton } from "@unkey/ui";
 import { cn } from "cn";
-import { type ReactNode, useId } from "react";
+import { type ReactNode, useEffect, useId, useRef } from "react";
 import { DeploymentBuildLogs } from "../(deployment-progress)/build-logs/deployment-build-logs";
 import { FailureActions } from "../(deployment-progress)/failure-actions";
 import type { DisplayDomain } from "../../../../components/display-domain";
@@ -77,6 +77,7 @@ export function DeploymentStagesCard({ page }: { page: StagesCardPage }) {
             stage={stage}
             ticker={tickerFor(stage)}
             open={open}
+            scrollOnMount={stage.key === page.requestedStage}
             onToggle={() => toggle(stage.key)}
           >
             {open && panel(stage.key, stage.resolution.status)}
@@ -91,16 +92,23 @@ type StageRowProps = {
   stage: Stage;
   ticker: TickerLine | null;
   open: boolean;
+  scrollOnMount: boolean;
   onToggle: () => void;
   children: ReactNode;
 };
 
-function StageRow({ stage, ticker, open, onToggle, children }: StageRowProps) {
+function StageRow({ stage, ticker, open, scrollOnMount, onToggle, children }: StageRowProps) {
   const { label, resolution, expandable } = stage;
   const failed = resolution.status === "error";
   const panelId = useId();
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollOnMount) {
+      rowRef.current?.scrollIntoView({ block: "start" });
+    }
+  }, [scrollOnMount]);
   return (
-    <div>
+    <div ref={rowRef}>
       <button
         type="button"
         disabled={!expandable}

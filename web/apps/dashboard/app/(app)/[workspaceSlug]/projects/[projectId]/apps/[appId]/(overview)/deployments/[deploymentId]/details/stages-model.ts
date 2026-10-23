@@ -155,8 +155,11 @@ export type OpenStage = {
   autoOpened: readonly StageKey[];
 };
 
-export function initialOpenStage(failed: StageKey | null): OpenStage {
-  return failed ? { open: failed, autoOpened: [failed] } : { open: null, autoOpened: [] };
+export function initialOpenStage(
+  failed: StageKey | null,
+  requested: StageKey | null = null,
+): OpenStage {
+  return { open: requested ?? failed, autoOpened: failed ? [failed] : [] };
 }
 
 export function followFailedStage(state: OpenStage, failed: StageKey | null): OpenStage {
