@@ -156,9 +156,9 @@ export function Canvas({
   return (
     <div className="w-full rounded-t-lg bg-gray-3/40 last:rounded-b-lg">
       <section
+        // Focusable so keyboard users can scroll a wide canvas
         tabIndex={focusable ? 0 : undefined}
         aria-label={label}
-        aria-busy={!focusable || undefined}
         className="overflow-x-auto rounded-t-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-7"
       >
         <div className="flex w-full min-w-[900px] items-start px-5 py-5">{children}</div>
