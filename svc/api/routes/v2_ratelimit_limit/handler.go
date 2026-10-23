@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -166,6 +167,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	} else {
 		result, err = h.Ratelimit.Ratelimit(ctx, limitReq)
 	}
+	system := "regional"
+	if ns.UseGcra {
+		system = "global"
+	}
+	metrics.RatelimitDecisionDuration.WithLabelValues(system).Observe(time.Since(t0).Seconds())
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -222,6 +228,11 @@ func (h *Handler) allowGlobal(ctx context.Context, req ratelimit.RatelimitReques
 	if err != nil {
 		return ratelimit.RatelimitResponse{}, err
 	}
+	outcome := "denied"
+	if result.Allowed {
+		outcome = "passed"
+	}
+	metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, "gcra", outcome).Inc()
 	return ratelimit.RatelimitResponse{
 		Limit:     req.Limit,
 		Remaining: result.Remaining,
