@@ -1,4 +1,7 @@
-import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import {
+  type DeploymentStatus,
+  isDeploymentInFlight,
+} from "@/lib/collections/deploy/deployment-status";
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useMemo, useState } from "react";
 import { toBuildLogLines } from "../(deployment-progress)/build-logs/build-log-lines";
@@ -17,11 +20,19 @@ import {
 import { type TickerSources, stageTickerLine } from "./ticker-model";
 
 const TICK_MS = 500;
+const STOPPED_STATUSES: ReadonlySet<DeploymentStatus> = new Set(["cancelled", "superseded"]);
 const DEPLOYING_LOGS_POLL_MS = 2_000;
 
 export type StagesCardPage = Pick<
   DeploymentPage,
-  "deployment" | "steps" | "status" | "instances" | "domains" | "domainCount" | "requestedStage"
+  | "deployment"
+  | "steps"
+  | "status"
+  | "instances"
+  | "domains"
+  | "domainCount"
+  | "requestedStage"
+  | "clearRequestedStage"
 >;
 
 export function useStagesCard({
@@ -31,6 +42,7 @@ export function useStagesCard({
   instances,
   domainCount,
   requestedStage,
+  clearRequestedStage,
 }: StagesCardPage) {
   const inFlight = isDeploymentInFlight(status);
   const now = useTickingNow(inFlight);
@@ -44,17 +56,24 @@ export function useStagesCard({
     domainCount,
   });
 
-  const failedStage = stages.find((s) => s.resolution.status === "error")?.key ?? null;
-  const requested = stages.find((s) => s.key === requestedStage && s.expandable)?.key ?? null;
+  const failedStage = STOPPED_STATUSES.has(status)
+    ? null
+    : (stages.find((s) => s.resolution.status === "error")?.key ?? null);
   const [openStage, setOpenStage] = useState<OpenStage>(() =>
-    initialOpenStage({ failed: failedStage, requested }),
+    initialOpenStage({ failed: failedStage, requested: requestedStage }),
   );
-  const followed = followRequestedStage(followFailedStage(openStage, failedStage), requested);
+  const followed = followRequestedStage(followFailedStage(openStage, failedStage), requestedStage);
   if (followed !== openStage) {
     setOpenStage(followed);
   }
   const isOpen = (stage: Stage) => stage.expandable && followed.open === stage.key;
-  const scrollTarget = requested !== null && followed.open === requested ? requested : null;
+  const scrollTarget =
+    requestedStage !== null && followed.open === requestedStage ? requestedStage : null;
+  useEffect(() => {
+    if (requestedStage) {
+      clearRequestedStage();
+    }
+  }, [requestedStage, clearRequestedStage]);
   const toggle = (key: StageKey) => setOpenStage((state) => toggleStage(state, key));
 
   const deploying = steps?.deploying;

@@ -20,10 +20,11 @@ export type DeploymentBody = "skipped" | "superseded" | "cancelled" | "stages";
 export type DeploymentPageInput = {
   deployment: Pick<
     Deployment,
-    "id" | "environmentId" | "instances" | "targetRegions" | "desiredState"
+    "id" | "environmentId" | "instances" | "targetRegions" | "desiredState" | "source"
   >;
   status: DeploymentStatus;
   buildRequested: boolean;
+  buildRequestedOnPage: boolean;
   domains: ReadonlyArray<Domain>;
   domainsLoading: boolean;
   customDomains: ReadonlyArray<CustomDomain>;
@@ -50,12 +51,14 @@ export function deploymentPageModel({
   deployment,
   status,
   buildRequested,
+  buildRequestedOnPage,
   domains,
   domainsLoading,
   customDomains,
   currentDeploymentId,
 }: DeploymentPageInput): DeploymentPageModel {
   const instances = summarizeInstances(deployment);
+  const hasBuildLogs = deployment.source !== "oci";
   const domainPriority = getDomainPriority({
     domains,
     customDomains,
@@ -65,8 +68,8 @@ export function deploymentPageModel({
   });
   return {
     status,
-    body: buildRequested ? BODY_WITH_BUILD[status] : BODY_BY_STATUS[status],
-    requestedStage: buildRequested ? "build" : null,
+    body: hasBuildLogs && buildRequestedOnPage ? BODY_WITH_BUILD[status] : BODY_BY_STATUS[status],
+    requestedStage: hasBuildLogs && buildRequested ? "build" : null,
     instances,
     pageStatus: resolvePageStatus(status, instances),
     domains: domainPriority,
