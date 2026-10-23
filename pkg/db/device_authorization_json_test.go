@@ -31,7 +31,7 @@ func TestDeviceAuthorizationJSONRoundTrip(t *testing.T) {
 	row := insertPendingDeviceAuthorization(t, ctx, database, now+time.Hour.Milliseconds())
 	approved, err := Query.ApproveDeviceAuthorization(ctx, database.RW(), ApproveDeviceAuthorizationParams{
 		WorkspaceID:    sql.NullString{String: uid.New(uid.WorkspacePrefix), Valid: true},
-		ApproverUserID: sql.NullString{String: "user_approver", Valid: true},
+		ApproverUserID: sql.NullString{String: uid.New(uid.TestPrefix), Valid: true},
 		ApproverName:   sql.NullString{String: "Approver", Valid: true},
 		ApproverRoles:  roles,
 		Permissions:    permissions,

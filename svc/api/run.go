@@ -438,9 +438,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	cliSecrets := make([][]byte, 0, len(cfg.CLIAuth.SigningSecrets))
 	for _, secret := range cfg.CLIAuth.SigningSecrets {
-		if strings.TrimSpace(secret) == "" {
-			continue
-		}
 		cliSecrets = append(cliSecrets, []byte(secret))
 	}
 	cliService := &clidevice.Service{

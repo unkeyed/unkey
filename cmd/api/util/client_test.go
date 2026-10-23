@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli/credentials"
 	"github.com/unkeyed/unkey/pkg/cli/keystore"
 	"github.com/unkeyed/unkey/pkg/cli/session"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestMain(m *testing.M) {
@@ -119,8 +120,8 @@ func TestExplicitConfigBeatsTheCLISession(t *testing.T) {
 	session.SetStore(sessions)
 	t.Cleanup(func() { session.SetStore(&session.MemoryStore{}) })
 	require.NoError(t, session.Save(session.Session{
-		WorkspaceID:  "ws_local",
-		SessionID:    "clis_local",
+		WorkspaceID:  uid.New(uid.WorkspacePrefix),
+		SessionID:    uid.New(uid.CLISessionPrefix),
 		AccessToken:  "access_from_session",
 		RefreshToken: "refresh_from_session",
 		ExpiresAt:    9_000_000_000,
@@ -156,8 +157,8 @@ func TestCLISessionUsesItsOwnAPIURL(t *testing.T) {
 	session.SetStore(sessions)
 	t.Cleanup(func() { session.SetStore(&session.MemoryStore{}) })
 	require.NoError(t, session.Save(session.Session{
-		WorkspaceID:  "ws_local",
-		SessionID:    "clis_local",
+		WorkspaceID:  uid.New(uid.WorkspacePrefix),
+		SessionID:    uid.New(uid.CLISessionPrefix),
 		AccessToken:  "access_from_session",
 		RefreshToken: "refresh_from_session",
 		ExpiresAt:    9_000_000_000,
@@ -189,8 +190,8 @@ func TestExplicitAPIURLSkipsASessionForAnotherHost(t *testing.T) {
 	session.SetStore(sessions)
 	t.Cleanup(func() { session.SetStore(&session.MemoryStore{}) })
 	require.NoError(t, session.Save(session.Session{
-		WorkspaceID:  "ws_local",
-		SessionID:    "clis_local",
+		WorkspaceID:  uid.New(uid.WorkspacePrefix),
+		SessionID:    uid.New(uid.CLISessionPrefix),
 		AccessToken:  "access_from_session",
 		RefreshToken: "refresh_from_session",
 		ExpiresAt:    9_000_000_000,
@@ -207,6 +208,114 @@ func TestExplicitAPIURLSkipsASessionForAnotherHost(t *testing.T) {
 	}
 	err := cmd.Run(context.Background(), []string{"unkey", "--api-url", "https://api.unkey.com"})
 	require.ErrorContains(t, err, "no credentials provided")
+}
+
+func TestCommandWithoutAConfigFlagUsesTheKeychainRootKey(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("UNKEY_ROOT_KEY", "")
+	t.Setenv("UNKEY_CONFIG", "")
+	t.Setenv("UNKEY_API_BASE_URL", "")
+	useSessions(t)
+
+	got, err := resolve(t, []cli.Flag{RootKeyFlag(), APIURLFlag()}, &rootKeyStore{secret: "unkey_from_chain"}, "unkey")
+	require.NoError(t, err)
+	require.Equal(t, "unkey_from_chain", got.Key)
+	require.Empty(t, got.APIURL)
+}
+
+func TestRootKeyFlagBeatsTheCLISession(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("UNKEY_ROOT_KEY", "")
+	t.Setenv("UNKEY_CONFIG", "")
+	t.Setenv("UNKEY_API_BASE_URL", "")
+	useSessions(t)
+	saveSession(t, "http://127.0.0.1:8787")
+
+	got, err := resolve(t, apiFlags(), &rootKeyStore{}, "unkey", "--root-key", "unkey_from_flag")
+	require.NoError(t, err)
+	require.Equal(t, "unkey_from_flag", got.Key)
+	require.Empty(t, got.APIURL)
+}
+
+func TestEnvRootKeyBeatsTheCLISession(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("UNKEY_ROOT_KEY", "unkey_from_env")
+	t.Setenv("UNKEY_CONFIG", "")
+	t.Setenv("UNKEY_API_BASE_URL", "")
+	useSessions(t)
+	saveSession(t, "http://127.0.0.1:8787")
+
+	got, err := resolve(t, apiFlags(), &rootKeyStore{}, "unkey")
+	require.NoError(t, err)
+	require.Equal(t, "unkey_from_env", got.Key)
+	require.Empty(t, got.APIURL)
+}
+
+func TestCLISessionBeatsTheKeychainRootKey(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("UNKEY_ROOT_KEY", "")
+	t.Setenv("UNKEY_CONFIG", "")
+	t.Setenv("UNKEY_API_BASE_URL", "")
+	useSessions(t)
+	saveSession(t, "http://127.0.0.1:8787")
+
+	got, err := resolve(t, apiFlags(), &rootKeyStore{secret: "unkey_from_chain"}, "unkey")
+	require.NoError(t, err)
+	require.Equal(t, "access_from_session", got.Key)
+	require.Equal(t, "http://127.0.0.1:8787", got.APIURL)
+}
+
+func TestEnvAPIURLSkipsASessionForAnotherHost(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("UNKEY_ROOT_KEY", "")
+	t.Setenv("UNKEY_CONFIG", "")
+	t.Setenv("UNKEY_API_BASE_URL", "https://api.unkey.com")
+	useSessions(t)
+	saveSession(t, "http://127.0.0.1:8787")
+
+	got, err := resolve(t, apiFlags(), &rootKeyStore{secret: "unkey_from_chain"}, "unkey")
+	require.NoError(t, err)
+	require.Equal(t, "unkey_from_chain", got.Key)
+	require.Empty(t, got.APIURL)
+}
+
+func apiFlags() []cli.Flag {
+	return []cli.Flag{RootKeyFlag(), ConfigFlag(), APIURLFlag()}
+}
+
+func useSessions(t *testing.T) {
+	t.Helper()
+	session.SetStore(&session.MemoryStore{})
+	t.Cleanup(func() { session.SetStore(&session.MemoryStore{}) })
+}
+
+func saveSession(t *testing.T, apiURL string) {
+	t.Helper()
+	require.NoError(t, session.Save(session.Session{
+		WorkspaceID:  uid.New(uid.WorkspacePrefix),
+		SessionID:    uid.New(uid.CLISessionPrefix),
+		AccessToken:  "access_from_session",
+		RefreshToken: "refresh_from_session",
+		ExpiresAt:    9_000_000_000,
+		APIURL:       apiURL,
+	}))
+}
+
+func resolve(t *testing.T, flags []cli.Flag, keys credentials.RootKeyStore, args ...string) (ResolvedCredential, error) {
+	t.Helper()
+	var got ResolvedCredential
+	cmd := &cli.Command{
+		Name:  "api",
+		Flags: flags,
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			cred, err := credential(ctx, cmd, keys)
+			got = cred
+			return err
+		},
+	}
+	err := cmd.Run(context.Background(), args)
+	return got, err
 }
 
 var _ credentials.RootKeyStore = (*rootKeyStore)(nil)

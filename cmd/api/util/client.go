@@ -71,23 +71,31 @@ func credential(ctx context.Context, cmd *cli.Command, keys credentials.RootKeyS
 	}
 	commandURL, explicitAPI := commandAPIURL(cmd)
 	current, err := session.Active()
-	if err == nil && sessionMatchesAPI(current, commandURL, explicitAPI) {
-		sessionURL := storedAPIURL(current)
-		token, err := session.AccessToken(ctx, func(ctx context.Context, current session.Session) (session.Session, error) {
-			return session.Refresh(ctx, storedAPIURL(current), current.RefreshToken)
-		})
-		if err != nil {
-			return ResolvedCredential{}, err
-		}
-		return ResolvedCredential{Key: token, APIURL: sessionURL}, nil
-	}
 	if err != nil && !errors.Is(err, session.ErrNotFound) {
 		return ResolvedCredential{}, err
+	}
+	if err == nil && sessionMatchesAPI(current, commandURL, explicitAPI) {
+		used, err := session.AccessToken(ctx, func(ctx context.Context, current session.Session) (session.Session, error) {
+			return session.Refresh(ctx, storedAPIURL(current), current.RefreshToken)
+		})
+		if err != nil && !errors.Is(err, session.ErrNotFound) {
+			return ResolvedCredential{}, err
+		}
+		if err == nil && sessionMatchesAPI(used, commandURL, explicitAPI) {
+			return ResolvedCredential{Key: used.AccessToken, APIURL: storedAPIURL(used)}, nil
+		}
 	}
 	return rootKeyCredential(keys, cmd.String("config"))
 }
 
 func rootKeyCredential(keys credentials.RootKeyStore, configPath string) (ResolvedCredential, error) {
+	if configPath == "" {
+		path, err := cli.UserConfigPath()
+		if err != nil {
+			return ResolvedCredential{}, fmt.Errorf("failed to load credentials: %w", err)
+		}
+		configPath = path
+	}
 	loaded, err := credentials.LoadRootKey(keys, configPath)
 	if err != nil {
 		if errors.Is(err, credentials.ErrRootKeyNotFound) {

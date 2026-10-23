@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/auth/workos"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -20,7 +21,7 @@ import (
 // root-key access. Developer and basic_member share one set and cannot grant
 // root keys. Viewer is read-only.
 func TestGrantablePermissionsFollowsEachRole(t *testing.T) {
-	workspaceID := "ws_test"
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	admin := workos.PermissionsForRoles(workspaceID, []string{"admin"})
 	developer := workos.PermissionsForRoles(workspaceID, []string{"developer"})
 	member := workos.PermissionsForRoles(workspaceID, []string{"basic_member"})

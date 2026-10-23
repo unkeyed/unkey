@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli/credentials"
 	"github.com/unkeyed/unkey/pkg/cli/keystore"
 	"github.com/unkeyed/unkey/pkg/cli/session"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func useSessionStore(t *testing.T) *session.MemoryStore {
@@ -77,35 +78,33 @@ func TestDeviceLoginPollsUntilTheKeyIsIssued(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	store := &memoryRootKeyStore{}
+	loginID := uid.New(uid.DeviceAuthorizationPrefix)
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	sessionID := uid.New(uid.CLISessionPrefix)
 
 	var mu sync.Mutex
 	polls := 0
 	var startedBody map[string]string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		raw, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-		w.Header().Set("content-type", "application/json")
 		switch r.URL.Path {
 		case "/v2/cli.startDeviceLogin":
-			require.NoError(t, json.Unmarshal(raw, &startedBody))
-			_, _ = w.Write([]byte(`{"data":{"loginId":"cdl_test","userCode":"ABCD-EFGH","verificationUriComplete":"http://dashboard.example/cli/device?user_code=ABCD-EFGH","expiresIn":300,"interval":5}}`))
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&startedBody))
+			writeEnvelope(t, w, http.StatusOK, startedEnvelope(loginID, 5))
 		case "/v2/cli.pollDeviceLogin":
 			var body map[string]string
-			require.NoError(t, json.Unmarshal(raw, &body))
-			require.Equal(t, "cdl_test", body["loginId"])
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+			require.Equal(t, loginID, body["loginId"])
 			mu.Lock()
 			polls++
 			n := polls
 			mu.Unlock()
 			switch n {
 			case 1:
-				_, _ = w.Write([]byte(`{"data":{"status":"permissions_required","interval":1}}`))
-			case 2:
-				_, _ = w.Write([]byte(`{"data":{"status":"permissions_required","interval":2}}`))
-			case 3:
-				_, _ = w.Write([]byte(`{"data":{"status":"permissions_required","interval":2}}`))
+				writeEnvelope(t, w, http.StatusOK, pollEnvelope("permissions_required", 1))
+			case 2, 3:
+				writeEnvelope(t, w, http.StatusOK, pollEnvelope("permissions_required", 2))
 			default:
-				_, _ = w.Write([]byte(`{"data":{"status":"complete","interval":2,"accessToken":"access_issued","refreshToken":"refresh_issued","expiresIn":3600,"workspaceId":"ws_1","sessionId":"clis_1"}}`))
+				writeEnvelope(t, w, http.StatusOK, completeEnvelope(workspaceID, sessionID))
 			}
 		default:
 			http.NotFound(w, r)
@@ -131,24 +130,25 @@ func TestDeviceLoginPollsUntilTheKeyIsIssued(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, startedBody["deviceName"])
-	require.Equal(t, "http://dashboard.example/cli/device?user_code=ABCD-EFGH", opened)
+	require.Equal(t, verificationURL, opened)
 	require.Equal(t, []time.Duration{time.Second, 2 * time.Second, 2 * time.Second}, slept)
 
 	stored, err := session.Active()
 	require.NoError(t, err)
 	require.Equal(t, "refresh_issued", stored.RefreshToken)
-	require.Equal(t, "ws_1", stored.WorkspaceID)
+	require.Equal(t, workspaceID, stored.WorkspaceID)
 	require.Equal(t, srv.URL, stored.APIURL)
 }
 
 func TestDeviceLoginStopsWhenDenied(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("content-type", "application/json")
 		if r.URL.Path == "/v2/cli.startDeviceLogin" {
-			_, _ = w.Write([]byte(`{"data":{"loginId":"cdl_test","userCode":"ABCD-EFGH","verificationUriComplete":"http://dashboard.example/cli/device?user_code=ABCD-EFGH","expiresIn":300,"interval":5}}`))
+			writeEnvelope(t, w, http.StatusOK, startedEnvelope(uid.New(uid.DeviceAuthorizationPrefix), 5))
 			return
 		}
-		_, _ = w.Write([]byte(`{"data":{"status":"access_denied","interval":5,"detail":"Authorization was denied."}}`))
+		denied := pollEnvelope("access_denied", 5)
+		denied.Data.Detail = "Authorization was denied."
+		writeEnvelope(t, w, http.StatusOK, denied)
 	}))
 	t.Cleanup(srv.Close)
 
@@ -166,21 +166,20 @@ func TestDeviceLoginStopsWhenDenied(t *testing.T) {
 
 func TestDeviceLoginRetriesTransientPollErrors(t *testing.T) {
 	useSessionStore(t)
+	t.Setenv("HOME", t.TempDir())
 	store := &memoryRootKeyStore{}
 	polls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("content-type", "application/json")
 		if r.URL.Path == "/v2/cli.startDeviceLogin" {
-			_, _ = w.Write([]byte(`{"data":{"loginId":"cdl_test","userCode":"ABCD-EFGH","verificationUriComplete":"http://dashboard.example/cli/device?user_code=ABCD-EFGH","expiresIn":300,"interval":1}}`))
+			writeEnvelope(t, w, http.StatusOK, startedEnvelope(uid.New(uid.DeviceAuthorizationPrefix), 1))
 			return
 		}
 		polls++
 		if polls == 1 {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte(`{"error":{"detail":"try again"}}`))
+			writeEnvelope(t, w, http.StatusServiceUnavailable, errorEnvelope("try again"))
 			return
 		}
-		_, _ = w.Write([]byte(`{"data":{"status":"complete","interval":1,"accessToken":"access_issued","refreshToken":"refresh_issued","expiresIn":3600,"workspaceId":"ws_1","sessionId":"clis_1"}}`))
+		writeEnvelope(t, w, http.StatusOK, completeEnvelope(uid.New(uid.WorkspacePrefix), uid.New(uid.CLISessionPrefix)))
 	}))
 	t.Cleanup(srv.Close)
 
@@ -197,13 +196,11 @@ func TestDeviceLoginRetriesTransientPollErrors(t *testing.T) {
 
 func TestDeviceLoginStopsOnClientPollErrors(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("content-type", "application/json")
 		if r.URL.Path == "/v2/cli.startDeviceLogin" {
-			_, _ = w.Write([]byte(`{"data":{"loginId":"cdl_test","userCode":"ABCD-EFGH","verificationUriComplete":"http://dashboard.example/cli/device?user_code=ABCD-EFGH","expiresIn":300,"interval":1}}`))
+			writeEnvelope(t, w, http.StatusOK, startedEnvelope(uid.New(uid.DeviceAuthorizationPrefix), 1))
 			return
 		}
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"error":{"detail":"This login was already used."}}`))
+		writeEnvelope(t, w, http.StatusBadRequest, errorEnvelope("This login was already used."))
 	}))
 	t.Cleanup(srv.Close)
 
@@ -227,9 +224,8 @@ func TestDeviceLoginRevokesTheSessionWhenItCannotBeStored(t *testing.T) {
 	t.Setenv("HOME", home)
 	var revoked bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("content-type", "application/json")
 		if r.URL.Path == "/v2/cli.startDeviceLogin" {
-			_, _ = w.Write([]byte(`{"data":{"loginId":"cdl_test","userCode":"ABCD-EFGH","verificationUriComplete":"http://dashboard.example/cli/device?user_code=ABCD-EFGH","expiresIn":300,"interval":1}}`))
+			writeEnvelope(t, w, http.StatusOK, startedEnvelope(uid.New(uid.DeviceAuthorizationPrefix), 1))
 			return
 		}
 		if r.URL.Path == "/v2/cli.revokeSession" {
@@ -237,7 +233,7 @@ func TestDeviceLoginRevokesTheSessionWhenItCannotBeStored(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		_, _ = w.Write([]byte(`{"data":{"status":"complete","interval":1,"accessToken":"access_issued","refreshToken":"refresh_issued","expiresIn":3600,"workspaceId":"ws_1","sessionId":"clis_1"}}`))
+		writeEnvelope(t, w, http.StatusOK, completeEnvelope(uid.New(uid.WorkspacePrefix), uid.New(uid.CLISessionPrefix)))
 	}))
 	t.Cleanup(srv.Close)
 
@@ -252,6 +248,147 @@ func TestDeviceLoginRevokesTheSessionWhenItCannotBeStored(t *testing.T) {
 	})
 	require.True(t, revoked)
 	require.NotContains(t, stderr, "refresh_issued")
+}
+
+func TestPollUntilKey(t *testing.T) {
+	complete := completeEnvelope(uid.New(uid.WorkspacePrefix), uid.New(uid.CLISessionPrefix))
+	withoutTokens := complete
+	withoutTokens.Data.AccessToken = ""
+	withoutTokens.Data.RefreshToken = ""
+
+	htmlBadGateway := func(w http.ResponseWriter) {
+		w.Header().Set("content-type", "text/html")
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte("<html><body>502 Bad Gateway</body></html>"))
+	}
+
+	cases := []struct {
+		name      string
+		responses []func(w http.ResponseWriter)
+		deadline  time.Time
+		wantErr   string
+		wantPolls int
+	}{
+		{
+			name:      "deadline passed",
+			deadline:  time.Now().Add(-time.Second),
+			wantErr:   "login timed out. Run unkey login again",
+			wantPolls: 0,
+		},
+		{
+			name: "expired token",
+			responses: []func(w http.ResponseWriter){
+				func(w http.ResponseWriter) { writeEnvelope(t, w, http.StatusOK, pollEnvelope("expired_token", 1)) },
+			},
+			wantErr:   "login expired token",
+			wantPolls: 1,
+		},
+		{
+			name: "complete without tokens",
+			responses: []func(w http.ResponseWriter){
+				func(w http.ResponseWriter) { writeEnvelope(t, w, http.StatusOK, withoutTokens) },
+			},
+			wantErr:   "login completed without a session",
+			wantPolls: 1,
+		},
+		{
+			name: "unknown status",
+			responses: []func(w http.ResponseWriter){
+				func(w http.ResponseWriter) {
+					writeEnvelope(t, w, http.StatusOK, pollEnvelope("authorization_pending", 1))
+				},
+			},
+			wantErr:   `unexpected login status "authorization_pending"`,
+			wantPolls: 1,
+		},
+		{
+			name: "rate limited then complete",
+			responses: []func(w http.ResponseWriter){
+				func(w http.ResponseWriter) {
+					writeEnvelope(t, w, http.StatusTooManyRequests, errorEnvelope("slow down"))
+				},
+				func(w http.ResponseWriter) { writeEnvelope(t, w, http.StatusOK, complete) },
+			},
+			wantPolls: 2,
+		},
+		{
+			name: "html bad gateway then complete",
+			responses: []func(w http.ResponseWriter){
+				htmlBadGateway,
+				func(w http.ResponseWriter) { writeEnvelope(t, w, http.StatusOK, complete) },
+			},
+			wantPolls: 2,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var mu sync.Mutex
+			polls := 0
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				mu.Lock()
+				n := polls
+				polls++
+				mu.Unlock()
+				require.Less(t, n, len(tc.responses))
+				tc.responses[n](w)
+			}))
+			t.Cleanup(srv.Close)
+
+			issued, err := pollUntilKey(context.Background(), srv.Client(), srv.URL, uid.New(uid.DeviceAuthorizationPrefix), tc.deadline, time.Second, func(context.Context, time.Duration) error { return nil })
+			mu.Lock()
+			require.Equal(t, tc.wantPolls, polls)
+			mu.Unlock()
+			if tc.wantErr != "" {
+				require.EqualError(t, err, tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, complete.Data.AccessToken, issued.AccessToken)
+			require.Equal(t, complete.Data.WorkspaceID, issued.WorkspaceID)
+		})
+	}
+}
+
+const verificationURL = "http://dashboard.example/cli/device?user_code=ABCD-EFGH"
+
+func writeEnvelope(t *testing.T, w http.ResponseWriter, status int, envelope apiEnvelope) {
+	t.Helper()
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(status)
+	require.NoError(t, json.NewEncoder(w).Encode(envelope))
+}
+
+func startedEnvelope(loginID string, interval int64) apiEnvelope {
+	var envelope apiEnvelope
+	envelope.Data.LoginID = loginID
+	envelope.Data.UserCode = "ABCD-EFGH"
+	envelope.Data.VerificationURIComplete = verificationURL
+	envelope.Data.ExpiresIn = 300
+	envelope.Data.Interval = interval
+	return envelope
+}
+
+func pollEnvelope(status string, interval int64) apiEnvelope {
+	var envelope apiEnvelope
+	envelope.Data.Status = status
+	envelope.Data.Interval = interval
+	return envelope
+}
+
+func completeEnvelope(workspaceID string, sessionID string) apiEnvelope {
+	envelope := pollEnvelope("complete", 1)
+	envelope.Data.AccessToken = "access_issued"
+	envelope.Data.RefreshToken = "refresh_issued"
+	envelope.Data.ExpiresIn = 3600
+	envelope.Data.WorkspaceID = workspaceID
+	envelope.Data.SessionID = sessionID
+	return envelope
+}
+
+func errorEnvelope(detail string) apiEnvelope {
+	var envelope apiEnvelope
+	envelope.Error.Detail = detail
+	return envelope
 }
 
 func TestReadRootKeyFromStdin(t *testing.T) {

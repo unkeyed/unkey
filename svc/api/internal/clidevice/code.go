@@ -67,9 +67,9 @@ func dashboardVerificationURL(base string, userCode string) (string, error) {
 	return parsed.String(), nil
 }
 
-func truncate(value string, maxRunes int) string {
-	if runes := []rune(value); len(runes) > maxRunes {
-		return string(runes[:maxRunes])
+func truncate(value string, runesMax int) string {
+	if runes := []rune(value); len(runes) > runesMax {
+		return string(runes[:runesMax])
 	}
 	return value
 }

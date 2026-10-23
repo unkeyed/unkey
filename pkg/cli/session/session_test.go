@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/cli/keystore"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func useMemoryStore(t *testing.T) *MemoryStore {
@@ -23,16 +24,19 @@ func useMemoryStore(t *testing.T) *MemoryStore {
 func TestSaveSwitchAndDelete(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	useMemoryStore(t)
+	workspaceA := uid.New(uid.WorkspacePrefix)
+	workspaceB := uid.New(uid.WorkspacePrefix)
+	sessionA := uid.New(uid.CLISessionPrefix)
 	require.NoError(t, Save(Session{
-		WorkspaceID:  "ws_a",
-		SessionID:    "clis_a",
+		WorkspaceID:  workspaceA,
+		SessionID:    sessionA,
 		AccessToken:  "access_a",
 		RefreshToken: "refresh_a",
 		ExpiresAt:    1_900_000_000,
 	}))
 	require.NoError(t, Save(Session{
-		WorkspaceID:  "ws_b",
-		SessionID:    "clis_b",
+		WorkspaceID:  workspaceB,
+		SessionID:    uid.New(uid.CLISessionPrefix),
 		AccessToken:  "access_b",
 		RefreshToken: "refresh_b",
 		ExpiresAt:    1_900_000_000,
@@ -40,27 +44,27 @@ func TestSaveSwitchAndDelete(t *testing.T) {
 
 	active, err := Active()
 	require.NoError(t, err)
-	require.Equal(t, "ws_b", active.WorkspaceID)
+	require.Equal(t, workspaceB, active.WorkspaceID)
 
-	require.NoError(t, Switch("ws_a"))
+	require.NoError(t, Switch(workspaceA))
 	active, err = Active()
 	require.NoError(t, err)
-	require.Equal(t, "ws_a", active.WorkspaceID)
+	require.Equal(t, workspaceA, active.WorkspaceID)
 
-	removed, err := Delete("ws_a")
+	removed, err := Delete(workspaceA)
 	require.NoError(t, err)
-	require.Equal(t, "clis_a", removed.SessionID)
+	require.Equal(t, sessionA, removed.SessionID)
 	active, err = Active()
 	require.NoError(t, err)
-	require.Equal(t, "ws_b", active.WorkspaceID)
+	require.Equal(t, workspaceB, active.WorkspaceID)
 }
 
 func TestRefreshKeepsTheAPIURL(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	useMemoryStore(t)
 	require.NoError(t, Save(Session{
-		WorkspaceID:  "ws_a",
-		SessionID:    "clis_a",
+		WorkspaceID:  uid.New(uid.WorkspacePrefix),
+		SessionID:    uid.New(uid.CLISessionPrefix),
 		AccessToken:  "access_a",
 		RefreshToken: "refresh_a",
 		ExpiresAt:    time.Now().Unix(),
@@ -86,8 +90,8 @@ func TestKeychainSaveFailureKeepsTheRotatedTokenInTheFile(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	store := useMemoryStore(t)
 	require.NoError(t, Save(Session{
-		WorkspaceID:  "ws_a",
-		SessionID:    "clis_a",
+		WorkspaceID:  uid.New(uid.WorkspacePrefix),
+		SessionID:    uid.New(uid.CLISessionPrefix),
 		AccessToken:  "access_a",
 		RefreshToken: "refresh_a",
 		ExpiresAt:    time.Now().Unix(),
@@ -103,7 +107,7 @@ func TestKeychainSaveFailureKeepsTheRotatedTokenInTheFile(t *testing.T) {
 		}, nil
 	})
 	require.NoError(t, err)
-	require.Equal(t, "access_b", next)
+	require.Equal(t, "access_b", next.AccessToken)
 
 	store.SetError(keystore.ErrUnavailable)
 	stored, err := Active()
@@ -115,8 +119,8 @@ func TestConcurrentRefreshDoesNotReuseTheToken(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	useMemoryStore(t)
 	require.NoError(t, Save(Session{
-		WorkspaceID:  "ws_a",
-		SessionID:    "clis_a",
+		WorkspaceID:  uid.New(uid.WorkspacePrefix),
+		SessionID:    uid.New(uid.CLISessionPrefix),
 		AccessToken:  "access_a",
 		RefreshToken: "refresh_a",
 		ExpiresAt:    time.Now().Unix(),
@@ -149,7 +153,8 @@ func TestConcurrentRefreshDoesNotReuseTheToken(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			tokens[i], errs[i] = AccessToken(context.Background(), refresh)
+			used, err := AccessToken(context.Background(), refresh)
+			tokens[i], errs[i] = used.AccessToken, err
 		}()
 	}
 	wg.Wait()
