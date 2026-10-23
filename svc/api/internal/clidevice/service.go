@@ -123,6 +123,10 @@ func dashboardSessionRequired() error {
 	)
 }
 
+func workspaceUsable(workspace db.Workspace) bool {
+	return !workspace.DeletedAtM.Valid && workspace.Enabled && strings.TrimSpace(workspace.OrgID) != ""
+}
+
 func (s *Service) limit(ctx context.Context, action string, remoteIP string, perMinute int64) error {
 	if s.Ratelimit == nil {
 		return nil

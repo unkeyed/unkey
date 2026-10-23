@@ -1,9 +1,10 @@
 package handler_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auth/workos"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
@@ -36,33 +38,35 @@ func TestApproveRequiresADashboardSession(t *testing.T) {
 }
 
 func TestApproveHandlerRejectsMissingMaliciousAndOverscopedPermissions(t *testing.T) {
-	workspaceID := "ws_test"
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	developer := &principal.Principal{
 		Version:               principal.Version,
 		Type:                  principal.TypeJWT,
-		Subject:               principal.Subject{ID: "user_dev", Name: "Dev", Type: principal.SubjectTypeUser},
+		Subject:               principal.Subject{ID: uid.New(uid.TestPrefix), Name: "Dev", Type: principal.SubjectTypeUser},
 		Source:                principal.JWTSource{Roles: []string{"developer"}},
 		AuthorizedWorkspaceID: workspaceID,
 		Permissions:           workos.PermissionsForRoles(workspaceID, []string{"developer"}),
 	}
 	cases := []struct {
-		name string
-		body string
-		code codes.URN
+		name        string
+		permissions []string
+		code        codes.URN
 	}{
-		{name: "missing", body: `{"userCode":"ABCD-EFGH","permissions":[]}`, code: codes.App.Validation.InvalidInput.URN()},
-		{name: "malicious", body: `{"userCode":"ABCD-EFGH","permissions":["not-a-permission"]}`, code: codes.App.Validation.InvalidInput.URN()},
-		{name: "other workspace", body: `{"userCode":"ABCD-EFGH","permissions":["unkey:v1:ws_other:rootKeys/*#read"]}`, code: codes.App.Validation.InvalidInput.URN()},
-		{name: "over scoped", body: `{"userCode":"ABCD-EFGH","permissions":["unkey:v1:ws_test:rootKeys/*#write"]}`, code: codes.Auth.Authorization.InsufficientPermissions.URN()},
+		{name: "missing", permissions: []string{}, code: codes.App.Validation.InvalidInput.URN()},
+		{name: "malicious", permissions: []string{"not-a-permission"}, code: codes.App.Validation.InvalidInput.URN()},
+		{name: "other workspace", permissions: []string{"unkey:v1:" + uid.New(uid.WorkspacePrefix) + ":rootKeys/*#read"}, code: codes.App.Validation.InvalidInput.URN()},
+		{name: "over scoped", permissions: []string{"unkey:v1:" + workspaceID + ":rootKeys/*#write"}, code: codes.Auth.Authorization.InsufficientPermissions.URN()},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/v2/cli.approveDeviceLogin", strings.NewReader(tc.body))
+			body, err := json.Marshal(handler.Request{UserCode: "ABCD-EFGH", Permissions: tc.permissions})
+			require.NoError(t, err)
+			req := httptest.NewRequest(http.MethodPost, "/v2/cli.approveDeviceLogin", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			sess := &zen.Session{}
 			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 1<<20))
 			sess.SetPrincipal(developer)
-			err := (&handler.Handler{}).Handle(t.Context(), sess)
+			err = (&handler.Handler{}).Handle(t.Context(), sess)
 			code, ok := fault.GetCode(err)
 			require.True(t, ok)
 			require.Equal(t, tc.code, code)

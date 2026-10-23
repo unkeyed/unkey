@@ -44,9 +44,10 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 	if err != nil {
 		return Tokens{}, err
 	}
-	if workspace.DeletedAtM.Valid || !workspace.Enabled || strings.TrimSpace(workspace.OrgID) == "" {
-		_ = s.revokeFamily(ctx, row.RefreshFamily)
-		s.forget(ctx, row.ID)
+	if !workspaceUsable(workspace) {
+		if err := s.endSession(ctx, row); err != nil {
+			return Tokens{}, err
+		}
 		return Tokens{}, forbidden("This workspace cannot refresh a CLI session.")
 	}
 	roles, found, err := s.Memberships.ActiveRoles(ctx, workspace.OrgID, row.UserID)
@@ -54,8 +55,9 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		return Tokens{}, err
 	}
 	if !found {
-		_ = s.revokeFamily(ctx, row.RefreshFamily)
-		s.forget(ctx, row.ID)
+		if err := s.endSession(ctx, row); err != nil {
+			return Tokens{}, err
+		}
 		return Tokens{}, forbidden("You are no longer a member of this workspace. Run unkey login again.")
 	}
 	stored, err := decodeStrings(row.Permissions)
@@ -67,8 +69,9 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		return Tokens{}, err
 	}
 	if len(narrowed) == 0 {
-		_ = s.revokeFamily(ctx, row.RefreshFamily)
-		s.forget(ctx, row.ID)
+		if err := s.endSession(ctx, row); err != nil {
+			return Tokens{}, err
+		}
 		return Tokens{}, forbidden("Your role no longer includes the permissions on this CLI session. Run unkey login again.")
 	}
 
@@ -102,7 +105,17 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 			return unauthenticated("This refresh token was already used. Run unkey login again.")
 		}
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
-		if err := s.writeAudit(ctx, tx, auditlog.CLISessionRefreshEvent, "Refreshed CLI session "+row.ID, row.UserID, "", workspace.ID, row.ID, row.DeviceName.String, req.RemoteIP, req.UserAgent); err != nil {
+		if err := s.writeAudit(ctx, tx, auditEntry{
+			Event:       auditlog.CLISessionRefreshEvent,
+			Display:     "Refreshed CLI session " + row.ID,
+			UserID:      row.UserID,
+			UserName:    "",
+			WorkspaceID: workspace.ID,
+			SessionID:   row.ID,
+			DeviceName:  row.DeviceName.String,
+			RemoteIP:    req.RemoteIP,
+			UserAgent:   req.UserAgent,
+		}); err != nil {
 			return err
 		}
 		tokens = Tokens{
@@ -131,8 +144,9 @@ func (s *Service) refreshPreviousToken(ctx context.Context, req RefreshRequest, 
 	if refreshReuseAllowed(row.RotatedAt, s.Clock.Now().UnixMilli()) {
 		return s.rotate(ctx, req, row, row.RefreshTokenHash)
 	}
-	_ = s.revokeFamily(ctx, row.RefreshFamily)
-	s.forget(ctx, row.ID)
+	if err := s.endSession(ctx, row); err != nil {
+		return Tokens{}, err
+	}
 	return Tokens{}, unauthenticated("This refresh token was already used. The CLI session was revoked. Run unkey login again.")
 }
 
@@ -144,10 +158,13 @@ func refreshReuseAllowed(rotatedAt sql.NullInt64, now int64) bool {
 	return age >= 0 && age <= refreshReuseGrace.Milliseconds()
 }
 
-func (s *Service) revokeFamily(ctx context.Context, family string) error {
-	_, err := db.Query.RevokeCLISessionFamily(ctx, s.DB.RW(), db.RevokeCLISessionFamilyParams{
+func (s *Service) endSession(ctx context.Context, row db.CliSession) error {
+	if _, err := db.Query.RevokeCLISessionFamily(ctx, s.DB.RW(), db.RevokeCLISessionFamilyParams{
 		RevokedAt:     sql.NullInt64{Int64: s.Clock.Now().UnixMilli(), Valid: true},
-		RefreshFamily: family,
-	})
-	return err
+		RefreshFamily: row.RefreshFamily,
+	}); err != nil {
+		return err
+	}
+	s.forget(ctx, row.ID)
+	return nil
 }

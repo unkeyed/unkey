@@ -442,3 +442,55 @@ func TestConfig_ValidateRequiresRestateCredentials(t *testing.T) {
 		})
 	}
 }
+
+func TestConfig_ValidateCLIAuthRequiresBothHalves(t *testing.T) {
+	t.Parallel()
+
+	secret := strings.Repeat("s", 32)
+	tests := []struct {
+		name    string
+		cliAuth CLIAuthConfig
+		wantErr bool
+	}{
+		{
+			name:    "unconfigured passes",
+			cliAuth: CLIAuthConfig{},
+			wantErr: false,
+		},
+		{
+			name:    "fully configured passes",
+			cliAuth: CLIAuthConfig{WorkOSAPIKey: "sk_test", SigningSecrets: []string{secret}},
+			wantErr: false,
+		},
+		{
+			name:    "workos key without signing secrets is rejected",
+			cliAuth: CLIAuthConfig{WorkOSAPIKey: "sk_test"},
+			wantErr: true,
+		},
+		{
+			name:    "signing secrets without workos key is rejected",
+			cliAuth: CLIAuthConfig{SigningSecrets: []string{secret}},
+			wantErr: true,
+		},
+		{
+			name:    "blank signing secret is rejected",
+			cliAuth: CLIAuthConfig{WorkOSAPIKey: "sk_test", SigningSecrets: []string{secret, " "}},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := configWithAuth(RootKeyAuthConfig{})
+			cfg.CLIAuth = tt.cliAuth
+			err := cfg.Validate()
+			if tt.wantErr {
+				require.ErrorContains(t, err, "cli_auth")
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
