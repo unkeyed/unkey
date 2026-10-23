@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -22,6 +23,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes"
 )
@@ -110,6 +113,144 @@ func TestAnalyticsRoutesCompressResultsButNotSizeErrors(t *testing.T) {
 		require.Empty(t, rec.Header().Get("Content-Encoding"))
 		require.Empty(t, rec.Header().Get("Vary"))
 	})
+}
+
+func TestLogRoutesCompressWithoutLoggingResponses(t *testing.T) {
+	h := testutil.NewHarness(t)
+	setup := h.CreateTestDeploymentSetup()
+	deployment := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	logs := &logConnection{
+		message:   strings.Repeat("building application\n", 512),
+		requestID: uid.New(uid.RequestPrefix),
+		stepID:    uid.New(uid.TestPrefix),
+	}
+	validator, err := validation.New()
+	require.NoError(t, err)
+	var logged atomic.Int64
+	requests := batch.New(batch.Config[schema.ApiRequest]{
+		Name:          "log_compression",
+		BatchSize:     1,
+		BufferSize:    32,
+		FlushInterval: time.Hour,
+		Consumers:     1,
+		Drop:          false,
+		Flush:         func(_ context.Context, rows []schema.ApiRequest) { logged.Add(int64(len(rows))) },
+	})
+	t.Cleanup(func() {
+		requests.Close()
+		require.Zero(t, logged.Load())
+	})
+	server, err := zen.New(zen.Config{})
+	require.NoError(t, err)
+	routes.Register(server, &routes.Services{
+		Validator:   validator,
+		ApiRequests: requests,
+		Database:    h.DB,
+		Caches:      h.Caches,
+		Clock:       h.Clock,
+		ClickHouse:  logs,
+		Auth: &analyticsAuth{principal: &principal.Principal{
+			Type:                  principal.TypeAPIKey,
+			AuthorizedWorkspaceID: setup.Workspace.ID,
+			Permissions:           []string{"unkey:v1:" + setup.Workspace.ID + ":**#*"},
+		}},
+	}, zen.InstanceInfo{})
+
+	for _, tt := range []struct {
+		path    string
+		request any
+		check   func(*testing.T, []byte)
+	}{
+		{
+			path:    "/v2/deployments.listBuildLogs",
+			request: openapi.V2DeploymentsListBuildLogsRequestBody{DeploymentId: deployment.ID},
+			check: func(t *testing.T, body []byte) {
+				t.Helper()
+				var response openapi.V2DeploymentsListBuildLogsResponseBody
+				require.NoError(t, json.Unmarshal(body, &response))
+				require.Equal(t, []openapi.BuildLogEntry{{
+					Time:    1000,
+					StepId:  logs.stepID,
+					Step:    "build",
+					Output:  openapi.BuildLogOutputStdout,
+					Message: logs.message,
+				}}, response.Data)
+				require.NotEmpty(t, response.Meta.RequestId)
+				require.Equal(t, openapi.Pagination{Cursor: new("17"), HasMore: false}, response.Pagination)
+			},
+		},
+		{
+			path:    "/v2/logs.listApiRequests",
+			request: openapi.V2LogsListApiRequestsRequestBody{},
+			check: func(t *testing.T, body []byte) {
+				t.Helper()
+				var response openapi.V2LogsListApiRequestsResponseBody
+				require.NoError(t, json.Unmarshal(body, &response))
+				require.Equal(t, []openapi.ApiRequestLog{{
+					RequestId:    logs.requestID,
+					Time:         1000,
+					Method:       http.MethodPost,
+					Path:         "/v2/analytics.getRuntimeLogs",
+					Status:       http.StatusOK,
+					ResponseBody: logs.message,
+				}}, response.Data)
+				require.NotEmpty(t, response.Meta.RequestId)
+				require.False(t, response.Pagination.HasMore)
+			},
+		},
+	} {
+		t.Run(tt.path, func(t *testing.T) {
+			body, err := json.Marshal(tt.request)
+			require.NoError(t, err)
+			for _, encoding := range []string{"", "gzip", "zstd"} {
+				t.Run(encoding, func(t *testing.T) {
+					req := httptest.NewRequest(http.MethodPost, tt.path, bytes.NewReader(body))
+					req.Header.Set("Content-Type", "application/json")
+					req.Header.Set("Authorization", "Bearer "+setup.RootKey)
+					req.Header.Set("Accept-Encoding", encoding)
+					rec := httptest.NewRecorder()
+					server.Mux().ServeHTTP(rec, req)
+					require.Equal(t, http.StatusOK, rec.Code, "%s", rec.Body.Bytes())
+					require.Equal(t, encoding, rec.Header().Get("Content-Encoding"))
+					tt.check(t, decode(t, rec))
+				})
+			}
+		})
+	}
+}
+
+type logConnection struct {
+	clickhouse.ClickHouse
+	message   string
+	requestID string
+	stepID    string
+}
+
+func (c *logConnection) GetBuildLogs(context.Context, clickhouse.GetBuildLogsRequest) (clickhouse.BuildLogsPage, error) {
+	return clickhouse.BuildLogsPage{Entries: []clickhouse.BuildLogEntry{{
+		Seq:     17,
+		Time:    1000,
+		StepID:  c.stepID,
+		Step:    "build",
+		Message: c.message,
+	}}}, nil
+}
+
+func (c *logConnection) ListApiRequests(context.Context, clickhouse.ListApiRequestsRequest) ([]clickhouse.ApiRequestLog, error) {
+	return []clickhouse.ApiRequestLog{{
+		RequestID:      c.requestID,
+		Time:           1000,
+		Method:         http.MethodPost,
+		Path:           "/v2/analytics.getRuntimeLogs",
+		ResponseStatus: http.StatusOK,
+		ResponseBody:   c.message,
+	}}, nil
 }
 
 type analyticsAuth struct {
