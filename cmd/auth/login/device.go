@@ -191,14 +191,19 @@ func postJSON(ctx context.Context, client *http.Client, apiURL string, path stri
 		return apiEnvelope{}, transientError{err: err}
 	}
 	defer func() { _ = res.Body.Close() }()
+	transient := res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests
 	payload, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
 	if err != nil {
-		return apiEnvelope{}, err
+		return apiEnvelope{}, transientError{err: err}
 	}
 	var envelope apiEnvelope
 	if len(payload) > 0 {
 		if err := json.Unmarshal(payload, &envelope); err != nil {
-			return apiEnvelope{}, fmt.Errorf("unkey API returned %d", res.StatusCode)
+			err := fmt.Errorf("unkey API returned %d", res.StatusCode)
+			if transient {
+				return apiEnvelope{}, transientError{err: err}
+			}
+			return apiEnvelope{}, err
 		}
 	}
 	if res.StatusCode >= 300 {
@@ -210,7 +215,7 @@ func postJSON(ctx context.Context, client *http.Client, apiURL string, path stri
 			detail = fmt.Sprintf("unkey API returned %d", res.StatusCode)
 		}
 		err := fmt.Errorf("%s", detail)
-		if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests {
+		if transient {
 			return apiEnvelope{}, transientError{err: err}
 		}
 		return apiEnvelope{}, err
