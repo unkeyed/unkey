@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -26,13 +25,14 @@ func TestAuthorizeDeploymentAuthorization(t *testing.T) {
 		name        string
 		permissions func(deploymentID string) []string
 		shouldPass  bool
+		readable    bool
 	}{
 		{name: "urn write on every deployment", permissions: func(string) []string { return []string{writeAnyDeployment(setup.Workspace.ID)} }, shouldPass: true},
 		{name: "urn write on this deployment", permissions: func(id string) []string { return []string{deploymentURN(setup, id, "write")} }, shouldPass: true},
 		{name: "urn write alongside unrelated", permissions: func(id string) []string { return []string{"api.*.read_api", deploymentURN(setup, id, "write")} }, shouldPass: true},
 		{name: "legacy create deployment", permissions: func(string) []string { return []string{"environment.*.create_deployment"} }, shouldPass: false},
 		{name: "legacy start deployment", permissions: func(string) []string { return []string{"environment.*.start_deployment"} }, shouldPass: false},
-		{name: "urn read on this deployment", permissions: func(id string) []string { return []string{deploymentURN(setup, id, "read")} }, shouldPass: false},
+		{name: "urn read on this deployment", permissions: func(id string) []string { return []string{deploymentURN(setup, id, "read")} }, shouldPass: false, readable: true},
 		{name: "urn write on another deployment", permissions: func(string) []string { return []string{deploymentURN(setup, other.ID, "write")} }, shouldPass: false},
 		{name: "no permissions", permissions: func(string) []string { return []string{} }, shouldPass: false},
 	}
@@ -50,11 +50,12 @@ func TestAuthorizeDeploymentAuthorization(t *testing.T) {
 				return
 			}
 
-			if strings.Contains(tc.name, "read") {
+			if tc.readable {
 				res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 				require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 				require.Contains(t, res.Body.Error.Detail, "#write")
 				require.Contains(t, res.Body.Error.Detail, "Log in again")
+				require.NotContains(t, res.RawBody, dep.ID)
 				return
 			}
 
@@ -79,8 +80,10 @@ func TestAuthorizeDeploymentExistenceNotLeaked(t *testing.T) {
 	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{DeploymentId: uid.New(uid.DeploymentPrefix)})
 
 	require.Equal(t, http.StatusForbidden, realRes.Status, "expected 403, received: %s", realRes.RawBody)
+	require.NotContains(t, realRes.RawBody, dep.ID)
 	require.Contains(t, realRes.Body.Error.Detail, "#write")
 	require.Contains(t, realRes.Body.Error.Detail, "Log in again")
 	require.Equal(t, http.StatusNotFound, missingRes.Status, "expected 404, received: %s", missingRes.RawBody)
-	require.NotEqual(t, missingRes.Body.Error.Detail, realRes.Body.Error.Detail)
+	require.NotContains(t, missingRes.Body.Error.Detail, "#write")
+	require.NotContains(t, missingRes.Body.Error.Detail, "#delete")
 }
