@@ -4,7 +4,7 @@ import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { RegionFlag } from "@/components/region-flag";
 import { collection } from "@/lib/collections";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { summarizeDeploymentExit } from "@/lib/collections/deploy/exit-reasons";
+import { summarizeCrashLoop } from "@/lib/collections/deploy/exit-reasons";
 import { githubUrl } from "@/lib/github-url";
 import {
   formatCpu,
@@ -82,11 +82,6 @@ export function ActiveDeploymentCard({
   const uniqueRegions = hasActualInstances
     ? [...new Map(actualInstances.map((i) => [i.region.id, i])).values()]
     : deployment.desiredRegions;
-  // Hide the badge once the deployment has converged on ready: an old
-  // OOMKill that was resolved by the next push isn't useful context here.
-  const showLastExit =
-    deployment.lastExit && deployment.status !== "ready" && deployment.status !== "superseded";
-
   return (
     <Card className="flex flex-col">
       <div className="px-4 pt-3 pb-2.5">
@@ -118,8 +113,8 @@ export function ActiveDeploymentCard({
               )
               .with("oci", "unknown", () => null)
               .exhaustive()}
-            {showLastExit && deployment.lastExit && (
-              <LastExitText summary={summarizeDeploymentExit(deployment.lastExit)} />
+            {deployment.crashLoop && (
+              <LastExitText summary={summarizeCrashLoop(deployment.crashLoop)} />
             )}
             {statusBadge}
           </div>

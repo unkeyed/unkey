@@ -4,7 +4,6 @@ import {
   isDeploymentInFlight,
 } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { isCrashLooping } from "@/lib/collections/deploy/exit-reasons";
 
 export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
 
@@ -16,7 +15,7 @@ export function deriveProductionStatus(deployment: Deployment): DeploymentDispla
     return "failed";
   }
   const crashing =
-    isCrashLooping(deployment.lastExit) ||
+    deployment.crashLoop !== null ||
     (deployment.instances ?? []).some((i) => i.status === "failed");
   if (crashing) {
     return "crashing";

@@ -2,7 +2,10 @@
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { type LoadSubsetOptions, createCollection } from "@tanstack/react-db";
-import type { Deployment as ApiDeployment } from "@unkey/api/models/components";
+import {
+  type Deployment as ApiDeployment,
+  DeploymentIssueType,
+} from "@unkey/api/models/components";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
@@ -79,9 +82,9 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
-  lastExit: z
+  crashLoop: z
     .object({
-      reason: z.string(),
+      reason: z.string().nullable(),
       message: z.string(),
       exitCode: z.number().int().nullable(),
       restartCount: z.number().int(),
@@ -179,6 +182,7 @@ function toDeployment(
   projectId: string,
 ): Deployment {
   const { git, docker, runtime } = deployment;
+  const crashLoop = deployment.issues.find((issue) => issue.type === DeploymentIssueType.CrashLoop);
   return {
     id: deployment.id,
     projectId,
@@ -223,13 +227,13 @@ function toDeployment(
     createdAt: deployment.createdAt,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
-    lastExit: deployment.lastExit
+    crashLoop: crashLoop
       ? {
-          reason: deployment.lastExit.reason,
-          message: deployment.lastExit.message,
-          exitCode: deployment.lastExit.exitCode ?? null,
-          restartCount: deployment.lastExit.restartCount,
-          finishedAt: deployment.lastExit.finishedAt ?? null,
+          reason: crashLoop.meta?.reason ?? null,
+          message: crashLoop.message,
+          exitCode: crashLoop.meta?.exitCode ?? null,
+          restartCount: crashLoop.meta?.restartCount ?? 0,
+          finishedAt: crashLoop.time ?? null,
         }
       : null,
   };

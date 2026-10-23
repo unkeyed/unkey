@@ -1,6 +1,6 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { LastExit } from "@/lib/types/deploy";
-import { DeploymentExitReason } from "@unkey/api/models/components";
+import type { DeploymentExitReason } from "@unkey/api/models/components";
 
 type ReasonCopy = { label: string; body: string; fatalWaiting?: true; explainExitCode?: true };
 
@@ -124,33 +124,28 @@ export function summarizeExit(lastExit: LastExit): ExitSummary {
 type KnownExitReason = (typeof DeploymentExitReason)[keyof typeof DeploymentExitReason];
 
 const EXIT_LABELS = {
-  crash_loop: "Crashing",
   out_of_memory: "Out of memory",
   exited_with_error: "Exited with error",
   start_failed: "Couldn't start",
   exited_cleanly: "Exited cleanly",
-  unknown: "Exited",
+  unknown: "Crashing",
 } satisfies Record<KnownExitReason, string>;
 
 function isKnownExitReason(reason: string): reason is KnownExitReason {
   return Object.hasOwn(EXIT_LABELS, reason);
 }
 
-export function isCrashLooping(lastExit: Deployment["lastExit"]): boolean {
-  return lastExit?.reason === DeploymentExitReason.CrashLoop;
-}
-
-export function summarizeDeploymentExit(
-  lastExit: NonNullable<Deployment["lastExit"]>,
-): ExitSummary {
-  const crashing = isCrashLooping(lastExit);
+export function summarizeCrashLoop(crashLoop: NonNullable<Deployment["crashLoop"]>): ExitSummary {
   const failedCode =
-    !crashing && lastExit.exitCode !== null && lastExit.exitCode !== 0 ? lastExit.exitCode : null;
+    crashLoop.exitCode !== null && crashLoop.exitCode !== 0 ? crashLoop.exitCode : null;
   return {
-    severity: crashing ? "error" : "warning",
-    label: isKnownExitReason(lastExit.reason) ? EXIT_LABELS[lastExit.reason] : EXIT_LABELS.unknown,
+    severity: "error",
+    label:
+      crashLoop.reason !== null && isKnownExitReason(crashLoop.reason)
+        ? EXIT_LABELS[crashLoop.reason]
+        : EXIT_LABELS.unknown,
     exit: failedCode !== null ? `exit=${failedCode}` : null,
-    sentences: [lastExit.message],
+    sentences: [crashLoop.message],
     raw: null,
   };
 }

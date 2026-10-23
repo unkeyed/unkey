@@ -1,11 +1,6 @@
 import type { LastExit } from "@/lib/types/deploy";
 import { describe, expect, test } from "vitest";
-import {
-  isCrashLooping,
-  isFatalWaitingReason,
-  summarizeDeploymentExit,
-  summarizeExit,
-} from "./exit-reasons";
+import { isFatalWaitingReason, summarizeCrashLoop, summarizeExit } from "./exit-reasons";
 
 describe("isFatalWaitingReason", () => {
   test("is true only for waiting reasons that stop an instance", () => {
@@ -72,41 +67,33 @@ describe("summarizeExit", () => {
   });
 });
 
-const apiExit = {
-  reason: "exited_with_error",
-  message: "Exit code 1 usually means an unhandled error. Check your logs for the cause.",
-  exitCode: 1,
-  restartCount: 2,
+const crashLoop = {
+  reason: "out_of_memory",
+  message:
+    "Your app used more memory than its limit and keeps stopping, so Unkey waits longer before each restart. Check its memory usage, or raise the limit.",
+  exitCode: 137,
+  restartCount: 12,
   finishedAt: 1_000,
 };
 
-describe("summarizeDeploymentExit", () => {
-  test("labels the reason and shows the API message", () => {
-    expect(summarizeDeploymentExit(apiExit)).toEqual({
-      severity: "warning",
-      label: "Exited with error",
-      exit: "exit=1",
-      sentences: [apiExit.message],
+describe("summarizeCrashLoop", () => {
+  test("labels the cause and shows the API message", () => {
+    expect(summarizeCrashLoop(crashLoop)).toEqual({
+      severity: "error",
+      label: "Out of memory",
+      exit: "exit=137",
+      sentences: [crashLoop.message],
       raw: null,
     });
   });
 
-  test("a crash loop is an error and does not repeat the exit code", () => {
-    const summary = summarizeDeploymentExit({ ...apiExit, reason: "crash_loop" });
-    expect(summary.severity).toBe("error");
+  test("a crash loop with no recorded exit reads as crashing", () => {
+    const summary = summarizeCrashLoop({ ...crashLoop, reason: null, exitCode: null });
     expect(summary.label).toBe("Crashing");
     expect(summary.exit).toBe(null);
   });
 
-  test("a reason added later reads as a neutral exit", () => {
-    expect(summarizeDeploymentExit({ ...apiExit, reason: "KEBAP" }).label).toBe("Exited");
-  });
-});
-
-describe("isCrashLooping", () => {
-  test("is true only for a crash loop", () => {
-    expect(isCrashLooping({ ...apiExit, reason: "crash_loop" })).toBe(true);
-    expect(isCrashLooping(apiExit)).toBe(false);
-    expect(isCrashLooping(null)).toBe(false);
+  test("a reason added later reads as crashing", () => {
+    expect(summarizeCrashLoop({ ...crashLoop, reason: "KEBAP" }).label).toBe("Crashing");
   });
 });

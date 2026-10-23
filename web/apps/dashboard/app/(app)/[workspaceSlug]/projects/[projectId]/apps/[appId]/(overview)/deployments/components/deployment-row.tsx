@@ -8,7 +8,7 @@ import {
 import { LastExitHover } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
-import { summarizeDeploymentExit } from "@/lib/collections/deploy/exit-reasons";
+import { summarizeCrashLoop } from "@/lib/collections/deploy/exit-reasons";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem } from "@unkey/ui";
@@ -56,10 +56,6 @@ export function DeploymentRow({
   const isGit = deployment.source === "git";
   const image = deployment.requestedImage ?? deployment.resolvedImage;
   const title = isGit ? deployment.gitCommitMessage : null;
-  const showLastExit =
-    deployment.lastExit !== null &&
-    deployment.status !== "ready" &&
-    deployment.status !== "superseded";
 
   return (
     <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
@@ -100,8 +96,8 @@ export function DeploymentRow({
       <span className="flex min-w-0 shrink-0 items-center gap-2 md:w-44">
         <DeploymentStatusDot status={deployment.status} />
         <span className="flex min-w-0 text-sm font-medium text-gray-12">
-          {showLastExit && deployment.lastExit ? (
-            <LastExitHover summary={summarizeDeploymentExit(deployment.lastExit)}>
+          {deployment.crashLoop ? (
+            <LastExitHover summary={summarizeCrashLoop(deployment.crashLoop)}>
               {statusLabel}
             </LastExitHover>
           ) : (
