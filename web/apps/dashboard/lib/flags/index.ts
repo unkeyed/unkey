@@ -32,3 +32,8 @@ export const portalManagement = {
   slug: "portal_management",
   defaultValue: false,
 } as const satisfies WorkspaceFlag;
+
+export const platformFeatures = {
+  slug: "platform_features",
+  defaultValue: false,
+} as const satisfies WorkspaceFlag;

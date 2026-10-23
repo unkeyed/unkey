@@ -31,6 +31,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
           id: authResult.userId,
           // The sealed session profile avoids provider API calls for profile-only procedures.
           profile: authResult.user ?? null,
+          ...(authResult.impersonator ? { impersonator: authResult.impersonator } : {}),
         }
       : null,
     workspace,

@@ -1,5 +1,5 @@
 import type { TRPCError } from "@trpc/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type Context = {
   workspace: { id: string; slug: string };
@@ -144,16 +144,20 @@ vi.mock("@/lib/audit", () => ({
   insertAuditLogs: async () => undefined,
 }));
 
-vi.mock("@/lib/env", () => ({
-  githubAppEnv: () => ({
-    GITHUB_APP_ID: 1,
-    UNKEY_GITHUB_PRIVATE_KEY_PEM: "test-private-key",
-  }),
-  githubOAuthEnv: () => ({
-    GITHUB_CLIENT_ID: "github-client-id",
-    GITHUB_CLIENT_SECRET: "github-client-secret",
-  }),
-}));
+vi.mock("@/lib/env", async () => {
+  const { generateKeyPairSync } = await import("node:crypto");
+  const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  return {
+    githubAppEnv: () => ({
+      GITHUB_APP_ID: 1,
+      UNKEY_GITHUB_PRIVATE_KEY_PEM: privateKey.export({ type: "pkcs8", format: "pem" }),
+    }),
+    githubOAuthEnv: () => ({
+      GITHUB_CLIENT_ID: "github-client-id",
+      GITHUB_CLIENT_SECRET: "github-client-secret",
+    }),
+  };
+});
 
 vi.mock("@/lib/github", () => ({
   MAX_BRANCHES: 20,
@@ -461,5 +465,73 @@ describe("listRepositories", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+});
+
+describe("getRepositoryById installation membership", () => {
+  const repository: RepositoryRow = {
+    id: 500,
+    name: "renamed",
+    full_name: "canonical-owner/renamed",
+    private: false,
+    html_url: "https://github.com/canonical-owner/renamed",
+    default_branch: "production",
+    pushed_at: null,
+    language: null,
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns canonical metadata for a numeric ID on a later installation page", async () => {
+    const { getRepositoryById } =
+      await vi.importActual<typeof import("@/lib/github")>("@/lib/github");
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ token: "installation-token", expires_at: "later" }))
+      .mockResolvedValueOnce(
+        Response.json({
+          repositories: Array.from({ length: 100 }, (_, index) => ({ ...repository, id: index })),
+        }),
+      )
+      .mockResolvedValueOnce(Response.json({ repositories: [repository] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await getRepositoryById(42, repository.id)).toEqual(repository);
+  });
+
+  it("rejects publicly visible metadata when the ID is absent from the installation", async () => {
+    const { getRepositoryById } =
+      await vi.importActual<typeof import("@/lib/github")>("@/lib/github");
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (url) => {
+      if (url === "https://api.github.com/app/installations/42/access_tokens") {
+        return Response.json({ token: "installation-token", expires_at: "later" });
+      }
+      if (url === "https://api.github.com/installation/repositories?per_page=100&page=1") {
+        return Response.json({ repositories: [] });
+      }
+      if (url === `https://api.github.com/repositories/${repository.id}`) {
+        return Response.json(repository);
+      }
+      throw new Error(`Unexpected GitHub request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await getRepositoryById(42, repository.id)).toBeNull();
+  });
+
+  it("propagates installation listing failures instead of treating them as absence", async () => {
+    const { getRepositoryById, GitHubApiError: ApiError } =
+      await vi.importActual<typeof import("@/lib/github")>("@/lib/github");
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(Response.json({ token: "installation-token", expires_at: "later" }))
+        .mockResolvedValueOnce(new Response("Unavailable", { status: 503 })),
+    );
+
+    await expect(getRepositoryById(42, repository.id)).rejects.toBeInstanceOf(ApiError);
   });
 });

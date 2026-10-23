@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strconv"
 
-	ch "github.com/ClickHouse/clickhouse-go/v2"
-
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -76,63 +74,6 @@ func selectVerificationInterval(windowMs int64) verificationInterval {
 	default:
 		return verificationInterval{"default.key_verifications_per_day_v3", "day", 24 * 60 * 60 * 1000}
 	}
-}
-
-const (
-	// portalQueryExecutionTimeSecondsMax bounds how long one portal read may
-	// occupy the shared connection.
-	portalQueryExecutionTimeSecondsMax = 10
-	// portalQueryMemoryBytesMax bounds one portal read's server-side memory.
-	portalQueryMemoryBytesMax = 1 << 30
-)
-
-// withPortalQueryLimits bounds a single portal read. The operator analytics
-// routes get the equivalent from a per-workspace ClickHouse settings profile,
-// which this path has no user to hang off: it runs on the connection every
-// workspace shares, so the bounds ride on the query instead.
-//
-// max_result_bytes stops an oversized read server-side, before the rows are
-// shipped. The handler's own ceiling still applies to the encoded response.
-//
-// use_with_fill_by_sorting_prefix is what makes WITH FILL restart per key_id
-// rather than run once across the whole result. It defaults on, but the default
-// is what a settings profile on this shared connection could change, and every
-// caller charting a subset of keys depends on each series being contiguous.
-func withPortalQueryLimits(ctx context.Context) context.Context {
-	return ch.Context(ctx, ch.WithSettings(ch.Settings{
-		"max_execution_time":              portalQueryExecutionTimeSecondsMax,
-		"max_memory_usage":                portalQueryMemoryBytesMax,
-		"max_result_bytes":                AnalyticsResultBytesMax,
-		"result_overflow_mode":            "throw",
-		"use_with_fill_by_sorting_prefix": 1,
-	}))
-}
-
-// portalQueryLimitCodes are the ClickHouse exceptions the resource limits in
-// [withPortalQueryLimits] can raise: TIMEOUT_EXCEEDED from max_execution_time,
-// MEMORY_LIMIT_EXCEEDED from max_memory_usage, and TOO_MANY_ROWS_OR_BYTES from
-// max_result_bytes.
-var portalQueryLimitCodes = map[int32]bool{
-	159: true,
-	241: true,
-	396: true,
-}
-
-// classifyPortalQueryError tags the limits [withPortalQueryLimits] sets so they
-// reach the caller as rejections, and returns everything else untouched.
-//
-// It gates on the exception rather than on what [WrapClickHouseError] returns,
-// for two reasons. That helper reads an unmatched failure as a bad customer
-// query, which is wrong here because these queries are written in this package.
-// And it matches the word "timeout" anywhere in a message, so a transport
-// failure like "read tcp ...: i/o timeout" would otherwise be served as a query
-// limit. Both belong in the 5xx metrics instead, where an outage is visible.
-func classifyPortalQueryError(err error) error {
-	if chErr, ok := errors.AsType[*ch.Exception](err); !ok || !portalQueryLimitCodes[chErr.Code] {
-		return err
-	}
-
-	return WrapClickHouseError(err)
 }
 
 // verificationScopePredicates is the WHERE body shared by the account-wide and
@@ -242,9 +183,9 @@ func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req Ver
 	params := verificationScopeParams(req.VerificationTimeseriesRequest)
 	params["max_keys_probe"] = strconv.Itoa(req.MaxKeys + 1)
 
-	rows, err := Select[verificationTimeseriesPerKeyRow](withPortalQueryLimits(ctx), c.conn, query, params)
+	rows, err := Select[verificationTimeseriesPerKeyRow](withReadLimits(ctx), c.conn, query, params)
 	if err != nil {
-		return nil, fault.Wrap(classifyPortalQueryError(err), fault.Internal("failed to query per-key verification timeseries"))
+		return nil, fault.Wrap(classifyReadLimitError(err), fault.Internal("failed to query per-key verification timeseries"))
 	}
 
 	series := make([]VerificationTimeseriesPerKey, 0)

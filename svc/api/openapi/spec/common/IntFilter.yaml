@@ -1,0 +1,32 @@
+type: object
+additionalProperties: false
+description: |
+  Filters an integer field. `is` keeps rows that equal one of its values.
+  `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+properties:
+  is:
+    "$ref": "./IntValues.yaml"
+    description: Keep rows where the field equals one of the values.
+  isNot:
+    "$ref": "./IntValues.yaml"
+    description: Remove rows where the field equals one of the values.
+  gt:
+    type: integer
+    format: int64
+    description: Keep rows where the field is greater than this value.
+  gte:
+    type: integer
+    format: int64
+    description: Keep rows where the field is greater than or equal to this value.
+  lt:
+    type: integer
+    format: int64
+    description: Keep rows where the field is less than this value.
+  lte:
+    type: integer
+    format: int64
+    description: Keep rows where the field is less than or equal to this value.
+example:
+  gte: 400
+  lt: 600
+  isNot: [429]
