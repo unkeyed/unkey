@@ -45,8 +45,8 @@ export function instanceDetail(instance: DeploymentInstance): string | null {
   if (instanceStateOf(instance) !== "unhealthy" || !instance.lastExit) {
     return null;
   }
-  const summary = exitBadge(instance.lastExit);
-  const cause = summary.kind === "waiting" ? [summary.reason] : [summary.reason, summary.exit];
+  const badge = exitBadge(instance.lastExit);
+  const cause = badge.kind === "waiting" ? [badge.reason] : [instance.lastExit.reason, badge.exit];
   const { restartCount } = instance.lastExit;
   const restarts = restartCount > 0 ? plural(restartCount, "restart") : null;
   return [...cause, restarts].filter(Boolean).join(" · ") || null;
