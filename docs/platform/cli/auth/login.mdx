@@ -6,6 +6,7 @@ sources:
   - cmd/auth/login/login.go
   - pkg/cli/config.go
   - pkg/cli/credentials/rootkey.go
+  - pkg/cli/session/session.go
 ---
 
 `unkey auth login` is `unkey login`. It starts a device login, or stores a root key you pass with `--root-key`.
@@ -16,6 +17,6 @@ sources:
 unkey auth login
 ```
 
-The flags match [unkey login](/platform/cli/login): `--api-url`, `--no-browser`, and `--root-key`. On success the key is saved to the system keychain (or to `~/.unkey/config.toml` when the keychain is unavailable) and is not printed.
+The flags match [unkey login](/platform/cli/login): `--api-url`, `--no-browser`, and `--root-key`. A browser login stores a CLI session in the system keychain, or in `~/.unkey/sessions.json` (mode `0600`) when the keychain is unavailable. With `--root-key`, the key is saved to the system keychain (or to `~/.unkey/config.toml` when the keychain is unavailable). Neither the tokens nor the key are printed.
 
-See [CLI authentication](/platform/cli/authentication) for which key `unkey api` uses. `unkey deploy` ignores the stored key.
+See [CLI authentication](/platform/cli/authentication) for which credential `unkey api` and `unkey deploy` use.
