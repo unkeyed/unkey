@@ -1,5 +1,7 @@
 "use client";
 
+import { LoadError } from "@/components/load-error";
+import { fromQuery } from "@/lib/loadable/loadable";
 import { trpc } from "@/lib/trpc/client";
 import {
   SettingsDangerZone,
@@ -17,27 +19,23 @@ import { SettingsClientSkeleton } from "./skeleton";
 import { UpdateApiName } from "./update-api-name";
 
 export const SettingsClient = ({ apiId }: { apiId: string }) => {
-  const {
-    data: layoutData,
-    isLoading,
-    error,
-  } = trpc.api.queryApiKeyDetails.useQuery({
-    apiId,
-  });
+  const details = fromQuery(trpc.api.queryApiKeyDetails.useQuery({ apiId }));
 
-  if (isLoading) {
+  if (details.status === "loading") {
     return <SettingsClientSkeleton />;
   }
 
-  if (error) {
-    throw new Error(`Failed to fetch settings data: ${error.message}`);
+  if (details.status === "failed") {
+    return (
+      <LoadError title="Could not load settings" error={details.error} onRetry={details.retry} />
+    );
   }
 
-  if (!layoutData || !layoutData.keyAuth) {
+  if (!details.data.keyAuth) {
     throw new Error("KeyAuth configuration not found");
   }
 
-  const { currentApi, keyAuth } = layoutData;
+  const { currentApi, keyAuth } = details.data;
 
   const api = {
     id: currentApi.id,

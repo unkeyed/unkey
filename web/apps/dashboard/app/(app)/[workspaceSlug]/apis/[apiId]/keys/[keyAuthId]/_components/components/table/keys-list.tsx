@@ -6,6 +6,7 @@ import {
   useApiKeysListQuery,
 } from "@/components/api-keys-table";
 import { SelectionControls } from "@/components/api-keys-table/components/selection-controls";
+import { LoadError } from "@/components/load-error";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { IconBookBookmarkOutline18, IconKeyOutline18 } from "@unkey/icons";
@@ -39,6 +40,7 @@ export const KeysList = ({
   const workspace = useWorkspaceNavigation();
 
   const {
+    state,
     keys,
     isInitialLoading,
     isNavigating,
@@ -154,6 +156,10 @@ export const KeysList = ({
       handleNavigateToKey,
     ],
   );
+
+  if (state.status === "failed") {
+    return <LoadError title="Could not load keys" error={state.error} onRetry={state.retry} />;
+  }
 
   return (
     <>
