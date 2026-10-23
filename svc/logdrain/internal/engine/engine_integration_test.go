@@ -84,6 +84,7 @@ type sink struct {
 	status       atomic.Int64
 	mu           sync.Mutex
 	delay        time.Duration
+	release      <-chan struct{}
 	responseBody string
 	requests     []capturedRequest
 	inflight     atomic.Int64
@@ -118,6 +119,13 @@ func newSlowSink(t *testing.T, status int, delay time.Duration) *sink {
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+		if s.release != nil {
+			select {
+			case <-s.release:
+			case <-r.Context().Done():
+				return
+			}
 		}
 		time.Sleep(s.delay)
 		responseStatus := int(s.status.Load())
@@ -636,13 +644,15 @@ func TestEngine_Integration(t *testing.T) {
 	})
 
 	t.Run("one replica processes drains in parallel up to the limit", func(t *testing.T) {
-		// MaxConcurrentDrains bounds in-replica parallelism. Two due drains
-		// pointed at one slow sink must overlap when the limit is 2. The in-flight
-		// set serializes work per drain, so overlap can only come from different drains.
+		// Hold acknowledgments until both drains arrive: lease acquisition can
+		// straddle a poll, so a fixed sink delay does not guarantee overlap.
 		workspaceA, drainA := uniqueIDs()
 		workspaceB, drainB := uniqueIDs()
 		require.NotEqual(t, drainA, drainB)
-		httpSink := newSlowSink(t, http.StatusOK, time.Second)
+		httpSink := newSink(t, http.StatusOK)
+		release := make(chan struct{})
+		httpSink.release = release
+		releaseSink := sync.OnceFunc(func() { close(release) })
 		start := time.Now().Add(-6 * time.Minute).UnixMilli()
 		insertAuditEvents(t, chConn, workspaceA, []auditEvent{{id: drainA + "_event_1", insertedAt: start}})
 		insertAuditEvents(t, chConn, workspaceB, []auditEvent{{id: drainB + "_event_1", insertedAt: start}})
@@ -651,6 +661,10 @@ func TestEngine_Integration(t *testing.T) {
 		cleanupDrain(t, mysqlDB, drainA)
 		cleanupDrain(t, mysqlDB, drainB)
 		startEngineConcurrent(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, 2)
+		t.Cleanup(releaseSink)
+
+		require.Eventually(t, func() bool { return httpSink.maxOverlap() == 2 }, 20*time.Second, 20*time.Millisecond)
+		releaseSink()
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			ids, _, parseErr := parseSuccessfulRequests(httpSink.snapshot())
