@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/auth/workos"
@@ -152,7 +153,7 @@ func TestPollIssuesASessionInsteadOfARootKey(t *testing.T) {
 	require.Equal(t, PollComplete, done.Status)
 	require.NotEmpty(t, done.AccessToken)
 	require.NotEmpty(t, done.RefreshToken)
-	require.Equal(t, int64(time.Hour/time.Second), done.ExpiresIn)
+	require.Equal(t, int64(accessTTL/time.Second), done.ExpiresIn)
 	require.Equal(t, workspace.ID, done.WorkspaceID)
 
 	verifier, err := tokenjwt.NewHS256Verifier[clisession.Claims]([]byte(testSecret),
@@ -223,6 +224,51 @@ func TestReusedRefreshTokenRevokesTheSession(t *testing.T) {
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 }
 
+func TestRefreshTokenTwoRotationsOldRevokesTheFamily(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+
+	first, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+	require.NoError(t, err)
+	h.Clock.Tick(refreshReuseGrace + time.Millisecond)
+	second, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: first.RefreshToken})
+	require.NoError(t, err)
+
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+	require.Contains(t, fault.UserFacingMessage(err), "session was revoked")
+
+	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	require.True(t, row.RevokedAt.Valid)
+
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: second.RefreshToken})
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+}
+
+func TestUnknownTokenOfARevokedFamilyIsPlainlyInvalid(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+	family, ok := refreshTokenFamily(tokens.RefreshToken)
+	require.True(t, ok)
+
+	_, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: newRefreshToken(newRefreshFamily())})
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+	require.Equal(t, "The refresh token is invalid. Run unkey login again.", fault.UserFacingMessage(err))
+
+	require.NoError(t, svc.Revoke(t.Context(), RevokeRequest{
+		Principal: adminPrincipal(workspace, uid.New(uid.TestPrefix)),
+		SessionID: tokens.SessionID,
+	}))
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: newRefreshToken(family)})
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+	require.Equal(t, "The refresh token is invalid. Run unkey login again.", fault.UserFacingMessage(err))
+}
+
 func TestPreviousRefreshTokenWithinGraceDoesNotRevokeTheFamily(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
@@ -259,9 +305,80 @@ func TestExpiredAndRevokedSessionsCannotRefresh(t *testing.T) {
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 
 	other := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
-	h.Clock.Tick(refreshIdle + time.Second)
+	h.Clock.Tick(sessionIdle + time.Second)
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: other.RefreshToken})
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+}
+
+func TestRefreshMovesTheIdleDeadline(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+
+	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	require.Equal(t, row.CreatedAt+sessionIdle.Milliseconds(), row.ExpiresAt)
+
+	h.Clock.Tick(24 * time.Hour)
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+	require.NoError(t, err)
+	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	require.Equal(t, h.Clock.Now().UnixMilli()+sessionIdle.Milliseconds(), row.ExpiresAt)
+}
+
+func TestActiveSessionEndsAtSessionMax(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	deadline := row.CreatedAt + sessionMax.Milliseconds()
+
+	refreshToken := tokens.RefreshToken
+	for h.Clock.Now().Add(sessionIdle-24*time.Hour).UnixMilli() < deadline {
+		h.Clock.Tick(sessionIdle - 24*time.Hour)
+		refreshed, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: refreshToken})
+		require.NoError(t, err)
+		refreshToken = refreshed.RefreshToken
+		row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+		require.NoError(t, err)
+		require.LessOrEqual(t, row.ExpiresAt, deadline)
+	}
+	require.Equal(t, deadline, row.ExpiresAt)
+
+	h.Clock.Set(time.UnixMilli(deadline))
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: refreshToken})
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+	require.Contains(t, fault.UserFacingMessage(err), "no longer valid")
+}
+
+func TestUserNameSurvivesRefresh(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+
+	refreshed, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+	require.NoError(t, err)
+
+	verifier, err := tokenjwt.NewHS256Verifier[clisession.Claims]([]byte(testSecret),
+		tokenjwt.WithIssuer(clisession.Issuer),
+		tokenjwt.WithAudience(clisession.Audience),
+		tokenjwt.WithClock(h.Clock),
+	)
+	require.NoError(t, err)
+	claims, err := verifier.Verify(refreshed.AccessToken)
+	require.NoError(t, err)
+	require.Equal(t, "Admin", claims.Name)
+
+	names := map[string]string{}
+	for _, log := range h.FindAuditLogsByTargetID(t.Context(), t, tokens.SessionID) {
+		names[log.Event] = log.Actor.Name
+	}
+	require.Equal(t, "Admin", names[string(auditlog.CLISessionRefreshEvent)])
 }
 
 func TestRootKeyCannotApprove(t *testing.T) {

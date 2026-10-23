@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertCLISession is the base query for bulk insert
-const bulkInsertCLISession = `INSERT INTO cli_sessions ( id, workspace_id, user_id, permissions, device_name, refresh_token_hash, refresh_family, created_at, last_used_at, expires_at ) VALUES %s`
+const bulkInsertCLISession = `INSERT INTO cli_sessions ( id, workspace_id, user_id, user_name, permissions, device_name, refresh_token_hash, refresh_family, created_at, last_used_at, expires_at ) VALUES %s`
 
 // InsertCLISessions performs bulk insert in a single query
 func (q *BulkQueries) InsertCLISessions(ctx context.Context, db DBTX, args []InsertCLISessionParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertCLISessions(ctx context.Context, db DBTX, args []Ins
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertCLISession, strings.Join(valueClauses, ", "))
@@ -32,6 +32,7 @@ func (q *BulkQueries) InsertCLISessions(ctx context.Context, db DBTX, args []Ins
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.UserID)
+		allArgs = append(allArgs, arg.UserName)
 		allArgs = append(allArgs, arg.Permissions)
 		allArgs = append(allArgs, arg.DeviceName)
 		allArgs = append(allArgs, arg.RefreshTokenHash)
