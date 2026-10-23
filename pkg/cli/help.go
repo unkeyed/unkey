@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -16,6 +17,15 @@ func (c *Command) showHelp() {
 	c.showUsageLine()
 	c.showVersion()
 	c.showCommands()
+	if len(c.rootAliases) > 0 {
+		fmt.Printf("ALIASES:\n")
+		for _, alias := range slices.Sorted(maps.Keys(c.rootAliases)) {
+			command := c.rootAliases[alias]
+			fmt.Printf("   %s → %s\n", alias, strings.Join(command.buildCommandPath(), " "))
+		}
+		fmt.Println()
+	}
+
 	c.showFlags()
 	c.showGlobalOptions()
 	c.showExamples()
