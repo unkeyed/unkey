@@ -112,11 +112,13 @@ export function seriesInstancesOf({
   if (!needed || instances.status !== "ready") {
     return null;
   }
-  const names = instances.data.map((row) => row.replica.k8sName);
-  if (open && open.environmentId === environmentId) {
-    names.push(open.row.replica.k8sName);
+  const names = new Set(
+    open && open.environmentId === environmentId ? [open.row.replica.k8sName] : [],
+  );
+  for (const name of instances.data.map((row) => row.replica.k8sName).sort()) {
+    names.add(name);
   }
-  return [...new Set(names)].sort().slice(0, INSTANCE_SERIES_MAX);
+  return [...names].slice(0, INSTANCE_SERIES_MAX).sort();
 }
 
 export function replicaSheetModel({
