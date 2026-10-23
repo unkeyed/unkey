@@ -1,4 +1,4 @@
-import type { SubscriptionProduct } from "./billingSubscriptions";
+import type { BillingProduct } from "@/lib/billing/products";
 import { deployPlanGrantsTeam } from "./deployPlan";
 
 type StripeWebhookResponseDetails = Record<string, string | number | boolean | null>;
@@ -41,7 +41,7 @@ export function stripeWebhookResponse(
  * subscription items to decide it.
  */
 export function keepsTeamAfterDelete(
-  product: SubscriptionProduct,
+  product: BillingProduct,
   billing: { tier: string | null; plan: string | null },
 ): boolean {
   return product === "api"

@@ -30,7 +30,7 @@ import { Button, DialogContainer, Skeleton, toast } from "@unkey/ui";
 import { cn } from "cn";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
-import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
+import { CancelComputeDialog, type CancelOutcome, CancelPlanLink } from "./cancel-actions";
 import { PLAN_BLURBS, firstInvoiceCents } from "./compute-plan-copy";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
@@ -46,6 +46,7 @@ type ComputePlansProps = {
   from: DeployCheckoutOrigin;
   manage: boolean;
   onChanged: () => void;
+  onCancelled: (outcome: CancelOutcome) => void;
   /** Undefined while the subscription query is loading, so the discount stays hidden. */
   signupCreditClaimed: boolean | undefined;
 };
@@ -59,6 +60,7 @@ export function ComputePlans({
   from,
   manage,
   onChanged,
+  onCancelled,
   signupCreditClaimed,
 }: ComputePlansProps) {
   const showSignupCredit = signupCreditClaimed === false;
@@ -160,7 +162,11 @@ export function ComputePlans({
           </CancelPlanLink>
         </div>
       ) : null}
-      <CancelComputeDialog open={isCancelOpen} onOpenChange={setCancelOpen} />
+      <CancelComputeDialog
+        open={isCancelOpen}
+        onOpenChange={setCancelOpen}
+        onCancelled={onCancelled}
+      />
       {current.status === "plan" ? (
         <ComputePlanConfirmDialog
           plan={pendingOption}

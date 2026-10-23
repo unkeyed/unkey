@@ -71,7 +71,7 @@ vi.mock("@/lib/stripe/subscriptionUtils", () => ({
   isAutomatedBillingRenewal: vi.fn(),
   isCardUpdateOnly: vi.fn(),
   isPaymentFailureRelatedUpdate: vi.fn(),
-  isScheduleUpdateOnly: vi.fn(),
+  onlyChanged: vi.fn(),
 }));
 vi.mock("@/lib/utils/slackAlerts", () => ({
   alertCustomerLifecycle: mocks.alertCustomerLifecycle,

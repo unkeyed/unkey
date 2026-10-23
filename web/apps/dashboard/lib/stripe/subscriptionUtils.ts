@@ -1,3 +1,4 @@
+import { type CancellationReason, isCancellationReason } from "@/lib/billing/cancellation-reasons";
 import type Stripe from "stripe";
 
 interface PreviousAttributes {
@@ -17,7 +18,9 @@ interface PreviousAttributes {
   plan?: Stripe.Plan | null;
   quantity?: number;
   discount?: Stripe.Discount | null;
+  cancel_at?: number | null;
   cancel_at_period_end?: boolean;
+  cancellation_details?: Stripe.Subscription.CancellationDetails | null;
   collection_method?: string;
   latest_invoice?: string | Stripe.Invoice | null;
   schedule?: string | Stripe.SubscriptionSchedule | null;
@@ -164,14 +167,66 @@ export function isCardUpdateOnly(
   return false;
 }
 
-/** Attaching or releasing a schedule does not change the active API plan. */
-export function isScheduleUpdateOnly(previousAttributes: PreviousAttributes | undefined): boolean {
-  if (!previousAttributes) {
-    return false;
-  }
+export function isCancelling(
+  sub: Pick<Stripe.Subscription, "cancel_at_period_end" | "cancel_at">,
+): boolean {
+  return Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
+}
 
-  const changedKeys = Object.keys(previousAttributes);
-  return changedKeys.length === 1 && changedKeys[0] === "schedule";
+/**
+ * An unrelated update on an already-cancelling subscription does not carry the cancel fields in
+ * previous_attributes, so gating on them stops a re-alert. A resume carries them too, hence the
+ * isCancelling check.
+ */
+export function cancelJustScheduled(
+  sub: Pick<Stripe.Subscription, "cancel_at_period_end" | "cancel_at">,
+  previousAttributes: PreviousAttributes | undefined,
+): boolean {
+  return (
+    isCancelling(sub) &&
+    previousAttributes !== undefined &&
+    ("cancel_at_period_end" in previousAttributes || "cancel_at" in previousAttributes)
+  );
+}
+
+export type CancellationFeedback = { reason: CancellationReason; comment: string | null };
+
+export type CancellationFeedbackUpdate = CancellationFeedback | { unknownReason: string };
+
+/**
+ * The customer's reason, when this update set or changed it. previous_attributes may carry only the
+ * changed keys of cancellation_details, so an absent key counts as unchanged.
+ */
+export function cancellationFeedbackUpdate(
+  previousAttributes: PreviousAttributes | undefined,
+  sub: Pick<Stripe.Subscription, "cancellation_details">,
+): CancellationFeedbackUpdate | null {
+  if (!previousAttributes || !("cancellation_details" in previousAttributes)) {
+    return null;
+  }
+  const feedback = sub.cancellation_details?.feedback;
+  if (!feedback) {
+    return null;
+  }
+  const comment = sub.cancellation_details?.comment || null;
+  const previous = previousAttributes.cancellation_details;
+  const feedbackChanged = !previous || ("feedback" in previous && previous.feedback !== feedback);
+  const commentChanged =
+    !previous || ("comment" in previous && (previous.comment || null) !== comment);
+  if (!feedbackChanged && !commentChanged) {
+    return null;
+  }
+  return isCancellationReason(feedback)
+    ? { reason: feedback, comment }
+    : { unknownReason: feedback };
+}
+
+export function onlyChanged(
+  previousAttributes: PreviousAttributes | undefined,
+  key: keyof PreviousAttributes,
+): boolean {
+  const changedKeys = previousAttributes ? Object.keys(previousAttributes) : [];
+  return changedKeys.length === 1 && changedKeys[0] === key;
 }
 
 export type { PreviousAttributes };

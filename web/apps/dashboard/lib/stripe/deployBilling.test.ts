@@ -171,6 +171,7 @@ describe("deployResumeSubscriptionParams", () => {
       deployResumeSubscriptionParams(CONFIG, { id: "si_plan", plan: "starter" }, "pro"),
     ).toEqual({
       cancel_at_period_end: false,
+      cancellation_details: { feedback: "", comment: "" },
       items: [{ id: "si_plan", price: "price_pro" }],
       proration_behavior: "always_invoice",
       payment_behavior: "error_if_incomplete",
@@ -182,6 +183,7 @@ describe("deployResumeSubscriptionParams", () => {
       deployResumeSubscriptionParams(CONFIG, { id: "si_plan", plan: "starter" }, "starter"),
     ).toEqual({
       cancel_at_period_end: false,
+      cancellation_details: { feedback: "", comment: "" },
       proration_behavior: "none",
       payment_behavior: "error_if_incomplete",
     });
@@ -192,6 +194,7 @@ describe("deployResumeSubscriptionParams", () => {
       deployResumeSubscriptionParams(CONFIG, { id: "si_plan", plan: "pro" }, "starter"),
     ).toEqual({
       cancel_at_period_end: false,
+      cancellation_details: { feedback: "", comment: "" },
       items: [{ id: "si_plan", price: "price_starter" }],
       proration_behavior: "none",
       payment_behavior: "error_if_incomplete",

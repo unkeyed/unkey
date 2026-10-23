@@ -1,6 +1,8 @@
 import type Stripe from "stripe";
 import { isDeadSubscription } from "./subscriptionUtils";
 
+export type DeploySubscriptionCancel = "scheduled" | "already-ended";
+
 /**
  * Stops the Stripe renewal for the Deploy subscription, no refund. Deploy owns
  * its own subscription now, so this is a native whole-subscription cancel at
@@ -11,10 +13,11 @@ import { isDeadSubscription } from "./subscriptionUtils";
 export async function cancelDeploySubscription(
   stripe: Stripe,
   subscriptionId: string,
-): Promise<void> {
+): Promise<DeploySubscriptionCancel> {
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
   if (isDeadSubscription(sub)) {
-    return;
+    return "already-ended";
   }
   await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
+  return "scheduled";
 }

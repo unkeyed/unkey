@@ -1,3 +1,4 @@
+import { CLEARED_CANCELLATION_DETAILS } from "@/lib/billing/cancellation-reasons";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
 import type Stripe from "stripe";
@@ -182,6 +183,7 @@ export function deployResumeSubscriptionParams(
 
   return {
     cancel_at_period_end: false,
+    cancellation_details: CLEARED_CANCELLATION_DETAILS,
     ...(changesPlan
       ? {
           items: [

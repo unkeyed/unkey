@@ -1,3 +1,4 @@
+import type { BillingProduct } from "@/lib/billing/products";
 import { DEPLOY_PLANS, type DeployPlan } from "@/lib/stripe/deployPlan";
 
 export type PaywallReason =
@@ -10,14 +11,12 @@ export type PaywallReason =
   | "api-plan"
   | "choose-plan";
 
-export type PaywallProduct = "compute" | "api";
-
 const TEAM_PLANS: readonly DeployPlan[] = ["pro", "business"];
 
 export type PaywallCopy = {
   title: string;
   description: string;
-  products: PaywallProduct[];
+  products: BillingProduct[];
   computePlans: readonly DeployPlan[];
   manage: boolean;
 };
@@ -92,19 +91,19 @@ export function paywallCopy(reason: PaywallReason): PaywallCopy {
 }
 
 export function availableProducts(
-  products: PaywallProduct[],
+  products: BillingProduct[],
   { computeEnabled }: { computeEnabled: boolean },
-): PaywallProduct[] {
+): BillingProduct[] {
   return products.filter((product) => product !== "compute" || computeEnabled);
 }
 
 export type ProductUsage = { compute: number; api: number };
 
 export function defaultProduct(
-  products: PaywallProduct[],
+  products: BillingProduct[],
   usage: ProductUsage,
-): PaywallProduct | undefined {
-  const preferred: PaywallProduct =
+): BillingProduct | undefined {
+  const preferred: BillingProduct =
     usage.compute > 0 ? "compute" : usage.api > 0 ? "api" : "compute";
   return products.includes(preferred) ? preferred : products[0];
 }

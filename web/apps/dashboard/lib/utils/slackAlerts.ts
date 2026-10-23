@@ -1,3 +1,7 @@
+import {
+  CANCELLATION_REASON_LABELS,
+  type CancellationReason,
+} from "@/lib/billing/cancellation-reasons";
 import { formatPrice } from "@/lib/fmt";
 
 /**
@@ -6,18 +10,21 @@ import { formatPrice } from "@/lib/fmt";
  */
 const RENDERED_LENGTH_MAX = 256;
 
-/** Bounds a string to RENDERED_LENGTH_MAX code points, slicing by code point so surrogate pairs stay whole. */
-function boundLength(value: string): string {
+/** Slack rejects a section whose text exceeds 3000 characters. */
+const SECTION_TEXT_MAX = 3000;
+
+/** Bounds a string to `max` code points, slicing by code point so surrogate pairs stay whole. */
+function boundLength(value: string, max = RENDERED_LENGTH_MAX): string {
   // UTF-16 length is an upper bound on the code-point count, so a short string skips the
   // Array.from allocation entirely; only genuinely long values pay for the exact count.
-  if (value.length <= RENDERED_LENGTH_MAX) {
+  if (value.length <= max) {
     return value;
   }
   const codePoints = Array.from(value);
-  if (codePoints.length <= RENDERED_LENGTH_MAX) {
+  if (codePoints.length <= max) {
     return value;
   }
-  return `${codePoints.slice(0, RENDERED_LENGTH_MAX).join("")}…`;
+  return `${codePoints.slice(0, max).join("")}…`;
 }
 
 /**
@@ -95,15 +102,15 @@ export function mrkdwn(strings: TemplateStringsArray, ...values: SlackValue[]): 
 type MrkdwnText = { type: "mrkdwn"; text: Mrkdwn; verbatim: true };
 
 /**
- * A plain_text object. Slack renders it literally — no markup, no auto-linking — so it is only
- * ever fed our own copy (block titles, button labels), never a customer-controlled value.
+ * A plain_text object. Slack renders it literally (no markup, no auto-linking), so it carries our
+ * own copy and customer free text that must keep its line breaks, such as a cancellation comment.
  */
 type PlainText = { type: "plain_text"; text: string; emoji: true };
 
 type HeaderBlock = { type: "header"; text: PlainText };
 
 /** A section with a single line of text, `fields` for a two-column grid, or both. */
-type SectionBlock = { type: "section"; text?: MrkdwnText; fields?: MrkdwnText[] };
+type SectionBlock = { type: "section"; text?: MrkdwnText | PlainText; fields?: MrkdwnText[] };
 
 /** A link button. `url` is a separate field from any text, so it carries no injection risk. */
 type ButtonElement = { type: "button"; text: PlainText; url: string };
@@ -172,6 +179,10 @@ async function postToSlack(
 
 const section = (text: Mrkdwn): SectionBlock => {
   return { type: "section", text: mrkdwnText(text) };
+};
+
+const plainSection = (text: string): SectionBlock => {
+  return { type: "section", text: plainText(boundLength(text, SECTION_TEXT_MAX - 1)) };
 };
 
 const header = (text: string): HeaderBlock => {
@@ -246,6 +257,33 @@ export type CustomerLifecycleAlert = {
   livemode?: boolean;
 };
 
+type CustomerFacts = Pick<
+  CustomerLifecycleAlert,
+  "name" | "email" | "workspaceId" | "workspaceName" | "stripeCustomerId" | "livemode"
+>;
+
+function customerFields(alert: CustomerFacts): Mrkdwn[] {
+  const fields: Mrkdwn[] = [mrkdwn`*Customer*\n${alert.name}`, mrkdwn`*Email*\n${alert.email}`];
+  if (alert.workspaceName) {
+    fields.push(mrkdwn`*Workspace*\n${alert.workspaceName}`);
+  }
+  if (alert.workspaceId) {
+    fields.push(mrkdwn`*Workspace ID*\n${alert.workspaceId}`);
+  }
+  return fields;
+}
+
+function pushStripeCustomerButton(blocks: SlackBlock[], alert: CustomerFacts): void {
+  if (alert.stripeCustomerId) {
+    blocks.push(
+      linkButton(
+        "View customer in Stripe",
+        stripeCustomerUrl(alert.stripeCustomerId, alert.livemode ?? true),
+      ),
+    );
+  }
+}
+
 /**
  * Posts the Block Kit alert for a subscription-lifecycle event: a header naming the action, a
  * two-column grid of the customer/workspace/plan facts the team acts on, an optional standing
@@ -257,13 +295,7 @@ export async function alertCustomerLifecycle(
 ): Promise<SlackPostStatus> {
   const meta = ACTION_META[alert.action];
 
-  const fields: Mrkdwn[] = [mrkdwn`*Customer*\n${alert.name}`, mrkdwn`*Email*\n${alert.email}`];
-  if (alert.workspaceName) {
-    fields.push(mrkdwn`*Workspace*\n${alert.workspaceName}`);
-  }
-  if (alert.workspaceId) {
-    fields.push(mrkdwn`*Workspace ID*\n${alert.workspaceId}`);
-  }
+  const fields = customerFields(alert);
   if (alert.product) {
     fields.push(
       alert.previousProduct
@@ -279,18 +311,36 @@ export async function alertCustomerLifecycle(
   if (meta.note) {
     blocks.push(section(meta.note));
   }
-  if (alert.stripeCustomerId) {
-    blocks.push(
-      linkButton(
-        "View customer in Stripe",
-        stripeCustomerUrl(alert.stripeCustomerId, alert.livemode ?? true),
-      ),
-    );
-  }
+  pushStripeCustomerButton(blocks, alert);
 
   return postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, `subscription_${alert.action}`, {
     blocks,
   });
+}
+
+export type CancellationReasonAlert = CustomerFacts & {
+  product: string;
+  reason: CancellationReason;
+  comment: string | null;
+};
+
+export async function alertCancellationReason(
+  alert: CancellationReasonAlert,
+): Promise<SlackPostStatus> {
+  const blocks: SlackBlock[] = [
+    header(":speech_balloon: Cancellation reason"),
+    fieldsSection([
+      ...customerFields(alert),
+      mrkdwn`*Tier / Product*\n${alert.product}`,
+      mrkdwn`*Reason*\n${CANCELLATION_REASON_LABELS[alert.reason]}`,
+    ]),
+  ];
+  if (alert.comment) {
+    blocks.push(plainSection(alert.comment));
+  }
+  pushStripeCustomerButton(blocks, alert);
+
+  return postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "cancellation_reason", { blocks });
 }
 
 /**

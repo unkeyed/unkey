@@ -3,6 +3,7 @@
 import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { currentPlanState } from "@/lib/billing/plan-card-state";
+import { type BillingProduct, PRODUCT_LABELS } from "@/lib/billing/products";
 import { useFlag } from "@/lib/flags/provider";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -22,15 +23,11 @@ import {
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { ApiPlans } from "./api-plans";
+import type { CancelOutcome } from "./cancel-actions";
+import { CancellationFeedbackDialog } from "./cancellation-feedback-dialog";
 import { CREDITS_LINK_HREF, CREDITS_LINK_LABEL, planCreditsCopy } from "./compute-plan-copy";
 import { ComputePlans } from "./compute-plans";
-import {
-  type PaywallProduct,
-  type PaywallReason,
-  availableProducts,
-  defaultProduct,
-  paywallCopy,
-} from "./paywall-copy";
+import { type PaywallReason, availableProducts, defaultProduct, paywallCopy } from "./paywall-copy";
 
 type PlansScreenProps = {
   open: boolean;
@@ -39,7 +36,39 @@ type PlansScreenProps = {
   from?: DeployCheckoutOrigin;
 };
 
-export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: PlansScreenProps) {
+export function PlansScreen(props: PlansScreenProps) {
+  const [feedbackProduct, setFeedbackProduct] = useState<BillingProduct | null>(null);
+
+  return (
+    <>
+      <PlansDialog
+        {...props}
+        onCancelled={(product, { askFeedback }) => {
+          props.onOpenChange(false);
+          if (askFeedback) {
+            setFeedbackProduct(product);
+          }
+        }}
+      />
+      <CancellationFeedbackDialog
+        product={feedbackProduct}
+        onClose={() => setFeedbackProduct(null)}
+      />
+    </>
+  );
+}
+
+type PlansDialogProps = PlansScreenProps & {
+  onCancelled: (product: BillingProduct, outcome: CancelOutcome) => void;
+};
+
+function PlansDialog({
+  open,
+  onOpenChange,
+  reason,
+  from = "billing",
+  onCancelled,
+}: PlansDialogProps) {
   const { user } = useWorkspace();
   const isAdmin = user?.role === "admin";
   const deployBilling = useFlag("deployBilling");
@@ -77,8 +106,8 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     computeEnabled: deployBilling && !plansQuery.isError && plansQuery.data?.configured !== false,
   });
 
-  const [selectedProduct, setSelectedProduct] = useState<PaywallProduct | null>(null);
-  const [initialProduct, setInitialProduct] = useState<PaywallProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<BillingProduct | null>(null);
+  const [initialProduct, setInitialProduct] = useState<BillingProduct | null>(null);
   const choiceSettled =
     open &&
     (!wantsCompute || (!plansQuery.isLoading && !deployUsageQuery.isLoading)) &&
@@ -92,12 +121,12 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     );
   }
   const chosenProduct = [selectedProduct, initialProduct].find(
-    (product): product is PaywallProduct => product !== null && products.includes(product),
+    (product): product is BillingProduct => product !== null && products.includes(product),
   );
   const activeProduct = products.length > 1 ? (chosenProduct ?? null) : (products[0] ?? null);
 
   const close = () => onOpenChange(false);
-  const panels: Record<PaywallProduct, ReactNode> = {
+  const panels: Record<BillingProduct, ReactNode> = {
     compute: (
       <ComputePlans
         plans={copy.computePlans}
@@ -108,6 +137,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
         from={from}
         manage={copy.manage}
         onChanged={close}
+        onCancelled={(outcome) => onCancelled("compute", outcome)}
         signupCreditClaimed={subscriptionQuery.data?.signupCreditClaimed}
       />
     ),
@@ -118,6 +148,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
           manage={copy.manage}
           usedThisMonth={apiOperations ?? null}
           onChanged={close}
+          onCancelled={(outcome) => onCancelled("api", outcome)}
         />
       </div>
     ),
@@ -205,8 +236,3 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     </Dialog>
   );
 }
-
-const PRODUCT_LABELS: Record<PaywallProduct, string> = {
-  compute: "Compute",
-  api: "API",
-};

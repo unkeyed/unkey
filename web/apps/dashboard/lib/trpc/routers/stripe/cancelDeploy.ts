@@ -4,7 +4,10 @@ import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreator
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
-import { cancelDeploySubscription } from "@/lib/stripe/cancelDeploySubscription";
+import {
+  type DeploySubscriptionCancel,
+  cancelDeploySubscription,
+} from "@/lib/stripe/cancelDeploySubscription";
 import { deployPlanGrantsTeam } from "@/lib/stripe/deployPlan";
 import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import { TRPCError } from "@trpc/server";
@@ -27,9 +30,10 @@ export const cancelDeploy = workspaceProcedure
     // to teardown. Cancelling the Deploy subscription is now a native whole-
     // subscription cancel at period end, so no billing-config lookup is needed.
     const subscriptionId = ctx.workspace.stripeDeploySubscriptionId;
+    let stripeCancel: DeploySubscriptionCancel | "no-subscription" = "no-subscription";
     if (subscriptionId) {
       try {
-        await cancelDeploySubscription(getStripeClient(), subscriptionId);
+        stripeCancel = await cancelDeploySubscription(getStripeClient(), subscriptionId);
       } catch (error) {
         console.error("Stripe cancel for Compute failed:", error);
         throw new TRPCError({
@@ -77,4 +81,6 @@ export const cancelDeploy = workspaceProcedure
     if (ctx.workspace.tier === "Free" && deployPlanGrantsTeam(ctx.workspace.deployPlan)) {
       await deactivateNonCreatorMemberships(ctx.workspace.orgId);
     }
+
+    return { stripeCancel };
   });

@@ -32,19 +32,24 @@ export function CancelPlanLink({
   );
 }
 
+export type CancelOutcome = { askFeedback: boolean };
+
 export function CancelComputeDialog({
   open,
   onOpenChange,
+  onCancelled,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCancelled: (outcome: CancelOutcome) => void;
 }) {
   const trpcUtils = trpc.useUtils();
   const invalidateWorkspace = useInvalidateWorkspaceQueries();
 
   const cancel = trpc.stripe.cancelDeploy.useMutation({
-    onSuccess: async () => {
+    onSuccess: async ({ stripeCancel }) => {
       onOpenChange(false);
+      onCancelled({ askFeedback: stripeCancel === "scheduled" });
       toast.info("Compute cancelled");
       await Promise.all([
         trpcUtils.stripe.getDeploySubscription.invalidate(),
@@ -88,9 +93,11 @@ export function CancelComputeDialog({
 export function CancelApiDialog({
   open,
   onOpenChange,
+  onCancelled,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCancelled: (outcome: CancelOutcome) => void;
 }) {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
@@ -98,14 +105,15 @@ export function CancelApiDialog({
 
   const cancel = trpc.stripe.cancelSubscription.useMutation({
     onSuccess: async () => {
+      onOpenChange(false);
+      onCancelled({ askFeedback: true });
+      toast.info("Subscription cancelled");
       await Promise.all([
         invalidateWorkspace(),
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.stripe.getUpcomingInvoice.invalidate(),
       ]);
       router.refresh();
-      onOpenChange(false);
-      toast.info("Subscription cancelled");
     },
     onError: (err) => toast.error(err.message),
   });

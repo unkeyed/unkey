@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
+import type { BillingProduct } from "@/lib/billing/products";
 import type Stripe from "stripe";
-import type { SubscriptionProduct } from "./billingSubscriptions";
 import { isDeadSubscription } from "./subscriptionUtils";
 
 type SubscriptionCheckoutInput = {
   workspaceId: string;
-  product: SubscriptionProduct;
+  product: BillingProduct;
   customerId?: string;
   lineItems: NonNullable<Stripe.Checkout.SessionCreateParams["line_items"]>;
   successUrl: string;
