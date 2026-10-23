@@ -20,7 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// ErrInactive means the session row is missing, revoked, or past its idle expiry.
+// ErrInactive means the session row is missing, revoked, or expired.
 var ErrInactive = errors.New("cli session is not active")
 
 // Session is the non-secret state a resolver needs from the session row.

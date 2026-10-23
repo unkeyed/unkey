@@ -152,7 +152,7 @@ func TestPollIssuesASessionInsteadOfARootKey(t *testing.T) {
 	require.Equal(t, PollComplete, done.Status)
 	require.NotEmpty(t, done.AccessToken)
 	require.NotEmpty(t, done.RefreshToken)
-	require.Equal(t, int64(time.Hour/time.Second), done.ExpiresIn)
+	require.Equal(t, int64(accessTTL/time.Second), done.ExpiresIn)
 	require.Equal(t, workspace.ID, done.WorkspaceID)
 
 	verifier, err := tokenjwt.NewHS256Verifier[clisession.Claims]([]byte(testSecret),
@@ -259,9 +259,54 @@ func TestExpiredAndRevokedSessionsCannotRefresh(t *testing.T) {
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 
 	other := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
-	h.Clock.Tick(refreshIdle + time.Second)
+	h.Clock.Tick(sessionIdle + time.Second)
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: other.RefreshToken})
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+}
+
+func TestRefreshMovesTheIdleDeadline(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+
+	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	require.Equal(t, row.CreatedAt+sessionIdle.Milliseconds(), row.ExpiresAt)
+
+	h.Clock.Tick(24 * time.Hour)
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+	require.NoError(t, err)
+	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	require.Equal(t, h.Clock.Now().UnixMilli()+sessionIdle.Milliseconds(), row.ExpiresAt)
+}
+
+func TestActiveSessionEndsAtSessionMax(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	deadline := row.CreatedAt + sessionMax.Milliseconds()
+
+	refreshToken := tokens.RefreshToken
+	for h.Clock.Now().Add(sessionIdle-24*time.Hour).UnixMilli() < deadline {
+		h.Clock.Tick(sessionIdle - 24*time.Hour)
+		refreshed, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: refreshToken})
+		require.NoError(t, err)
+		refreshToken = refreshed.RefreshToken
+		row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+		require.NoError(t, err)
+		require.LessOrEqual(t, row.ExpiresAt, deadline)
+	}
+	require.Equal(t, deadline, row.ExpiresAt)
+
+	h.Clock.Set(time.UnixMilli(deadline))
+	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: refreshToken})
+	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
+	require.Contains(t, fault.UserFacingMessage(err), "no longer valid")
 }
 
 func TestRootKeyCannotApprove(t *testing.T) {

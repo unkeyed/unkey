@@ -121,7 +121,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			RefreshFamily:    family,
 			CreatedAt:        now,
 			LastUsedAt:       now,
-			ExpiresAt:        now + refreshIdle.Milliseconds(),
+			ExpiresAt:        sessionExpiry(now, now),
 		}); err != nil {
 			return err
 		}

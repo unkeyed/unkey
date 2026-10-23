@@ -3326,8 +3326,10 @@ type V2CliListSessionsResponseData struct {
 
 // V2CliListSessionsSession defines model for V2CliListSessionsSession.
 type V2CliListSessionsSession struct {
-	CreatedAt   int64    `json:"createdAt"`
-	DeviceName  *string  `json:"deviceName,omitempty"`
+	CreatedAt  int64   `json:"createdAt"`
+	DeviceName *string `json:"deviceName,omitempty"`
+
+	// ExpiresAt Unix millisecond time the session expires. Each refresh moves it to 7 days later, but never past 30 days after createdAt.
 	ExpiresAt   int64    `json:"expiresAt"`
 	Id          string   `json:"id"`
 	LastUsedAt  int64    `json:"lastUsedAt"`
@@ -3360,7 +3362,7 @@ type V2CliPollDeviceLoginResponseData struct {
 	// Detail Human-readable reason for a terminal status.
 	Detail *string `json:"detail,omitempty"`
 
-	// ExpiresIn Seconds until the access token expires. Present only when status is complete.
+	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
 	ExpiresIn *int64 `json:"expiresIn,omitempty"`
 
 	// Interval Seconds to wait before polling again.
@@ -3400,7 +3402,7 @@ type V2CliRefreshTokenResponseBody struct {
 type V2CliRefreshTokenResponseData struct {
 	AccessToken string `json:"accessToken"`
 
-	// ExpiresIn Seconds until the access token expires.
+	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes.
 	ExpiresIn int64 `json:"expiresIn"`
 
 	// RefreshToken The next refresh token. The previous one no longer works.

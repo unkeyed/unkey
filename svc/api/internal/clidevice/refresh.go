@@ -93,7 +93,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 			PreviousRefreshTokenHash: sql.NullString{String: currentHash, Valid: true},
 			RotatedAt:                sql.NullInt64{Int64: now, Valid: true},
 			LastUsedAt:               now,
-			ExpiresAt:                now + refreshIdle.Milliseconds(),
+			ExpiresAt:                sessionExpiry(row.CreatedAt, now),
 			Permissions:              permsJSON,
 			ID:                       row.ID,
 			CurrentRefreshTokenHash:  currentHash,

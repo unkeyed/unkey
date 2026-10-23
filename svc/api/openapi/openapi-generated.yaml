@@ -5467,6 +5467,7 @@ components:
                 expiresAt:
                     type: integer
                     format: int64
+                    description: Unix millisecond time the session expires. Each refresh moves it to 7 days later, but never past 30 days after createdAt.
                 revokedAt:
                     type: integer
                     format: int64
@@ -5504,7 +5505,7 @@ components:
                 expiresIn:
                     type: integer
                     format: int64
-                    description: Seconds until the access token expires. Present only when status is complete.
+                    description: Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
                 workspaceId:
                     type: string
                     description: Workspace the session belongs to. Present only when status is complete.
@@ -5530,7 +5531,7 @@ components:
                 expiresIn:
                     type: integer
                     format: int64
-                    description: Seconds until the access token expires.
+                    description: Seconds until the access token expires. Access tokens last 15 minutes.
                 workspaceId:
                     type: string
                 sessionId:
@@ -10802,6 +10803,7 @@ paths:
                 Exchanges a CLI refresh token for a new access token and a new refresh token.
                 The user's current role is checked again. If they were removed, or their role no longer includes any of the session's permissions, the session is revoked.
                 Reusing an old refresh token revokes the session.
+                Access tokens last 15 minutes. A session expires after 7 days without a refresh, and 30 days after login even when it is refreshed.
                 No authentication header is required. The refresh token is the credential.
             operationId: cli.refreshToken
             requestBody:
