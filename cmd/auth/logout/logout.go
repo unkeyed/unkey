@@ -16,6 +16,7 @@ import (
 func New() *cli.Command {
 	return &cli.Command{
 		Name:        "logout",
+		RootAliases: []string{"logout"},
 		Usage:       "Revoke the active CLI session",
 		Description: "Revokes the active CLI session on the server and deletes it from this machine.",
 		Flags:       []cli.Flag{util.APIURLFlag()},
