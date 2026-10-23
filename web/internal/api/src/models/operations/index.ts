@@ -6,6 +6,7 @@ export * from "./apislistkeys.js";
 export * from "./appslistapps.js";
 export * from "./deploymentslistdeployments.js";
 export * from "./identitieslistidentities.js";
+export * from "./logslistapirequests.js";
 export * from "./permissionslistpermissions.js";
 export * from "./permissionslistroles.js";
 export * from "./portalcreatesession.js";

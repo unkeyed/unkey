@@ -24,6 +24,7 @@ var developerPermissions = []resourcePermission{
 	{resource: "usage", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "flags", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "flags", action: rbac.ActionType(rbacpermissions.Write)},
+	{resource: "logs/apiRequests", action: rbac.ActionType(rbacpermissions.Read)},
 
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Write)},
@@ -99,6 +100,7 @@ var viewerPermissions = []resourcePermission{
 	{resource: "limits", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "usage", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "flags", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "logs/apiRequests", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Read)},

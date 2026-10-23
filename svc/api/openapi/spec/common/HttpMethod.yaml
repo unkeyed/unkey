@@ -1,0 +1,11 @@
+type: string
+enum:
+  - GET
+  - POST
+  - PUT
+  - PATCH
+  - DELETE
+  - HEAD
+  - OPTIONS
+description: An HTTP method in upper case.
+example: POST

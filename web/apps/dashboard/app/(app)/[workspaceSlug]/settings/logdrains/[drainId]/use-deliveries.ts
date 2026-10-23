@@ -1,5 +1,7 @@
 "use client";
 
+import { listOf } from "@/lib/loadable/list";
+import { fromQuery } from "@/lib/loadable/loadable";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -17,8 +19,7 @@ export function detailText(delivery: Delivery): string {
 }
 
 export function useDeliveries(drainId: string) {
-  const query = trpc.logdrain.recentDeliveries.useQuery({ drainId });
-  return { deliveries: query.data, isError: query.isError, retry: () => query.refetch() };
+  return listOf(fromQuery(trpc.logdrain.recentDeliveries.useQuery({ drainId })));
 }
 
 type DeliveryTotals = {

@@ -3,7 +3,7 @@ import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview
 import { LLMSearch, toast } from "@unkey/ui";
 import { useRef } from "react";
 type Props = {
-  apiList: ApiOverview[];
+  apiList: readonly ApiOverview[];
   onApiListChange: (apiList: ApiOverview[]) => void;
   onSearch: (value: boolean) => void;
 };
