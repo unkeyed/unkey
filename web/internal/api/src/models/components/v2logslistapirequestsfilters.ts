@@ -39,7 +39,7 @@ export type V2LogsListApiRequestsFilters = {
    * Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
    *
    * @remarks
-   * Unkey keeps only rows inside the workspace's retention. A lower bound older than the retention start has no effect.
+   * Rows older than the workspace's retention are never returned or counted, whatever the bounds.
    */
   time?: TimeFilter | undefined;
   /**
