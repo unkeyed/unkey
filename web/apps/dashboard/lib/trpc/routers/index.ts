@@ -50,7 +50,6 @@ import { generateDeploymentTree } from "./deploy/legacy/network/generate";
 import { getDeploymentTree } from "./deploy/legacy/network/get";
 import { getInstanceRps } from "./deploy/legacy/network/get-instance-rps";
 import { getRegionRps } from "./deploy/legacy/network/get-region-rps";
-import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
@@ -320,7 +319,6 @@ export const router = t.router({
       instances: appMetricsInstances,
     }),
     metrics: t.router({
-      getAppRpsMetrics,
       getDeploymentRpsMetrics,
       getDeploymentLatencyMetrics,
       getDeploymentCpuTimeseries,
