@@ -19,7 +19,6 @@ import {
   type LineTone,
   type UsageCell,
   instanceSrLabel,
-  instanceStatusText,
 } from "./instances-model";
 
 const COLUMNS =
@@ -65,9 +64,9 @@ export function InstanceTable({
                 <span className={cn("truncate text-xs", TONE_TEXT[tone].name)}>{instance.key}</span>
                 <span
                   className={cn("truncate text-xs", TONE_TEXT[tone].status)}
-                  title={instanceStatusText(instance)}
+                  title={instance.statusText}
                 >
-                  {instanceStatusText(instance)}
+                  {instance.statusText}
                 </span>
                 <span className="flex min-w-0 items-center gap-1.5 text-xs text-gray-11">
                   <RegionFlag region={instance.region.name} shape="rect" size="xs" />
