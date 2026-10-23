@@ -1,12 +1,12 @@
 import { lastExitOf } from "@/lib/collections/deploy/last-exit";
-import { db } from "@/lib/db";
+import { and, db, eq, inArray, ne, schema } from "@/lib/db";
 import type { InstanceRow } from "@/lib/metrics/app-metrics";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { currentDeploymentId, deployRole } from "./current-deployment";
 import { deploySourceOf } from "./deploy-markers";
 import {
+  type EnvironmentScope,
   environmentScopeInput,
-  liveInstancesOf,
   loadEnvironmentScope,
   loadProductionRouting,
 } from "./scope";
@@ -78,3 +78,24 @@ export const appMetricsInstances = workspaceProcedure
       },
     }));
   });
+
+function liveInstancesOf(scope: EnvironmentScope) {
+  const d = schema.deployments;
+  const i = schema.instances;
+  const environmentDeployments = db
+    .select({ id: d.id })
+    .from(d)
+    .where(
+      and(
+        eq(d.workspaceId, scope.workspaceId),
+        eq(d.appId, scope.appId),
+        eq(d.environmentId, scope.environmentId),
+      ),
+    );
+  return and(
+    eq(i.workspaceId, scope.workspaceId),
+    eq(i.appId, scope.appId),
+    inArray(i.deploymentId, environmentDeployments),
+    ne(i.status, "inactive"),
+  );
+}

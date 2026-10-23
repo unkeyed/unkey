@@ -27,7 +27,7 @@ import {
   needsInstanceSeries,
   resolveEnvironment,
 } from "./model";
-import { type OpenReplica, replicaSheetModel, stoppedReplicaOf } from "./replica-model";
+import { type OpenReplica, replicaSheetModel, seriesInstancesOf } from "./replica-model";
 
 const DEFAULT_RANGE: RangePreset = "24h";
 
@@ -61,8 +61,7 @@ export function useMetricsPage() {
   const instances = useMetricInstances(scope, perInstance);
   const byInstance = useMetricSourceByInstance(
     scope,
-    perInstance,
-    stoppedReplicaOf(openReplica, instances),
+    seriesInstancesOf(openReplica, scope?.environmentId ?? null, instances),
   );
   const deploys = useDeployMarkers(scope);
 

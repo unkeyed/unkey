@@ -1,4 +1,4 @@
-import { and, db, desc, eq, gte, inArray, lt, ne, or, schema, sql } from "@/lib/db";
+import { and, db, desc, eq, gte, lt, or, schema, sql } from "@/lib/db";
 import { RANGE_PRESETS, clampedGrid, rollupsServe } from "@/lib/metrics/app-metrics";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -11,12 +11,6 @@ export const environmentScopeInput = z.object({
 export const metricsScopeInput = environmentScopeInput.extend({
   range: z.enum(RANGE_PRESETS),
   endMs: z.number().int().nonnegative(),
-});
-
-// A stopped pod has no MySQL row any more, so an open replica sheet names it to
-// keep its last usage in the series.
-export const instanceSeriesInput = metricsScopeInput.extend({
-  stoppedInstance: z.string().nullable(),
 });
 
 export type EnvironmentScope = Awaited<ReturnType<typeof loadEnvironmentScope>>;
@@ -97,27 +91,6 @@ export function loadMarkerDeployments(scope: MetricsScope) {
         or(gte(d.firstReadyAt, startMs), eq(d.id, sql`(${servingAtStart})`)),
       ),
     );
-}
-
-export function liveInstancesOf(scope: EnvironmentScope) {
-  const d = schema.deployments;
-  const i = schema.instances;
-  const environmentDeployments = db
-    .select({ id: d.id })
-    .from(d)
-    .where(
-      and(
-        eq(d.workspaceId, scope.workspaceId),
-        eq(d.appId, scope.appId),
-        eq(d.environmentId, scope.environmentId),
-      ),
-    );
-  return and(
-    eq(i.workspaceId, scope.workspaceId),
-    eq(i.appId, scope.appId),
-    inArray(i.deploymentId, environmentDeployments),
-    ne(i.status, "inactive"),
-  );
 }
 
 export function orThrow<T>(result: { val?: T; err?: Error }): T {

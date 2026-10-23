@@ -96,15 +96,20 @@ export type ReplicaSheetModel = {
   usage: ReplicaUsage;
 };
 
-export function stoppedReplicaOf(
+// An open sheet keeps its pod in the series after the pod stops
+export function seriesInstancesOf(
   open: OpenReplica | null,
+  environmentId: string | null,
   instances: Loadable<InstanceRow[]>,
-): string | null {
-  if (!open || instances.status !== "ready") {
+): string[] | null {
+  if (instances.status !== "ready") {
     return null;
   }
-  const live = instances.data.some((row) => row.instanceId === open.row.instanceId);
-  return live ? null : open.row.replica.k8sName;
+  const names = instances.data.map((row) => row.replica.k8sName);
+  if (open && open.environmentId === environmentId) {
+    names.push(open.row.replica.k8sName);
+  }
+  return [...new Set(names)].sort();
 }
 
 export function replicaSheetModel({

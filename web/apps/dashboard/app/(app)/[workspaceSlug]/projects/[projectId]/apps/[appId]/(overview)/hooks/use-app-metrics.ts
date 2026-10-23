@@ -58,14 +58,13 @@ export function useDeployMarkers(scope: AppMetricsScope | null) {
 
 export function useMetricSourceByInstance(
   scope: AppMetricsScope | null,
-  enabled: boolean,
-  stoppedInstance: string | null,
+  instances: string[] | null,
 ) {
   const query = trpc.deploy.appMetrics.sourceByInstance.useQuery(
-    { ...inputOf(scope), stoppedInstance },
+    { ...inputOf(scope), instances: instances ?? [] },
     {
       ...CLOCK_DRIVEN,
-      enabled: enabled && scope !== null,
+      enabled: instances !== null && scope !== null,
     },
   );
   return useHeldAcrossTicks(scope, query);
