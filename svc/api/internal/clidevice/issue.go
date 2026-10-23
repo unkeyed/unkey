@@ -1,10 +1,10 @@
 package clidevice
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -57,7 +57,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 	if err != nil {
 		return PollResult{}, err
 	}
-	if workspace.DeletedAtM.Valid || !workspace.Enabled || strings.TrimSpace(workspace.OrgID) == "" {
+	if !workspaceUsable(workspace) {
 		if err := s.denyAuthorization(ctx, row.ID); err != nil {
 			return PollResult{}, err
 		}
@@ -107,7 +107,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		if locked.Status == db.DeviceAuthorizationsStatusConsumed {
 			return alreadyIssued()
 		}
-		if locked.Status != db.DeviceAuthorizationsStatusApproved {
+		if locked.Status != db.DeviceAuthorizationsStatusApproved || approvalChanged(row, locked) {
 			result = waitingPoll()
 			return nil
 		}
@@ -136,7 +136,17 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			return alreadyIssued()
 		}
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
-		if err := s.writeAudit(ctx, tx, auditlog.CLISessionCreateEvent, "Created CLI session "+sessionID, locked.ApproverUserID.String, locked.ApproverName.String, workspace.ID, sessionID, locked.DeviceName.String, remoteIP, userAgent); err != nil {
+		if err := s.writeAudit(ctx, tx, auditEntry{
+			Event:       auditlog.CLISessionCreateEvent,
+			Display:     "Created CLI session " + sessionID,
+			UserID:      locked.ApproverUserID.String,
+			UserName:    locked.ApproverName.String,
+			WorkspaceID: workspace.ID,
+			SessionID:   sessionID,
+			DeviceName:  locked.DeviceName.String,
+			RemoteIP:    remoteIP,
+			UserAgent:   userAgent,
+		}); err != nil {
 			return err
 		}
 		result = PollResult{
@@ -152,6 +162,13 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		return nil
 	})
 	return result, err
+}
+
+func approvalChanged(read db.DeviceAuthorization, locked db.DeviceAuthorization) bool {
+	return read.ApprovedAt != locked.ApprovedAt ||
+		read.ApproverUserID != locked.ApproverUserID ||
+		read.WorkspaceID != locked.WorkspaceID ||
+		!bytes.Equal(read.Permissions, locked.Permissions)
 }
 
 func (s *Service) denyAuthorization(ctx context.Context, id string) error {
