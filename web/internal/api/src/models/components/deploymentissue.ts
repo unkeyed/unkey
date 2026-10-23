@@ -6,8 +6,14 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
-import { DeploymentIssueMeta, DeploymentIssueMeta$inboundSchema } from "./deploymentissuemeta.js";
-import { DeploymentIssueType, DeploymentIssueType$inboundSchema } from "./deploymentissuetype.js";
+import {
+  DeploymentIssueMeta,
+  DeploymentIssueMeta$inboundSchema,
+} from "./deploymentissuemeta.js";
+import {
+  DeploymentIssueType,
+  DeploymentIssueType$inboundSchema,
+} from "./deploymentissuetype.js";
 
 export type DeploymentIssue = {
   /**
@@ -47,13 +53,16 @@ export type DeploymentIssue = {
 };
 
 /** @internal */
-export const DeploymentIssue$inboundSchema: z.ZodType<DeploymentIssue, z.ZodTypeDef, unknown> =
-  z.object({
-    type: DeploymentIssueType$inboundSchema,
-    time: z.number().int().optional(),
-    message: z.string(),
-    meta: DeploymentIssueMeta$inboundSchema.optional(),
-  });
+export const DeploymentIssue$inboundSchema: z.ZodType<
+  DeploymentIssue,
+  z.ZodTypeDef,
+  unknown
+> = z.object({
+  type: DeploymentIssueType$inboundSchema,
+  time: z.number().int().optional(),
+  message: z.string(),
+  meta: DeploymentIssueMeta$inboundSchema.optional(),
+});
 
 export function deploymentIssueFromJSON(
   jsonString: string,
