@@ -105,13 +105,9 @@ type HeaderBlock = { type: "header"; text: PlainText };
 /** A section with a single line of text, `fields` for a two-column grid, or both. */
 type SectionBlock = { type: "section"; text?: MrkdwnText; fields?: MrkdwnText[] };
 
-/** A link button. `url` is a separate field from any text, so it carries no injection risk. */
-type ButtonElement = { type: "button"; text: PlainText; url: string };
-type ActionsBlock = { type: "actions"; elements: ButtonElement[] };
-
 type ContextBlock = { type: "context"; elements: MrkdwnText[] };
 
-type SlackBlock = HeaderBlock | SectionBlock | ActionsBlock | ContextBlock;
+type SlackBlock = HeaderBlock | SectionBlock | ContextBlock;
 
 const mrkdwnText = (text: Mrkdwn): MrkdwnText => {
   return { type: "mrkdwn", text, verbatim: true };
@@ -186,9 +182,19 @@ const fieldsSection = (fields: Mrkdwn[]): SectionBlock => {
   return { type: "section", fields: fields.map(mrkdwnText) };
 };
 
-const linkButton = (label: string, url: string): ActionsBlock => {
-  return { type: "actions", elements: [{ type: "button", text: plainText(label), url }] };
+const context = (text: Mrkdwn): ContextBlock => {
+  return { type: "context", elements: [mrkdwnText(text)] };
 };
+
+function stripeCustomerBlocks(customerId: string | undefined, livemode = true): SlackBlock[] {
+  if (!customerId) {
+    return [];
+  }
+  return [
+    section(mrkdwn`<${stripeCustomerUrl(customerId, livemode)}|View customer in Stripe>`),
+    context(mrkdwn`Stripe customer: \`${customerId}\``),
+  ];
+}
 
 /**
  * A deep link to the customer in the Stripe dashboard. Test-mode objects live under `/test`, so
@@ -200,10 +206,6 @@ export function stripeCustomerUrl(customerId: string, livemode: boolean): string
   return `${base}/customers/${encodeURIComponent(customerId)}`;
 }
 
-/**
- * The subscription-lifecycle action an alert announces. These are the states the team watches in
- * the customers channel; each maps to a header emoji, a title, and an optional standing note.
- */
 export type CustomerAlertAction =
   | "signup"
   | "upgrade"
@@ -212,19 +214,16 @@ export type CustomerAlertAction =
   | "cancelling"
   | "cancelled";
 
-const ACTION_META: Record<CustomerAlertAction, { emoji: string; title: string; note?: Mrkdwn }> = {
-  signup: { emoji: ":bugeyes:", title: "New customer signup" },
-  upgrade: { emoji: ":stonks:", title: "Subscription upgraded" },
-  downgrade: { emoji: ":notstonks:", title: "Subscription downgraded" },
-  update: { emoji: ":stonks:", title: "Subscription updated" },
+const ACTION_META: Record<CustomerAlertAction, { title: string; note?: Mrkdwn }> = {
+  signup: { title: "New customer signup" },
+  upgrade: { title: "Subscription upgraded" },
+  downgrade: { title: "Subscription downgraded" },
+  update: { title: "Subscription updated" },
   cancelling: {
-    emoji: ":warning:",
     title: "Subscription cancelling",
-    // note is our own copy; it goes through the tag so the type checks, escaping is a no-op.
     note: mrkdwn`They stay on their plan until the end of the billing period, then move back to the free tier. Worth reaching out to learn why.`,
   },
   cancelled: {
-    emoji: ":caleb-sad:",
     title: "Subscription cancelled",
     note: mrkdwn`They've been moved back to the free tier.`,
   },
@@ -249,49 +248,47 @@ export type CustomerLifecycleAlert = {
   livemode?: boolean;
 };
 
-/**
- * Posts the Block Kit alert for a subscription-lifecycle event: a header naming the action, a
- * two-column grid of the customer/workspace/plan facts the team acts on, an optional standing
- * note, and a button deep-linking to the customer in Stripe. Fields that are absent (e.g. no
- * price on a cancellation) are simply omitted so the grid never shows a blank cell.
- */
 export async function alertCustomerLifecycle(
   alert: CustomerLifecycleAlert,
 ): Promise<SlackPostStatus> {
   const meta = ACTION_META[alert.action];
+  const plan = alert.product
+    ? alert.previousProduct
+      ? `${alert.previousProduct} → ${alert.product}`
+      : alert.product
+    : undefined;
+  const planDetails = [plan, alert.price].filter(Boolean).join(" · ");
 
-  const fields: Mrkdwn[] = [mrkdwn`*Customer*\n${alert.name}`, mrkdwn`*Email*\n${alert.email}`];
-  if (alert.workspaceName) {
-    fields.push(mrkdwn`*Workspace*\n${alert.workspaceName}`);
-  }
-  if (alert.workspaceId) {
-    fields.push(mrkdwn`*Workspace ID*\n\`${alert.workspaceId}\``);
-  }
-  if (alert.product) {
-    fields.push(
-      alert.previousProduct
-        ? mrkdwn`*Tier / Product*\n${alert.previousProduct} → ${alert.product}`
-        : mrkdwn`*Tier / Product*\n${alert.product}`,
-    );
-  }
-  if (alert.price) {
-    fields.push(mrkdwn`*Price*\n${alert.price}`);
-  }
-
-  const blocks: SlackBlock[] = [header(`${meta.emoji} ${meta.title}`), fieldsSection(fields)];
+  const blocks: SlackBlock[] = [header(meta.title)];
   if (meta.note) {
     blocks.push(section(meta.note));
   }
-  if (alert.stripeCustomerId) {
-    blocks.push(
-      linkButton(
-        "View customer in Stripe",
-        stripeCustomerUrl(alert.stripeCustomerId, alert.livemode ?? true),
-      ),
-    );
+  const fields: Mrkdwn[] = [];
+  if (alert.workspaceName) {
+    fields.push(mrkdwn`*Workspace*\n${alert.workspaceName}`);
   }
-
+  if (planDetails) {
+    fields.push(plan ? mrkdwn`*Plan*\n${planDetails}` : mrkdwn`*Price*\n${planDetails}`);
+  }
+  if (fields.length > 0) {
+    blocks.push(fieldsSection(fields));
+  }
+  blocks.push(section(mrkdwn`*Customer*\n${alert.name}\n${alert.email}`));
+  blocks.push(...stripeCustomerBlocks(alert.stripeCustomerId, alert.livemode));
+  if (alert.workspaceId) {
+    blocks.push(context(mrkdwn`Workspace ID: \`${alert.workspaceId}\``));
+  }
+  const summary = [
+    `${meta.title}.`,
+    `Customer: ${alert.name} (${alert.email}).`,
+    alert.workspaceName ? `Workspace: ${alert.workspaceName}.` : undefined,
+    planDetails ? `${plan ? "Plan" : "Price"}: ${planDetails}.` : undefined,
+    meta.note,
+  ]
+    .filter(Boolean)
+    .join(" ");
   return postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, `subscription_${alert.action}`, {
+    text: mrkdwn`${summary}`,
     blocks,
   });
 }
@@ -308,41 +305,31 @@ export type PaymentAlert = {
   livemode?: boolean;
 };
 
-/** Shared renderer for the two payment alerts: header, customer/amount grid, note, Stripe link. */
 async function alertPayment(
   alert: PaymentAlert,
   kind: "failed" | "recovered",
-  emoji: string,
   title: string,
   note: Mrkdwn,
 ): Promise<void> {
+  const amount = formatPrice(alert.amount);
   const blocks: SlackBlock[] = [
-    header(`${emoji} ${title}`),
-    fieldsSection([
-      mrkdwn`*Customer*\n${alert.name}`,
-      mrkdwn`*Email*\n${alert.email}`,
-      // formatPrice renders USD; the invoice currency is not shown.
-      mrkdwn`*Amount*\n${formatPrice(alert.amount)}`,
-    ]),
+    header(title),
     section(note),
+    section(mrkdwn`*Amount*\n${amount}`),
+    section(mrkdwn`*Customer*\n${alert.name}\n${alert.email}`),
+    ...stripeCustomerBlocks(alert.stripeCustomerId, alert.livemode),
   ];
-  if (alert.stripeCustomerId) {
-    blocks.push(
-      linkButton(
-        "View customer in Stripe",
-        stripeCustomerUrl(alert.stripeCustomerId, alert.livemode ?? true),
-      ),
-    );
-  }
 
-  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, `payment_${kind}`, { blocks });
+  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, `payment_${kind}`, {
+    text: mrkdwn`${title}: ${amount}. Customer: ${alert.name} (${alert.email}). ${note}`,
+    blocks,
+  });
 }
 
 export async function alertPaymentFailed(alert: PaymentAlert): Promise<void> {
   await alertPayment(
     alert,
     "failed",
-    ":warning:",
     "Payment failed",
     mrkdwn`We should reach out to help resolve the payment issue.`,
   );
@@ -352,7 +339,6 @@ export async function alertPaymentRecovered(alert: PaymentAlert): Promise<void> 
   await alertPayment(
     alert,
     "recovered",
-    ":tada:",
     "Payment recovered",
     mrkdwn`Payment went through after a previous failure. Their service should now be restored.`,
   );
