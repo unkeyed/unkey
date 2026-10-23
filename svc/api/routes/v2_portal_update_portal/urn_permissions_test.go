@@ -119,8 +119,15 @@ func TestUpdatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 				return
 			}
 
-			require.Equal(t, http.StatusNotFound, res.Status,
-				"expected a masked 404 for %s#%s, got: %s", tc.resource, tc.action, res.RawBody)
+			if tc.action == "read" {
+				require.Equal(t, http.StatusForbidden, res.Status,
+					"a portal reader must learn the missing write permission: %s", res.RawBody)
+				require.Contains(t, res.RawBody, "#write")
+				require.Contains(t, res.RawBody, "update_portal")
+			} else {
+				require.Equal(t, http.StatusNotFound, res.Status,
+					"expected a masked 404 for %s#%s, got: %s", tc.resource, tc.action, res.RawBody)
+			}
 			require.NotContains(t, res.RawBody, projectID,
 				"a denial must not disclose the project id")
 			require.NotEqual(t, displayName, fetchPortal(t, h, workspace.ID, stored.ID).DisplayName,
