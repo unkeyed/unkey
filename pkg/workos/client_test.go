@@ -76,9 +76,7 @@ func TestMemberEmailsAndAdminEmails(t *testing.T) {
 				http.NotFound(w, r)
 			}))
 			t.Cleanup(server.Close)
-			c, ok := New("test-key", "").(*client)
-			require.True(t, ok)
-			c.baseURL = server.URL
+			c := New("test-key", server.URL)
 			lookup := c.MemberEmails
 			want := []string{"member@example.com", "admin@example.com"}
 			if adminsOnly {
@@ -119,9 +117,7 @@ func TestMemberEmailsPropagatesProviderErrors(t *testing.T) {
 				assert.NoError(t, json.NewEncoder(w).Encode(user{Email: "member@example.com"}))
 			}))
 			t.Cleanup(server.Close)
-			c, ok := New("test-key", "").(*client)
-			require.True(t, ok)
-			c.baseURL = server.URL
+			c := New("test-key", server.URL)
 			emails, err := c.MemberEmails(t.Context(), uid.New(uid.TestPrefix))
 			require.Error(t, err)
 			require.Nil(t, emails)
