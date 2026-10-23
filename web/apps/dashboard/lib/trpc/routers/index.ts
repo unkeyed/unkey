@@ -42,6 +42,10 @@ import { renameEnvVars } from "./deploy/env-vars/rename";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
 import { generateRegex } from "./deploy/environment-settings/policies/generate-regex";
+import { generateDeploymentTree } from "./deploy/legacy/network/generate";
+import { getDeploymentTree } from "./deploy/legacy/network/get";
+import { getInstanceRps } from "./deploy/legacy/network/get-instance-rps";
+import { getRegionRps } from "./deploy/legacy/network/get-region-rps";
 import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
@@ -258,6 +262,12 @@ export const router = t.router({
     }),
   }),
   deploy: t.router({
+    network: t.router({
+      generate: generateDeploymentTree,
+      get: getDeploymentTree,
+      getInstanceRps,
+      getRegionRps,
+    }),
     project: t.router({
       creationContext,
       getDefault: getDefaultProject,

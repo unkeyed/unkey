@@ -12,6 +12,7 @@ import {
   type DeploymentStatus,
 } from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
+import { latestExitAcross } from "./last-exit";
 import { type ParsedFilter, extractStringFilter, extractStringValues } from "./utils";
 
 const regionSchema = z.object({
@@ -85,6 +86,8 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
+  // The latest exit across instances, for the pre-app_v2 pages
+  lastExit: lastExitSchema.nullable(),
 });
 
 export type Deployment = z.infer<typeof deploymentSchema>;
@@ -222,6 +225,7 @@ function toDeployment(
     createdAt: deployment.createdAt,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
+    lastExit: latestExitAcross(details.instances),
   };
 }
 
