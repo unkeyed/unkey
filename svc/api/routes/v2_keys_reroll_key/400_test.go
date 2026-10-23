@@ -26,7 +26,7 @@ func TestRerollKeyBadRequest(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, "*", "*", "*", "write"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

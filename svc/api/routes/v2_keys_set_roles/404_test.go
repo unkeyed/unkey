@@ -34,7 +34,7 @@ func TestNotFoundErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -224,7 +224,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		// Create a role in the other workspace
 		otherRoleID := uid.New(uid.TestPrefix)
-		otherRoleName := "other-workspace-role"
+		otherRoleName := uid.New("other-workspace-role")
 		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      otherRoleID,
 			WorkspaceID: otherWorkspaceID,

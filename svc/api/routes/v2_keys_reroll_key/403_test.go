@@ -72,7 +72,7 @@ func TestRerollKeyForbidden(t *testing.T) {
 
 	t.Run("wrong permission - has read but not create", func(t *testing.T) {
 		// Create root key with read permission instead of create
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -86,7 +86,7 @@ func TestRerollKeyForbidden(t *testing.T) {
 
 	t.Run("permission for different API", func(t *testing.T) {
 		// Create root key with create permission for other API
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.create_key", otherApi.ID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, otherApi.ProjectID, otherApi.KeyAuthID.String, "*", "write"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -118,7 +118,7 @@ func TestRerollKeyForbidden(t *testing.T) {
 
 	t.Run("reroll recoverable key without perms", func(t *testing.T) {
 		// Create root key with permission that partially matches but isn't sufficient because no encryption permission
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "read"))
 
 		req := handler.Request{
 			KeyId:      encryptedKey.KeyID,

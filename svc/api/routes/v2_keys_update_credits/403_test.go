@@ -65,7 +65,7 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 
 	t.Run("wrong permission - has create but not update", func(t *testing.T) {
 		// Create root key with read permission instead of create
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID, "read"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -82,7 +82,7 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 		differentWorkspace := h.CreateWorkspace()
 
 		// Create a root key for the different workspace with full permissions
-		rootKey := h.CreateRootKey(differentWorkspace.ID, "api.*.update_key")
+		rootKey := h.CreateRootKey(differentWorkspace.ID, rootKeyGrant(differentWorkspace.ID, api.ProjectID, api.KeyAuthID.String, "*", "write"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -96,7 +96,7 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 
 	t.Run("cross api access", func(t *testing.T) {
 		// Create root key with read permission for a single api
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.update_key", diffApi.ID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rootKeyGrant(h.Resources().UserWorkspace.ID, diffApi.ProjectID, diffApi.KeyAuthID.String, "*", "write"))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

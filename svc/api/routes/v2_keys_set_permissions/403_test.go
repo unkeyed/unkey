@@ -59,11 +59,12 @@ func TestForbidden(t *testing.T) {
 	})
 
 	permissionID := uid.New(uid.PermissionPrefix)
+	permissionSlug := uid.New("documents.read.forbidden")
 	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  workspace.ID,
-		Name:         "documents.read.forbidden",
-		Slug:         "documents.read.forbidden",
+		Name:         permissionSlug,
+		Slug:         permissionSlug,
 		Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 	})
 	require.NoError(t, err)
@@ -75,7 +76,7 @@ func TestForbidden(t *testing.T) {
 
 	t.Run("missing update_key permission", func(t *testing.T) {
 		// Create root key without the required permission
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key") // Wrong permission
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#read", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -119,7 +120,7 @@ func TestForbidden(t *testing.T) {
 
 	t.Run("insufficient permissions", func(t *testing.T) {
 		// Create root key with related but insufficient permissions
-		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.create_key") // Missing update_key
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#read", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -141,7 +142,7 @@ func TestForbidden(t *testing.T) {
 
 	t.Run("permission for different resource", func(t *testing.T) {
 		// Create root key with permission for different resource
-		rootKey := h.CreateRootKey(workspace.ID, "identity.*.update_identity") // Wrong resource type
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/rbac/permissions/*#write", workspace.ID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
