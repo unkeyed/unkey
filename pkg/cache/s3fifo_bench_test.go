@@ -68,18 +68,51 @@ func zipfKeys(keyCount uint64) []string {
 //	set_evict   writes keys from a set of 1,000,000, so almost every write evicts
 //	get_or_set  reads a key from a set of 100,000 and writes it on a miss
 //
-// Results on a 16-core Intel Xeon at 2.60GHz, median of 3 runs of
-// go test -run '^$' -bench BenchmarkStore -cpu 1,16 -count 3 -benchmem:
+// Output of go test -run '^$' -bench BenchmarkStore -cpu 1,16 -count 3 -benchmem:
 //
-//	workload    cpus  s3fifo ns/op  otter ns/op  s3fifo B/op  otter B/op
-//	get_hit        1          53          101            0           0
-//	get_hit       16           3.2          8.9          0           0
-//	set_evict      1         763          561          155          80
-//	set_evict     16        1055         1550          154          81
-//	get_or_set     1         331          342           40          16
-//	get_or_set    16         145          119            8           4
+//	goos: linux
+//	goarch: amd64
+//	pkg: github.com/unkeyed/unkey/pkg/cache
+//	cpu: Intel(R) Xeon(R) Processor @ 2.60GHz
+//	BenchmarkStore/get_hit/s3fifo            	23871847	        50.99 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/s3fifo            	24101128	        47.79 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/s3fifo            	23644620	        50.70 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/s3fifo-16         	299990985	         3.349 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/s3fifo-16         	360204813	         3.097 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/s3fifo-16         	366911586	         3.056 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/otter             	12172839	       103.5 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/otter             	12013740	        97.46 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/otter             	12169024	       107.9 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/otter-16          	169920867	        18.17 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/otter-16          	64057741	        18.44 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/get_hit/otter-16          	62563912	        17.59 ns/op	       0 B/op	       0 allocs/op
+//	BenchmarkStore/set_evict/s3fifo          	 1615728	       740.4 ns/op	     155 B/op	       3 allocs/op
+//	BenchmarkStore/set_evict/s3fifo          	 1640722	       703.0 ns/op	     155 B/op	       3 allocs/op
+//	BenchmarkStore/set_evict/s3fifo          	 1718134	       716.0 ns/op	     155 B/op	       3 allocs/op
+//	BenchmarkStore/set_evict/s3fifo-16       	 1725292	       696.4 ns/op	     153 B/op	       3 allocs/op
+//	BenchmarkStore/set_evict/s3fifo-16       	 1752132	       750.7 ns/op	     153 B/op	       3 allocs/op
+//	BenchmarkStore/set_evict/s3fifo-16       	 1640595	       807.0 ns/op	     154 B/op	       3 allocs/op
+//	BenchmarkStore/set_evict/otter           	 1936186	       702.5 ns/op	      80 B/op	       1 allocs/op
+//	BenchmarkStore/set_evict/otter           	 1968142	       559.4 ns/op	      80 B/op	       1 allocs/op
+//	BenchmarkStore/set_evict/otter           	 2110152	       568.4 ns/op	      80 B/op	       1 allocs/op
+//	BenchmarkStore/set_evict/otter-16        	  936218	      1415 ns/op	      81 B/op	       1 allocs/op
+//	BenchmarkStore/set_evict/otter-16        	  967288	      1436 ns/op	      81 B/op	       1 allocs/op
+//	BenchmarkStore/set_evict/otter-16        	  818215	      1263 ns/op	      81 B/op	       1 allocs/op
+//	BenchmarkStore/get_or_set/s3fifo         	 3855166	       345.4 ns/op	         0.7964 hit_ratio	      40 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/s3fifo         	 3449515	       350.5 ns/op	         0.7964 hit_ratio	      40 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/s3fifo         	 3391858	       375.2 ns/op	         0.7963 hit_ratio	      40 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/s3fifo-16      	 8846104	       147.0 ns/op	         0.9461 hit_ratio	       9 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/s3fifo-16      	 9073567	       157.0 ns/op	         0.9433 hit_ratio	       9 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/s3fifo-16      	12637964	       132.9 ns/op	         0.9487 hit_ratio	       8 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/otter          	 4458972	       294.8 ns/op	         0.8018 hit_ratio	      16 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/otter          	 4536636	       298.6 ns/op	         0.8018 hit_ratio	      16 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/otter          	 4375852	       295.2 ns/op	         0.8018 hit_ratio	      16 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/otter-16       	 9487905	       138.1 ns/op	         0.9400 hit_ratio	       4 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/otter-16       	 5178060	       210.7 ns/op	         0.9157 hit_ratio	       6 B/op	       0 allocs/op
+//	BenchmarkStore/get_or_set/otter-16       	 7647254	       152.2 ns/op	         0.9250 hit_ratio	       6 B/op	       0 allocs/op
+//	PASS
+//	ok  	github.com/unkeyed/unkey/pkg/cache	74.881s
 //
-// Hit ratio for get_or_set at -cpu 1 is 0.797 for s3fifo and 0.802 for otter.
 // Compare hit ratios only at -cpu 1: with more goroutines the benchmark's own
 // access order changes from run to run.
 //
@@ -93,30 +126,48 @@ func BenchmarkStore(b *testing.B) {
 		name  string
 		build func(*testing.B) benchmarkStore
 	}{
-		{"s3fifo", func(*testing.B) benchmarkStore {
-			return s3fifoBenchmarkStore{store: newStore[string, int](benchmarkCapacity)}
-		}},
-		{"otter", newOtterBenchmarkStore},
+		{
+			name: "s3fifo",
+			build: func(*testing.B) benchmarkStore {
+				return s3fifoBenchmarkStore{store: newStore[string, int](benchmarkCapacity)}
+			},
+		},
+		{
+			name:  "otter",
+			build: newOtterBenchmarkStore,
+		},
 	}
 	workloads := []struct {
 		name     string
 		keyCount uint64
 		run      func(s benchmarkStore, key string, hits, misses *atomic.Int64)
 	}{
-		{"get_hit", benchmarkCapacity / 2, func(s benchmarkStore, key string, _, _ *atomic.Int64) {
-			s.get(key)
-		}},
-		{"set_evict", 1_000_000, func(s benchmarkStore, key string, _, _ *atomic.Int64) {
-			s.set(key, 1)
-		}},
-		{"get_or_set", 100_000, func(s benchmarkStore, key string, hits, misses *atomic.Int64) {
-			if _, ok := s.get(key); ok {
-				hits.Add(1)
-				return
-			}
-			misses.Add(1)
-			s.set(key, 1)
-		}},
+		{
+			name:     "get_hit",
+			keyCount: benchmarkCapacity / 2,
+			run: func(s benchmarkStore, key string, _, _ *atomic.Int64) {
+				s.get(key)
+			},
+		},
+		{
+			name:     "set_evict",
+			keyCount: 1_000_000,
+			run: func(s benchmarkStore, key string, _, _ *atomic.Int64) {
+				s.set(key, 1)
+			},
+		},
+		{
+			name:     "get_or_set",
+			keyCount: 100_000,
+			run: func(s benchmarkStore, key string, hits, misses *atomic.Int64) {
+				if _, ok := s.get(key); ok {
+					hits.Add(1)
+					return
+				}
+				misses.Add(1)
+				s.set(key, 1)
+			},
+		},
 	}
 	for _, workload := range workloads {
 		keys := zipfKeys(workload.keyCount)
