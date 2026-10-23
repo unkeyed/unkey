@@ -27,7 +27,7 @@ func TestActiveRolesReadsMembershipAndReportsRemoval(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	client := NewMembershipClient("sk_test", srv.URL)
+	client := New("sk_test", srv.URL)
 	roles, found, err := client.ActiveRoles(t.Context(), orgID, userID)
 	require.NoError(t, err)
 	require.True(t, found)

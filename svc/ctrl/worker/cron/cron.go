@@ -22,10 +22,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/buildlimitsync"
@@ -197,7 +197,7 @@ func New(cfg Config) (*Service, error) {
 	if cfg.AlertAdmins != nil {
 		admins = cfg.AlertAdmins
 	} else if cfg.WorkOSAPIKey != "" {
-		admins = workos.New(cfg.WorkOSAPIKey)
+		admins = workos.New(cfg.WorkOSAPIKey, "")
 	} else {
 		logger.Error("customer alert recipients are DISABLED: no workos api key configured; alerts resolve no admins")
 	}
