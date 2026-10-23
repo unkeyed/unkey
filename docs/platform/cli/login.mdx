@@ -23,7 +23,7 @@ sources:
 unkey login
 ```
 
-The command prints a confirmation code and a URL, then opens that URL in your browser. Sign in as a workspace admin, check that the code matches the terminal, and select the permissions this key should have. Click **Allow**. The CLI finishes from that approval.
+The command prints a confirmation code and a URL, then opens that URL in your browser. Sign in, check that the code matches the terminal, and select the permissions this key should have. Click **Allow**. The CLI finishes from that approval.
 
 The approval page shows the device name, the IP address and client that started the login, and when it started. Only allow a login you started yourself. Anyone who gets you to approve their code receives a CLI session, so deny any code that someone sent you.
 
@@ -31,7 +31,7 @@ The CLI keeps polling until the login finishes. On success it stores one session
 
 A denied or expired login stops with the reason. Run `unkey login` again to start over.
 
-The CLI retries network errors and server errors while it waits. If the CLI receives a key but cannot store it, it prints the key and its ID once so you can save the key yourself or delete it in the dashboard.
+The CLI retries network errors and server errors while it waits. If the CLI receives a session but cannot store it, it revokes that session on the server and exits with an error. Run `unkey login` again once the keychain or `~/.unkey` is writable.
 
 Starting and polling logins is rate limited per IP address. When you hit the limit, the API answers [ip_rate_limited](/errors/user/too_many_requests/ip_rate_limited).
 
