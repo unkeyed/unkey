@@ -1,5 +1,12 @@
 import { projectsCatalogue } from "./catalogue.deploy";
-import { flagsRows, githubRows, limitsRows, requestLogRows, rootKeyRows, usageRows } from "./catalogue.rows";
+import {
+  flagsRows,
+  githubRows,
+  limitsRows,
+  requestLogRows,
+  rootKeyRows,
+  usageRows,
+} from "./catalogue.rows";
 import {
   ACTIONS,
   type ActionGrant,
