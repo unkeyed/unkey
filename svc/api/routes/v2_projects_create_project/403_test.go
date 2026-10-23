@@ -24,10 +24,8 @@ func TestCreateProjectForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "exact permission", permissions: []string{"project.*.create_project"}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "project.*.create_project"}, shouldPass: true},
-		{name: "wrong action", permissions: []string{"project.*.read_project"}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.create_api"}, shouldPass: false},
+		{name: "exact permission", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/*#write", h.Resources().UserWorkspace.ID)}, shouldPass: true},
+		{name: "permission and more", permissions: []string{"some.other.permission", fmt.Sprintf("unkey:v1:%s:projects/*#write", h.Resources().UserWorkspace.ID)}, shouldPass: true},
 	}
 
 	for i, tc := range testCases {

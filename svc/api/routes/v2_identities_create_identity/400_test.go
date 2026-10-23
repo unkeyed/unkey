@@ -16,7 +16,7 @@ import (
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#write", h.Resources().UserWorkspace.ID))
 	route := &handler.Handler{
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,

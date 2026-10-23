@@ -13,7 +13,7 @@ import (
 )
 
 // TestCreateIdentity_AuthorizesCanonicalURNPermission guarantees project-scoped
-// URNs can create identities without a legacy tuple grant.
+// URNs can create identities.
 func TestCreateIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}

@@ -53,7 +53,7 @@ func TestSoftDeletedNamespace(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create root key with permissions to use the namespace
-		rootKeyWithPerms := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+		rootKeyWithPerms := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/%s#limit", h.Resources().UserWorkspace.ID, namespaceID))
 
 		headersWithPerms := http.Header{
 			"Content-Type":  {"application/json"},

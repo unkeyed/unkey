@@ -6,6 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
@@ -17,7 +20,7 @@ import (
 // case would fall through to a 500 still carrying the right code.
 func TestUpdatePortalConflicts(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, portalWriteGrant(h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	mine := h.SeedPortal(t, workspace.ID, "mine", "mine", keyspaceMapping(t, h, workspace.ID),
@@ -40,6 +43,8 @@ func TestUpdatePortalConflicts(t *testing.T) {
 	})
 
 	t.Run("mapping held by a sibling", func(t *testing.T) {
+		headers := headersFor(h.CreateRootKey(workspace.ID, portalWriteGrant(workspace.ID),
+			rbac.U(urn.New().Workspace(workspace.ID).Project(sibling.ProjectID).Keyspace(siblingMapping.ID), permissions.Read).Value))
 		req := baseRequest(mine.ID)
 		req.KeyspaceId = ksOf(siblingMapping)
 		req.AppId = appOf(siblingMapping)
@@ -59,11 +64,12 @@ func TestUpdatePortalConflicts(t *testing.T) {
 // dashboard save that round-trips the current values -- would 409.
 func TestUpdatePortalAcceptsItsOwnCurrentValues(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "idempotent", "idempotent", mapping, nil, nil)
+	route, headers := newRoute(t, h, portalWriteGrant(workspace.ID),
+		rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Keyspace(mapping.ID), permissions.Read).Value)
 
 	req := baseRequest(stored.ID)
 	req.Slug = new(stored.Slug)
@@ -83,7 +89,7 @@ func TestUpdatePortalAcceptsItsOwnCurrentValues(t *testing.T) {
 // is not a collision here.
 func TestUpdatePortalAllowsSlugHeldByAnotherWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.update_portal")
+	route, headers := newRoute(t, h, portalWriteGrant(h.Resources().UserWorkspace.ID))
 	workspace := h.Resources().UserWorkspace
 
 	stored := h.SeedPortal(t, workspace.ID, "local", "local", keyspaceMapping(t, h, workspace.ID),

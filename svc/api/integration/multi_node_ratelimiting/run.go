@@ -11,7 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
@@ -47,8 +50,14 @@ func RunRateLimitTest(
 	require.NoError(t, err)
 
 	// Create a root key for authentication
-	rootKey := h.Seed.CreateRootKey(ctx, h.Seed.Resources.UserWorkspace.ID,
-		fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+	rootKey := h.Seed.CreateRootKey(
+		ctx,
+		h.Seed.Resources.UserWorkspace.ID,
+		rbac.U(
+			urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(projectID).RatelimitNamespace(namespaceID),
+			permissions.Limit,
+		).Value,
+	)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
