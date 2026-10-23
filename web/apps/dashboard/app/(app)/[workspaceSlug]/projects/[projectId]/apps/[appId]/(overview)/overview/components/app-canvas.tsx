@@ -52,8 +52,7 @@ const NODE_ROW_LIMIT = 5;
 export function AppCanvas() {
   const { isCurrent, canvas } = useProductionCard();
   const { domains, domainsHref, policiesHref } = canvas;
-  const { view, retry } = canvas.policies;
-  const policies = view.type === "list" ? canvas.policies.policies : [];
+  const { policies, view, retry } = canvas.policies;
 
   return (
     <Canvas label="App canvas">
@@ -75,7 +74,15 @@ export function AppCanvas() {
         {match(view.type)
           .with("loading", () => <PoliciesLoadingNode />)
           .with("error", () => <PoliciesErrorNode onRetry={retry} />)
-          .with("empty", "list", () => <PoliciesNode policies={policies} href={policiesHref} />)
+          .with("empty", () => (
+            <GhostNode
+              icon={<IconShieldKeyOutline18 />}
+              name="Add a policy"
+              description="Auth, ratelimits and firewall rules at the gateway."
+              href={policiesHref}
+            />
+          ))
+          .with("list", () => <PoliciesNode policies={policies} href={policiesHref} />)
           .exhaustive()}
       </Group>
     </Canvas>
@@ -275,16 +282,6 @@ function AppNode() {
 }
 
 function PoliciesNode({ policies, href }: { policies: PolicyRow[]; href: Route }) {
-  if (policies.length === 0) {
-    return (
-      <GhostNode
-        icon={<IconShieldKeyOutline18 />}
-        name="Add a policy"
-        description="Auth, ratelimits and firewall rules at the gateway."
-        href={href}
-      />
-    );
-  }
   return (
     <Node link={{ href, label: "Policies" }}>
       <NodeHeader
