@@ -39,9 +39,6 @@ package cache
 //	                   continue with the next entry.
 //	counter at 0    -> drop it.
 //
-// Putting a read entry back instead of dropping it is the "second chance"
-// idea from the CLOCK algorithm.
-//
 // The `ghost` queue corrects mistakes. If a key comes back while `ghost` still
 // remembers it, `small` dropped it too early. In that case, `set` puts the key
 // directly into `main`.
