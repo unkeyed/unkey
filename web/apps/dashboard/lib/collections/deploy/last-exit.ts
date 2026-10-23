@@ -1,12 +1,15 @@
+import { plural } from "@/lib/fmt";
 import type { LastExit } from "@/lib/types/deploy";
 import type { ContainerStatus } from "@unkey/db/src/schema";
-import { isFatalWaitingReason } from "./instance-status";
+import { type FatalWaitingReason, isFatalWaitingReason } from "./instance-status";
 
-export type ExitBadge = { kind: "waiting" | "exit"; reason: string; exit: string | null };
+export type ExitBadge =
+  | { kind: "waiting"; reason: FatalWaitingReason }
+  | { kind: "exit"; reason: string; exit: string | null };
 
 export function exitBadge(lastExit: LastExit): ExitBadge {
   if (isFatalWaitingReason(lastExit.statusReason)) {
-    return { kind: "waiting", reason: lastExit.statusReason, exit: null };
+    return { kind: "waiting", reason: lastExit.statusReason };
   }
   const { exitCode } = lastExit;
   return {
@@ -31,6 +34,14 @@ export function lastExitOf(containerStatus: ContainerStatus | null): LastExit | 
     finishedAt: term?.finishedAt ?? null,
     statusReason,
   };
+}
+
+// The badge's reason and exit code, then the restart count
+export function exitSummary(lastExit: LastExit): string {
+  const badge = exitBadge(lastExit);
+  const cause = badge.kind === "waiting" ? [badge.reason] : [badge.reason, badge.exit];
+  const restarts = lastExit.restartCount > 0 ? plural(lastExit.restartCount, "restart") : null;
+  return [...cause, restarts].filter(Boolean).join(" · ");
 }
 
 // latestExit picks one exit across all instances of a deployment so that a

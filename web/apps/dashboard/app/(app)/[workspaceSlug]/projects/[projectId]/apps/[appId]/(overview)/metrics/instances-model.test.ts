@@ -6,14 +6,12 @@ import type {
   ReplicaTarget,
   ResourcePoint,
 } from "@/lib/metrics/app-metrics";
-import type { LastExit } from "@/lib/types/deploy";
 import { describe, expect, it } from "vitest";
 import {
   instanceChart,
   instanceSrLabel,
   instanceStatusText,
   instancesTabView,
-  lastExitSummary,
   percentOfLimit,
 } from "./instances-model";
 
@@ -157,36 +155,6 @@ describe("instance tones and instanceSrLabel", () => {
       "Running",
       "Previous deploy",
     ]);
-  });
-});
-
-describe("lastExitSummary", () => {
-  const exit = (overrides: Partial<LastExit>): LastExit => ({
-    restartCount: 0,
-    exitCode: null,
-    signal: null,
-    reason: null,
-    finishedAt: null,
-    statusReason: null,
-    ...overrides,
-  });
-
-  it("names the cause and restarts, without the exit code", () => {
-    expect(
-      lastExitSummary(
-        exit({ restartCount: 7, reason: "Error", exitCode: 1, statusReason: "CrashLoopBackOff" }),
-      ),
-    ).toBe("CrashLoopBackOff · 7 restarts");
-    expect(lastExitSummary(exit({ restartCount: 1, reason: "OOMKilled", exitCode: 137 }))).toBe(
-      "OOMKilled · 1 restart",
-    );
-  });
-
-  it("reads an exit without a reason as Error, like the badge", () => {
-    expect(lastExitSummary(exit({ reason: "", exitCode: 1, restartCount: 2 }))).toBe(
-      "Error · 2 restarts",
-    );
-    expect(lastExitSummary(exit({ reason: "", exitCode: 1 }))).toBe("Error");
   });
 });
 

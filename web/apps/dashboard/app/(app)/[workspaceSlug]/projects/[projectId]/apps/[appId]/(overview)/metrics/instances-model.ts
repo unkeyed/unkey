@@ -4,8 +4,7 @@ import {
   instanceLabel,
   instanceStateOf,
 } from "@/lib/collections/deploy/instance-status";
-import { exitBadge } from "@/lib/collections/deploy/last-exit";
-import { plural } from "@/lib/fmt";
+import { exitSummary } from "@/lib/collections/deploy/last-exit";
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
 import type {
   DeployRole,
@@ -18,7 +17,6 @@ import type {
   ResourcePoint,
 } from "@/lib/metrics/app-metrics";
 import { type ChartState, type SeriesView, chartStateOf } from "@/lib/metrics/views";
-import type { LastExit } from "@/lib/types/deploy";
 import {
   ALLOCATION,
   type ChartScale,
@@ -71,11 +69,6 @@ export type InstanceView = InstanceRow & {
   crash: string | null;
 };
 
-export function lastExitSummary(lastExit: LastExit): string {
-  const restarts = lastExit.restartCount > 0 ? plural(lastExit.restartCount, "restart") : null;
-  return [exitBadge(lastExit).reason, restarts].filter(Boolean).join(" · ");
-}
-
 function instanceViews(instances: InstanceRow[]): InstanceView[] {
   return instances.map((row) => {
     const state = instanceStateOf(row);
@@ -85,7 +78,7 @@ function instanceViews(instances: InstanceRow[]): InstanceView[] {
       key: row.replica.k8sName,
       state,
       tone,
-      crash: tone === "unhealthy" && row.lastExit ? lastExitSummary(row.lastExit) : null,
+      crash: tone === "unhealthy" && row.lastExit ? exitSummary(row.lastExit) : null,
     };
   });
 }

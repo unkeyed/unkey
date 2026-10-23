@@ -14,7 +14,7 @@ import {
   formatMemoryParts,
   formatStorage,
   formatTooltipPercent,
-} from "@/lib/utils/legacy/deployment-formatters";
+} from "@/lib/utils/deployment-formatters";
 import type { TimeWindow } from "@unkey/clickhouse";
 import {
   IconArrowsOppositeDirectionYOutline12,

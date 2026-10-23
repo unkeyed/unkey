@@ -1,7 +1,7 @@
 import type { LastExit } from "@/lib/types/deploy";
 import type { ContainerStatus } from "@unkey/db/src/schema";
 import { describe, expect, it, test } from "vitest";
-import { exitBadge, lastExitOf, latestExit } from "./last-exit";
+import { exitBadge, exitSummary, lastExitOf, latestExit } from "./last-exit";
 
 const exit = (overrides: Partial<LastExit> = {}): LastExit => ({
   restartCount: 0,
@@ -17,11 +17,10 @@ describe("exitBadge", () => {
   test("a fatal waiting reason wins over the last termination", () => {
     expect(
       exitBadge(exit({ statusReason: "CrashLoopBackOff", reason: "Error", exitCode: 1 })),
-    ).toEqual({ kind: "waiting", reason: "CrashLoopBackOff", exit: null });
+    ).toEqual({ kind: "waiting", reason: "CrashLoopBackOff" });
     expect(exitBadge(exit({ statusReason: "ImagePullBackOff" }))).toEqual({
       kind: "waiting",
       reason: "ImagePullBackOff",
-      exit: null,
     });
   });
 
@@ -164,5 +163,25 @@ describe("latestExit", () => {
     const stuck = crashLoop(1_500, 4);
     expect(pickFromRows([stuck, recoveredOom])?.statusReason).toBe("CrashLoopBackOff");
     expect(pickFromRows([recoveredOom, stuck])?.statusReason).toBe("CrashLoopBackOff");
+  });
+});
+
+describe("exitSummary", () => {
+  test("names the cause, the exit code and the restarts", () => {
+    expect(
+      exitSummary(
+        exit({ restartCount: 7, reason: "Error", exitCode: 1, statusReason: "CrashLoopBackOff" }),
+      ),
+    ).toBe("CrashLoopBackOff · 7 restarts");
+    expect(exitSummary(exit({ restartCount: 1, reason: "OOMKilled", exitCode: 137 }))).toBe(
+      "OOMKilled · exit=137 · 1 restart",
+    );
+  });
+
+  test("reads an exit without a reason as Error, like the badge", () => {
+    expect(exitSummary(exit({ reason: "", exitCode: 1, restartCount: 2 }))).toBe(
+      "Error · exit=1 · 2 restarts",
+    );
+    expect(exitSummary(exit({ exitCode: 0 }))).toBe("Error");
   });
 });

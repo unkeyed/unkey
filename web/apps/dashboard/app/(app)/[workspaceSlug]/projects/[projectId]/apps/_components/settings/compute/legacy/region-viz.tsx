@@ -6,7 +6,7 @@ import { RegionFlag } from "@/components/region-flag";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { sizeLabel } from "@/lib/compute/sizing";
 import { regionInfo } from "@/lib/regions";
-import { formatCpu, formatMemory, formatStorage } from "@/lib/utils/legacy/deployment-formatters";
+import { formatCpu, formatMemory, formatStorage } from "@/lib/utils/deployment-formatters";
 import {
   IconHardDriveOutline18,
   IconLayers3Outline18,

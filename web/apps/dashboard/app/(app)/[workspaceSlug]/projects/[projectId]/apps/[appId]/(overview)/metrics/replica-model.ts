@@ -132,7 +132,9 @@ export function lastExitDetail(lastExit: LastExit): string | null {
   const shown = exitBadge(lastExit);
   const parts = [
     lastExit.reason !== shown.reason ? lastExit.reason : null,
-    lastExit.exitCode !== null && shown.exit === null ? `exit code ${lastExit.exitCode}` : null,
+    lastExit.exitCode !== null && (shown.kind === "waiting" || shown.exit === null)
+      ? `exit code ${lastExit.exitCode}`
+      : null,
   ];
   return parts.filter(Boolean).join(" · ") || null;
 }

@@ -2,7 +2,7 @@
 
 import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
-import { formatBytesPerSecondParts } from "@/lib/utils/legacy/deployment-formatters";
+import { formatBytesPerSecondParts } from "@/lib/utils/deployment-formatters";
 import { formatTimestamp } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useId, useState } from "react";

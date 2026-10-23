@@ -49,6 +49,8 @@ function TabsList({
     <TabsVariantContext.Provider value={variant}>
       <TabsPrimitive.List
         ref={ref}
+        // Radix parity: Radix activated tabs as arrow-key focus moved; Base UI
+        // defaults to manual activation (Enter/Space). Restore automatic activation.
         activateOnFocus
         className={cn(tabsListVariants({ variant }), className)}
         {...props}
