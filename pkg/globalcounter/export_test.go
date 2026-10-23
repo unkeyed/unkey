@@ -3,6 +3,7 @@ package globalcounter
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 func Cleanup(t testing.TB, counter *Counter) {
@@ -11,6 +12,14 @@ func Cleanup(t testing.TB, counter *Counter) {
 	t.Cleanup(counter.peerCache.Close)
 	t.Cleanup(counter.buffer.Close)
 }
+
+// NewWithCompactDelay is [New] with the delay the Counter gives the rows it
+// persists before compaction may merge them.
+func NewWithCompactDelay(config Config, delay time.Duration) (*Counter, error) {
+	return newCounter(config, delay)
+}
+
+func CompactOnce(ctx context.Context, counter *Counter) { counter.compact(ctx) }
 
 func EvictOnce(ctx context.Context, counter *Counter) { counter.evict(ctx) }
 
