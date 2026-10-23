@@ -4,6 +4,7 @@ SELECT
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -23,6 +24,7 @@ SELECT
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -42,6 +44,7 @@ SELECT
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -61,6 +64,7 @@ SELECT
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -84,6 +88,7 @@ SELECT
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -101,3 +106,25 @@ WHERE workspace_id = sqlc.arg(workspace_id)
   AND expires_at > sqlc.arg(now)
 ORDER BY created_at DESC
 LIMIT 100;
+
+-- name: FindUnrevokedCLISessionByRefreshFamily :one
+SELECT
+    pk,
+    id,
+    workspace_id,
+    user_id,
+    user_name,
+    permissions,
+    device_name,
+    refresh_token_hash,
+    previous_refresh_token_hash,
+    refresh_family,
+    rotated_at,
+    created_at,
+    last_used_at,
+    expires_at,
+    revoked_at
+FROM cli_sessions
+WHERE refresh_family = sqlc.arg(refresh_family)
+  AND revoked_at IS NULL
+LIMIT 1;

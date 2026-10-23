@@ -873,6 +873,7 @@ type CliSession struct {
 	ID                       string          `db:"id"`
 	WorkspaceID              string          `db:"workspace_id"`
 	UserID                   string          `db:"user_id"`
+	UserName                 sql.NullString  `db:"user_name"`
 	Permissions              json.RawMessage `db:"permissions"`
 	DeviceName               sql.NullString  `db:"device_name"`
 	RefreshTokenHash         string          `db:"refresh_token_hash"`

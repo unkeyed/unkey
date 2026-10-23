@@ -499,6 +499,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      user_id,
+	//      user_name,
 	//      permissions,
 	//      device_name,
 	//      refresh_token_hash,
@@ -519,6 +520,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      user_id,
+	//      user_name,
 	//      permissions,
 	//      device_name,
 	//      refresh_token_hash,
@@ -539,6 +541,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      user_id,
+	//      user_name,
 	//      permissions,
 	//      device_name,
 	//      refresh_token_hash,
@@ -1652,6 +1655,29 @@ type Querier interface {
 	//  WHERE id = ? AND deleted_at IS NULL
 	//  FOR UPDATE
 	FindUnkeyRootKeyByIDForUpdate(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error)
+	//FindUnrevokedCLISessionByRefreshFamily
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      workspace_id,
+	//      user_id,
+	//      user_name,
+	//      permissions,
+	//      device_name,
+	//      refresh_token_hash,
+	//      previous_refresh_token_hash,
+	//      refresh_family,
+	//      rotated_at,
+	//      created_at,
+	//      last_used_at,
+	//      expires_at,
+	//      revoked_at
+	//  FROM cli_sessions
+	//  WHERE refresh_family = ?
+	//    AND revoked_at IS NULL
+	//  LIMIT 1
+	FindUnrevokedCLISessionByRefreshFamily(ctx context.Context, db DBTX, refreshFamily string) (CliSession, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Use this when only billing state is needed;
 	// when a workspace is already being fetched, prefer joining workspace_billing in
@@ -1779,6 +1805,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      user_id,
+	//      user_name,
 	//      permissions,
 	//      device_name,
 	//      refresh_token_hash,
@@ -1787,6 +1814,7 @@ type Querier interface {
 	//      last_used_at,
 	//      expires_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2691,6 +2719,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      user_id,
+	//      user_name,
 	//      permissions,
 	//      device_name,
 	//      refresh_token_hash,
@@ -2716,6 +2745,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      user_id,
+	//      user_name,
 	//      permissions,
 	//      device_name,
 	//      refresh_token_hash,

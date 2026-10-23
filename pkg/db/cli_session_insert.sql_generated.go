@@ -16,6 +16,7 @@ INSERT INTO cli_sessions (
     id,
     workspace_id,
     user_id,
+    user_name,
     permissions,
     device_name,
     refresh_token_hash,
@@ -24,6 +25,7 @@ INSERT INTO cli_sessions (
     last_used_at,
     expires_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -41,6 +43,7 @@ type InsertCLISessionParams struct {
 	ID               string          `db:"id"`
 	WorkspaceID      string          `db:"workspace_id"`
 	UserID           string          `db:"user_id"`
+	UserName         sql.NullString  `db:"user_name"`
 	Permissions      json.RawMessage `db:"permissions"`
 	DeviceName       sql.NullString  `db:"device_name"`
 	RefreshTokenHash string          `db:"refresh_token_hash"`
@@ -56,6 +59,7 @@ type InsertCLISessionParams struct {
 //	    id,
 //	    workspace_id,
 //	    user_id,
+//	    user_name,
 //	    permissions,
 //	    device_name,
 //	    refresh_token_hash,
@@ -64,6 +68,7 @@ type InsertCLISessionParams struct {
 //	    last_used_at,
 //	    expires_at
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -80,6 +85,7 @@ func (q *Queries) InsertCLISession(ctx context.Context, db DBTX, arg InsertCLISe
 		arg.ID,
 		arg.WorkspaceID,
 		arg.UserID,
+		arg.UserName,
 		arg.Permissions,
 		arg.DeviceName,
 		arg.RefreshTokenHash,
