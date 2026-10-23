@@ -104,6 +104,48 @@ func (e DeploymentErrorCode) Valid() bool {
 	}
 }
 
+// Defines values for DeploymentExitReason.
+const (
+	DeploymentExitReasonExitedCleanly   DeploymentExitReason = "exited_cleanly"
+	DeploymentExitReasonExitedWithError DeploymentExitReason = "exited_with_error"
+	DeploymentExitReasonOutOfMemory     DeploymentExitReason = "out_of_memory"
+	DeploymentExitReasonStartFailed     DeploymentExitReason = "start_failed"
+	DeploymentExitReasonUnknown         DeploymentExitReason = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the DeploymentExitReason enum.
+func (e DeploymentExitReason) Valid() bool {
+	switch e {
+	case DeploymentExitReasonExitedCleanly:
+		return true
+	case DeploymentExitReasonExitedWithError:
+		return true
+	case DeploymentExitReasonOutOfMemory:
+		return true
+	case DeploymentExitReasonStartFailed:
+		return true
+	case DeploymentExitReasonUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeploymentIssueType.
+const (
+	DeploymentIssueTypeCrashLoop DeploymentIssueType = "crash_loop"
+)
+
+// Valid indicates whether the value is a known member of the DeploymentIssueType enum.
+func (e DeploymentIssueType) Valid() bool {
+	switch e {
+	case DeploymentIssueTypeCrashLoop:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeploymentStatus.
 const (
 	DeploymentStatusAwaitingApproval DeploymentStatus = "awaiting_approval"
@@ -990,6 +1032,10 @@ type Deployment struct {
 	// Example: true
 	IsCurrent bool `json:"isCurrent"`
 
+	// Issues Problems with the running app right now, at most one per type. An issue
+	// is removed when it is resolved. Empty when nothing is wrong.
+	Issues []DeploymentIssue `json:"issues"`
+
 	// Project Slug of the project this deployment belongs to.
 	//
 	// Example: acme
@@ -1071,6 +1117,20 @@ type DeploymentError struct {
 // Example: no_schedulable_regions
 type DeploymentErrorCode string
 
+// DeploymentExitReason Why the app stopped:
+//
+//   - `out_of_memory`: the app used more memory than its limit and was stopped.
+//   - `exited_with_error`: the app exited with a non-zero `exitCode`.
+//   - `start_failed`: the start command could not run, for example because the
+//     entrypoint does not exist.
+//   - `exited_cleanly`: the app exited with code 0. A service must keep running,
+//     so Unkey restarts it.
+//   - `unknown`: Unkey could not classify the exit. Handle this value, because
+//     new reasons can be added.
+//
+// Example: out_of_memory
+type DeploymentExitReason string
+
 // DeploymentGit defines model for DeploymentGit.
 type DeploymentGit struct {
 	Author *DeploymentGitAuthor `json:"author,omitempty"`
@@ -1120,6 +1180,85 @@ type DeploymentGitAuthor struct {
 	// Example: octocat
 	Handle string `json:"handle"`
 }
+
+// DeploymentIssue defines model for DeploymentIssue.
+type DeploymentIssue struct {
+	// Message Human-readable explanation of the issue and what to do about it. The
+	// wording can change. For programmatic handling, use `type` and `meta`.
+	//
+	//
+	// Example: Your app used more memory than its limit and keeps stopping, so Unkey waits longer before each restart. Check its memory usage, or raise the limit.
+	Message string `json:"message"`
+
+	// Meta Details of the issue. Which fields are set depends on `type`:
+	//
+	// - `crash_loop`: `restartCount`, and `reason` and `exitCode` of the last exit
+	//   when one was recorded.
+	Meta *DeploymentIssueMeta `json:"meta,omitempty"`
+
+	// Time Unix timestamp in milliseconds of the last occurrence. For `crash_loop`,
+	// this is the time of the last exit. Omitted when unknown.
+	//
+	//
+	// Example: 1704067260000
+	Time *int64 `json:"time,omitempty"`
+
+	// Type What is wrong with the running app:
+	//
+	// - `crash_loop`: the app keeps stopping, so Unkey waits longer before each
+	//   restart. `meta` describes the last exit.
+	//
+	// Handle unknown values, because new types can be added.
+	//
+	//
+	// Example: crash_loop
+	Type DeploymentIssueType `json:"type"`
+}
+
+// DeploymentIssueMeta Details of the issue. Which fields are set depends on `type`:
+//
+//   - `crash_loop`: `restartCount`, and `reason` and `exitCode` of the last exit
+//     when one was recorded.
+type DeploymentIssueMeta struct {
+	// ExitCode Exit code of the last exit. Codes above 128 mean the process was killed
+	// by signal `exitCode - 128`, for example 137 for SIGKILL.
+	//
+	//
+	// Example: 137
+	ExitCode *int32 `json:"exitCode,omitempty"`
+
+	// Reason Why the app stopped:
+	//
+	// - `out_of_memory`: the app used more memory than its limit and was stopped.
+	// - `exited_with_error`: the app exited with a non-zero `exitCode`.
+	// - `start_failed`: the start command could not run, for example because the
+	//   entrypoint does not exist.
+	// - `exited_cleanly`: the app exited with code 0. A service must keep running,
+	//   so Unkey restarts it.
+	// - `unknown`: Unkey could not classify the exit. Handle this value, because
+	//   new reasons can be added.
+	//
+	//
+	// Example: out_of_memory
+	Reason *DeploymentExitReason `json:"reason,omitempty"`
+
+	// RestartCount How many times the affected instance was restarted. This is not a total
+	// across the instances of the deployment.
+	//
+	//
+	// Example: 12
+	RestartCount *int64 `json:"restartCount,omitempty"`
+}
+
+// DeploymentIssueType What is wrong with the running app:
+//
+//   - `crash_loop`: the app keeps stopping, so Unkey waits longer before each
+//     restart. `meta` describes the last exit.
+//
+// Handle unknown values, because new types can be added.
+//
+// Example: crash_loop
+type DeploymentIssueType string
 
 // DeploymentRuntime defines model for DeploymentRuntime.
 type DeploymentRuntime struct {

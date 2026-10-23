@@ -5425,6 +5425,7 @@ components:
                 - project
                 - availableActions
                 - regions
+                - issues
                 - trigger
                 - runtime
                 - createdAt
@@ -5488,6 +5489,13 @@ components:
                     "$ref": "#/components/schemas/DeploymentError"
                     description: |
                         Why the deployment failed. Present only when `status` is `failed`.
+                issues:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/DeploymentIssue"
+                    description: |
+                        Problems with the running app right now, at most one per type. An issue
+                        is removed when it is resolved. Empty when nothing is wrong.
                 finishedAt:
                     type: integer
                     format: int64
@@ -5682,6 +5690,32 @@ components:
                         handling, use `code`.
                     example: No schedulable regions configured. Please configure at least one schedulable region before deploying.
             additionalProperties: false
+        DeploymentIssue:
+            type: object
+            required:
+                - type
+                - message
+            properties:
+                type:
+                    "$ref": "#/components/schemas/DeploymentIssueType"
+                time:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: |
+                        Unix timestamp in milliseconds of the last occurrence. For `crash_loop`,
+                        this is the time of the last exit. Omitted when unknown.
+                    example: 1704067260000
+                message:
+                    type: string
+                    description: |
+                        Human-readable explanation of the issue and what to do about it. The
+                        wording can change. For programmatic handling, use `type` and `meta`.
+                    example: Your app used more memory than its limit and keeps stopping, so Unkey waits longer before each restart. Check its memory usage, or raise the limit.
+                meta:
+                    "$ref": "#/components/schemas/DeploymentIssueMeta"
+            additionalProperties: false
         DeploymentRuntime:
             type: object
             required:
@@ -5792,6 +5826,74 @@ components:
                 The reason a deployment failed. `unknown` means Unkey could not classify the
                 failure; see `message` for details.
             example: no_schedulable_regions
+        DeploymentIssueType:
+            type: string
+            enum:
+                - crash_loop
+            x-speakeasy-unknown-values: allow
+            x-enum-varnames:
+                - DeploymentIssueTypeCrashLoop
+            description: |
+                What is wrong with the running app:
+
+                - `crash_loop`: the app keeps stopping, so Unkey waits longer before each
+                  restart. `meta` describes the last exit.
+
+                Handle unknown values, because new types can be added.
+            example: crash_loop
+        DeploymentIssueMeta:
+            type: object
+            description: |
+                Details of the issue. Which fields are set depends on `type`:
+
+                - `crash_loop`: `restartCount`, and `reason` and `exitCode` of the last exit
+                  when one was recorded.
+            properties:
+                reason:
+                    "$ref": "#/components/schemas/DeploymentExitReason"
+                exitCode:
+                    type: integer
+                    format: int32
+                    description: |
+                        Exit code of the last exit. Codes above 128 mean the process was killed
+                        by signal `exitCode - 128`, for example 137 for SIGKILL.
+                    example: 137
+                restartCount:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: |
+                        How many times the affected instance was restarted. This is not a total
+                        across the instances of the deployment.
+                    example: 12
+            additionalProperties: false
+        DeploymentExitReason:
+            type: string
+            enum:
+                - out_of_memory
+                - exited_with_error
+                - start_failed
+                - exited_cleanly
+                - unknown
+            x-speakeasy-unknown-values: allow
+            x-enum-varnames:
+                - DeploymentExitReasonOutOfMemory
+                - DeploymentExitReasonExitedWithError
+                - DeploymentExitReasonStartFailed
+                - DeploymentExitReasonExitedCleanly
+                - DeploymentExitReasonUnknown
+            description: |
+                Why the app stopped:
+
+                - `out_of_memory`: the app used more memory than its limit and was stopped.
+                - `exited_with_error`: the app exited with a non-zero `exitCode`.
+                - `start_failed`: the start command could not run, for example because the
+                  entrypoint does not exist.
+                - `exited_cleanly`: the app exited with code 0. A service must keep running,
+                  so Unkey restarts it.
+                - `unknown`: Unkey could not classify the exit. Handle this value, because
+                  new reasons can be added.
+            example: out_of_memory
         EnvironmentShutdownSignal:
             type: string
             enum:

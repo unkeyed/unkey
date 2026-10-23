@@ -2510,6 +2510,12 @@ type Querier interface {
 	//  WHERE d.workspace_id = ?
 	//    AND d.id IN (/*SLICE:deployment_ids*/?)
 	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error)
+	//ListDeploymentInstanceStatusesByIds
+	//
+	//  SELECT instances.deployment_id, instances.status, instances.container_status FROM instances
+	//  WHERE workspace_id = ?
+	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
+	ListDeploymentInstanceStatusesByIds(ctx context.Context, db DBTX, arg ListDeploymentInstanceStatusesByIdsParams) ([]ListDeploymentInstanceStatusesByIdsRow, error)
 	//ListDeploymentRegionsByIds
 	//
 	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
