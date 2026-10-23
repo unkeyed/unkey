@@ -9,7 +9,7 @@ import { formatNumber } from "@/lib/fmt";
 import { Loading, Skeleton } from "@unkey/ui";
 import { cn } from "cn";
 import { useMemo, useState } from "react";
-import { formatStamp } from "../../components/g-pulse";
+import { formatStamp } from "./g-pulse";
 import { useProductionCard } from "./production-card-context";
 
 const BLUE = "var(--color-activity)";

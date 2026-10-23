@@ -6,6 +6,7 @@ import {
   getDeployMeterUsage,
   getDeployUsageTimeseries,
 } from "./deploy_billing";
+import { getEnvironmentRequests } from "./frontline/legacy/environment-requests";
 export {
   type ActiveKeysUsage,
   activeKeysUsage,
@@ -351,6 +352,11 @@ export class ClickHouse {
         egress: { timeseries: getResourceNetworkEgressTimeseries(this.querier) },
         ingress: { timeseries: getResourceNetworkIngressTimeseries(this.querier) },
       },
+    };
+  }
+  public get environment() {
+    return {
+      requests: getEnvironmentRequests(this.querier),
     };
   }
   public get appMetrics() {

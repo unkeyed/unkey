@@ -59,6 +59,7 @@ import { getDeploymentNetworkEgressTimeseries } from "./deploy/metrics/get-deplo
 import { getDeploymentNetworkIngressTimeseries } from "./deploy/metrics/get-deployment-network-ingress-timeseries";
 import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-resource-summary";
 import { getDeploymentRpsMetrics } from "./deploy/metrics/get-deployment-rps-metrics";
+import { getAppRpsMetrics } from "./deploy/metrics/legacy/get-app-rps-metrics";
 import { creationContext } from "./deploy/project/creation-context";
 import { getDefaultProject } from "./deploy/project/get-default";
 import { createSharedSecret } from "./share/create";
@@ -319,6 +320,7 @@ export const router = t.router({
       instances: appMetricsInstances,
     }),
     metrics: t.router({
+      getAppRpsMetrics,
       getDeploymentRpsMetrics,
       getDeploymentLatencyMetrics,
       getDeploymentCpuTimeseries,
