@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	rbacpermissions "github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
+	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 )
 
 // Allow reports whether a CLI session may authenticate a request.
@@ -128,17 +129,26 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		}
 
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
-		if err := s.writeAudit(ctx, tx, auditEntry{
-			Event:       auditlog.CLISessionRevokeEvent,
-			Display:     "Revoked CLI session " + row.ID,
-			UserID:      req.Principal.Subject.ID,
-			UserName:    req.Principal.Subject.Name,
-			WorkspaceID: row.WorkspaceID,
-			SessionID:   row.ID,
-			DeviceName:  row.DeviceName.String,
-			RemoteIP:    req.RemoteIP,
-			UserAgent:   req.UserAgent,
-		}); err != nil {
+		actor := auditactor.FromPrincipal(req.Principal)
+		if err := s.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
+			Event:         auditlog.CLISessionRevokeEvent,
+			Display:       "Revoked CLI session " + row.ID,
+			WorkspaceID:   row.WorkspaceID,
+			ActorType:     actor.Type,
+			ActorID:       actor.ID,
+			ActorName:     actor.Name,
+			ActorMeta:     actor.Meta,
+			CorrelationID: "",
+			RemoteIP:      req.RemoteIP,
+			UserAgent:     req.UserAgent,
+			Targets: []auditlog.AuditLogTarget{{
+				Type:        auditlog.CLISessionTargetType,
+				ID:          row.ID,
+				Name:        row.DeviceName.String,
+				DisplayName: row.DeviceName.String,
+				Meta:        map[string]any{},
+			}},
+		}}); err != nil {
 			return err
 		}
 		s.forget(ctx, row.ID)
