@@ -37,13 +37,34 @@ const stageLabels: Record<"instances" | "domains", Record<StepResolution["status
 
 type StepMessages = { completed: string; inProgress: string; waiting: string };
 
+type Phase =
+  | { kind: "live" }
+  | { kind: "failed" }
+  | { kind: "settled" }
+  | { kind: "stopped"; label: string };
+
+const LIVE: Phase = { kind: "live" };
+const SETTLED: Phase = { kind: "settled" };
+
+const PHASE_BY_STATUS: Record<DeploymentStatus, Phase> = {
+  pending: LIVE,
+  starting: LIVE,
+  building: LIVE,
+  deploying: LIVE,
+  network: LIVE,
+  finalizing: LIVE,
+  awaiting_approval: LIVE,
+  skipped: LIVE,
+  ready: SETTLED,
+  stopped: SETTLED,
+  failed: { kind: "failed" },
+  superseded: { kind: "stopped", label: "Superseded" },
+  cancelled: { kind: "stopped", label: "Cancelled" },
+};
+
 type StageBase = { label: string; resolution: StepResolution };
 
 export type Stage = StageBase & { key: StageKey; expandable: boolean };
-
-export function isPrebuilt(deployment: Pick<Deployment, "source">): boolean {
-  return deployment.source === "oci";
-}
 
 export type StagesInput = {
   steps: StepsData | undefined;
@@ -65,38 +86,24 @@ export function resolveStages({
   domainCount,
 }: StagesInput): Stage[] {
   const { building, deploying, network } = steps ?? {};
-  const isFailed = status === "failed";
-  const isStopped = status === "cancelled" || status === "superseded";
-  const isSettled = status === "ready" || status === "stopped";
+  const phase = PHASE_BY_STATUS[status];
 
-  const build = resolveStep(
-    building,
-    { now, isFailed, isStopped, implicitlyComplete: isPrebuilt || isSettled },
-    {
-      completed: isPrebuilt ? "Image was prebuilt" : "Build complete",
-      inProgress: "Building",
-      waiting: "Waiting to start",
-    },
-  );
-  const instancesStep = resolveStep(
-    deploying,
-    { now, isFailed, isStopped, implicitlyComplete: isSettled },
-    {
-      completed: instancesText(instances, desiredState),
-      inProgress: "Starting instances",
-      waiting: "Waiting for build",
-    },
-  );
-  const domains = resolveStep(
-    network,
-    { now, isFailed, isStopped, implicitlyComplete: isSettled },
-    {
-      completed:
-        domainCount === null ? "Assigning domains" : `${plural(domainCount, "domain")} assigned`,
-      inProgress: "Assigning domains",
-      waiting: "Waiting for instances",
-    },
-  );
+  const build = resolveStep(building, now, isPrebuilt ? SETTLED : phase, {
+    completed: isPrebuilt ? "Image was prebuilt" : "Build complete",
+    inProgress: "Building",
+    waiting: "Waiting to start",
+  });
+  const instancesStep = resolveStep(deploying, now, phase, {
+    completed: instancesText(instances, desiredState),
+    inProgress: "Starting instances",
+    waiting: "Waiting for build",
+  });
+  const domains = resolveStep(network, now, phase, {
+    completed:
+      domainCount === null ? "Assigning domains" : `${plural(domainCount, "domain")} assigned`,
+    inProgress: "Assigning domains",
+    waiting: "Waiting for instances",
+  });
 
   return [
     { key: "build", label: "Build Logs", resolution: build, expandable: !isPrebuilt },
@@ -117,32 +124,36 @@ export function resolveStages({
 
 function resolveStep(
   step: StepData | null | undefined,
-  {
-    now,
-    isFailed,
-    isStopped,
-    implicitlyComplete,
-  }: { now: number; isFailed: boolean; isStopped: boolean; implicitlyComplete: boolean },
+  now: number,
+  phase: Phase,
   messages: StepMessages,
 ): StepResolution {
   if (!step) {
-    if (implicitlyComplete) {
-      return { status: "completed", description: messages.completed, duration: undefined };
-    }
-    return isFailed || isStopped
-      ? { status: "skipped", description: "Skipped", duration: undefined }
-      : { status: "pending", description: messages.waiting, duration: undefined };
+    return missingStep(phase, messages);
   }
   const duration = (step.endedAt ?? now) - step.startedAt;
-  if (step.error && !isStopped) {
+  if (step.error && phase.kind !== "stopped") {
     return { status: "error", description: step.error, duration };
   }
   if (step.completed) {
     return { status: "completed", description: messages.completed, duration };
   }
-  return isStopped
-    ? { status: "skipped", description: step.error ?? "Skipped", duration }
+  return phase.kind === "stopped"
+    ? { status: "skipped", description: step.error ?? phase.label, duration }
     : { status: "started", description: messages.inProgress, duration };
+}
+
+function missingStep(phase: Phase, messages: StepMessages): StepResolution {
+  switch (phase.kind) {
+    case "settled":
+      return { status: "completed", description: messages.completed, duration: undefined };
+    case "failed":
+      return { status: "skipped", description: "Skipped", duration: undefined };
+    case "stopped":
+      return { status: "skipped", description: phase.label, duration: undefined };
+    case "live":
+      return { status: "pending", description: messages.waiting, duration: undefined };
+  }
 }
 
 function withInstanceHealth(
@@ -163,6 +174,7 @@ export type OpenStage = {
   open: StageKey | null;
   autoOpened: readonly StageKey[];
   requested: StageKey | null;
+  pinned: boolean;
 };
 
 export function initialOpenStage({
@@ -172,23 +184,34 @@ export function initialOpenStage({
   failed: StageKey | null;
   requested: StageKey | null;
 }): OpenStage {
-  return { open: requested ?? failed, autoOpened: failed ? [failed] : [], requested };
+  return {
+    open: requested ?? failed,
+    autoOpened: failed ? [failed] : [],
+    requested,
+    pinned: requested !== null,
+  };
 }
 
 export function followRequestedStage(state: OpenStage, requested: StageKey | null): OpenStage {
   if (requested === state.requested) {
     return state;
   }
-  return { ...state, requested, open: requested ?? state.open };
+  return requested
+    ? { ...state, requested, open: requested, pinned: true }
+    : { ...state, requested };
 }
 
 export function followFailedStage(state: OpenStage, failed: StageKey | null): OpenStage {
   if (!failed || state.autoOpened.includes(failed)) {
     return state;
   }
-  return { ...state, open: failed, autoOpened: [...state.autoOpened, failed] };
+  return {
+    ...state,
+    open: state.pinned ? state.open : failed,
+    autoOpened: [...state.autoOpened, failed],
+  };
 }
 
 export function toggleStage(state: OpenStage, key: StageKey): OpenStage {
-  return { ...state, open: state.open === key ? null : key };
+  return { ...state, open: state.open === key ? null : key, pinned: false };
 }
