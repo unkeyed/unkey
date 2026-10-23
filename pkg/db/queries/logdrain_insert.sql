@@ -1,22 +1,5 @@
 -- name: InsertLogdrain :exec
--- InsertLogdrain creates a running log drain with no lease. Intended for
--- tests: the dashboard creates log drains in production.
-INSERT INTO logdrains (
-    id,
-    workspace_id,
-    name,
-    stream,
-    config,
-    lease_id,
-    fencing_token,
-    created_at
-) VALUES (
-    sqlc.arg(id),
-    sqlc.arg(workspace_id),
-    sqlc.arg(name),
-    sqlc.arg(stream),
-    sqlc.arg(config),
-    '',
-    '',
-    sqlc.arg(created_at)
-);
+-- The caller has checked capacity; concurrent creates may exceed the allowance.
+-- Initialize the cursor at creation time so historical records are not exported.
+INSERT INTO logdrains (id, workspace_id, name, stream, config, committed_offset_inserted_at, lease_id, fencing_token, created_at, updated_at)
+VALUES (sqlc.arg(id), sqlc.arg(workspace_id), sqlc.arg(name), sqlc.arg(stream), sqlc.arg(config), sqlc.arg(created_at), '', '', sqlc.arg(created_at), sqlc.arg(updated_at));

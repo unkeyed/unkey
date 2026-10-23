@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertLogdrain is the base query for bulk insert
-const bulkInsertLogdrain = `INSERT INTO logdrains ( id, workspace_id, name, stream, config, lease_id, fencing_token, created_at ) VALUES %s`
+const bulkInsertLogdrain = `INSERT INTO logdrains (id, workspace_id, name, stream, config, committed_offset_inserted_at, lease_id, fencing_token, created_at, updated_at) VALUES %s`
 
 // InsertLogdrains performs bulk insert in a single query
 func (q *BulkQueries) InsertLogdrains(ctx context.Context, db DBTX, args []InsertLogdrainParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertLogdrains(ctx context.Context, db DBTX, args []Inser
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, '', '', ? )"
+		valueClauses[i] = "(?, ?, ?, ?, ?, ?, '', '', ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertLogdrain, strings.Join(valueClauses, ", "))
@@ -35,6 +35,8 @@ func (q *BulkQueries) InsertLogdrains(ctx context.Context, db DBTX, args []Inser
 		allArgs = append(allArgs, arg.Stream)
 		allArgs = append(allArgs, arg.Config)
 		allArgs = append(allArgs, arg.CreatedAt)
+		allArgs = append(allArgs, arg.CreatedAt)
+		allArgs = append(allArgs, arg.UpdatedAt)
 	}
 
 	// Execute the bulk insert

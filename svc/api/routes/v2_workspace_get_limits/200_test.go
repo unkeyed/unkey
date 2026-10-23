@@ -209,6 +209,7 @@ func insertLogdrain(t *testing.T, h *testutil.Harness, workspaceID string) {
 		Stream:      db.LogdrainsStreamAuditLogs,
 		Config:      config,
 		CreatedAt:   time.Now().UnixMilli(),
+		UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 	}))
 }
 

@@ -7,28 +7,12 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const insertLogdrain = `-- name: InsertLogdrain :exec
-INSERT INTO logdrains (
-    id,
-    workspace_id,
-    name,
-    stream,
-    config,
-    lease_id,
-    fencing_token,
-    created_at
-) VALUES (
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    '',
-    '',
-    ?
-)
+INSERT INTO logdrains (id, workspace_id, name, stream, config, committed_offset_inserted_at, lease_id, fencing_token, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, '', '', ?, ?)
 `
 
 type InsertLogdrainParams struct {
@@ -38,30 +22,14 @@ type InsertLogdrainParams struct {
 	Stream      LogdrainsStream `db:"stream"`
 	Config      []byte          `db:"config"`
 	CreatedAt   int64           `db:"created_at"`
+	UpdatedAt   sql.NullInt64   `db:"updated_at"`
 }
 
-// InsertLogdrain creates a running log drain with no lease. Intended for
-// tests: the dashboard creates log drains in production.
+// The caller has checked capacity; concurrent creates may exceed the allowance.
+// Initialize the cursor at creation time so historical records are not exported.
 //
-//	INSERT INTO logdrains (
-//	    id,
-//	    workspace_id,
-//	    name,
-//	    stream,
-//	    config,
-//	    lease_id,
-//	    fencing_token,
-//	    created_at
-//	) VALUES (
-//	    ?,
-//	    ?,
-//	    ?,
-//	    ?,
-//	    ?,
-//	    '',
-//	    '',
-//	    ?
-//	)
+//	INSERT INTO logdrains (id, workspace_id, name, stream, config, committed_offset_inserted_at, lease_id, fencing_token, created_at, updated_at)
+//	VALUES (?, ?, ?, ?, ?, ?, '', '', ?, ?)
 func (q *Queries) InsertLogdrain(ctx context.Context, db DBTX, arg InsertLogdrainParams) error {
 	_, err := db.ExecContext(ctx, insertLogdrain,
 		arg.ID,
@@ -70,6 +38,8 @@ func (q *Queries) InsertLogdrain(ctx context.Context, db DBTX, arg InsertLogdrai
 		arg.Stream,
 		arg.Config,
 		arg.CreatedAt,
+		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
 	return err
 }
