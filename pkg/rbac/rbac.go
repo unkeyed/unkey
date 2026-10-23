@@ -40,19 +40,19 @@ type EvaluationResult struct {
 // specified in the permission query. It returns an EvaluationResult indicating
 // whether the permissions are valid and, if not, why they failed.
 //
-// The permissions parameter should contain a list of permission strings in the
-// format "resourceType.resourceID.action".
+// The permissions parameter may contain canonical platform URNs or arbitrary
+// customer-defined permission strings.
 //
 // Example:
 //
 //	userPermissions := []string{
-//	    "api.api1.read_api",
-//	    "api.api1.update_api",
+//	    "documents.read",
+//	    "documents.write",
 //	}
 //
 //	query := rbac.And(
-//	    rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "api1", Action: rbac.ReadAPI}),
-//	    rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "api1", Action: rbac.UpdateAPI}),
+//	    rbac.S("documents.read"),
+//	    rbac.S("documents.write"),
 //	)
 //
 //	result, err := rbac.EvaluatePermissions(query, userPermissions)
@@ -172,18 +172,18 @@ func evaluateLeafPermission(query PermissionQuery, permissions []string) bool {
 // ParseQuery parses a SQL-like permission query string and returns a PermissionQuery.
 //
 // Supported syntax:
-//   - Permissions: alphanumeric characters, dots, underscores, hyphens, colons, asterisks, forward slashes (e.g., "api.key1.read_key", "system:admin", "api.*", "/api/v1/xxx")
+//   - Permissions: alphanumeric characters, dots, underscores, hyphens, colons, asterisks, and forward slashes (e.g., "documents.read", "billing:admin", "documents.*", "/documents/read")
 //   - Operators: AND, OR (case-insensitive)
 //   - Grouping: parentheses ()
 //   - Precedence: AND has higher precedence than OR
 //
 // Important: Asterisks (*) in permission names are treated as literal characters,
-// NOT as wildcard patterns. For example, "api.*" will only match a permission
-// literally named "api.*", not permissions like "api.read" or "api.write".
+// NOT as wildcard patterns. For example, "documents.*" only matches a permission
+// literally named "documents.*", not "documents.read" or "documents.write".
 //
 // Examples:
-//   - "api.key1.read_key"
-//   - "api.*" (matches only the literal permission "api.*")
+//   - "documents.read"
+//   - "documents.*" (matches only the literal permission "documents.*")
 //   - "/api/v1/xxx" (path-like permission names)
 //   - "perm1 AND perm2"
 //   - "perm1 OR perm2 AND perm3" (parsed as "perm1 OR (perm2 AND perm3)")
