@@ -28,7 +28,6 @@ func New(cfg *config.PprofConfig, prefix string) (*zen.Server, error) {
 
 	srv, err := zen.New(zen.Config{
 		TLS:                nil,
-		Flags:              nil,
 		EnableH2C:          false,
 		StreamRequestBody:  false,
 		MaxRequestBodySize: 0,

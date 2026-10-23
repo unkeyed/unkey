@@ -229,9 +229,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Caches will be created after invalidation consumer is set up
 	srv, err := zen.New(zen.Config{
-		Flags: &zen.Flags{
-			TestMode: cfg.Test.Enabled,
-		},
 		TLS:                cfg.TLSConfig,
 		EnableH2C:          false,
 		StreamRequestBody:  false,

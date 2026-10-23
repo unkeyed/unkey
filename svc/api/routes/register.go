@@ -242,7 +242,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
 			Auditlogs:       svc.Auditlogs,
-			TestMode:        srv.Flags().TestMode,
 		},
 	)
 
@@ -255,7 +254,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
 			Auditlogs:       svc.Auditlogs,
-			TestMode:        srv.Flags().TestMode,
 		},
 	)
 

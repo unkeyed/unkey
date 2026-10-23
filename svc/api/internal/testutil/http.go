@@ -150,9 +150,6 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 
 	srv, err := zen.New(zen.Config{
 		MaxRequestBodySize: 0,
-		Flags: &zen.Flags{
-			TestMode: true,
-		},
 		TLS:               nil,
 		EnableH2C:         false,
 		StreamRequestBody: false,

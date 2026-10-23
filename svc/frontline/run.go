@@ -347,7 +347,6 @@ func Run(ctx context.Context, cfg Config) error {
 			ReadTimeout:        -1,
 			WriteTimeout:       -1,
 			IdleTimeout:        0,
-			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			StreamRequestBody:  true,
@@ -387,7 +386,6 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.HttpPort > 0 {
 		httpSrv, httpErr := zen.New(zen.Config{
 			TLS:                nil,
-			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			StreamRequestBody:  false,
