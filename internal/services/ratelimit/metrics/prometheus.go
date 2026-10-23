@@ -117,19 +117,20 @@ var (
 	// systems shows what the global rate limiter costs.
 	//
 	// Labels:
-	//   - system: "regional" or "global".
+	//   - op: "limit" or "multi_limit", the handler that asked.
+	//   - system: "regional" or "gcra", the limiter that decided.
 	//
 	// Example usage:
-	//   metrics.RatelimitDecisionDuration.WithLabelValues("global").Observe(seconds)
+	//   metrics.RatelimitDecisionDuration.WithLabelValues("limit", "gcra").Observe(seconds)
 	RatelimitDecisionDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "decision_duration_seconds",
-			Help:      "Time the rate limit handlers wait for a decision, labeled by system (regional|global).",
+			Help:      "Time the rate limit handlers wait for a decision, labeled by op (limit|multi_limit) and system (regional|gcra).",
 			Buckets:   latencyBuckets,
 		},
-		[]string{"system"},
+		[]string{"op", "system"},
 	)
 
 	// RatelimitCASExhausted counts Ratelimit() calls that exhausted the CAS

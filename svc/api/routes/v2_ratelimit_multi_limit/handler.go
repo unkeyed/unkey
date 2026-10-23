@@ -227,9 +227,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	system := "regional"
 	if allGlobal {
-		system = "global"
+		system = "gcra"
 	}
-	metrics.RatelimitDecisionDuration.WithLabelValues(system).Observe(time.Since(start).Seconds())
+	metrics.RatelimitDecisionDuration.WithLabelValues("multi_limit", system).Observe(time.Since(start).Seconds())
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),

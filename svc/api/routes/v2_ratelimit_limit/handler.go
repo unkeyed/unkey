@@ -169,9 +169,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	system := "regional"
 	if ns.UseGcra {
-		system = "global"
+		system = "gcra"
 	}
-	metrics.RatelimitDecisionDuration.WithLabelValues(system).Observe(time.Since(t0).Seconds())
+	metrics.RatelimitDecisionDuration.WithLabelValues("limit", system).Observe(time.Since(t0).Seconds())
 	if err != nil {
 		return fault.Wrap(
 			err,
