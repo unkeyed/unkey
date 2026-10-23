@@ -32,11 +32,13 @@ func TestCounter_ClosePersistsEveryLocalCounter(t *testing.T) {
 		Clock: clock.NewTestClock(),
 	})
 	require.NoError(t, err)
+	awaitStartupPasses(t, writePool)
 	conn, err := writePool.Conn(t.Context())
 	require.NoError(t, err)
 	release := sync.OnceFunc(func() { require.NoError(t, conn.Close()) })
 	t.Cleanup(release)
 
+	// The startup passes may have waited for the connection too, so count from here.
 	waited := writePool.Stats().WaitDuration
 	require.NoError(t, writer.Add(globalcounter.AddParams{Name: droppedName, Delta: 7}))
 	require.Eventually(t, func() bool { return writePool.Stats().WaitDuration > waited }, 10*time.Second, 10*time.Millisecond)

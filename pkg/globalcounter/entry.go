@@ -27,16 +27,40 @@ type entry struct {
 	// ignores snapshots that are not newer than the stored one.
 	revision uint64
 
+	// acked is the newest revision MySQL has acknowledged, or zero. It lets the
+	// eviction pass queue again only what MySQL has not confirmed, for the
+	// previous writer id, which no Add will write again.
+	acked uint64
+
 	// deleteAfter is when the entry becomes eligible for eviction, or zero for never.
 	deleteAfter time.Time
+
+	// touchedAt is when this process last changed the entry, by its own clock.
+	// Eviction forgets an entry only a grace period after both deleteAfter and
+	// touchedAt, so a snapshot of the entry that is still in flight cannot arrive
+	// after a restarted entry of the same name has reused its revisions.
+	touchedAt time.Time
 }
 
-// apply returns the entry after a change without modifying e, so a caller can
-// decide whether to commit it. Every change is a new snapshot, so the revision
-// advances even for a zero delta. deleteAfter replaces the old time rather than
-// extending it, so a caller can shorten retention too. Overflow returns an error
-// and a zero entry.
-func (e entry) apply(delta int64, deleteAfter time.Time) (entry, error) {
+// forgettableAt is when the entry may leave memory, or zero for never. It is the
+// later of deleteAfter and touchedAt, so neither a counter that may still be
+// read nor a snapshot that may still be in flight is forgotten early.
+func (e entry) forgettableAt() time.Time {
+	if e.deleteAfter.IsZero() {
+		return time.Time{}
+	}
+	if e.touchedAt.After(e.deleteAfter) {
+		return e.touchedAt
+	}
+	return e.deleteAfter
+}
+
+// apply returns the entry after a change at now without modifying e, so a caller
+// can decide whether to commit it. Every change is a new snapshot, so the
+// revision advances even for a zero delta. deleteAfter replaces the old time
+// rather than extending it, so a caller can shorten retention too. Overflow
+// returns an error and a zero entry.
+func (e entry) apply(delta int64, deleteAfter, now time.Time) (entry, error) {
 	if err := assert.All(
 		assert.False(delta > 0 && e.count > math.MaxInt64-delta, "counter count overflow"),
 		assert.False(delta < 0 && e.count < math.MinInt64-delta, "counter count overflow"),
@@ -44,7 +68,7 @@ func (e entry) apply(delta int64, deleteAfter time.Time) (entry, error) {
 	); err != nil {
 		return entry{}, err
 	}
-	return entry{count: e.count + delta, revision: e.revision + 1, deleteAfter: deleteAfter}, nil
+	return entry{count: e.count + delta, revision: e.revision + 1, acked: e.acked, deleteAfter: deleteAfter, touchedAt: now}, nil
 }
 
 // totalOf returns the peers' total plus this writer's local total. Overflow is an
