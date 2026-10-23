@@ -42,8 +42,3 @@ export const appV2 = {
   slug: "app_v2",
   defaultValue: false,
 } as const satisfies WorkspaceFlag;
-
-export const appMetrics = {
-  slug: "app_metrics",
-  defaultValue: false,
-} as const satisfies WorkspaceFlag;

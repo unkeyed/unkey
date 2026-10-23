@@ -49,7 +49,7 @@ export function MetricsGlance() {
           View all metrics
         </Link>
       </ResourceListHeader>
-      <ResourceListContent className="grid grid-cols-1 overflow-visible divide-y divide-grayA-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0 [&>:last-child_.recharts-surface]:rounded-b-[7px] sm:[&>:first-child_.recharts-surface]:rounded-bl-[7px] sm:[&>:last-child_.recharts-surface]:rounded-bl-none">
+      <ResourceListContent className="grid grid-cols-1 overflow-visible divide-y divide-grayA-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0 [&>:last-child_.recharts-surface]:rounded-b-md sm:[&>:first-child_.recharts-surface]:rounded-bl-md sm:[&>:last-child_.recharts-surface]:rounded-bl-none">
         {GLANCE_METRICS.map((metric) => (
           <GlanceCell
             key={metric}
