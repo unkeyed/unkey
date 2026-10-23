@@ -207,3 +207,36 @@ func TestCleanUpReturnsAFailedPrimaryRead(t *testing.T) {
 
 	require.Error(t, l.cleanUp(context.Background()))
 }
+
+// TestCleanUpPagesPastRowsItKeeps guarantees that a pass moves past a full
+// page of due rows that it cannot change. The busy fingerprint has
+// `dueRowsPerPage + 1` due rows, each alone between two rows that are not
+// due, so there is nothing to merge, and its oldest run is still counted by
+// the next row. The idle fingerprint sorts after it with the same
+// `CompactAfterMs`, so only the second page reaches it.
+func TestCleanUpPagesPastRowsItKeeps(t *testing.T) {
+	testClock := clock.NewTestClock(time.Unix(1_700_000_000, 0))
+	store := newMemoryStore()
+	l, err := newLimiter(Config{Clock: testClock, Store: store, Random: rand.New(rand.NewPCG(1, 2))})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, l.Close()) })
+
+	busy := [32]byte{1}
+	idle := [32]byte{2}
+	dueMs := testClock.Now().UnixMilli() - 1
+	notDueMs := testClock.Now().UnixMilli() + time.Hour.Milliseconds()
+	baseAnchorNs := testClock.Now().Add(-time.Hour).UnixNano()
+	var rows []StoredSession
+	for i := range dueRowsPerPage + 1 {
+		rows = append(rows,
+			StoredSession{Fingerprint: busy, SessionID: fmt.Sprintf("due %d", i), AnchorAtNs: baseAnchorNs + int64(2*i), ConsumedNs: 5, CompactAfterMs: dueMs},
+			StoredSession{Fingerprint: busy, SessionID: fmt.Sprintf("not due %d", i), AnchorAtNs: baseAnchorNs + int64(2*i+1), ConsumedNs: 5, CompactAfterMs: notDueMs},
+		)
+	}
+	rows = append(rows, StoredSession{Fingerprint: idle, SessionID: "idle", AnchorAtNs: baseAnchorNs, ConsumedNs: 5, CompactAfterMs: dueMs})
+	require.NoError(t, store.WriteSessions(context.Background(), rows))
+
+	require.NoError(t, l.cleanUp(context.Background()))
+	require.Len(t, store.sessions(busy), 2*(dueRowsPerPage+1))
+	require.Empty(t, store.sessions(idle))
+}
