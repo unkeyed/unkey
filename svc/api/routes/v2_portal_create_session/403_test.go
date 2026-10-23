@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger/loggertest"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -128,6 +129,41 @@ func TestCreateSessionAuthorizationMatrix(t *testing.T) {
 			require.NotContains(t, res.RawBody, "create_portal_session", "a denial must not echo the required permission")
 		})
 	}
+}
+
+// TestCreateSessionPortalReaderIsForbidden covers a caller who can read the
+// portal but not mint sessions for it.
+func TestCreateSessionPortalReaderIsForbidden(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	slug := "reader-portal"
+	seeded := h.SeedPortal(t, workspace.ID, slug, slug, portal.Mapping{Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String}, nil, nil)
+	portalURN := urn.New().Workspace(workspace.ID).Project(seeded.ProjectID).Portal(seeded.ID)
+	rootKey := h.CreateRootKey(workspace.ID, portalURN.String()+"#read")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{
+		Portal:     slug,
+		ExternalId: uid.New(uid.TestPrefix),
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
+	})
+	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Detail, "#write")
+	require.Contains(t, res.Body.Error.Detail, "Log in again")
+	require.NotContains(t, res.RawBody, seeded.ID)
 }
 
 // TestCreateSessionScopeEscalation covers stage 2: a minted session may never

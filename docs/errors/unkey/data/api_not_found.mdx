@@ -34,7 +34,7 @@ The `apiId` you sent doesn't match an API in your workspace. You get HTTP 404.
 - The ID has a typo, or isn't an API ID. API IDs start with `api_`.
 - The API was deleted.
 - The API is in another workspace.
-- Your root key doesn't have permission on the API. `apis.getApi`, `apis.listKeys`, and `keys.createKey` return this 404 instead of a 403, so a 404 doesn't prove the API is gone.
+- Your root key can't read the API. `apis.getApi`, `apis.listKeys`, and `keys.createKey` return this 404 instead of a 403, so a 404 doesn't prove the API is gone. A key that can read the API but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 
 ## How to fix
 

@@ -40,6 +40,7 @@ var Cmd = &cli.Command{
 			Name:        "switch",
 			Usage:       "Switch the active CLI workspace",
 			Description: "unkey workspace switch <workspace-id>",
+			AcceptsArgs: true,
 			Action: func(_ context.Context, cmd *cli.Command) error {
 				if len(cmd.Args()) != 1 {
 					return fmt.Errorf("usage: unkey workspace switch <workspace-id>")

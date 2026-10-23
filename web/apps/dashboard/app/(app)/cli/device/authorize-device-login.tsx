@@ -361,7 +361,7 @@ function PendingLogin({
               Add a narrower set below to replace full access. Leave it empty to keep the
               permissions selected above.
             </p>
-            <KeyFields>
+            <KeyFields nameHidden>
               <PolicyList />
             </KeyFields>
           </div>

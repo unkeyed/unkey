@@ -14,8 +14,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -134,6 +136,15 @@ type state struct {
 
 // Save stores session and makes its workspace the active one.
 func Save(session Session) error {
+	unlock, err := lockSessions()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return save(session)
+}
+
+func save(session Session) error {
 	if session.WorkspaceID == "" || session.AccessToken == "" || session.RefreshToken == "" {
 		return fmt.Errorf("cli session is incomplete")
 	}
@@ -180,6 +191,11 @@ func List() (active string, sessions []Session, err error) {
 
 // Switch changes the active workspace. The workspace must already have a session.
 func Switch(workspaceID string) error {
+	unlock, err := lockSessions()
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	current, err := read()
 	if err != nil {
 		return err
@@ -194,6 +210,11 @@ func Switch(workspaceID string) error {
 // Delete removes one workspace session. It returns the removed session so the
 // caller can revoke it.
 func Delete(workspaceID string) (Session, error) {
+	unlock, err := lockSessions()
+	if err != nil {
+		return Session{}, err
+	}
+	defer unlock()
 	current, err := read()
 	if err != nil {
 		return Session{}, err
@@ -210,10 +231,10 @@ func Delete(workspaceID string) (Session, error) {
 	}
 	delete(current.Sessions, workspaceID)
 	if current.Active == workspaceID {
+		remaining := slices.Sorted(maps.Keys(current.Sessions))
 		current.Active = ""
-		for id := range current.Sessions {
-			current.Active = id
-			break
+		if len(remaining) > 0 {
+			current.Active = remaining[0]
 		}
 	}
 	if err := write(current); err != nil {
@@ -222,32 +243,34 @@ func Delete(workspaceID string) (Session, error) {
 	return session, nil
 }
 
-// AccessToken returns a usable access token, refreshing it when it is within
-// a minute of expiry. refresh exchanges the refresh token.
+// AccessToken returns the active session with a usable access token,
+// refreshing it when it is within a minute of expiry. refresh exchanges the
+// refresh token. The returned session is the one the token belongs to, which
+// may differ from an earlier [Active] call if the workspace was switched.
 //
 // The read, refresh, and save run under a file lock. The session is read
 // again after the lock is acquired, so a caller that waited does not present
 // a refresh token another caller already rotated.
-func AccessToken(ctx context.Context, refresh func(ctx context.Context, current Session) (Session, error)) (string, error) {
+func AccessToken(ctx context.Context, refresh func(ctx context.Context, current Session) (Session, error)) (Session, error) {
 	unlock, err := lockSessions()
 	if err != nil {
-		return "", err
+		return Session{}, err
 	}
 	defer unlock()
 
 	session, err := Active()
 	if err != nil {
-		return "", err
+		return Session{}, err
 	}
 	if session.ExpiresAt > time.Now().Add(time.Minute).Unix() {
-		return session.AccessToken, nil
+		return session, nil
 	}
 	if refresh == nil {
-		return "", fmt.Errorf("cli session expired")
+		return Session{}, fmt.Errorf("cli session expired")
 	}
 	next, err := refresh(ctx, session)
 	if err != nil {
-		return "", err
+		return Session{}, err
 	}
 	if next.WorkspaceID == "" {
 		next.WorkspaceID = session.WorkspaceID
@@ -258,10 +281,10 @@ func AccessToken(ctx context.Context, refresh func(ctx context.Context, current 
 	if next.APIURL == "" {
 		next.APIURL = session.APIURL
 	}
-	if err := Save(next); err != nil {
-		return "", err
+	if err := save(next); err != nil {
+		return Session{}, err
 	}
-	return next.AccessToken, nil
+	return next, nil
 }
 
 func read() (state, error) {

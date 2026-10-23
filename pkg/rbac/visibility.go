@@ -55,41 +55,19 @@ func toReadQuery(query PermissionQuery) PermissionQuery {
 	}
 }
 
+// readLeaf rewrites one leaf as a read. Legacy tuple leaves are kept as
+// written: no read route accepts a legacy read action, so holding one must not
+// turn a 404 into a 403.
 func readLeaf(query PermissionQuery) PermissionQuery {
 	if query.matchUnkeyPermission || isUnkeyPermission(query.Value) {
 		return readURNLeaf(query.Value)
 	}
-
-	tuple, err := TupleFromString(query.Value)
-	if err != nil {
-		return PermissionQuery{
-			Operation:            OperatorNil,
-			Value:                query.Value,
-			Children:             []PermissionQuery{},
-			matchUnkeyPermission: false,
-		}
+	return PermissionQuery{
+		Operation:            OperatorNil,
+		Value:                query.Value,
+		Children:             []PermissionQuery{},
+		matchUnkeyPermission: false,
 	}
-
-	actions := readActionsFor(tuple.ResourceType, tuple.Action)
-	if len(actions) == 0 {
-		return PermissionQuery{
-			Operation:            OperatorNil,
-			Value:                query.Value,
-			Children:             []PermissionQuery{},
-			matchUnkeyPermission: false,
-		}
-	}
-	if len(actions) == 1 {
-		tuple.Action = actions[0]
-		return T(tuple)
-	}
-
-	children := make([]PermissionQuery, len(actions))
-	for i, action := range actions {
-		tuple.Action = action
-		children[i] = T(tuple)
-	}
-	return Or(children...)
 }
 
 func readURNLeaf(value string) PermissionQuery {
@@ -126,15 +104,4 @@ func singletonParent(resource string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-// readActionsFor returns legacy read actions that a read route still accepts.
-//
-// List keys accepts read_api and read_key. No other read route accepts a
-// legacy read action, so holding one must not turn a 404 into a 403.
-func readActionsFor(resource ResourceType, _ ActionType) []ActionType {
-	if resource == Api {
-		return []ActionType{ReadAPI, ReadKey}
-	}
-	return nil
 }

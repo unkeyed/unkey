@@ -2,7 +2,10 @@ package clidevice
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
@@ -90,7 +94,7 @@ func TestApproveRejectsMissingMaliciousAndOverscopedPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	svc := newService(h, mem{})
-	developer := developerPrincipal(workspace, "user_dev")
+	developer := developerPrincipal(workspace, uid.New(uid.TestPrefix))
 	allowed := permissionOnlyDeveloperHas(t, workspace.ID)
 
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.7", UserAgent: "unkey-cli/1.0"})
@@ -105,7 +109,7 @@ func TestApproveRejectsMissingMaliciousAndOverscopedPermissions(t *testing.T) {
 	err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developer,
 		UserCode:    started.UserCode,
-		Permissions: []string{"unkey:v1:ws_other:projects/*/keyspaces/*/keys/*#read"},
+		Permissions: []string{"unkey:v1:" + uid.New(uid.WorkspacePrefix) + ":projects/*/keyspaces/*/keys/*#read"},
 	})
 	require.Equal(t, codes.App.Validation.InvalidInput.URN(), codeOf(t, err))
 
@@ -128,6 +132,7 @@ func TestPollIssuesASessionInsteadOfARootKey(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	svc := newService(h, mem{})
 	allowed := permissionOnlyDeveloperHas(t, workspace.ID)
+	userID := uid.New(uid.TestPrefix)
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.8", UserAgent: "unkey-cli/1.0"})
 	require.NoError(t, err)
 
@@ -137,7 +142,7 @@ func TestPollIssuesASessionInsteadOfARootKey(t *testing.T) {
 	require.Empty(t, pending.AccessToken)
 
 	require.NoError(t, svc.Approve(t.Context(), ApproveRequest{
-		Principal:   developerPrincipal(workspace, "user_dev"),
+		Principal:   developerPrincipal(workspace, userID),
 		UserCode:    started.UserCode,
 		Permissions: []string{allowed},
 	}))
@@ -158,7 +163,7 @@ func TestPollIssuesASessionInsteadOfARootKey(t *testing.T) {
 	require.NoError(t, err)
 	claims, err := verifier.Verify(done.AccessToken)
 	require.NoError(t, err)
-	require.Equal(t, "user_dev", claims.Subject)
+	require.Equal(t, userID, claims.Subject)
 	require.Equal(t, workspace.ID, claims.WorkspaceID)
 	require.Equal(t, done.SessionID, claims.SessionID)
 	require.Equal(t, []string{allowed}, claims.Permissions)
@@ -175,9 +180,10 @@ func TestRefreshNarrowsOnDemotionAndFailsOnRemoval(t *testing.T) {
 	membership := mem{roles: map[string][]string{}, gone: map[string]bool{}}
 	svc := newService(h, membership)
 	allowed := permissionOnlyDeveloperHas(t, workspace.ID)
-	tokens := login(t, svc, workspace, "user_dev", allowed)
+	demotedID := uid.New(uid.TestPrefix)
+	tokens := login(t, svc, workspace, demotedID, allowed)
 
-	membership.roles["user_dev"] = []string{"viewer"}
+	membership.roles[demotedID] = []string{"viewer"}
 	_, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
 	require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), codeOf(t, err))
 
@@ -185,13 +191,14 @@ func TestRefreshNarrowsOnDemotionAndFailsOnRemoval(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, row.RevokedAt.Valid)
 
-	membership.roles["user_kept"] = []string{"developer"}
-	kept := login(t, svc, workspace, "user_kept", allowed)
+	keptID := uid.New(uid.TestPrefix)
+	membership.roles[keptID] = []string{"developer"}
+	kept := login(t, svc, workspace, keptID, allowed)
 	refreshed, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: kept.RefreshToken})
 	require.NoError(t, err)
 	require.NotEqual(t, kept.RefreshToken, refreshed.RefreshToken)
 
-	membership.gone["user_kept"] = true
+	membership.gone[keptID] = true
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: refreshed.RefreshToken})
 	require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), codeOf(t, err))
 	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), kept.SessionID)
@@ -203,7 +210,7 @@ func TestReusedRefreshTokenRevokesTheSession(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	svc := newService(h, mem{})
-	tokens := login(t, svc, workspace, "user_dev", permissionOnlyDeveloperHas(t, workspace.ID))
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
 
 	refreshed, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
 	require.NoError(t, err)
@@ -220,7 +227,7 @@ func TestPreviousRefreshTokenWithinGraceDoesNotRevokeTheFamily(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	svc := newService(h, mem{})
-	tokens := login(t, svc, workspace, "user_dev", permissionOnlyDeveloperHas(t, workspace.ID))
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
 
 	refreshed, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
 	require.NoError(t, err)
@@ -242,16 +249,16 @@ func TestExpiredAndRevokedSessionsCannotRefresh(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	svc := newService(h, mem{})
-	tokens := login(t, svc, workspace, "user_dev", permissionOnlyDeveloperHas(t, workspace.ID))
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
 
 	require.NoError(t, svc.Revoke(t.Context(), RevokeRequest{
-		Principal: adminPrincipal(workspace, "user_admin"),
+		Principal: adminPrincipal(workspace, uid.New(uid.TestPrefix)),
 		SessionID: tokens.SessionID,
 	}))
 	_, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 
-	other := login(t, svc, workspace, "user_other", permissionOnlyDeveloperHas(t, workspace.ID))
+	other := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
 	h.Clock.Tick(refreshIdle + time.Second)
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: other.RefreshToken})
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
@@ -264,7 +271,7 @@ func TestRootKeyCannotApprove(t *testing.T) {
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop"})
 	require.NoError(t, err)
 
-	rootKey := adminPrincipal(workspace, "key_1")
+	rootKey := adminPrincipal(workspace, uid.New(uid.KeyPrefix))
 	rootKey.Type = principal.TypeAPIKey
 	rootKey.Subject.Type = principal.SubjectTypeRootKey
 	rootKey.Source = principal.KeySource{}
@@ -308,4 +315,228 @@ func codeOf(t *testing.T, err error) codes.URN {
 	code, ok := fault.GetCode(err)
 	require.True(t, ok, fault.UserFacingMessage(err))
 	return code
+}
+
+func TestRevokeAndListAreScopedToTheCaller(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	permission := permissionOnlyDeveloperHas(t, workspace.ID)
+	ownerID := uid.New(uid.TestPrefix)
+	teammateID := uid.New(uid.TestPrefix)
+	owned := login(t, svc, workspace, ownerID, permission)
+	teammate := login(t, svc, workspace, teammateID, permission)
+
+	err := svc.Revoke(t.Context(), RevokeRequest{
+		Principal: developerPrincipal(workspace, teammateID),
+		SessionID: owned.SessionID,
+	})
+	require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), codeOf(t, err))
+	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), owned.SessionID)
+	require.NoError(t, err)
+	require.False(t, row.RevokedAt.Valid)
+
+	err = svc.Revoke(t.Context(), RevokeRequest{
+		Principal: adminPrincipal(h.Resources().RootWorkspace, uid.New(uid.TestPrefix)),
+		SessionID: owned.SessionID,
+	})
+	require.Equal(t, codes.App.Validation.InvalidInput.URN(), codeOf(t, err))
+	require.Contains(t, fault.UserFacingMessage(err), "not found")
+	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), owned.SessionID)
+	require.NoError(t, err)
+	require.False(t, row.RevokedAt.Valid)
+
+	sessions, err := svc.List(t.Context(), ListRequest{Principal: developerPrincipal(workspace, teammateID)})
+	require.NoError(t, err)
+	require.Len(t, sessions, 1)
+	require.Equal(t, teammate.SessionID, sessions[0].ID)
+
+	sessions, err = svc.List(t.Context(), ListRequest{Principal: adminPrincipal(workspace, uid.New(uid.TestPrefix))})
+	require.NoError(t, err)
+	ids := make([]string, 0, len(sessions))
+	for _, session := range sessions {
+		ids = append(ids, session.ID)
+	}
+	require.Contains(t, ids, owned.SessionID)
+	require.Contains(t, ids, teammate.SessionID)
+
+	admin := adminPrincipal(workspace, uid.New(uid.TestPrefix))
+	require.NoError(t, svc.Revoke(t.Context(), RevokeRequest{Principal: admin, SessionID: owned.SessionID}))
+	require.NoError(t, svc.Revoke(t.Context(), RevokeRequest{Principal: admin, SessionID: owned.SessionID}))
+	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), owned.SessionID)
+	require.NoError(t, err)
+	require.True(t, row.RevokedAt.Valid)
+}
+
+func TestConcurrentPollsIssueOneSession(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	userID := uid.New(uid.TestPrefix)
+	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.10", UserAgent: "unkey-cli"})
+	require.NoError(t, err)
+	require.NoError(t, svc.Approve(t.Context(), ApproveRequest{
+		Principal:   developerPrincipal(workspace, userID),
+		UserCode:    started.UserCode,
+		Permissions: []string{permissionOnlyDeveloperHas(t, workspace.ID)},
+	}))
+
+	const pollers = 8
+	results := make([]PollResult, pollers)
+	var wg sync.WaitGroup
+	for i := range pollers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			result, pollErr := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID})
+			if pollErr == nil {
+				results[i] = result
+			}
+		}()
+	}
+	wg.Wait()
+
+	completed := 0
+	for _, result := range results {
+		if result.Status == PollComplete {
+			completed++
+		}
+	}
+	require.Equal(t, 1, completed)
+
+	rows, err := db.Query.ListCLISessionsByUser(t.Context(), h.DB.RW(), db.ListCLISessionsByUserParams{
+		WorkspaceID: workspace.ID,
+		UserID:      userID,
+		Now:         h.Clock.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+}
+
+func TestSecondApproverCannotTakeOverAnApprovedLogin(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	permission := permissionOnlyDeveloperHas(t, workspace.ID)
+	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.11", UserAgent: "unkey-cli"})
+	require.NoError(t, err)
+	require.NoError(t, svc.Approve(t.Context(), ApproveRequest{
+		Principal:   developerPrincipal(workspace, uid.New(uid.TestPrefix)),
+		UserCode:    started.UserCode,
+		Permissions: []string{permission},
+	}))
+
+	err = svc.Approve(t.Context(), ApproveRequest{
+		Principal:   developerPrincipal(workspace, uid.New(uid.TestPrefix)),
+		UserCode:    started.UserCode,
+		Permissions: []string{permission},
+	})
+	require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), codeOf(t, err))
+}
+
+func TestDeniedLoginStaysDenied(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	developer := developerPrincipal(workspace, uid.New(uid.TestPrefix))
+	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.12", UserAgent: "unkey-cli"})
+	require.NoError(t, err)
+
+	require.NoError(t, svc.Deny(t.Context(), DenyRequest{Principal: developer, UserCode: started.UserCode}))
+	polled, err := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID})
+	require.NoError(t, err)
+	require.Equal(t, PollDenied, polled.Status)
+	require.Empty(t, polled.AccessToken)
+
+	err = svc.Approve(t.Context(), ApproveRequest{
+		Principal:   developer,
+		UserCode:    started.UserCode,
+		Permissions: []string{permissionOnlyDeveloperHas(t, workspace.ID)},
+	})
+	require.Equal(t, codes.App.Validation.InvalidInput.URN(), codeOf(t, err))
+}
+
+func TestPollAfterDeviceTTLReportsExpired(t *testing.T) {
+	h := testutil.NewHarness(t)
+	svc := newService(h, mem{})
+	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.13", UserAgent: "unkey-cli"})
+	require.NoError(t, err)
+
+	h.Clock.Tick(deviceTTL + time.Second)
+	polled, err := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID})
+	require.NoError(t, err)
+	require.Equal(t, PollExpired, polled.Status)
+	require.Empty(t, polled.AccessToken)
+}
+
+func TestApproverDemotedBeforePollIsDenied(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	membership := mem{roles: map[string][]string{}, gone: map[string]bool{}}
+	svc := newService(h, membership)
+	userID := uid.New(uid.TestPrefix)
+	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.14", UserAgent: "unkey-cli"})
+	require.NoError(t, err)
+	require.NoError(t, svc.Approve(t.Context(), ApproveRequest{
+		Principal:   developerPrincipal(workspace, userID),
+		UserCode:    started.UserCode,
+		Permissions: []string{permissionOnlyDeveloperHas(t, workspace.ID)},
+	}))
+
+	membership.roles[userID] = []string{"viewer"}
+	polled, err := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID})
+	require.NoError(t, err)
+	require.Equal(t, PollDenied, polled.Status)
+	require.Empty(t, polled.AccessToken)
+
+	rows, err := db.Query.ListCLISessionsByUser(t.Context(), h.DB.RW(), db.ListCLISessionsByUserParams{
+		WorkspaceID: workspace.ID,
+		UserID:      userID,
+		Now:         h.Clock.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+	require.Empty(t, rows)
+}
+
+func TestApprovalChangedDetectsReapproval(t *testing.T) {
+	workspaceID := sql.NullString{String: uid.New(uid.WorkspacePrefix), Valid: true}
+	approverID := sql.NullString{String: uid.New(uid.TestPrefix), Valid: true}
+	granted, err := json.Marshal([]string{"granted"})
+	require.NoError(t, err)
+	regranted, err := json.Marshal([]string{"regranted"})
+	require.NoError(t, err)
+	read := db.DeviceAuthorization{
+		WorkspaceID:    workspaceID,
+		ApproverUserID: approverID,
+		Permissions:    granted,
+		ApprovedAt:     sql.NullInt64{Int64: 1, Valid: true},
+	}
+	require.False(t, approvalChanged(read, read))
+
+	tests := []struct {
+		name   string
+		mutate func(db.DeviceAuthorization) db.DeviceAuthorization
+	}{
+		{name: "approved again", mutate: func(r db.DeviceAuthorization) db.DeviceAuthorization {
+			r.ApprovedAt = sql.NullInt64{Int64: 2, Valid: true}
+			return r
+		}},
+		{name: "different workspace", mutate: func(r db.DeviceAuthorization) db.DeviceAuthorization {
+			r.WorkspaceID = sql.NullString{String: uid.New(uid.WorkspacePrefix), Valid: true}
+			return r
+		}},
+		{name: "different approver", mutate: func(r db.DeviceAuthorization) db.DeviceAuthorization {
+			r.ApproverUserID = sql.NullString{String: uid.New(uid.TestPrefix), Valid: true}
+			return r
+		}},
+		{name: "different permissions", mutate: func(r db.DeviceAuthorization) db.DeviceAuthorization {
+			r.Permissions = regranted
+			return r
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.True(t, approvalChanged(read, tt.mutate(read)))
+		})
+	}
 }

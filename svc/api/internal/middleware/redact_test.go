@@ -31,26 +31,51 @@ func TestRedactResourceIDsKeepsTheRequestID(t *testing.T) {
 	require.Contains(t, got, "valid_token")
 }
 
-func TestForbiddenResponseRedactsResourceIDs(t *testing.T) {
-	sess, rec := newSession(t, http.MethodPost, "/v2/keys.createKey")
-	denied := fault.New("denied",
-		fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
-		fault.Public("Missing permission api_abc on keyspace ks_def. Request req_inside stays."),
+func TestRedactResourceIDsKeepsUnderscoreJoinedWords(t *testing.T) {
+	got := middleware.RedactResourceIDs(
+		"Missing permission rbac.*.add_role_to_key or rbac.*.remove_role_from_key for role_abc123.",
 	)
+	require.Contains(t, got, "rbac.*.add_role_to_key")
+	require.Contains(t, got, "rbac.*.remove_role_from_key")
+	require.NotContains(t, got, "role_abc123")
+	require.Contains(t, got, "{role}")
+}
 
-	mw := middleware.WithErrorHandling()
-	require.NoError(t, mw(func(_ context.Context, _ *zen.Session) error {
-		return denied
-	})(context.Background(), sess))
+func TestForbiddenResponseRedactsResourceIDs(t *testing.T) {
+	cases := []struct {
+		name string
+		code codes.URN
+	}{
+		{name: "forbidden", code: codes.Auth.Authorization.Forbidden.URN()},
+		{name: "custom domain exceeded", code: codes.Limits.CustomDomain.Exceeded.URN()},
+		{name: "insufficient permissions", code: codes.Auth.Authorization.InsufficientPermissions.URN()},
+		{name: "key disabled", code: codes.Auth.Authorization.KeyDisabled.URN()},
+		{name: "workspace disabled", code: codes.Auth.Authorization.WorkspaceDisabled.URN()},
+	}
 
-	require.Equal(t, http.StatusForbidden, rec.Code)
-	body := rec.Body.String()
-	require.NotContains(t, body, "api_abc")
-	require.NotContains(t, body, "ks_def")
-	require.Contains(t, body, "{api}")
-	require.Contains(t, body, "{ks}")
-	require.Contains(t, body, "req_inside")
-	require.Contains(t, body, sess.RequestID())
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			sess, rec := newSession(t, http.MethodPost, "/v2/keys.createKey")
+			denied := fault.New("denied",
+				fault.Code(tc.code),
+				fault.Public("Missing permission api_abc on keyspace ks_def. Request req_inside stays."),
+			)
+
+			mw := middleware.WithErrorHandling()
+			require.NoError(t, mw(func(_ context.Context, _ *zen.Session) error {
+				return denied
+			})(context.Background(), sess))
+
+			require.Equal(t, http.StatusForbidden, rec.Code)
+			body := rec.Body.String()
+			require.NotContains(t, body, "api_abc")
+			require.NotContains(t, body, "ks_def")
+			require.Contains(t, body, "{api}")
+			require.Contains(t, body, "{ks}")
+			require.Contains(t, body, "req_inside")
+			require.Contains(t, body, sess.RequestID())
+		})
+	}
 }
 
 func TestNotFoundResponseKeepsResourceIDs(t *testing.T) {

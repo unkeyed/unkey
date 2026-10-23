@@ -79,8 +79,10 @@ func TestDeleteNamespaceExistenceNotLeaked(t *testing.T) {
 	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Namespace: uid.New(uid.RatelimitNamespacePrefix)})
 
 	require.Equal(t, http.StatusForbidden, realRes.Status, "expected 403, received: %s", realRes.RawBody)
+	require.NotContains(t, realRes.RawBody, ns.ID)
 	require.Contains(t, realRes.Body.Error.Detail, "#delete")
 	require.Contains(t, realRes.Body.Error.Detail, "Log in again")
 	require.Equal(t, http.StatusNotFound, missingRes.Status, "expected 404, received: %s", missingRes.RawBody)
-	require.NotEqual(t, missingRes.Body.Error.Detail, realRes.Body.Error.Detail)
+	require.NotContains(t, missingRes.Body.Error.Detail, "#write")
+	require.NotContains(t, missingRes.Body.Error.Detail, "#delete")
 }
