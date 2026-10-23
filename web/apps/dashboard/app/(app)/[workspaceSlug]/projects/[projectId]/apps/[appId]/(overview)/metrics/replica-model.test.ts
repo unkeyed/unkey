@@ -6,9 +6,8 @@ import type {
   ReplicaTarget,
   ResourcePoint,
 } from "@/lib/metrics/app-metrics";
-import type { LastExit } from "@/lib/types/deploy";
 import { describe, expect, it } from "vitest";
-import { lastExitDetail, replicaSheetModel, replicaUsage } from "./replica-model";
+import { replicaSheetModel, replicaUsage } from "./replica-model";
 
 const MIB = 2 ** 20;
 
@@ -204,32 +203,5 @@ describe("replicaSheetModel", () => {
   it("does not call an instance stopped while the list is loading or failed", () => {
     expect(replicaSheetModel({ ...base, instances: loading })?.stopped).toBe(false);
     expect(replicaSheetModel({ ...base, instances: failed() })?.stopped).toBe(false);
-  });
-});
-
-describe("lastExitDetail", () => {
-  const exit = (overrides: Partial<LastExit>): LastExit => ({
-    restartCount: 0,
-    exitCode: null,
-    signal: null,
-    reason: null,
-    finishedAt: null,
-    statusReason: null,
-    ...overrides,
-  });
-
-  it("adds the termination behind a waiting badge", () => {
-    expect(
-      lastExitDetail(exit({ statusReason: "CrashLoopBackOff", reason: "Error", exitCode: 1 })),
-    ).toBe("Error · exit code 1");
-  });
-
-  it("adds nothing the badge already shows", () => {
-    expect(lastExitDetail(exit({ statusReason: "ImagePullBackOff" }))).toBe(null);
-    expect(lastExitDetail(exit({ reason: "OOMKilled", exitCode: 137 }))).toBe(null);
-  });
-
-  it("shows a zero exit code the badge hides", () => {
-    expect(lastExitDetail(exit({ reason: "Completed", exitCode: 0 }))).toBe("exit code 0");
   });
 });

@@ -1,6 +1,7 @@
 import { plural } from "@/lib/fmt";
 import type { LastExit } from "@/lib/types/deploy";
 import type { ContainerStatus } from "@unkey/db/src/schema";
+import { match } from "@unkey/match";
 import { type FatalWaitingReason, isFatalWaitingReason } from "./instance-status";
 
 export type ExitBadge =
@@ -14,7 +15,7 @@ export function exitBadge(lastExit: LastExit): ExitBadge {
   const { exitCode } = lastExit;
   return {
     kind: "exit",
-    reason: lastExit.reason || "Error",
+    reason: lastExit.reason || (exitCode === 0 ? "Exited" : "Error"),
     exit: exitCode !== null && exitCode !== 0 ? `exit=${exitCode}` : null,
   };
 }
@@ -36,7 +37,6 @@ export function lastExitOf(containerStatus: ContainerStatus | null): LastExit | 
   };
 }
 
-// The badge's reason and exit code, then the restart count
 export function exitSummary(lastExit: LastExit): string {
   const badge = exitBadge(lastExit);
   const cause = badge.kind === "waiting" ? [badge.reason] : [badge.reason, badge.exit];
@@ -68,4 +68,15 @@ function outranks(a: LastExit, b: LastExit): boolean {
   const atA = a.finishedAt ?? -1;
   const atB = b.finishedAt ?? -1;
   return atA > atB || (atA === atB && a.restartCount > b.restartCount);
+}
+
+// What the badge leaves out: the termination behind a waiting reason, or a
+// zero exit code
+export function exitDetail(lastExit: LastExit): string | null {
+  const { reason, exitCode } = lastExit;
+  const parts = match(exitBadge(lastExit))
+    .with({ kind: "waiting" }, () => [reason, exitCode !== null ? `exit code ${exitCode}` : null])
+    .with({ kind: "exit" }, () => [exitCode === 0 ? "exit code 0" : null])
+    .exhaustive();
+  return parts.filter(Boolean).join(" · ") || null;
 }

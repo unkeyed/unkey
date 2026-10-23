@@ -36,7 +36,7 @@ export type RegionInstances = InstanceSummary & {
   waiting: number;
 };
 
-export const FATAL_WAITING_REASONS = [
+const FATAL_WAITING_REASONS = [
   "CrashLoopBackOff",
   "ImagePullBackOff",
   "ErrImagePull",
