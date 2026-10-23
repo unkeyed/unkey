@@ -1,64 +1,71 @@
 package cache
 
-// This file implements S3-FIFO, the eviction policy behind the cache. If you
-// know a map-based cache with LRU eviction, here is what changes and why.
+// This file implements S3-FIFO, the policy the cache uses to decide which
+// entry to drop when it is full. The explanation below assumes that you know
+// a map-based cache with LRU eviction.
 //
-// The problem. A full cache must forget one key for every new key. LRU forgets
-// the key that was used least recently. To know that, every read moves its
-// entry to the front of a shared list, so every read writes shared state and
-// needs a lock. LRU also has a weakness: most keys in real traffic are read
-// once and never again ("one-hit wonders"). Each of them looks recently used,
-// so a burst of them pushes out the keys that are actually hot.
+// An LRU cache drops the entry that was used least recently. To track this,
+// every read moves its entry to the front of a shared list. Every read
+// therefore writes shared state and needs a lock. LRU also handles a common
+// pattern badly: in real traffic, most keys are read once and never again.
+// These keys are called one-hit wonders. Each of them looks recently used, so
+// a burst of them pushes out the keys that are actually in demand.
 //
-// The idea. S3-FIFO never moves an entry on a read. A read only bumps a small
-// counter on the entry, capped at `frequencyMax`. All decisions happen later,
-// when a write needs room, by looking at those counters. It uses three FIFO
-// queues, where new entries go in at the head and the oldest leave at the tail:
+// S3-FIFO never moves an entry when it is read. A read only increments a
+// small counter on the entry, up to `frequencyMax`. The cache looks at these
+// counters later, when a write needs room. It keeps entries in three
+// first-in-first-out (FIFO) queues. New entries go in at the head of a queue,
+// and the oldest entries leave at the tail:
 //
-//	small  targets 10% of capacity. Every new key starts here, on probation.
+//	small  about 10% of capacity. Every new key starts here.
 //	main   the rest of capacity. Keys that were read again while in `small`.
-//	ghost  keys only, no values. Keys that `small` recently evicted.
+//	ghost  keys only, no values. Keys that `small` recently dropped.
 //
 // `small` and `main` together hold at most `capacity` entries. `ghost` is
-// sized like `main` but stores keys only, so it costs little memory.
+// sized like `main`, but it stores only keys, so it uses little memory.
 //
-// Eviction, step by step. When the cache is full, `evict` looks at the oldest
-// entry of `small` (as long as `small` holds at least its 10% share):
+// When the cache is full and a new key arrives, `evict` removes one entry.
+// While `small` holds at least its 10% share, or when `main` is empty,
+// `evict` takes the oldest entry of `small` and checks how often it was read:
 //
-//	read more than once  -> not a one-hit wonder; move it to `main`, reset
-//	                        its counter, and keep looking.
-//	read at most once    -> evict it and remember its key in `ghost`.
+//	more than once  -> it is not a one-hit wonder. Move it to `main`, reset
+//	                   its counter, and continue with the next entry.
+//	at most once    -> drop it and remember its key in `ghost`.
 //
-// When `small` is below its share, `evict` looks at the oldest entry of `main`:
+// Otherwise, `evict` takes the oldest entry of `main`:
 //
-//	counter above 0      -> it was read since its last turn; put it back at the
-//	                        head of `main` with the counter decremented, and keep
-//	                        looking. This is the "second chance" of CLOCK.
-//	counter at 0         -> evict it.
+//	counter above 0 -> it was read since it was last checked. Put it back at
+//	                   the head of `main`, decrement its counter, and
+//	                   continue with the next entry.
+//	counter at 0    -> drop it.
+//
+// Putting a read entry back instead of dropping it is the "second chance"
+// idea from the CLOCK algorithm.
 //
 // The `ghost` queue corrects mistakes. If a key comes back while `ghost` still
-// remembers it, `small` evicted it too early, so `set` puts it straight into
-// `main`.
+// remembers it, `small` dropped it too early. In that case, `set` puts the key
+// directly into `main`.
 //
-// Example with `capacity` 10, so the share of `small` is 1. Keys k0..k9 fill
-// `small`, and k0 is read twice. Writing "new" then does this:
+// Here is an example with a `capacity` of 10, so the share of `small` is 1.
+// Keys k0 to k9 fill `small`, and k0 is read twice. Writing a new key then
+// does this:
 //
 //	small (oldest first): k0 k1 ... k9    main: -
 //	k0 was read twice  -> move k0 to `main`
-//	k1 was never read  -> evict k1, remember k1 in `ghost`
+//	k1 was never read  -> drop k1, remember k1 in `ghost`
 //	small: k2 ... k9 new                  main: k0
 //
-// A plain FIFO would have evicted k0, the one key in use.
+// A plain FIFO cache would have dropped k0, the only key in use.
 //
-// Why this suits concurrency. Because reads never touch the queues, the only
-// shared write on a hit is one atomic counter bump, and a key already at
-// `frequencyMax` causes none. Entries live in a `sync.Map`, so lookups take no
-// lock. The queues change only inside `set`, `delete`, and `clear`, under one
-// `mutex`.
+// This design works well under concurrency. Reads never change the queues,
+// so a cache hit writes at most one atomic counter, and a key that is already
+// at `frequencyMax` writes nothing. Entries are stored in a `sync.Map`, so
+// lookups take no lock. Only `set`, `delete`, and `clear` change the queues,
+// and they hold `mutex` while they do.
 //
-// Why this suits simulation. Eviction runs inside the `set` that needs room, on
-// the caller's goroutine, and never uses randomness. The same sequence of
-// calls therefore always evicts the same keys.
+// The design also works well in simulation. Eviction runs inside the `set`
+// call that needs room, on the caller's goroutine, and never uses randomness.
+// The same sequence of calls therefore always evicts the same keys.
 
 import (
 	"iter"
