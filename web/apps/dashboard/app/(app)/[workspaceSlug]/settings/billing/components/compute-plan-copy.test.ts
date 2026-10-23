@@ -5,6 +5,7 @@ import {
   deployNotSubscribedSubtitle,
   firstInvoiceCents,
   planCreditsCopy,
+  planUsageCreditLabel,
 } from "./compute-plan-copy";
 
 describe("signup credit copy", () => {
@@ -29,5 +30,13 @@ describe("signup credit copy", () => {
     expect(firstInvoiceCents(2500)).toBe(2000);
     expect(firstInvoiceCents(5000)).toBe(4500);
     expect(firstInvoiceCents(2500)).toBe(2500 - COMPUTE_SIGNUP_CREDIT_CENTS);
+  });
+});
+
+describe("planUsageCreditLabel", () => {
+  it("matches the plan fee and billing interval", () => {
+    expect(planUsageCreditLabel(2500, "month")).toBe("$25 of usage credit every month");
+    expect(planUsageCreditLabel(25000, "year")).toBe("$250 of usage credit every year");
+    expect(planUsageCreditLabel(1999, null)).toBe("$19.99 of usage credit every month");
   });
 });
