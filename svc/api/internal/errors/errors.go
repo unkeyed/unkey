@@ -68,27 +68,17 @@ func MaxByteSize(subject string, sizeBytes, limitBytes int) error {
 // The result is never a wrap of err. Public messages in a fault chain are
 // concatenated into the response, and the denial names resource ids.
 func MaskInsufficientPermissionsAsNotFound(err error, granted []string, query rbac.PermissionQuery, code codes.URN, public string) error {
-	errCode, ok := fault.GetCode(err)
-	if !ok || errCode != codes.Auth.Authorization.InsufficientPermissions.URN() {
-		return err
-	}
-
-	if rbac.CanRead(query, granted) {
-		return readablePermissionDenied(query, granted)
-	}
-
-	return fault.New("resource not found",
-		fault.Code(code),
-		fault.Internal("masking insufficient permissions as not found"),
-		fault.Public(public),
-	)
+	return MaskInsufficientPermissionsWithVisibility(err, granted, query, query, code, public)
 }
 
-// MaskDeploymentPermission hides a deployment from a caller who cannot read
-// that deployment or its environment, and names the missing permission when
-// they can. visibility is scoped to this deployment. required is the action
-// the route demanded, so the 403 does not offer the read as a substitute.
-func MaskDeploymentPermission(err error, granted []string, required, visibility rbac.PermissionQuery, code codes.URN, public string) error {
+// MaskInsufficientPermissionsWithVisibility is
+// [MaskInsufficientPermissionsAsNotFound] for a route whose not-found response
+// hides a different resource than the one required names, such as a create
+// route that hides the parent it creates under. visibility is the read query
+// for the resource the not-found response hides. required is the query that
+// produced err, so the 403 names the action the route demanded rather than
+// offering the read as a substitute.
+func MaskInsufficientPermissionsWithVisibility(err error, granted []string, required, visibility rbac.PermissionQuery, code codes.URN, public string) error {
 	errCode, ok := fault.GetCode(err)
 	if !ok || errCode != codes.Auth.Authorization.InsufficientPermissions.URN() {
 		return err

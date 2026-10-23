@@ -46,14 +46,18 @@ type Handler struct {
 	Vault     vault.VaultServiceClient
 }
 
-// maskCreateKeyPermissions hides a keyspace from callers who cannot read it.
-// Callers who can read it get a 403 that names the missing action. Resource
-// ids in that 403 are removed by the error middleware.
-func maskCreateKeyPermissions(err error, granted []string, query rbac.PermissionQuery, _ string) error {
-	return apierrors.MaskInsufficientPermissionsAsNotFound(
+// maskCreateKeyPermissions hides a keyspace from callers who cannot read it
+// or its keys. Callers who can read it get a 403 that names the missing
+// action. Resource ids in that 403 are removed by the error middleware.
+func maskCreateKeyPermissions(err error, granted []string, query rbac.PermissionQuery, keyspace urn.Keyspace) error {
+	return apierrors.MaskInsufficientPermissionsWithVisibility(
 		err,
 		granted,
 		query,
+		rbac.Or(
+			rbac.U(keyspace, permissions.Read),
+			rbac.U(keyspace.Key("*"), permissions.Read),
+		),
 		codes.Data.Api.NotFound.URN(),
 		"The specified API was not found.",
 	)
@@ -141,6 +145,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 3. Permission check. Creating a key is authorized against the keyspace
 	// because the key does not exist until after the operation succeeds. The
 	// tuple legs accept legacy API-scoped grants until those are migrated.
+	keyspaceURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String)
 	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
@@ -153,13 +158,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
+			keyspaceURN.Key("*"),
 			permissions.Write,
 		),
 	)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return maskCreateKeyPermissions(err, principal.Permissions, permissionQuery, api.KeyAuthID.String)
+		return maskCreateKeyPermissions(err, principal.Permissions, permissionQuery, keyspaceURN)
 	}
 
 	// Portal sessions are scoped to a single external identity. Force the
@@ -242,13 +247,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.EncryptKey,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Key("*"),
+				keyspaceURN.Key("*"),
 				permissions.Write,
 			),
 		)
 		err = principal.Authorize(encryptQuery)
 		if err != nil {
-			return maskCreateKeyPermissions(err, principal.Permissions, encryptQuery, keySpace.ID)
+			return maskCreateKeyPermissions(err, principal.Permissions, encryptQuery, keyspaceURN)
 		}
 
 		if !keySpace.StoreEncryptedKeys {

@@ -69,6 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err, fault.Internal("failed to resolve environment"))
 	}
 
+	environmentURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID)
 	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
@@ -81,16 +82,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateDeployment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
+			environmentURN.Deployment("*"),
 			permissions.Write,
 		),
 	)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
 			err,
 			principal.Permissions,
 			permissionQuery,
+			deployment.CreateVisibility(environmentURN),
 			codes.Data.Environment.NotFound.URN(),
 			"The requested project, app, or environment does not exist.",
 		)
