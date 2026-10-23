@@ -117,6 +117,34 @@ var (
 		[]string{"source", "resource_type", "status"},
 	)
 
+	// StreamErrorsTotal counts incremental streams that connected and then
+	// ended with an error. Failed connection attempts are counted on
+	// [StreamConnectionsTotal] instead.
+	StreamErrorsTotal = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "stream_errors_total",
+			Help:      "Total number of incremental streams that ended with an error after connecting.",
+		},
+	)
+
+	// FullSyncErrorsTotal counts full syncs that failed before reading every
+	// event. Errors applying individual events are counted on [DispatchTotal].
+	//
+	// Labels:
+	//   - "stage": "open" (the stream could not be opened) or "receive" (the
+	//     stream ended with an error partway through)
+	FullSyncErrorsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "full_sync_errors_total",
+			Help:      "Total number of full syncs that failed to open or ended with an error.",
+		},
+		[]string{"stage"},
+	)
+
 	// FullSyncEventsReceivedTotal counts events received during a full sync.
 	FullSyncEventsReceivedTotal = lazy.NewCounter(
 		prometheus.CounterOpts{
@@ -235,7 +263,7 @@ var (
 	// successfully reported to the control plane.
 	//
 	// Labels:
-	//   - "kind": "terminated" or "crashloop_backoff"
+	//   - "kind": "running", "terminated" or "waiting"
 	//   - "reason": kubelet-supplied reason ("OOMKilled", "Error",
 	//     "ContainerCannotRun", "CrashLoopBackOff", ...)
 	InstanceEventsEmittedTotal = lazy.NewCounterVec(
@@ -254,7 +282,7 @@ var (
 	// counter — every pod-watch tick after the first will hit dedup.
 	//
 	// Labels:
-	//   - "kind": "terminated" or "crashloop_backoff"
+	//   - "kind": "running", "terminated" or "waiting"
 	InstanceEventsDedupDroppedTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -263,6 +291,17 @@ var (
 			Help:      "Container lifecycle events skipped because the LRU already saw them.",
 		},
 		[]string{"kind"},
+	)
+
+	// Leader is 1 on the replica that holds the krane leader lease and 0 on
+	// every other replica.
+	Leader = lazy.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "leader",
+			Help:      "1 if this replica holds the krane leader lease, 0 otherwise.",
+		},
 	)
 
 	// InstanceEventsReportFailuresTotal counts ReportInstanceEvents RPC
@@ -277,6 +316,58 @@ var (
 		},
 	)
 )
+
+// Init registers every krane metric and creates the label combinations krane
+// is known to emit, so each series is exported at 0 from startup. Call it after
+// lazy.SetRegistry. instance_events_emitted_total and pod_watch_events_total
+// are left lazy: the first has kubelet-supplied reasons, the second has too
+// many combinations for nothing that alerts on it.
+func Init() {
+	WatcherFullSyncsTotal.Register()
+	StreamEventsReceivedTotal.Register()
+	StreamErrorsTotal.Register()
+	FullSyncEventsReceivedTotal.Register()
+	FullSyncDurationSeconds.Register()
+	InstanceEventsReportFailuresTotal.Register()
+	LastSuccessfulCheckpointUnixSeconds.Register()
+	Leader.Register()
+
+	for _, result := range []string{"success", "error"} {
+		StreamConnectionsTotal.WithLabelValues(result)
+		ReportStatusDurationSeconds.WithLabelValues("deployment", result)
+		for _, source := range []string{"stream", "full_sync"} {
+			DispatchTotal.WithLabelValues(source, "deployment", result)
+		}
+		for _, operation := range []string{"apply", "delete"} {
+			ReconcileOperationsTotal.WithLabelValues("deployment", operation, result)
+		}
+	}
+	for _, stage := range []string{"open", "receive"} {
+		FullSyncErrorsTotal.WithLabelValues(stage)
+	}
+	for _, state := range []string{"rolling", "stalled", "waiting"} {
+		RolloutGateWorkloads.WithLabelValues(state)
+	}
+	for _, reason := range []string{"channel_closed", "error"} {
+		PodWatchReconnectsTotal.WithLabelValues("deployment", reason)
+	}
+	for _, kind := range []string{"running", "terminated", "waiting"} {
+		InstanceEventsDedupDroppedTotal.WithLabelValues(kind)
+	}
+	ResyncCorrectionsTotal.WithLabelValues("deployment")
+	ReportDedupedTotal.WithLabelValues("deployment")
+	PodWatchDeliveryLagSeconds.WithLabelValues("deployment", "watch")
+}
+
+// ResetLeaderGauges zeroes the gauges only the leader sets, so a replica that
+// lost leadership stops exporting its last values.
+func ResetLeaderGauges() {
+	for _, state := range []string{"rolling", "stalled", "waiting"} {
+		RolloutGateWorkloads.WithLabelValues(state).Set(0)
+	}
+	LastSuccessfulCheckpointUnixSeconds.Set(0)
+	Leader.Set(0)
+}
 
 // RecordReconcile records a reconciliation operation result. Intended for use
 // with defer and named returns:
