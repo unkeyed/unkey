@@ -1,5 +1,5 @@
-import { COMPUTE_SIGNUP_CREDIT_CENTS } from "@/lib/stripe/computeSignupCreditAmount";
 import { formatDollars } from "@/lib/fmt";
+import { COMPUTE_SIGNUP_CREDIT_CENTS } from "@/lib/stripe/computeSignupCreditAmount";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { COMPUTE_BILLING_DOCS } from "@/lib/support";
 
