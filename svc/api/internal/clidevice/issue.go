@@ -115,6 +115,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			ID:               sessionID,
 			WorkspaceID:      workspace.ID,
 			UserID:           locked.ApproverUserID.String,
+			UserName:         locked.ApproverName,
 			Permissions:      permsJSON,
 			DeviceName:       locked.DeviceName,
 			RefreshTokenHash: hashRefreshToken(refreshToken),
