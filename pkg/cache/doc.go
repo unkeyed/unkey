@@ -44,12 +44,11 @@
 //
 // # S3-FIFO
 //
-// S3-FIFO (Yang et al., "FIFO queues are all you need for cache eviction",
-// SOSP 2023) fixes both problems with three first-in-first-out queues and a
-// small counter per entry. It rests on one observation: in real workloads
-// most keys are read once and never again. These are "one-hit wonders". A
-// cache does best when it notices them quickly and drops them before they
-// displace anything useful.
+// S3-FIFO (https://s3fifo.com) fixes both problems with three
+// first-in-first-out queues and a small counter per entry. It rests on one
+// observation: in real workloads most keys are read once and never again.
+// These are "one-hit wonders". A cache does best when it notices them quickly
+// and drops them before they displace anything useful.
 //
 // Each entry has a frequency counter from 0 to 3. A read increments it and
 // does nothing else: no node moves, no list changes, and no lock is taken.
