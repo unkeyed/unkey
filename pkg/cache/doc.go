@@ -1,149 +1,166 @@
-// Package cache is an in-memory, size-bounded cache with stale-while-revalidate
-// reads. It evicts with S3-FIFO and runs entirely on an injected
+// Package cache is an in-memory cache with a fixed maximum size and
+// stale-while-revalidate reads. It uses S3-FIFO to decide which entry to drop
+// when it is full. It reads time only from an injected
 // [github.com/unkeyed/unkey/pkg/clock.Clock], so a deterministic simulation
-// can drive it from a seed.
+// can control it from a seed.
 //
 // If you have written a cache as a Go map behind a mutex, you already know
-// most of this package. The parts that are new are how it decides what to
-// forget when it is full (S3-FIFO), how it serves old data while it fetches
-// new data (stale-while-revalidate), and how it keeps both under the control
-// of a test. This comment explains each in turn.
+// most of this package. Three parts are probably new: how the cache decides
+// what to drop when it is full (S3-FIFO), how it returns old data while it
+// fetches new data (stale-while-revalidate), and how a test can control both.
+// The sections below explain each part.
 //
 // # Fresh, stale, and expired
 //
-// Every entry carries two deadlines, set from [Config.Fresh] and
-// [Config.Stale] when the entry is written:
+// When the cache writes an entry, it gives the entry two deadlines. They come
+// from [Config.Fresh] and [Config.Stale]:
 //
 //	written        written+Fresh            written+Stale
 //	   |---- fresh ----|-------- stale --------|---- expired ...
 //
-// A fresh entry is returned as is. A stale entry is still returned, so the
-// caller does not wait for the origin, but [Cache.SWR] and its variants also
-// schedule a background refresh. An expired entry is never returned: the read
-// deletes it and reports [Miss]. [Cache.SWR] then loads the key from the
-// origin while the caller waits.
+// The cache returns a fresh entry as it is. It also returns a stale entry, so
+// the caller does not wait for the origin. In addition, [Cache.SWR] and its
+// variants schedule a refresh of a stale entry in the background. The cache
+// never returns an expired entry. Instead, the read deletes the entry and
+// reports [Miss]. [Cache.SWR] then loads the key from the origin, and the
+// caller waits for the result.
 //
-// Expiry is checked on read against [Config.Clock], not by a background
-// timer. Nothing in the package looks at wall-clock time to decide whether an
-// entry is alive. An expired entry that nobody reads stays in memory until
-// eviction removes it, which S3-FIFO does early because nobody reads it.
+// The cache checks expiry when an entry is read, against [Config.Clock]. No
+// background timer removes entries, and no code in the package uses
+// wall-clock time to decide whether an entry is alive. If nobody reads an
+// expired entry, it stays in memory until eviction removes it. S3-FIFO
+// removes such entries early, because they are not read.
 //
 // # Why a cache needs an eviction policy
 //
-// A map grows until the process runs out of memory. A cache has a fixed
-// budget, [Config.MaxSize] entries, and when a new key arrives at a full cache
-// it must forget an old one. The eviction policy picks which. A good policy
-// forgets keys that will not be read again soon and keeps keys that will.
+// A plain map grows until the process runs out of memory. A cache has a fixed
+// limit of [Config.MaxSize] entries. When a new key arrives and the cache is
+// full, the cache must drop an old entry. The eviction policy decides which
+// entry to drop. A good policy drops keys that will not be read again soon and
+// keeps keys that will be.
 //
-// The usual choice is LRU: keep a linked list ordered by last access, move an
-// entry to the front on every read, and evict from the back. LRU works, but
-// every read writes to the shared list, so every read needs the lock. On a hot
-// cache read by many goroutines, that lock is the bottleneck. LRU also lets a
-// single scan of keys that are read once push out the entire working set,
-// because each new key looks "recently used".
+// The most common policy is LRU (least recently used). An LRU cache keeps a
+// linked list ordered by last access. Every read moves its entry to the front
+// of the list, and eviction drops the entry at the back. This works, but every
+// read changes the shared list, so every read needs the lock. When many
+// goroutines read a busy cache, this lock slows them all down. LRU has a second
+// problem. A burst of keys that are read only once can push out every useful
+// key, because each new key looks recently used.
 //
 // # S3-FIFO
 //
-// S3-FIFO (https://s3fifo.com) fixes both problems with three
-// first-in-first-out queues and a small counter per entry. It rests on one
-// observation: in real workloads most keys are read once and never again.
-// These are "one-hit wonders". A cache does best when it notices them quickly
-// and drops them before they displace anything useful.
+// S3-FIFO (https://s3fifo.com) solves both problems. It uses three
+// first-in-first-out (FIFO) queues and a small counter on each entry. It is
+// based on one observation: in real traffic, most keys are read once and never
+// again. These keys are called one-hit wonders. A cache works best when it
+// finds them quickly and drops them before they push out useful keys.
 //
-// Each entry has a frequency counter from 0 to 3. A read increments it and
-// does nothing else: no node moves, no list changes, and no lock is taken.
-// This is the main difference from LRU. All of the policy's work happens when
-// a write needs room, and a write already takes a lock.
+// Each entry has a read counter from 0 to 3. A read increments the counter and
+// does nothing else. No entry moves, no queue changes, and no lock is taken.
+// This is the main difference from LRU. The policy does all of its work when a
+// write needs room, and a write already holds a lock.
 //
-// The queues are:
+// The three queues are:
 //
 //	small  about 10% of MaxSize. Every new key starts here.
-//	main   the rest of MaxSize. Keys that proved they are read again.
-//	ghost  keys only, no values. Keys recently evicted from small.
+//	main   the rest of MaxSize. Keys that were read again while in small.
+//	ghost  keys only, no values. Keys that small recently dropped.
 //
-// When the cache is full and must evict one entry, it looks at the oldest
-// entry of small while small holds at least its 10% share:
+// When the cache is full, it drops one entry. While small holds at least its
+// 10% share, or when main is empty, the cache takes the oldest entry of small:
 //
 //   - If the entry was read more than once while it was in small, it is not a
-//     one-hit wonder. It moves to main with its counter reset to 0, and the
-//     search continues.
-//   - Otherwise the entry is evicted, and its key is remembered in ghost.
+//     one-hit wonder. The cache moves it to main, resets its counter to 0, and
+//     continues with the next entry.
+//   - Otherwise, the cache drops the entry and remembers its key in ghost.
 //
-// When small holds less than its share, the cache looks at the oldest entry of
-// main instead:
+// Otherwise, the cache takes the oldest entry of main:
 //
-//   - If its counter is above 0, it was read since it last came around. It goes
-//     back to the front of main with its counter decremented, and the search
-//     continues. This is the "second chance" of the CLOCK algorithm.
-//   - Otherwise it is evicted.
+//   - If its counter is above 0, the entry was read since it was last checked.
+//     The cache puts it back at the front of main, decrements its counter, and
+//     continues with the next entry.
+//   - Otherwise, the cache drops the entry.
 //
-// The ghost queue catches a mistake. If a key that small evicted is written
-// again soon, it was not a one-hit wonder after all, so it skips small and
-// goes straight into main. Ghost entries hold only the key, and ghost forgets
-// its oldest key once it holds more keys than main has room for.
+// The ghost queue corrects mistakes. If a key that small dropped is written
+// again soon, the key was not a one-hit wonder. The cache then puts the key
+// directly into main and skips small. Ghost stores only keys. When it holds
+// more keys than main has room for, it forgets its oldest key.
 //
-// A short example with MaxSize 10, so small's share is 1 entry. Keys k0 to k9
-// fill the cache, all in small. k0 is read twice. Then key "new" arrives:
+// Here is an example with a MaxSize of 10, so the share of small is 1 entry.
+// Keys k0 to k9 fill the cache, and all of them are in small. k0 is read
+// twice. Then the key "new" arrives:
 //
 //	small (oldest first): k0 k1 k2 ... k9      main: (empty)
 //	k0 was read twice     -> move k0 to main
-//	k1 was never read     -> evict k1, remember k1 in ghost
+//	k1 was never read     -> drop k1, remember k1 in ghost
 //	small: k2 ... k9 new                       main: k0
 //
-// A plain FIFO would have evicted k0, the one key that was in use. If k1 is
-// written again while ghost still remembers it, k1 goes straight to main, and a
-// later scan of new keys only churns small without touching k0 or k1.
+// A plain FIFO cache would have dropped k0, the only key in use. If k1 is
+// written again while ghost still remembers it, k1 goes directly to main.
+// After that, a burst of new keys only cycles through small and does not
+// touch k0 or k1.
 //
-// Two bounds keep the cost of one eviction small. The counter stops at 3, so
-// a hot key survives at most three trips through main without new reads. And
-// main gives at most 20 entries in a row a second chance before it evicts the
-// next one regardless, so a cache full of hot keys never walks the whole
-// queue to make room for one write.
+// Two limits keep each eviction cheap. First, the counter stops at 3, so a key
+// that is no longer read survives at most three passes through main. Second,
+// one eviction puts at most 20 entries of main back in a row. After that, it
+// drops the next entry, even if that entry was read. So when every key in main
+// is in use, one write never walks the whole queue.
 //
 // # Concurrency
 //
-// Entries live in a [sync.Map], so a read is a lock-free map lookup plus, if
-// the counter is below 3, one atomic compare-and-swap. A hot key at counter 3
-// causes no shared writes at all. Writes, deletes, and evictions take one
-// mutex that guards the three queues. The mutex is held only on writes, which
-// in a cache happen on misses and refreshes, not on hits.
+// Entries are stored in a [sync.Map]. A read is therefore a map lookup that
+// takes no lock. If the counter is below 3, the read also does one atomic
+// compare-and-swap. A busy key whose counter is already 3 causes no shared
+// writes at all. Writes, deletes, and evictions hold one mutex that protects
+// the three queues. A cache writes only on misses and refreshes, not on hits,
+// so readers rarely wait for this mutex.
 //
-// An update to an existing key builds a new entry and swaps it into the same
-// queue position, so a concurrent reader sees either the old value or the new
-// one, never a torn write.
+// To update an existing key, the cache builds a new entry and puts it in the
+// same queue position as the old one. A concurrent reader therefore sees
+// either the complete old value or the complete new value.
 //
 // # Background revalidation
 //
-// A stale read hands a refresh to the [Scheduler] in [Config.Scheduler] and
-// returns at once. The default scheduler is a pool of 10 goroutines with a
-// queue of 1000 refreshes, which [Cache.Close] stops. When the queue is full the
-// refresh is dropped; the entry is still stale, so the next read schedules it
-// again. Refreshes for a key are deduplicated while one is queued or running,
-// and concurrent [Cache.SWR] misses for the same key share one origin call.
+// A stale read gives a refresh to the [Scheduler] in [Config.Scheduler] and
+// returns at once. The default scheduler runs 10 goroutines that take
+// refreshes from a queue of up to 1000. [Cache.Close] stops these goroutines.
+// When the queue is full, the cache drops the refresh. The entry is still
+// stale, so the next read schedules the refresh again. The cache runs at most
+// one refresh per key at a time. Concurrent [Cache.SWR] misses for the same
+// key share one call to the origin.
 //
 // # Deterministic simulation
 //
 // Three things decide what a cache returns over time: the clock, the order of
-// writes, and when background refreshes run. This package takes all three from
-// the caller. Expiry and every timing metric use [Config.Clock], so a
-// [github.com/unkeyed/unkey/pkg/clock.TestClock] controls time. Eviction runs
-// synchronously inside the write that needs room and uses no randomness and
-// no goroutines, so the same sequence of calls always evicts the same keys.
-// And a [Scheduler] that only queues refreshes lets a simulation run each
-// refresh when its seed says so. See
-// simulation_test.go for a seeded simulation built on pkg/sim that checks
-// every result against a model and replays each seed twice.
+// writes, and the time at which background refreshes run. This package gets
+// all three from the caller:
 //
-// One input stays outside the package's control: [Cache.SetMany] takes a map
-// and writes it in Go's randomized map order. On a full cache that order
-// changes which keys are evicted. [Cache.SWRMany] avoids this by writing the
-// keys it fetched in the order the caller passed them.
+//   - Expiry and every timing metric use [Config.Clock], so a
+//     [github.com/unkeyed/unkey/pkg/clock.TestClock] controls time.
+//   - Eviction runs inside the write that needs room. It uses no randomness
+//     and no goroutines, so the same sequence of calls always drops the same
+//     keys.
+//   - A [Scheduler] that only stores refreshes lets a simulation run each
+//     refresh at the time its seed chooses.
+//
+// simulation_test.go contains a seeded simulation built on pkg/sim. It checks
+// every result against a model and runs each seed twice to confirm that both
+// runs are the same.
+//
+// The package does not control one input. [Cache.SetMany] takes a map and
+// writes its entries in Go's random map order. On a full cache, this order
+// changes which keys are dropped. [Cache.SWRMany] does not have this problem,
+// because it writes the keys it fetched in the order that the caller gave.
 //
 // # Metrics
 //
-// unkey_cache_deleted_total counts removed entries by reason: "Size" for
-// evictions, "Expired" for entries a read found past their stale time,
-// "Explicit" for [Cache.Remove], and "Replaced" for overwritten values.
+// unkey_cache_deleted_total counts removed entries by reason:
+//
+//   - "Size": the entry was evicted.
+//   - "Expired": a read found the entry past its stale deadline.
+//   - "Explicit": [Cache.Remove] removed the entry.
+//   - "Replaced": a write replaced the value.
+//
 // [Cache.Clear] is not counted. The revalidation metrics count how refreshes
 // were scheduled, how long they waited, and how long they ran.
 //
@@ -177,6 +194,7 @@
 //		},
 //	)
 //
-// hit is [Hit] for a value, [Null] when the origin reported that the key does
-// not exist and op cached that fact, and [Miss] when nothing could be served.
+// hit is [Hit] when the cache returned a value. It is [Null] when the origin
+// reported that the key does not exist and op told the cache to store that
+// result. It is [Miss] when the cache could not return anything.
 package cache
