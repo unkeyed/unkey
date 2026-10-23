@@ -143,18 +143,21 @@ var (
 	//     when it was past fresh but within stale, and "miss" when the cache
 	//     had no usable entry.
 	//
-	// Buckets start at 1µs and each is 4 times the previous one, for 12
-	// buckets: 1µs, 4µs, 16µs, 64µs, 256µs, 1ms, 4ms, 16ms, 66ms, 262ms, 1s,
-	// and 4s. The low buckets resolve in-memory hits, which take well under
-	// 1µs to a few µs. The high buckets cover misses that wait for an origin
-	// read. Anything slower than 4s falls into +Inf.
+	// Buckets start at 100ns and each is 2 times the previous one, for 24
+	// buckets: 100ns, 200ns, 400ns, 800ns, 1.6µs, 3.2µs, 6.4µs, and so on up
+	// to about 0.84s. In-memory hits take a few hundred nanoseconds, so the
+	// fine buckets below 10µs are the ones that show whether a change to the
+	// cache makes hits faster or slower. The higher buckets cover misses that
+	// wait for an origin read. Anything slower than 0.84s falls into +Inf.
+	// Durations below about 100ns are not reliable, because reading the clock
+	// and observing the histogram cost about that much.
 	CacheOperationDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
 			Name:      "operation_duration_seconds",
 			Help:      "Duration of cache reads by resource type, operation (get, swr, swr_fallback), and status (fresh, stale, miss).",
-			Buckets:   prometheus.ExponentialBuckets(0.000001, 4, 12),
+			Buckets:   prometheus.ExponentialBuckets(100e-9, 2, 24),
 		},
 		[]string{"resource", "operation", "status"},
 	)
