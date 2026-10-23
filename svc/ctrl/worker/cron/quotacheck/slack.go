@@ -80,12 +80,7 @@ func workspaceSlackDetails(ws db.GetWorkspacesForQuotaCheckByIDsRow, billingBase
 }
 
 func slackIDContext(label, id string) slack.Block {
-	return slack.Block{
-		Type:     "context",
-		Text:     nil,
-		Fields:   nil,
-		Elements: []slack.Text{{Type: "mrkdwn", Text: label + ": `" + escapeSlackText(id) + "`", Emoji: false, Verbatim: true}},
-	}
+	return slack.NewMarkdownContextBlock(label + ": `" + escapeSlackText(id) + "`")
 }
 
 func slackName(value string) string {

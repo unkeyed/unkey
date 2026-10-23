@@ -265,7 +265,7 @@ export async function alertCustomerLifecycle(
     fields.push(mrkdwn`*Workspace*\n${alert.workspaceName}`);
   }
   if (alert.workspaceId) {
-    fields.push(mrkdwn`*Workspace ID*\n${alert.workspaceId}`);
+    fields.push(mrkdwn`*Workspace ID*\n\`${alert.workspaceId}\``);
   }
   if (alert.product) {
     fields.push(

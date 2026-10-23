@@ -319,15 +319,17 @@ describe("alerts escape attacker-controlled fields", () => {
 
 describe("alertCustomerLifecycle", () => {
   it("renders a header, the customer/workspace/plan fields, and a Stripe link", async () => {
+    const workspaceId = `ws_${crypto.randomUUID()}`;
+    const stripeCustomerId = `cus_${crypto.randomUUID()}`;
     await alertCustomerLifecycle({
       action: "signup",
       name: "Jane",
       email: "jane@acme.com",
-      workspaceId: "ws_123",
+      workspaceId,
       workspaceName: "Acme",
       product: "Pro",
       price: "$25",
-      stripeCustomerId: "cus_123",
+      stripeCustomerId,
       livemode: true,
     });
 
@@ -336,11 +338,11 @@ describe("alertCustomerLifecycle", () => {
       "*Customer*\nJane",
       "*Email*\njane@acme.com",
       "*Workspace*\nAcme",
-      "*Workspace ID*\nws_123",
+      `*Workspace ID*\n\`${workspaceId}\``,
       "*Tier / Product*\nPro",
       "*Price*\n$25",
     ]);
-    expect(buttonUrl()).toBe("https://dashboard.stripe.com/customers/cus_123");
+    expect(buttonUrl()).toBe(`https://dashboard.stripe.com/customers/${stripeCustomerId}`);
   });
 
   it("shows the tier transition for an upgrade", async () => {
