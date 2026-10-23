@@ -62,7 +62,7 @@ export function toAuthenticatedUser(auth: GetAuthResult): AuthenticatedUser | nu
   if (!auth.user) {
     return null;
   }
-  return { ...auth.user, orgId: auth.orgId, role: auth.role };
+  return { ...auth.user, orgId: auth.orgId, role: auth.role, impersonator: auth.impersonator };
 }
 
 function logAuthResolutionFailure(provider: "local" | "workos", error: unknown): void {
