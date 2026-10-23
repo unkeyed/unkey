@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -75,7 +77,7 @@ func TestAddPortalDomainToMissingPortalIsNotFound(t *testing.T) {
 }
 
 // An environment without a portal app or portal CNAME domain must refuse
-// portal domains up front rather than accept rows it can never route.
+// portal domains rather than accept rows it can never route.
 func TestAddPortalDomainRequiresPortalConfig(t *testing.T) {
 	cases := map[string]func(*Config){
 		"no environment":  func(c *Config) { c.EnvironmentID = "" },
@@ -89,7 +91,7 @@ func TestAddPortalDomainRequiresPortalConfig(t *testing.T) {
 			unset(&cfg)
 
 			_, err := New(cfg).AddPortalDomain(ctx, f.addRequest(f.workspaceID, f.domain))
-			requireCode(t, connect.CodeFailedPrecondition, err)
+			requireCode(t, connect.CodeInternal, err)
 			require.Equal(t, 0, f.countPortalDomains(t, f.workspaceID))
 			f.requireNoAuditLogs(t, f.workspaceID)
 		})
@@ -101,13 +103,13 @@ func TestAddPortalDomainEnforcesCap(t *testing.T) {
 	f := newFixture(t)
 	svc := f.newService(t)
 
-	for range maxPortalDomainsPerWorkspace {
+	for range domaingate.PortalDomainsMax {
 		f.insertPortalDomain(t, f.workspaceID, randomDomain(), db.PortalDomainsVerificationStatusPending)
 	}
 
 	_, err := svc.AddPortalDomain(ctx, f.addRequest(f.workspaceID, f.domain))
 	requireCode(t, connect.CodeResourceExhausted, err)
-	require.Equal(t, maxPortalDomainsPerWorkspace, f.countPortalDomains(t, f.workspaceID))
+	require.Equal(t, domaingate.PortalDomainsMax, f.countPortalDomains(t, f.workspaceID))
 }
 
 func TestAddPortalDomainRejectsDuplicate(t *testing.T) {
@@ -203,6 +205,7 @@ func TestDeleteVerifiedPortalDomain(t *testing.T) {
 
 	logged := f.findAuditEvent(t, f.workspaceID, auditlog.PortalDomainDeleteEvent)
 	require.Equal(t, domainID, logged.Targets[0].ID)
+	require.Equal(t, fmt.Sprintf("Deleted portal domain %s, its ACME challenge, and its route", f.domain), logged.Description)
 }
 
 // Workspace B holds the verified row and its route. Workspace A's unverified
@@ -229,6 +232,9 @@ func TestDeleteUnverifiedPortalDomainLeavesOtherTenantsRoute(t *testing.T) {
 
 			require.Equal(t, 1, f.count(t, "SELECT COUNT(*) FROM frontline_routes WHERE fully_qualified_domain_name = ?", f.domain))
 			require.Equal(t, 1, f.countPortalDomains(t, other))
+
+			logged := f.findAuditEvent(t, f.workspaceID, auditlog.PortalDomainDeleteEvent)
+			require.Equal(t, fmt.Sprintf("Deleted portal domain %s and its ACME challenge", f.domain), logged.Description)
 		})
 	}
 }

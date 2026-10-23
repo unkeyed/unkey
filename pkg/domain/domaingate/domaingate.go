@@ -139,6 +139,25 @@ func CheckAllowance(attached int64, allowed uint32) error {
 	)
 }
 
+// PortalDomainsMax is a fixed per-workspace cap until billing defines per-tier
+// portal domain allowances.
+const PortalDomainsMax = 10
+
+// CheckPortalAllowance reports whether the workspace may attach one more portal
+// domain.
+func CheckPortalAllowance(attached int64) error {
+	if attached < PortalDomainsMax {
+		return nil
+	}
+
+	return fault.New(
+		"portal domain cap reached",
+		fault.Code(codes.Limits.CustomDomain.Exceeded.URN()),
+		fault.Internal(fmt.Sprintf("workspace holds %d of %d allowed portal domains", attached, PortalDomainsMax)),
+		fault.Public(fmt.Sprintf("A workspace can hold at most %d portal domains. Remove a domain you no longer need, then retry.", PortalDomainsMax)),
+	)
+}
+
 // LimitsNotConfigured is the outcome for a workspace with no limits row. Billing
 // writes every allowance, so a missing row means unknown billing state, not free
 // tier. The caller cannot fix it, hence support rather than an upgrade.

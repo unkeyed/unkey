@@ -32,6 +32,8 @@ func (s *Service) DeletePortalDomain(
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		q := db.NewQueries(tx)
 
+		display := fmt.Sprintf("Deleted portal domain %s and its ACME challenge", dom.Domain)
+
 		status, txErr := q.FindPortalDomainStatusByIdForUpdate(txCtx, dom.ID)
 		if txErr != nil {
 			if db.IsNotFound(txErr) {
@@ -54,6 +56,7 @@ func (s *Service) DeletePortalDomain(
 			}); txErr != nil && !db.IsNotFound(txErr) {
 				return fmt.Errorf("failed to delete frontline route: %w", txErr)
 			}
+			display = fmt.Sprintf("Deleted portal domain %s, its ACME challenge, and its route", dom.Domain)
 		}
 
 		if txErr := q.DeleteAcmeChallengeByDomainID(txCtx, dom.ID); txErr != nil && !db.IsNotFound(txErr) {
@@ -65,7 +68,7 @@ func (s *Service) DeletePortalDomain(
 		}
 
 		return s.audit(txCtx, tx, req.Msg.GetActor(), dom.WorkspaceID, auditlog.PortalDomainDeleteEvent,
-			fmt.Sprintf("Deleted portal domain %s", dom.Domain), dom.ID, dom.PortalID, dom.Domain)
+			display, dom.ID, dom.PortalID, dom.Domain)
 	})
 	if err != nil {
 		if connectErr, ok := errors.AsType[*connect.Error](err); ok {
