@@ -30,14 +30,13 @@ func New() *cli.Command {
 			}
 			fallbackURL := cmd.String("api-url")
 			used, revokeErr := revoke(ctx, fallbackURL)
-			workspaceID := current.WorkspaceID
 			if used.WorkspaceID != "" {
-				workspaceID = used.WorkspaceID
+				current = used
 			}
-			if _, err := session.Delete(workspaceID); err != nil && !errors.Is(err, session.ErrNotFound) {
+			if _, err := session.Delete(current.WorkspaceID, current.SessionID); err != nil && !errors.Is(err, session.ErrNotFound) {
 				return err
 			}
-			fmt.Printf("Signed out of workspace %s.\n", workspaceID)
+			fmt.Printf("Signed out of workspace %s.\n", current.WorkspaceID)
 			if next, err := session.Active(); err == nil {
 				fmt.Printf("Active workspace is %s.\n", next.WorkspaceID)
 			}
