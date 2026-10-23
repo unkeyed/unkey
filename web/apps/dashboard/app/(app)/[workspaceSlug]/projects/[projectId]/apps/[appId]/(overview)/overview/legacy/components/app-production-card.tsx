@@ -25,13 +25,13 @@ import { appDeploymentQueryFor } from "../../../data-provider-queries";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import { useRecentDeployments } from "../../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../../navigations/create-deployment-button";
-import { AppProductionCardSkeleton } from "../../components/app-production-card-skeleton";
 import { NewerDeploymentRow, hasVisibleBuildState } from "../../components/card-newer-deployment";
-import { buildPulse } from "../../components/g-pulse";
+import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
 import { BuildInProgressChart, ProductionCardChart } from "./card-chart";
 import { ProductionCardHeader } from "./card-header";
 import { ProductionCardMetadata } from "./card-metadata";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
+import { buildPulse } from "./g-pulse";
 import { type ProductionCardContextValue, ProductionCardProvider } from "./production-card-context";
 import { deriveProductionStatus } from "./status";
 
