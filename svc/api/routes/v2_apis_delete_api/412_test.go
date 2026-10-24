@@ -33,7 +33,7 @@ func TestDeleteProtection(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.delete_api")
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#delete", workspace.ID))
 
 	// Set up request headers
 	headers := http.Header{
@@ -111,6 +111,16 @@ func TestDeleteProtectionWithReplicaLag(t *testing.T) {
 		CreatedAtM:  api.CreatedAtM,
 	})
 	require.NoError(t, err)
+	err = db.Query.InsertKeySpace(ctx, replica.RW(), db.InsertKeySpaceParams{
+		ID:                 api.KeyAuthID.String,
+		WorkspaceID:        api.WorkspaceID,
+		ProjectID:          api.ProjectID,
+		CreatedAtM:         api.CreatedAtM,
+		StoreEncryptedKeys: false,
+		DefaultPrefix:      sql.NullString{},
+		DefaultBytes:       sql.NullInt32{},
+	})
+	require.NoError(t, err)
 	err = db.Query.UpdateApiDeleteProtection(ctx, h.DB.RW(), db.UpdateApiDeleteProtectionParams{
 		ApiID:            api.ID,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: true},
@@ -123,7 +133,7 @@ func TestDeleteProtectionWithReplicaLag(t *testing.T) {
 		Caches:    h.Caches,
 	}
 	h.Register(route)
-	rootKey := h.CreateRootKey(api.WorkspaceID, "api.*.delete_api")
+	rootKey := h.CreateRootKey(api.WorkspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", api.WorkspaceID, api.ProjectID, api.KeyAuthID.String))
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
