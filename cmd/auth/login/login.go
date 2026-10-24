@@ -89,9 +89,9 @@ func run(ctx context.Context, opts options) error {
 		return err
 	}
 	fmt.Printf("Your confirmation code:\n\n  %s\n\n", formatUserCode(started.UserCode))
-	fmt.Printf("Open this URL, check the code, and choose permissions:\n  %s\n\n", started.VerificationURIComplete)
+	fmt.Printf("Open this URL, check the code, and choose permissions:\n  %s\n\n", started.VerificationURL)
 	if !opts.noBrowser && opts.open != nil {
-		if err := opts.open(started.VerificationURIComplete); err != nil {
+		if err := opts.open(started.VerificationURL); err != nil {
 			fmt.Printf("Could not open a browser (%s). Use the URL above.\n\n", err.Error())
 		}
 	}

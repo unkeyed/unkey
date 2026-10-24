@@ -7,10 +7,8 @@ type V2CliStartDeviceLoginResponseData struct {
 	LoginID string `json:"loginId"`
 	// Code the user confirms in the browser.
 	UserCode string `json:"userCode"`
-	// Dashboard page where the user enters the code.
-	VerificationURI string `json:"verificationUri"`
 	// Dashboard page with the code filled in.
-	VerificationURIComplete string `json:"verificationUriComplete"`
+	VerificationURL string `json:"verificationUrl"`
 	// Seconds until the login expires.
 	ExpiresIn int64 `json:"expiresIn"`
 	// Seconds to wait between polls.
@@ -31,18 +29,11 @@ func (v *V2CliStartDeviceLoginResponseData) GetUserCode() string {
 	return v.UserCode
 }
 
-func (v *V2CliStartDeviceLoginResponseData) GetVerificationURI() string {
+func (v *V2CliStartDeviceLoginResponseData) GetVerificationURL() string {
 	if v == nil {
 		return ""
 	}
-	return v.VerificationURI
-}
-
-func (v *V2CliStartDeviceLoginResponseData) GetVerificationURIComplete() string {
-	if v == nil {
-		return ""
-	}
-	return v.VerificationURIComplete
+	return v.VerificationURL
 }
 
 func (v *V2CliStartDeviceLoginResponseData) GetExpiresIn() int64 {

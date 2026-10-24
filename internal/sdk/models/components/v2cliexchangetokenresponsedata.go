@@ -2,84 +2,53 @@
 
 package components
 
-import (
-	"github.com/unkeyed/unkey/internal/sdk/internal/utils"
-)
-
-// Status - `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
-type Status string
-
-const (
-	StatusPermissionsRequired Status = "permissions_required"
-	StatusAccessDenied        Status = "access_denied"
-	StatusExpiredToken        Status = "expired_token"
-	StatusComplete            Status = "complete"
-)
-
-func (e Status) ToPointer() *Status {
-	return &e
-}
-
-// IsExact returns true if the value matches a known enum value, false otherwise.
-func (e *Status) IsExact() bool {
-	if e != nil {
-		switch *e {
-		case "permissions_required", "access_denied", "expired_token", "complete":
-			return true
-		}
-	}
-	return false
-}
-
+// V2CliExchangeTokenResponseData - Session credentials returned by a successful token exchange.
 type V2CliExchangeTokenResponseData struct {
-	// `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
-	//
-	Status Status `json:"status"`
-	// Seconds to wait before polling again. Zero after a refresh-token exchange.
-	Interval int64 `json:"interval"`
-	// Human-readable reason for a terminal status.
-	Detail *string `json:"detail,omitzero"`
-	// Session credentials returned when token exchange is complete.
-	Credentials *V2CliExchangeTokenCredentials `json:"credentials,omitzero"`
+	// Short-lived access token.
+	AccessToken string `json:"accessToken"`
+	// Rotating refresh token. Store it. It is returned only once.
+	RefreshToken string `json:"refreshToken"`
+	// Seconds until the access token expires. Access tokens last 15 minutes.
+	ExpiresIn int64 `json:"expiresIn"`
+	// Workspace the session belongs to.
+	WorkspaceID string `json:"workspaceId"`
+	// CLI session id.
+	SessionID string `json:"sessionId"`
 }
 
-func (v V2CliExchangeTokenResponseData) MarshalJSON() ([]byte, error) {
-	return utils.MarshalJSON(v, "", false)
-}
-
-func (v *V2CliExchangeTokenResponseData) UnmarshalJSON(data []byte) error {
-	if err := utils.UnmarshalJSON(data, &v, "", false, nil); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (v *V2CliExchangeTokenResponseData) GetStatus() Status {
+func (v *V2CliExchangeTokenResponseData) GetAccessToken() string {
 	if v == nil {
-		return Status("")
+		return ""
 	}
-	return v.Status
+	return v.AccessToken
 }
 
-func (v *V2CliExchangeTokenResponseData) GetInterval() int64 {
+func (v *V2CliExchangeTokenResponseData) GetRefreshToken() string {
+	if v == nil {
+		return ""
+	}
+	return v.RefreshToken
+}
+
+func (v *V2CliExchangeTokenResponseData) GetExpiresIn() int64 {
 	if v == nil {
 		return 0
 	}
-	return v.Interval
+	return v.ExpiresIn
 }
 
-func (v *V2CliExchangeTokenResponseData) GetDetail() *string {
+func (v *V2CliExchangeTokenResponseData) GetWorkspaceID() string {
 	if v == nil {
-		return nil
+		return ""
 	}
-	return v.Detail
+	return v.WorkspaceID
 }
 
-func (v *V2CliExchangeTokenResponseData) GetCredentials() *V2CliExchangeTokenCredentials {
+func (v *V2CliExchangeTokenResponseData) GetSessionID() string {
 	if v == nil {
-		return nil
+		return ""
 	}
-	return v.Credentials
+	return v.SessionID
 }
 
 // #region class-body-v2cliexchangetokenresponsedata

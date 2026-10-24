@@ -9,8 +9,11 @@ import (
 
 type CliExchangeTokenResponse struct {
 	HTTPMeta components.HTTPMetadata `json:"-"`
-	// Current login state. `complete` includes the access token and refresh token.
+	// Token exchange completed. Includes the access token and refresh token.
 	V2CliExchangeTokenResponseBody *components.V2CliExchangeTokenResponseBody
+	// Awaiting approval. Wait for Retry-After seconds before polling again.
+	V2CliExchangeTokenPendingResponseBody *components.V2CliExchangeTokenPendingResponseBody
+	Headers                               map[string][]string
 }
 
 func (c CliExchangeTokenResponse) MarshalJSON() ([]byte, error) {
@@ -36,4 +39,18 @@ func (c *CliExchangeTokenResponse) GetV2CliExchangeTokenResponseBody() *componen
 		return nil
 	}
 	return c.V2CliExchangeTokenResponseBody
+}
+
+func (c *CliExchangeTokenResponse) GetV2CliExchangeTokenPendingResponseBody() *components.V2CliExchangeTokenPendingResponseBody {
+	if c == nil {
+		return nil
+	}
+	return c.V2CliExchangeTokenPendingResponseBody
+}
+
+func (c *CliExchangeTokenResponse) GetHeaders() map[string][]string {
+	if c == nil {
+		return map[string][]string{}
+	}
+	return c.Headers
 }
