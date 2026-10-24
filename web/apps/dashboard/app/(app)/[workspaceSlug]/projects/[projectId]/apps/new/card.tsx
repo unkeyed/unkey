@@ -1,6 +1,6 @@
 "use client";
 
-import { Loading, cn } from "@unkey/ui";
+import { Card, Loading, cn } from "@unkey/ui";
 import { type ReactNode, type Ref, useEffect, useState } from "react";
 
 const MIN_HIDDEN_PX = 8;
@@ -11,13 +11,7 @@ type SurfaceProps = {
 };
 
 export function CardSurface({ className, children }: SurfaceProps) {
-  return (
-    <div
-      className={cn("flex min-h-0 flex-col overflow-hidden rounded-lg border bg-raised", className)}
-    >
-      {children}
-    </div>
-  );
+  return <Card className={cn("flex min-h-0 flex-col overflow-hidden", className)}>{children}</Card>;
 }
 
 export function CardFrame({
@@ -55,7 +49,7 @@ function CardFooter({ hidden = false, children }: { hidden?: boolean; children: 
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center gap-3 border-t border-grayA-4 bg-grayA-2 px-5 py-3",
+        "flex shrink-0 items-center gap-3 border-t bg-grayA-2 px-5 py-3",
         hidden && "hidden",
       )}
     >

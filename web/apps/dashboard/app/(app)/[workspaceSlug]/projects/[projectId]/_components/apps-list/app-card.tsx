@@ -3,7 +3,7 @@ import { DeploymentStatusIndicator } from "@/app/(app)/[workspaceSlug]/projects/
 import { SourceIcon } from "@/components/deploy/app-source";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { IconCodeCommitOutline18, IconHeartPulseOutline18 } from "@unkey/icons";
-import { InfoTooltip, Skeleton } from "@unkey/ui";
+import { Card, InfoTooltip, Skeleton } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { AppRowData } from "./app-row-model";
@@ -23,8 +23,8 @@ export function AppCard({ row, projectId }: { row: AppRowData; projectId: string
   const { warmApp, cancelWarm } = useWarmAppPage();
 
   return (
-    <div
-      className="relative flex h-full w-full flex-col gap-4 rounded-lg border bg-raised p-5 shadow-xs transition-all duration-300 hover:border-strong [&_a]:z-10 [&_button]:z-10"
+    <Card
+      className="relative flex h-full flex-col gap-4 p-5 transition-all duration-300 hover:[--raised-ring:var(--border-color-strong)] [&_a]:z-10 [&_button]:z-10"
       onPointerEnter={() => warmApp(projectId, app.id)}
       onPointerLeave={cancelWarm}
       onFocusCapture={() => warmApp(projectId, app.id)}
@@ -103,13 +103,13 @@ export function AppCard({ row, projectId }: { row: AppRowData; projectId: string
           )}
         </Line>
       </div>
-    </div>
+    </Card>
   );
 }
 
 export function AppCardSkeleton() {
   return (
-    <div className="flex h-full w-full flex-col gap-4 rounded-lg border bg-raised p-5 shadow-xs">
+    <Card className="flex h-full flex-col gap-4 p-5">
       <div className="flex items-center gap-2.5">
         <Skeleton className="size-8 shrink-0 rounded-lg" />
         <div className="flex flex-1 flex-col gap-1.5">
@@ -122,6 +122,6 @@ export function AppCardSkeleton() {
         <Skeleton className="h-3 w-44" />
         <Skeleton className="h-3 w-28" />
       </div>
-    </div>
+    </Card>
   );
 }

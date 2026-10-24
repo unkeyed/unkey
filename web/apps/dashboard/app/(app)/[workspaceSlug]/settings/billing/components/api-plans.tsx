@@ -146,7 +146,7 @@ export function ApiPlans({ isAdmin, manage, usedThisMonth, onChanged }: ApiPlans
           label="API plans"
         />
       ) : (
-        <div className="flex flex-col divide-y overflow-hidden rounded-xl border bg-raised">
+        <div className="flex flex-col divide-y overflow-hidden rounded-xl bg-raised shadow-raised">
           {API_PLAN_ROW_PLACEHOLDERS.map((key) => (
             <div key={key} className="flex h-[45px] items-center px-4">
               <Skeleton className="h-4 w-full rounded" />
