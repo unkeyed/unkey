@@ -22,8 +22,9 @@ type session struct {
 	consumedNs int64
 }
 
-// summary is what `decide` needs from the sessions, so a decision is O(1).
-type summary struct {
+// resetTimes holds `reset_at` and the two other times that `decide` needs
+// from the sessions, so a decision is O(1).
+type resetTimes struct {
 	// resetAtNs is the largest candidate of all sessions.
 	resetAtNs int64
 
@@ -78,7 +79,7 @@ type decision struct {
 	createNewSessionAtNs int64
 }
 
-// summarize computes the summary of all sessions in O(n log n):
+// computeResetTimes computes the reset times of all sessions in O(n log n):
 //
 //	reset_at = max over sessions r of
 //	           (r.anchor + sum of consumed of sessions anchored at or after r)
@@ -91,10 +92,10 @@ type decision struct {
 //	C         11:58:40   3s         11:58:40 + 9s + 12s + 3s  = 11:59:04
 //
 // A candidate is when the limit would be free if it had no pause since that
-// anchor. `liveSession` is nil if the pod has none. summarize returns an error
-// for a non-positive anchor, a negative consumed time, an int64 overflow, or a
-// live session that is also in `otherSessions`.
-func summarize(otherSessions []session, liveSession *session) (summary, error) {
+// anchor. `liveSession` is nil if the pod has none. computeResetTimes returns
+// an error for a non-positive anchor, a negative consumed time, an int64
+// overflow, or a live session that is also in `otherSessions`.
+func computeResetTimes(otherSessions []session, liveSession *session) (resetTimes, error) {
 	// Newest first, so the sum of later sessions is a running total.
 	newestFirst := slices.Clone(otherSessions)
 	if liveSession != nil {
@@ -110,26 +111,26 @@ func summarize(otherSessions []session, liveSession *session) (summary, error) {
 			assert.GreaterOrEqual(s.consumedNs, 0, "session consumed time must not be negative"),
 		)
 		if err != nil {
-			return summary{}, err
+			return resetTimes{}, err
 		}
 	}
 	if liveSession != nil && slices.ContainsFunc(otherSessions, func(s session) bool { return s.id == liveSession.id }) {
-		return summary{}, fault.New("live session must not also be in the other sessions")
+		return resetTimes{}, fault.New("live session must not also be in the other sessions")
 	}
 
-	var result summary
+	var result resetTimes
 	var consumedAtOrAfterAnchorNs int64
 	for _, s := range newestFirst {
 		var err error
 		consumedAtOrAfterAnchorNs, err = checkedAdd(consumedAtOrAfterAnchorNs, s.consumedNs)
 		if err != nil {
-			return summary{}, err
+			return resetTimes{}, err
 		}
 		// Equal anchors need no special case: the last of them gets the full
 		// sum, and only the largest candidate matters.
 		candidateNs, err := checkedAdd(s.anchorAtNs, consumedAtOrAfterAnchorNs)
 		if err != nil {
-			return summary{}, err
+			return resetTimes{}, err
 		}
 		result.resetAtNs = max(result.resetAtNs, candidateNs)
 		if liveSession != nil && s.anchorAtNs <= liveSession.anchorAtNs {
@@ -145,7 +146,7 @@ func summarize(otherSessions []session, liveSession *session) (summary, error) {
 // decide applies the GCRA rule to a request of `units` at `nowNs`. It is pure,
 // so a caller can decide several rate limits before spending on any. It
 // returns an error for invalid input or an int64 overflow.
-func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units int64) (decision, error) {
+func decide(current resetTimes, hasLiveSession bool, nowNs int64, rate Rate, units int64) (decision, error) {
 	err := assert.All(
 		rate.Validate(),
 		assert.GreaterOrEqual(units, 0, "units must not be negative"),
@@ -205,11 +206,11 @@ func decide(current summary, hasLiveSession bool, nowNs int64, rate Rate, units 
 	}, nil
 }
 
-// summaryAfter returns the summary after an allowed decision with positive
+// resetTimesAfter returns the reset times after an allowed decision with positive
 // `consumedNs` was spent. The decision must come from `decide` on `current`.
-func summaryAfter(current summary, spent decision) summary {
+func resetTimesAfter(current resetTimes, spent decision) resetTimes {
 	// Either way, the largest raised candidate is the new `reset_at`.
-	next := summary{
+	next := resetTimes{
 		resetAtNs:                         spent.resetAtNs,
 		maxCandidateRaisedByLiveSessionNs: spent.resetAtNs,
 		newestAnchorAtNs:                  current.newestAnchorAtNs,

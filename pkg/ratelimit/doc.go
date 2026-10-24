@@ -12,7 +12,7 @@
 //	12:00:01  1 unit    12:00:10          9s + 1s ≤ 10s       allow    12:00:11
 //	12:00:30  1 unit    12:00:11 (past)   0s + 1s ≤ 10s       allow    12:00:31
 //
-// Each pod writes only its own session rows, and `summarize` computes
+// Each pod writes only its own session rows, and `computeResetTimes` computes
 // `reset_at` from all of them. If two pods over-admit before they see each
 // other, the excess is paid back: pods A and B each admit 10 at 12:00:00, and
 // once both rows are visible, the next unit fits at 12:00:11.

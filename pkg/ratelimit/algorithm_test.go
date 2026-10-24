@@ -17,7 +17,7 @@ import (
 // `reset_at` unchanged, because the peer's newer session holds the largest
 // candidate.
 func TestDecideChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
-	current, err := summarize(
+	current, err := computeResetTimes(
 		[]session{{id: "peer", anchorAtNs: 150, consumedNs: 60}},
 		&session{id: "own", anchorAtNs: 100, consumedNs: 1},
 	)
@@ -31,11 +31,11 @@ func TestDecideChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
 	require.Equal(t, int64(155), result.createNewSessionAtNs)
 }
 
-// TestSummarizeRejectsInvalidSessions guarantees that corrupt rows return an
+// TestComputeResetTimesRejectsInvalidSessions guarantees that corrupt rows return an
 // error instead of a wrong `reset_at`. A zero anchor would also collide with
 // the "no new session" value, and a sum beyond int64 would wrap into the past
 // and open the rate limit.
-func TestSummarizeRejectsInvalidSessions(t *testing.T) {
+func TestComputeResetTimesRejectsInvalidSessions(t *testing.T) {
 	cases := []struct {
 		name          string
 		otherSessions []session
@@ -53,16 +53,16 @@ func TestSummarizeRejectsInvalidSessions(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := summarize(tc.otherSessions, tc.liveSession)
+			_, err := computeResetTimes(tc.otherSessions, tc.liveSession)
 			require.Error(t, err)
 		})
 	}
 }
 
-// TestSummarizeAcceptsTheSmallestAnchor guarantees that the check for a
+// TestComputeResetTimesAcceptsTheSmallestAnchor guarantees that the check for a
 // positive anchor does not reject the smallest valid one.
-func TestSummarizeAcceptsTheSmallestAnchor(t *testing.T) {
-	result, err := summarize([]session{{id: "a", anchorAtNs: 1, consumedNs: 2}}, nil)
+func TestComputeResetTimesAcceptsTheSmallestAnchor(t *testing.T) {
+	result, err := computeResetTimes([]session{{id: "a", anchorAtNs: 1, consumedNs: 2}}, nil)
 	require.NoError(t, err)
 	require.Equal(t, int64(3), result.resetAtNs)
 }
@@ -71,7 +71,7 @@ func TestSummarizeAcceptsTheSmallestAnchor(t *testing.T) {
 // exactly `reset_at` goes into the live session. Starting a new session there
 // gives the same `reset_at`, but costs an extra row.
 func TestDecideKeepsTheLiveSessionWhenResetAtIsNow(t *testing.T) {
-	current, err := summarize(nil, &session{id: "own", anchorAtNs: 100, consumedNs: 10})
+	current, err := computeResetTimes(nil, &session{id: "own", anchorAtNs: 100, consumedNs: 10})
 	require.NoError(t, err)
 	require.Equal(t, int64(110), current.resetAtNs)
 
@@ -92,11 +92,11 @@ func TestDecideIsExactForLargeRates(t *testing.T) {
 	}
 	for _, rate := range rates {
 		t.Run(fmt.Sprintf("%d per %s", rate.Limit, rate.Duration), func(t *testing.T) {
-			idle, err := decide(summary{}, false, 1, rate, 0)
+			idle, err := decide(resetTimes{}, false, 1, rate, 0)
 			require.NoError(t, err)
 			require.Equal(t, rate.Limit, idle.remaining)
 
-			full, err := decide(summary{}, false, 1, rate, rate.Limit)
+			full, err := decide(resetTimes{}, false, 1, rate, rate.Limit)
 			require.NoError(t, err)
 			require.True(t, full.allowed)
 			require.Equal(t, rate.Duration.Nanoseconds(), full.consumedNs)
@@ -131,7 +131,7 @@ func TestDecideAtTheEdges(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := decide(summary{}, false, tc.nowNs, tc.rate, tc.units)
+			result, err := decide(resetTimes{}, false, tc.nowNs, tc.rate, tc.units)
 			if tc.wantErr {
 				require.Error(t, err)
 				return
@@ -163,7 +163,7 @@ func TestDecideReplaysTheDocumentationTables(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, s.wantAllowed, result.allowed, "step %d", index)
 			require.NoError(t, e.spend(result, fmt.Sprintf("own_%d", index)))
-			require.Equal(t, noonNs+s.wantResetAtAfter*secondNs, e.summary.resetAtNs, "step %d", index)
+			require.Equal(t, noonNs+s.wantResetAtAfter*secondNs, e.resetTimes.resetAtNs, "step %d", index)
 		}
 	}
 
@@ -182,7 +182,7 @@ func TestDecideReplaysTheDocumentationTables(t *testing.T) {
 		var e entry
 		replay(t, &e, []step{{0, 10, true, 10}})
 		require.NoError(t, e.mergeRows([]session{{id: "pod_b", anchorAtNs: noonNs, consumedNs: 10 * secondNs}}))
-		require.Equal(t, noonNs+20*secondNs, e.summary.resetAtNs)
+		require.Equal(t, noonNs+20*secondNs, e.resetTimes.resetAtNs)
 		replay(t, &e, []step{
 			{10, 1, false, 20},
 			{10, 0, true, 20},
@@ -199,8 +199,8 @@ func TestDecideReplaysTheDocumentationTables(t *testing.T) {
 //
 // It also guarantees that:
 //   - the sessions reproduce that `reset_at` by the formula over all rows;
-//   - the summary always equals `summarize` over the sessions, so the O(1)
-//     updates in `summaryAfter` and `endLiveSession` never drift;
+//   - the reset times always equal `computeResetTimes` over the sessions, so
+//     the O(1) updates in `resetTimesAfter` and `endLiveSession` never drift;
 //   - a request starts a new session exactly when the live session cannot
 //     take it, and the new session is anchored at `max(now, newest anchor)`;
 //   - a denied request or a request of zero `units` consumes nothing.
@@ -246,9 +246,9 @@ func FuzzDecideFollowsGCRARule(f *testing.F) {
 				ownCount++
 				requestFollowsGCRARule(t, &e, rate, nowNs, units, fmt.Sprintf("own_%d", ownCount))
 			}
-			fresh, err := summarize(e.others, e.live)
+			fresh, err := computeResetTimes(e.others, e.live)
 			require.NoError(t, err)
-			require.Equal(t, fresh, e.summary)
+			require.Equal(t, fresh, e.resetTimes)
 		}
 	})
 }
@@ -259,7 +259,7 @@ func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int6
 	t.Helper()
 	all := e.all()
 	before := resetAtByFormula(all)
-	require.Equal(t, before, e.summary.resetAtNs)
+	require.Equal(t, before, e.resetTimes.resetAtNs)
 
 	result, err := e.check(nowNs, rate, units)
 	require.NoError(t, err)

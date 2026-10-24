@@ -6,8 +6,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 )
 
-// entry holds the sessions of one rate limit on this pod and their summary.
-// Only its methods change the sessions, so the summary always matches them.
+// entry holds the sessions of one rate limit on this pod and their reset
+// times. Only its methods change the sessions, so the reset times always match
+// them.
 // The caller holds the shard lock.
 type entry struct {
 	// live is nil if the pod has no live session.
@@ -16,9 +17,9 @@ type entry struct {
 	// others are peer sessions and this pod's frozen sessions, unordered.
 	others []session
 
-	// summary caches `reset_at` and the two other times that `decide` needs,
-	// so a check is O(1) instead of O(n log n) for `summarize`.
-	summary summary
+	// resetTimes caches `reset_at` and the two other times that `decide` needs,
+	// so a check is O(1) instead of O(n log n) for `computeResetTimes`.
+	resetTimes resetTimes
 }
 
 // all returns a copy of all sessions.
@@ -67,19 +68,19 @@ func (e *entry) mergeRows(rows []session) error {
 		known.consumedNs = max(known.consumedNs, row.consumedNs)
 	}
 
-	next, err := summarize(others, live)
+	next, err := computeResetTimes(others, live)
 	if err != nil {
 		return err
 	}
 	e.live = live
 	e.others = others
-	e.summary = next
+	e.resetTimes = next
 	return nil
 }
 
 // check decides a request without changing the entry.
 func (e *entry) check(nowNs int64, rate Rate, units int64) (decision, error) {
-	return decide(e.summary, e.live != nil, nowNs, rate, units)
+	return decide(e.resetTimes, e.live != nil, nowNs, rate, units)
 }
 
 // spend writes a decision from `check` into the sessions. A new session gets
@@ -107,7 +108,7 @@ func (e *entry) spend(spent decision, newSessionID string) error {
 			consumedNs: spent.consumedNs,
 		}
 	}
-	e.summary = summaryAfter(e.summary, spent)
+	e.resetTimes = resetTimesAfter(e.resetTimes, spent)
 	return nil
 }
 
@@ -121,7 +122,7 @@ func (e *entry) endLiveSession() {
 	e.live = nil
 	// `reset_at` does not change. No session is live, so no candidate is
 	// raised by one.
-	e.summary.maxCandidateRaisedByLiveSessionNs = 0
+	e.resetTimes.maxCandidateRaisedByLiveSessionNs = 0
 }
 
 // isKnown is O(n), but it only runs when a new session starts.
