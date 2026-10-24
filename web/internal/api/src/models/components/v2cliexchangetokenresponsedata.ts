@@ -4,60 +4,34 @@
 
 import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
-import { ClosedEnum } from "../../types/enums.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
-import {
-  V2CliExchangeTokenCredentials,
-  V2CliExchangeTokenCredentials$inboundSchema,
-} from "./v2cliexchangetokencredentials.js";
 
 /**
- * `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
- *
- * @remarks
+ * Session credentials returned by a successful token exchange.
  */
-export const V2CliExchangeTokenResponseDataStatus = {
-  PermissionsRequired: "permissions_required",
-  AccessDenied: "access_denied",
-  ExpiredToken: "expired_token",
-  Complete: "complete",
-} as const;
-/**
- * `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
- *
- * @remarks
- */
-export type V2CliExchangeTokenResponseDataStatus = ClosedEnum<
-  typeof V2CliExchangeTokenResponseDataStatus
->;
-
 export type V2CliExchangeTokenResponseData = {
   /**
-   * `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
-   *
-   * @remarks
+   * Short-lived access token.
    */
-  status: V2CliExchangeTokenResponseDataStatus;
+  accessToken: string;
   /**
-   * Seconds to wait before polling again. Zero after a refresh-token exchange.
+   * Rotating refresh token. Store it. It is returned only once.
    */
-  interval: number;
+  refreshToken: string;
   /**
-   * Human-readable reason for a terminal status.
+   * Seconds until the access token expires. Access tokens last 15 minutes.
    */
-  detail?: string | undefined;
+  expiresIn: number;
   /**
-   * Session credentials returned when token exchange is complete.
+   * Workspace the session belongs to.
    */
-  credentials?: V2CliExchangeTokenCredentials | undefined;
+  workspaceId: string;
+  /**
+   * CLI session id.
+   */
+  sessionId: string;
 };
-
-/** @internal */
-export const V2CliExchangeTokenResponseDataStatus$inboundSchema:
-  z.ZodNativeEnum<typeof V2CliExchangeTokenResponseDataStatus> = z.nativeEnum(
-    V2CliExchangeTokenResponseDataStatus,
-  );
 
 /** @internal */
 export const V2CliExchangeTokenResponseData$inboundSchema: z.ZodType<
@@ -65,10 +39,11 @@ export const V2CliExchangeTokenResponseData$inboundSchema: z.ZodType<
   z.ZodTypeDef,
   unknown
 > = z.object({
-  status: V2CliExchangeTokenResponseDataStatus$inboundSchema,
-  interval: z.number().int(),
-  detail: z.string().optional(),
-  credentials: V2CliExchangeTokenCredentials$inboundSchema.optional(),
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  expiresIn: z.number().int(),
+  workspaceId: z.string(),
+  sessionId: z.string(),
 });
 
 export function v2CliExchangeTokenResponseDataFromJSON(
