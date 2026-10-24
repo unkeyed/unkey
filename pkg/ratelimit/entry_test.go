@@ -19,10 +19,10 @@ func TestEntryMergeRowsKeepsTheLargerConsumedTime(t *testing.T) {
 
 	require.NoError(t, e.mergeRows([]session{{id: "own", anchorAtNs: 100, consumedNs: 1}}))
 	require.Equal(t, []session{{id: "own", anchorAtNs: 100, consumedNs: 3}}, e.all())
-	require.Equal(t, int64(103), e.summary.resetAtNs)
+	require.Equal(t, int64(103), e.resetTimes.resetAtNs)
 
 	require.NoError(t, e.mergeRows([]session{{id: "own", anchorAtNs: 100, consumedNs: 5}}))
-	require.Equal(t, int64(105), e.summary.resetAtNs)
+	require.Equal(t, int64(105), e.resetTimes.resetAtNs)
 
 	e.endLiveSession()
 	require.NoError(t, e.mergeRows([]session{{id: "peer", anchorAtNs: 50, consumedNs: 60}}))
@@ -53,7 +53,7 @@ func TestEntryMergeRowsUpdatesEveryKnownSession(t *testing.T) {
 		{id: "a", anchorAtNs: 10, consumedNs: 3},
 		{id: "b", anchorAtNs: 20, consumedNs: 5},
 	}, e.all())
-	require.Equal(t, int64(25), e.summary.resetAtNs)
+	require.Equal(t, int64(25), e.resetTimes.resetAtNs)
 }
 
 // TestEntryMergeRowsRejectsInvalidRows guarantees that corrupt rows return an
@@ -74,7 +74,7 @@ func TestEntryMergeRowsRejectsInvalidRows(t *testing.T) {
 			require.NoError(t, e.mergeRows([]session{{id: "known", anchorAtNs: 50, consumedNs: 5}}))
 			require.Error(t, e.mergeRows(tc.rows))
 			require.Equal(t, []session{{id: "known", anchorAtNs: 50, consumedNs: 5}}, e.all())
-			require.Equal(t, int64(55), e.summary.resetAtNs)
+			require.Equal(t, int64(55), e.resetTimes.resetAtNs)
 		})
 	}
 }
@@ -102,9 +102,9 @@ func TestEntrySpendRejectsAReusedSessionID(t *testing.T) {
 
 // entrySnapshot is a deep copy of an entry, for comparing it before and after.
 type entrySnapshot struct {
-	live    *session
-	others  []session
-	summary summary
+	live       *session
+	others     []session
+	resetTimes resetTimes
 }
 
 func snapshot(e entry) entrySnapshot {
@@ -113,13 +113,13 @@ func snapshot(e entry) entrySnapshot {
 		copied := *e.live
 		live = &copied
 	}
-	return entrySnapshot{live: live, others: slices.Clone(e.others), summary: e.summary}
+	return entrySnapshot{live: live, others: slices.Clone(e.others), resetTimes: e.resetTimes}
 }
 
 // TestEntryMergeRowsIsAllOrNothing guarantees that a merge that fails on a
 // later row leaves the entry exactly as it was, even after earlier rows in
-// the same call were valid. Otherwise the summary would no longer match the
-// sessions.
+// the same call were valid. Otherwise the reset times would no longer match
+// the sessions.
 func TestEntryMergeRowsIsAllOrNothing(t *testing.T) {
 	var e entry
 	result, err := e.check(100, Rate{Limit: 10, Duration: 10}, 1)
