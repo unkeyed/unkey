@@ -31,11 +31,11 @@ func TestForbidden(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	externalID := uid.New(uid.TestPrefix)
 
-	identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		Environment: "default",
 		ExternalID:  externalID,
-	}).ID
+	})
 	otherIdentityID := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspaceID,
 		Environment: "default",
@@ -51,10 +51,10 @@ func TestForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("identities/%s#read", identityID))
+		require.Contains(t, res.Body.Error.Detail, "projects/{proj}/identities/{id}#read")
 		require.NotContains(t, res.Body.Error.Detail, "have:")
-		require.NotContains(t, res.Body.Error.Detail, "{")
-		require.NotContains(t, res.Body.Error.Detail, "}")
+		require.NotContains(t, res.Body.Error.Detail, identity.ID)
+		require.NotContains(t, res.Body.Error.Detail, identity.ProjectID)
 	})
 
 	t.Run("permission by external ID but not by ID", func(t *testing.T) {
@@ -73,9 +73,11 @@ func TestForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
+		require.Contains(t, res.Body.Error.Detail, "projects/{proj}/identities/{id}#read")
 		require.NotContains(t, res.Body.Error.Detail, "have:")
 		require.NotContains(t, res.Body.Error.Detail, otherIdentityID)
-		require.NotContains(t, res.Body.Error.Detail, "{")
-		require.NotContains(t, res.Body.Error.Detail, "}")
+		require.NotContains(t, res.Body.Error.Detail, "read_identity")
+		require.NotContains(t, res.Body.Error.Detail, identity.ID)
+		require.NotContains(t, res.Body.Error.Detail, identity.ProjectID)
 	})
 }
