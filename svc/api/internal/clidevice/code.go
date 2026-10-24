@@ -28,30 +28,8 @@ func newLoginID() string {
 	return string(uid.DeviceAuthorizationPrefix) + "_" + uid.Secure(24)
 }
 
-func normalizeUserCode(raw string) (string, error) {
-	code := strings.ToUpper(strings.TrimSpace(raw))
-	if len(code) < 4 || len(code) > 32 {
-		return "", invalid("Enter the code shown in the terminal.")
-	}
-	for _, r := range code {
-		if (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '-' {
-			return "", invalid("Enter the code shown in the terminal.")
-		}
-	}
-	return code, nil
-}
-
-func normalizeLoginID(raw string) (string, error) {
-	id := strings.TrimSpace(raw)
-	if len(id) < 8 || len(id) > 48 {
-		return "", invalid("The login id is invalid.")
-	}
-	for _, r := range id {
-		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '_' {
-			return "", invalid("The login id is invalid.")
-		}
-	}
-	return id, nil
+func normalizeUserCode(raw string) string {
+	return strings.ToUpper(strings.TrimSpace(raw))
 }
 
 func dashboardVerificationURL(base string, userCode string) (string, error) {

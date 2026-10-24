@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -18,14 +19,10 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 	if err := s.requireEnabled(); err != nil {
 		return PollResult{}, err
 	}
-	id, err := normalizeLoginID(req.LoginID)
-	if err != nil {
-		return PollResult{}, err
-	}
 	if err := s.limit(ctx, "poll", req.RemoteIP, pollLimitPerMinute); err != nil {
 		return PollResult{}, err
 	}
-	row, err := db.Query.FindDeviceAuthorizationByID(ctx, s.DB.RW(), id)
+	row, err := db.Query.FindDeviceAuthorizationByID(ctx, s.DB.RW(), strings.TrimSpace(req.LoginID))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return PollResult{}, loginNotFound()
