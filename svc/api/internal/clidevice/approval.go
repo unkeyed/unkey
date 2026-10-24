@@ -19,6 +19,7 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 	if err != nil {
 		return Authorization{}, err
 	}
+
 	row, err := db.Query.FindDeviceAuthorizationByUserCode(ctx, s.DB.RO(), code)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -41,6 +42,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 	if err != nil {
 		return err
 	}
+
 	validated, err := principalpermissions.ValidateDelegatedPermissions(ctx, req.Principal, req.Permissions)
 	if err != nil {
 		return err
@@ -48,6 +50,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 	if len(validated) == 0 {
 		return invalid("Select at least one permission.")
 	}
+
 	source, ok := req.Principal.Source.(principal.JWTSource)
 	if !ok {
 		return dashboardSessionRequired()
@@ -75,6 +78,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 		if row.ApproverUserID.Valid && row.ApproverUserID.String != req.Principal.Subject.ID {
 			return forbidden("Another account already approved this login.")
 		}
+
 		workspace, err := db.Query.FindWorkspaceByID(ctx, tx, req.Principal.AuthorizedWorkspaceID)
 		if err != nil {
 			return err
@@ -82,14 +86,27 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 		if !workspaceUsable(workspace) {
 			return forbidden("This workspace cannot approve a CLI login.")
 		}
+
 		n, err := db.Query.ApproveDeviceAuthorization(ctx, tx, db.ApproveDeviceAuthorizationParams{
-			WorkspaceID:    sql.NullString{String: req.Principal.AuthorizedWorkspaceID, Valid: true},
-			ApproverUserID: sql.NullString{String: req.Principal.Subject.ID, Valid: true},
-			ApproverName:   sql.NullString{String: req.Principal.Subject.Name, Valid: req.Principal.Subject.Name != ""},
-			ApproverRoles:  rolesJSON,
-			Permissions:    permsJSON,
-			ApprovedAt:     sql.NullInt64{Int64: s.Clock.Now().UnixMilli(), Valid: true},
-			ID:             row.ID,
+			WorkspaceID: sql.NullString{
+				String: req.Principal.AuthorizedWorkspaceID,
+				Valid:  true,
+			},
+			ApproverUserID: sql.NullString{
+				String: req.Principal.Subject.ID,
+				Valid:  true,
+			},
+			ApproverName: sql.NullString{
+				String: req.Principal.Subject.Name,
+				Valid:  req.Principal.Subject.Name != "",
+			},
+			ApproverRoles: rolesJSON,
+			Permissions:   permsJSON,
+			ApprovedAt: sql.NullInt64{
+				Int64: s.Clock.Now().UnixMilli(),
+				Valid: true,
+			},
+			ID: row.ID,
 		})
 		if err != nil {
 			return err
@@ -113,6 +130,7 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 	if err != nil {
 		return err
 	}
+
 	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, code)
 		if err != nil {
@@ -130,6 +148,7 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 		if row.ApproverUserID.Valid && row.ApproverUserID.String != req.Principal.Subject.ID {
 			return forbidden("Another account already approved this login.")
 		}
+
 		n, err := db.Query.DenyDeviceAuthorization(ctx, tx, row.ID)
 		if err != nil {
 			return err

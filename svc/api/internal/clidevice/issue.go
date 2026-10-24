@@ -25,6 +25,7 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 	if err := s.limit(ctx, "poll", req.RemoteIP, pollLimitPerMinute); err != nil {
 		return PollResult{}, err
 	}
+
 	row, err := db.Query.FindDeviceAuthorizationByID(ctx, s.DB.RW(), id)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -32,6 +33,7 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 		}
 		return PollResult{}, err
 	}
+
 	row = s.present(row)
 	switch row.Status {
 	case db.DeviceAuthorizationsStatusDenied:
@@ -63,6 +65,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		}
 		return deniedPoll("This workspace cannot approve a CLI login."), nil
 	}
+
 	roles, found, err := s.Memberships.ActiveRoles(ctx, workspace.OrgID, row.ApproverUserID.String)
 	if err != nil {
 		return PollResult{}, err
@@ -111,6 +114,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			result = waitingPoll()
 			return nil
 		}
+
 		if err := db.Query.InsertCLISession(ctx, tx, db.InsertCLISessionParams{
 			ID:               sessionID,
 			WorkspaceID:      workspace.ID,
@@ -127,8 +131,11 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			return err
 		}
 		n, err := db.Query.ConsumeDeviceAuthorization(ctx, tx, db.ConsumeDeviceAuthorizationParams{
-			SessionID: sql.NullString{String: sessionID, Valid: true},
-			ID:        locked.ID,
+			SessionID: sql.NullString{
+				String: sessionID,
+				Valid:  true,
+			},
+			ID: locked.ID,
 		})
 		if err != nil {
 			return err
@@ -136,6 +143,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		if n != 1 {
 			return alreadyIssued()
 		}
+
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 		if err := s.writeAudit(ctx, tx, auditEntry{
 			Event:       auditlog.CLISessionCreateEvent,
@@ -150,6 +158,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		}); err != nil {
 			return err
 		}
+
 		result = PollResult{
 			Status:       PollComplete,
 			Interval:     pollIntervalSeconds,

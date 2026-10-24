@@ -31,11 +31,15 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 	if err != nil {
 		if db.IsNotFound(err) {
 			var inactive clisession.Session
-			s.remember(ctx, sessionID, SessionVerdict{Allowed: false, Session: inactive})
+			s.remember(ctx, sessionID, SessionVerdict{
+				Allowed: false,
+				Session: inactive,
+			})
 			return clisession.Session{}, clisession.ErrInactive
 		}
 		return clisession.Session{}, err
 	}
+
 	session := clisession.Session{
 		UserID:      row.UserID,
 		WorkspaceID: row.WorkspaceID,
@@ -50,7 +54,11 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 		}
 		active = err == nil && workspaceUsable(workspace)
 	}
-	s.remember(ctx, sessionID, SessionVerdict{Allowed: active, Session: session})
+
+	s.remember(ctx, sessionID, SessionVerdict{
+		Allowed: active,
+		Session: session,
+	})
 	if !active {
 		return clisession.Session{}, clisession.ErrInactive
 	}
@@ -84,6 +92,7 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 	if sessionID == "" {
 		return invalid("The session id is invalid.")
 	}
+
 	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), sessionID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -101,9 +110,13 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		s.forget(ctx, row.ID)
 		return nil
 	}
+
 	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		n, err := db.Query.RevokeCLISession(ctx, tx, db.RevokeCLISessionParams{
-			RevokedAt:   sql.NullInt64{Int64: s.Clock.Now().UnixMilli(), Valid: true},
+			RevokedAt: sql.NullInt64{
+				Int64: s.Clock.Now().UnixMilli(),
+				Valid: true,
+			},
 			ID:          row.ID,
 			WorkspaceID: row.WorkspaceID,
 		})
@@ -113,6 +126,7 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		if n == 0 {
 			return nil
 		}
+
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 		if err := s.writeAudit(ctx, tx, auditEntry{
 			Event:       auditlog.CLISessionRevokeEvent,
@@ -137,6 +151,7 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 	if err := RequireUserSession(req.Principal); err != nil {
 		return nil, err
 	}
+
 	var rows []db.CliSession
 	var err error
 	now := s.Clock.Now().UnixMilli()
@@ -155,6 +170,7 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 	if err != nil {
 		return nil, err
 	}
+
 	out := make([]SessionInfo, 0, len(rows))
 	for _, row := range rows {
 		permissions, err := decodeStrings(row.Permissions)
