@@ -145,9 +145,9 @@ export function ProductionCardActionsMenu({
       <TableActionPopover items={items}>
         <Button
           variant="outline"
-          size="sm"
+          size="md"
           aria-label="More actions"
-          className="w-7 p-0"
+          className="w-8 px-0"
           onClick={(e) => e.stopPropagation()}
         >
           <IconDotsOutline18 />

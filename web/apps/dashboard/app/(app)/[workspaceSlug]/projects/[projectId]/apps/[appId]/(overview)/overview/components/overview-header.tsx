@@ -13,6 +13,7 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
+  Skeleton,
 } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -38,12 +39,22 @@ function NewDeploymentButton() {
   return (
     <CreateDeploymentButton
       renderTrigger={({ onClick }) => (
-        <Button variant="primary" size="sm" onClick={onClick}>
+        <Button variant="primary" size="md" onClick={onClick}>
           <IconPlusOutline18 />
           New deployment
         </Button>
       )}
     />
+  );
+}
+
+export function ProductionActionsSkeleton() {
+  return (
+    <>
+      <Skeleton className="h-8 w-36 rounded-md" />
+      <Skeleton className="h-8 w-36 rounded-md" />
+      <Skeleton className="size-8 rounded-md" />
+    </>
   );
 }
 
@@ -66,7 +77,7 @@ export function ProductionActions() {
       {diagnostic && (
         <Button
           variant="outline"
-          size="sm"
+          size="md"
           render={<Link href={diagnostic.href} />}
           className="border-errorA-4 text-error-11"
         >
@@ -75,7 +86,7 @@ export function ProductionActions() {
         </Button>
       )}
       {!isRolledBack && rollbackTarget && (
-        <Button variant="outline" size="sm" onClick={openRollback}>
+        <Button variant="outline" size="md" onClick={openRollback}>
           <IconArrowDottedRotateAnticlockwiseOutline18 />
           Instant Rollback
         </Button>

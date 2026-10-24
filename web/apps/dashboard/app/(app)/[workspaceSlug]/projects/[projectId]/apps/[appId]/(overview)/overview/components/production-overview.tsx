@@ -22,13 +22,12 @@ import { appDeploymentQueryFor } from "../../data-provider-queries";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
-import { useProductionPolicies } from "../../policies/hooks/use-policies-data";
 import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
 import { AppCanvas } from "./app-canvas";
 import { AppCanvasSkeleton } from "./app-canvas-skeleton";
 import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
-import { OverviewHeader, ProductionActions } from "./overview-header";
+import { OverviewHeader, ProductionActions, ProductionActionsSkeleton } from "./overview-header";
 import { type ProductionCardContextValue, ProductionCardProvider } from "./production-card-context";
 import { deriveProductionStatus } from "./status";
 
@@ -82,7 +81,6 @@ function useProductionOverview({
   const { deployments, isLoading: isDeploymentsLoading } = useRecentDeployments();
   const appId = useAppId();
   const workspace = useWorkspaceNavigation();
-  const policies = useProductionPolicies();
   const [rollbackOpen, setRollbackOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
 
@@ -216,7 +214,6 @@ function useProductionOverview({
       domains: all,
       domainsHref: routes.projects.apps.domains(appScope),
       policiesHref: routes.projects.apps.policies(appScope),
-      policies,
     },
     sourceRepo,
     diagnostic,
@@ -289,7 +286,13 @@ function ProductionOverviewView({
   const deployed = model.kind === "deployed" ? model : null;
   return (
     <ProductionCardProvider value={deployed?.card ?? null}>
-      <OverviewHeader actions={deployed ? <ProductionActions /> : undefined} />
+      <OverviewHeader
+        actions={match(model.kind)
+          .with("deployed", () => <ProductionActions />)
+          .with("loading", () => <ProductionActionsSkeleton />)
+          .with("no-deployments", "no-production", () => undefined)
+          .exhaustive()}
+      />
       <PageBody>
         <div className="flex flex-col gap-5">
           <ProductionCardSlot model={model} />
