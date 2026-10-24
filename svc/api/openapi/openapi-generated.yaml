@@ -5480,6 +5480,11 @@ components:
                 status:
                     type: string
                     description: pending, approved, consumed, denied, or expired.
+                grantablePermissions:
+                    type: array
+                    description: Permissions the signed-in member's role allows. The approval page starts with all of them selected.
+                    items:
+                        type: string
                 createdAt:
                     type: integer
                     format: int64
