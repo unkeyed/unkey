@@ -5,6 +5,7 @@ import {
 } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { summarizeInstances } from "@/lib/collections/deploy/instance-status";
+import type { NodeTone } from "./canvas/nodes";
 
 export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
 
@@ -26,13 +27,25 @@ export function deriveProductionStatus(
   return "live";
 }
 
-export const STATUS_META: Record<DeploymentDisplayStatus, { label: string; dotClass: string }> = {
-  live: { label: "Live", dotClass: DEPLOYMENT_GROUP_COLOR.ready },
+export const STATUS_META: Record<
+  DeploymentDisplayStatus,
+  { label: string; dotClass: string; tone: NodeTone }
+> = {
+  live: { label: "Live", dotClass: DEPLOYMENT_GROUP_COLOR.ready, tone: "default" },
   deploying: {
     label: DEPLOYMENT_STATUS_LABELS.deploying,
     dotClass: DEPLOYMENT_GROUP_COLOR.building,
+    tone: "default",
   },
-  crashing: { label: "Crashing", dotClass: DEPLOYMENT_GROUP_COLOR.failed },
-  failed: { label: DEPLOYMENT_STATUS_LABELS.failed, dotClass: DEPLOYMENT_GROUP_COLOR.failed },
-  stopped: { label: DEPLOYMENT_STATUS_LABELS.stopped, dotClass: DEPLOYMENT_GROUP_COLOR.stopped },
+  crashing: { label: "Crashing", dotClass: DEPLOYMENT_GROUP_COLOR.failed, tone: "error" },
+  failed: {
+    label: DEPLOYMENT_STATUS_LABELS.failed,
+    dotClass: DEPLOYMENT_GROUP_COLOR.failed,
+    tone: "error",
+  },
+  stopped: {
+    label: DEPLOYMENT_STATUS_LABELS.stopped,
+    dotClass: DEPLOYMENT_GROUP_COLOR.stopped,
+    tone: "default",
+  },
 };
