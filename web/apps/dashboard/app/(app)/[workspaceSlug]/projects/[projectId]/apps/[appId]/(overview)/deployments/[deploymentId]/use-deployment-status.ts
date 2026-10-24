@@ -20,8 +20,13 @@ const BUILDING_POLL_MS = 5_000;
  * from here rather than the raw collection status, which lags steps by ~1s.
  * React Query dedupes the poll by query key, so two callers share one request.
  */
-export function useDeploymentStatus(deployment: Deployment) {
+export function useDeploymentStatus(
+  deployment: Deployment,
+  { loadEndedSteps = false }: { loadEndedSteps?: boolean } = {},
+) {
   const skipped = deployment.status === "skipped";
+  const cancelledOrSuperseded =
+    deployment.status === "superseded" || deployment.status === "cancelled";
 
   const steps = trpc.deploy.deployment.steps.useQuery(
     { deploymentId: deployment.id },
@@ -35,7 +40,7 @@ export function useDeploymentStatus(deployment: Deployment) {
           : IN_FLIGHT_POLL_MS;
       },
       refetchOnWindowFocus: false,
-      enabled: !skipped && deployment.status !== "superseded" && deployment.status !== "cancelled",
+      enabled: !skipped && (loadEndedSteps || !cancelledOrSuperseded),
     },
   );
 
