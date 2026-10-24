@@ -6671,6 +6671,30 @@ type V2PortalCreateSessionResponseData struct {
 	Url string `json:"url"`
 }
 
+// V2PortalDeleteDomainRequestBody defines model for V2PortalDeleteDomainRequestBody.
+type V2PortalDeleteDomainRequestBody struct {
+	// DomainId The portal domain ID that `portal.createDomain` returned.
+	//
+	// Example: pdom_1234abcd
+	DomainId PortalDomainId `json:"domainId"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalDeleteDomainResponseBody defines model for V2PortalDeleteDomainResponseBody.
+type V2PortalDeleteDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2PortalDeletePortalRequestBody defines model for V2PortalDeletePortalRequestBody.
 type V2PortalDeletePortalRequestBody struct {
 	// Portal Identifies a resource by either its unique ID or its slug.
@@ -8553,6 +8577,9 @@ type PortalCreatePortalJSONRequestBody = V2PortalCreatePortalRequestBody
 
 // PortalCreateSessionJSONRequestBody defines body for PortalCreateSession for application/json ContentType.
 type PortalCreateSessionJSONRequestBody = V2PortalCreateSessionRequestBody
+
+// PortalDeleteDomainJSONRequestBody defines body for PortalDeleteDomain for application/json ContentType.
+type PortalDeleteDomainJSONRequestBody = V2PortalDeleteDomainRequestBody
 
 // PortalDeletePortalJSONRequestBody defines body for PortalDeletePortal for application/json ContentType.
 type PortalDeletePortalJSONRequestBody = V2PortalDeletePortalRequestBody
