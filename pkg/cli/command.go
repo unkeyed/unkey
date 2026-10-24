@@ -36,6 +36,9 @@ type Command struct {
 	AcceptsArgs bool       // Whether this command accepts positional arguments
 	commandPath string     // Full command path for MDX generation (e.g., "run api")
 
+	// RootAliases invoke this command from the root without changing its canonical path.
+	RootAliases []string
+
 	// RequireOneOf lists groups of flag names where exactly one flag per
 	// group must be set (e.g. [][]string{{"customer", "clock"}} accepts
 	// --customer or --clock, but not both and not neither). Validated after
@@ -43,9 +46,10 @@ type Command struct {
 	RequireOneOf [][]string
 
 	// Runtime state (populated during parsing)
-	args    []string        // Non-flag arguments passed to command
-	flagMap map[string]Flag // Map for O(1) flag lookup
-	parent  *Command        // Parent command (for building usage paths)
+	args        []string        // Non-flag arguments passed to command
+	flagMap     map[string]Flag // Map for O(1) flag lookup
+	parent      *Command        // Parent command (for building usage paths)
+	rootAliases map[string]*Command
 }
 
 // Args returns the non-flag arguments passed to the command
@@ -277,6 +281,10 @@ func (c *Command) Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		return ErrNoArguments
 	}
+	if err := c.initRootAliases(); err != nil {
+		return err
+	}
+
 	// Handle MDX generation first
 	if handled, err := c.handleMDXGeneration(args); handled {
 		return err
