@@ -1,12 +1,14 @@
 package cron_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -133,7 +135,7 @@ func TestRunKeyRefill_Integration(t *testing.T) {
 
 		refillAmount := int64(1000)
 		remaining := int64(0)
-		h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
+		key := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
 			WorkspaceID:  ws.ID,
 			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:    &remaining,
@@ -145,6 +147,20 @@ func TestRunKeyRefill_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
+		rows, err := h.DB.ListClickhouseOutboxByWorkspace(h.Ctx, ws.ID)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		var event auditlog.Event
+		require.NoError(t, json.Unmarshal(rows[0].Payload, &event))
+		require.Equal(t, rows[0].EventID, event.EventID)
+		require.Equal(t, string(auditlog.KeyUpdateEvent), event.Event)
+		require.Len(t, event.Targets, 1)
+		require.Equal(t, key.KeyID, event.Targets[0].ID)
+		_, err = callRunKeyRefill(h, testDateKey)
+		require.NoError(t, err)
+		rows, err = h.DB.ListClickhouseOutboxByWorkspace(h.Ctx, ws.ID)
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
 	})
 
 	t.Run("is idempotent with same date key", func(t *testing.T) {

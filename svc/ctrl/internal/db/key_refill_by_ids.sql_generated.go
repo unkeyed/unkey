@@ -11,32 +11,37 @@ import (
 	"strings"
 )
 
-const refillKeysByIDs = `-- name: RefillKeysByIDs :exec
+const refillKeysByIDs = `-- name: RefillKeysByIDs :execrows
 UPDATE ` + "`" + `keys` + "`" + `
 SET remaining_requests = refill_amount,
-    last_refill_at = NOW(3),
+    last_refill_at = ?,
     updated_at_m = ?
 WHERE id IN (/*SLICE:ids*/?)
   AND deleted_at_m IS NULL
+  AND (last_refill_at IS NULL OR last_refill_at < ?)
 `
 
 type RefillKeysByIDsParams struct {
-	Now sql.NullInt64 `db:"now"`
-	Ids []string      `db:"ids"`
+	RefillAt sql.NullTime  `db:"refill_at"`
+	Now      sql.NullInt64 `db:"now"`
+	Ids      []string      `db:"ids"`
 }
 
 // RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
-// This is a bulk operation to minimize database round trips.
+// The journaled refill time prevents a committed refill from running again.
+// Call with one ID to determine whether that key needs an audit event.
 //
 //	UPDATE `keys`
 //	SET remaining_requests = refill_amount,
-//	    last_refill_at = NOW(3),
+//	    last_refill_at = ?,
 //	    updated_at_m = ?
 //	WHERE id IN (/*SLICE:ids*/?)
 //	  AND deleted_at_m IS NULL
-func (q *Queries) RefillKeysByIDs(ctx context.Context, arg RefillKeysByIDsParams) error {
+//	  AND (last_refill_at IS NULL OR last_refill_at < ?)
+func (q *Queries) RefillKeysByIDs(ctx context.Context, arg RefillKeysByIDsParams) (int64, error) {
 	query := refillKeysByIDs
 	var queryParams []interface{}
+	queryParams = append(queryParams, arg.RefillAt)
 	queryParams = append(queryParams, arg.Now)
 	if len(arg.Ids) > 0 {
 		for _, v := range arg.Ids {
@@ -46,6 +51,10 @@ func (q *Queries) RefillKeysByIDs(ctx context.Context, arg RefillKeysByIDsParams
 	} else {
 		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
 	}
-	_, err := q.db.ExecContext(ctx, query, queryParams...)
-	return err
+	queryParams = append(queryParams, arg.RefillAt)
+	result, err := q.db.ExecContext(ctx, query, queryParams...)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

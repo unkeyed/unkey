@@ -4,6 +4,7 @@
 package keyrefill
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -123,33 +124,32 @@ func (h *Handler) Handle(
 		}
 		now := nowTime.UnixMilli()
 
-		keyIDs := make([]string, len(keysToProcess))
-		for i, key := range keysToProcess {
-			keyIDs[i] = key.ID
-		}
-
-		_, updateErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, h.db.RefillKeysByIDs(rc, db.RefillKeysByIDsParams{
-				Now: sql.NullInt64{Int64: now, Valid: true},
-				Ids: keyIDs,
-			})
-		}, restate.WithName(fmt.Sprintf("update keys batch %d", batchNum)))
-		if updateErr != nil {
-			return nil, fmt.Errorf("update keys: %w", updateErr)
-		}
-
-		outboxRows, buildErr := buildOutboxRows(keysToProcess, now)
-		if buildErr != nil {
-			return nil, fmt.Errorf("build outbox rows: %w", buildErr)
-		}
-		_, auditErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-			if err := h.db.Bulk().InsertClickhouseOutboxes(rc, outboxRows); err != nil {
-				return restate.Void{}, fmt.Errorf("insert clickhouse outbox rows: %w", err)
+		_, refillErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+			outboxRows, err := buildOutboxRows(keysToProcess, now)
+			if err != nil {
+				return restate.Void{}, err
 			}
-			return restate.Void{}, nil
-		}, restate.WithName(fmt.Sprintf("insert audit logs batch %d", batchNum)))
-		if auditErr != nil {
-			return nil, fmt.Errorf("insert audit logs: %w", auditErr)
+			return restate.Void{}, db.Tx(rc, h.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+				queries := db.NewQueries(tx)
+				rows := make([]db.InsertClickhouseOutboxParams, 0, len(outboxRows))
+				for i, key := range keysToProcess {
+					updated, err := queries.RefillKeysByIDs(txCtx, db.RefillKeysByIDsParams{
+						RefillAt: sql.NullTime{Time: time.UnixMilli(now).UTC(), Valid: true},
+						Now:      sql.NullInt64{Int64: now, Valid: true},
+						Ids:      []string{key.ID},
+					})
+					if err != nil {
+						return err
+					}
+					if updated > 0 {
+						rows = append(rows, outboxRows[i])
+					}
+				}
+				return db.NewBulkQueries(tx).InsertClickhouseOutboxes(txCtx, rows)
+			})
+		}, restate.WithName(fmt.Sprintf("refill keys batch %d", batchNum)), restate.WithMaxRetryAttempts(5))
+		if refillErr != nil {
+			return nil, fmt.Errorf("refill keys: %w", refillErr)
 		}
 
 		for _, key := range keysToProcess {
