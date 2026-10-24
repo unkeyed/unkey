@@ -162,6 +162,7 @@ func New(config Config) (*Server, error) {
 					requestBody:            []byte{},
 					responseStatus:         0,
 					responseBody:           []byte{},
+					sendResponse:           nil,
 				}
 			},
 		},
