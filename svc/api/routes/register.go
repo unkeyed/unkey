@@ -1023,6 +1023,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		portalMiddlewares,
 		&v2PortalGetVerifications.Handler{
 			ClickHouse:       svc.ClickHouse,
+			Clock:            svc.Clock,
 			DB:               svc.Database,
 			LimitsCache:      svc.Caches.WorkspaceLimits,
 			MaxPerKeySeries:  v2PortalGetVerifications.DefaultMaxPerKeySeries,
