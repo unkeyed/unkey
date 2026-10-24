@@ -8,16 +8,13 @@ import (
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
-	"github.com/restatedev/sdk-go/x/mocks"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // missingRowDB answers the domain lookup with NotFound. The embedded interface
-// is nil, so any other query panics, pinning that VerifyDomain returns before
+// is nil, so any other query panics, pinning that checkDomain returns before
 // touching anything else.
 type missingRowDB struct{ db.Database }
 
@@ -33,11 +30,7 @@ func (missingRowDB) FindCustomDomainById(_ context.Context, _ string) (db.Custom
 func TestVerifyDomainToleratesRowNotYetVisible(t *testing.T) {
 	svc := New(Config{DB: missingRowDB{}, CnameDomain: "cname.unkey.local"})
 
-	mockCtx := mocks.NewMockContext(t)
-	mockCtx.EXPECT().Key().Return("dom_notyetvisible")
-	mockStartedAt(mockCtx, time.Now())
-
-	_, err := svc.VerifyDomain(restate.WithMockContext(mockCtx), &hydrav1.VerifyDomainRequest{})
+	_, err := svc.checkDomain(context.Background(), "dom_notyetvisible", time.Now())
 	require.Error(t, err)
 	require.False(t, restate.IsTerminalError(err),
 		"a missing row inside the grace window must stay retryable, got: %v", err)
@@ -56,11 +49,7 @@ func TestVerifyDomainTerminatesWhenRowStaysMissing(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			svc := New(Config{DB: missingRowDB{}, CnameDomain: "cname.unkey.local"})
 
-			mockCtx := mocks.NewMockContext(t)
-			mockCtx.EXPECT().Key().Return("dom_staysmissing")
-			mockStartedAt(mockCtx, time.Now().Add(-age))
-
-			_, err := svc.VerifyDomain(restate.WithMockContext(mockCtx), &hydrav1.VerifyDomainRequest{})
+			_, err := svc.checkDomain(context.Background(), "dom_staysmissing", time.Now().Add(-age))
 			require.Error(t, err)
 			require.True(t, restate.IsTerminalError(err),
 				"a row still missing after the grace window means deletion and must terminate, got: %v", err)
@@ -95,11 +84,7 @@ func TestVerifyDomainOldRowDoesNotTimeOut(t *testing.T) {
 		CreatedAt: time.Now().Add(-2 * maxVerificationDuration).UnixMilli(),
 	}}, CnameDomain: "cname.unkey.local"})
 
-	mockCtx := mocks.NewMockContext(t)
-	mockCtx.EXPECT().Key().Return(domainID)
-	mockStartedAt(mockCtx, time.Now())
-
-	_, err := svc.VerifyDomain(restate.WithMockContext(mockCtx), &hydrav1.VerifyDomainRequest{})
+	_, err := svc.checkDomain(context.Background(), domainID, time.Now())
 	require.ErrorIs(t, err, errReachedStatusUpdate,
 		"an old row on a fresh invocation must pass the deadline check, got: %v", err)
 }
@@ -115,25 +100,7 @@ func TestVerifyDomainOldInvocationTimesOut(t *testing.T) {
 		CreatedAt: time.Now().UnixMilli(),
 	}}, CnameDomain: "cname.unkey.local"})
 
-	mockCtx := mocks.NewMockContext(t)
-	mockCtx.EXPECT().Key().Return(domainID)
-	mockStartedAt(mockCtx, time.Now().Add(-maxVerificationDuration-time.Second))
-	// The mark-failed step writes into an *encoding.Void target, so it needs its
-	// own expectation next to the *time.Time one above.
-	mockCtx.EXPECT().Run(mock.Anything, mock.AnythingOfType("*encoding.Void"), mock.Anything).Return(nil)
-
-	_, err := svc.VerifyDomain(restate.WithMockContext(mockCtx), &hydrav1.VerifyDomainRequest{})
-	require.True(t, restate.IsTerminalError(err),
-		"an invocation past the verification window must terminate, got: %v", err)
-	require.ErrorContains(t, err, "timed out")
-}
-
-func mockStartedAt(mockCtx *mocks.MockContext, startedAt time.Time) {
-	mockCtx.EXPECT().
-		Run(mock.Anything, mock.AnythingOfType("*time.Time"), mock.Anything).
-		Call.
-		Run(func(args mock.Arguments) {
-			*args.Get(1).(*time.Time) = startedAt
-		}).
-		Return(nil)
+	check, err := svc.checkDomain(context.Background(), domainID, time.Now().Add(-maxVerificationDuration-time.Second))
+	require.NoError(t, err)
+	require.True(t, check.TimedOut, "an invocation past the verification window must time out")
 }

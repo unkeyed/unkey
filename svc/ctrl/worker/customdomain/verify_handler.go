@@ -72,12 +72,37 @@ func (s *Service) VerifyDomain(
 		return nil, err
 	}
 
-	// Fetch domain - NOT journaled so we get fresh state on each retry
+	// The row, the clock, and DNS all change between attempts. Branching on them
+	// outside a step makes replays diverge from the journal, so the whole check is
+	// one step that Restate retries until it journals an outcome.
+	check, err := restate.Run(ctx, func(runCtx restate.RunContext) (domainCheck, error) {
+		return s.checkDomain(runCtx, domainID, startedAt)
+	}, restate.WithName("check domain"))
+	if err != nil {
+		return nil, err
+	}
+
+	if check.TimedOut {
+		return s.onVerificationFailed(ctx, check.Domain, "domain verification timed out after 24 hours")
+	}
+	return s.onVerificationSuccess(ctx, check.Domain)
+}
+
+// domainCheck is the journaled outcome of [Service.checkDomain]. Without
+// TimedOut, Domain passed verification.
+type domainCheck struct {
+	Domain   db.CustomDomain
+	TimedOut bool
+}
+
+// checkDomain runs one verification attempt. It returns errNotVerified while
+// DNS is not ready, which fails the step so Restate retries the invocation.
+func (s *Service) checkDomain(ctx context.Context, domainID string, startedAt time.Time) (domainCheck, error) {
 	dom, err := s.db.FindCustomDomainById(ctx, domainID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			if time.Since(startedAt) < rowVisibilityGrace {
-				return nil, fault.Wrap(err, fault.Internal("domain row not visible yet"))
+				return domainCheck{}, fault.Wrap(err, fault.Internal("domain row not visible yet"))
 			}
 
 			// The domain row was deleted (DeleteCustomDomain, environment cascade,
@@ -86,24 +111,23 @@ func (s *Service) VerifyDomain(
 			logger.Info("domain record deleted, stopping verification workflow",
 				"domain_id", domainID,
 			)
-			return nil, restate.ToTerminalError(fmt.Errorf("domain record not found: %s", domainID), restate.WithErrorCode(404))
+			return domainCheck{}, restate.ToTerminalError(fmt.Errorf("domain record not found: %s", domainID), restate.WithErrorCode(404))
 		}
-		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
+		return domainCheck{}, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
 
 	elapsed := time.Since(startedAt)
 	if elapsed > maxVerificationDuration {
-		return s.onVerificationFailed(ctx, dom, "domain verification timed out after 24 hours")
+		return domainCheck{Domain: dom, TimedOut: true}, nil
 	}
 
-	// Mark domain as actively being verified - NOT journaled
 	err = s.db.UpdateCustomDomainVerificationStatus(ctx, db.UpdateCustomDomainVerificationStatusParams{
 		ID:                 dom.ID,
 		VerificationStatus: db.CustomDomainsVerificationStatusVerifying,
 		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 	if err != nil {
-		return nil, err
+		return domainCheck{}, err
 	}
 
 	// Step 1: Try CNAME verification. This works for subdomains with a real CNAME record.
@@ -132,7 +156,7 @@ func (s *Service) VerifyDomain(
 			WorkspaceID: dom.WorkspaceID,
 		})
 		if contestErr != nil && !db.IsNotFound(contestErr) {
-			return nil, fault.Wrap(contestErr, fault.Internal("failed to check domain contention"))
+			return domainCheck{}, fault.Wrap(contestErr, fault.Internal("failed to check domain contention"))
 		}
 		if contestErr == nil {
 			contested = true
@@ -172,7 +196,6 @@ func (s *Service) VerifyDomain(
 		}
 	}
 
-	// Update attempt count and verification flags - NOT journaled so we get fresh updates
 	err = s.db.UpdateCustomDomainCheckAttempt(ctx, db.UpdateCustomDomainCheckAttemptParams{
 		ID:            dom.ID,
 		CheckAttempts: dom.CheckAttempts + 1,
@@ -180,7 +203,7 @@ func (s *Service) VerifyDomain(
 		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 	if err != nil {
-		return nil, err
+		return domainCheck{}, err
 	}
 
 	err = s.db.UpdateCustomDomainOwnership(ctx, db.UpdateCustomDomainOwnershipParams{
@@ -190,7 +213,7 @@ func (s *Service) VerifyDomain(
 		ID:                dom.ID,
 	})
 	if err != nil {
-		return nil, err
+		return domainCheck{}, err
 	}
 
 	// Log current status
@@ -216,12 +239,10 @@ func (s *Service) VerifyDomain(
 	if isApex {
 		verified = verified && apexHasRecords
 	}
-	if verified {
-		return s.onVerificationSuccess(ctx, dom)
+	if !verified {
+		return domainCheck{}, errNotVerified
 	}
-
-	// Not fully verified yet - return error to trigger Restate retry
-	return nil, errNotVerified
+	return domainCheck{Domain: dom, TimedOut: false}, nil
 }
 
 // RetryVerification resets a failed domain and restarts verification after the
@@ -420,33 +441,14 @@ func (s *Service) onVerificationSuccess(
 		return nil, fault.Wrap(err, fault.Internal("failed to revoke contested domain"))
 	}
 
-	// Create frontline route for traffic routing. If no deployment exists yet,
-	// the route will be assigned when the first deployment happens.
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		app, appErr := s.db.FindAppById(stepCtx, dom.AppID)
-		if appErr != nil {
-			return restate.Void{}, fault.Wrap(appErr, fault.Internal("failed to find app for frontline route"))
-		}
-
-		deploymentID := ""
-		if app.CurrentDeploymentID.Valid {
-			deploymentID = app.CurrentDeploymentID.String
-		}
-
-		return restate.Void{}, s.db.InsertFrontlineRoute(stepCtx, db.InsertFrontlineRouteParams{
-			ID:                       uid.New(uid.FrontlineRoutePrefix),
-			ProjectID:                dom.ProjectID,
-			AppID:                    dom.AppID,
-			DeploymentID:             deploymentID,
-			EnvironmentID:            dom.EnvironmentID,
-			FullyQualifiedDomainName: dom.Domain,
-			Sticky:                   db.FrontlineRoutesStickyLive,
-			CreatedAt:                now,
-			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
-		})
+	routed, err := restate.Run(ctx, func(stepCtx restate.RunContext) (bool, error) {
+		return s.ensureFrontlineRoute(stepCtx, dom, now)
 	}, restate.WithName("create frontline route"))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to create frontline route"))
+	}
+	if !routed {
+		return s.onVerificationFailed(ctx, dom, "domain is already routed to another app")
 	}
 
 	logger.Info("domain verification completed successfully",
@@ -482,4 +484,42 @@ func (s *Service) onVerificationFailed(
 
 	// Return terminal error to stop Restate retries
 	return nil, restate.ToTerminalError(fmt.Errorf("domain verification failed: %s", errorMsg))
+}
+
+// ensureFrontlineRoute routes dom.Domain to the domain's app. If no deployment
+// exists yet, the route is assigned when the first deployment happens. The FQDN
+// is unique across routes, and a route can already exist from an insert whose
+// result was never journaled, so a route for the same app and environment
+// counts as done. It returns false when another app holds the route.
+func (s *Service) ensureFrontlineRoute(ctx context.Context, dom db.CustomDomain, now int64) (bool, error) {
+	app, err := s.db.FindAppById(ctx, dom.AppID)
+	if err != nil {
+		return false, fault.Wrap(err, fault.Internal("failed to find app for frontline route"))
+	}
+
+	deploymentID := ""
+	if app.CurrentDeploymentID.Valid {
+		deploymentID = app.CurrentDeploymentID.String
+	}
+
+	return db.TxWithResultRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (bool, error) {
+		route, findErr := db.NewQueries(tx).FindFrontlineRouteByFQDN(txCtx, dom.Domain)
+		if findErr == nil {
+			return route.AppID == dom.AppID && route.EnvironmentID == dom.EnvironmentID, nil
+		}
+		if !db.IsNotFound(findErr) {
+			return false, findErr
+		}
+		return true, db.NewQueries(tx).InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
+			ID:                       uid.New(uid.FrontlineRoutePrefix),
+			ProjectID:                dom.ProjectID,
+			AppID:                    dom.AppID,
+			DeploymentID:             deploymentID,
+			EnvironmentID:            dom.EnvironmentID,
+			FullyQualifiedDomainName: dom.Domain,
+			Sticky:                   db.FrontlineRoutesStickyLive,
+			CreatedAt:                now,
+			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
+		})
+	})
 }
