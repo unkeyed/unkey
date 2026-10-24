@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auth/portalrbac"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -54,6 +56,7 @@ type (
 // parser that are inappropriate for an end user.
 type Handler struct {
 	ClickHouse       clickhouse.ClickHouse
+	Clock            clock.Clock
 	DB               db.Database
 	LimitsCache      cache.Cache[string, keysdb.Limit]
 	MaxPerKeySeries  int
@@ -132,6 +135,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("requested window exceeds workspace log retention"),
 			fault.Public(fmt.Sprintf("The requested time window is too large. The maximum window is %d days.", limits.LogsRetentionDaysMax)),
 		)
+	}
+
+	if limits.LogsRetentionDaysMax > 0 {
+		cutoff := h.Clock.Now().UTC().Truncate(24*time.Hour).UnixMilli() - int64(limits.LogsRetentionDaysMax)*millisPerDay
+		if cutoff >= req.EndTime {
+			return s.JSON(http.StatusOK, Response{
+				Meta: openapi.Meta{
+					RequestId: s.RequestID(),
+				},
+				BucketMillis: clickhouse.VerificationBucketMillis(req.StartTime, req.EndTime),
+				Keys:         []openapi.V2PortalGetVerificationsKeySeries{},
+			})
+		}
+		req.StartTime = max(req.StartTime, cutoff)
 	}
 
 	perKey, err := h.ClickHouse.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{

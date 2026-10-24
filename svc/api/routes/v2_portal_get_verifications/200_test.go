@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -22,6 +23,82 @@ type (
 	Request  = openapi.V2PortalGetVerificationsRequestBody
 	Response = openapi.V2PortalGetVerificationsResponseBody
 )
+
+// TestPortalSessionAnalyticsEnforcesDataAge protects retention even when an old
+// window is shorter than the workspace's maximum query range.
+func TestPortalSessionAnalyticsEnforcesDataAge(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+	workspace := h.CreateWorkspace()
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	h.SetupAnalytics(workspace.ID, testutil.WithRetentionDays(7))
+	route := newHandler(h)
+	h.Register(route, h.PortalMiddleware()...)
+	externalID := "portal_retention_user"
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspace.ID,
+		ExternalID:  externalID,
+	})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		IdentityID:  new(identity.ID),
+	})
+	now := h.Clock.Now().UnixMilli()
+	dayMs := int64(24 * time.Hour / time.Millisecond)
+	cutoff := h.Clock.Now().UTC().Truncate(24 * time.Hour).Add(-7 * 24 * time.Hour)
+	for _, timestamp := range []int64{now - 57*dayMs, now - 3*dayMs, cutoff.Add(-30 * time.Minute).UnixMilli(), cutoff.Add(30 * time.Minute).UnixMilli()} {
+		h.KeyVerifications.Buffer(schema.KeyVerification{
+			RequestID:   uid.New(uid.RequestPrefix),
+			Time:        timestamp,
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			KeyID:       key.KeyID,
+			Region:      "us-west-1",
+			Outcome:     "VALID",
+			IdentityID:  identity.ID,
+			ExternalID:  externalID,
+			Tags:        []string{},
+		})
+	}
+	old := Request{StartTime: now - 60*dayMs, EndTime: now - 54*dayMs}
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		series, err := h.ClickHouse.GetVerificationsByExternalIDPerKey(context.Background(), clickhouse.VerificationTimeseriesPerKeyRequest{
+			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+				WorkspaceID: workspace.ID,
+				ExternalID:  externalID,
+				KeySpaceIDs: []string{api.KeyAuthID.String},
+				StartTime:   old.StartTime,
+				EndTime:     old.EndTime,
+			},
+			MaxKeys: 1,
+		})
+		require.NoError(c, err)
+		require.Len(c, series, 1, "old data must exist in the shared table before checking retention")
+	}, 30*time.Second, time.Second)
+	headers := h.CreatePortalSession(workspace.ID, externalID, []string{api.KeyAuthID.String}, []string{"analytics:read"})
+	res := testutil.CallRoute[Request, Response](h, route, headers, old)
+	require.Equal(t, 200, res.Status)
+	require.NotNil(t, res.Body)
+	require.Empty(t, res.Body.Keys, "a short old window must not bypass workspace retention")
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, headers, Request{StartTime: now - 6*dayMs, EndTime: now})
+		require.Equal(c, 200, res.Status)
+		require.NotNil(c, res.Body)
+		require.Equal(c, int64(1), sumTotals(res.Body.Keys))
+	}, 30*time.Second, time.Second)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, headers, Request{
+			StartTime: cutoff.Add(-6 * 24 * time.Hour).UnixMilli(),
+			EndTime:   cutoff.Add(2 * time.Hour).UnixMilli(),
+		})
+		require.Equal(c, 200, res.Status)
+		require.NotNil(c, res.Body)
+		require.Equal(c, int64(60_000), res.Body.BucketMillis, "bucket size must use the clamped two-hour window")
+		require.Equal(c, int64(1), sumTotals(res.Body.Keys), "only the event after the cutoff is visible")
+	}, 30*time.Second, time.Second)
+}
 
 // newHandler builds the standalone portal.getVerifications handler backed by the
 // harness's shared ClickHouse client.
@@ -40,6 +117,7 @@ func newHandlerWithKeyCap(h *testutil.Harness, maxPerKeySeries int) *handler.Han
 func newHandlerWithLimits(h *testutil.Harness, maxPerKeySeries, maxResponseBytes int) *handler.Handler {
 	return &handler.Handler{
 		ClickHouse:       h.ClickHouse,
+		Clock:            h.Clock,
 		DB:               h.DB,
 		LimitsCache:      h.Caches.WorkspaceLimits,
 		MaxPerKeySeries:  maxPerKeySeries,
