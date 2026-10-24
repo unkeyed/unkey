@@ -17,6 +17,7 @@ func newUserCode() (string, error) {
 	if _, err := rand.Read(buf); err != nil {
 		return "", err
 	}
+
 	chars := make([]byte, 8)
 	for i, b := range buf {
 		chars[i] = userCodeAlphabet[int(b)%len(userCodeAlphabet)]
@@ -37,6 +38,7 @@ func dashboardVerificationURL(base string, userCode string) (string, error) {
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return "", errors.New("dashboard base url must be an absolute http(s) url")
 	}
+
 	parsed.Path = strings.TrimRight(parsed.Path, "/") + "/cli/device"
 	query := parsed.Query()
 	query.Set("user_code", userCode)

@@ -26,6 +26,7 @@ func (s *Service) Refresh(ctx context.Context, req RefreshRequest) (Tokens, erro
 	if !ok {
 		return Tokens{}, invalidRefreshToken()
 	}
+
 	presented := hashRefreshToken(token)
 	row, err := db.Query.FindCLISessionByRefreshTokenHash(ctx, s.DB.RW(), presented)
 	if err != nil {
@@ -52,6 +53,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		}
 		return Tokens{}, forbidden("This workspace cannot refresh a CLI session.")
 	}
+
 	roles, found, err := s.Memberships.ActiveRoles(ctx, workspace.OrgID, row.UserID)
 	if err != nil {
 		return Tokens{}, err
@@ -62,6 +64,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		}
 		return Tokens{}, forbidden("You are no longer a member of this workspace. Run unkey login again.")
 	}
+
 	stored, err := decodeStrings(row.Permissions)
 	if err != nil {
 		return Tokens{}, err
@@ -91,14 +94,20 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 	var tokens Tokens
 	err = db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		n, err := db.Query.RotateCLISessionRefreshToken(ctx, tx, db.RotateCLISessionRefreshTokenParams{
-			RefreshTokenHash:         hashRefreshToken(next),
-			PreviousRefreshTokenHash: sql.NullString{String: currentHash, Valid: true},
-			RotatedAt:                sql.NullInt64{Int64: now, Valid: true},
-			LastUsedAt:               now,
-			ExpiresAt:                sessionExpiry(row.CreatedAt, now),
-			Permissions:              permsJSON,
-			ID:                       row.ID,
-			CurrentRefreshTokenHash:  currentHash,
+			RefreshTokenHash: hashRefreshToken(next),
+			PreviousRefreshTokenHash: sql.NullString{
+				String: currentHash,
+				Valid:  true,
+			},
+			RotatedAt: sql.NullInt64{
+				Int64: now,
+				Valid: true,
+			},
+			LastUsedAt:              now,
+			ExpiresAt:               sessionExpiry(row.CreatedAt, now),
+			Permissions:             permsJSON,
+			ID:                      row.ID,
+			CurrentRefreshTokenHash: currentHash,
 		})
 		if err != nil {
 			return err
@@ -106,6 +115,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		if n != 1 {
 			return unauthenticated("This refresh token was already used. Run unkey login again.")
 		}
+
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 		if err := s.writeAudit(ctx, tx, auditEntry{
 			Event:       auditlog.CLISessionRefreshEvent,
@@ -120,6 +130,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		}); err != nil {
 			return err
 		}
+
 		tokens = Tokens{
 			AccessToken:  accessToken,
 			RefreshToken: next,
@@ -133,7 +144,10 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 }
 
 func (s *Service) refreshPreviousToken(ctx context.Context, req RefreshRequest, presented string, family string) (Tokens, error) {
-	row, err := db.Query.FindCLISessionByPreviousRefreshTokenHash(ctx, s.DB.RW(), sql.NullString{String: presented, Valid: true})
+	row, err := db.Query.FindCLISessionByPreviousRefreshTokenHash(ctx, s.DB.RW(), sql.NullString{
+		String: presented,
+		Valid:  true,
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return Tokens{}, s.refreshOlderToken(ctx, family)
@@ -146,6 +160,7 @@ func (s *Service) refreshPreviousToken(ctx context.Context, req RefreshRequest, 
 	if refreshReuseAllowed(row.RotatedAt, s.Clock.Now().UnixMilli()) {
 		return s.rotate(ctx, req, row, row.RefreshTokenHash)
 	}
+
 	if err := s.endSession(ctx, row); err != nil {
 		return Tokens{}, err
 	}
@@ -187,7 +202,10 @@ func refreshReuseAllowed(rotatedAt sql.NullInt64, now int64) bool {
 
 func (s *Service) endSession(ctx context.Context, row db.CliSession) error {
 	if _, err := db.Query.RevokeCLISessionFamily(ctx, s.DB.RW(), db.RevokeCLISessionFamilyParams{
-		RevokedAt:     sql.NullInt64{Int64: s.Clock.Now().UnixMilli(), Valid: true},
+		RevokedAt: sql.NullInt64{
+			Int64: s.Clock.Now().UnixMilli(),
+			Valid: true,
+		},
 		RefreshFamily: row.RefreshFamily,
 	}); err != nil {
 		return err
