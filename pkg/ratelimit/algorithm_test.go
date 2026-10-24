@@ -163,7 +163,7 @@ func TestDecideReplaysTheDocumentationTables(t *testing.T) {
 			result, err := e.check(noonNs+s.atSeconds*secondNs, rate, s.units)
 			require.NoError(t, err)
 			require.Equal(t, s.wantAllowed, result.allowed, "step %d", index)
-			require.NoError(t, e.spend(result, fmt.Sprintf("own_%d", index)))
+			require.NoError(t, e.apply(result, fmt.Sprintf("own_%d", index)))
 			require.Equal(t, noonNs+s.wantResetAtAfter*secondNs, e.resetTimes.resetAtNs, "step %d", index)
 		}
 	}
@@ -274,7 +274,7 @@ func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int6
 		require.Zero(t, result.consumedNs)
 		require.Zero(t, result.createNewSessionAtNs)
 		require.Equal(t, remainingBySearch(rate, nowNs, before), result.remaining)
-		require.NoError(t, e.spend(result, ""))
+		require.NoError(t, e.apply(result, ""))
 		require.ElementsMatch(t, all, allSessions(*e))
 		return
 	}
@@ -300,9 +300,9 @@ func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int6
 		require.Equal(t, max(nowNs, newestAnchorAtNs), result.createNewSessionAtNs)
 	}
 
-	require.NoError(t, e.spend(result, newSessionID))
+	require.NoError(t, e.apply(result, newSessionID))
 	require.Equal(t, after, resetAtByFormula(allSessions(*e)))
-	require.Len(t, e.sessions, len(all)+min(1, int(result.createNewSessionAtNs)), "spend never removes a session")
+	require.Len(t, e.sessions, len(all)+min(1, int(result.createNewSessionAtNs)), "apply never removes a session")
 }
 
 // resetAtByFormula computes `reset_at` straight from its definition, in O(n²).

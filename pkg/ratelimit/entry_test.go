@@ -16,7 +16,7 @@ func TestEntryMergeRowsKeepsTheLargerConsumedTime(t *testing.T) {
 	var e entry
 	result, err := e.check(100, rate, 3)
 	require.NoError(t, err)
-	require.NoError(t, e.spend(result, "own"))
+	require.NoError(t, e.apply(result, "own"))
 
 	require.NoError(t, e.mergeRows([]session{{id: "own", anchorAtNs: 100, consumedNs: 1}}))
 	require.Equal(t, []session{{id: "own", anchorAtNs: 100, consumedNs: 3}}, allSessions(e))
@@ -88,17 +88,17 @@ func TestEntrySpendRejectsAReusedSessionID(t *testing.T) {
 	var e entry
 	first, err := e.check(100, rate, 1)
 	require.NoError(t, err)
-	require.NoError(t, e.spend(first, "own"))
+	require.NoError(t, e.apply(first, "own"))
 	require.NoError(t, e.mergeRows([]session{{id: "peer", anchorAtNs: 150, consumedNs: 60}}))
 
 	result, err := e.check(155, rate, 1)
 	require.NoError(t, err)
 	require.NotZero(t, result.createNewSessionAtNs)
 	before := snapshot(e)
-	require.Error(t, e.spend(result, "peer"))
-	require.Error(t, e.spend(result, "own"))
-	require.Error(t, e.spend(result, ""))
-	require.Equal(t, before, snapshot(e), "a failed spend must not change the entry")
+	require.Error(t, e.apply(result, "peer"))
+	require.Error(t, e.apply(result, "own"))
+	require.Error(t, e.apply(result, ""))
+	require.Equal(t, before, snapshot(e), "a failed apply must not change the entry")
 }
 
 // snapshot returns a deep copy of an entry, for comparing it before and after.
@@ -128,7 +128,7 @@ func TestEntryMergeRowsIsAllOrNothing(t *testing.T) {
 	var e entry
 	result, err := e.check(100, Rate{Limit: 10, Duration: 10}, 1)
 	require.NoError(t, err)
-	require.NoError(t, e.spend(result, "own"))
+	require.NoError(t, e.apply(result, "own"))
 	require.NoError(t, e.mergeRows([]session{{id: "peer", anchorAtNs: 50, consumedNs: 1}}))
 	before := snapshot(e)
 
@@ -150,7 +150,7 @@ func TestEntryMergeRowsNeverRemovesASession(t *testing.T) {
 	var e entry
 	result, err := e.check(100, Rate{Limit: 10, Duration: 10}, 1)
 	require.NoError(t, err)
-	require.NoError(t, e.spend(result, "own"))
+	require.NoError(t, e.apply(result, "own"))
 	e.endLiveSession()
 	require.NoError(t, e.mergeRows([]session{{id: "peer", anchorAtNs: 50, consumedNs: 1}}))
 	require.ElementsMatch(t, []session{
