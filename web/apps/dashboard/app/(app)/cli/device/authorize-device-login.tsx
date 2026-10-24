@@ -24,10 +24,12 @@ import {
   AlertBannerDescription,
   AlertBannerTitle,
   Button,
+  Checkbox,
+  Combobox,
   TimestampInfo,
   toast,
 } from "@unkey/ui";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { FormProvider } from "react-hook-form";
 
 type AuthorizeDeviceLoginProps = {
@@ -45,7 +47,10 @@ export function AuthorizeDeviceLogin({ userCode }: AuthorizeDeviceLoginProps) {
     retry: false,
   });
 
-  const refresh = async () => {
+  const refresh = async (status: "approved" | "denied") => {
+    queryClient.setQueryData<DeviceLogin>(["cli-device", trimmed], (login) =>
+      login ? { ...login, status } : login,
+    );
     await queryClient.invalidateQueries({ queryKey: ["cli-device", trimmed] });
   };
 
@@ -74,9 +79,15 @@ export function AuthorizeDeviceLogin({ userCode }: AuthorizeDeviceLoginProps) {
           onChanged={refresh}
         />
       ) : query.isError ? (
-        <p className="max-w-md text-balance text-center text-sm leading-5 text-gray-11">
-          {getErrorMessage(query.error, "This login could not be loaded.")}
-        </p>
+        <div className="flex flex-col items-center gap-6">
+          <StepIntro
+            title="Could not load login"
+            description={getErrorMessage(query.error, "This login could not be loaded.")}
+          />
+          <Button variant="outline" onClick={() => void query.refetch()}>
+            Try again
+          </Button>
+        </div>
       ) : null}
     </CenteredFlow>
   );
@@ -84,11 +95,11 @@ export function AuthorizeDeviceLogin({ userCode }: AuthorizeDeviceLoginProps) {
 
 function CenteredFlow({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
   return (
-    <div className="flex w-full flex-1 flex-col items-center justify-center p-12">
+    <div className="flex w-full flex-1 flex-col items-center justify-center px-4 py-8 sm:p-12">
       <div
         className={
           wide
-            ? "flex w-full max-w-3xl flex-col items-center gap-6"
+            ? "flex w-full max-w-xl flex-col items-center gap-6"
             : "flex w-full max-w-md flex-col items-center gap-6 text-center"
         }
       >
@@ -99,9 +110,20 @@ function CenteredFlow({ children, wide = false }: { children: ReactNode; wide?: 
 }
 
 function StepIntro({ title, description }: { title: string; description?: ReactNode }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
   return (
     <div className="flex flex-col items-center gap-2 text-center">
-      <h1 className="font-semibold text-lg text-gray-12">{title}</h1>
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="font-semibold text-lg text-gray-12 outline-hidden"
+      >
+        {title}
+      </h1>
       {description ? (
         <p className="max-w-md text-balance text-sm leading-5 text-gray-11">{description}</p>
       ) : null}
@@ -120,7 +142,7 @@ function DeviceLoginView({
   workspaceName: string;
   workspaceId: string;
   isAdmin: boolean;
-  onChanged: () => Promise<void>;
+  onChanged: (status: "approved" | "denied") => Promise<void>;
 }) {
   if (login.status === "approved") {
     return <Approved />;
@@ -138,56 +160,62 @@ function DeviceLoginView({
   }
 
   return (
-    <div className="flex w-full flex-col items-center gap-6 text-center">
+    <div aria-live="polite" className="flex w-full flex-col items-center gap-6 text-center">
       <StepIntro title="Authorize CLI" />
-      <LoginContext login={login} workspaceName={workspaceName} />
+      <LoginContext login={login} workspace={workspaceName} />
       <ClosedStatus login={login} />
     </div>
   );
 }
 
-function LoginContext({ login, workspaceName }: { login: DeviceLogin; workspaceName: string }) {
-  const characters = formatUserCode(login.userCode)
-    .split(" ")
-    .filter((char) => char.length > 0)
-    .map((char, position) => ({ char, id: `${position}-${char}` }));
+function LoginContext({ login, workspace }: { login: DeviceLogin; workspace: ReactNode }) {
+  const characters = Array.from(formatUserCode(login.userCode), (char, position) => ({
+    char,
+    id: `${position}-${char}`,
+  }));
 
   return (
     <div className="flex w-full flex-col items-center gap-6 text-center">
-      <div className="flex flex-wrap justify-center gap-2">
+      <div className="flex items-center justify-center gap-1 sm:gap-2">
+        <span className="sr-only">Login code {formatUserCode(login.userCode)}</span>
         {characters.map(({ char, id }) => (
           <span
             key={id}
-            className="flex size-9 items-center justify-center rounded-md border bg-gray-2 font-mono text-sm text-gray-12"
+            aria-hidden="true"
+            className={
+              char === "-"
+                ? "font-mono text-base text-gray-11"
+                : "flex h-10 w-7 items-center justify-center rounded-md border border-grayA-4 bg-grayA-2 font-mono text-base text-gray-12 sm:w-10"
+            }
           >
             {char}
           </span>
         ))}
       </div>
-      <dl className="flex flex-col items-center gap-1 text-sm leading-5">
-        <div className="flex gap-2">
+      <dl className="w-full divide-y divide-grayA-4 rounded-lg border border-grayA-4 px-4 text-left text-sm leading-5 [&>div]:grid [&>div]:grid-cols-[7rem_minmax(0,1fr)] [&>div]:gap-3 [&>div]:py-3 [&_dd]:min-w-0 [&_dd]:break-words">
+        <div>
           <dt className="text-gray-11">Device</dt>
           <dd className="text-gray-12">{login.deviceName || "Unknown device"}</dd>
         </div>
-        <div className="flex gap-2">
+        <div>
           <dt className="text-gray-11">Requested from</dt>
           <dd className="font-mono text-gray-12">{login.requesterIp || "Unknown address"}</dd>
         </div>
         {login.requesterUserAgent ? (
-          <div className="flex gap-2">
+          <div>
             <dt className="text-gray-11">Client</dt>
-            <dd className="max-w-xs truncate text-gray-12">{login.requesterUserAgent}</dd>
+            <dd className="text-gray-12">{login.requesterUserAgent}</dd>
           </div>
         ) : null}
-        <div className="flex gap-2">
+        <div>
           <dt className="text-gray-11">Started</dt>
           <dd className="text-gray-12">
             <TimestampInfo value={login.createdAt} displayType="relative" />
           </dd>
         </div>
-        <div className="flex gap-2">
-          <dt className="text-gray-11">Workspace</dt>
-          <dd className="text-gray-12">{workspaceName}</dd>
+        <div className="items-center">
+          <dt className="whitespace-nowrap text-gray-11">Workspace</dt>
+          <dd className="text-gray-12">{workspace}</dd>
         </div>
       </dl>
     </div>
@@ -216,14 +244,15 @@ function ClosedStatus({ login }: { login: DeviceLogin }) {
   );
 }
 
-const authenticatedCopy =
-  "Your device has been successfully authenticated. Please return to your terminal.";
-
 function Approved() {
   return (
-    <p className="max-w-md text-balance text-center text-sm leading-5 text-gray-11">
-      {authenticatedCopy}
-    </p>
+    <div aria-live="polite" className="flex flex-col items-center gap-6">
+      <StepIntro
+        title="CLI authorized"
+        description="Return to your terminal. You can close this page."
+      />
+      <LinkToSessions />
+    </div>
   );
 }
 
@@ -238,7 +267,7 @@ function PendingLogin({
   workspaceName: string;
   workspaceId: string;
   isAdmin: boolean;
-  onChanged: () => Promise<void>;
+  onChanged: (status: "approved" | "denied") => Promise<void>;
 }) {
   const [step, setStep] = useState<"code" | "permissions">("code");
   const grantable = login.grantablePermissions ?? [];
@@ -246,8 +275,7 @@ function PendingLogin({
   const approve = useMutation({
     mutationFn: approveDeviceLogin,
     async onSuccess() {
-      toast.success(authenticatedCopy);
-      await onChanged();
+      await onChanged("approved");
     },
     onError(error) {
       toast.error(getErrorMessage(error, "Could not approve this login."));
@@ -256,8 +284,7 @@ function PendingLogin({
   const deny = useMutation({
     mutationFn: () => denyDeviceLogin(login.userCode),
     async onSuccess() {
-      toast.success("Login denied.");
-      await onChanged();
+      await onChanged("denied");
     },
     onError(error) {
       toast.error(getErrorMessage(error, "Could not deny this login."));
@@ -291,8 +318,10 @@ function PendingLogin({
     return (
       <div className="flex w-full flex-col items-center gap-6 text-center">
         <StepIntro title="Authorize CLI" description="Confirm this code matches the terminal." />
-        <LoginContext login={login} workspaceName={workspaceName} />
-        <WorkspacePicker userCode={login.userCode} />
+        <LoginContext
+          login={login}
+          workspace={<WorkspacePicker userCode={login.userCode} disabled={busy} />}
+        />
         <AlertBanner variant="warning" className="text-left">
           <IconTriangleWarningOutline18 className="size-3.5" />
           <AlertBannerTitle>Only continue if you started this login</AlertBannerTitle>
@@ -317,7 +346,7 @@ function PendingLogin({
             disabled={busy || grantable.length === 0}
             onClick={() => setStep("permissions")}
           >
-            Confirm
+            Review permissions
           </Button>
         </div>
         {grantable.length === 0 ? (
@@ -336,38 +365,55 @@ function PendingLogin({
           title="Authorize CLI"
           description="Everything your role allows is selected. Uncheck a permission to narrow the session."
         />
-        <fieldset className="flex max-h-80 w-full flex-col gap-2 overflow-auto rounded-md border p-3 text-left">
-          <legend className="px-1 text-sm text-gray-11">Permissions for {workspaceName}</legend>
-          {grantable.map((permission) => (
-            <label key={permission} className="flex items-start gap-2 text-sm text-gray-12">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={selected.includes(permission)}
-                onChange={() =>
-                  setSelected((current) =>
-                    current.includes(permission)
-                      ? current.filter((item) => item !== permission)
-                      : [...current, permission],
-                  )
-                }
-              />
-              <span className="break-all font-mono text-xs">{permission}</span>
-            </label>
-          ))}
+        <fieldset
+          disabled={busy}
+          className="w-full min-w-0 rounded-lg border border-grayA-4 text-left disabled:opacity-50"
+        >
+          <legend className="mx-3 px-1 text-sm font-medium text-gray-12">
+            Permissions for {workspaceName}
+          </legend>
+          <div className="max-h-80 overflow-auto p-2">
+            {grantable.map((permission) => (
+              <label
+                key={permission}
+                htmlFor={`cli-permission-${permission}`}
+                className="flex cursor-pointer items-start gap-3 rounded-md p-2 text-sm text-gray-12 hover:bg-grayA-2"
+              >
+                <Checkbox
+                  id={`cli-permission-${permission}`}
+                  className="mt-0.5"
+                  disabled={busy || policies.length > 0}
+                  checked={selected.includes(permission)}
+                  onCheckedChange={() =>
+                    setSelected((current) =>
+                      current.includes(permission)
+                        ? current.filter((item) => item !== permission)
+                        : [...current, permission],
+                    )
+                  }
+                />
+                <span className="break-all font-mono text-xs">{permission}</span>
+              </label>
+            ))}
+          </div>
         </fieldset>
         {isAdmin ? (
           <div ref={bodyRef} className="w-full text-left">
-            <p className="mb-3 text-sm text-gray-11">
-              Add a narrower set below to replace full access. Leave it empty to keep the
-              permissions selected above.
-            </p>
-            <KeyFields nameHidden>
-              <PolicyList />
-            </KeyFields>
+            <fieldset disabled={busy} className="min-w-0 disabled:opacity-50">
+              <p className="mb-3 text-sm text-gray-11">
+                Add a narrower set below to replace full access. Leave it empty to keep the
+                permissions selected above.
+              </p>
+              <KeyFields nameHidden>
+                <PolicyList />
+              </KeyFields>
+            </fieldset>
           </div>
         ) : null}
         <div className="flex items-center justify-center gap-2">
+          <Button type="button" variant="ghost" disabled={busy} onClick={() => setStep("code")}>
+            Back
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -383,7 +429,7 @@ function PendingLogin({
             disabled={busy || nothingSelected}
             loading={approve.isLoading}
           >
-            Allow
+            Authorize CLI
           </Button>
         </div>
         <LinkToSessions />
@@ -392,40 +438,28 @@ function PendingLogin({
   );
 }
 
-function WorkspacePicker({ userCode }: { userCode: string }) {
-  const { workspace } = useWorkspace();
+function WorkspacePicker({ userCode, disabled }: { userCode: string; disabled: boolean }) {
+  const { workspace, switchWorkspace } = useWorkspace();
   const available = trpc.workspace.listAvailable.useQuery();
   const orgs = available.data ?? [];
   if (orgs.length < 2 || !workspace?.orgId) {
-    return null;
+    return workspace?.name ?? null;
   }
   return (
-    <label className="flex items-center gap-2 text-sm text-gray-12">
-      Workspace
-      <select
-        className="rounded-md border bg-gray-2 px-2 py-1"
-        value={workspace.orgId}
-        onChange={(event) => {
-          const organizationId = event.target.value;
-          if (organizationId === workspace.orgId) {
-            return;
-          }
-          const returnTo = routes.cli.device({ user_code: userCode });
-          window.location.assign(
-            routes.auth.switchOrganization({
-              organizationId,
-              returnTo,
-            }),
-          );
-        }}
-      >
-        {orgs.map((org) => (
-          <option key={org.orgId} value={org.orgId}>
-            {org.name}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Combobox
+      aria-label="Workspace"
+      className="w-full max-w-60"
+      disabled={disabled}
+      options={orgs.map((org) => ({
+        value: org.orgId,
+        label: org.name,
+        searchValue: org.name,
+      }))}
+      value={workspace.orgId}
+      onSelect={(organizationId) => {
+        switchWorkspace(organizationId, routes.cli.device({ user_code: userCode }));
+      }}
+    />
   );
 }
 
