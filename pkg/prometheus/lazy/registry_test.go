@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func resetState(t *testing.T) {
+func resetState(t testing.TB) {
 	t.Helper()
 	reset := func() {
 		state.mu.Lock()
@@ -108,4 +108,26 @@ func counterValue(t *testing.T, reg *prometheus.Registry, name string) float64 {
 	}
 	require.Failf(t, "metric not found", "%s", name)
 	return 0
+}
+
+func TestBindCreatesSeriesOnFirstUseOnly(t *testing.T) {
+	resetState(t)
+	reg := prometheus.NewRegistry()
+	SetRegistry(reg)
+
+	lvs := []string{"hit"}
+	child := NewCounterVec(prometheus.CounterOpts{Name: "bound_total", Help: "h"}, []string{"result"}).Bind(lvs...)
+	lvs[0] = "changed"
+	require.Equal(t, 0, series(t, reg, "bound_total"))
+
+	child.Inc()
+	child.Inc()
+
+	families, err := reg.Gather()
+	require.NoError(t, err)
+	require.Len(t, families, 1)
+	metric := families[0].GetMetric()
+	require.Len(t, metric, 1)
+	require.Equal(t, "hit", metric[0].GetLabel()[0].GetValue())
+	require.InDelta(t, 2, metric[0].GetCounter().GetValue(), 0)
 }
