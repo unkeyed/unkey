@@ -3,7 +3,10 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strconv"
 
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -38,16 +41,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{RequestId: s.RequestID()},
 			Data: openapi.V2CliExchangeTokenResponseData{
-				Credentials: &openapi.V2CliExchangeTokenCredentials{
-					AccessToken:  tokens.AccessToken,
-					RefreshToken: tokens.RefreshToken,
-					ExpiresIn:    tokens.ExpiresIn,
-					WorkspaceId:  tokens.WorkspaceID,
-					SessionId:    tokens.SessionID,
-				},
-				Detail:   nil,
-				Interval: 0,
-				Status:   openapi.V2CliExchangeTokenResponseDataStatus(clidevice.PollComplete),
+				AccessToken:  tokens.AccessToken,
+				RefreshToken: tokens.RefreshToken,
+				ExpiresIn:    tokens.ExpiresIn,
+				WorkspaceId:  tokens.WorkspaceID,
+				SessionId:    tokens.SessionID,
 			},
 		})
 	}
@@ -61,27 +59,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	data := openapi.V2CliExchangeTokenResponseData{
-		Credentials: nil,
-		Detail:      nil,
-		Interval:    int64(result.Interval),
-		Status:      openapi.V2CliExchangeTokenResponseDataStatus(result.Status),
+	switch result.Status {
+	case clidevice.PollPermissionsRequired:
+		s.AddHeader("Retry-After", strconv.Itoa(int(result.Interval)))
+		return s.JSON(http.StatusAccepted, openapi.V2CliExchangeTokenPendingResponseBody{
+			Meta: openapi.Meta{RequestId: s.RequestID()},
+			Data: openapi.EmptyResponse{},
+		})
+	case clidevice.PollDenied:
+		return fault.New("device login denied",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+			fault.Public(result.Detail),
+		)
+	case clidevice.PollExpired:
+		return fault.New("device login expired",
+			fault.Code(codes.Auth.Authentication.DeviceLoginExpired.URN()),
+			fault.Public(result.Detail),
+		)
+	case clidevice.PollComplete:
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{RequestId: s.RequestID()},
+			Data: openapi.V2CliExchangeTokenResponseData{
+				AccessToken:  result.AccessToken,
+				RefreshToken: result.RefreshToken,
+				ExpiresIn:    result.ExpiresIn,
+				WorkspaceId:  result.WorkspaceID,
+				SessionId:    result.SessionID,
+			},
+		})
+	default:
+		return fault.New("unexpected device login state",
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+		)
 	}
-	if result.Detail != "" {
-		data.Detail = &result.Detail
-	}
-	if result.Status == clidevice.PollComplete {
-		data.Credentials = &openapi.V2CliExchangeTokenCredentials{
-			AccessToken:  result.AccessToken,
-			RefreshToken: result.RefreshToken,
-			ExpiresIn:    result.ExpiresIn,
-			WorkspaceId:  result.WorkspaceID,
-			SessionId:    result.SessionID,
-		}
-	}
-
-	return s.JSON(http.StatusOK, Response{
-		Meta: openapi.Meta{RequestId: s.RequestID()},
-		Data: data,
-	})
 }

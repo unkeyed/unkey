@@ -706,6 +706,34 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/V2CliExchangeTokenResponseData'
+        V2CliExchangeTokenPendingResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        GoneErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the requested resource has been soft-deleted and is no longer available. This occurs when:
+                - The resource has been marked as deleted but still exists in the database
+                - The resource is intentionally unavailable but could potentially be restored
+                - The resource cannot be restored through the API or dashboard
+
+                To resolve this error, contact support if you need the resource restored.
         V2CliGetDeviceLoginRequestBody:
             type: object
             additionalProperties: false
@@ -4286,23 +4314,6 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitLimitResponseData"
-        GoneErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BaseError"
-            description: |-
-                Error response when the requested resource has been soft-deleted and is no longer available. This occurs when:
-                - The resource has been marked as deleted but still exists in the database
-                - The resource is intentionally unavailable but could potentially be restored
-                - The resource cannot be restored through the API or dashboard
-
-                To resolve this error, contact support if you need the resource restored.
         V2RatelimitListNamespacesRequestBody:
             type: object
             properties:
@@ -5421,40 +5432,7 @@ components:
             additionalProperties: false
         V2CliExchangeTokenResponseData:
             type: object
-            required:
-                - status
-                - interval
-            if:
-                properties:
-                    status:
-                        const: complete
-                required:
-                    - status
-            then:
-                required:
-                    - credentials
-            properties:
-                status:
-                    type: string
-                    enum:
-                        - permissions_required
-                        - access_denied
-                        - expired_token
-                        - complete
-                    description: |
-                        `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
-                interval:
-                    type: integer
-                    format: int64
-                    description: Seconds to wait before polling again. Zero after a refresh-token exchange.
-                detail:
-                    type: string
-                    description: Human-readable reason for a terminal status.
-                credentials:
-                    $ref: '#/components/schemas/V2CliExchangeTokenCredentials'
-        V2CliExchangeTokenCredentials:
-            type: object
-            description: Session credentials returned when token exchange is complete.
+            description: Session credentials returned by a successful token exchange.
             required:
                 - accessToken
                 - refreshToken
@@ -5566,8 +5544,7 @@ components:
             required:
                 - loginId
                 - userCode
-                - verificationUri
-                - verificationUriComplete
+                - verificationUrl
                 - expiresIn
                 - interval
             properties:
@@ -5578,10 +5555,7 @@ components:
                 userCode:
                     type: string
                     description: Code the user confirms in the browser.
-                verificationUri:
-                    type: string
-                    description: Dashboard page where the user enters the code.
-                verificationUriComplete:
+                verificationUrl:
                     type: string
                     description: Dashboard page with the code filled in.
                 expiresIn:
@@ -10909,9 +10883,10 @@ paths:
             description: |
                 Supply exactly one of `loginId` or `refreshToken`. No authentication header is required.
                 A `loginId` polls a device login started by cli.startDeviceLogin. While the user has not approved it,
-                the status is `permissions_required`. Approval returns access and refresh tokens exactly once.
+                the API returns HTTP 202 with a Retry-After header in seconds. Approval returns HTTP 200 with access and refresh tokens exactly once.
+                Denial returns HTTP 403. An expired login returns HTTP 410. Stop polling on either response.
                 Device polling is rate limited per IP address.
-                A `refreshToken` rotates an existing session and returns `complete` with new tokens.
+                A `refreshToken` rotates an existing session and returns HTTP 200 with new tokens.
                 The user's current membership and permissions are checked again. Reuse of the previous token
                 after the retry grace period revokes the session.
                 Access tokens last 15 minutes. A session expires after 7 days without a refresh,
@@ -10929,7 +10904,20 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/V2CliExchangeTokenResponseBody'
-                    description: Current login state. `complete` includes the access token and refresh token.
+                    description: Token exchange completed. Includes the access token and refresh token.
+                "202":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliExchangeTokenPendingResponseBody'
+                    description: Awaiting approval. Wait for Retry-After seconds before polling again.
+                    headers:
+                        Retry-After:
+                            description: Seconds to wait before the next poll.
+                            required: true
+                            schema:
+                                minimum: 1
+                                type: integer
                 "400":
                     content:
                         application/json:
@@ -10947,7 +10935,13 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: The user was removed or no longer has the session's permissions.
+                    description: Login was denied, or the user was removed or no longer has the session's permissions.
+                "410":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GoneErrorResponse'
+                    description: The login expired. Start a new device login.
                 "429":
                     content:
                         application/json:

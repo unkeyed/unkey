@@ -70,6 +70,7 @@ const (
 	// CredentialRejected indicates a presented credential is not accepted.
 	// CLI refresh uses this when the token is unknown, expired, revoked, or already used.
 	UnkeyAuthErrorsAuthenticationCredentialRejected URN = "err:unkey:authentication:credential_rejected"
+	UnkeyAuthErrorsAuthenticationDeviceLoginExpired URN = "err:unkey:authentication:device_login_expired"
 
 	// Authorization
 

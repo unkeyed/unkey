@@ -518,30 +518,6 @@ func (e V2CliDecideDeviceLoginRequestBody1Decision) Valid() bool {
 	}
 }
 
-// Defines values for V2CliExchangeTokenResponseDataStatus.
-const (
-	AccessDenied        V2CliExchangeTokenResponseDataStatus = "access_denied"
-	Complete            V2CliExchangeTokenResponseDataStatus = "complete"
-	ExpiredToken        V2CliExchangeTokenResponseDataStatus = "expired_token"
-	PermissionsRequired V2CliExchangeTokenResponseDataStatus = "permissions_required"
-)
-
-// Valid indicates whether the value is a known member of the V2CliExchangeTokenResponseDataStatus enum.
-func (e V2CliExchangeTokenResponseDataStatus) Valid() bool {
-	switch e {
-	case AccessDenied:
-		return true
-	case Complete:
-		return true
-	case ExpiredToken:
-		return true
-	case PermissionsRequired:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
 const (
 	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
@@ -3537,22 +3513,13 @@ type V2CliDecideDeviceLoginResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
-// V2CliExchangeTokenCredentials Session credentials returned when token exchange is complete.
-type V2CliExchangeTokenCredentials struct {
-	// AccessToken Short-lived access token.
-	AccessToken string `json:"accessToken"`
+// V2CliExchangeTokenPendingResponseBody defines model for V2CliExchangeTokenPendingResponseBody.
+type V2CliExchangeTokenPendingResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
-	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes.
-	ExpiresIn int64 `json:"expiresIn"`
-
-	// RefreshToken Rotating refresh token. Store it. It is returned only once.
-	RefreshToken string `json:"refreshToken"`
-
-	// SessionId CLI session id.
-	SessionId string `json:"sessionId"`
-
-	// WorkspaceId Workspace the session belongs to.
-	WorkspaceId string `json:"workspaceId"`
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2CliExchangeTokenRequestBody Supply exactly one credential. A loginId polls for approval; a refreshToken rotates an existing session.
@@ -3573,29 +3540,30 @@ type V2CliExchangeTokenRequestBody1 = interface{}
 
 // V2CliExchangeTokenResponseBody defines model for V2CliExchangeTokenResponseBody.
 type V2CliExchangeTokenResponseBody struct {
+	// Data Session credentials returned by a successful token exchange.
 	Data V2CliExchangeTokenResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
 
-// V2CliExchangeTokenResponseData defines model for V2CliExchangeTokenResponseData.
+// V2CliExchangeTokenResponseData Session credentials returned by a successful token exchange.
 type V2CliExchangeTokenResponseData struct {
-	// Credentials Session credentials returned when token exchange is complete.
-	Credentials *V2CliExchangeTokenCredentials `json:"credentials,omitempty"`
+	// AccessToken Short-lived access token.
+	AccessToken string `json:"accessToken"`
 
-	// Detail Human-readable reason for a terminal status.
-	Detail *string `json:"detail,omitempty"`
+	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes.
+	ExpiresIn int64 `json:"expiresIn"`
 
-	// Interval Seconds to wait before polling again. Zero after a refresh-token exchange.
-	Interval int64 `json:"interval"`
+	// RefreshToken Rotating refresh token. Store it. It is returned only once.
+	RefreshToken string `json:"refreshToken"`
 
-	// Status `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
-	Status V2CliExchangeTokenResponseDataStatus `json:"status"`
+	// SessionId CLI session id.
+	SessionId string `json:"sessionId"`
+
+	// WorkspaceId Workspace the session belongs to.
+	WorkspaceId string `json:"workspaceId"`
 }
-
-// V2CliExchangeTokenResponseDataStatus `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
-type V2CliExchangeTokenResponseDataStatus string
 
 // V2CliGetDeviceLoginRequestBody defines model for V2CliGetDeviceLoginRequestBody.
 type V2CliGetDeviceLoginRequestBody struct {
@@ -3711,11 +3679,8 @@ type V2CliStartDeviceLoginResponseData struct {
 	// UserCode Code the user confirms in the browser.
 	UserCode string `json:"userCode"`
 
-	// VerificationUri Dashboard page where the user enters the code.
-	VerificationUri string `json:"verificationUri"`
-
-	// VerificationUriComplete Dashboard page with the code filled in.
-	VerificationUriComplete string `json:"verificationUriComplete"`
+	// VerificationUrl Dashboard page with the code filled in.
+	VerificationUrl string `json:"verificationUrl"`
 }
 
 // V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image

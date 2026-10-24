@@ -30,7 +30,9 @@ func TestStartRecordsTheRequester(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, withClientIP("203.0.113.10"), handler.Request{DeviceName: &deviceName})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 	code := res.Body.Data.UserCode
-	require.Equal(t, "http://dashboard.test/cli/device?user_code="+code, res.Body.Data.VerificationUriComplete)
+	require.Equal(t, "http://dashboard.test/cli/device?user_code="+code, res.Body.Data.VerificationUrl)
+	require.Positive(t, res.Body.Data.ExpiresIn)
+	require.EqualValues(t, 5, res.Body.Data.Interval)
 
 	row, err := db.Query.FindDeviceAuthorizationByUserCode(t.Context(), h.DB.RO(), code)
 	require.NoError(t, err)
