@@ -22,12 +22,20 @@ const DEPLOYING_LOGS_POLL_MS = 2_000;
 
 export type StagesCardPage = Pick<
   DeploymentPage,
-  "deployment" | "steps" | "status" | "instances" | "domains" | "domainCount" | "requestedStage"
+  | "deployment"
+  | "steps"
+  | "stepsFetched"
+  | "status"
+  | "instances"
+  | "domains"
+  | "domainCount"
+  | "requestedStage"
 >;
 
 export function useStagesCard({
   deployment,
   steps,
+  stepsFetched,
   status,
   instances,
   domainCount,
@@ -52,7 +60,7 @@ export function useStagesCard({
   const followed = followRequestedStage(
     followFailedStage(openStage, failedStage),
     requestedStage,
-    steps !== undefined,
+    stepsFetched,
   );
   if (followed !== openStage) {
     setOpenStage(followed);

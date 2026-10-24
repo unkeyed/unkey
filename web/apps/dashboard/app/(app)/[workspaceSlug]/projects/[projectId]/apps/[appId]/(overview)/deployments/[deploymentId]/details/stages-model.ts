@@ -85,43 +85,27 @@ export function resolveStages({
   desiredState,
   domainCount,
 }: StagesInput): Stage[] {
-  const { queued, starting, building, deploying, network, finalizing } = steps ?? {};
+  const { building, deploying, network } = steps ?? {};
   const phase = PHASE_BY_STATUS[status];
   const failed = phase.kind === "failed";
-  // A prebuilt image never builds, so its start-up failure belongs to instances
-  const startFailure = failed ? firstFailed(queued, starting) : undefined;
+  const step = stepsByStage(steps, { failed, isPrebuilt });
 
-  const build = resolveStep(
-    (isPrebuilt ? undefined : startFailure) ?? building,
-    now,
-    isPrebuilt ? SETTLED : phase,
-    {
-      completed: isPrebuilt ? "Image was prebuilt" : "Build complete",
-      inProgress: "Building",
-      waiting: "Waiting to start",
-    },
-  );
-  const instancesStep = resolveStep(
-    (isPrebuilt ? startFailure : undefined) ?? deploying,
-    now,
-    phase,
-    {
-      completed: instancesText(instances, desiredState),
-      inProgress: "Starting instances",
-      waiting: "Waiting for build",
-    },
-  );
-  const domains = resolveStep(
-    (failed ? firstFailed(finalizing) : undefined) ?? network,
-    now,
-    phase,
-    {
-      completed:
-        domainCount === null ? "Assigning domains" : `${plural(domainCount, "domain")} assigned`,
-      inProgress: "Assigning domains",
-      waiting: "Waiting for instances",
-    },
-  );
+  const build = resolveStep(step.build, now, isPrebuilt ? SETTLED : phase, {
+    completed: isPrebuilt ? "Image was prebuilt" : "Build complete",
+    inProgress: "Building",
+    waiting: "Waiting to start",
+  });
+  const instancesStep = resolveStep(step.instances, now, phase, {
+    completed: instancesText(instances, desiredState),
+    inProgress: "Starting instances",
+    waiting: "Waiting for build",
+  });
+  const domains = resolveStep(step.domains, now, phase, {
+    completed:
+      domainCount === null ? "Assigning domains" : `${plural(domainCount, "domain")} assigned`,
+    inProgress: "Assigning domains",
+    waiting: "Waiting for instances",
+  });
 
   const stages: Stage[] = [
     {
@@ -146,6 +130,21 @@ export function resolveStages({
     },
   ];
   return failed && steps !== undefined ? withFailure(stages) : stages;
+}
+
+// A failed deployment's queued, starting and finalizing errors have no stage of
+// their own; a prebuilt image never builds, so its start-up failure is the instances'
+function stepsByStage(
+  steps: StepsData | undefined,
+  { failed, isPrebuilt }: { failed: boolean; isPrebuilt: boolean },
+): Record<StageKey, StepData | null | undefined> {
+  const { queued, starting, building, deploying, network, finalizing } = steps ?? {};
+  const startFailure = failed ? firstFailed(queued, starting) : undefined;
+  return {
+    build: isPrebuilt ? building : (startFailure ?? building),
+    instances: isPrebuilt ? (startFailure ?? deploying) : deploying,
+    domains: (failed ? firstFailed(finalizing) : undefined) ?? network,
+  };
 }
 
 function firstFailed(...candidates: Array<StepData | null | undefined>): StepData | undefined {
@@ -239,8 +238,8 @@ export function initialOpenStage({
   };
 }
 
-// The request leaves the URL before steps load, so its pin holds until they do and
-// absorbs the failure they bring; a later failure opens its own stage
+// The request leaves the URL before fresh steps load, so its pin holds until they
+// do and absorbs the failure they bring; a later failure opens its own stage
 export function followRequestedStage(
   state: OpenStage,
   requested: StageKey | null,
