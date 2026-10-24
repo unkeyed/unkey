@@ -255,7 +255,7 @@ func FuzzDecideFollowsGCRARule(f *testing.F) {
 }
 
 // requestFollowsGCRARule checks one request against the GCRA rule
-// and against the formula over all sessions, then spends it.
+// and against the formula over all sessions, then applies it.
 func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int64, newSessionID string) {
 	t.Helper()
 	all := allSessions(*e)

@@ -69,13 +69,13 @@ func (e *entry) check(nowNs int64, rate Rate, units int64) (decision, error) {
 // `newSessionID`, which must be new: the upsert keeps the larger
 // `consumed_ns`, so a reused ID would hide the new session. On an error apply
 // changes nothing.
-func (e *entry) apply(applied decision, newSessionID string) error {
-	if !applied.allowed || applied.consumedNs == 0 {
+func (e *entry) apply(d decision, newSessionID string) error {
+	if !d.allowed || d.consumedNs == 0 {
 		return nil
 	}
-	if applied.createNewSessionAtNs == 0 {
+	if d.createNewSessionAtNs == 0 {
 		live := e.sessions[e.liveID]
-		live.consumedNs += applied.consumedNs
+		live.consumedNs += d.consumedNs
 		e.sessions[e.liveID] = live
 	} else {
 		_, known := e.sessions[newSessionID]
@@ -91,12 +91,12 @@ func (e *entry) apply(applied decision, newSessionID string) error {
 		}
 		e.sessions[newSessionID] = session{
 			id:         newSessionID,
-			anchorAtNs: applied.createNewSessionAtNs,
-			consumedNs: applied.consumedNs,
+			anchorAtNs: d.createNewSessionAtNs,
+			consumedNs: d.consumedNs,
 		}
 		e.liveID = newSessionID
 	}
-	e.resetTimes = resetTimesAfter(e.resetTimes, applied)
+	e.resetTimes = resetTimesAfter(e.resetTimes, d)
 	return nil
 }
 

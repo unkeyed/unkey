@@ -80,10 +80,10 @@ func TestEntryMergeRowsRejectsInvalidRows(t *testing.T) {
 	}
 }
 
-// TestEntrySpendRejectsAReusedSessionID guarantees that a new session never
+// TestEntryApplyRejectsAReusedSessionID guarantees that a new session never
 // reuses a known ID. The upsert keeps the larger `consumed_ns`, so a session
 // that starts again from zero under an old ID would be hidden.
-func TestEntrySpendRejectsAReusedSessionID(t *testing.T) {
+func TestEntryApplyRejectsAReusedSessionID(t *testing.T) {
 	rate := Rate{Limit: 60, Duration: 60}
 	var e entry
 	first, err := e.check(100, rate, 1)
