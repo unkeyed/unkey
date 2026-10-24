@@ -29,6 +29,19 @@ const stateKeyProcessedKeys = "processed_keys"
 // batchSize is the number of keys to fetch and process in a single batch.
 const batchSize = 100
 
+const runMaxAttempts = 5
+
+// RetryPolicy kills exhausted invocations so a fresh invocation can retry the date.
+func RetryPolicy() restate.HandlerOption {
+	return restate.WithInvocationRetryPolicy(
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(runMaxAttempts),
+		restate.KillOnMaxAttempts(),
+	)
+}
+
 // Config holds the handler's dependencies.
 type Config struct {
 	// DB is the primary application database. Must not be nil.
@@ -94,7 +107,7 @@ func (h *Handler) Handle(
 				AfterPk:          cursor,
 				Limit:            batchSize,
 			})
-		}, restate.WithName(fmt.Sprintf("fetch keys batch %d", batchNum)))
+		}, restate.WithName(fmt.Sprintf("fetch keys batch %d", batchNum)), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if fetchErr != nil {
 			return nil, fmt.Errorf("fetch keys: %w", fetchErr)
 		}
@@ -133,7 +146,7 @@ func (h *Handler) Handle(
 				Now: sql.NullInt64{Int64: now, Valid: true},
 				Ids: keyIDs,
 			})
-		}, restate.WithName(fmt.Sprintf("update keys batch %d", batchNum)))
+		}, restate.WithName(fmt.Sprintf("update keys batch %d", batchNum)), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if updateErr != nil {
 			return nil, fmt.Errorf("update keys: %w", updateErr)
 		}
@@ -147,7 +160,7 @@ func (h *Handler) Handle(
 				return restate.Void{}, fmt.Errorf("insert clickhouse outbox rows: %w", err)
 			}
 			return restate.Void{}, nil
-		}, restate.WithName(fmt.Sprintf("insert audit logs batch %d", batchNum)))
+		}, restate.WithName(fmt.Sprintf("insert audit logs batch %d", batchNum)), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if auditErr != nil {
 			return nil, fmt.Errorf("insert audit logs: %w", auditErr)
 		}
@@ -172,7 +185,7 @@ func (h *Handler) Handle(
 
 	if _, err := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, h.heartbeat.Ping(rc)
-	}, restate.WithName("send heartbeat")); err != nil {
+	}, restate.WithName("send heartbeat"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
 		return nil, fmt.Errorf("send heartbeat: %w", err)
 	}
 

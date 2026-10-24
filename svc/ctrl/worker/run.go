@@ -49,6 +49,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
@@ -772,6 +773,7 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunBuildLimitSync", cronBuildLimitSyncRetry).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
+		ConfigureHandler("RunKeyRefill", keyrefill.RetryPolicy()).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
 		// 1h journal retention keeps debugging headroom for an oncall to
