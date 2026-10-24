@@ -98,7 +98,7 @@ export function ComputeCardShell({
   children: ReactNode;
 }) {
   return (
-    <ItemGroup variant="outline">
+    <ItemGroup variant="raised">
       <ItemHeader>
         <ItemMedia className="bg-orangeA-3 text-orange-11">
           <IconCubeOutline18 />

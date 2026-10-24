@@ -98,7 +98,7 @@ function Group({ group }: { group: LimitGroup }) {
   const chip = CHIPS[group.key];
 
   return (
-    <ItemGroup variant="outline">
+    <ItemGroup variant="raised">
       <ItemHeader>
         <ItemMedia className={chip.className}>{chip.icon}</ItemMedia>
         <ItemContent>

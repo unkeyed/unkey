@@ -75,7 +75,7 @@ export function ApiCard({
   const nearLimit = used !== null && quota !== null && usageRatio(used, quota) >= AT_RISK;
 
   return (
-    <ItemGroup variant="outline">
+    <ItemGroup variant="raised">
       <ItemHeader>
         <ItemMedia className="bg-infoA-3 text-info-11">
           <IconNodesOutline18 />

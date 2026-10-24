@@ -85,10 +85,10 @@ export function VariablesTable({ draft }: { draft: VariableRows }) {
     <div
       {...dropZoneProps}
       tabIndex={-1}
-      className="relative shrink-0 overflow-hidden rounded-lg border border-grayA-4 bg-raised outline-hidden [--variables-columns:minmax(0,2fr)_minmax(0,3fr)_96px_36px]"
+      className="relative shrink-0 overflow-hidden rounded-lg border bg-raised outline-hidden [--variables-columns:minmax(0,2fr)_minmax(0,3fr)_96px_36px]"
     >
       <DropOverlay isDragging={isDragging} />
-      <div className="grid grid-cols-(--variables-columns) divide-x divide-grayA-4 border-b border-grayA-4 bg-grayA-2 text-xs text-gray-10">
+      <div className="grid grid-cols-(--variables-columns) divide-x border-b bg-grayA-2 text-xs text-gray-10">
         <span className="px-3 py-1.5">Key</span>
         <span className="px-3 py-1.5">Value</span>
         <span className="flex items-center gap-1 px-3 py-1.5">
@@ -99,7 +99,7 @@ export function VariablesTable({ draft }: { draft: VariableRows }) {
         </span>
         <span />
       </div>
-      <div className="divide-y divide-grayA-4">
+      <div className="divide-y">
         {draft.rows.map((row, index) => (
           <VariableRowView
             key={row.id}
@@ -123,10 +123,7 @@ export function VariablesTable({ draft }: { draft: VariableRows }) {
         className="hidden"
         onChange={handleFileImport}
       />
-      <div
-        ref={footerRef}
-        className="flex h-9 items-center justify-between border-t border-grayA-4"
-      >
+      <div ref={footerRef} className="flex h-9 items-center justify-between border-t">
         {footerActions.map(({ label, Icon, onClick }) => (
           <Button
             key={label}
@@ -264,7 +261,7 @@ function VariableRowView(props: RowProps) {
   const ValueCell = VALUE_CELL[view];
   return (
     <div>
-      <div className="grid grid-cols-(--variables-columns) divide-x divide-grayA-4">
+      <div className="grid grid-cols-(--variables-columns) divide-x">
         <KeyCell {...props} />
         <ValueCell {...props} />
         <span className="flex px-3 pt-2">
@@ -289,10 +286,7 @@ function VariableRowView(props: RowProps) {
         </span>
       </div>
       {errors ? (
-        <p
-          id={errorId}
-          className="border-t border-grayA-4 bg-error-2 px-3 py-1.5 text-xs text-error-11"
-        >
+        <p id={errorId} className="border-t bg-error-2 px-3 py-1.5 text-xs text-error-11">
           {errors.key ?? errors.value}
         </p>
       ) : null}

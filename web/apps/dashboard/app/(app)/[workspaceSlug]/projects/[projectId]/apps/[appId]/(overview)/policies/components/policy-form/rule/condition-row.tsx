@@ -124,7 +124,7 @@ function ConditionRegexGenerate({
   return match(regex)
     .with({ type: "none" }, () => null)
     .with({ type: "regex" }, ({ condition, prompt }) => (
-      <div className="border-t border-grayA-4 py-2.5 pr-2 pl-17">
+      <div className="border-t py-2.5 pr-2 pl-17">
         <RegexGenerate
           conditionType={condition.type}
           placeholder={prompt}

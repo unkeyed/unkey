@@ -13,12 +13,15 @@ function ResourceListHeader({ className, ...props }: React.ComponentProps<"div">
 
 function ResourceListContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div className={cn("overflow-hidden rounded-lg border bg-raised", className)} {...props} />
+    <div
+      className={cn("overflow-hidden rounded-lg bg-raised shadow-raised", className)}
+      {...props}
+    />
   );
 }
 
 function ResourceListBody({ className, ...props }: React.ComponentProps<"ul">) {
-  return <ul className={cn("divide-y divide-grayA-4", className)} {...props} />;
+  return <ul className={cn("divide-y", className)} {...props} />;
 }
 
 function ResourceListItem({ className, ...props }: React.ComponentProps<"li">) {

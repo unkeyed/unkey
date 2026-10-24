@@ -14,7 +14,7 @@ import {
 
 export default function ItemGroupExample() {
   return (
-    <ItemGroup variant="outline">
+    <ItemGroup variant="raised">
       <ItemHeader>
         <ItemContent>
           <ItemTitle>Usage this month</ItemTitle>

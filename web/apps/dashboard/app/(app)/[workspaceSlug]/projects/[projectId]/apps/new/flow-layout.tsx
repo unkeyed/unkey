@@ -40,7 +40,7 @@ export function StepAside({ children }: { children?: ReactNode }) {
   return (
     <aside
       aria-label="Steps"
-      className="hidden w-18 shrink-0 flex-col justify-center border-r border-grayA-4 bg-gray-2 lg:flex xl:w-[max(25%,240px)] xl:px-5"
+      className="hidden w-18 shrink-0 flex-col justify-center border-r bg-gray-2 lg:flex xl:w-[max(25%,240px)] xl:px-5"
     >
       {children}
     </aside>

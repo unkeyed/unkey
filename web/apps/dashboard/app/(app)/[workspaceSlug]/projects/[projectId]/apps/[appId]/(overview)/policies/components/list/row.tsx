@@ -203,9 +203,7 @@ function EnvBadge({ badge }: { badge: PolicyEnvBadge }) {
       >
         <span className="relative flex items-center gap-1.5">
           <EnvironmentLabel environment={environment} className="text-gray-9" />
-          <span className="rounded-sm border border-grayA-4 px-1 text-2xs leading-4 text-gray-10">
-            Off
-          </span>
+          <span className="rounded-sm border px-1 text-2xs leading-4 text-gray-10">Off</span>
         </span>
       </InfoTooltip>
     ))

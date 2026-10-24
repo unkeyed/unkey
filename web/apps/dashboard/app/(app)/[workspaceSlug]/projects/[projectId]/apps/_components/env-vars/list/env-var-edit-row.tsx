@@ -156,7 +156,7 @@ export function EnvVarEditRow({ envVar, onClose }: { envVar: EnvVar; onClose: ()
             </div>
           )}
         </div>
-        <div className="flex items-center justify-end gap-3 border-t border-grayA-4 bg-grayA-2 px-4 py-3">
+        <div className="flex items-center justify-end gap-3 border-t bg-grayA-2 px-4 py-3">
           <Button type="button" variant="outline" size="sm" onClick={onClose} className="px-3">
             Cancel
           </Button>

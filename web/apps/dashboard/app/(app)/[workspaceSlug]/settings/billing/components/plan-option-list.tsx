@@ -29,7 +29,7 @@ export function PlanOptionList({
   return (
     <fieldset
       aria-label={label}
-      className="flex flex-col divide-y overflow-hidden rounded-xl border bg-raised"
+      className="flex flex-col divide-y overflow-hidden rounded-xl bg-raised shadow-raised"
     >
       {options.map((option) => {
         const isCurrent = option.id === currentId;

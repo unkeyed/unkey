@@ -9,7 +9,7 @@ import { Skeleton } from "./skeleton";
 
 export type ChevronState = "hidden" | "interactive" | "disabled";
 
-export type SettingCardBorder = "top" | "middle" | "bottom" | "both" | "none" | "default";
+export type SettingCardBorder = "both" | "none" | "default";
 
 type SettingCardProps = {
   title: string | React.ReactNode;
@@ -33,9 +33,7 @@ const SettingCardGroupContext = React.createContext(false);
 function SettingCardGroup({ children }: { children: React.ReactNode }) {
   return (
     <SettingCardGroupContext.Provider value={true}>
-      <div className="border rounded-lg overflow-hidden divide-y divide-grayA-4 bg-raised">
-        {children}
-      </div>
+      <div className="rounded-lg overflow-hidden divide-y bg-raised shadow-raised">{children}</div>
     </SettingCardGroupContext.Provider>
   );
 }
@@ -86,39 +84,6 @@ function SettingCard({
   const shouldShowChevron = effectiveChevronState !== "hidden";
   const isInteractive = effectiveChevronState === "interactive" && expandable;
 
-  const getBorderRadiusClass = () => {
-    if (inGroup) {
-      return "";
-    }
-    if (border === "none" || border === "default") {
-      return "";
-    }
-    if (border === "top") {
-      return "rounded-t-lg";
-    }
-    if (border === "bottom") {
-      return !expandable || !isExpanded ? "rounded-b-lg" : "";
-    }
-    if (border === "both") {
-      const bottom = !expandable || !isExpanded ? "rounded-b-lg" : "";
-      return cn("rounded-t-lg", bottom);
-    }
-    return "";
-  };
-
-  const borderClass = inGroup
-    ? {}
-    : {
-        border: border !== "none",
-        "border-t-0": border === "bottom",
-        "border-b-0": border === "top",
-      };
-
-  const expandedBottomRadius =
-    !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
-      ? "rounded-b-lg"
-      : "";
-
   const handleToggle = () => {
     if (!isInteractive) {
       return;
@@ -153,9 +118,8 @@ function SettingCard({
     <div
       className={cn(
         "@container w-full bg-raised",
-        getBorderRadiusClass(),
-        borderClass,
-        expandedBottomRadius,
+        !inGroup && border !== "none" && "shadow-raised",
+        !inGroup && border === "both" && "rounded-lg",
       )}
     >
       <div
@@ -252,9 +216,9 @@ type SettingsZoneVariant = "danger" | "warning";
 
 const SettingsZoneContext = React.createContext<SettingsZoneVariant>("danger");
 
-const zoneStyles: Record<SettingsZoneVariant, { heading: string; border: string }> = {
-  danger: { heading: "text-error-11", border: "border-error-7 divide-error-7" },
-  warning: { heading: "text-warning-11", border: "border-warning-7 divide-warning-7" },
+const zoneStyles: Record<SettingsZoneVariant, { heading: string; frame: string }> = {
+  danger: { heading: "text-error-11", frame: "[--hairline:var(--color-error-7)]" },
+  warning: { heading: "text-warning-11", frame: "[--hairline:var(--color-warning-7)]" },
 };
 
 function SettingsZone({
@@ -275,8 +239,8 @@ function SettingsZone({
         <h2 className={cn("font-semibold text-lg leading-6", styles.heading)}>{title}</h2>
         <div
           className={cn(
-            "@container rounded-lg border overflow-hidden divide-y bg-raised",
-            styles.border,
+            "@container rounded-lg overflow-hidden divide-y bg-raised shadow-raised",
+            styles.frame,
           )}
         >
           {children}

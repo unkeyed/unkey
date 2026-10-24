@@ -84,7 +84,7 @@ function DeleteRootKeyDialog({
     >
       <DialogContent
         data-docs-target="root-key-delete"
-        className="w-full max-w-[560px] gap-4 rounded-2xl! border-grayA-4 p-6"
+        className="w-full max-w-[560px] gap-4 rounded-2xl! p-6"
       >
         <div className="flex flex-col gap-1">
           <DialogTitle>

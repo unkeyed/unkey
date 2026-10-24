@@ -44,7 +44,7 @@ export function IntentCard({ onContinue }: { onContinue: (intent: Intent) => voi
                 </span>
                 <span
                   aria-hidden="true"
-                  className="flex size-12 items-center justify-center rounded-full border border-grayA-4 bg-gray-2 text-gray-11 group-data-checked:text-gray-12"
+                  className="flex size-12 items-center justify-center rounded-full border bg-gray-2 text-gray-11 group-data-checked:text-gray-12"
                 >
                   <Icon className="size-5" />
                 </span>

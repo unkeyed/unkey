@@ -198,7 +198,7 @@ function PlanCard({
 }) {
   const { action } = card;
   return (
-    <div className="flex flex-col gap-5 rounded-xl border bg-raised p-5 md:p-6">
+    <div className="flex flex-col gap-5 rounded-xl bg-raised shadow-raised p-5 md:p-6">
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
           <h3 className="flex items-center gap-2 font-medium text-base text-gray-12">

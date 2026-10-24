@@ -5,7 +5,7 @@ import { useFlag } from "@/lib/flags/provider";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { formatNumber } from "@/lib/fmt";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Button, Input, SettingCard } from "@unkey/ui";
+import { Button, Input, SettingCard, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
 import { BillingContainer } from "./billing-container";
 import { Client } from "./client";
@@ -50,26 +50,20 @@ export default function BillingPage() {
       <BillingContainer>
         <div className="flex w-full flex-col items-center gap-6">
           <div className="w-full">
-            <SettingCard
-              title="Verifications"
-              description="Valid key verifications this month."
-              border="top"
-            >
-              <div className="w-full">
-                <Input value={usageValue(usage?.totals.api.verifications)} />
-              </div>
-            </SettingCard>
-            <SettingCard
-              title="Ratelimits"
-              description="Valid ratelimits this month."
-              border="bottom"
-            >
-              <div className="w-full">
-                <span className="text-xs text-gray-11">
-                  <Input value={usageValue(usage?.totals.api.ratelimits)} />
-                </span>
-              </div>
-            </SettingCard>
+            <SettingCardGroup>
+              <SettingCard title="Verifications" description="Valid key verifications this month.">
+                <div className="w-full">
+                  <Input value={usageValue(usage?.totals.api.verifications)} />
+                </div>
+              </SettingCard>
+              <SettingCard title="Ratelimits" description="Valid ratelimits this month.">
+                <div className="w-full">
+                  <span className="text-xs text-gray-11">
+                    <Input value={usageValue(usage?.totals.api.ratelimits)} />
+                  </span>
+                </div>
+              </SettingCard>
+            </SettingCardGroup>
           </div>
 
           <SettingCard
