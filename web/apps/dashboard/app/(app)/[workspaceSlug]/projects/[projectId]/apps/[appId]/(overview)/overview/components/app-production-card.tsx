@@ -1,6 +1,7 @@
 "use client";
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
+import { MotionProvider } from "@/components/motion-provider";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type DeploymentSummary, collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
@@ -15,7 +16,7 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { Card } from "@unkey/ui";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { ActiveDeploymentCardEmpty } from "../../../components/active-deployment-card/components/active-deployment-card-empty";
@@ -266,31 +267,35 @@ export function AppProductionCard() {
               <ProductionCardMetadata />
             </div>
           </div>
-          <AnimatePresence initial={false} mode="wait">
-            {newerDeployment && (
-              <motion.div
-                key={newerDeployment.id}
-                className="overflow-hidden"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={
-                  reduceMotion ? { duration: 0 } : { duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }
-                }
-              >
-                <NewerDeploymentRow
-                  deployment={newerDeployment}
-                  href={routes.projects.apps.deployment({
-                    workspaceSlug: workspace.slug,
-                    projectId,
-                    appId,
-                    deploymentId: newerDeployment.id,
-                    build: true,
-                  })}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <MotionProvider>
+            <AnimatePresence initial={false} mode="wait">
+              {newerDeployment && (
+                <m.div
+                  key={newerDeployment.id}
+                  className="overflow-hidden"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }
+                  }
+                >
+                  <NewerDeploymentRow
+                    deployment={newerDeployment}
+                    href={routes.projects.apps.deployment({
+                      workspaceSlug: workspace.slug,
+                      projectId,
+                      appId,
+                      deploymentId: newerDeployment.id,
+                      build: true,
+                    })}
+                  />
+                </m.div>
+              )}
+            </AnimatePresence>
+          </MotionProvider>
         </Card>
       </div>
 
