@@ -18,13 +18,13 @@ import { Card } from "@unkey/ui";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { ActiveDeploymentCardEmpty } from "../../../components/active-deployment-card/components/active-deployment-card-empty";
 import { getDomainPriority } from "../../../components/domain-priority";
 import { useAppId, useProjectData } from "../../data-provider";
 import { appDeploymentQueryFor } from "../../data-provider-queries";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
+import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
 import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
 import { BuildInProgressChart, ProductionCardChart } from "./card-chart";
 import { ProductionCardHeader } from "./card-header";
@@ -217,7 +217,7 @@ export function AppProductionCard() {
       : null,
     sourceRepo,
     primaryDomain: primary ? { hostname: primary.hostname, url: primary.url } : null,
-    additionalDomains: additional.map((d) => ({ hostname: d.hostname, url: d.url })),
+    additionalDomains: additional,
     addCustomDomainHref,
     diagnostic,
     deploymentHref: routes.projects.apps.deployment({

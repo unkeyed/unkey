@@ -1,11 +1,11 @@
 "use client";
 
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import {
   EnvironmentBadge,
-  type EnvironmentBadgeRollout,
+  badgeRollout,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
+import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit-badge";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
@@ -55,10 +55,10 @@ export function DeploymentRow({
   const isGit = deployment.source === "git";
   const image = deployment.requestedImage ?? deployment.resolvedImage;
   const title = isGit ? deployment.gitCommitMessage : null;
-  const showLastExit =
-    deployment.lastExit !== null &&
-    deployment.status !== "ready" &&
-    deployment.status !== "superseded";
+  const lastExit =
+    deployment.status === "ready" || deployment.status === "superseded"
+      ? null
+      : deployment.lastExit;
 
   return (
     <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
@@ -94,9 +94,9 @@ export function DeploymentRow({
               ? imageRefDisplay(image)
               : shortenId(deployment.id))}
         </span>
-        {showLastExit && deployment.lastExit && (
+        {lastExit && (
           <span className="relative z-20 shrink-0">
-            <LastExitBadge lastExit={deployment.lastExit} />
+            <LastExitBadge lastExit={lastExit} />
           </span>
         )}
       </span>
@@ -145,22 +145,4 @@ export function DeploymentRow({
       </span>
     </ResourceListItem>
   );
-}
-
-function badgeRollout({
-  isCurrent,
-  isRolledBack,
-  isRolledBackFrom,
-}: {
-  isCurrent: boolean;
-  isRolledBack: boolean;
-  isRolledBackFrom: boolean;
-}): EnvironmentBadgeRollout {
-  if (isRolledBackFrom) {
-    return "rolledBackFrom";
-  }
-  if (!isCurrent) {
-    return "none";
-  }
-  return isRolledBack ? "liveAfterRollback" : "live";
 }

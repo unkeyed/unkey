@@ -1,4 +1,5 @@
 "use client";
+import type { LastExit } from "@/lib/types/deploy";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { type LoadSubsetOptions, createCollection } from "@tanstack/react-db";
@@ -12,7 +13,23 @@ import {
   type DeploymentStatus,
 } from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
+import { latestExitAcross } from "./last-exit";
 import { type ParsedFilter, extractStringFilter, extractStringValues } from "./utils";
+
+const regionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  platform: z.string(),
+});
+
+const lastExitSchema = z.object({
+  restartCount: z.number().int(),
+  exitCode: z.number().int().nullable(),
+  signal: z.number().int().nullable(),
+  reason: z.string().nullable(),
+  finishedAt: z.number().nullable(),
+  statusReason: z.string().nullable(),
+}) satisfies z.ZodType<LastExit>;
 
 export const deploymentSchema = z.object({
   id: z.string(),
@@ -36,24 +53,15 @@ export const deploymentSchema = z.object({
   instances: z.array(
     z.object({
       id: z.string(),
-      region: z.object({
-        id: z.string(),
-        name: z.string(),
-        platform: z.string(),
-      }),
+      region: regionSchema,
       status: z.enum(INSTANCE_STATUSES),
+      lastExit: lastExitSchema.nullable(),
     }),
   ),
   desiredInstanceCount: z.number().int(),
-  desiredRegions: z.array(
-    z.object({
-      region: z.object({
-        id: z.string(),
-        name: z.string(),
-        platform: z.string(),
-      }),
-    }),
-  ),
+  desiredRegions: z.array(z.object({ region: regionSchema })),
+  // desiredRegions is the app's current settings, which an older deployment may not match.
+  targetRegions: z.array(z.object({ region: regionSchema, replicas: z.number().int() })),
   cpuMillicores: z.number().int(),
   memoryMib: z.number().int(),
   storageMib: z.number().int(),
@@ -79,25 +87,19 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
-  // Most-recent exit info across the deployment's instances. Null when
-  // no instance has reported a termination yet (healthy deployments).
-  // Powers the header "OOMKilled · exit=137" badge — see
-  // active-deployment-card/index.tsx:LastExitBadge. Sourced from
-  // instances.containerStatus on the trpc layer; the flat shape is kept
-  // here so consumers don't have to walk the JSON's optional sub-fields.
-  lastExit: z
-    .object({
-      restartCount: z.number().int(),
-      exitCode: z.number().int().nullable(),
-      signal: z.number().int().nullable(),
-      reason: z.string().nullable(),
-      finishedAt: z.number().nullable(),
-      statusReason: z.string().nullable(),
-    })
-    .nullable(),
+  // The latest exit across instances
+  lastExit: lastExitSchema.nullable(),
 });
 
 export type Deployment = z.infer<typeof deploymentSchema>;
+
+export function isPrebuilt(deployment: Pick<Deployment, "source">): boolean {
+  return deployment.source === "oci";
+}
+
+export function hasBuildLogs(deployment: Pick<Deployment, "source" | "status">): boolean {
+  return !isPrebuilt(deployment) && deployment.status !== "skipped";
+}
 
 // The fields the deployment cards, dialogs, and table cells read. Both a
 // collection row and a deployments-table row satisfy it.
@@ -141,8 +143,8 @@ type RowDetails = Pick<
   | "instances"
   | "desiredInstanceCount"
   | "desiredRegions"
+  | "targetRegions"
   | "triggerReason"
-  | "lastExit"
 >;
 
 // Once a row in one of these statuses has no instances left, nothing changes its
@@ -209,6 +211,7 @@ function toDeployment(
     instances: details.instances,
     desiredInstanceCount: details.desiredInstanceCount,
     desiredRegions: details.desiredRegions,
+    targetRegions: details.targetRegions,
     cpuMillicores: Math.round(runtime.vCpus * 1000),
     memoryMib: runtime.memoryMib,
     storageMib: runtime.storageMib,
@@ -231,7 +234,7 @@ function toDeployment(
     createdAt: deployment.createdAt,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
-    lastExit: details.lastExit,
+    lastExit: latestExitAcross(details.instances),
   };
 }
 

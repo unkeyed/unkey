@@ -3,6 +3,7 @@
 import type { Deployment, DeploymentSummary } from "@/lib/collections";
 import type { Route } from "next";
 import { createContext, use } from "react";
+import type { DisplayDomain } from "../../../components/display-domain";
 import type { Pulse } from "./g-pulse";
 import type { DeploymentDisplayStatus } from "./status";
 
@@ -20,7 +21,7 @@ export type ProductionCardContextValue = {
   } | null;
   sourceRepo: string | null;
   primaryDomain: CardDomain | null;
-  additionalDomains: CardDomain[];
+  additionalDomains: readonly DisplayDomain[];
   addCustomDomainHref: Route | null;
   diagnostic: { label: string; href: Route } | null;
   deploymentHref: Route;
