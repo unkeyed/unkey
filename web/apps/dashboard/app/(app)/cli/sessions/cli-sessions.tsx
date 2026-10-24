@@ -2,6 +2,7 @@
 
 import { type CliSession, listCliSessions, revokeCliSession } from "@/lib/cli/device-api";
 import { routes } from "@/lib/navigation/routes";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, TimestampInfo, toast } from "@unkey/ui";
@@ -21,7 +22,7 @@ export function CliSessions() {
       await queryClient.invalidateQueries({ queryKey: ["cli-sessions"] });
     },
     onError(error) {
-      toast.error(error instanceof Error ? error.message : "Could not revoke this session.");
+      toast.error(getErrorMessage(error, "Could not revoke this session."));
     },
   });
 
@@ -41,7 +42,7 @@ export function CliSessions() {
       {query.isLoading ? <p className="text-sm text-gray-11">Loading sessions...</p> : null}
       {query.isError ? (
         <p className="text-sm text-gray-11">
-          {query.error instanceof Error ? query.error.message : "Could not load CLI sessions."}
+          {getErrorMessage(query.error, "Could not load CLI sessions.")}
         </p>
       ) : null}
       {query.data && query.data.length === 0 ? (
