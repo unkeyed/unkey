@@ -27,7 +27,7 @@ import {
   needsInstanceSeries,
   resolveEnvironment,
 } from "./model";
-import { type OpenReplica, openInstanceOf, replicaSheetModel } from "./replica-model";
+import { type OpenReplica, openInstanceOf, podSetOf, replicaSheetModel } from "./replica-model";
 
 const DEFAULT_RANGE: RangePreset = "24h";
 
@@ -60,11 +60,11 @@ export function useMetricsPage() {
   const sources = useMetricSources(scope);
   const perInstance = needsInstanceSeries(query.tab, query.expand);
   const instances = useMetricInstances(scope, perInstance);
-  const byInstance = useMetricSourceByInstance(
-    scope,
-    perInstance,
-    openInstanceOf(openReplica, environmentId),
-  );
+  const byInstance = useMetricSourceByInstance(scope, {
+    enabled: perInstance,
+    openInstance: openInstanceOf(openReplica, environmentId, instances),
+    podSet: podSetOf(instances),
+  });
   const deploys = useDeployMarkers(scope);
 
   const model = metricsPageModel({

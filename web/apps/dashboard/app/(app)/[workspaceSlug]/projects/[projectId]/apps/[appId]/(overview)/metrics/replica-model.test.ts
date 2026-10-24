@@ -7,7 +7,7 @@ import type {
   ResourcePoint,
 } from "@/lib/metrics/app-metrics";
 import { describe, expect, it } from "vitest";
-import { openInstanceOf, replicaSheetModel, replicaUsage } from "./replica-model";
+import { openInstanceOf, podSetOf, replicaSheetModel, replicaUsage } from "./replica-model";
 
 const MIB = 2 ** 20;
 
@@ -206,7 +206,7 @@ describe("replicaSheetModel", () => {
   });
 });
 
-describe("openInstanceOf", () => {
+describe("openInstanceOf and podSetOf", () => {
   const row = (k8sName: string): InstanceRow => ({
     instanceId: k8sName,
     region: { name: "us-east-1" },
@@ -217,10 +217,18 @@ describe("openInstanceOf", () => {
     replica: { k8sName, cpuMillicores: 500, memoryMib: 512, storageMib: 0 },
   });
 
-  it("names the open sheet's pod only in its own environment", () => {
+  it("names the open sheet's pod only once it stops, and only in its own environment", () => {
     const open = { environmentId: "env_prod", row: row("pod-gone") };
-    expect(openInstanceOf(open, "env_prod")).toBe("pod-gone");
-    expect(openInstanceOf(open, "env_preview")).toBe(null);
-    expect(openInstanceOf(null, "env_prod")).toBe(null);
+    const live = ready([row("pod-a")]);
+    expect(openInstanceOf(open, "env_prod", live)).toBe("pod-gone");
+    expect(openInstanceOf(open, "env_preview", live)).toBe(null);
+    expect(openInstanceOf(null, "env_prod", live)).toBe(null);
+    expect(openInstanceOf(open, "env_prod", ready([row("pod-gone")]))).toBe(null);
+    expect(openInstanceOf(open, "env_prod", loading)).toBe(null);
+  });
+
+  it("names the live pods in a stable order once they load", () => {
+    expect(podSetOf(ready([row("pod-b"), row("pod-a")]))).toBe("pod-a,pod-b");
+    expect(podSetOf(loading)).toBe(null);
   });
 });
