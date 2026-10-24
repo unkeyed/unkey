@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -23,7 +24,16 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 		}
 		return Authorization{}, err
 	}
-	return authorizationFrom(s.present(row)), nil
+	return Authorization{
+		UserCode:           row.UserCode,
+		DeviceName:         row.DeviceName.String,
+		RequesterIP:        row.RequesterIp.String,
+		RequesterUserAgent: row.RequesterUserAgent.String,
+		Status:             string(s.authorizationStatus(row)),
+		WorkspaceID:        row.WorkspaceID.String,
+		CreatedAt:          row.CreatedAt,
+		ExpiresAt:          row.ExpiresAt,
+	}, nil
 }
 
 // Approve stores the permissions the dashboard user granted.
@@ -145,18 +155,17 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 	})
 }
 
-func (s *Service) present(row db.DeviceAuthorization) db.DeviceAuthorization {
+func (s *Service) authorizationStatus(row db.DeviceAuthorization) db.DeviceAuthorizationsStatus {
 	if row.ExpiresAt <= s.Clock.Now().UnixMilli() &&
 		row.Status != db.DeviceAuthorizationsStatusConsumed &&
 		row.Status != db.DeviceAuthorizationsStatusDenied {
-		row.Status = db.DeviceAuthorizationsStatusExpired
+		return db.DeviceAuthorizationsStatusExpired
 	}
-	return row
+	return row.Status
 }
 
 func (s *Service) rejectClosed(row db.DeviceAuthorization) error {
-	row = s.present(row)
-	switch row.Status {
+	switch s.authorizationStatus(row) {
 	case db.DeviceAuthorizationsStatusConsumed:
 		return invalid("This login was already used.")
 	case db.DeviceAuthorizationsStatusDenied:
@@ -170,15 +179,6 @@ func (s *Service) rejectClosed(row db.DeviceAuthorization) error {
 	}
 }
 
-func authorizationFrom(row db.DeviceAuthorization) Authorization {
-	return Authorization{
-		UserCode:           row.UserCode,
-		DeviceName:         row.DeviceName.String,
-		RequesterIP:        row.RequesterIp.String,
-		RequesterUserAgent: row.RequesterUserAgent.String,
-		Status:             string(row.Status),
-		WorkspaceID:        row.WorkspaceID.String,
-		CreatedAt:          row.CreatedAt,
-		ExpiresAt:          row.ExpiresAt,
-	}
+func normalizeUserCode(raw string) string {
+	return strings.ToUpper(strings.TrimSpace(raw))
 }

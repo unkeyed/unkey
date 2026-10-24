@@ -1,16 +1,12 @@
 package clidevice
 
 import (
-	"context"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
-	"github.com/unkeyed/unkey/pkg/auth/principal"
-	"github.com/unkeyed/unkey/pkg/auth/workos"
 	"github.com/unkeyed/unkey/pkg/hash"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/uid"
-	principalpermissions "github.com/unkeyed/unkey/svc/api/internal/principal"
 )
 
 const (
@@ -76,29 +72,4 @@ func (s *Service) signAccessToken(userID string, name string, workspaceID string
 		Name:        name,
 		Device:      device,
 	})
-}
-
-func intersectPermissions(ctx context.Context, workspaceID string, roles []string, stored []string) ([]string, error) {
-	var subject principal.Subject
-	caller := &principal.Principal{
-		Version:               principal.Version,
-		Type:                  principal.TypeJWT,
-		Subject:               subject,
-		Source:                nil,
-		AuthorizedWorkspaceID: workspaceID,
-		Permissions:           workos.PermissionsForRoles(workspaceID, roles),
-	}
-
-	kept := make([]string, 0, len(stored))
-	for _, permission := range stored {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		validated, err := principalpermissions.ValidateDelegatedPermissions(ctx, caller, []string{permission})
-		if err != nil {
-			continue
-		}
-		kept = append(kept, validated...)
-	}
-	return kept, nil
 }
