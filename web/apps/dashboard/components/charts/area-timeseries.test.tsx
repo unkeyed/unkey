@@ -40,6 +40,8 @@ describe("AreaTimeseriesChart axis configuration", () => {
           { originalTimestamp: 2_000, errors: 0 },
         ]}
         config={{ errors: { label: "Errors", color: "red" } }}
+        fill="flat"
+        formatTooltipValue={(v) => ({ value: String(v) })}
         axis={null}
         showZeroLine
       />,
@@ -59,6 +61,8 @@ describe("AreaTimeseriesChart axis configuration", () => {
           { originalTimestamp: 2_000, requests: 10 },
         ]}
         config={{ requests: { label: "Requests", color: "blue" } }}
+        fill="flat"
+        formatTooltipValue={(v) => ({ value: String(v) })}
         axis={{ y: { floor: 0 } }}
       />,
     );
@@ -76,6 +80,8 @@ describe("AreaTimeseriesChart axis configuration", () => {
         { originalTimestamp: 2_000, requests: 0.06 },
       ],
       config: { requests: { label: "Requests", color: "blue" } },
+      fill: "flat",
+      formatTooltipValue: (v: number) => ({ value: String(v) }),
       axis: {
         visible: false,
         x: { domain },

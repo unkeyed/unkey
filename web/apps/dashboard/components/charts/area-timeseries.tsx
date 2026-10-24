@@ -2,7 +2,6 @@
 
 import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
-import { formatBytesPerSecondParts } from "@/lib/utils/deployment-formatters";
 import { formatTimestamp } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useId, useState } from "react";
@@ -93,9 +92,9 @@ type Props = {
   isError?: boolean;
   chartContainerClassname?: string;
   showDateInTooltip?: boolean;
-  formatTooltipValue?: (value: number) => ValueParts;
+  formatTooltipValue: (value: number) => ValueParts;
   axis?: AreaTimeseriesAxisOptions | null;
-  fill?: AreaFill;
+  fill: AreaFill;
   fillColors?: Record<string, string>;
   onActiveChange?: (point: AreaChartPoint | null) => void;
   hideTooltip?: boolean;
@@ -120,9 +119,9 @@ export function AreaTimeseriesChart({
   isError,
   chartContainerClassname,
   showDateInTooltip,
-  formatTooltipValue = formatBytesPerSecondParts,
+  formatTooltipValue,
   axis,
-  fill = "pulse",
+  fill,
   fillColors,
   onActiveChange,
   hideTooltip,
@@ -168,8 +167,8 @@ export function AreaTimeseriesChart({
     (m, p) => configKeys.reduce((mm, k) => Math.max(mm, Number(p[k]) || 0), m),
     0,
   );
-  const yAxisFloor = axis === null ? 0 : (axis?.y?.floor ?? 1024);
-  const formatYTick = axis?.y?.formatTick ?? formatYAxisCompactBytes;
+  const yAxisFloor = axis?.y?.floor ?? 0;
+  const formatYTick = axis?.y?.formatTick ?? String;
   const top = yTop(dataMax, yAxisFloor, axis?.y?.max, renderZeroLine);
   const tickCount = Math.max(2, axis?.y?.tickCount ?? 4);
   const yTicks = Array.from({ length: tickCount }, (_, i) => (i * top) / (tickCount - 1));
@@ -230,14 +229,7 @@ export function AreaTimeseriesChart({
         syncId={syncId}
         margin={margin}
       >
-        {style.gradient && (
-          <Gradients
-            kind={style.gradient}
-            chartId={chartId}
-            config={config}
-            fillColors={fillColors}
-          />
-        )}
+        {style.gradient && <Gradients chartId={chartId} config={config} fillColors={fillColors} />}
         {showAxes && <CartesianGrid vertical={false} {...style.grid} />}
         <XAxis
           dataKey="originalTimestamp"
@@ -317,23 +309,6 @@ export function AreaTimeseriesChart({
             );
           }}
         />
-        {style.glow &&
-          configKeys.map((key) => (
-            <Area
-              key={`${key}-glow`}
-              dataKey={key}
-              type="monotone"
-              stroke={config[key].color}
-              strokeWidth={3.5}
-              strokeOpacity={0.12}
-              fill="none"
-              isAnimationActive={shouldAnimate}
-              animationDuration={500}
-              animationEasing="ease-out"
-              dot={false}
-              activeDot={false}
-            />
-          ))}
         {configKeys.map((key) => (
           <Area
             key={key}
@@ -372,48 +347,6 @@ export function AreaTimeseriesChart({
       />
     </div>
   );
-}
-
-function formatYAxisCompactBytes(v: number): string {
-  if (!Number.isFinite(v) || v <= 0) {
-    return "";
-  }
-  const kib = 1024;
-  const mib = kib * 1024;
-  const gib = mib * 1024;
-  if (v >= gib) {
-    return `${trim(v / gib)} GiB`;
-  }
-  if (v >= mib) {
-    return `${trim(v / mib)} MiB`;
-  }
-  if (v >= kib) {
-    return `${trim(v / kib)} KiB`;
-  }
-  return `${Math.round(v)} B`;
-}
-
-export function formatYAxisCompactBytesPerSecond(v: number): string {
-  if (!Number.isFinite(v) || v <= 0) {
-    return "";
-  }
-  const bytes = formatYAxisCompactBytes(v);
-  const spaceIdx = bytes.indexOf(" ");
-  if (spaceIdx > 0) {
-    return `${bytes.slice(0, spaceIdx)} ${bytes.slice(spaceIdx + 1)}/s`;
-  }
-  return `${bytes}/s`;
-}
-
-function trim(n: number): string {
-  if (n >= 10) {
-    return `${Math.round(n)}`;
-  }
-  const rounded = Math.round(n);
-  if (Math.abs(n - rounded) < 0.05) {
-    return `${rounded}`;
-  }
-  return n.toFixed(1);
 }
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
