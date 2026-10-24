@@ -1,13 +1,12 @@
 import { type InstanceState, instanceStateOf } from "@/lib/collections/deploy/instance-status";
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
-import {
-  type Grid,
-  INSTANCE_SERIES_MAX,
-  type InstanceRow,
-  type InstanceSeries,
-  type MetricId,
-  type ReplicaTarget,
-  type ResourcePoint,
+import type {
+  Grid,
+  InstanceRow,
+  InstanceSeries,
+  MetricId,
+  ReplicaTarget,
+  ResourcePoint,
 } from "@/lib/metrics/app-metrics";
 import { type ChartState, METRIC_VIEWS, chartStateOf, seriesChart } from "@/lib/metrics/views";
 import {
@@ -98,27 +97,11 @@ export type ReplicaSheetModel = {
 };
 
 // An open sheet keeps its pod in the series after the pod stops
-export function seriesInstancesOf({
-  needed,
-  open,
-  environmentId,
-  instances,
-}: {
-  needed: boolean;
-  open: OpenReplica | null;
-  environmentId: string | null;
-  instances: Loadable<InstanceRow[]>;
-}): string[] | null {
-  if (!needed || instances.status !== "ready") {
-    return null;
-  }
-  const names = new Set(
-    open && open.environmentId === environmentId ? [open.row.replica.k8sName] : [],
-  );
-  for (const name of instances.data.map((row) => row.replica.k8sName).sort()) {
-    names.add(name);
-  }
-  return [...names].slice(0, INSTANCE_SERIES_MAX).sort();
+export function openInstanceOf(
+  open: OpenReplica | null,
+  environmentId: string | null,
+): string | null {
+  return open && open.environmentId === environmentId ? open.row.replica.k8sName : null;
 }
 
 export function replicaSheetModel({
