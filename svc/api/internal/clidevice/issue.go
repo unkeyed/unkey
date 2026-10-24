@@ -31,8 +31,7 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 		return PollResult{}, err
 	}
 
-	row = s.present(row)
-	switch row.Status {
+	switch s.authorizationStatus(row) {
 	case db.DeviceAuthorizationsStatusDenied:
 		return deniedPoll("Authorization was denied."), nil
 	case db.DeviceAuthorizationsStatusExpired:
@@ -67,7 +66,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 	if err != nil {
 		return PollResult{}, err
 	}
-	requested, err := decodeStrings(row.Permissions)
+	requested, err := decodePermissions(row.Permissions)
 	if err != nil {
 		return PollResult{}, err
 	}
@@ -157,14 +156,16 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		}
 
 		result = PollResult{
-			Status:       PollComplete,
-			Interval:     pollIntervalSeconds,
-			Detail:       "",
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-			ExpiresIn:    int64(accessTTL / time.Second),
-			WorkspaceID:  workspace.ID,
-			SessionID:    sessionID,
+			Status:   PollComplete,
+			Interval: pollIntervalSeconds,
+			Detail:   "",
+			Tokens: Tokens{
+				AccessToken:  accessToken,
+				RefreshToken: refreshToken,
+				ExpiresIn:    int64(accessTTL / time.Second),
+				WorkspaceID:  workspace.ID,
+				SessionID:    sessionID,
+			},
 		}
 		return nil
 	})
@@ -191,39 +192,27 @@ func (s *Service) denyAuthorization(ctx context.Context, id string) error {
 
 func waitingPoll() PollResult {
 	return PollResult{
-		Status:       PollPermissionsRequired,
-		Interval:     pollIntervalSeconds,
-		Detail:       "",
-		AccessToken:  "",
-		RefreshToken: "",
-		ExpiresIn:    0,
-		WorkspaceID:  "",
-		SessionID:    "",
+		Status:   PollPermissionsRequired,
+		Interval: pollIntervalSeconds,
+		Detail:   "",
+		Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
 	}
 }
 
 func deniedPoll(detail string) PollResult {
 	return PollResult{
-		Status:       PollDenied,
-		Interval:     pollIntervalSeconds,
-		Detail:       detail,
-		AccessToken:  "",
-		RefreshToken: "",
-		ExpiresIn:    0,
-		WorkspaceID:  "",
-		SessionID:    "",
+		Status:   PollDenied,
+		Interval: pollIntervalSeconds,
+		Detail:   detail,
+		Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
 	}
 }
 
 func expiredPoll() PollResult {
 	return PollResult{
-		Status:       PollExpired,
-		Interval:     pollIntervalSeconds,
-		Detail:       "The login code expired. Run unkey login again.",
-		AccessToken:  "",
-		RefreshToken: "",
-		ExpiresIn:    0,
-		WorkspaceID:  "",
-		SessionID:    "",
+		Status:   PollExpired,
+		Interval: pollIntervalSeconds,
+		Detail:   "The login code expired. Run unkey login again.",
+		Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
 	}
 }
