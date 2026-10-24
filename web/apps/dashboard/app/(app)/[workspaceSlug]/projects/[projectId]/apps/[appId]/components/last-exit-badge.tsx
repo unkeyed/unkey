@@ -38,10 +38,7 @@ function explainWaiting({ reason }: Extract<ExitSummary, { kind: "waiting" }>): 
         Your app has exited too many times in a row, so we're slowing down restart attempts to give
         it room to recover.
       </div>
-      <div>
-        Check the recent crash entries below for the exit code that's causing the loop, and your
-        logs for the underlying error.
-      </div>
+      <div>Check your logs for the exit code that's causing the loop and the underlying error.</div>
     </div>
   );
 }
