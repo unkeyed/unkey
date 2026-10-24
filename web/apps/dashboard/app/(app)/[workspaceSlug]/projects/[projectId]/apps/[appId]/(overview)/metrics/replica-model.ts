@@ -96,12 +96,26 @@ export type ReplicaSheetModel = {
   usage: ReplicaUsage;
 };
 
-// An open sheet keeps its pod in the series after the pod stops
+// The server reads the live pods; an open sheet names its pod only once it stops
 export function openInstanceOf(
   open: OpenReplica | null,
   environmentId: string | null,
+  instances: Loadable<InstanceRow[]>,
 ): string | null {
-  return open && open.environmentId === environmentId ? open.row.replica.k8sName : null;
+  if (!open || open.environmentId !== environmentId || instances.status !== "ready") {
+    return null;
+  }
+  const name = open.row.replica.k8sName;
+  return instances.data.some((row) => row.replica.k8sName === name) ? null : name;
+}
+
+export function podSetOf(instances: Loadable<InstanceRow[]>): string | null {
+  return instances.status === "ready"
+    ? instances.data
+        .map((row) => row.replica.k8sName)
+        .sort()
+        .join(",")
+    : null;
 }
 
 export function replicaSheetModel({

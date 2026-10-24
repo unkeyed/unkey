@@ -2,9 +2,15 @@
 
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { type Loadable, type QueryResult, fromQuery } from "@/lib/loadable/loadable";
-import type { Grid, InstanceRow, Sources } from "@/lib/metrics/app-metrics";
+import type {
+  Grid,
+  InstanceRow,
+  InstanceSeries,
+  SourceResult,
+  Sources,
+} from "@/lib/metrics/app-metrics";
 import { trpc } from "@/lib/trpc/client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type AppMetricsScope = { appId: string; environmentId: string; grid: Grid };
 
@@ -36,12 +42,30 @@ function useHeldAcrossTicks<T>(scope: AppMetricsScope | null, query: QueryResult
 
 const CLOCK_DRIVEN = { staleTime: Number.POSITIVE_INFINITY, refetchOnWindowFocus: false };
 
+const CLAMPED_RETRY_MS = 2_000;
+
+// The server clamps endMs to its own clock, so a tick that lands just before the
+// server reaches the boundary gets the previous bucket back; ask again shortly
+function gridDriven<T extends { grid: Grid }>(scope: AppMetricsScope | null, enabled = true) {
+  return {
+    ...CLOCK_DRIVEN,
+    enabled: enabled && scope !== null,
+    refetchInterval: (data: T | undefined) =>
+      data && scope && data.grid.endMs < scope.grid.endMs ? CLAMPED_RETRY_MS : false,
+  };
+}
+
 const INSTANCES_POLL_MS = 10_000;
 
 export function useMetricSources(scope: AppMetricsScope | null): Sources {
-  const options = { ...CLOCK_DRIVEN, enabled: scope !== null };
-  const traffic = trpc.deploy.appMetrics.traffic.useQuery(inputOf(scope), options);
-  const resources = trpc.deploy.appMetrics.resources.useQuery(inputOf(scope), options);
+  const traffic = trpc.deploy.appMetrics.traffic.useQuery(
+    inputOf(scope),
+    gridDriven<SourceResult<"traffic">>(scope),
+  );
+  const resources = trpc.deploy.appMetrics.resources.useQuery(
+    inputOf(scope),
+    gridDriven<SourceResult<"resources">>(scope),
+  );
   return {
     traffic: useHeldAcrossTicks(scope, traffic),
     resources: useHeldAcrossTicks(scope, resources),
@@ -56,15 +80,31 @@ export function useDeployMarkers(scope: AppMetricsScope | null) {
   return useHeldAcrossTicks(scope, query);
 }
 
+// podSet is the polled live pods; a rollout refetches the series without a new bucket
 export function useMetricSourceByInstance(
   scope: AppMetricsScope | null,
-  enabled: boolean,
-  openInstance: string | null,
+  {
+    enabled,
+    openInstance,
+    podSet,
+  }: { enabled: boolean; openInstance: string | null; podSet: string | null },
 ) {
   const query = trpc.deploy.appMetrics.sourceByInstance.useQuery(
     { ...inputOf(scope), openInstance },
-    { ...CLOCK_DRIVEN, enabled: enabled && scope !== null },
+    gridDriven<InstanceSeries>(scope, enabled),
   );
+  const { refetch } = query;
+  const seenPodSet = useRef(podSet);
+  useEffect(() => {
+    if (podSet === null) {
+      return;
+    }
+    const changed = seenPodSet.current !== null && seenPodSet.current !== podSet;
+    seenPodSet.current = podSet;
+    if (changed && enabled) {
+      refetch();
+    }
+  }, [podSet, enabled, refetch]);
   return useHeldAcrossTicks(scope, query);
 }
 
