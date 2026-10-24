@@ -45,7 +45,7 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 			EventID:     event.id,
 			Time:        occurredAt.UnixMilli(),
 			WorkspaceID: event.workspaceID,
-			Bucket:      "audit",
+			Bucket:      auditlog.BucketUnkeyMutations,
 		}, event.insertedAt))
 	}
 	insertRows(t, client.Conn(), rows...)
@@ -96,7 +96,7 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 			EventID:     event.id,
 			Time:        insertedAt,
 			WorkspaceID: workspaceID,
-			Bucket:      "audit",
+			Bucket:      auditlog.BucketUnkeyMutations,
 			Event:       event.eventType,
 		}, insertedAt))
 	}
@@ -124,6 +124,51 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, page, 1)
 	require.Equal(t, "g", page[0].EventID)
+}
+
+// TestAuditLogsRead_DashboardBucketsOnly guarantees a log drain never exports
+// back office rows, even when the drain has no event type filter. Drains ship
+// data off platform, so a leak here cannot be recalled.
+func TestAuditLogsRead_DashboardBucketsOnly(t *testing.T) {
+	cfg := containers.ClickHouse(t)
+	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	ctx := context.Background()
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
+	var rows []auditLogRow
+	for _, event := range []struct{ id, bucket string }{
+		{"a", auditlog.BucketUnkeyMutations},
+		{"b", auditlog.BucketBackoffice},
+		{"c", auditlog.BucketUnkeyMutations},
+	} {
+		rows = append(rows, auditRow(t, auditlog.Event{
+			EventID:     event.id,
+			Time:        insertedAt,
+			WorkspaceID: workspaceID,
+			Bucket:      event.bucket,
+		}, insertedAt))
+	}
+	// The encoder rejects unknown buckets, so a row that predates the allow
+	// list is built from a valid one and relabelled.
+	unknown := auditRow(t, auditlog.Event{
+		EventID:     "d",
+		Time:        insertedAt,
+		WorkspaceID: workspaceID,
+		Bucket:      auditlog.BucketUnkeyMutations,
+	}, insertedAt)
+	unknown.Bucket = "some_other_bucket"
+	rows = append(rows, unknown)
+	insertRows(t, client.Conn(), rows...)
+
+	auditLogs := source.NewAuditLogs(client)
+	page, cursor, err := auditLogs.Read(ctx, workspaceID, source.Cursor{Time: insertedAt}, insertedAt+1, 10, nil)
+	require.NoError(t, err)
+	require.Len(t, page, 2)
+	require.Equal(t, "a", page[0].EventID)
+	require.Equal(t, "c", page[1].EventID)
+	require.Equal(t, source.Cursor{Time: insertedAt, EventID: "c"}, cursor)
 }
 
 func auditRow(t *testing.T, event auditlog.Event, insertedAt int64) auditLogRow {

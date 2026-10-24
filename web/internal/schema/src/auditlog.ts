@@ -1,5 +1,23 @@
 import { z } from "zod";
 
+export const AUDIT_LOG_BUCKET_UNKEY_MUTATIONS = "unkey_mutations";
+export const AUDIT_LOG_BUCKET_BACKOFFICE = "unkey_backoffice";
+
+export const auditLogBucketSchema = z.enum([
+  AUDIT_LOG_BUCKET_UNKEY_MUTATIONS,
+  AUDIT_LOG_BUCKET_BACKOFFICE,
+]);
+export type AuditLogBucket = z.infer<typeof auditLogBucketSchema>;
+
+export const dashboardAuditLogBucketSchema = z.enum([AUDIT_LOG_BUCKET_UNKEY_MUTATIONS]);
+export type DashboardAuditLogBucket = z.infer<typeof dashboardAuditLogBucketSchema>;
+export const dashboardAuditLogBuckets: readonly DashboardAuditLogBucket[] =
+  dashboardAuditLogBucketSchema.options;
+
+export function isDashboardAuditLogBucket(bucket: string): bucket is DashboardAuditLogBucket {
+  return dashboardAuditLogBucketSchema.safeParse(bucket).success;
+}
+
 export const unkeyAuditLogEvents = z.enum([
   "workspace.create",
   "workspace.update",

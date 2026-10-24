@@ -12,14 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// DefaultBucket is the default bucket name used for audit logs when no bucket
-// is specified. All audit logs are categorized into buckets for organization
-// and querying purposes, with "unkey_mutations" serving as the standard bucket
-// for most operational audit events.
-const (
-	DefaultBucket = "unkey_mutations"
-)
-
 // Insert implements AuditLogService.Insert, persisting audit logs to the
 // `clickhouse_outbox` MySQL table within a transactional context. The
 // AuditLogExportService worker drains the outbox and ships each row to
@@ -109,7 +101,7 @@ func PrepareOutboxRows(ctx context.Context, logs []auditlog.AuditLog) ([]db.Inse
 			EventID:     auditLogID,
 			Time:        now,
 			WorkspaceID: l.WorkspaceID,
-			Bucket:      DefaultBucket,
+			Bucket:      auditlog.BucketUnkeyMutations,
 			Source:      auditlog.EventSourcePlatform,
 			Event:       string(l.Event),
 			Description: l.Display,

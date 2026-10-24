@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
@@ -36,8 +37,11 @@ const batchLimit int32 = 1000
 var knownVersions = []string{auditlog.OutboxVersionV1}
 
 // batchResult is the journaled outcome of a single outbox -> CH batch.
+// RowsProcessed counts every outbox row the batch marked deleted, including
+// rows skipped because they could not be decoded or encoded.
 type batchResult struct {
 	EventsExported int32 `json:"events_exported"`
+	RowsProcessed  int32 `json:"rows_processed"`
 }
 
 // Config holds the handler's dependencies.
@@ -109,7 +113,7 @@ func (h *Handler) Handle(
 
 		totalExported += result.EventsExported
 
-		if result.EventsExported < batchLimit {
+		if result.RowsProcessed < batchLimit {
 			break
 		}
 	}
@@ -147,31 +151,40 @@ func (h *Handler) exportBatch(ctx context.Context) (result batchResult, batchErr
 		Limit:    batchLimit,
 	})
 	if err != nil {
-		return batchResult{EventsExported: 0}, fmt.Errorf("find outbox batch: %w", err)
+		return batchResult{EventsExported: 0, RowsProcessed: 0}, fmt.Errorf("find outbox batch: %w", err)
 	}
 	span.SetAttributes(attribute.Int("rows", len(rows)))
 	if len(rows) == 0 {
-		return batchResult{EventsExported: 0}, nil
+		return batchResult{EventsExported: 0, RowsProcessed: 0}, nil
 	}
 
 	span.AddEvent("decode")
-	events := make([]auditlog.Event, len(rows))
-	pks := make([]uint64, len(rows))
-	for i, row := range rows {
-		if err := json.Unmarshal(row.Payload, &events[i]); err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("decode outbox payload pk=%d: %w", row.Pk, err)
+	// The batch is always the oldest pending rows, so one row that cannot be
+	// decoded or encoded would be reselected on every run and stall the drain
+	// for every workspace. Such rows are logged and soft deleted with the
+	// batch; clearing deleted_at re-queues them once the payload is fixed.
+	chRows := make([]schema.AuditLogV1, 0, len(rows))
+	pks := make([]uint64, 0, len(rows))
+	for _, row := range rows {
+		pks = append(pks, row.Pk)
+		var event auditlog.Event
+		if err := json.Unmarshal(row.Payload, &event); err != nil {
+			logger.Error("skipping outbox row that cannot be decoded", "pk", row.Pk, "event_id", row.EventID, "error", err)
+			continue
 		}
-		pks[i] = row.Pk
+		encoded, err := clickhouse.EncodeAuditLogEvents([]auditlog.Event{event})
+		if err != nil {
+			logger.Error("skipping outbox row that cannot be encoded", "pk", row.Pk, "event_id", row.EventID, "error", err)
+			continue
+		}
+		chRows = append(chRows, encoded...)
 	}
 
-	chRows, err := clickhouse.EncodeAuditLogEvents(events)
-	if err != nil {
-		return batchResult{EventsExported: 0}, fmt.Errorf("encode clickhouse rows: %w", err)
-	}
-
-	span.AddEvent("insert")
-	if err := h.clickhouse.InsertAuditLogs(ctx, chRows); err != nil {
-		return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
+	if len(chRows) > 0 {
+		span.AddEvent("insert")
+		if err := h.clickhouse.InsertAuditLogs(ctx, chRows); err != nil {
+			return batchResult{EventsExported: 0, RowsProcessed: 0}, fmt.Errorf("insert clickhouse: %w", err)
+		}
 	}
 
 	span.AddEvent("mark")
@@ -179,8 +192,8 @@ func (h *Handler) exportBatch(ctx context.Context) (result batchResult, batchErr
 		DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 		Pks:       pks,
 	}); err != nil {
-		return batchResult{EventsExported: 0}, fmt.Errorf("mark outbox batch deleted: %w", err)
+		return batchResult{EventsExported: 0, RowsProcessed: 0}, fmt.Errorf("mark outbox batch deleted: %w", err)
 	}
 
-	return batchResult{EventsExported: int32(len(events))}, nil
+	return batchResult{EventsExported: int32(len(chRows)), RowsProcessed: int32(len(rows))}, nil
 }
