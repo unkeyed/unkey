@@ -11,26 +11,23 @@ export const rootKeysV2QueryKeys = {
 export async function listRootKeys(signal?: AbortSignal): Promise<V2RootKey[]> {
   const rootKeys: V2RootKey[] = [];
   const cursors = new Set<string>();
-  let cursor: string | undefined;
+  const pages = await getUnkeyClient().rootKeys.listKeys({ limit: 100 }, { signal });
 
-  do {
-    const { result: page } = await getUnkeyClient().rootKeys.listKeys(
-      { limit: 100, cursor },
-      { signal },
-    );
+  for await (const { result: page } of pages) {
     rootKeys.push(...page.data);
 
-    if (page.pagination.hasMore && !page.pagination.cursor) {
+    const { cursor, hasMore } = page.pagination;
+    if (!hasMore) {
+      break;
+    }
+    if (!cursor) {
       throw new Error("Root keys API returned another page without a cursor");
     }
-    if (page.pagination.cursor && cursors.has(page.pagination.cursor)) {
+    if (cursors.has(cursor)) {
       throw new Error("Root keys API returned a repeated cursor");
     }
-    if (page.pagination.cursor) {
-      cursors.add(page.pagination.cursor);
-    }
-    cursor = page.pagination.hasMore ? page.pagination.cursor : undefined;
-  } while (cursor);
+    cursors.add(cursor);
+  }
 
   return rootKeys;
 }
