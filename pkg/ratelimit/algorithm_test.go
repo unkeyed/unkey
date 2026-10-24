@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"slices"
 	"testing"
@@ -17,14 +18,14 @@ import (
 // `reset_at` unchanged, because the peer's newer session holds the largest
 // candidate.
 func TestDecideChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
-	current, err := computeResetTimes(
-		[]session{{id: "peer", anchorAtNs: 150, consumedNs: 60}},
-		&session{id: "own", anchorAtNs: 100, consumedNs: 1},
-	)
+	current, err := computeResetTimes(sessionsByID(
+		session{id: "peer", anchorAtNs: 150, consumedNs: 60},
+		session{id: "own", anchorAtNs: 100, consumedNs: 1},
+	), "own")
 	require.NoError(t, err)
 	require.Equal(t, int64(210), current.resetAtNs)
 
-	result, err := decide(current, true, 155, Rate{Limit: 60, Duration: 60}, 1)
+	result, err := decide(current, 155, Rate{Limit: 60, Duration: 60}, 1)
 	require.NoError(t, err)
 	require.True(t, result.allowed)
 	require.Equal(t, int64(211), result.resetAtNs)
@@ -37,23 +38,23 @@ func TestDecideChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
 // and open the rate limit.
 func TestComputeResetTimesRejectsInvalidSessions(t *testing.T) {
 	cases := []struct {
-		name          string
-		otherSessions []session
-		liveSession   *session
+		name     string
+		sessions []session
+		liveID   string
 	}{
-		{"zero anchor", []session{{id: "a", anchorAtNs: 0, consumedNs: 1}}, nil},
-		{"zero anchor of the live session", nil, &session{id: "a", anchorAtNs: 0, consumedNs: 1}},
-		{"negative consumed time", []session{{id: "a", anchorAtNs: 1, consumedNs: -1}}, nil},
-		{"live session also in the other sessions", []session{{id: "a", anchorAtNs: 1, consumedNs: 1}}, &session{id: "a", anchorAtNs: 1, consumedNs: 1}},
+		{"zero anchor", []session{{id: "a", anchorAtNs: 0, consumedNs: 1}}, ""},
+		{"zero anchor of the live session", []session{{id: "a", anchorAtNs: 0, consumedNs: 1}}, "a"},
+		{"negative consumed time", []session{{id: "a", anchorAtNs: 1, consumedNs: -1}}, ""},
+		{"live session not in the sessions", []session{{id: "a", anchorAtNs: 1, consumedNs: 1}}, "b"},
 		{"consumed sum beyond int64", []session{
 			{id: "a", anchorAtNs: 1, consumedNs: math.MaxInt64 - 1},
 			{id: "b", anchorAtNs: 1, consumedNs: 2},
-		}, nil},
-		{"candidate beyond int64", []session{{id: "a", anchorAtNs: math.MaxInt64 - 5, consumedNs: 6}}, nil},
+		}, ""},
+		{"candidate beyond int64", []session{{id: "a", anchorAtNs: math.MaxInt64 - 5, consumedNs: 6}}, ""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := computeResetTimes(tc.otherSessions, tc.liveSession)
+			_, err := computeResetTimes(sessionsByID(tc.sessions...), tc.liveID)
 			require.Error(t, err)
 		})
 	}
@@ -62,7 +63,7 @@ func TestComputeResetTimesRejectsInvalidSessions(t *testing.T) {
 // TestComputeResetTimesAcceptsTheSmallestAnchor guarantees that the check for a
 // positive anchor does not reject the smallest valid one.
 func TestComputeResetTimesAcceptsTheSmallestAnchor(t *testing.T) {
-	result, err := computeResetTimes([]session{{id: "a", anchorAtNs: 1, consumedNs: 2}}, nil)
+	result, err := computeResetTimes(sessionsByID(session{id: "a", anchorAtNs: 1, consumedNs: 2}), "")
 	require.NoError(t, err)
 	require.Equal(t, int64(3), result.resetAtNs)
 }
@@ -71,11 +72,11 @@ func TestComputeResetTimesAcceptsTheSmallestAnchor(t *testing.T) {
 // exactly `reset_at` goes into the live session. Starting a new session there
 // gives the same `reset_at`, but costs an extra row.
 func TestDecideKeepsTheLiveSessionWhenResetAtIsNow(t *testing.T) {
-	current, err := computeResetTimes(nil, &session{id: "own", anchorAtNs: 100, consumedNs: 10})
+	current, err := computeResetTimes(sessionsByID(session{id: "own", anchorAtNs: 100, consumedNs: 10}), "own")
 	require.NoError(t, err)
 	require.Equal(t, int64(110), current.resetAtNs)
 
-	result, err := decide(current, true, 110, Rate{Limit: 10, Duration: 10}, 1)
+	result, err := decide(current, 110, Rate{Limit: 10, Duration: 10}, 1)
 	require.NoError(t, err)
 	require.True(t, result.allowed)
 	require.Zero(t, result.createNewSessionAtNs)
@@ -92,11 +93,11 @@ func TestDecideIsExactForLargeRates(t *testing.T) {
 	}
 	for _, rate := range rates {
 		t.Run(fmt.Sprintf("%d per %s", rate.Limit, rate.Duration), func(t *testing.T) {
-			idle, err := decide(resetTimes{}, false, 1, rate, 0)
+			idle, err := decide(resetTimes{}, 1, rate, 0)
 			require.NoError(t, err)
 			require.Equal(t, rate.Limit, idle.remaining)
 
-			full, err := decide(resetTimes{}, false, 1, rate, rate.Limit)
+			full, err := decide(resetTimes{}, 1, rate, rate.Limit)
 			require.NoError(t, err)
 			require.True(t, full.allowed)
 			require.Equal(t, rate.Duration.Nanoseconds(), full.consumedNs)
@@ -131,7 +132,7 @@ func TestDecideAtTheEdges(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := decide(resetTimes{}, false, tc.nowNs, tc.rate, tc.units)
+			result, err := decide(resetTimes{}, tc.nowNs, tc.rate, tc.units)
 			if tc.wantErr {
 				require.Error(t, err)
 				return
@@ -229,7 +230,7 @@ func FuzzDecideFollowsGCRARule(f *testing.F) {
 					consumedNs: int64(c.Uint8()),
 				}}))
 			case 2:
-				all := e.all()
+				all := allSessions(e)
 				if len(all) == 0 {
 					continue
 				}
@@ -246,7 +247,7 @@ func FuzzDecideFollowsGCRARule(f *testing.F) {
 				ownCount++
 				requestFollowsGCRARule(t, &e, rate, nowNs, units, fmt.Sprintf("own_%d", ownCount))
 			}
-			fresh, err := computeResetTimes(e.others, e.live)
+			fresh, err := computeResetTimes(e.sessions, e.liveID)
 			require.NoError(t, err)
 			require.Equal(t, fresh, e.resetTimes)
 		}
@@ -257,7 +258,7 @@ func FuzzDecideFollowsGCRARule(f *testing.F) {
 // and against the formula over all sessions, then spends it.
 func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int64, newSessionID string) {
 	t.Helper()
-	all := e.all()
+	all := allSessions(*e)
 	before := resetAtByFormula(all)
 	require.Equal(t, before, e.resetTimes.resetAtNs)
 
@@ -274,7 +275,7 @@ func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int6
 		require.Zero(t, result.createNewSessionAtNs)
 		require.Equal(t, remainingBySearch(rate, nowNs, before), result.remaining)
 		require.NoError(t, e.spend(result, ""))
-		require.Equal(t, all, e.all())
+		require.ElementsMatch(t, all, allSessions(*e))
 		return
 	}
 
@@ -283,10 +284,12 @@ func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int6
 	require.Equal(t, remainingBySearch(rate, nowNs, after), result.remaining)
 
 	liveCanTakeIt := false
-	if e.live != nil {
-		withLive := slices.Clone(all)
-		withLive[len(withLive)-1].consumedNs += consumedNs
-		liveCanTakeIt = resetAtByFormula(withLive) == after
+	if e.liveID != "" {
+		withLive := maps.Clone(e.sessions)
+		live := withLive[e.liveID]
+		live.consumedNs += consumedNs
+		withLive[e.liveID] = live
+		liveCanTakeIt = resetAtByFormula(slices.Collect(maps.Values(withLive))) == after
 	}
 	require.Equal(t, !liveCanTakeIt, result.createNewSessionAtNs != 0, "a new session starts exactly when the live session cannot take the request")
 	if result.createNewSessionAtNs != 0 {
@@ -298,8 +301,8 @@ func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int6
 	}
 
 	require.NoError(t, e.spend(result, newSessionID))
-	require.Equal(t, after, resetAtByFormula(e.all()))
-	require.Len(t, e.all(), len(all)+min(1, int(result.createNewSessionAtNs)), "spend never removes a session")
+	require.Equal(t, after, resetAtByFormula(allSessions(*e)))
+	require.Len(t, e.sessions, len(all)+min(1, int(result.createNewSessionAtNs)), "spend never removes a session")
 }
 
 // resetAtByFormula computes `reset_at` straight from its definition, in O(n²).

@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"cmp"
+	"maps"
 	"math"
 	"slices"
 
@@ -92,19 +93,21 @@ type decision struct {
 //	C         11:58:40   3s         11:58:40 + 9s + 12s + 3s  = 11:59:04
 //
 // A candidate is when the limit would be free if it had no pause since that
-// anchor. `liveSession` is nil if the pod has none. computeResetTimes returns
-// an error for a non-positive anchor, a negative consumed time, an int64
-// overflow, or a live session that is also in `otherSessions`.
-func computeResetTimes(otherSessions []session, liveSession *session) (resetTimes, error) {
-	// Newest first, so the sum of later sessions is a running total.
-	newestFirst := slices.Clone(otherSessions)
-	if liveSession != nil {
-		newestFirst = append(newestFirst, *liveSession)
+// anchor. `liveID` is "" if the pod has no live session. computeResetTimes
+// returns an error for a non-positive anchor, a negative consumed time, an
+// int64 overflow, or a `liveID` that is not in `sessions`.
+func computeResetTimes(sessions map[string]session, liveID string) (resetTimes, error) {
+	live, hasLive := sessions[liveID]
+	if liveID != "" && !hasLive {
+		return resetTimes{}, fault.New("live session must be in the sessions")
 	}
-	slices.SortFunc(newestFirst, func(left, right session) int {
+	// Newest first, so the sum of later sessions is a running total.
+	newestFirst := slices.SortedFunc(maps.Values(sessions), func(left, right session) int {
 		return cmp.Compare(right.anchorAtNs, left.anchorAtNs)
 	})
 
+	var result resetTimes
+	var consumedAtOrAfterAnchorNs int64
 	for _, s := range newestFirst {
 		err := assert.All(
 			assert.Greater(s.anchorAtNs, 0, "session anchor must be positive"),
@@ -113,15 +116,6 @@ func computeResetTimes(otherSessions []session, liveSession *session) (resetTime
 		if err != nil {
 			return resetTimes{}, err
 		}
-	}
-	if liveSession != nil && slices.ContainsFunc(otherSessions, func(s session) bool { return s.id == liveSession.id }) {
-		return resetTimes{}, fault.New("live session must not also be in the other sessions")
-	}
-
-	var result resetTimes
-	var consumedAtOrAfterAnchorNs int64
-	for _, s := range newestFirst {
-		var err error
 		consumedAtOrAfterAnchorNs, err = checkedAdd(consumedAtOrAfterAnchorNs, s.consumedNs)
 		if err != nil {
 			return resetTimes{}, err
@@ -133,7 +127,7 @@ func computeResetTimes(otherSessions []session, liveSession *session) (resetTime
 			return resetTimes{}, err
 		}
 		result.resetAtNs = max(result.resetAtNs, candidateNs)
-		if liveSession != nil && s.anchorAtNs <= liveSession.anchorAtNs {
+		if hasLive && s.anchorAtNs <= live.anchorAtNs {
 			result.maxCandidateRaisedByLiveSessionNs = max(result.maxCandidateRaisedByLiveSessionNs, candidateNs)
 		}
 	}
@@ -146,7 +140,7 @@ func computeResetTimes(otherSessions []session, liveSession *session) (resetTime
 // decide applies the GCRA rule to a request of `units` at `nowNs`. It is pure,
 // so a caller can decide several rate limits before spending on any. It
 // returns an error for invalid input or an int64 overflow.
-func decide(current resetTimes, hasLiveSession bool, nowNs int64, rate Rate, units int64) (decision, error) {
+func decide(current resetTimes, nowNs int64, rate Rate, units int64) (decision, error) {
 	err := assert.All(
 		rate.Validate(),
 		assert.GreaterOrEqual(units, 0, "units must not be negative"),
@@ -189,8 +183,9 @@ func decide(current resetTimes, hasLiveSession bool, nowNs int64, rate Rate, uni
 	//
 	// In the live session, 1 unit leaves `reset_at` at 210; it would be free.
 	// In a new session at 155, the peer counts it: 150 + 60 + 1 = 211.
-	liveSessionCanTakeRequest := hasLiveSession &&
-		current.maxCandidateRaisedByLiveSessionNs == current.resetAtNs &&
+	// Without a live session the first condition fails: the maximum is zero,
+	// and `reset_at` is only zero without sessions, where `reset_at < now`.
+	liveSessionCanTakeRequest := current.maxCandidateRaisedByLiveSessionNs == current.resetAtNs &&
 		current.resetAtNs >= nowNs
 	var createNewSessionAtNs int64
 	if !liveSessionCanTakeRequest {
