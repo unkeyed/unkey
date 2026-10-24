@@ -1,8 +1,6 @@
 import { Resend as Client } from "resend";
 
-import { render } from "@react-email/render";
-// biome-ignore lint/correctness/noUnusedImports: React UMD bypass
-import React from "react";
+import { render, toPlainText } from "@react-email/render";
 import { ApiV1Migration } from "../emails/api_v1_migration";
 import { PaymentIssue } from "../emails/payment_issue";
 import { WelcomeEmail } from "../emails/welcome_email";
@@ -25,6 +23,7 @@ export class Resend {
         replyTo: this.replyTo,
         subject: "Welcome to Unkey",
         html,
+        text: toPlainText(html),
         scheduledAt: fiveMinutesFromNow,
       });
       if (!result.error) {
@@ -56,6 +55,7 @@ export class Resend {
         replyTo: this.replyTo,
         subject: "There was an issue with your payment",
         html,
+        text: toPlainText(html),
       });
       if (!result.error) {
         return;
@@ -86,6 +86,7 @@ export class Resend {
         replyTo: this.replyTo,
         subject: "Action Required: Migrate from API v1 to v2 - Deadline January 1st, 2026",
         html,
+        text: toPlainText(html),
       });
 
       if (!result.error) {
