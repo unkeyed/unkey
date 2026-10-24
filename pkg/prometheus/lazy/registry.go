@@ -1,38 +1,69 @@
 package lazy
 
 import (
-	"sync/atomic"
+	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// registry is the target registry for lazy metrics. Set once at startup.
-var registry atomic.Pointer[prometheus.Registry]
+// state tracks where lazy metrics register. Only first-use registration and
+// SetRegistry take the lock, never Inc or Observe.
+var state struct {
+	mu         sync.Mutex
+	registry   *prometheus.Registry
+	explicit   bool
+	collectors []prometheus.Collector
+}
 
-// SetRegistry sets the registry that all lazy metrics will register to on
-// first use. Must be called before any metric is used.
+// SetRegistry sets the registry that all lazy metrics register to on first
+// use.
 //
-// First call wins: subsequent calls are silent no-ops. Production binaries
-// only call this once per process, so the idempotence is there to support
-// in-process multi-node integration tests (e.g. svc/api/integration), where
-// several api.Run goroutines share a single process and therefore a single
-// lazy registry. Metric values from those nodes are aggregated rather than
+// Metrics used before SetRegistry go to a fallback registry so that tests
+// which exercise metric-using code without a service's Run() do not panic.
+// SetRegistry moves those collectors to reg, keeping the same collector
+// objects, so a metric touched during startup is still scraped. It panics if
+// a moved collector conflicts with one already in reg.
+//
+// First call wins: subsequent calls are no-ops. Production binaries only call
+// this once per process, so the idempotence is there to support in-process
+// multi-node integration tests (e.g. svc/api/integration), where several
+// api.Run goroutines share a single process and therefore a single lazy
+// registry. Metric values from those nodes are aggregated rather than
 // isolated, which is fine because those tests don't assert on metric state.
 func SetRegistry(reg *prometheus.Registry) {
 	if reg == nil {
 		panic("lazy.SetRegistry: nil registry")
 	}
-	registry.CompareAndSwap(nil, reg)
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	if state.explicit {
+		return
+	}
+
+	for _, c := range state.collectors {
+		reg.MustRegister(c)
+		if state.registry != nil {
+			state.registry.Unregister(c)
+		}
+	}
+	state.registry = reg
+	state.explicit = true
 }
 
-func getRegistry() prometheus.Registerer {
-	if r := registry.Load(); r != nil {
-		return r
+// registered adds c to the current registry and returns it. Until SetRegistry
+// runs, it remembers c so SetRegistry can move it out of the fallback.
+func registered[C prometheus.Collector](c C) C {
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	if state.registry == nil {
+		state.registry = prometheus.NewRegistry()
 	}
-	// No explicit SetRegistry — install a throwaway default so tests that
-	// touch metric-using code directly (without going through a service's
-	// Run()) don't panic. Production binaries call SetRegistry in Run()
-	// before any metric use, so the default is never installed there.
-	registry.CompareAndSwap(nil, prometheus.NewRegistry())
-	return registry.Load()
+	state.registry.MustRegister(c)
+	if !state.explicit {
+		state.collectors = append(state.collectors, c)
+	}
+	return c
 }
