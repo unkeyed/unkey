@@ -1,3 +1,4 @@
+import * as stripeConfig from "@/lib/env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -123,6 +124,26 @@ function signedRequest(body = "{}"): Request {
     body,
   });
 }
+
+describe("webhook configuration", () => {
+  it("fails closed when the webhook secret is empty", async () => {
+    vi.spyOn(stripeConfig, "stripeEnv").mockReturnValueOnce({
+      STRIPE_SECRET_KEY: "test",
+      STRIPE_WEBHOOK_SECRET: "",
+      STRIPE_PRODUCT_IDS_PRO: ["prod_pro"],
+      STRIPE_PRODUCT_IDS_ENTERPRISE: ["prod_enterprise"],
+    });
+    mocks.constructEvent.mockReturnValue({
+      type: "customer.subscription.deleted",
+      data: { object: { id: "unknown-subscription", status: "canceled" } },
+    });
+
+    const response = await POST(signedRequest());
+
+    expect(response.status).toBe(500);
+    await expect(response.text()).resolves.toBe("Server configuration error");
+  });
+});
 
 describe("payment_method.attached", () => {
   it("rejects a missing signature before granting a signup credit", async () => {
