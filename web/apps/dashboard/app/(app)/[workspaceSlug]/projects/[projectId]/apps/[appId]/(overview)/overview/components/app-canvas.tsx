@@ -344,7 +344,7 @@ function appStatusOf({
   isCurrent: boolean;
 }): AppStatus {
   const meta = STATUS_META[status];
-  if (isCurrent) {
+  if (isCurrent || status === "crashing") {
     return {
       label: meta.label,
       indicator: <StatusDot colorClass={meta.dotClass} size="sm" />,
