@@ -95,7 +95,8 @@ var (
 	// Labels:
 	//   - workspace_id: the workspace the request was attributed to.
 	//   - source: "local" when the decision used only in-memory counters;
-	//     "origin" when a cold-window or strict-mode Redis fetch was required.
+	//     "origin" when a cold-window or strict-mode Redis fetch was required;
+	//     "gcra" when the global rate limiter decided.
 	//   - outcome: "passed" (request allowed) or "denied" (limit exceeded).
 	//
 	// Example usage:
@@ -106,9 +107,30 @@ var (
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "decisions_total",
-			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin) and outcome (passed|denied).",
+			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin|gcra) and outcome (passed|denied).",
 		},
 		[]string{"workspace_id", "source", "outcome"},
+	)
+
+	// RatelimitDecisionDuration measures how long the limit and multiLimit
+	// handlers wait for a decision, including failed ones. Comparing the two
+	// systems shows what the global rate limiter costs.
+	//
+	// Labels:
+	//   - op: "limit" or "multi_limit", the handler that asked.
+	//   - system: "regional" or "gcra", the limiter that decided.
+	//
+	// Example usage:
+	//   metrics.RatelimitDecisionDuration.WithLabelValues("limit", "gcra").Observe(seconds)
+	RatelimitDecisionDuration = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "decision_duration_seconds",
+			Help:      "Time the rate limit handlers wait for a decision, labeled by op (limit|multi_limit) and system (regional|gcra).",
+			Buckets:   latencyBuckets,
+		},
+		[]string{"op", "system"},
 	)
 
 	// RatelimitCASExhausted counts Ratelimit() calls that exhausted the CAS

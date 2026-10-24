@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -224,6 +225,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	} else {
 		results, err = h.Ratelimit.RatelimitMany(ctx, ratelimitReqs)
 	}
+	system := "regional"
+	if allGlobal {
+		system = "gcra"
+	}
+	metrics.RatelimitDecisionDuration.WithLabelValues("multi_limit", system).Observe(time.Since(start).Seconds())
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -321,6 +327,11 @@ func (h *Handler) allowManyGlobal(ctx context.Context, reqs []ratelimit.Ratelimi
 	}
 	responses := make([]ratelimit.RatelimitResponse, len(results))
 	for i, result := range results {
+		outcome := "denied"
+		if result.Allowed {
+			outcome = "passed"
+		}
+		metrics.RatelimitDecision.WithLabelValues(reqs[i].WorkspaceID, "gcra", outcome).Inc()
 		responses[i] = ratelimit.RatelimitResponse{
 			Limit:     reqs[i].Limit,
 			Remaining: result.Remaining,
