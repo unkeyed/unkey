@@ -289,6 +289,8 @@ export * from "./v2portalgetverificationsdatapoint.js";
 export * from "./v2portalgetverificationskeyseries.js";
 export * from "./v2portalgetverificationsrequestbody.js";
 export * from "./v2portalgetverificationsresponsebody.js";
+export * from "./v2portallistdomainsrequestbody.js";
+export * from "./v2portallistdomainsresponsebody.js";
 export * from "./v2portallistkeysrequestbody.js";
 export * from "./v2portallistkeysresponsebody.js";
 export * from "./v2portallistsessionsrequestbody.js";

@@ -3655,6 +3655,31 @@ components:
                     items:
                         $ref: "#/components/schemas/V2PortalGetVerificationsKeySeries"
             additionalProperties: false
+        V2PortalListDomainsRequestBody:
+            type: object
+            required:
+                - portal
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2PortalListDomainsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 10
+                    items:
+                        "$ref": "#/components/schemas/PortalDomain"
+                    description: |
+                        Every domain attached to the portal, verified or not, sorted by ID. Empty when the
+                        portal has no domains.
+            additionalProperties: false
         V2PortalListKeysRequestBody:
             type: object
             properties:
@@ -18198,6 +18223,122 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: getVerifications
+    /v2/portal.listDomains:
+        post:
+            description: |
+                List the custom domains attached to a portal, with their verification status and DNS records.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.read_portal` (to read domains on any portal in the workspace)
+                - `portal.<portal_id>.read_portal` (to read domains on a specific portal)
+                - `portal.*.update_portal` or `portal.<portal_id>.update_portal`, so a key that
+                  creates a domain can poll it
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.listDomains
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalListDomainsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                empty:
+                                    summary: No domains attached
+                                    value:
+                                        data: []
+                                        meta:
+                                            requestId: req_1234abcd
+                                twoDomains:
+                                    summary: One verified, one still verifying
+                                    value:
+                                        data:
+                                            - createdAt: 1704067200000
+                                              dnsRecords:
+                                                - name: portal.acme.com
+                                                  note: Create as DNS-only if your provider offers the choice.
+                                                  ttl: 60
+                                                  type: CNAME
+                                                  value: a1b2c3d4e5f6g7h8.portal.unkey.com
+                                                  verified: true
+                                                - name: _unkey.portal.acme.com
+                                                  note: Proves ownership. Create it alongside the routing record.
+                                                  ttl: 60
+                                                  type: TXT
+                                                  value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
+                                              domain: portal.acme.com
+                                              id: pdom_1234abcd
+                                              portalId: prt_1234abcd
+                                              status: verified
+                                              updatedAt: 1704067260000
+                                            - createdAt: 1704070800000
+                                              dnsRecords:
+                                                - name: help.acme.com
+                                                  note: Create as DNS-only if your provider offers the choice.
+                                                  ttl: 60
+                                                  type: CNAME
+                                                  value: h8g7f6e5d4c3b2a1.portal.unkey.com
+                                                  verified: false
+                                                - name: _unkey.help.acme.com
+                                                  note: Proves ownership. Create it alongside the routing record.
+                                                  ttl: 60
+                                                  type: TXT
+                                                  value: unkey-domain-verify=9LhJ4bY6wR2nT5vP7mK1xQ8Z
+                                                  verified: false
+                                              domain: help.acme.com
+                                              id: pdom_5678efgh
+                                              portalId: prt_1234abcd
+                                              status: verifying
+                                              updatedAt: 1704070860000
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2PortalListDomainsResponseBody'
+                    description: The portal's domains.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal, or your root key may not read it.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List portal domains
+            tags:
+                - portal
+            x-speakeasy-name-override: listDomains
     /v2/portal.listKeys:
         post:
             description: |
