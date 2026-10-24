@@ -83,6 +83,79 @@ describe("resolveStages", () => {
     expect(stages.domains.resolution.status).toBe("skipped");
   });
 
+  test("a queued or starting failure fails the build stage", () => {
+    for (const key of ["queued", "starting"] as const) {
+      const stages = byKey(
+        resolveStages(
+          input({
+            status: "failed",
+            steps: { [key]: step({ error: "git branch could not be resolved", completed: false }) },
+          }),
+        ),
+      );
+      expect(stages.build.resolution).toMatchObject({
+        status: "error",
+        description: "git branch could not be resolved",
+      });
+      expect(stages.instances.resolution.status).toBe("skipped");
+      expect(stages.domains.resolution.status).toBe("skipped");
+    }
+  });
+
+  test("a queued failure on a prebuilt image still opens the build stage", () => {
+    const stages = byKey(
+      resolveStages(
+        input({
+          status: "failed",
+          isPrebuilt: true,
+          steps: { queued: step({ error: "quota exceeded", completed: false }) },
+        }),
+      ),
+    );
+    expect(stages.build.resolution.status).toBe("error");
+    expect(stages.build.expandable).toBe(true);
+  });
+
+  test("a finalizing failure fails the domains stage", () => {
+    const stages = byKey(
+      resolveStages(
+        input({
+          status: "failed",
+          domainCount: 1,
+          steps: {
+            building: step(),
+            deploying: step(),
+            network: step(),
+            finalizing: step({ error: "route sync failed", completed: false }),
+          },
+        }),
+      ),
+    );
+    expect(stages.build.resolution.status).toBe("completed");
+    expect(stages.instances.resolution.status).toBe("completed");
+    expect(stages.domains.resolution).toMatchObject({
+      status: "error",
+      description: "route sync failed",
+    });
+    expect(stages.domains.expandable).toBe(true);
+  });
+
+  test("a failed deployment without a step error fails its first unfinished stage", () => {
+    const stages = byKey(resolveStages(input({ status: "failed", steps: { building: step() } })));
+    expect(stages.build.resolution.status).toBe("completed");
+    expect(stages.instances.resolution).toMatchObject({
+      status: "error",
+      description: "Deployment failed",
+    });
+    expect(stages.instances.expandable).toBe(true);
+    expect(stages.domains.resolution.status).toBe("skipped");
+  });
+
+  test("a failed deployment waits for its steps before naming a failed stage", () => {
+    const stages = resolveStages(input({ status: "failed" }));
+    expect(stages.map((s) => s.resolution.status)).toEqual(["skipped", "skipped", "skipped"]);
+  });
+
   test("unhealthy instances turn a finished deploy into an error", () => {
     const stages = byKey(
       resolveStages(
@@ -273,13 +346,17 @@ describe("open stage", () => {
     });
   });
 
-  test("a stage failing later does not close a requested stage until the user toggles", () => {
+  test("a stage failing while the request is live does not close the requested stage", () => {
     let state = followRequestedStage(initialOpenStage(closed), "build");
-    state = followRequestedStage(state, null);
     state = followFailedStage(state, "instances");
     expect(state.open).toBe("build");
-    state = toggleStage(state, "build");
-    expect(followFailedStage(state, "domains").open).toBe("domains");
+  });
+
+  test("a stage failing after the request clears opens that stage", () => {
+    let state = initialOpenStage({ failed: null, requested: "build" });
+    state = followRequestedStage(state, null);
+    expect(state.pinned).toBe(false);
+    expect(followFailedStage(state, "instances").open).toBe("instances");
   });
 
   test("a flapping stage does not reopen after the user closes it", () => {

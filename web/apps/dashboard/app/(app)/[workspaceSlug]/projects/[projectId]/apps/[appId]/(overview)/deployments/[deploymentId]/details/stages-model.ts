@@ -85,28 +85,38 @@ export function resolveStages({
   desiredState,
   domainCount,
 }: StagesInput): Stage[] {
-  const { building, deploying, network } = steps ?? {};
+  const { queued, starting, building, deploying, network, finalizing } = steps ?? {};
   const phase = PHASE_BY_STATUS[status];
 
-  const build = resolveStep(building, now, isPrebuilt ? SETTLED : phase, {
-    completed: isPrebuilt ? "Image was prebuilt" : "Build complete",
-    inProgress: "Building",
-    waiting: "Waiting to start",
-  });
+  const build = resolveStep(
+    firstFailed(queued, starting) ?? building,
+    now,
+    isPrebuilt ? SETTLED : phase,
+    {
+      completed: isPrebuilt ? "Image was prebuilt" : "Build complete",
+      inProgress: "Building",
+      waiting: "Waiting to start",
+    },
+  );
   const instancesStep = resolveStep(deploying, now, phase, {
     completed: instancesText(instances, desiredState),
     inProgress: "Starting instances",
     waiting: "Waiting for build",
   });
-  const domains = resolveStep(network, now, phase, {
+  const domains = resolveStep(firstFailed(finalizing) ?? network, now, phase, {
     completed:
       domainCount === null ? "Assigning domains" : `${plural(domainCount, "domain")} assigned`,
     inProgress: "Assigning domains",
     waiting: "Waiting for instances",
   });
 
-  return [
-    { key: "build", label: "Build Logs", resolution: build, expandable: !isPrebuilt },
+  const stages: Stage[] = [
+    {
+      key: "build",
+      label: "Build Logs",
+      resolution: build,
+      expandable: !isPrebuilt || build.status === "error",
+    },
     {
       key: "instances",
       label: stageLabels.instances[instancesStep.status],
@@ -117,9 +127,32 @@ export function resolveStages({
       key: "domains",
       label: stageLabels.domains[domains.status],
       resolution: domains,
-      expandable: domainCount !== 0 && (Boolean(network) || status === "ready"),
+      expandable:
+        domains.status === "error" ||
+        (domainCount !== 0 && (Boolean(network) || status === "ready")),
     },
   ];
+  return phase.kind === "failed" && steps !== undefined ? withFailure(stages) : stages;
+}
+
+function firstFailed(...candidates: Array<StepData | null | undefined>): StepData | undefined {
+  return candidates.find((step) => step?.error && !step.completed) ?? undefined;
+}
+
+function withFailure(stages: Stage[]): Stage[] {
+  if (stages.some((stage) => stage.resolution.status === "error")) {
+    return stages;
+  }
+  const failedAt = stages.findIndex((stage) => stage.resolution.status !== "completed");
+  return stages.map((stage, i) =>
+    i === failedAt
+      ? {
+          ...stage,
+          expandable: true,
+          resolution: { ...stage.resolution, status: "error", description: "Deployment failed" },
+        }
+      : stage,
+  );
 }
 
 function resolveStep(
@@ -198,7 +231,7 @@ export function followRequestedStage(state: OpenStage, requested: StageKey | nul
   }
   return requested
     ? { ...state, requested, open: requested, pinned: true }
-    : { ...state, requested };
+    : { ...state, requested, pinned: false };
 }
 
 export function followFailedStage(state: OpenStage, failed: StageKey | null): OpenStage {
