@@ -1,9 +1,8 @@
-import { Body } from "@react-email/body";
 import { Button } from "@react-email/button";
 import { Head } from "@react-email/head";
 import { Heading } from "@react-email/heading";
-import { Hr } from "@react-email/hr";
 import { Html } from "@react-email/html";
+import { Img } from "@react-email/img";
 import { Link } from "@react-email/link";
 import { Preview } from "@react-email/preview";
 import { Section } from "@react-email/section";
@@ -50,116 +49,180 @@ export function Layout({
         <meta name="supported-color-schemes" content="light dark" />
         <style>{stylesheet}</style>
       </Head>
-      <Body className="email-background" style={styles.body}>
+      <body className="email-background" style={styles.body}>
         <Preview lang="en" dir="ltr" data-skip-in-text="true">
           {preview}
         </Preview>
         <table
           role="presentation"
           align="center"
-          width="600"
+          width="100%"
           cellPadding="0"
           cellSpacing="0"
           border={0}
-          lang="en"
-          dir="ltr"
-          className="email-surface"
-          style={styles.container}
+          className="email-background"
+          style={styles.background}
         >
           <tbody>
             <tr>
-              <td className="email-content" style={{ padding: "40px" }}>
-                <Link href="https://www.unkey.com" className="email-text" style={styles.brand}>
-                  Unkey
-                </Link>
-                <Hr className="email-rule" style={styles.rule} />
-                <Heading as="h1" className="email-heading email-text" style={styles.heading}>
-                  {title}
-                </Heading>
-                {body.map((paragraph) => (
-                  <Text key={paragraph} className="email-text" style={styles.text}>
-                    {paragraph}
-                  </Text>
-                ))}
-                <Section style={{ padding: "8px 0 24px" }}>
-                  <Button href={action.href} className="email-button" style={styles.button}>
-                    {action.label}
-                  </Button>
-                </Section>
-                {details.length > 0 && (
-                  <Section>
-                    {details.map(({ label, value }) => (
-                      <Text key={label} className="email-text" style={styles.text}>
-                        <span className="email-muted" style={styles.muted}>
-                          {label}
-                        </span>
-                        <br />
-                        {value}
-                      </Text>
-                    ))}
-                  </Section>
-                )}
-                {sections.map((section) => {
-                  switch (section.type) {
-                    case "text":
-                      return (
-                        <Text key={section.text} className="email-text" style={styles.text}>
-                          {section.text}
-                        </Text>
-                      );
-                    case "list":
-                      return (
-                        <Section key={section.title}>
-                          <Heading as="h2" className="email-text" style={styles.sectionHeading}>
-                            {section.title}
-                          </Heading>
-                          <ul className="email-text" style={styles.list}>
-                            {section.items.map((item) => (
-                              <li key={item} style={{ paddingBottom: "8px" }}>
-                                {item}
-                              </li>
-                            ))}
-                          </ul>
+              <td>
+                <table
+                  role="presentation"
+                  align="center"
+                  width="560"
+                  cellPadding="0"
+                  cellSpacing="0"
+                  border={0}
+                  style={styles.container}
+                >
+                  <tbody>
+                    <tr>
+                      <td className="email-gutter" style={styles.gutter}>
+                        <BrandHeader />
+                        <Heading as="h1" className="email-text" style={styles.heading}>
+                          {title}
+                        </Heading>
+                        {body.map((paragraph) => (
+                          <Text key={paragraph} className="email-copy" style={styles.text}>
+                            {paragraph}
+                          </Text>
+                        ))}
+                        {details.length > 0 && <Details details={details} />}
+                        <Section style={{ paddingTop: "8px" }}>
+                          <Button href={action.href} className="email-button" style={styles.button}>
+                            {action.label}
+                          </Button>
                         </Section>
-                      );
-                    case "links":
-                      return (
-                        <Section key={section.links.map((link) => link.href).join(" ")}>
-                          {section.links.map((link) => (
-                            <Text key={link.href} style={styles.text}>
-                              <Link href={link.href} className="email-text" style={styles.link}>
-                                {link.label}
-                              </Link>
+                        {sections.length > 0 && <ContentSections sections={sections} />}
+                        {signedBy && <Signature signedBy={signedBy} />}
+                        <Section className="email-rule" style={styles.footer}>
+                          <Text className="email-muted" style={styles.muted}>
+                            Need help? Contact{" "}
+                            <Link
+                              href="mailto:support@unkey.com"
+                              className="email-muted"
+                              style={{ ...styles.link, ...styles.muted }}
+                            >
+                              support@unkey.com
+                            </Link>
+                            .
+                          </Text>
+                          {reason && (
+                            <Text className="email-muted" style={styles.muted}>
+                              {reason}
                             </Text>
-                          ))}
+                          )}
+                          {year && (
+                            <Text className="email-muted" style={styles.muted}>
+                              © {year} Unkey
+                            </Text>
+                          )}
                         </Section>
-                      );
-                  }
-                })}
-                {signedBy && <Signature signedBy={signedBy} />}
-                <Hr className="email-rule" style={styles.rule} />
-                <Text className="email-muted" style={styles.muted}>
-                  Need help? Contact{" "}
-                  <Link href="mailto:support@unkey.com" className="email-text" style={styles.link}>
-                    support@unkey.com
-                  </Link>
-                  .
-                </Text>
-                {reason && (
-                  <Text className="email-muted" style={styles.muted}>
-                    {reason}
-                  </Text>
-                )}
-                {year && (
-                  <Text className="email-muted" style={styles.muted}>
-                    © {year} Unkey
-                  </Text>
-                )}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </td>
             </tr>
           </tbody>
         </table>
-      </Body>
+      </body>
     </Html>
+  );
+}
+
+function BrandHeader() {
+  return (
+    <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style={styles.header}>
+      <tbody>
+        <tr>
+          <td>
+            <Link href="https://www.unkey.com" aria-label="Unkey" data-skip-in-text="true">
+              <Img
+                src="https://app.unkey.com/images/emails/wordmark-light.png"
+                alt="Unkey"
+                width="83"
+                height="28"
+                className="email-logo-light email-text"
+                style={styles.logo}
+              />
+              <Img
+                src="https://app.unkey.com/images/emails/wordmark-dark.png"
+                alt="Unkey"
+                width="83"
+                height="28"
+                className="email-logo-dark email-text"
+                style={{ ...styles.logo, display: "none", maxHeight: "0", overflow: "hidden" }}
+              />
+            </Link>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+function Details({ details }: { details: NonNullable<LayoutProps["details"]> }) {
+  return (
+    <Section className="email-rule" style={styles.details}>
+      <table width="100%" cellPadding="0" cellSpacing="0" style={{ tableLayout: "fixed" }}>
+        <tbody>
+          {details.map(({ label, value }) => (
+            <tr key={label}>
+              <th scope="row" className="email-muted" style={styles.detailLabel}>
+                <p style={{ margin: "0" }}>{label}</p>
+              </th>
+              <td className="email-text" style={styles.detailValue}>
+                <p style={{ margin: "0" }}>{value}</p>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Section>
+  );
+}
+
+function ContentSections({ sections }: { sections: readonly EmailSection[] }) {
+  return (
+    <Section style={styles.sections}>
+      {sections.map((section) => {
+        switch (section.type) {
+          case "text":
+            return (
+              <Text key={section.text} className="email-copy" style={styles.text}>
+                {section.text}
+              </Text>
+            );
+          case "list":
+            return (
+              <Section key={section.title}>
+                <Heading as="h2" className="email-text" style={styles.sectionHeading}>
+                  {section.title}
+                </Heading>
+                <ul className="email-copy" style={styles.list}>
+                  {section.items.map((item) => (
+                    <li key={item} style={{ paddingBottom: "4px" }}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+            );
+          case "links":
+            return (
+              <Section key={section.links.map((link) => link.href).join(" ")} style={styles.links}>
+                {section.links.map((link) => (
+                  <Text key={link.href} style={styles.linkRow}>
+                    <Link href={link.href} className="email-text" style={styles.link}>
+                      {link.label}
+                    </Link>
+                  </Text>
+                ))}
+              </Section>
+            );
+        }
+      })}
+    </Section>
   );
 }

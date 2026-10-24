@@ -8,7 +8,7 @@ interface SignatureProps {
 }
 
 export const Signature: React.FC<SignatureProps> = ({ signedBy }) => (
-  <Text className="email-text" style={styles.text}>
+  <Text className="email-copy" style={styles.text}>
     Cheers,
     <br />
     {signedBy}

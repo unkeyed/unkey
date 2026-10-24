@@ -2,9 +2,9 @@ import type { CSSProperties } from "react";
 
 export const colors = {
   light: {
-    background: "#f9fafb",
-    surface: "#ffffff",
+    background: "#ffffff",
     text: "#121317",
+    copy: "#464853",
     muted: "#60606c",
     border: "#e3e4e9",
     button: "#121317",
@@ -12,26 +12,49 @@ export const colors = {
   },
   dark: {
     background: "#040406",
-    surface: "#121317",
     text: "#eeeff1",
-    muted: "#abaebb",
-    border: "#464853",
+    copy: "#c7c9d1",
+    muted: "#9194a1",
+    border: "#2e3038",
     button: "#eeeff1",
     buttonText: "#121317",
   },
 };
 
+const fontFamily = "Inter, Helvetica, Arial, sans-serif";
+
 const darkRules = {
   ".email-background": `background-color: ${colors.dark.background} !important;`,
-  ".email-surface": `background-color: ${colors.dark.surface} !important;`,
   ".email-text": `color: ${colors.dark.text} !important;`,
+  ".email-copy": `color: ${colors.dark.copy} !important;`,
   ".email-muted": `color: ${colors.dark.muted} !important;`,
   ".email-rule": `border-color: ${colors.dark.border} !important;`,
   ".email-button": `background-color: ${colors.dark.button} !important; color: ${colors.dark.buttonText} !important;`,
+  ".email-logo-light":
+    "display: none !important; max-height: 0 !important; overflow: hidden !important;",
+  ".email-logo-dark":
+    "display: block !important; max-height: none !important; overflow: visible !important;",
 };
 
 export const stylesheet = `
   :root { color-scheme: light dark; supported-color-schemes: light dark; }
+  @font-face {
+    font-family: Inter;
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    mso-font-alt: Arial;
+    src: url(https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf);
+  }
+  @font-face {
+    font-family: Inter;
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    mso-font-alt: Arial;
+    src: url(https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fMZg.ttf);
+  }
+  .email-logo-dark { mso-hide: all; }
   @media (prefers-color-scheme: dark) {
     ${Object.entries(darkRules)
       .map(([selector, rule]) => `${selector} { ${rule} }`)
@@ -40,9 +63,8 @@ export const stylesheet = `
   ${Object.entries(darkRules)
     .map(([selector, rule]) => `[data-ogsc] ${selector} { ${rule} }`)
     .join("\n")}
-  @media only screen and (max-width: 600px) {
-    .email-content { padding: 28px 20px !important; }
-    .email-heading { font-size: 26px !important; line-height: 32px !important; }
+  @media only screen and (max-width: 480px) {
+    .email-gutter { padding: 32px 24px !important; }
   }
 `;
 
@@ -50,80 +72,123 @@ export const styles = {
   body: {
     backgroundColor: colors.light.background,
     color: colors.light.text,
-    fontFamily: "Arial, Helvetica, sans-serif",
+    fontFamily,
     margin: "0",
     padding: "0",
     WebkitTextSizeAdjust: "100%",
   },
+  background: {
+    backgroundColor: colors.light.background,
+  },
   container: {
-    backgroundColor: colors.light.surface,
     width: "100%",
-    maxWidth: "600px",
+    maxWidth: "560px",
     margin: "0 auto",
     tableLayout: "fixed",
     overflowWrap: "anywhere",
     wordBreak: "break-word",
+    fontFamily,
   },
-  brand: {
+  gutter: {
+    padding: "48px 24px",
+  },
+  header: {
+    paddingBottom: "32px",
+  },
+  logo: {
+    display: "block",
     color: colors.light.text,
-    fontSize: "24px",
-    fontWeight: "700",
-    letterSpacing: "-1px",
-    textDecoration: "none",
+    fontSize: "20px",
   },
   heading: {
     color: colors.light.text,
-    fontSize: "30px",
-    lineHeight: "36px",
-    fontWeight: "600",
-    letterSpacing: "-0.6px",
+    fontSize: "24px",
+    lineHeight: "32px",
+    fontWeight: "500",
+    letterSpacing: "-0.4px",
     margin: "0 0 20px",
   },
   text: {
-    color: colors.light.text,
+    color: colors.light.copy,
     fontSize: "16px",
-    lineHeight: "26px",
+    lineHeight: "24px",
     margin: "0 0 16px",
   },
   muted: {
     color: colors.light.muted,
     fontSize: "13px",
     lineHeight: "20px",
-    margin: "0 0 12px",
+    margin: "0 0 8px",
   },
   link: {
     color: colors.light.text,
     textDecoration: "underline",
     textUnderlineOffset: "3px",
   },
-  rule: {
-    border: "0",
-    borderTop: `1px solid ${colors.light.border}`,
-    margin: "28px 0",
+  sections: {
+    marginTop: "32px",
+  },
+  links: {
+    margin: "0 0 16px",
+  },
+  linkRow: {
+    fontSize: "16px",
+    lineHeight: "24px",
+    margin: "0",
+    padding: "4px 0",
   },
   button: {
     backgroundColor: colors.light.button,
     color: colors.light.buttonText,
-    borderRadius: "6px",
-    padding: "14px 24px",
-    fontSize: "16px",
-    fontWeight: "600",
+    borderRadius: "5px",
+    padding: "14px 18px",
+    fontSize: "14px",
+    lineHeight: "20px",
+    fontWeight: "500",
     textAlign: "center",
     boxSizing: "border-box",
     textDecoration: "none",
+  },
+  details: {
+    borderTop: `1px solid ${colors.light.border}`,
+    borderBottom: `1px solid ${colors.light.border}`,
+    padding: "12px 0",
+    margin: "24px 0",
+  },
+  detailLabel: {
+    color: colors.light.muted,
+    fontSize: "14px",
+    lineHeight: "22px",
+    fontWeight: "400",
+    padding: "4px 12px 4px 0",
+    textAlign: "left",
+    verticalAlign: "top",
+    width: "28%",
+  },
+  detailValue: {
+    color: colors.light.text,
+    fontSize: "14px",
+    lineHeight: "22px",
+    padding: "4px 0",
+    verticalAlign: "top",
   },
   sectionHeading: {
     color: colors.light.text,
     fontSize: "16px",
     lineHeight: "24px",
-    fontWeight: "600",
-    margin: "24px 0 12px",
+    fontWeight: "500",
+    margin: "0 0 8px",
   },
   list: {
-    color: colors.light.text,
+    color: colors.light.copy,
     fontSize: "16px",
-    lineHeight: "26px",
+    lineHeight: "24px",
     margin: "0 0 16px",
-    paddingLeft: "20px",
+    paddingLeft: "18px",
+  },
+  footer: {
+    borderTop: `1px solid ${colors.light.border}`,
+    marginTop: "24px",
+    paddingTop: "20px",
   },
 } satisfies Record<string, CSSProperties>;

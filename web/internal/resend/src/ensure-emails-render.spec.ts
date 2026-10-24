@@ -103,6 +103,5 @@ test("security details have readable labels in plain text", async () => {
     { plainText: true },
   );
 
-  expect(text).toContain("Source\ncontent");
-  expect(text).toContain("Detected\nThu Oct 22 2026");
+  expect(text).toMatch(/Source\s+content\s+Detected\s+Thu Oct 22 2026/);
 });
