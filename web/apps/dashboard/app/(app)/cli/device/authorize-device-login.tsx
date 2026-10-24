@@ -169,13 +169,28 @@ function DeviceLoginView({
 }
 
 function LoginContext({ login, workspace }: { login: DeviceLogin; workspace: ReactNode }) {
+  const characters = Array.from(formatUserCode(login.userCode), (char, position) => ({
+    char,
+    id: `${position}-${char}`,
+  }));
+
   return (
     <div className="flex w-full flex-col items-center gap-6 text-center">
-      <div className="flex justify-center">
-        <span className="sr-only">Login code </span>
-        <span className="flex h-10 items-center justify-center rounded-md border border-grayA-4 bg-grayA-2 px-4 font-mono text-lg text-gray-12">
-          {formatUserCode(login.userCode)}
-        </span>
+      <div className="flex items-center justify-center gap-1 sm:gap-2">
+        <span className="sr-only">Login code {formatUserCode(login.userCode)}</span>
+        {characters.map(({ char, id }) => (
+          <span
+            key={id}
+            aria-hidden="true"
+            className={
+              char === "-"
+                ? "font-mono text-base text-gray-11"
+                : "flex h-10 w-7 items-center justify-center rounded-md border border-grayA-4 bg-grayA-2 font-mono text-base text-gray-12 sm:w-10"
+            }
+          >
+            {char}
+          </span>
+        ))}
       </div>
       <dl className="w-full divide-y divide-grayA-4 rounded-lg border border-grayA-4 px-4 text-left text-sm leading-5 [&>div]:grid [&>div]:grid-cols-[7rem_minmax(0,1fr)] [&>div]:gap-3 [&>div]:py-3 [&_dd]:min-w-0 [&_dd]:break-words">
         <div>
