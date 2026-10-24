@@ -13,7 +13,6 @@ import {
   type DeploymentStatus,
 } from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
-import { latestExitAcross } from "./last-exit";
 import { type ParsedFilter, extractStringFilter, extractStringValues } from "./utils";
 
 const regionSchema = z.object({
@@ -87,7 +86,7 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
-  // The latest exit across instances
+  // Deployment-wide exit for the pre-app_v2 pages; delete with their legacy/ folders
   lastExit: lastExitSchema.nullable(),
 });
 
@@ -145,6 +144,7 @@ type RowDetails = Pick<
   | "desiredRegions"
   | "targetRegions"
   | "triggerReason"
+  | "lastExit"
 >;
 
 // Once a row in one of these statuses has no instances left, nothing changes its
@@ -234,7 +234,7 @@ function toDeployment(
     createdAt: deployment.createdAt,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
-    lastExit: latestExitAcross(details.instances),
+    lastExit: details.lastExit,
   };
 }
 

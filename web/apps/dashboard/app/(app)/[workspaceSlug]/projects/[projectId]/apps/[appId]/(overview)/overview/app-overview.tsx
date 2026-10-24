@@ -7,6 +7,7 @@ import { CreateDeploymentButton } from "../navigations/create-deployment-button"
 import { ActiveBranches } from "./components/active-branches";
 import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { AppProductionCard } from "./components/app-production-card";
+import { MetricsGlance } from "./components/metrics-glance";
 import { OverviewPageTitle } from "./components/overview-page-title";
 import { RecentDeployments } from "./components/recent-deployments";
 
@@ -34,6 +35,7 @@ export function Overview() {
         ) : (
           <div className="flex flex-col gap-5">
             <AppProductionCard />
+            <MetricsGlance />
             {app?.sourceType === "oci" ? <RecentDeployments /> : <ActiveBranches />}
           </div>
         )}

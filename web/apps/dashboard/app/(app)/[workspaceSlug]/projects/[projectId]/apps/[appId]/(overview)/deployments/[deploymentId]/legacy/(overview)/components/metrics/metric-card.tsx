@@ -3,7 +3,7 @@ import {
   type AreaTimeseriesAxisOptions,
   AreaTimeseriesChart,
   type ValueParts,
-} from "@/components/charts/area-timeseries";
+} from "@/components/charts/legacy/area-timeseries";
 import { LogsTimeseriesBarChart } from "@/components/charts/logs-timeseries-bar";
 import type { IconProps } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";

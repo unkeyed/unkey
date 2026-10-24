@@ -1,6 +1,6 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
+import { lastExitOf } from "@/lib/collections/deploy/last-exit";
 import { ne } from "@/lib/db";
-import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 
 // A skipped row records a push the platform declined to build at all (watch
@@ -28,22 +28,5 @@ export function mapInstanceRow(row: {
     },
     status: row.status,
     lastExit: lastExitOf(row.containerStatus),
-  };
-}
-
-function lastExitOf(containerStatus: ContainerStatus | null): LastExit | null {
-  const term = containerStatus?.lastTerminationState ?? null;
-  const reason = term?.reason ?? null;
-  const statusReason = containerStatus?.waiting?.reason ?? null;
-  if (reason === null && statusReason === null) {
-    return null;
-  }
-  return {
-    restartCount: containerStatus?.restartCount ?? 0,
-    exitCode: term?.exitCode ?? null,
-    signal: term?.signal ?? null,
-    reason,
-    finishedAt: term?.finishedAt ?? null,
-    statusReason,
   };
 }
