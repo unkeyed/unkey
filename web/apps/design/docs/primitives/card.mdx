@@ -1,0 +1,27 @@
+---
+title: Card
+description: A raised surface that groups content on the page.
+---
+
+<Component path="card/basic" />
+
+## Elevation
+
+`Card`, `ResourceListContent` and settings groups sit slightly above the page. They use `shadow-raised`: a hairline ring plus a tight, faint shadow, with no `border`.
+
+Hairlines are 1px on standard screens and 0.5px in a darker grey on 2x screens. `--hairline-width` and `--hairline` set both, so borders, dividers and rings always match.
+
+Use `shadow-raised` for any surface that sits on the page, such as a card, a tile or a list frame. Keep these flat:
+
+- Controls, badges and code blocks.
+- A box inside another card. Do not nest raised surfaces.
+- Alerts, callouts and empty states.
+- Dialogs, popovers and menus. They use `shadow-floating`.
+
+## Usage
+
+Prefer `Card` over a `div` with `rounded-lg border bg-raised`. Pass layout classes only.
+
+```tsx
+<Card className="flex flex-col">{children}</Card>
+```
