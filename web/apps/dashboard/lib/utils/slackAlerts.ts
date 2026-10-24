@@ -214,16 +214,18 @@ export type CustomerAlertAction =
   | "cancelling"
   | "cancelled";
 
-const ACTION_META: Record<CustomerAlertAction, { title: string; note?: Mrkdwn }> = {
-  signup: { title: "New customer signup" },
-  upgrade: { title: "Subscription upgraded" },
-  downgrade: { title: "Subscription downgraded" },
-  update: { title: "Subscription updated" },
+const ACTION_META: Record<CustomerAlertAction, { emoji: string; title: string; note?: Mrkdwn }> = {
+  signup: { emoji: ":bugeyes:", title: "New customer signup" },
+  upgrade: { emoji: ":stonks:", title: "Subscription upgraded" },
+  downgrade: { emoji: ":notstonks:", title: "Subscription downgraded" },
+  update: { emoji: ":stonks:", title: "Subscription updated" },
   cancelling: {
+    emoji: ":warning:",
     title: "Subscription cancelling",
     note: mrkdwn`They stay on their plan until the end of the billing period, then move back to the free tier. Worth reaching out to learn why.`,
   },
   cancelled: {
+    emoji: ":caleb-sad:",
     title: "Subscription cancelled",
     note: mrkdwn`They've been moved back to the free tier.`,
   },
@@ -259,7 +261,7 @@ export async function alertCustomerLifecycle(
     : undefined;
   const planDetails = [plan, alert.price].filter(Boolean).join(" · ");
 
-  const blocks: SlackBlock[] = [header(meta.title)];
+  const blocks: SlackBlock[] = [header(`${meta.emoji} ${meta.title}`)];
   if (meta.note) {
     blocks.push(section(meta.note));
   }
@@ -308,12 +310,13 @@ export type PaymentAlert = {
 async function alertPayment(
   alert: PaymentAlert,
   kind: "failed" | "recovered",
+  emoji: string,
   title: string,
   note: Mrkdwn,
 ): Promise<void> {
   const amount = formatPrice(alert.amount);
   const blocks: SlackBlock[] = [
-    header(title),
+    header(`${emoji} ${title}`),
     section(note),
     section(mrkdwn`*Amount*\n${amount}`),
     section(mrkdwn`*Customer*\n${alert.name}\n${alert.email}`),
@@ -330,6 +333,7 @@ export async function alertPaymentFailed(alert: PaymentAlert): Promise<void> {
   await alertPayment(
     alert,
     "failed",
+    ":warning:",
     "Payment failed",
     mrkdwn`We should reach out to help resolve the payment issue.`,
   );
@@ -339,6 +343,7 @@ export async function alertPaymentRecovered(alert: PaymentAlert): Promise<void> 
   await alertPayment(
     alert,
     "recovered",
+    ":tada:",
     "Payment recovered",
     mrkdwn`Payment went through after a previous failure. Their service should now be restored.`,
   );

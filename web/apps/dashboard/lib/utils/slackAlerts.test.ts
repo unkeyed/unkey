@@ -331,7 +331,7 @@ describe("alertCustomerLifecycle", () => {
       livemode: true,
     });
 
-    expect(headerText()).toBe("New customer signup");
+    expect(headerText()).toBe(":bugeyes: New customer signup");
     expect(fieldTexts()).toEqual(["*Workspace*\nAcme", "*Plan*\nPro · $25"]);
     expect(sentText()).toContain("*Customer*\nJane\njane@acme.com");
     expect(sentText()).toContain(`Workspace ID: \`${workspaceId}\``);
@@ -356,7 +356,7 @@ describe("alertCustomerLifecycle", () => {
       price: "$25",
     });
 
-    expect(headerText()).toBe("Subscription upgraded");
+    expect(headerText()).toBe(":stonks: Subscription upgraded");
     expect(fieldTexts()).toContain("*Plan*\nFree → Pro · $25");
   });
 
@@ -371,7 +371,7 @@ describe("alertCustomerLifecycle", () => {
       previousProduct: "Pro",
     });
 
-    expect(headerText()).toBe("Subscription downgraded");
+    expect(headerText()).toBe(":notstonks: Subscription downgraded");
     expect(fieldTexts()).toContain("*Plan*\nPro → Free");
   });
 
@@ -386,7 +386,7 @@ describe("alertCustomerLifecycle", () => {
       price: "$25",
     });
 
-    expect(headerText()).toBe("Subscription cancelling");
+    expect(headerText()).toBe(":warning: Subscription cancelling");
     expect(sentText()).toContain("Worth reaching out to learn why.");
   });
 
@@ -467,6 +467,7 @@ describe("payment alerts", () => {
   it.each([
     {
       send: alertPaymentFailed,
+      emoji: ":warning:",
       title: "Payment failed",
       amount: 2499,
       rendered: "$24.99",
@@ -474,6 +475,7 @@ describe("payment alerts", () => {
     },
     {
       send: alertPaymentRecovered,
+      emoji: ":tada:",
       title: "Payment recovered",
       amount: 5001,
       rendered: "$50.01",
@@ -481,11 +483,11 @@ describe("payment alerts", () => {
     },
   ])(
     "renders $title with the amount, customer contact, Stripe link and copyable ID",
-    async ({ send, title, amount, rendered, livemode }) => {
+    async ({ send, emoji, title, amount, rendered, livemode }) => {
       const stripeCustomerId = `cus_${crypto.randomUUID()}`;
       await send({ email: "jane@acme.com", name: "Jane", amount, stripeCustomerId, livemode });
 
-      expect(headerText()).toBe(title);
+      expect(headerText()).toBe(`${emoji} ${title}`);
       expect(sentText()).toContain(`*Amount*\n${rendered}`);
       expect(sentText()).toContain("*Customer*\nJane\njane@acme.com");
       expect(sentText()).toContain(`Stripe customer: \`${stripeCustomerId}\``);
