@@ -88,6 +88,7 @@ func intersectPermissions(ctx context.Context, workspaceID string, roles []strin
 		AuthorizedWorkspaceID: workspaceID,
 		Permissions:           workos.PermissionsForRoles(workspaceID, roles),
 	}
+
 	kept := make([]string, 0, len(stored))
 	for _, permission := range stored {
 		if err := ctx.Err(); err != nil {

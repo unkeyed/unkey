@@ -41,16 +41,26 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 				fault.Public("CLI login is not configured on this API."),
 			)
 		}
+
 		loginID := newLoginID()
 		err = db.Query.InsertDeviceAuthorization(ctx, s.DB.RW(), db.InsertDeviceAuthorizationParams{
-			ID:                 loginID,
-			UserCode:           userCode,
-			ExpiresAt:          expiresAt,
-			Status:             db.DeviceAuthorizationsStatusPending,
-			DeviceName:         sql.NullString{String: deviceName, Valid: deviceName != ""},
-			RequesterIp:        sql.NullString{String: req.RemoteIP, Valid: req.RemoteIP != ""},
-			RequesterUserAgent: sql.NullString{String: userAgent, Valid: userAgent != ""},
-			CreatedAt:          now,
+			ID:        loginID,
+			UserCode:  userCode,
+			ExpiresAt: expiresAt,
+			Status:    db.DeviceAuthorizationsStatusPending,
+			DeviceName: sql.NullString{
+				String: deviceName,
+				Valid:  deviceName != "",
+			},
+			RequesterIp: sql.NullString{
+				String: req.RemoteIP,
+				Valid:  req.RemoteIP != "",
+			},
+			RequesterUserAgent: sql.NullString{
+				String: userAgent,
+				Valid:  userAgent != "",
+			},
+			CreatedAt: now,
 		})
 		if db.IsDuplicateKeyError(err) {
 			lastErr = err
@@ -59,6 +69,7 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 		if err != nil {
 			return Started{}, err
 		}
+
 		return Started{
 			LoginID:         loginID,
 			UserCode:        userCode,
@@ -67,6 +78,7 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 			Interval:        pollIntervalSeconds,
 		}, nil
 	}
+
 	return Started{}, fault.Wrap(lastErr,
 		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 		fault.Internal("could not allocate a device login code"),
