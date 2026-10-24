@@ -86,7 +86,7 @@ examples:
     summary: Disable a portal
     description: Stop minting new sessions without touching anything else
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd
       enabled: false
   rename:
     summary: Change the slug by slug
@@ -98,17 +98,17 @@ examples:
     summary: Change one branding field
     description: Set the colour and leave the logo as it is
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd
       primaryColor: "#0ea5e9"
   removeLogo:
     summary: Clear the logo
     description: Null clears a single branding field
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd
       logoUrl: null
   remap:
     summary: Re-point at another keyspace
     description: Revokes the portal's live sessions
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd
       keyspaceId: ks_5678efgh
