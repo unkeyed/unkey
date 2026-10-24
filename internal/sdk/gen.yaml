@@ -1,0 +1,67 @@
+configVersion: 2.0.0
+generation:
+  sdkClassName: Client
+  maintainOpenAPIOrder: true
+  usageSnippets:
+    optionalPropertyRendering: withExample
+    sdkInitStyle: constructor
+  useClassNamesForArrayFields: true
+  fixes:
+    nameResolutionFeb2025: false
+    parameterOrderingFeb2024: false
+    requestResponseComponentNamesFeb2024: false
+    securityFeb2025: false
+    sharedErrorComponentsApr2025: false
+    sharedNestedComponentsJan2026: false
+    nameOverrideFeb2026: false
+  auth:
+    oAuth2ClientCredentialsEnabled: true
+    oAuth2PasswordEnabled: true
+    hoistGlobalSecurity: true
+  inferSSEOverload: true
+  sdkHooksConfigAccess: true
+  schemas:
+    allOfMergeStrategy: shallowMerge
+  requestBodyFieldName: body
+  versioningStrategy: automatic
+  persistentEdits: {}
+  tests:
+    generateTests: false
+    generateNewTests: true
+    skipResponseBodyAssertions: false
+  telemetryEnabled: false
+go:
+  version: 0.0.0
+  additionalDependencies: {}
+  baseErrorName: ClientError
+  clientServerStatusCodesAsErrors: true
+  defaultErrorName: APIError
+  enableCustomCodeRegions: false
+  enableSkipDeserialization: false
+  envVarPrefix: ""
+  flattenGlobalSecurity: true
+  forwardCompatibleEnumsByDefault: true
+  forwardCompatibleUnionsByDefault: tagged-and-untagged
+  imports:
+    option: openapi
+    paths:
+      callbacks: models/callbacks
+      errors: models/apierrors
+      operations: models/operations
+      shared: models/components
+      webhooks: models/webhooks
+  includeEmptyObjects: true
+  inferUnionDiscriminators: true
+  inputModelSuffix: input
+  maxMethodParams: 1
+  methodArguments: require-security-and-request
+  modulePath: github.com/unkeyed/unkey/internal/sdk
+  multipartArrayFormat: standard
+  nullableOptionalWrapper: true
+  outputModelSuffix: output
+  respectRequiredFields: false
+  respectTitlesForPrimitiveUnionMembers: true
+  responseFormat: envelope-http
+  sdkPackageAlias: sdk
+  sdkPackageName: sdk
+  unionStrategy: populated-fields
