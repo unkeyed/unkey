@@ -23,7 +23,7 @@ export function useDeploymentPage() {
     refetchDomains,
   } = useProjectData();
   const { app } = useAppCurrentDeployment();
-  const { steps, derivedStatus } = useDeploymentStatus(deployment);
+  const { steps, derivedStatus } = useDeploymentStatus(deployment, { loadEndedSteps: true });
   const showSuccessBanner = useSuccessBanner(deployment.status);
 
   const ready = deployment.status === "ready";
