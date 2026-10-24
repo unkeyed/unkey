@@ -98,6 +98,20 @@ func TestPortalSessionAnalyticsEnforcesDataAge(t *testing.T) {
 		require.Equal(c, int64(60_000), res.Body.BucketMillis, "bucket size must use the clamped two-hour window")
 		require.Equal(c, int64(1), sumTotals(res.Body.Keys), "only the event after the cutoff is visible")
 	}, 30*time.Second, time.Second)
+
+	future := testutil.CallRoute[Request, Response](h, route, headers, Request{
+		StartTime: now - 60*dayMs,
+		EndTime:   now + 365*dayMs,
+	})
+	require.Equal(t, 200, future.Status)
+	require.NotNil(t, future.Body)
+	require.Equal(t, int64(2), sumTotals(future.Body.Keys))
+	for _, series := range future.Body.Keys {
+		require.LessOrEqual(t, len(series.Data), 9, "future timestamps must not expand the zero-filled window")
+		for _, point := range series.Data {
+			require.LessOrEqual(t, point.Time, now)
+		}
+	}
 }
 
 // newHandler builds the standalone portal.getVerifications handler backed by the
