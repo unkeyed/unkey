@@ -46,18 +46,15 @@ type Handler struct {
 	Vault     vault.VaultServiceClient
 }
 
-// maskCreateKeyPermissions hides a keyspace from callers who cannot read it
-// or its keys. Callers who can read it get a 403 that names the missing
+// maskCreateKeyPermissions hides a keyspace from callers who cannot read it.
+// Callers who can read it get a 403 that names the missing
 // action. Resource ids in that 403 are removed by the error middleware.
 func maskCreateKeyPermissions(err error, granted []string, query rbac.PermissionQuery, keyspace urn.Keyspace) error {
 	return apierrors.MaskInsufficientPermissionsWithVisibility(
 		err,
 		granted,
 		query,
-		rbac.Or(
-			rbac.U(keyspace, permissions.Read),
-			rbac.U(keyspace.Key("*"), permissions.Read),
-		),
+		rbac.U(keyspace, permissions.Read),
 		codes.Data.Api.NotFound.URN(),
 		"The specified API was not found.",
 	)

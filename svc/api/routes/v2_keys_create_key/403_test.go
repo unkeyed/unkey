@@ -105,7 +105,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 		require.NotContains(t, res.RawBody, keySpaceID)
 	})
 
-	t.Run("wrong action", func(t *testing.T) {
+	t.Run("key read does not reveal the API", func(t *testing.T) {
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", h.Resources().UserWorkspace.ID, projectID, keySpaceID))
 
 		headers := http.Header{
@@ -113,12 +113,11 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "#write")
-		require.Contains(t, res.Body.Error.Detail, "Log in again")
-		require.Contains(t, res.Body.Error.Detail, "grant it")
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{ApiId: uid.New(uid.APIPrefix)})
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, missing.Status, res.Status)
+		require.Equal(t, missing.Body.Error, res.Body.Error)
 		require.NotContains(t, res.RawBody, keySpaceID)
 	})
 
