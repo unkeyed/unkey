@@ -10,6 +10,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -23,25 +24,34 @@ const (
 type Config struct {
 	// DB lists workspaces that already have ClickHouse users.
 	DB db.Database
+	// Heartbeat is pinged after every run, including the state read that skips
+	// reconfiguration. Must not be nil; use healthcheck.NewNoop() if monitoring
+	// is not configured
+	Heartbeat healthcheck.Heartbeat
 }
 
 // Handler executes RunClickhouseUserReconcile.
 type Handler struct {
-	db db.Database
+	db        db.Database
+	heartbeat healthcheck.Heartbeat
 }
 
 // New constructs a Handler.
 func New(cfg Config) (*Handler, error) {
-	if err := assert.NotNil(cfg.DB, "DB must not be nil"); err != nil {
+	if err := assert.All(
+		assert.NotNil(cfg.DB, "DB must not be nil"),
+		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"),
+	); err != nil {
 		return nil, err
 	}
 
-	return &Handler{db: cfg.DB}, nil
+	return &Handler{db: cfg.DB, heartbeat: cfg.Heartbeat}, nil
 }
 
 // Handle reconfigures all existing users once for each distinct allowed-table
 // fingerprint. Successful runs store the fingerprint in Restate state; later
-// ticks become a state read until the desired grants change again.
+// ticks become a state read until the desired grants change again. Both paths
+// ping the heartbeat, so a green heartbeat means the handler ran.
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunClickhouseUserReconcileRequest,
@@ -52,6 +62,9 @@ func (h *Handler) Handle(
 		return nil, fmt.Errorf("get applied allowed-table fingerprint: %w", err)
 	}
 	if appliedFingerprint == fingerprint {
+		if err := h.sendHeartbeat(ctx); err != nil {
+			return nil, err
+		}
 		return &hydrav1.RunClickhouseUserReconcileResponse{UsersReconfigured: 0}, nil
 	}
 
@@ -93,7 +106,21 @@ func (h *Handler) Handle(
 	restate.Set(ctx, stateKeyAllowedTablesFingerprint, fingerprint)
 	logger.Info("reconfigured clickhouse workspace users", "users", len(workspaceIDs), "fingerprint", fingerprint)
 
+	if err := h.sendHeartbeat(ctx); err != nil {
+		return nil, err
+	}
+
 	return &hydrav1.RunClickhouseUserReconcileResponse{
 		UsersReconfigured: int32(len(workspaceIDs)),
 	}, nil
+}
+
+// sendHeartbeat is journaled so a replay after the ping does not send it again
+func (h *Handler) sendHeartbeat(ctx restate.ObjectContext) error {
+	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+		return h.heartbeat.Ping(rc)
+	}, restate.WithName("send heartbeat")); err != nil {
+		return fmt.Errorf("send heartbeat: %w", err)
+	}
+	return nil
 }

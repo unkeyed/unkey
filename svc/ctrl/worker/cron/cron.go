@@ -85,16 +85,18 @@ func (s *Service) DeploySpendCheckServer() hydrav1.DeploySpendCheckServiceServer
 // not configured. This keeps each handler's heartbeat call unconditional
 // (no nil checks scattered through the codebase).
 type Heartbeats struct {
-	BuildLimitSync     healthcheck.Heartbeat
-	QuotaCheck         healthcheck.Heartbeat
-	KeyRefill          healthcheck.Heartbeat
-	KeyLastUsedSync    healthcheck.Heartbeat
-	AuditLogExport     healthcheck.Heartbeat
-	AuditLogCleanup    healthcheck.Heartbeat
-	RatelimitCleanup   healthcheck.Heartbeat
-	DeployBillingPush  healthcheck.Heartbeat
-	DeployBillingClose healthcheck.Heartbeat
-	DeploySpendCheck   healthcheck.Heartbeat
+	BuildLimitSync          healthcheck.Heartbeat
+	QuotaCheck              healthcheck.Heartbeat
+	KeyRefill               healthcheck.Heartbeat
+	KeyLastUsedSync         healthcheck.Heartbeat
+	AuditLogExport          healthcheck.Heartbeat
+	AuditLogCleanup         healthcheck.Heartbeat
+	RatelimitCleanup        healthcheck.Heartbeat
+	DeployBillingPush       healthcheck.Heartbeat
+	DeployBillingClose      healthcheck.Heartbeat
+	DeploySpendCheck        healthcheck.Heartbeat
+	ClickhouseUserReconcile healthcheck.Heartbeat
+	ScaleDownIdle           healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
@@ -165,6 +167,8 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingClose, "Heartbeats.DeployBillingClose must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeploySpendCheck, "Heartbeats.DeploySpendCheck must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.ClickhouseUserReconcile, "Heartbeats.ClickhouseUserReconcile must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.ScaleDownIdle, "Heartbeats.ScaleDownIdle must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
@@ -240,7 +244,10 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	clickhouseUserReconcileH, err := clickhouseuserreconcile.New(clickhouseuserreconcile.Config{DB: cfg.DB})
+	clickhouseUserReconcileH, err := clickhouseuserreconcile.New(clickhouseuserreconcile.Config{
+		DB:        cfg.DB,
+		Heartbeat: cfg.Heartbeats.ClickhouseUserReconcile,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -296,6 +303,7 @@ func New(cfg Config) (*Service, error) {
 	idlePreviewH, err := idlepreview.New(idlepreview.Config{
 		DB:         cfg.DB,
 		Clickhouse: cfg.Clickhouse,
+		Heartbeat:  cfg.Heartbeats.ScaleDownIdle,
 	})
 	if err != nil {
 		return nil, err
