@@ -21,6 +21,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -105,7 +106,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
-	undrained, err := c.hasUndrainedPods(ctx, req.GetK8SNamespace(), req.GetDeploymentId())
+	undrained, err := c.hasUndrainedPods(req.GetK8SNamespace(), req.GetDeploymentId())
 	if err != nil {
 		return err
 	}
@@ -136,7 +137,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return fmt.Errorf("failed to ensure cilium network policy: %w", err)
 	}
 
-	status, err := c.buildDeploymentStatus(ctx, workload{
+	status, err := c.buildDeploymentStatus(workload{
 		namespace:    applied.Namespace,
 		k8sName:      applied.Name,
 		deploymentID: req.GetDeploymentId(),
@@ -490,16 +491,14 @@ func useReplacementStrategy(d *appsv1.Deployment) {
 // hasUndrainedPods reports whether the deployment runs pods whose preStop hook
 // drains for less than preStopDrainSeconds, such as pods from before krane
 // added the drain.
-func (c *Controller) hasUndrainedPods(ctx context.Context, namespace, deploymentID string) (bool, error) {
-	pods, err := c.clientSet.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.New().DeploymentID(deploymentID).ToString(),
-	})
+func (c *Controller) hasUndrainedPods(namespace, deploymentID string) (bool, error) {
+	selector := k8slabels.SelectorFromSet(k8slabels.Set{labels.LabelKeyDeploymentID: deploymentID})
+	pods, err := c.pods.Pods(namespace).List(selector)
 	if err != nil {
 		return false, fmt.Errorf("failed to list pods: %w", err)
 	}
 
-	for i := range pods.Items {
-		pod := &pods.Items[i]
+	for _, pod := range pods {
 		if pod.DeletionTimestamp == nil && podDrainSeconds(pod) < preStopDrainSeconds {
 			return true, nil
 		}

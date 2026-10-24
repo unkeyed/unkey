@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
 )
 
 type workload struct {
@@ -40,7 +41,7 @@ func isLegacyReplicaSet(rs *appsv1.ReplicaSet) bool {
 	return metav1.GetControllerOf(rs) == nil
 }
 
-func (c *Controller) workloadForReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet) (workload, error) {
+func (c *Controller) workloadForReplicaSet(rs *appsv1.ReplicaSet) (workload, error) {
 	owner := metav1.GetControllerOf(rs)
 	if owner == nil {
 		return workloadFromReplicaSet(rs)
@@ -49,7 +50,7 @@ func (c *Controller) workloadForReplicaSet(ctx context.Context, rs *appsv1.Repli
 		return workload{}, fmt.Errorf("replicaset %s/%s is controlled by unexpected kind %s", rs.Namespace, rs.Name, owner.Kind)
 	}
 
-	d, err := c.clientSet.AppsV1().Deployments(rs.Namespace).Get(ctx, owner.Name, metav1.GetOptions{})
+	d, err := c.deployments.Deployments(rs.Namespace).Get(owner.Name)
 	if err != nil {
 		return workload{}, err
 	}
@@ -65,66 +66,33 @@ func managedWorkloadSelector() string {
 }
 
 func (c *Controller) forEachWorkload(ctx context.Context, fn func(ctx context.Context, w workload)) {
-	err := c.forEachDeploymentPage(ctx, func(deployments []appsv1.Deployment) {
-		conc.ForEach(ctx, deployments, func(ctx context.Context, d *appsv1.Deployment) {
-			w, err := workloadFromDeployment(d)
-			if err != nil {
-				logger.Error("skipping deployment", "error", err.Error())
-				return
-			}
-			fn(ctx, w)
-		})
-	})
+	deployments, err := c.deployments.List(k8slabels.Everything())
 	if err != nil {
 		logger.Error("unable to list deployments", "error", err.Error())
 	}
-
-	cursor := ""
-	for {
-		replicaSets, err := c.clientSet.AppsV1().ReplicaSets("").List(ctx, metav1.ListOptions{
-			LabelSelector: managedWorkloadSelector(),
-			Continue:      cursor,
-		})
+	conc.ForEach(ctx, deployments, func(ctx context.Context, d **appsv1.Deployment) {
+		w, err := workloadFromDeployment(*d)
 		if err != nil {
-			logger.Error("unable to list replicaSets", "error", err.Error())
+			logger.Error("skipping deployment", "error", err.Error())
 			return
 		}
+		fn(ctx, w)
+	})
 
-		conc.ForEach(ctx, replicaSets.Items, func(ctx context.Context, rs *appsv1.ReplicaSet) {
-			if !isLegacyReplicaSet(rs) {
-				return
-			}
-			w, err := workloadFromReplicaSet(rs)
-			if err != nil {
-				logger.Error("skipping replicaset", "error", err.Error())
-				return
-			}
-			fn(ctx, w)
-		})
-
-		cursor = replicaSets.Continue
-		if cursor == "" {
+	replicaSets, err := c.replicaSets.List(k8slabels.Everything())
+	if err != nil {
+		logger.Error("unable to list replicaSets", "error", err.Error())
+		return
+	}
+	conc.ForEach(ctx, replicaSets, func(ctx context.Context, rs **appsv1.ReplicaSet) {
+		if !isLegacyReplicaSet(*rs) {
 			return
 		}
-	}
-}
-
-func (c *Controller) forEachDeploymentPage(ctx context.Context, fn func([]appsv1.Deployment)) error {
-	cursor := ""
-	for {
-		deployments, err := c.clientSet.AppsV1().Deployments("").List(ctx, metav1.ListOptions{
-			LabelSelector: managedWorkloadSelector(),
-			Continue:      cursor,
-		})
+		w, err := workloadFromReplicaSet(*rs)
 		if err != nil {
-			return err
+			logger.Error("skipping replicaset", "error", err.Error())
+			return
 		}
-
-		fn(deployments.Items)
-
-		cursor = deployments.Continue
-		if cursor == "" {
-			return nil
-		}
-	}
+		fn(ctx, w)
+	})
 }

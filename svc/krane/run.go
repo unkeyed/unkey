@@ -252,6 +252,10 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Go(func(ctx context.Context) error {
 		defer close(leadershipDone)
 
+		if err := deploymentCtrl.StartCaches(ctx); err != nil {
+			return fmt.Errorf("start deployment caches: %w", err)
+		}
+
 		identity := uid.New(uid.InstancePrefix)
 		return runWithLeadership(ctx, leaseClient, namespace, identity, func(ctx context.Context) {
 			metrics.Leader.Set(1)

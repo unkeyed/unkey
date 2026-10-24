@@ -209,24 +209,6 @@ var (
 		[]string{"component", "source"},
 	)
 
-	// PodWatchReconnectsTotal counts pod watch reconnect attempts by reason.
-	// Events arriving during the 1-5s reconnect backoff are dropped and fall
-	// to the resync loop, so a high rate here correlates with lag spikes
-	// on the "resync" label of PodWatchDeliveryLagSeconds.
-	//
-	// Labels:
-	//   - "component": "deployment"
-	//   - "reason": "channel_closed", "error"
-	PodWatchReconnectsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "krane",
-			Name:      "pod_watch_reconnects_total",
-			Help:      "Pod watch reconnect attempts by reason.",
-		},
-		[]string{"component", "reason"},
-	)
-
 	// ReportStatusDurationSeconds measures krane-side latency of the
 	// ReportDeploymentStatus RPC, including circuit breaker overhead.
 	//
