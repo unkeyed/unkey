@@ -5447,6 +5447,15 @@ components:
             required:
                 - status
                 - interval
+            if:
+                properties:
+                    status:
+                        const: complete
+                required:
+                    - status
+            then:
+                required:
+                    - credentials
             properties:
                 status:
                     type: string
@@ -5456,7 +5465,7 @@ components:
                         - expired_token
                         - complete
                     description: |
-                        `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
+                        `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
                 interval:
                     type: integer
                     format: int64
@@ -5464,24 +5473,36 @@ components:
                 detail:
                     type: string
                     description: Human-readable reason for a terminal status.
+                credentials:
+                    $ref: '#/components/schemas/V2CliExchangeTokenCredentials'
+        V2CliExchangeTokenCredentials:
+            type: object
+            description: Session credentials returned when token exchange is complete.
+            required:
+                - accessToken
+                - refreshToken
+                - expiresIn
+                - workspaceId
+                - sessionId
+            properties:
                 accessToken:
                     type: string
                     x-unkey-redact: true
-                    description: Short-lived access token. Present only when status is complete.
+                    description: Short-lived access token.
                 refreshToken:
                     type: string
                     x-unkey-redact: true
-                    description: Rotating refresh token. Present only when status is complete. Store it. It is returned only once.
+                    description: Rotating refresh token. Store it. It is returned only once.
                 expiresIn:
                     type: integer
                     format: int64
-                    description: Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
+                    description: Seconds until the access token expires. Access tokens last 15 minutes.
                 workspaceId:
                     type: string
-                    description: Workspace the session belongs to. Present only when status is complete.
+                    description: Workspace the session belongs to.
                 sessionId:
                     type: string
-                    description: CLI session id. Present only when status is complete.
+                    description: CLI session id.
         V2CliGetDeviceLoginResponseData:
             type: object
             required:

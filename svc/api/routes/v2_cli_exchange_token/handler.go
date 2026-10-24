@@ -46,14 +46,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{RequestId: s.RequestID()},
 			Data: openapi.V2CliExchangeTokenResponseData{
-				AccessToken:  &tokens.AccessToken,
-				Detail:       nil,
-				ExpiresIn:    &tokens.ExpiresIn,
-				Interval:     0,
-				RefreshToken: &tokens.RefreshToken,
-				SessionId:    &tokens.SessionID,
-				Status:       openapi.V2CliExchangeTokenResponseDataStatus(clidevice.PollComplete),
-				WorkspaceId:  &tokens.WorkspaceID,
+				Credentials: &openapi.V2CliExchangeTokenCredentials{
+					AccessToken:  tokens.AccessToken,
+					RefreshToken: tokens.RefreshToken,
+					ExpiresIn:    tokens.ExpiresIn,
+					WorkspaceId:  tokens.WorkspaceID,
+					SessionId:    tokens.SessionID,
+				},
+				Detail:   nil,
+				Interval: 0,
+				Status:   openapi.V2CliExchangeTokenResponseDataStatus(clidevice.PollComplete),
 			},
 		})
 	}
@@ -68,25 +70,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	data := openapi.V2CliExchangeTokenResponseData{
-		AccessToken:  nil,
-		Detail:       nil,
-		ExpiresIn:    nil,
-		Interval:     int64(result.Interval),
-		RefreshToken: nil,
-		SessionId:    nil,
-		Status:       openapi.V2CliExchangeTokenResponseDataStatus(result.Status),
-		WorkspaceId:  nil,
+		Credentials: nil,
+		Detail:      nil,
+		Interval:    int64(result.Interval),
+		Status:      openapi.V2CliExchangeTokenResponseDataStatus(result.Status),
 	}
 	if result.Detail != "" {
 		data.Detail = &result.Detail
 	}
-	if result.AccessToken != "" {
-		data.AccessToken = &result.AccessToken
-		data.RefreshToken = &result.RefreshToken
-		expiresIn := result.ExpiresIn
-		data.ExpiresIn = &expiresIn
-		data.WorkspaceId = &result.WorkspaceID
-		data.SessionId = &result.SessionID
+	if result.Status == clidevice.PollComplete {
+		data.Credentials = &openapi.V2CliExchangeTokenCredentials{
+			AccessToken:  result.AccessToken,
+			RefreshToken: result.RefreshToken,
+			ExpiresIn:    result.ExpiresIn,
+			WorkspaceId:  result.WorkspaceID,
+			SessionId:    result.SessionID,
+		}
 	}
 
 	return s.JSON(http.StatusOK, Response{
