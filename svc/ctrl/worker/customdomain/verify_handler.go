@@ -257,13 +257,7 @@ func (s *Service) RetryVerification(
 	logger.Info("retrying domain verification", "domain_id", domainID)
 
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, s.db.ResetCustomDomainVerification(stepCtx, db.ResetCustomDomainVerificationParams{
-			ID:                 domainID,
-			VerificationStatus: db.CustomDomainsVerificationStatusPending,
-			CheckAttempts:      0,
-			InvocationID:       sql.NullString{Valid: false},
-			UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
+		return restate.Void{}, s.resetVerification(stepCtx, domainID)
 	}, restate.WithName("reset verification"))
 	if err != nil {
 		return nil, err
@@ -275,6 +269,30 @@ func (s *Service) RetryVerification(
 	}
 
 	return &hydrav1.RetryVerificationResponse{}, nil
+}
+
+// resetVerification moves a domain back to pending. It refuses a verified
+// domain, as the ctrl RetryVerification does, so a retry cannot take a serving
+// domain out of verified.
+func (s *Service) resetVerification(ctx context.Context, domainID string) error {
+	dom, err := s.db.FindCustomDomainById(ctx, domainID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return restate.ToTerminalError(fmt.Errorf("domain record not found: %s", domainID), restate.WithErrorCode(404))
+		}
+		return fault.Wrap(err, fault.Internal("failed to fetch domain record"))
+	}
+	if dom.VerificationStatus == db.CustomDomainsVerificationStatusVerified {
+		return restate.ToTerminalError(fmt.Errorf("domain already verified: %s", domainID), restate.WithErrorCode(409))
+	}
+
+	return s.db.ResetCustomDomainVerification(ctx, db.ResetCustomDomainVerificationParams{
+		ID:                 domainID,
+		VerificationStatus: db.CustomDomainsVerificationStatusPending,
+		CheckAttempts:      0,
+		InvocationID:       sql.NullString{Valid: false},
+		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	})
 }
 
 // checkTXTRecord verifies that the domain has a TXT record proving ownership.

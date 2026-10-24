@@ -89,6 +89,20 @@ func TestVerifyDomainOldRowDoesNotTimeOut(t *testing.T) {
 		"an old row on a fresh invocation must pass the deadline check, got: %v", err)
 }
 
+// A retry must not move a serving domain back to pending. staleRowDB has no
+// reset query, so reaching the reset panics.
+func TestResetVerificationRefusesVerifiedDomain(t *testing.T) {
+	domainID := uid.New(uid.DomainPrefix)
+	svc := New(Config{DB: staleRowDB{row: db.CustomDomain{
+		ID:                 domainID,
+		Domain:             "serving.example.com",
+		VerificationStatus: db.CustomDomainsVerificationStatusVerified,
+	}}, CnameDomain: "cname.unkey.local"})
+
+	err := svc.resetVerification(context.Background(), domainID)
+	require.True(t, restate.IsTerminalError(err), "a verified domain must be refused, got: %v", err)
+}
+
 // The mirror of the test above. Here the row is new and the invocation is past
 // the window. The two tests disagree about which clock is old, so together they
 // pin which clock the deadline reads.
