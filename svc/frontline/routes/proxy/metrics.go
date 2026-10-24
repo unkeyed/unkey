@@ -38,7 +38,7 @@ var localRequestRetriesTotal = lazy.NewCounterVec(
 		Name:      "local_request_retries_total",
 		Help:      "Local-instance requests that hit at least one dial failure, labelled by final outcome.",
 	},
-	[]string{"outcome"},
+	lazy.Values("outcome", "recovered", "exhausted"),
 )
 
 // regionFallbacksTotal counts requests where every local instance dial-
@@ -56,5 +56,5 @@ var regionFallbacksTotal = lazy.NewCounterVec(
 		Name:      "region_fallbacks_total",
 		Help:      "Requests forwarded to a peer region after every local instance dial-failed.",
 	},
-	[]string{"to_region"},
+	lazy.Dynamic("to_region"),
 )

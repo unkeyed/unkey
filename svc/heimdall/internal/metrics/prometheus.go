@@ -14,7 +14,7 @@ var (
 			Name:      "collection_total",
 			Help:      "Total number of collection ticks.",
 		},
-		[]string{"result"}, // "success", "error"
+		lazy.Values("result", "success", "error"),
 	)
 
 	// CollectionDuration tracks how long each collection tick takes.
@@ -57,7 +57,7 @@ var (
 			Name:      "lifecycle_checkpoints_emitted_total",
 			Help:      "Total number of CRI lifecycle checkpoints written to the buffer.",
 		},
-		[]string{"kind"}, // "start", "stop"
+		lazy.Values("kind", "start", "stop"),
 	)
 
 	// LifecycleDrops counts CRI lifecycle events we could not emit a
@@ -70,7 +70,8 @@ var (
 			Name:      "lifecycle_checkpoints_dropped_total",
 			Help:      "Total CRI lifecycle events that did not produce a checkpoint. Each drop is a bounded undercharge.",
 		},
-		[]string{"kind", "reason"}, // kind: "start"|"stop"; reason: "pod_not_found"|"cgroup_read_failed"|"restart_count_unknown"
+		lazy.Values("kind", "start", "stop"),
+		lazy.Values("reason", "pod_not_found", "cgroup_read_failed", "restart_count_unknown"),
 	)
 
 	// PeriodicSkips counts pods the 5s periodic tick skipped and did NOT
@@ -85,7 +86,7 @@ var (
 			Name:      "periodic_skips_total",
 			Help:      "Pods skipped by the periodic collection tick (did not produce a checkpoint).",
 		},
-		[]string{"reason"}, // "restart_count_unknown", "cgroup_read_failed"
+		lazy.Values("reason", "restart_count_unknown", "cgroup_read_failed"),
 	)
 
 	// NetworkAttachFailures counts per-pod network attach failures by
@@ -99,7 +100,15 @@ var (
 			Name:      "network_attach_failures_total",
 			Help:      "Per-pod network attach failures, labeled by reason.",
 		},
-		[]string{"reason"}, // "sandbox_not_found", "netns_gone", "netns_open", "veth_lookup", "tcx_attach", "queue_full", "other"
+		lazy.Values("reason",
+			"sandbox_not_found",
+			"netns_gone",
+			"netns_open",
+			"veth_lookup",
+			"tcx_attach",
+			"queue_full",
+			"other",
+		),
 	)
 
 	// BPFMapEntries tracks how many per-pod counter entries are live in
@@ -161,7 +170,7 @@ var (
 			Name:      "cri_events_received_total",
 			Help:      "Raw CRI task events received from containerd, pre-filtering.",
 		},
-		[]string{"kind"}, // "start", "exit"
+		lazy.Values("kind", "start", "exit"),
 	)
 
 	// CRIReconnects counts containerd subscription reconnect attempts.
@@ -188,7 +197,7 @@ var (
 			Name:      "disk_read_errors_total",
 			Help:      "Failures reading ephemeral-volume disk usage. Each failure undercharges one tick.",
 		},
-		[]string{"op"}, // "stat_root", "stat_mount", "statfs"
+		lazy.Values("op", "stat_root", "stat_mount", "statfs"),
 	)
 
 	// NetworkReconcileEvictions counts attached entries closed by the

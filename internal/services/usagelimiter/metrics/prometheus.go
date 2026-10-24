@@ -45,7 +45,8 @@ var (
 			Name:      "decisions_total",
 			Help:      "Total number of usage limiter decisions.",
 		},
-		[]string{"source", "outcome"},
+		lazy.Values("source", "redis", "db"),
+		lazy.Values("outcome", "allowed", "denied"),
 	)
 
 	// UsagelimiterReplayOperations counts replay operations to the database by status
@@ -61,7 +62,7 @@ var (
 			Name:      "replay_operations_total",
 			Help:      "Total number of credit replay operations to database.",
 		},
-		[]string{"status"},
+		lazy.Values("status", "success", "error"),
 	)
 
 	// UsagelimiterReplayLatency measures the latency of replay operations to the database

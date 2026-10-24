@@ -31,7 +31,19 @@ var (
 			Name:      "verifications_total",
 			Help:      "Total number of Key verifications processed.",
 		},
-		[]string{"type", "code"},
+		lazy.Values("type", "key", "root_key"),
+		lazy.Values("code",
+			"VALID",
+			"NOT_FOUND",
+			"DISABLED",
+			"EXPIRED",
+			"FORBIDDEN",
+			"INSUFFICIENT_PERMISSIONS",
+			"RATE_LIMITED",
+			"USAGE_EXCEEDED",
+			"WORKSPACE_DISABLED",
+			"WORKSPACE_NOT_FOUND",
+		),
 	)
 
 	// KeyVerificationErrorsTotal tracks the number of errors in key verifications.
@@ -48,6 +60,6 @@ var (
 			Name:      "verification_errors_total",
 			Help:      "Total number of key verification errors",
 		},
-		[]string{"type"},
+		lazy.Values("type", "key", "root_key"),
 	)
 )

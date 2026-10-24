@@ -10,7 +10,7 @@ var (
 	// Use this to monitor deployment throughput and error rates.
 	//
 	// Labels:
-	//   - "resource_type": "deployment" or "cilium_network_policy"
+	//   - "resource_type": "deployment"
 	//   - "operation": "apply" or "delete"
 	//   - "result": "success" or "error"
 	ReconcileOperationsTotal = lazy.NewCounterVec(
@@ -20,14 +20,16 @@ var (
 			Name:      "reconcile_operations_total",
 			Help:      "Total number of reconciliation operations (apply/delete).",
 		},
-		[]string{"resource_type", "operation", "result"},
+		lazy.Values("resource_type", "deployment"),
+		lazy.Values("operation", "apply", "delete"),
+		lazy.Values("result", "success", "error"),
 	)
 
 	// ResyncCorrectionsTotal counts corrections made by the periodic resync loop.
 	// High values indicate the streaming path is missing events and resync is compensating.
 	//
 	// Labels:
-	//   - "resource_type": "deployment" or "cilium_network_policy"
+	//   - "resource_type": "deployment"
 	ResyncCorrectionsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -35,7 +37,7 @@ var (
 			Name:      "resync_corrections_total",
 			Help:      "Total number of corrections made by the resync loop (indicates missed streaming events).",
 		},
-		[]string{"resource_type"},
+		lazy.Values("resource_type", "deployment"),
 	)
 
 	// WatcherFullSyncsTotal counts how often the watcher performs a full sync
@@ -61,7 +63,7 @@ var (
 			Name:      "stream_connections_total",
 			Help:      "Total number of incremental stream connection attempts.",
 		},
-		[]string{"status"},
+		lazy.Values("status", "success", "error"),
 	)
 
 	// StreamEventsReceivedTotal counts events received on the incremental stream.
@@ -105,7 +107,7 @@ var (
 	//
 	// Labels:
 	//   - "source": "stream" or "full_sync"
-	//   - "resource_type": "deployment" or "cilium_network_policy"
+	//   - "resource_type": "deployment", or "unknown" for an unrecognized event
 	//   - "status": "success" or "error"
 	DispatchTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
@@ -114,7 +116,9 @@ var (
 			Name:      "dispatch_total",
 			Help:      "Total number of event dispatches to controllers.",
 		},
-		[]string{"source", "resource_type", "status"},
+		lazy.Values("source", "stream", "full_sync"),
+		lazy.Values("resource_type", "deployment"),
+		lazy.Values("status", "success", "error"),
 	)
 
 	// StreamErrorsTotal counts incremental streams that connected and then
@@ -142,7 +146,7 @@ var (
 			Name:      "full_sync_errors_total",
 			Help:      "Total number of full syncs that failed to open or ended with an error.",
 		},
-		[]string{"stage"},
+		lazy.Values("stage", "open", "receive"),
 	)
 
 	// FullSyncEventsReceivedTotal counts events received during a full sync.
@@ -173,7 +177,7 @@ var (
 	//   - "component": "deployment"
 	//   - "event_type": k8s watch event type ("added", "modified", "deleted")
 	//   - "outcome": "reported", "deduped", "skipped_no_rs", "skipped_rs_gone",
-	//                "skipped_no_deployment", "error"
+	//                "error"
 	PodWatchEventsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -181,7 +185,9 @@ var (
 			Name:      "pod_watch_events_total",
 			Help:      "Pod watch events received by krane controllers.",
 		},
-		[]string{"component", "event_type", "outcome"},
+		lazy.Values("component", "deployment"),
+		lazy.Dynamic("event_type"),
+		lazy.Values("outcome", "reported", "deduped", "skipped_no_rs", "skipped_rs_gone", "error"),
 	)
 
 	// PodWatchDeliveryLagSeconds measures time between the kubelet publishing
@@ -206,7 +212,8 @@ var (
 			Help:      "Lag between pod ContainersReady=True and krane observing it via the watch.",
 			Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60},
 		},
-		[]string{"component", "source"},
+		lazy.Values("component", "deployment"),
+		lazy.Values("source", "watch"),
 	)
 
 	// PodWatchReconnectsTotal counts pod watch reconnect attempts by reason.
@@ -224,7 +231,8 @@ var (
 			Name:      "pod_watch_reconnects_total",
 			Help:      "Pod watch reconnect attempts by reason.",
 		},
-		[]string{"component", "reason"},
+		lazy.Values("component", "deployment"),
+		lazy.Values("reason", "channel_closed", "error"),
 	)
 
 	// ReportStatusDurationSeconds measures krane-side latency of the
@@ -241,7 +249,8 @@ var (
 			Help:      "Duration of ReportDeploymentStatus calls from krane.",
 			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5},
 		},
-		[]string{"component", "result"},
+		lazy.Values("component", "deployment"),
+		lazy.Values("result", "success", "error"),
 	)
 
 	// ReportDedupedTotal counts reportIfChanged invocations that were skipped
@@ -256,7 +265,7 @@ var (
 			Name:      "report_deduped_total",
 			Help:      "Status reports skipped by fingerprint dedup.",
 		},
-		[]string{"component"},
+		lazy.Values("component", "deployment"),
 	)
 
 	// InstanceEventsEmittedTotal counts container lifecycle events
@@ -273,7 +282,8 @@ var (
 			Name:      "instance_events_emitted_total",
 			Help:      "Container lifecycle events successfully reported via ReportInstanceEvents.",
 		},
-		[]string{"kind", "reason"},
+		lazy.Values("kind", "running", "terminated", "waiting"),
+		lazy.Dynamic("reason"),
 	)
 
 	// InstanceEventsDedupDroppedTotal counts events dropped by the
@@ -290,7 +300,7 @@ var (
 			Name:      "instance_events_dedup_dropped_total",
 			Help:      "Container lifecycle events skipped because the LRU already saw them.",
 		},
-		[]string{"kind"},
+		lazy.Values("kind", "running", "terminated", "waiting"),
 	)
 
 	// Leader is 1 on the replica that holds the krane leader lease and 0 on
@@ -317,46 +327,15 @@ var (
 	)
 )
 
-// Init registers every krane metric and creates the label combinations krane
-// is known to emit, so each series is exported at 0 from startup. Call it after
-// lazy.SetRegistry. instance_events_emitted_total and pod_watch_events_total
-// are left lazy: the first has kubelet-supplied reasons, the second has too
-// many combinations for nothing that alerts on it.
+// Init exports the krane gauges at 0 from startup. Call it after
+// lazy.SetRegistry, which already exports the counters and histograms.
 func Init() {
-	WatcherFullSyncsTotal.Register()
-	StreamEventsReceivedTotal.Register()
-	StreamErrorsTotal.Register()
-	FullSyncEventsReceivedTotal.Register()
-	FullSyncDurationSeconds.Register()
-	InstanceEventsReportFailuresTotal.Register()
 	LastSuccessfulCheckpointUnixSeconds.Register()
 	Leader.Register()
 
-	for _, result := range []string{"success", "error"} {
-		StreamConnectionsTotal.WithLabelValues(result)
-		ReportStatusDurationSeconds.WithLabelValues("deployment", result)
-		for _, source := range []string{"stream", "full_sync"} {
-			DispatchTotal.WithLabelValues(source, "deployment", result)
-		}
-		for _, operation := range []string{"apply", "delete"} {
-			ReconcileOperationsTotal.WithLabelValues("deployment", operation, result)
-		}
-	}
-	for _, stage := range []string{"open", "receive"} {
-		FullSyncErrorsTotal.WithLabelValues(stage)
-	}
 	for _, state := range []string{"rolling", "stalled", "waiting"} {
 		RolloutGateWorkloads.WithLabelValues(state)
 	}
-	for _, reason := range []string{"channel_closed", "error"} {
-		PodWatchReconnectsTotal.WithLabelValues("deployment", reason)
-	}
-	for _, kind := range []string{"running", "terminated", "waiting"} {
-		InstanceEventsDedupDroppedTotal.WithLabelValues(kind)
-	}
-	ResyncCorrectionsTotal.WithLabelValues("deployment")
-	ReportDedupedTotal.WithLabelValues("deployment")
-	PodWatchDeliveryLagSeconds.WithLabelValues("deployment", "watch")
 }
 
 // ResetLeaderGauges zeroes the gauges only the leader sets, so a replica that

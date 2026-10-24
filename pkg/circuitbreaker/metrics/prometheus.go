@@ -16,5 +16,8 @@ var (
 		Subsystem: "circuitbreaker",
 		Name:      "requests_total",
 		Help:      "Tracks the number of requests made to the circuitbreaker by state.",
-	}, []string{"service", "action"})
+	},
+		lazy.Dynamic("service"),
+		lazy.Values("action", "open", "halfopen", "closed"),
+	)
 )
