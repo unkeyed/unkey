@@ -32,7 +32,7 @@ func TestPollWaitsUntilTheLoginIsApproved(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, withClientIP("203.0.113.41"), handler.Request{LoginId: &started.LoginID})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 	require.Equal(t, openapi.V2CliExchangeTokenResponseDataStatus("permissions_required"), res.Body.Data.Status)
-	require.Nil(t, res.Body.Data.AccessToken)
+	require.Nil(t, res.Body.Data.Credentials)
 }
 
 func TestPollRejectsAnUnknownLogin(t *testing.T) {

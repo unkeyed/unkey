@@ -1,6 +1,7 @@
 package openapi_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -23,16 +24,17 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, []string{
-		"code",              // portal exchangeCode request, the single-use code
-		"data.accessToken",  // portal exchangeCode response, and CLI poll and refresh responses
-		"data.key",          // createKey and rerollKey responses
-		"data.loginId",      // cli.startDeviceLogin response, the poll secret
-		"data.plaintext",    // getKey response, recoverable key material
-		"data.refreshToken", // cli poll and refresh responses
-		"data.url",          // portal URL, which carries the exchange code in its query
-		"data[].plaintext",  // listKeys response, one entry per key
-		"data[].value",      // listEnvironmentVariables response
-		"key",               // verifyKey and whoami requests
+		"code", // portal exchangeCode request, the single-use code
+		"data.accessToken",
+		"data.credentials.accessToken",
+		"data.credentials.refreshToken",
+		"data.key",         // createKey and rerollKey responses
+		"data.loginId",     // cli.startDeviceLogin response, the poll secret
+		"data.plaintext",   // getKey response, recoverable key material
+		"data.url",         // portal URL, which carries the exchange code in its query
+		"data[].plaintext", // listKeys response, one entry per key
+		"data[].value",     // listEnvironmentVariables response
+		"key",              // verifyKey and whoami requests
 		"loginId",
 		"permissions",
 		"refreshToken",
@@ -67,12 +69,28 @@ func TestRedactorFromSpecStripsKnownSecrets(t *testing.T) {
 		"portal exchangeCode request": `{"code":"pst_FIXTURE_LEAK"}`,
 		"portal access token":         `{"data":{"accessToken":"pat_FIXTURE_LEAK","expiresAt":1711386400000},"meta":{"requestId":"req_1"}}`,
 		"cli start response":          `{"data":{"loginId":"FIXTURE_LEAK","userCode":"ABCD-EFGH"},"meta":{"requestId":"req_1"}}`,
-		"cli poll response":           `{"data":{"accessToken":"FIXTURE_LEAK","refreshToken":"FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
 		"cli approve request":         `{"userCode":"FIXTURE_LEAK","permissions":["FIXTURE_LEAK"]}`,
 		"cli refresh request":         `{"refreshToken":"FIXTURE_LEAK"}`,
 		"cli poll request":            `{"loginId":"FIXTURE_LEAK"}`,
 		"truncated env var payload":   `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK`,
 	}
+	exchanged, err := json.Marshal(openapi.V2CliExchangeTokenResponseBody{
+		Data: openapi.V2CliExchangeTokenResponseData{
+			Status:   openapi.Complete,
+			Interval: 0,
+			Detail:   nil,
+			Credentials: &openapi.V2CliExchangeTokenCredentials{
+				AccessToken:  "FIXTURE_LEAK",
+				RefreshToken: "FIXTURE_LEAK",
+				ExpiresIn:    900,
+				WorkspaceId:  "",
+				SessionId:    "",
+			},
+		},
+		Meta: openapi.Meta{RequestId: ""},
+	})
+	require.NoError(t, err)
+	bodies["cli exchange response"] = string(exchanged)
 
 	for name, body := range bodies {
 		t.Run(name, func(t *testing.T) {
