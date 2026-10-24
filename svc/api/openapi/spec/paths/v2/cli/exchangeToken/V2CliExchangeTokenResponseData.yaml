@@ -1,32 +1,27 @@
 type: object
+description: Session credentials returned by a successful token exchange.
 required:
-  - status
-  - interval
-if:
-  properties:
-    status:
-      const: complete
-  required:
-    - status
-then:
-  required:
-    - credentials
+  - accessToken
+  - refreshToken
+  - expiresIn
+  - workspaceId
+  - sessionId
 properties:
-  status:
+  accessToken:
     type: string
-    enum:
-      - permissions_required
-      - access_denied
-      - expired_token
-      - complete
-    description: |
-      `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
-  interval:
+    x-unkey-redact: true
+    description: Short-lived access token.
+  refreshToken:
+    type: string
+    x-unkey-redact: true
+    description: Rotating refresh token. Store it. It is returned only once.
+  expiresIn:
     type: integer
     format: int64
-    description: Seconds to wait before polling again. Zero after a refresh-token exchange.
-  detail:
+    description: Seconds until the access token expires. Access tokens last 15 minutes.
+  workspaceId:
     type: string
-    description: Human-readable reason for a terminal status.
-  credentials:
-    $ref: ./V2CliExchangeTokenCredentials.yaml
+    description: Workspace the session belongs to.
+  sessionId:
+    type: string
+    description: CLI session id.

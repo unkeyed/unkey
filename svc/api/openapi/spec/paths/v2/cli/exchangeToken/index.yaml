@@ -6,9 +6,10 @@ post:
   description: |
     Supply exactly one of `loginId` or `refreshToken`. No authentication header is required.
     A `loginId` polls a device login started by cli.startDeviceLogin. While the user has not approved it,
-    the status is `permissions_required`. Approval returns access and refresh tokens exactly once.
+    the API returns HTTP 202 with a Retry-After header in seconds. Approval returns HTTP 200 with access and refresh tokens exactly once.
+    Denial returns HTTP 403. An expired login returns HTTP 410. Stop polling on either response.
     Device polling is rate limited per IP address.
-    A `refreshToken` rotates an existing session and returns `complete` with new tokens.
+    A `refreshToken` rotates an existing session and returns HTTP 200 with new tokens.
     The user's current membership and permissions are checked again. Reuse of the previous token
     after the retry grace period revokes the session.
     Access tokens last 15 minutes. A session expires after 7 days without a refresh,
@@ -24,11 +25,24 @@ post:
           $ref: ./V2CliExchangeTokenRequestBody.yaml
   responses:
     "200":
-      description: Current login state. `complete` includes the access token and refresh token.
+      description: Token exchange completed. Includes the access token and refresh token.
       content:
         application/json:
           schema:
             $ref: ./V2CliExchangeTokenResponseBody.yaml
+    "202":
+      description: Awaiting approval. Wait for Retry-After seconds before polling again.
+      headers:
+        Retry-After:
+          required: true
+          description: Seconds to wait before the next poll.
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliExchangeTokenPendingResponseBody.yaml
     "400":
       description: Invalid credential selection or unknown login.
       content:
@@ -42,11 +56,17 @@ post:
           schema:
             $ref: ../../../../error/UnauthorizedErrorResponse.yaml
     "403":
-      description: The user was removed or no longer has the session's permissions.
+      description: Login was denied, or the user was removed or no longer has the session's permissions.
       content:
         application/json:
           schema:
             $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "410":
+      description: The login expired. Start a new device login.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/GoneErrorResponse.yaml
     "429":
       description: Too many requests from this IP address.
       content:

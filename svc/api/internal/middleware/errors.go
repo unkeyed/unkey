@@ -247,7 +247,8 @@ func WithErrorHandling() zen.Middleware {
 				})
 
 			// Gone errors
-			case codes.UnkeyDataErrorsRatelimitNamespaceGone:
+			case codes.UnkeyDataErrorsRatelimitNamespaceGone,
+				codes.UnkeyAuthErrorsAuthenticationDeviceLoginExpired:
 				return s.ProblemJSON(http.StatusGone, openapi.GoneErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

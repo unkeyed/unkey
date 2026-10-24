@@ -26,11 +26,10 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 	require.Equal(t, []string{
 		"code", // portal exchangeCode request, the single-use code
 		"data.accessToken",
-		"data.credentials.accessToken",
-		"data.credentials.refreshToken",
-		"data.key",         // createKey and rerollKey responses
-		"data.loginId",     // cli.startDeviceLogin response, the poll secret
-		"data.plaintext",   // getKey response, recoverable key material
+		"data.key",       // createKey and rerollKey responses
+		"data.loginId",   // cli.startDeviceLogin response, the poll secret
+		"data.plaintext", // getKey response, recoverable key material
+		"data.refreshToken",
 		"data.url",         // portal URL, which carries the exchange code in its query
 		"data[].plaintext", // listKeys response, one entry per key
 		"data[].value",     // listEnvironmentVariables response
@@ -76,16 +75,11 @@ func TestRedactorFromSpecStripsKnownSecrets(t *testing.T) {
 	}
 	exchanged, err := json.Marshal(openapi.V2CliExchangeTokenResponseBody{
 		Data: openapi.V2CliExchangeTokenResponseData{
-			Status:   openapi.Complete,
-			Interval: 0,
-			Detail:   nil,
-			Credentials: &openapi.V2CliExchangeTokenCredentials{
-				AccessToken:  "FIXTURE_LEAK",
-				RefreshToken: "FIXTURE_LEAK",
-				ExpiresIn:    900,
-				WorkspaceId:  "",
-				SessionId:    "",
-			},
+			AccessToken:  "FIXTURE_LEAK",
+			RefreshToken: "FIXTURE_LEAK",
+			ExpiresIn:    900,
+			WorkspaceId:  "",
+			SessionId:    "",
 		},
 		Meta: openapi.Meta{RequestId: ""},
 	})

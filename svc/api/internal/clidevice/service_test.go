@@ -133,6 +133,9 @@ func TestPollIssuesASessionInsteadOfARootKey(t *testing.T) {
 	userID := uid.New(uid.TestPrefix)
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.8", UserAgent: "unkey-cli/1.0"})
 	require.NoError(t, err)
+	require.Equal(t, "http://localhost:3000/cli/device?user_code="+started.UserCode, started.VerificationURL)
+	require.Equal(t, int32(deviceTTL/time.Second), started.ExpiresIn)
+	require.EqualValues(t, pollIntervalSeconds, started.Interval)
 
 	pending, err := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID, RemoteIP: "127.0.0.1", UserAgent: "unkey-cli"})
 	require.NoError(t, err)

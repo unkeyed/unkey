@@ -60,12 +60,11 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 			return Started{}, err
 		}
 		return Started{
-			LoginID:                 loginID,
-			UserCode:                userCode,
-			VerificationURI:         verificationURI + "/cli/device",
-			VerificationURIComplete: complete,
-			ExpiresIn:               int32(deviceTTL / time.Second),
-			Interval:                pollIntervalSeconds,
+			LoginID:         loginID,
+			UserCode:        userCode,
+			VerificationURL: complete,
+			ExpiresIn:       int32(deviceTTL / time.Second),
+			Interval:        pollIntervalSeconds,
 		}, nil
 	}
 	return Started{}, fault.Wrap(lastErr,
