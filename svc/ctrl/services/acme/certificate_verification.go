@@ -27,10 +27,12 @@ func (s *Service) VerifyCertificate(
 
 	// Look up domain with cache
 	domain, hit, err := s.domainCache.SWR(ctx, domainName,
-		func(ctx context.Context) (db.CustomDomain, error) {
-			return s.db.FindCustomDomainByDomain(ctx, domainName)
+		func(ctx context.Context) (db.FindVerifiedDomainByHostnameRow, error) {
+			return s.db.FindVerifiedDomainByHostname(ctx, db.FindVerifiedDomainByHostnameParams{Domain: domainName})
 		},
-		caches.DefaultFindFirstOp,
+		// Frontline forwards challenges for pending rows too; a cached miss
+		// would 404 the CA's first request after verification.
+		caches.FoundOnlyOp,
 	)
 	if err != nil && !db.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeInternal, err)
