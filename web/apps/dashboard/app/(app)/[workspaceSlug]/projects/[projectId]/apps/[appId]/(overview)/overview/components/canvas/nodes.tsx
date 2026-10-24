@@ -41,7 +41,7 @@ export function Node({
         <Link
           href={link.href}
           aria-label={link.label}
-          className="absolute inset-0 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
+          className="absolute inset-0 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-7"
         />
       )}
       {children}
@@ -110,7 +110,7 @@ export function RowItem({
   value: ReactNode;
   fullValue?: string;
   hint?: ReactNode;
-  copy?: { value: string; label: string };
+  copy?: string;
 }) {
   const shown = <span className="truncate font-mono text-gray-12">{value}</span>;
   return (
@@ -128,11 +128,10 @@ export function RowItem({
         {hint != null && <span className="shrink-0 text-gray-10">{hint}</span>}
         {copy && (
           <CopyButton
-            value={copy.value}
+            value={copy}
             variant="ghost"
             className="relative z-10 size-4 shrink-0 p-0 [&_svg]:size-3"
-            aria-label={copy.label}
-            toastMessage={copy.value}
+            toastMessage={copy}
             src="app-canvas"
           />
         )}
