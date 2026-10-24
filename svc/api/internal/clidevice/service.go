@@ -24,6 +24,7 @@ const (
 	accessTTL           = 15 * time.Minute
 	sessionIdle         = 7 * 24 * time.Hour
 	sessionMax          = 30 * 24 * time.Hour
+
 	// refreshReuseGrace is how long the immediately previous refresh token
 	// still rotates the session. A client whose response was lost can retry
 	// inside this window without revoking the family. After it, that token
@@ -36,7 +37,6 @@ const (
 	pollLimitPerMinute  = 120
 )
 
-// PollStatus is the value cli.pollDeviceLogin returns in status.
 type PollStatus string
 
 const (
@@ -132,6 +132,7 @@ func (s *Service) limit(ctx context.Context, action string, remoteIP string, per
 	if s.Ratelimit == nil {
 		return nil
 	}
+
 	// The identifier is the client IP. Start and poll run before any workspace
 	// is chosen, and the request does not carry one. A workspace id would be
 	// missing or caller-supplied, so it cannot key this limit. Per-IP keeps

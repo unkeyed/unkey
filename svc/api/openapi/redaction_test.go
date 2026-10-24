@@ -33,10 +33,10 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 		"data[].plaintext",  // listKeys response, one entry per key
 		"data[].value",      // listEnvironmentVariables response
 		"key",               // verifyKey and whoami requests
-		"loginId",           // cli.pollDeviceLogin request
-		"permissions",       // cli.approveDeviceLogin request
-		"refreshToken",      // cli.refreshToken request
-		"userCode",          // cli.approveDeviceLogin request, the code shown in the terminal
+		"loginId",
+		"permissions",
+		"refreshToken",
+		"userCode",
 		"variables[].value", // setEnvironmentVariables request
 	}, paths)
 
