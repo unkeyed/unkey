@@ -162,13 +162,13 @@ function DeviceLoginView({
   return (
     <div aria-live="polite" className="flex w-full flex-col items-center gap-6 text-center">
       <StepIntro title="Authorize CLI" />
-      <LoginContext login={login} workspaceName={workspaceName} />
+      <LoginContext login={login} workspace={workspaceName} />
       <ClosedStatus login={login} />
     </div>
   );
 }
 
-function LoginContext({ login, workspaceName }: { login: DeviceLogin; workspaceName: string }) {
+function LoginContext({ login, workspace }: { login: DeviceLogin; workspace: ReactNode }) {
   const characters = formatUserCode(login.userCode)
     .split(" ")
     .filter((char) => char.length > 0)
@@ -209,9 +209,9 @@ function LoginContext({ login, workspaceName }: { login: DeviceLogin; workspaceN
             <TimestampInfo value={login.createdAt} displayType="relative" />
           </dd>
         </div>
-        <div>
-          <dt className="text-gray-11">Workspace</dt>
-          <dd className="text-gray-12">{workspaceName}</dd>
+        <div className="items-center">
+          <dt className="whitespace-nowrap text-gray-11">Workspace</dt>
+          <dd className="text-gray-12">{workspace}</dd>
         </div>
       </dl>
     </div>
@@ -314,8 +314,10 @@ function PendingLogin({
     return (
       <div className="flex w-full flex-col items-center gap-6 text-center">
         <StepIntro title="Authorize CLI" description="Confirm this code matches the terminal." />
-        <LoginContext login={login} workspaceName={workspaceName} />
-        <WorkspacePicker userCode={login.userCode} disabled={busy} />
+        <LoginContext
+          login={login}
+          workspace={<WorkspacePicker userCode={login.userCode} disabled={busy} />}
+        />
         <AlertBanner variant="warning" className="text-left">
           <IconTriangleWarningOutline18 className="size-3.5" />
           <AlertBannerTitle>Only continue if you started this login</AlertBannerTitle>
@@ -437,26 +439,23 @@ function WorkspacePicker({ userCode, disabled }: { userCode: string; disabled: b
   const available = trpc.workspace.listAvailable.useQuery();
   const orgs = available.data ?? [];
   if (orgs.length < 2 || !workspace?.orgId) {
-    return null;
+    return workspace?.name ?? null;
   }
   return (
-    <div className="flex w-full items-center justify-between gap-3 text-sm text-gray-11">
-      <span>Switch workspace</span>
-      <Combobox
-        aria-label="Workspace"
-        className="w-full max-w-60"
-        disabled={disabled}
-        options={orgs.map((org) => ({
-          value: org.orgId,
-          label: org.name,
-          searchValue: org.name,
-        }))}
-        value={workspace.orgId}
-        onSelect={(organizationId) => {
-          switchWorkspace(organizationId, routes.cli.device({ user_code: userCode }));
-        }}
-      />
-    </div>
+    <Combobox
+      aria-label="Workspace"
+      className="w-full max-w-60"
+      disabled={disabled}
+      options={orgs.map((org) => ({
+        value: org.orgId,
+        label: org.name,
+        searchValue: org.name,
+      }))}
+      value={workspace.orgId}
+      onSelect={(organizationId) => {
+        switchWorkspace(organizationId, routes.cli.device({ user_code: userCode }));
+      }}
+    />
   );
 }
 
