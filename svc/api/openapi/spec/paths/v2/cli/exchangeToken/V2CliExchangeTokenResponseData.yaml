@@ -2,6 +2,15 @@ type: object
 required:
   - status
   - interval
+if:
+  properties:
+    status:
+      const: complete
+  required:
+    - status
+then:
+  required:
+    - credentials
 properties:
   status:
     type: string
@@ -11,7 +20,7 @@ properties:
       - expired_token
       - complete
     description: |
-      `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
+      `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
   interval:
     type: integer
     format: int64
@@ -19,21 +28,5 @@ properties:
   detail:
     type: string
     description: Human-readable reason for a terminal status.
-  accessToken:
-    type: string
-    x-unkey-redact: true
-    description: Short-lived access token. Present only when status is complete.
-  refreshToken:
-    type: string
-    x-unkey-redact: true
-    description: Rotating refresh token. Present only when status is complete. Store it. It is returned only once.
-  expiresIn:
-    type: integer
-    format: int64
-    description: Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
-  workspaceId:
-    type: string
-    description: Workspace the session belongs to. Present only when status is complete.
-  sessionId:
-    type: string
-    description: CLI session id. Present only when status is complete.
+  credentials:
+    $ref: ./V2CliExchangeTokenCredentials.yaml

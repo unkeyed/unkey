@@ -3537,6 +3537,24 @@ type V2CliDecideDeviceLoginResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2CliExchangeTokenCredentials Session credentials returned when token exchange is complete.
+type V2CliExchangeTokenCredentials struct {
+	// AccessToken Short-lived access token.
+	AccessToken string `json:"accessToken"`
+
+	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes.
+	ExpiresIn int64 `json:"expiresIn"`
+
+	// RefreshToken Rotating refresh token. Store it. It is returned only once.
+	RefreshToken string `json:"refreshToken"`
+
+	// SessionId CLI session id.
+	SessionId string `json:"sessionId"`
+
+	// WorkspaceId Workspace the session belongs to.
+	WorkspaceId string `json:"workspaceId"`
+}
+
 // V2CliExchangeTokenRequestBody Supply exactly one credential. A loginId polls for approval; a refreshToken rotates an existing session.
 type V2CliExchangeTokenRequestBody struct {
 	// LoginId loginId from cli.startDeviceLogin.
@@ -3563,32 +3581,20 @@ type V2CliExchangeTokenResponseBody struct {
 
 // V2CliExchangeTokenResponseData defines model for V2CliExchangeTokenResponseData.
 type V2CliExchangeTokenResponseData struct {
-	// AccessToken Short-lived access token. Present only when status is complete.
-	AccessToken *string `json:"accessToken,omitempty"`
+	// Credentials Session credentials returned when token exchange is complete.
+	Credentials *V2CliExchangeTokenCredentials `json:"credentials,omitempty"`
 
 	// Detail Human-readable reason for a terminal status.
 	Detail *string `json:"detail,omitempty"`
 
-	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
-	ExpiresIn *int64 `json:"expiresIn,omitempty"`
-
 	// Interval Seconds to wait before polling again. Zero after a refresh-token exchange.
 	Interval int64 `json:"interval"`
 
-	// RefreshToken Rotating refresh token. Present only when status is complete. Store it. It is returned only once.
-	RefreshToken *string `json:"refreshToken,omitempty"`
-
-	// SessionId CLI session id. Present only when status is complete.
-	SessionId *string `json:"sessionId,omitempty"`
-
-	// Status `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
+	// Status `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
 	Status V2CliExchangeTokenResponseDataStatus `json:"status"`
-
-	// WorkspaceId Workspace the session belongs to. Present only when status is complete.
-	WorkspaceId *string `json:"workspaceId,omitempty"`
 }
 
-// V2CliExchangeTokenResponseDataStatus `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
+// V2CliExchangeTokenResponseDataStatus `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
 type V2CliExchangeTokenResponseDataStatus string
 
 // V2CliGetDeviceLoginRequestBody defines model for V2CliGetDeviceLoginRequestBody.

@@ -90,7 +90,7 @@ func TestDeviceLoginPollsUntilTheKeyIsIssued(t *testing.T) {
 		case "/v2/cli.startDeviceLogin":
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&startedBody))
 			writeEnvelope(t, w, http.StatusOK, startedEnvelope(loginID, 5))
-		case "/v2/cli.exchangeToken":
+		case "/v2/cli.pollDeviceLogin":
 			var body map[string]string
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
 			require.Equal(t, loginID, body["loginId"])

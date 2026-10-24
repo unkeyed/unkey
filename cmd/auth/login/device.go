@@ -134,7 +134,7 @@ func pollUntilKey(ctx context.Context, client *http.Client, apiURL string, login
 }
 
 func pollOnce(ctx context.Context, client *http.Client, apiURL string, loginID string) (pollResult, error) {
-	envelope, err := postJSON(ctx, client, apiURL, "/v2/cli.exchangeToken", map[string]string{"loginId": loginID})
+	envelope, err := postJSON(ctx, client, apiURL, "/v2/cli.pollDeviceLogin", map[string]string{"loginId": loginID})
 	if err != nil {
 		return pollResult{}, err
 	}

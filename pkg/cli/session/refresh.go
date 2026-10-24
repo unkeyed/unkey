@@ -39,7 +39,7 @@ func refreshOnce(ctx context.Context, apiURL string, refreshToken string) (Sessi
 	if err != nil {
 		return Session{}, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(apiURL, "/")+"/v2/cli.exchangeToken", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(apiURL, "/")+"/v2/cli.refreshToken", bytes.NewReader(body))
 	if err != nil {
 		return Session{}, err
 	}
