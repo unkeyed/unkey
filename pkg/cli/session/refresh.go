@@ -51,12 +51,8 @@ func refreshOnce(ctx context.Context, apiURL string, refreshToken string) (Sessi
 	if res.V2CliExchangeTokenResponseBody == nil {
 		return Session{}, fmt.Errorf("refresh returned %d", res.HTTPMeta.Response.StatusCode)
 	}
-	result := res.V2CliExchangeTokenResponseBody.Data
-	if result.Status != components.StatusComplete {
-		return Session{}, fmt.Errorf("refresh returned unexpected status %q", result.Status)
-	}
-	credentials := result.Credentials
-	if credentials == nil || credentials.AccessToken == "" || credentials.RefreshToken == "" || credentials.WorkspaceID == "" || credentials.SessionID == "" || credentials.ExpiresIn <= 0 {
+	credentials := res.V2CliExchangeTokenResponseBody.Data
+	if credentials.AccessToken == "" || credentials.RefreshToken == "" || credentials.WorkspaceID == "" || credentials.SessionID == "" || credentials.ExpiresIn <= 0 {
 		return Session{}, fmt.Errorf("refresh completed without a session")
 	}
 	return Session{

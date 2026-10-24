@@ -16,8 +16,6 @@ import (
 	"github.com/unkeyed/unkey/internal/sdk/retry"
 	"net/http"
 	"net/url"
-	"regexp"
-	"strings"
 	"time"
 )
 
@@ -339,9 +337,10 @@ func (s *Cli) DecideDeviceLogin(ctx context.Context, request components.V2CliDec
 // ExchangeToken - Exchange a CLI credential
 // Supply exactly one of `loginId` or `refreshToken`. No authentication header is required.
 // A `loginId` polls a device login started by cli.startDeviceLogin. While the user has not approved it,
-// the status is `permissions_required`. Approval returns access and refresh tokens exactly once.
+// the API returns HTTP 202 with a Retry-After header in seconds. Approval returns HTTP 200 with access and refresh tokens exactly once.
+// Denial returns HTTP 403. An expired login returns HTTP 410. Stop polling on either response.
 // Device polling is rate limited per IP address.
-// A `refreshToken` rotates an existing session and returns `complete` with new tokens.
+// A `refreshToken` rotates an existing session and returns HTTP 200 with new tokens.
 // The user's current membership and permissions are checked again. Reuse of the previous token
 // after the retry grace period revokes the session.
 // Access tokens last 15 minutes. A session expires after 7 days without a refresh,
@@ -544,6 +543,29 @@ func (s *Cli) exchangeToken(ctx context.Context, hookCtx hooks.HookContext, req 
 			}
 			return nil, apierrors.NewAPIError(fmt.Sprintf("unknown content-type received: %s", httpRes.Header.Get("Content-Type")), httpRes.StatusCode, string(rawBody), httpRes)
 		}
+	case httpRes.StatusCode == 202:
+		res.Headers = httpRes.Header
+
+		switch {
+		case utils.MatchContentType(httpRes.Header.Get("Content-Type"), `application/json`):
+			rawBody, err := utils.ConsumeRawBody(httpRes)
+			if err != nil {
+				return nil, err
+			}
+
+			var out components.V2CliExchangeTokenPendingResponseBody
+			if err := utils.UnmarshalJsonFromResponseBody(bytes.NewBuffer(rawBody), &out, ""); err != nil {
+				return nil, err
+			}
+
+			res.V2CliExchangeTokenPendingResponseBody = &out
+		default:
+			rawBody, err := utils.ConsumeRawBody(httpRes)
+			if err != nil {
+				return nil, err
+			}
+			return nil, apierrors.NewAPIError(fmt.Sprintf("unknown content-type received: %s", httpRes.Header.Get("Content-Type")), httpRes.StatusCode, string(rawBody), httpRes)
+		}
 	case httpRes.StatusCode == 400:
 		switch {
 		case utils.MatchContentType(httpRes.Header.Get("Content-Type"), `application/json`):
@@ -595,6 +617,27 @@ func (s *Cli) exchangeToken(ctx context.Context, hookCtx hooks.HookContext, req 
 			}
 
 			var out apierrors.ForbiddenErrorResponse
+			if err := utils.UnmarshalJsonFromResponseBody(bytes.NewBuffer(rawBody), &out, ""); err != nil {
+				return nil, err
+			}
+
+			return nil, &out
+		default:
+			rawBody, err := utils.ConsumeRawBody(httpRes)
+			if err != nil {
+				return nil, err
+			}
+			return nil, apierrors.NewAPIError(fmt.Sprintf("unknown content-type received: %s", httpRes.Header.Get("Content-Type")), httpRes.StatusCode, string(rawBody), httpRes)
+		}
+	case httpRes.StatusCode == 410:
+		switch {
+		case utils.MatchContentType(httpRes.Header.Get("Content-Type"), `application/json`):
+			rawBody, err := utils.ConsumeRawBody(httpRes)
+			if err != nil {
+				return nil, err
+			}
+
+			var out apierrors.GoneErrorResponse
 			if err := utils.UnmarshalJsonFromResponseBody(bytes.NewBuffer(rawBody), &out, ""); err != nil {
 				return nil, err
 			}
@@ -734,31 +777,10 @@ func (s *Cli) exchangeTokenWaitForCompletion(ctx context.Context, hookCtx hooks.
 			return res, err
 		}
 
-		failureCriteriaMessage := make([]string, 0, 2)
-		failureCriteriaMet := true
-
-		if failureCriteriaMet {
-			failureCriteriaMet = res.HTTPMeta.Response.StatusCode == 200
-			failureCriteriaMessage = append(failureCriteriaMessage, "HTTP status code was 200")
-		}
-
-		if failureCriteriaMet {
-			failureCriteriaMet = regexp.MustCompile(`^(access_denied|expired_token)$`).MatchString(string(res.V2CliExchangeTokenResponseBody.Data.Status))
-			failureCriteriaMessage = append(failureCriteriaMessage, "Response body at /data/status matched regular expression ^(access_denied|expired_token)$")
-		}
-
-		if failureCriteriaMet {
-			return res, &polling.FailureCriteriaError{Message: strings.Join(failureCriteriaMessage, " and ")}
-		}
-
 		successCriteriaMet := true
 
 		if successCriteriaMet {
 			successCriteriaMet = res.HTTPMeta.Response.StatusCode == 200
-		}
-
-		if successCriteriaMet {
-			successCriteriaMet = res.V2CliExchangeTokenResponseBody.Data.Status == "complete"
 		}
 
 		if successCriteriaMet {

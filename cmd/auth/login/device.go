@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/internal/sdk"
 	"github.com/unkeyed/unkey/internal/sdk/models/components"
 	"github.com/unkeyed/unkey/internal/sdk/polling"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func startLogin(ctx context.Context, client *http.Client, apiURL string, deviceName string) (components.V2CliStartDeviceLoginResponseData, error) {
@@ -30,7 +29,7 @@ func startLogin(ctx context.Context, client *http.Client, apiURL string, deviceN
 	return res.V2CliStartDeviceLoginResponseBody.Data, nil
 }
 
-type issuedSession = components.V2CliExchangeTokenCredentials
+type issuedSession = components.V2CliExchangeTokenResponseData
 
 func pollUntilKey(ctx context.Context, client *http.Client, apiURL string, loginID string, deadline time.Time, interval time.Duration, sleep func(context.Context, time.Duration) error) (issuedSession, error) {
 	if deadline.IsZero() {
@@ -49,25 +48,17 @@ func pollUntilKey(ctx context.Context, client *http.Client, apiURL string, login
 	if errors.Is(err, context.DeadlineExceeded) || errors.As(err, &limit) {
 		return issuedSession{}, fmt.Errorf("login timed out. Run unkey login again")
 	}
-	var terminal *polling.FailureCriteriaError
-	if err != nil && !errors.As(err, &terminal) {
+	if err != nil {
 		return issuedSession{}, err
 	}
 	if res == nil || res.V2CliExchangeTokenResponseBody == nil {
 		return issuedSession{}, fmt.Errorf("login returned no response")
 	}
-	result := res.V2CliExchangeTokenResponseBody.Data
-	if terminal != nil {
-		if detail := ptr.SafeDeref(result.Detail); detail != "" {
-			return issuedSession{}, errors.New(detail)
-		}
-		return issuedSession{}, fmt.Errorf("login %s", strings.ReplaceAll(string(result.Status), "_", " "))
-	}
-	credentials := result.Credentials
-	if credentials == nil || credentials.AccessToken == "" || credentials.RefreshToken == "" || credentials.WorkspaceID == "" || credentials.SessionID == "" || credentials.ExpiresIn <= 0 {
+	credentials := res.V2CliExchangeTokenResponseBody.Data
+	if credentials.AccessToken == "" || credentials.RefreshToken == "" || credentials.WorkspaceID == "" || credentials.SessionID == "" || credentials.ExpiresIn <= 0 {
 		return issuedSession{}, fmt.Errorf("login completed without a session")
 	}
-	return *credentials, nil
+	return credentials, nil
 }
 
 func revokeIssuedSession(ctx context.Context, client *http.Client, apiURL string, issued issuedSession) error {
