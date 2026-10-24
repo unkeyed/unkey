@@ -2,8 +2,7 @@ type: object
 required:
   - loginId
   - userCode
-  - verificationUri
-  - verificationUriComplete
+  - verificationUrl
   - expiresIn
   - interval
 properties:
@@ -14,10 +13,7 @@ properties:
   userCode:
     type: string
     description: Code the user confirms in the browser.
-  verificationUri:
-    type: string
-    description: Dashboard page where the user enters the code.
-  verificationUriComplete:
+  verificationUrl:
     type: string
     description: Dashboard page with the code filled in.
   expiresIn:

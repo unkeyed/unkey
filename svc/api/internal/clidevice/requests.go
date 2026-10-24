@@ -11,12 +11,11 @@ type StartRequest struct {
 
 // Started is the secret and the code the CLI shows.
 type Started struct {
-	LoginID                 string
-	UserCode                string
-	VerificationURI         string
-	VerificationURIComplete string
-	ExpiresIn               int32
-	Interval                int32
+	LoginID         string
+	UserCode        string
+	VerificationURL string
+	ExpiresIn       int32
+	Interval        int32
 }
 
 // GetRequest loads one authorization for the approval page.
