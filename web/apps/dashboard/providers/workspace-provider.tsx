@@ -1,15 +1,26 @@
 "use client";
 
 import type { AuthenticatedUser } from "@/lib/auth/types";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import { baseQueryOptions, createRetryFn, isAuthError } from "@/lib/utils/trpc";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { Limits } from "@unkey/db";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import type React from "react";
-import { type PropsWithChildren, createContext, useCallback, useContext, useMemo } from "react";
+import {
+  type PropsWithChildren,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 // Billing state (tier, stripe ids, deploy plan/spend) lives on the
 // workspace_billing relation, not the workspaces row. getCurrent re-surfaces it
@@ -22,6 +33,8 @@ interface WorkspaceContextType {
   workspace: CurrentWorkspace | null;
   limits: Limits | null;
   isLoading: boolean;
+  isSwitching: boolean;
+  switchWorkspace: (organizationId: string, returnTo: Route) => void;
   error: TRPCClientErrorLike<Router> | null;
   /**
    * True when the server definitively reported that no workspace exists for
@@ -46,6 +59,18 @@ export const WorkspaceProvider: React.FC<
   PropsWithChildren<{ initialUser: AuthenticatedUser | null }>
 > = ({ children, initialUser }) => {
   const pathname = usePathname();
+  const [isSwitching, setIsSwitching] = useState(false);
+  const switching = useRef(false);
+
+  useEffect(() => {
+    const restoreWorkspace = (event: PageTransitionEvent) => {
+      if (event.persisted && switching.current) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener("pageshow", restoreWorkspace);
+    return () => window.removeEventListener("pageshow", restoreWorkspace);
+  }, []);
 
   // This provider sits in the root layout, so it also wraps the auth pages.
   // Visitors there are signed out by definition: querying the current user
@@ -77,6 +102,24 @@ export const WorkspaceProvider: React.FC<
 
   const { data: workspace, isLoading: workspaceLoading, error: workspaceError } = workspaceQuery;
 
+  const switchWorkspace = useCallback(
+    (organizationId: string, returnTo: Route) => {
+      if (organizationId === workspace?.orgId || switching.current) {
+        return;
+      }
+      switching.current = true;
+      setIsSwitching(true);
+      try {
+        window.location.assign(routes.auth.switchOrganization({ organizationId, returnTo }));
+      } catch (error) {
+        switching.current = false;
+        setIsSwitching(false);
+        throw error;
+      }
+    },
+    [workspace?.orgId],
+  );
+
   // "No workspace" (fresh sign-up, onboarding not finished) is an expected
   // state, distinct from a failed lookup.
   const workspaceMissing = workspaceError?.data?.code === "NOT_FOUND";
@@ -97,6 +140,8 @@ export const WorkspaceProvider: React.FC<
       workspace: workspace ?? null,
       limits: workspace?.limits ?? null,
       isLoading,
+      isSwitching,
+      switchWorkspace,
       error: error ?? null,
       workspaceMissing: !isLoading && workspaceMissing,
       refetch,
@@ -104,6 +149,8 @@ export const WorkspaceProvider: React.FC<
   }, [
     user,
     workspace,
+    isSwitching,
+    switchWorkspace,
     isAuthRoute,
     userLoading,
     workspaceLoading,
