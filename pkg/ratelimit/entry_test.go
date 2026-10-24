@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"maps"
 	"slices"
 	"testing"
 
@@ -18,7 +19,7 @@ func TestEntryMergeRowsKeepsTheLargerConsumedTime(t *testing.T) {
 	require.NoError(t, e.spend(result, "own"))
 
 	require.NoError(t, e.mergeRows([]session{{id: "own", anchorAtNs: 100, consumedNs: 1}}))
-	require.Equal(t, []session{{id: "own", anchorAtNs: 100, consumedNs: 3}}, e.all())
+	require.Equal(t, []session{{id: "own", anchorAtNs: 100, consumedNs: 3}}, allSessions(e))
 	require.Equal(t, int64(103), e.resetTimes.resetAtNs)
 
 	require.NoError(t, e.mergeRows([]session{{id: "own", anchorAtNs: 100, consumedNs: 5}}))
@@ -33,7 +34,7 @@ func TestEntryMergeRowsKeepsTheLargerConsumedTime(t *testing.T) {
 	require.ElementsMatch(t, []session{
 		{id: "own", anchorAtNs: 100, consumedNs: 5},
 		{id: "peer", anchorAtNs: 50, consumedNs: 60},
-	}, e.all(), "stale rows of frozen and peer sessions must not move them back")
+	}, allSessions(e), "stale rows of frozen and peer sessions must not move them back")
 }
 
 // TestEntryMergeRowsUpdatesEveryKnownSession guarantees that a newer row of
@@ -52,7 +53,7 @@ func TestEntryMergeRowsUpdatesEveryKnownSession(t *testing.T) {
 	require.ElementsMatch(t, []session{
 		{id: "a", anchorAtNs: 10, consumedNs: 3},
 		{id: "b", anchorAtNs: 20, consumedNs: 5},
-	}, e.all())
+	}, allSessions(e))
 	require.Equal(t, int64(25), e.resetTimes.resetAtNs)
 }
 
@@ -73,7 +74,7 @@ func TestEntryMergeRowsRejectsInvalidRows(t *testing.T) {
 			var e entry
 			require.NoError(t, e.mergeRows([]session{{id: "known", anchorAtNs: 50, consumedNs: 5}}))
 			require.Error(t, e.mergeRows(tc.rows))
-			require.Equal(t, []session{{id: "known", anchorAtNs: 50, consumedNs: 5}}, e.all())
+			require.Equal(t, []session{{id: "known", anchorAtNs: 50, consumedNs: 5}}, allSessions(e))
 			require.Equal(t, int64(55), e.resetTimes.resetAtNs)
 		})
 	}
@@ -100,20 +101,23 @@ func TestEntrySpendRejectsAReusedSessionID(t *testing.T) {
 	require.Equal(t, before, snapshot(e), "a failed spend must not change the entry")
 }
 
-// entrySnapshot is a deep copy of an entry, for comparing it before and after.
-type entrySnapshot struct {
-	live       *session
-	others     []session
-	resetTimes resetTimes
+// snapshot returns a deep copy of an entry, for comparing it before and after.
+func snapshot(e entry) entry {
+	return entry{sessions: maps.Clone(e.sessions), liveID: e.liveID, resetTimes: e.resetTimes}
 }
 
-func snapshot(e entry) entrySnapshot {
-	var live *session
-	if e.live != nil {
-		copied := *e.live
-		live = &copied
+// sessionsByID builds the session map of an entry.
+func sessionsByID(sessions ...session) map[string]session {
+	byID := make(map[string]session, len(sessions))
+	for _, s := range sessions {
+		byID[s.id] = s
 	}
-	return entrySnapshot{live: live, others: slices.Clone(e.others), resetTimes: e.resetTimes}
+	return byID
+}
+
+// allSessions returns the sessions of an entry in no particular order.
+func allSessions(e entry) []session {
+	return slices.Collect(maps.Values(e.sessions))
 }
 
 // TestEntryMergeRowsIsAllOrNothing guarantees that a merge that fails on a
@@ -152,5 +156,5 @@ func TestEntryMergeRowsNeverRemovesASession(t *testing.T) {
 	require.ElementsMatch(t, []session{
 		{id: "own", anchorAtNs: 100, consumedNs: 1},
 		{id: "peer", anchorAtNs: 50, consumedNs: 1},
-	}, e.all())
+	}, allSessions(e))
 }
