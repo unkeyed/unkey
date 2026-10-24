@@ -23,44 +23,36 @@ jobs:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: ./.depot/actions/setup-mise
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          path: source
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Prepare isolated scanner workspace
+      - name: Prepare scanner
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          mkdir -p "$RUNNER_TEMP/deepsec"
-          cp -R .deepsec/. "$RUNNER_TEMP/deepsec/"
-          mise exec -- pnpm --dir "$RUNNER_TEMP/deepsec" install --frozen-lockfile --ignore-scripts
-          merge_base=$(git -C source merge-base "$BASE_SHA" "$HEAD_SHA")
-          git -C source diff --name-only --diff-filter=ACMR "$merge_base" "$HEAD_SHA" -- \
+          mise exec -- pnpm --dir .deepsec install --frozen-lockfile --ignore-scripts
+          merge_base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          git diff --name-only --diff-filter=ACMR "$merge_base" "$HEAD_SHA" -- \
             . ':!gen/**' ':!**/node_modules/**' ':!**/dist/**' ':!**/vendor/**' \
             ':!**/*.generated.*' ':!**/*_generated.*' ':!**/*.pb.go' \
             ':!**/pnpm-lock.yaml' ':!go.sum' ':!web/apps/agent/gen/**' \
-            > "$RUNNER_TEMP/deepsec/files.txt"
-          dirname "$(mise which node)" >> "$GITHUB_PATH"
+            > .deepsec/files.txt
       - name: Review changed files
         id: scan
         timeout-minutes: 20
         env:
           AI_GATEWAY_API_KEY: ${{ secrets.DEEPSEC_VERCEL_GATEWAY_KEY }}
-        working-directory: ${{ runner.temp }}/deepsec
+        working-directory: .deepsec
         run: |
           if [ -z "$AI_GATEWAY_API_KEY" ]; then
             echo '::error::Set the DEEPSEC_VERCEL_GATEWAY_KEY Depot CI secret to enable reviews.'
             exit 2
           fi
-          node_modules/.bin/deepsec process \
-            --root "$GITHUB_WORKSPACE/source" \
+          mise exec -- pnpm exec deepsec process \
+            --root "$GITHUB_WORKSPACE" \
             --project-id unkey \
             --concurrency 2 \
             --files-from files.txt \
@@ -70,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: deepsec-comment
-          path: ${{ runner.temp }}/deepsec/comment.md
+          path: .deepsec/comment.md
           if-no-files-found: ignore
           retention-days: 7
   comment:
