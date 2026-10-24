@@ -11,7 +11,7 @@ var (
 	//
 	// Labels:
 	//   - "status": "running", "paused_by_user", or "paused_by_failure"
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
 	Drains = lazy.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
@@ -58,38 +58,47 @@ var (
 		Subsystem: "logdrain",
 		Name:      "polls_total",
 		Help:      "Total number of logdrain polls.",
-	}, []string{"result"})
+	}, []string{"result"},
+		lazy.Values("result", "success", "error"),
+	)
 
 	// DeliveriesTotal counts delivery attempt outcomes.
 	//
 	// Labels:
-	//   - "kind": "http" or "axiom"
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
+	//   - "kind": "http", "axiom", or "unknown"
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
 	//   - "outcome": "success" or "error"
 	DeliveriesTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "deliveries_total",
 		Help:      "Total number of logdrain delivery attempts.",
-	}, []string{"kind", "stream", "outcome"})
+	}, []string{"kind", "stream", "outcome"},
+		lazy.Values("kind", "http", "axiom", "unknown"),
+		lazy.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+		lazy.Values("outcome", "success", "error"),
+	)
 
 	// EventsDeliveredTotal counts events in successful, committed deliveries.
 	//
 	// Labels:
-	//   - "kind": "http" or "axiom"
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
+	//   - "kind": "http", "axiom", or "unknown"
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
 	EventsDeliveredTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "events_delivered_total",
 		Help:      "Total number of events in successful committed deliveries.",
-	}, []string{"kind", "stream"})
+	}, []string{"kind", "stream"},
+		lazy.Values("kind", "http", "axiom", "unknown"),
+		lazy.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+	)
 
 	// DeliveryDurationSeconds measures delivery attempt latency.
 	//
 	// Labels:
-	//   - "kind": "http" or "axiom"
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
+	//   - "kind": "http", "axiom", or "unknown"
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
 	//   - "outcome": "success" or "error"
 	DeliveryDurationSeconds = lazy.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "unkey",
@@ -97,27 +106,35 @@ var (
 		Name:      "delivery_duration_seconds",
 		Help:      "Duration of logdrain delivery attempts in seconds.",
 		Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
-	}, []string{"kind", "stream", "outcome"})
+	}, []string{"kind", "stream", "outcome"},
+		lazy.Dynamic("kind"),
+		lazy.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+		lazy.Values("outcome", "success", "error"),
+	)
 
 	// DrainFailuresTotal counts failures recorded by the engine.
 	//
 	// Labels:
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
 	DrainFailuresTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "drain_failures_total",
 		Help:      "Total number of logdrain failures.",
-	}, []string{"stream"})
+	}, []string{"stream"},
+		lazy.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+	)
 
 	// DrainsPausedTotal counts drains paused after reaching the failure threshold.
 	//
 	// Labels:
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
 	DrainsPausedTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "drains_paused_total",
 		Help:      "Total number of logdrains paused by the engine.",
-	}, []string{"stream"})
+	}, []string{"stream"},
+		lazy.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+	)
 )

@@ -30,12 +30,13 @@ var (
 			Help:      "Total number of SyncDesiredState RPC calls.",
 		},
 		[]string{"status"},
+		lazy.Values("status", "success", "error"),
 	)
 
 	// SyncDesiredStateEventsSentTotal counts events sent during SyncDesiredState by resource type.
 	//
 	// Labels:
-	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
+	//   - "resource_type": "deployment"
 	SyncDesiredStateEventsSentTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -44,12 +45,13 @@ var (
 			Help:      "Total number of events sent during SyncDesiredState.",
 		},
 		[]string{"resource_type"},
+		lazy.Values("resource_type", "deployment"),
 	)
 
 	// DeploymentChangesProcessedTotal counts incremental deployment change processing outcomes.
 	//
 	// Labels:
-	//   - "resource_type": "deployment_topology", "sentinel", "cilium_network_policy", or "unknown"
+	//   - "resource_type": "deployment_topology"
 	//   - "status": "success", "not_found", or "error"
 	DeploymentChangesProcessedTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
@@ -59,6 +61,8 @@ var (
 			Help:      "Total number of deployment changes processed from VStream.",
 		},
 		[]string{"resource_type", "status"},
+		lazy.Values("resource_type", "deployment_topology"),
+		lazy.Values("status", "success", "not_found", "error"),
 	)
 
 	// NotifyInstancesReadyTotal counts the outcome of maybeNotifyInstancesReady
@@ -70,7 +74,8 @@ var (
 	// Labels:
 	//   - "outcome": "notified", "inactive_status", "topology_missing",
 	//                "threshold_not_met", "already_notified",
-	//                "topology_error", "instances_error", "restate_error"
+	//                "topology_error", "instances_error", "no_invocation",
+	//                "liveness_error", "deploy_not_live", "restate_error"
 	NotifyInstancesReadyTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -79,6 +84,19 @@ var (
 			Help:      "Outcome of maybeNotifyInstancesReady evaluations.",
 		},
 		[]string{"outcome"},
+		lazy.Values("outcome",
+			"notified",
+			"inactive_status",
+			"topology_missing",
+			"threshold_not_met",
+			"already_notified",
+			"topology_error",
+			"instances_error",
+			"no_invocation",
+			"liveness_error",
+			"deploy_not_live",
+			"restate_error",
+		),
 	)
 
 	// ReportDeploymentStatusDurationSeconds measures control-plane handler
@@ -96,5 +114,6 @@ var (
 			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5},
 		},
 		[]string{"result"},
+		lazy.Values("result", "success", "error"),
 	)
 )

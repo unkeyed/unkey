@@ -29,6 +29,8 @@ var (
 			Help:      "Number of buffer inserts by name and state",
 		},
 		[]string{"name", "state"},
+		lazy.Dynamic("name"),
+		lazy.Values("state", "buffered", "dropped", "closed"),
 	)
 
 	// BufferSize is a gauge to track the fill percentage of buffers and whether or not they

@@ -24,6 +24,7 @@ var (
 	//     "unhandled" (no handler registered for the event type),
 	//     "error" (a handler failed; the provider will retry),
 	//     "verification_failed" (signature rejected),
+	//     "verification_unavailable" (the verifier could not check the signature),
 	//     "too_large" (body exceeded the size limit),
 	//     "bad_request" (a handler rejected the payload via ErrBadRequest).
 	eventsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
@@ -31,7 +32,20 @@ var (
 		Subsystem: "webhook",
 		Name:      "events_total",
 		Help:      "Inbound webhook events by provider, event type and outcome.",
-	}, []string{"provider", "event", "outcome"})
+	}, []string{"provider", "event", "outcome"},
+		lazy.Dynamic("provider"),
+		lazy.Dynamic("event"),
+		lazy.Values("outcome",
+			"handled",
+			"ignored",
+			"unhandled",
+			"error",
+			"verification_failed",
+			"verification_unavailable",
+			"too_large",
+			"bad_request",
+		),
+	)
 
 	// handlerDuration measures how long webhook event handlers run.
 	// Providers retry on slow responses (Stripe times out around 20s), so a
@@ -47,5 +61,8 @@ var (
 		Name:      "handler_duration_seconds",
 		Help:      "Duration of webhook event handlers.",
 		Buckets:   prometheus.DefBuckets,
-	}, []string{"provider", "event"})
+	}, []string{"provider", "event"},
+		lazy.Dynamic("provider"),
+		lazy.Dynamic("event"),
+	)
 )

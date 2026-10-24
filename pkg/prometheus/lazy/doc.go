@@ -1,47 +1,44 @@
 // Package lazy provides lazy-registering Prometheus metric wrappers.
 //
-// Metrics are declared as package-level globals (like promauto) but don't
-// register until first use. Each service calls [SetRegistry] at startup
-// to control where metrics end up. Only metrics that are actually used by
-// a service get registered to that service's registry.
+// Metrics are declared as package-level globals (like promauto). Each service
+// calls [SetRegistry] at startup to control where metrics end up.
 //
-// Usage:
+// # Series exist from startup
 //
-//	// Declare globally — same feel as promauto:
-//	var RequestsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+// A series that does not exist yet is missing, not zero: rate() and
+// increase() ignore its first increment, error-ratio alerts evaluate to no
+// data, and dashboards show gaps. So [SetRegistry] exports every counter and
+// histogram at 0:
+//
+//   - [Counter] and [Histogram] are exported at 0.
+//   - [CounterVec] and [HistogramVec] must declare every label, with [Values]
+//     for a closed set of values or [Dynamic] for values known only at
+//     runtime. When every label has values, every combination is exported
+//     at 0. In tests, SetRegistry panics if a label is undeclared, so a new
+//     metric without declarations fails CI.
+//   - For a dynamic label, call [CounterVec.Bind] when the owner of the value
+//     is constructed, such as a cache with its resource name. That creates
+//     the series at 0 before the first event.
+//   - Gauges are not exported at 0: their value is state, and 0 can be wrong,
+//     for example for a timestamp. Their owner sets them.
+//
+// Declaring a metric:
+//
+//	var SyncsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 //	    Namespace: "unkey",
-//	    Subsystem: "api",
-//	    Name:      "requests_total",
-//	}, []string{"method", "status"})
+//	    Subsystem: "krane",
+//	    Name:      "syncs_total",
+//	}, []string{"resource", "result"},
+//	    lazy.Dynamic("resource"),
+//	    lazy.Values("result", "success", "error"),
+//	)
 //
-//	// In service startup (one line):
-//	reg := prometheus.NewRegistry()
-//	lazy.SetRegistry(reg)
+// Values only decide which series exist at startup. Other values can still be
+// used at runtime.
 //
-//	// When code calls RequestsTotal.WithLabelValues("GET", "200").Inc(),
-//	// it registers to the service's registry on first use. If the service
-//	// never touches this metric, it never registers — zero pollution.
+// # Hot paths
 //
-// Pre-create series you alert or graph on. A series that does not exist yet
-// is missing, not zero: rate() and increase() ignore its first increment,
-// error-ratio alerts evaluate to no data, and dashboards show gaps.
-//
-// For a metric without labels ([Counter], [Gauge], [Histogram]), call Register
-// after SetRegistry to export it at 0. A metric with labels ([CounterVec],
-// [GaugeVec], [HistogramVec]) exports one series per combination of label
-// values, and none until a combination is used. Create each combination you
-// know about with WithLabelValues:
-//
-//	lazy.SetRegistry(reg)
-//	SyncsTotal.Register()
-//	for _, result := range []string{"success", "error"} {
-//	    SyncResultsTotal.WithLabelValues(result)
-//	}
-//
-// Leave labels with unbounded or externally supplied values to first use.
-//
-// On hot paths, call Bind once when the label values are known, such as in a
-// constructor, and update the bound child. WithLabelValues hashes the labels
-// and takes the vector's read lock on every call, and that lock contends
-// across cores.
+// Call Bind once when the label values are known, such as in a constructor,
+// and update the bound child. WithLabelValues hashes the labels and takes the
+// vector's read lock on every call, and that lock contends across cores.
 package lazy

@@ -16,6 +16,8 @@ var (
 			Help:      "Total number of policy evaluations by type and result.",
 		},
 		[]string{"policy_type", "result"},
+		lazy.Values("policy_type", "keyauth", "ratelimit", "firewall", "openapi", "logging"),
+		lazy.Dynamic("result"),
 	)
 
 	engineEvaluationDuration = lazy.NewHistogramVec(
@@ -27,6 +29,7 @@ var (
 			Buckets:   []float64{0.0005, 0.001, 0.002, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5},
 		},
 		[]string{"policy_type"},
+		lazy.Values("policy_type", "keyauth", "ratelimit", "firewall", "openapi"),
 	)
 
 	// firewallMatchesTotal counts individual Firewall policy matches,
@@ -41,6 +44,8 @@ var (
 			Help:      "Total number of Firewall policy matches by policy and action.",
 		},
 		[]string{"policy_id", "action"},
+		lazy.Dynamic("policy_id"),
+		lazy.Values("action", "deny", "unspecified"),
 	)
 )
 

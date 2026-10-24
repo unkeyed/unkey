@@ -109,6 +109,9 @@ var (
 			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin) and outcome (passed|denied).",
 		},
 		[]string{"workspace_id", "source", "outcome"},
+		lazy.Dynamic("workspace_id"),
+		lazy.Values("source", "local", "origin"),
+		lazy.Values("outcome", "passed", "denied"),
 	)
 
 	// RatelimitCASExhausted counts Ratelimit() calls that exhausted the CAS
@@ -146,6 +149,7 @@ var (
 			Help:      "Total number of denials that raised the strict-mode deadline for a rate-limit tuple, labeled by workspace_id.",
 		},
 		[]string{"workspace_id"},
+		lazy.Dynamic("workspace_id"),
 	)
 )
 
@@ -176,6 +180,7 @@ var (
 			Help:      "Total number of origin operations attempted, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync).",
 		},
 		[]string{"op"},
+		lazy.Values("op", "fetch_cold", "fetch_stale", "fetch_strict", "sync"),
 	)
 
 	// RatelimitOriginLatency observes the wall-clock latency of origin
@@ -193,6 +198,7 @@ var (
 			Buckets:   latencyBuckets,
 		},
 		[]string{"op"},
+		lazy.Values("op", "fetch_cold", "fetch_stale", "fetch_strict", "sync"),
 	)
 
 	// RatelimitOriginErrors counts origin operations that returned an error
@@ -209,6 +215,8 @@ var (
 			Help:      "Total number of origin operations that returned an error, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync) and reason (circuit_open|timeout|other).",
 		},
 		[]string{"op", "reason"},
+		lazy.Values("op", "fetch_cold", "fetch_stale", "fetch_strict", "sync"),
+		lazy.Values("reason", "circuit_open", "timeout", "other"),
 	)
 )
 

@@ -24,6 +24,15 @@ func (m *metric[T]) get() T {
 	return m.inner
 }
 
+func newMetric[T prometheus.Collector](create func() T) metric[T] {
+	var zero T
+	return metric[T]{
+		once:     sync.Once{},
+		inner:    zero,
+		initFunc: func() T { return registered(create()) },
+	}
+}
+
 // --- Vec types (CounterVec, GaugeVec, HistogramVec) ---
 
 // CounterVec is a lazy-registering prometheus.CounterVec.
@@ -31,14 +40,20 @@ type CounterVec struct {
 	m metric[*prometheus.CounterVec]
 }
 
-func NewCounterVec(opts prometheus.CounterOpts, labels []string) *CounterVec {
-	return &CounterVec{m: metric[*prometheus.CounterVec]{
-		once:  sync.Once{},
-		inner: nil,
-		initFunc: func() *prometheus.CounterVec {
-			return registered(prometheus.NewCounterVec(opts, labels))
-		},
-	}}
+// NewCounterVec declares a counter vector. Declare every label with [Values]
+// or [Dynamic]; SetRegistry creates every combination of declared values at 0.
+func NewCounterVec(opts prometheus.CounterOpts, labels []string, options ...Option) *CounterVec {
+	name := fqName(opts.Namespace, opts.Subsystem, opts.Name)
+	spec := newLabelSpec(name, labels, options)
+	c := &CounterVec{m: newMetric(func() *prometheus.CounterVec {
+		return prometheus.NewCounterVec(opts, labels)
+	})}
+	declare(name, spec.undeclared(labels), func() {
+		for _, lvs := range spec.combinations(labels) {
+			c.WithLabelValues(lvs...)
+		}
+	})
+	return c
 }
 
 func (c *CounterVec) Register() { c.m.get() }
@@ -51,17 +66,14 @@ func (c *CounterVec) With(labels prometheus.Labels) prometheus.Counter {
 	return c.m.get().With(labels)
 }
 
-// GaugeVec is a lazy-registering prometheus.GaugeVec.
+// GaugeVec is a lazy-registering prometheus.GaugeVec. Gauges are not created
+// at 0 by SetRegistry: their owner sets their value.
 type GaugeVec struct{ m metric[*prometheus.GaugeVec] }
 
 func NewGaugeVec(opts prometheus.GaugeOpts, labels []string) *GaugeVec {
-	return &GaugeVec{m: metric[*prometheus.GaugeVec]{
-		once:  sync.Once{},
-		inner: nil,
-		initFunc: func() *prometheus.GaugeVec {
-			return registered(prometheus.NewGaugeVec(opts, labels))
-		},
-	}}
+	return &GaugeVec{m: newMetric(func() *prometheus.GaugeVec {
+		return prometheus.NewGaugeVec(opts, labels)
+	})}
 }
 
 func (g *GaugeVec) Register() { g.m.get() }
@@ -79,14 +91,21 @@ type HistogramVec struct {
 	m metric[*prometheus.HistogramVec]
 }
 
-func NewHistogramVec(opts prometheus.HistogramOpts, labels []string) *HistogramVec {
-	return &HistogramVec{m: metric[*prometheus.HistogramVec]{
-		once:  sync.Once{},
-		inner: nil,
-		initFunc: func() *prometheus.HistogramVec {
-			return registered(prometheus.NewHistogramVec(opts, labels))
-		},
-	}}
+// NewHistogramVec declares a histogram vector. Declare every label with
+// [Values] or [Dynamic]; SetRegistry creates every combination of declared
+// values at 0.
+func NewHistogramVec(opts prometheus.HistogramOpts, labels []string, options ...Option) *HistogramVec {
+	name := fqName(opts.Namespace, opts.Subsystem, opts.Name)
+	spec := newLabelSpec(name, labels, options)
+	h := &HistogramVec{m: newMetric(func() *prometheus.HistogramVec {
+		return prometheus.NewHistogramVec(opts, labels)
+	})}
+	declare(name, spec.undeclared(labels), func() {
+		for _, lvs := range spec.combinations(labels) {
+			h.WithLabelValues(lvs...)
+		}
+	})
+	return h
 }
 
 func (h *HistogramVec) Register() { h.m.get() }
@@ -101,34 +120,30 @@ func (h *HistogramVec) With(labels prometheus.Labels) prometheus.Observer {
 
 // --- Plain types (Counter, Gauge, Histogram) ---
 
-// Counter is a lazy-registering prometheus.Counter.
+// Counter is a lazy-registering prometheus.Counter. SetRegistry exports it
+// at 0.
 type Counter struct{ m metric[prometheus.Counter] }
 
 func NewCounter(opts prometheus.CounterOpts) *Counter {
-	return &Counter{m: metric[prometheus.Counter]{
-		once:  sync.Once{},
-		inner: nil,
-		initFunc: func() prometheus.Counter {
-			return registered(prometheus.NewCounter(opts))
-		},
-	}}
+	c := &Counter{m: newMetric(func() prometheus.Counter {
+		return prometheus.NewCounter(opts)
+	})}
+	declare(fqName(opts.Namespace, opts.Subsystem, opts.Name), nil, c.Register)
+	return c
 }
 
 func (c *Counter) Register()     { c.m.get() }
 func (c *Counter) Inc()          { c.m.get().Inc() }
 func (c *Counter) Add(v float64) { c.m.get().Add(v) }
 
-// Gauge is a lazy-registering prometheus.Gauge.
+// Gauge is a lazy-registering prometheus.Gauge. SetRegistry does not export
+// it: its owner sets its value.
 type Gauge struct{ m metric[prometheus.Gauge] }
 
 func NewGauge(opts prometheus.GaugeOpts) *Gauge {
-	return &Gauge{m: metric[prometheus.Gauge]{
-		once:  sync.Once{},
-		inner: nil,
-		initFunc: func() prometheus.Gauge {
-			return registered(prometheus.NewGauge(opts))
-		},
-	}}
+	return &Gauge{m: newMetric(func() prometheus.Gauge {
+		return prometheus.NewGauge(opts)
+	})}
 }
 
 func (g *Gauge) Register()     { g.m.get() }
@@ -138,17 +153,16 @@ func (g *Gauge) Dec()          { g.m.get().Dec() }
 func (g *Gauge) Add(v float64) { g.m.get().Add(v) }
 func (g *Gauge) Sub(v float64) { g.m.get().Sub(v) }
 
-// Histogram is a lazy-registering prometheus.Histogram.
+// Histogram is a lazy-registering prometheus.Histogram. SetRegistry exports
+// it at 0.
 type Histogram struct{ m metric[prometheus.Histogram] }
 
 func NewHistogram(opts prometheus.HistogramOpts) *Histogram {
-	return &Histogram{m: metric[prometheus.Histogram]{
-		once:  sync.Once{},
-		inner: nil,
-		initFunc: func() prometheus.Histogram {
-			return registered(prometheus.NewHistogram(opts))
-		},
-	}}
+	h := &Histogram{m: newMetric(func() prometheus.Histogram {
+		return prometheus.NewHistogram(opts)
+	})}
+	declare(fqName(opts.Namespace, opts.Subsystem, opts.Name), nil, h.Register)
+	return h
 }
 
 func (h *Histogram) Register() { h.m.get() }

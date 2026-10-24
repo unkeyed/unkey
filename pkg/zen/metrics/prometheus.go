@@ -64,6 +64,9 @@ var (
 			Buckets:   latencyBuckets,
 		},
 		[]string{"method", "path", "status"},
+		lazy.Dynamic("method"),
+		lazy.Dynamic("path"),
+		lazy.Dynamic("status"),
 	)
 
 	// HTTPRequestTotal tracks the number of HTTP requests handled, labeled by method, path, and status.
@@ -79,6 +82,9 @@ var (
 			Help:      "Total number of HTTP requests processed.",
 		},
 		[]string{"method", "path", "status"},
+		lazy.Dynamic("method"),
+		lazy.Dynamic("path"),
+		lazy.Dynamic("status"),
 	)
 
 	// HTTPRequestBodySize tracks the distribution of HTTP request body sizes as a histogram,
@@ -96,5 +102,8 @@ var (
 			Buckets:   bodySizeBuckets,
 		},
 		[]string{"method", "path", "status"},
+		lazy.Dynamic("method"),
+		lazy.Dynamic("path"),
+		lazy.Dynamic("status"),
 	)
 )

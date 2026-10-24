@@ -20,6 +20,8 @@ var (
 			Help:      "Number of cache reads by resource type and hit status.",
 		},
 		[]string{"resource", "hit"},
+		lazy.Dynamic("resource"),
+		lazy.Values("hit", "true", "false"),
 	)
 
 	// CacheDeleted tracks the number of items removed from the cache due to space constraints
@@ -37,6 +39,8 @@ var (
 			Help:      "Number of cache entries deleted by resource type and reason.",
 		},
 		[]string{"resource", "reason"},
+		lazy.Dynamic("resource"),
+		lazy.Values("reason", "Replaced", "Size", "Expired", "Explicit"),
 	)
 
 	// CacheSize tracks the current number of items in the cache, labeled by resource type.
@@ -82,6 +86,7 @@ var (
 			Help:      "Total number of cache revalidations by resource type.",
 		},
 		[]string{"resource"},
+		lazy.Dynamic("resource"),
 	)
 
 	CacheRevalidationEnqueues = lazy.NewCounterVec(
@@ -92,6 +97,8 @@ var (
 			Help:      "Refresh enqueue attempts by outcome: enqueued, deduplicated (all keys already pending), queue_full, or closed. Each batch is one attempt.",
 		},
 		[]string{"resource", "outcome"},
+		lazy.Dynamic("resource"),
+		lazy.Values("outcome", "enqueued", "deduplicated", "queue_full", "closed"),
 	)
 
 	CacheRevalidationQueueDepth = lazy.NewHistogramVec(
@@ -103,6 +110,7 @@ var (
 			Buckets:   []float64{0, 1, 5, 10, 50, 100, 250, 500, 750, 1000},
 		},
 		[]string{"resource"},
+		lazy.Dynamic("resource"),
 	)
 
 	CacheRevalidationQueueWait = lazy.NewHistogramVec(
@@ -114,6 +122,7 @@ var (
 			Buckets:   []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60},
 		},
 		[]string{"resource"},
+		lazy.Dynamic("resource"),
 	)
 
 	// CacheOperationDuration measures how long Get, SWR, and SWRWithFallback
@@ -144,6 +153,9 @@ var (
 			Buckets:   prometheus.ExponentialBuckets(100e-9, 2, 24),
 		},
 		[]string{"resource", "operation", "status"},
+		lazy.Dynamic("resource"),
+		lazy.Values("operation", "get", "swr", "swr_fallback"),
+		lazy.Values("status", "fresh", "stale", "miss"),
 	)
 
 	CacheRevalidationDuration = lazy.NewHistogramVec(
@@ -155,6 +167,7 @@ var (
 			Buckets:   []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60},
 		},
 		[]string{"resource"},
+		lazy.Dynamic("resource"),
 	)
 
 	// CacheRevalidationsErrorsTotal tracks the total number of cache revalidation errors,
@@ -170,5 +183,6 @@ var (
 			Help:      "Total number of cache revalidation errors by resource type.",
 		},
 		[]string{"resource"},
+		lazy.Dynamic("resource"),
 	)
 )

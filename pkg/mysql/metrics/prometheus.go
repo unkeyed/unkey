@@ -38,6 +38,9 @@ var (
 			Buckets:   latencyBuckets,
 		},
 		[]string{"replica", "operation", "status"},
+		lazy.Dynamic("replica"),
+		lazy.Values("operation", "exec", "prepare", "query", "query_row", "begin", "commit", "rollback", "batch"),
+		lazy.Values("status", "success", "error"),
 	)
 
 	// DatabaseOperationsTotal tracks the total number of mysql operations
@@ -50,5 +53,8 @@ var (
 			Help:      "Total number of database operations processed.",
 		},
 		[]string{"replica", "operation", "status"},
+		lazy.Dynamic("replica"),
+		lazy.Values("operation", "exec", "prepare", "query", "query_row", "begin", "commit", "rollback", "batch"),
+		lazy.Values("status", "success", "error"),
 	)
 )

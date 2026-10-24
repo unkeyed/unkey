@@ -29,6 +29,8 @@ var routingDecisionsTotal = lazy.NewCounterVec(
 		Help:      "Routing decisions by type and target region.",
 	},
 	[]string{"decision", "target_region"},
+	lazy.Values("decision", "local", "remote"),
+	lazy.Dynamic("target_region"),
 )
 
 // routingDecisionSeconds is the time spent picking a destination — the

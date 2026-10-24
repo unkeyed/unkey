@@ -9,14 +9,16 @@ import (
 // state tracks where lazy metrics register. Only first-use registration and
 // SetRegistry take the lock, never Inc or Observe.
 var state struct {
-	mu         sync.Mutex
-	registry   *prometheus.Registry
-	explicit   bool
-	collectors []prometheus.Collector
+	mu           sync.Mutex
+	registry     *prometheus.Registry
+	explicit     bool
+	collectors   []prometheus.Collector
+	declarations []declaration
 }
 
-// SetRegistry sets the registry that all lazy metrics register to on first
-// use.
+// SetRegistry sets the registry that all lazy metrics register to, and
+// creates every declared counter and histogram series at 0, so a series
+// exists before its first event. See [Values] and [Dynamic].
 //
 // Metrics used before SetRegistry go to a fallback registry so that tests
 // which exercise metric-using code without a service's Run() do not panic.
@@ -34,12 +36,19 @@ func SetRegistry(reg *prometheus.Registry) {
 	if reg == nil {
 		panic("lazy.SetRegistry: nil registry")
 	}
+	if promote(reg) {
+		primeDeclared()
+	}
+}
 
+// promote makes reg the registry and reports whether it was the first
+// explicit call.
+func promote(reg *prometheus.Registry) bool {
 	state.mu.Lock()
 	defer state.mu.Unlock()
 
 	if state.explicit {
-		return
+		return false
 	}
 
 	for _, c := range state.collectors {
@@ -50,6 +59,7 @@ func SetRegistry(reg *prometheus.Registry) {
 	}
 	state.registry = reg
 	state.explicit = true
+	return true
 }
 
 // registered adds c to the current registry and returns it. Until SetRegistry
