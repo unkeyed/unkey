@@ -72,17 +72,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
 		permissions.Delete,
 	)
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		deleteRole,
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
 			Action:       rbac.DeleteRole,
 		}),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Role.NotFound.URN(),
 			"The requested role does not exist.",
 		)

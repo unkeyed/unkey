@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -86,7 +87,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err, fault.Internal("failed to resolve environment"))
 	}
 
-	err = principal.Authorize(rbac.Or(
+	environmentURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID)
+	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
 			ResourceID:   "*",
@@ -98,12 +100,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateDeployment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
+			environmentURN.Deployment("*"),
 			permissions.Write,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return err
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			deployment.CreateVisibility(environmentURN),
+			codes.Data.Environment.NotFound.URN(),
+			"The requested project, app, or environment does not exist.",
+		)
 	}
 
 	actorInfo, err := ctrlclient.Actor(s)

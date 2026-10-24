@@ -32,7 +32,7 @@ The <Tooltip tip="A group of apps, usually one per codebase or product.">project
 
 - The ID or slug is wrong, or the project was renamed and you're using the old slug.
 - The project is in another workspace.
-- Your root key doesn't have permission on the project. Most of these endpoints return this 404 instead of a 403.
+- Your root key can't read the project. Most of these endpoints return this 404 instead of a 403. A key that can read the project but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 - You just tried to create the project and the create failed. New projects are available right away.
 
 ## How to fix

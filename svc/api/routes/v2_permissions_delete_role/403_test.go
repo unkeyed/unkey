@@ -16,8 +16,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_role"
 )
 
-// TestDeleteRoleMasksInsufficientPermissions guarantees that callers cannot find
-// or delete roles without delete access.
+// TestDeleteRoleMasksInsufficientPermissions guarantees that a legacy read does
+// not reveal a role, while a caller who can read it by URN learns they lack
+// delete. A caller with no access gets not-found.
 func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -49,8 +50,7 @@ func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	t.Run("missing required permission", func(t *testing.T) {
-		// Create a root key with a different permission (not rbac.*.delete_role)
+	t.Run("legacy read does not reveal the role", func(t *testing.T) {
 		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_role")
 
 		headers := http.Header{
@@ -62,16 +62,33 @@ func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 			h,
 			route,
 			headers,
-			handler.Request{
-				Role: roleID,
-			},
+			handler.Request{Role: roleID},
 		)
 
 		require.Equal(t, http.StatusNotFound, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/role_not_found", res.Body.Error.Type)
 		require.Equal(t, "The requested role does not exist.", res.Body.Error.Detail)
+		require.NotContains(t, res.RawBody, roleID)
+	})
+
+	t.Run("urn read names the missing permission", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/%s#read", workspace.ID, projectID, roleID))
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+			h,
+			route,
+			headers,
+			handler.Request{Role: roleID},
+		)
+
+		require.Equal(t, http.StatusForbidden, res.Status)
+		require.Contains(t, res.Body.Error.Detail, "#delete")
+		require.Contains(t, res.Body.Error.Detail, "Log in again")
+		require.NotContains(t, res.RawBody, roleID)
 	})
 
 	t.Run("no permissions", func(t *testing.T) {

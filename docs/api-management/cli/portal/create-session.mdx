@@ -75,7 +75,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 - `keys:reroll` needs `create_key`, plus `encrypt_key` when the keyspace stores recoverable keys.
 - `analytics:read` needs `read_analytics`.
 
-Without the session permission, you get a 404 as if the portal didn't exist. With it but missing a scope's permission, the whole request fails with 403. We never create a session with fewer scopes than you asked for. See [Root key permissions](/platform/root-keys/permissions).
+Without the session permission, you get a 404 as if the portal didn't exist, or a 403 that names the missing permission if your key can read the portal. With it but missing a scope's permission, the whole request fails with 403. We never create a session with fewer scopes than you asked for. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

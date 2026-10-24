@@ -118,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
@@ -128,10 +128,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(identityRow.ProjectID).Identity(identityRow.ID),
 			permissions.Write,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Identity.NotFound.URN(),
 			"This identity does not exist.",
 		)

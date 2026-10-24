@@ -74,7 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
 			ResourceID:   "*",
@@ -89,9 +89,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(domain.ProjectID).App(domain.AppID).Environment(domain.EnvironmentID).Domain(domain.ID),
 			permissions.Write,
 		),
-	)); err != nil {
+	)
+	if err = principal.Authorize(permissionQuery); err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Domain.NotFound.URN(),
 			"The requested domain does not exist.",
 		)

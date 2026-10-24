@@ -73,14 +73,14 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+      description: Forbidden - The root key or the workspace is disabled, or the key can read the namespace but lacks the required permission. A key that cannot read the namespace gets 404 instead.
       content:
         application/json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: |
-        Not Found - The namespace does not exist in your workspace, was already deleted, or your root key lacks delete access to it.
+        Not Found - The namespace does not exist in your workspace, was already deleted, or your root key cannot read it.
         All cases return the same response, so a root key cannot learn which namespaces exist.
       content:
         application/json:

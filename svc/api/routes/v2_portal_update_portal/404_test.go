@@ -79,6 +79,7 @@ func TestUpdatePortalDenialMatchesAbsence(t *testing.T) {
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), req)
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
+	require.NotContains(t, denied.RawBody, stored.ID)
 	require.True(t, fetchPortal(t, h, workspace.ID, stored.ID).Enabled,
 		"a denied update must not write")
 	require.Equal(t, 0, countAuditEntriesMentioning(t, h, workspace.ID, "portal.update"),

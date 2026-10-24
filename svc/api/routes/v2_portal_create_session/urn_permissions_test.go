@@ -97,7 +97,18 @@ func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 				return
 			}
 
-			// Stage-1 denials stay masked as 404 in either vocabulary.
+			// A sessions reader already knows the portal exists, so the missing
+			// mint grant is a 403. Callers who cannot read the sessions stay masked.
+			if tc.name == "reading sessions" {
+				require.Equal(t, http.StatusForbidden, res.Status, "expected 403 for a sessions reader, got: %s", res.RawBody)
+				require.Contains(t, res.RawBody, "#write")
+				require.Contains(t, res.RawBody, "create_portal_session")
+				require.Contains(t, res.RawBody, "Log in again")
+				require.Zero(t, countPortalSessions(t, h, workspaceID, externalID), "a denial must write no session row")
+				require.Zero(t, countAuditEntriesMentioning(t, h, workspaceID, externalID), "a denial must write no audit entry")
+				return
+			}
+
 			require.Equal(t, http.StatusNotFound, res.Status, "expected a masked denial, got: %s", res.RawBody)
 			require.NotContains(t, res.RawBody, portalID, "a denial must not disclose the resolved portal id")
 			require.Zero(t, countPortalSessions(t, h, workspaceID, externalID), "a denial must write no session row")

@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/environment"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -65,18 +66,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(app.ProjectID).App(app.ID).Environment("*"),
 			permissions.Read,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return fault.New(
-			"app not found",
-			fault.Code(codes.Data.App.NotFound.URN()),
-			fault.Internal("authorization failed; returning not found to avoid leaking app existence"),
-			fault.Public("The requested app does not exist."),
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			codes.Data.App.NotFound.URN(),
+			"The requested app does not exist.",
 		)
 	}
 

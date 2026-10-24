@@ -65,7 +65,7 @@ Your root key needs one of:
 - `environment.*.promote_deployment` (any environment)
 - `environment.<environment_id>.promote_deployment` (a specific environment)
 
-If the deployment doesn't exist or your key doesn't have the permission, you get the same 404: `The requested deployment does not exist.` See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
+If the deployment doesn't exist or your key doesn't have the permission, you get the same 404: `The requested deployment does not exist.` If your key can read the deployment, you get a 403 that names the missing permission instead. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 
 ## Examples
 

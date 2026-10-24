@@ -89,12 +89,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.U(
+	permissionQuery := rbac.U(
 		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID).BuildLogs(),
 		permissions.Read,
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Deployment.NotFound.URN(), "The requested deployment does not exist.")
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Deployment.NotFound.URN(), "The requested deployment does not exist.")
 	}
 
 	page, err := h.ClickHouse.GetBuildLogs(ctx, clickhouse.GetBuildLogsRequest{
