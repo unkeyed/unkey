@@ -27,6 +27,27 @@ func newDatabase(t *testing.T) (mysql.MySQL, *sql.DB) {
 	return mysql.NewFromReplicas(mysql.NewReplicaFromDB(readPool, "ro", sqlcomment.Static{}), database.RW()), readPool
 }
 
+// awaitStartupPasses blocks until the counter's background passes that run right
+// after New, eviction and compaction, are over: the pool has used a connection
+// and then stayed idle for a while. Tests that hold the pool's only connection or
+// insert rows those passes would touch need that first.
+func awaitStartupPasses(t *testing.T, pool *sql.DB) {
+	t.Helper()
+	const quiet = 300 * time.Millisecond
+	var idleSince time.Time
+	require.Eventually(t, func() bool {
+		stats := pool.Stats()
+		if stats.OpenConnections == 0 || stats.InUse > 0 {
+			idleSince = time.Time{}
+			return false
+		}
+		if idleSince.IsZero() {
+			idleSince = time.Now()
+		}
+		return time.Since(idleSince) >= quiet
+	}, 10*time.Second, 10*time.Millisecond)
+}
+
 var testRegistry = prometheus.NewRegistry()
 
 func init() {

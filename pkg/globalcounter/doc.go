@@ -47,13 +47,29 @@
 //
 // Dropping a snapshot does not undo its local count while its writer id is held
 // in memory. A later Add in the same sequence persists the cumulative value,
-// including changes in dropped snapshots. Nothing writes an id again once it is
-// older than the previous one. Successful Add calls are not durable
-// acknowledgements. A process exit can lose pending changes.
+// including changes in dropped snapshots. A writer id stops receiving Adds when
+// it becomes the previous one, so every eviction pass queues the entries of the
+// previous id again until MySQL acknowledges their newest revision. An entry that
+// is still unacknowledged when its id leaves memory is lost and counted as
+// abandoned. Nothing writes an id again once it is older than the previous one.
+// Successful Add calls are not durable acknowledgements. A process exit can lose
+// pending changes.
 //
-// # Shutdown
+// # Eviction and shutdown
 //
-// Close stops rotation, drains queued snapshots, then persists the entries of the
+// DeleteAfter is cleanup metadata, not a read TTL. A background eviction pass
+// runs about once a minute, with 20% jitter. It first forgets the entries of
+// writer ids older than the previous one, keeping their rows, and queues the
+// previous id's unacknowledged entries again. Neither needs the database. It then
+// deletes rows of every writer that passed their delete_after more than a minute
+// ago, and forgets this writer's expired entries together with its own rows for
+// them. It keeps those entries when a delete fails. An entry is forgotten only a
+// minute after both its delete_after and its latest change, so a snapshot that is
+// still in flight cannot arrive after the name has started again. A change after
+// that starts this writer's count for the name from zero, and a change that races
+// with the pass itself can lose its row, so nothing should change a counter after
+// its delete_after. Close stops eviction
+// and rotation, drains queued snapshots, then persists the entries of the
 // current and the previous writer id, including dropped snapshots, within one
 // deadline.
 //
