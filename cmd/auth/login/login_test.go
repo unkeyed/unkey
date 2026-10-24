@@ -56,9 +56,10 @@ func TestNonterminalLoginDoesNotOpenABrowser(t *testing.T) {
 			writeEnvelope(t, w, http.StatusOK, startedEnvelope(uid.New(uid.DeviceAuthorizationPrefix), 1))
 			return
 		}
-		denied := pollEnvelope(components.StatusAccessDenied, 1)
-		denied.Data.Detail = new("Authorization was denied.")
-		writeEnvelope(t, w, http.StatusOK, denied)
+		writeEnvelope(t, w, http.StatusForbidden, apierrors.ForbiddenErrorResponse{
+			Error_: components.BaseError{Detail: "Authorization was denied.", Status: http.StatusForbidden},
+			Meta:   components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+		})
 	}))
 	t.Cleanup(srv.Close)
 
