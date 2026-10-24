@@ -1,10 +1,10 @@
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { useFlag } from "@/lib/flags/provider";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useProjectData } from "../../data-provider";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
-import { buildRequestOf, deploymentPageModel } from "./deployment-page-model";
+import { deploymentPageModel } from "./deployment-page-model";
 import { useDeployment } from "./layout-provider";
 import { useDeploymentStatus } from "./use-deployment-status";
 
@@ -13,12 +13,7 @@ const SUCCESS_BANNER_MS = 4_500;
 export type DeploymentPage = ReturnType<typeof useDeploymentPage>;
 
 export function useDeploymentPage() {
-  const pathname = usePathname();
   const buildRequested = Boolean(useSearchParams().get("build"));
-  const [buildRequestedOnPage, setBuildRequestedOnPage] = useState(buildRequested);
-  if (buildRequested && !buildRequestedOnPage) {
-    setBuildRequestedOnPage(true);
-  }
   const { deployment } = useDeployment();
   const {
     getDomainsForDeployment,
@@ -39,15 +34,13 @@ export function useDeploymentPage() {
     }
   }, [ready, refetchDomains, steps.refetch]);
 
-  const buildRequest = buildRequestOf({
-    inUrl: buildRequested,
-    seenOnPage: buildRequestedOnPage,
-  });
   useEffect(() => {
-    if (buildRequest === "active") {
-      window.history.replaceState(null, "", pathname);
+    if (buildRequested) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("build");
+      window.history.replaceState(null, "", url.href);
     }
-  }, [buildRequest, pathname]);
+  }, [buildRequested]);
 
   const domainsLoading = isDomainsLoading || isCustomDomainsLoading;
   return {
@@ -58,7 +51,7 @@ export function useDeploymentPage() {
     ...deploymentPageModel({
       deployment,
       status: derivedStatus,
-      buildRequest,
+      buildRequested,
       domains: getDomainsForDeployment(deployment.id),
       domainsLoading,
       customDomains,

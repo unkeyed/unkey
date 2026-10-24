@@ -1,11 +1,9 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { match } from "@unkey/match";
 import { PageBody } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { DeploymentApproval } from "./(deployment-progress)/deployment-approval";
-import { DeploymentCancelled } from "./(deployment-progress)/deployment-cancelled";
 import { DeploymentSkipped } from "./(deployment-progress)/deployment-skipped";
 import { FailedDeploymentBanner } from "./(deployment-progress)/failed-deployment-banner";
 import { DeploymentSuccessBanner } from "./deployment-success-banner";
@@ -30,22 +28,15 @@ export function DeploymentOverview() {
       {page.status === "failed" && (
         <FailedDeploymentBanner
           stepsData={steps}
-          appScope={appScope}
           limitsUrl={routes.settings.limits({ workspaceSlug: workspace.slug })}
-          deployment={deployment}
         />
       )}
       <DeploymentDetailsCard page={page} />
       {page.body === "stages" ? (
         <DeploymentStagesCard page={page} />
       ) : (
-        <div key={page.body} className="animate-fade-slide-in">
-          {match(page.body)
-            .with("skipped", () => <DeploymentSkipped />)
-            .with("superseded", "cancelled", (reason) => (
-              <DeploymentCancelled deployment={deployment} stepsData={steps} reason={reason} />
-            ))
-            .exhaustive()}
+        <div className="animate-fade-slide-in">
+          <DeploymentSkipped />
         </div>
       )}
       <DeploymentApproval

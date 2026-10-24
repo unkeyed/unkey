@@ -87,7 +87,7 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
-  // The latest exit across instances, for the pre-app_v2 pages
+  // The latest exit across instances
   lastExit: lastExitSchema.nullable(),
 });
 
@@ -95,6 +95,10 @@ export type Deployment = z.infer<typeof deploymentSchema>;
 
 export function isPrebuilt(deployment: Pick<Deployment, "source">): boolean {
   return deployment.source === "oci";
+}
+
+export function hasBuildLogs(deployment: Pick<Deployment, "source" | "status">): boolean {
+  return !isPrebuilt(deployment) && deployment.status !== "skipped";
 }
 
 // The fields the deployment cards, dialogs, and table cells read. Both a

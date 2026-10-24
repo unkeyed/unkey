@@ -5,6 +5,7 @@ import type { MenuItem } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import { hasBuildLogs } from "@/lib/collections/deploy/deployments";
 import { routes } from "@/lib/navigation/routes";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
@@ -165,7 +166,9 @@ export function useDeploymentHeaderActions({
         icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
         href: routes.projects.requests({ ...deploymentScope, since: "6h" }),
       },
-      {
+    ];
+    if (hasBuildLogs({ source: deployment.source, status })) {
+      navigationActions.push({
         id: "build-steps",
         label: "Go to build logs",
         icon: <IconHammer2Outline18 className="size-3.5" />,
@@ -174,8 +177,8 @@ export function useDeploymentHeaderActions({
           appId: deployment.appId,
           build: true,
         }),
-      },
-    ];
+      });
+    }
 
     return [
       ...availableActions.map((action, index) =>
@@ -186,6 +189,7 @@ export function useDeploymentHeaderActions({
   }, [
     deployment.id,
     deployment.desiredState,
+    deployment.source,
     status,
     currentDeploymentId,
     isRolledBack,
