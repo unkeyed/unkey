@@ -1,0 +1,28 @@
+overlay: 1.0.0
+x-speakeasy-jsonpath: rfc9535
+info:
+  title: Internal CLI SDK
+  version: 1.0.0
+actions:
+  - target: $.paths.*[?(@.tags[0] != 'cli')]
+    remove: true
+  - target: $.paths.*[?(@.tags[0] == 'cli')]
+    update:
+      x-speakeasy-ignore: false
+  - target: $['x-speakeasy-retries']
+    remove: true
+  - target: $.paths['/v2/cli.exchangeToken'].post
+    update:
+      x-speakeasy-polling:
+        - name: WaitForCompletion
+          delaySeconds: 0
+          intervalSeconds: 5
+          limitCount: 120
+          successCriteria:
+            - condition: $statusCode == 200
+            - condition: $response.body#/data/status == "complete"
+          failureCriteria:
+            - condition: $statusCode == 200
+            - context: $response.body#/data/status
+              condition: "^(access_denied|expired_token)$"
+              type: regex
