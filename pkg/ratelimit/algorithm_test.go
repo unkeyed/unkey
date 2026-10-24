@@ -1,0 +1,335 @@
+package ratelimit
+
+import (
+	"fmt"
+	"maps"
+	"math"
+	"slices"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/fuzz"
+)
+
+// TestDecideChargesRequestsWhenAPeerSessionIsNewer guarantees that a request
+// is charged in full when a peer started a session after this pod's live
+// session. Adding the request to the older live session would leave
+// `reset_at` unchanged, because the peer's newer session holds the largest
+// candidate.
+func TestDecideChargesRequestsWhenAPeerSessionIsNewer(t *testing.T) {
+	current, err := computeResetTimes(sessionsByID(
+		session{id: "peer", anchorAtNs: 150, consumedNs: 60},
+		session{id: "own", anchorAtNs: 100, consumedNs: 1},
+	), "own")
+	require.NoError(t, err)
+	require.Equal(t, int64(210), current.resetAtNs)
+
+	result, err := decide(current, 155, Rate{Limit: 60, Duration: 60}, 1)
+	require.NoError(t, err)
+	require.True(t, result.allowed)
+	require.Equal(t, int64(211), result.resetAtNs)
+	require.Equal(t, int64(155), result.createNewSessionAtNs)
+}
+
+// TestComputeResetTimesRejectsInvalidSessions guarantees that corrupt rows return an
+// error instead of a wrong `reset_at`. A zero anchor would also collide with
+// the "no new session" value, and a sum beyond int64 would wrap into the past
+// and open the rate limit.
+func TestComputeResetTimesRejectsInvalidSessions(t *testing.T) {
+	cases := []struct {
+		name     string
+		sessions []session
+		liveID   string
+	}{
+		{"zero anchor", []session{{id: "a", anchorAtNs: 0, consumedNs: 1}}, ""},
+		{"zero anchor of the live session", []session{{id: "a", anchorAtNs: 0, consumedNs: 1}}, "a"},
+		{"negative consumed time", []session{{id: "a", anchorAtNs: 1, consumedNs: -1}}, ""},
+		{"live session not in the sessions", []session{{id: "a", anchorAtNs: 1, consumedNs: 1}}, "b"},
+		{"consumed sum beyond int64", []session{
+			{id: "a", anchorAtNs: 1, consumedNs: math.MaxInt64 - 1},
+			{id: "b", anchorAtNs: 1, consumedNs: 2},
+		}, ""},
+		{"candidate beyond int64", []session{{id: "a", anchorAtNs: math.MaxInt64 - 5, consumedNs: 6}}, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := computeResetTimes(sessionsByID(tc.sessions...), tc.liveID)
+			require.Error(t, err)
+		})
+	}
+}
+
+// TestComputeResetTimesAcceptsTheSmallestAnchor guarantees that the check for a
+// positive anchor does not reject the smallest valid one.
+func TestComputeResetTimesAcceptsTheSmallestAnchor(t *testing.T) {
+	result, err := computeResetTimes(sessionsByID(session{id: "a", anchorAtNs: 1, consumedNs: 2}), "")
+	require.NoError(t, err)
+	require.Equal(t, int64(3), result.resetAtNs)
+}
+
+// TestDecideKeepsTheLiveSessionWhenResetAtIsNow guarantees that a request at
+// exactly `reset_at` goes into the live session. Starting a new session there
+// gives the same `reset_at`, but costs an extra row.
+func TestDecideKeepsTheLiveSessionWhenResetAtIsNow(t *testing.T) {
+	current, err := computeResetTimes(sessionsByID(session{id: "own", anchorAtNs: 100, consumedNs: 10}), "own")
+	require.NoError(t, err)
+	require.Equal(t, int64(110), current.resetAtNs)
+
+	result, err := decide(current, 110, Rate{Limit: 10, Duration: 10}, 1)
+	require.NoError(t, err)
+	require.True(t, result.allowed)
+	require.Zero(t, result.createNewSessionAtNs)
+}
+
+// TestDecideIsExactForLargeRates guarantees that `decide` itself uses the
+// exact 128-bit math for the rates in the package documentation, whose
+// `Limit × Duration` does not fit into 64 bits: the full limit uses exactly
+// one `Duration`, and an idle rate limit reports the full limit as remaining.
+func TestDecideIsExactForLargeRates(t *testing.T) {
+	rates := []Rate{
+		{Limit: 10_000, Duration: 30 * 24 * time.Hour},
+		{Limit: 400_000_000, Duration: time.Minute},
+	}
+	for _, rate := range rates {
+		t.Run(fmt.Sprintf("%d per %s", rate.Limit, rate.Duration), func(t *testing.T) {
+			idle, err := decide(resetTimes{}, 1, rate, 0)
+			require.NoError(t, err)
+			require.Equal(t, rate.Limit, idle.remaining)
+
+			full, err := decide(resetTimes{}, 1, rate, rate.Limit)
+			require.NoError(t, err)
+			require.True(t, full.allowed)
+			require.Equal(t, rate.Duration.Nanoseconds(), full.consumedNs)
+			require.Zero(t, full.remaining)
+		})
+	}
+}
+
+// TestDecideAtTheEdges guarantees that `decide` rejects invalid input,
+// decides exactly up to the int64 limit, and returns an error instead of
+// wrapping around one nanosecond later. It also guarantees that a huge
+// `units` is denied before the 128-bit division, which would panic.
+func TestDecideAtTheEdges(t *testing.T) {
+	cases := []struct {
+		name        string
+		nowNs       int64
+		rate        Rate
+		units       int64
+		wantErr     bool
+		wantAllowed bool
+	}{
+		{"zero time", 0, Rate{Limit: 1, Duration: 2}, 1, true, false},
+		{"negative units", 1, Rate{Limit: 1, Duration: 2}, -1, true, false},
+		{"zero limit", 1, Rate{Limit: 0, Duration: 2}, 1, true, false},
+		{"zero duration", 1, Rate{Limit: 1, Duration: 0}, 1, true, false},
+		{"negative limit", 1, Rate{Limit: -1, Duration: 2}, 1, true, false},
+		{"negative duration", 1, Rate{Limit: 1, Duration: -2}, 1, true, false},
+		{"reset_at exactly at the int64 maximum", math.MaxInt64 - 2, Rate{Limit: 1, Duration: 2}, 1, false, true},
+		{"reset_at one past the int64 maximum", math.MaxInt64 - 1, Rate{Limit: 1, Duration: 2}, 1, true, false},
+		{"huge units on a huge duration", 1, Rate{Limit: 1, Duration: math.MaxInt64}, math.MaxInt64, false, false},
+		{"smallest valid rate", 1, Rate{Limit: 1, Duration: 1}, 1, false, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := decide(resetTimes{}, tc.nowNs, tc.rate, tc.units)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.wantAllowed, result.allowed)
+		})
+	}
+}
+
+// TestDecideReplaysTheDocumentationTables guarantees that the worked
+// examples in the package documentation are what the code does: the
+// table for 10 per 10 seconds on one pod, and two pods that over-admitted
+// and pay it back.
+func TestDecideReplaysTheDocumentationTables(t *testing.T) {
+	noonNs := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC).UnixNano()
+	secondNs := time.Second.Nanoseconds()
+	rate := Rate{Limit: 10, Duration: 10 * time.Second}
+	type step struct {
+		atSeconds        int64
+		units            int64
+		wantAllowed      bool
+		wantResetAtAfter int64
+	}
+	replay := func(t *testing.T, e *entry, steps []step) {
+		t.Helper()
+		for index, s := range steps {
+			result, err := e.check(noonNs+s.atSeconds*secondNs, rate, s.units)
+			require.NoError(t, err)
+			require.Equal(t, s.wantAllowed, result.allowed, "step %d", index)
+			require.NoError(t, e.apply(result, fmt.Sprintf("own_%d", index)))
+			require.Equal(t, noonNs+s.wantResetAtAfter*secondNs, e.resetTimes.resetAtNs, "step %d", index)
+		}
+	}
+
+	t.Run("one pod", func(t *testing.T) {
+		var e entry
+		replay(t, &e, []step{
+			{0, 1, true, 1},
+			{0, 9, true, 10},
+			{0, 1, false, 10},
+			{1, 1, true, 11},
+			{30, 1, true, 31},
+		})
+	})
+
+	t.Run("over-admission is paid back", func(t *testing.T) {
+		var e entry
+		replay(t, &e, []step{{0, 10, true, 10}})
+		require.NoError(t, e.mergeRows([]session{{id: "pod_b", anchorAtNs: noonNs, consumedNs: 10 * secondNs}}))
+		require.Equal(t, noonNs+20*secondNs, e.resetTimes.resetAtNs)
+		replay(t, &e, []step{
+			{10, 1, false, 20},
+			{10, 0, true, 20},
+			{11, 1, true, 21},
+		})
+	})
+}
+
+// FuzzDecideFollowsGCRARule guarantees the core property of the
+// limiter math. For any history of peer rows, stale rows, ended sessions and
+// requests, every decision follows the GCRA rule over the same
+// sessions: `reset_at` moves to `max(reset_at, now) + consumed time`, and the
+// request fits if that stays within one `Duration` of now.
+//
+// It also guarantees that:
+//   - the sessions reproduce that `reset_at` by the formula over all rows;
+//   - the reset times always equal `computeResetTimes` over the sessions, so
+//     the O(1) updates in `resetTimesAfter` and `endLiveSession` never drift;
+//   - a request starts a new session exactly when the live session cannot
+//     take it, and the new session is anchored at `max(now, newest anchor)`;
+//   - a denied request or a request of zero `units` consumes nothing.
+func FuzzDecideFollowsGCRARule(f *testing.F) {
+	fuzz.Seed(f)
+	f.Fuzz(func(t *testing.T, data []byte) {
+		c := fuzz.New(t, data)
+		rate := Rate{
+			Limit:    int64(c.Uint8()%20) + 1,
+			Duration: time.Duration(c.Uint8()%200) + 1,
+		}
+		var e entry
+		var nowNs int64 = 1_000
+		peerCount := 0
+		ownCount := 0
+
+		for range 100 {
+			switch c.Uint8() % 5 {
+			case 0:
+				nowNs += int64(c.Uint8())
+			case 1:
+				peerCount++
+				require.NoError(t, e.mergeRows([]session{{
+					id:         fmt.Sprintf("peer_%d", peerCount),
+					anchorAtNs: nowNs + int64(c.Int8()),
+					consumedNs: int64(c.Uint8()),
+				}}))
+			case 2:
+				all := allSessions(e)
+				if len(all) == 0 {
+					continue
+				}
+				// A row of any known session, grown or stale. Growing this
+				// pod's own sessions here stands for a write that another
+				// copy of this pod flushed; a stale row must change nothing.
+				row := all[int(c.Uint8())%len(all)]
+				row.consumedNs = max(0, row.consumedNs+int64(c.Int8()))
+				require.NoError(t, e.mergeRows([]session{row}))
+			case 3:
+				e.endLiveSession()
+			case 4:
+				units := int64(c.Uint8()) % (rate.Limit + 2)
+				ownCount++
+				requestFollowsGCRARule(t, &e, rate, nowNs, units, fmt.Sprintf("own_%d", ownCount))
+			}
+			fresh, err := computeResetTimes(e.sessions, e.liveID)
+			require.NoError(t, err)
+			require.Equal(t, fresh, e.resetTimes)
+		}
+	})
+}
+
+// requestFollowsGCRARule checks one request against the GCRA rule
+// and against the formula over all sessions, then spends it.
+func requestFollowsGCRARule(t *testing.T, e *entry, rate Rate, nowNs, units int64, newSessionID string) {
+	t.Helper()
+	all := allSessions(*e)
+	before := resetAtByFormula(all)
+	require.Equal(t, before, e.resetTimes.resetAtNs)
+
+	result, err := e.check(nowNs, rate, units)
+	require.NoError(t, err)
+
+	consumedNs := ceilDiv(units*rate.Duration.Nanoseconds(), rate.Limit)
+	after := max(before, nowNs) + consumedNs
+	allowed := units <= rate.Limit && after-nowNs <= rate.Duration.Nanoseconds()
+	require.Equal(t, allowed, result.allowed)
+	if !allowed || units == 0 {
+		require.Equal(t, before, result.resetAtNs)
+		require.Zero(t, result.consumedNs)
+		require.Zero(t, result.createNewSessionAtNs)
+		require.Equal(t, remainingBySearch(rate, nowNs, before), result.remaining)
+		require.NoError(t, e.apply(result, ""))
+		require.ElementsMatch(t, all, allSessions(*e))
+		return
+	}
+
+	require.Equal(t, after, result.resetAtNs)
+	require.Equal(t, consumedNs, result.consumedNs)
+	require.Equal(t, remainingBySearch(rate, nowNs, after), result.remaining)
+
+	liveCanTakeIt := false
+	if e.liveID != "" {
+		withLive := maps.Clone(e.sessions)
+		live := withLive[e.liveID]
+		live.consumedNs += consumedNs
+		withLive[e.liveID] = live
+		liveCanTakeIt = resetAtByFormula(slices.Collect(maps.Values(withLive))) == after
+	}
+	require.Equal(t, !liveCanTakeIt, result.createNewSessionAtNs != 0, "a new session starts exactly when the live session cannot take the request")
+	if result.createNewSessionAtNs != 0 {
+		var newestAnchorAtNs int64
+		for _, s := range all {
+			newestAnchorAtNs = max(newestAnchorAtNs, s.anchorAtNs)
+		}
+		require.Equal(t, max(nowNs, newestAnchorAtNs), result.createNewSessionAtNs)
+	}
+
+	require.NoError(t, e.apply(result, newSessionID))
+	require.Equal(t, after, resetAtByFormula(allSessions(*e)))
+	require.Len(t, e.sessions, len(all)+min(1, int(result.createNewSessionAtNs)), "apply never removes a session")
+}
+
+// resetAtByFormula computes `reset_at` straight from its definition, in O(n²).
+func resetAtByFormula(sessions []session) int64 {
+	var resetAtNs int64
+	for _, r := range sessions {
+		candidateNs := r.anchorAtNs
+		for _, s := range sessions {
+			if s.anchorAtNs >= r.anchorAtNs {
+				candidateNs += s.consumedNs
+			}
+		}
+		resetAtNs = max(resetAtNs, candidateNs)
+	}
+	return resetAtNs
+}
+
+// remainingBySearch returns the largest number of units that fit at `nowNs`.
+func remainingBySearch(rate Rate, nowNs, resetAtNs int64) int64 {
+	for units := rate.Limit; units > 0; units-- {
+		if max(resetAtNs, nowNs)+ceilDiv(units*rate.Duration.Nanoseconds(), rate.Limit)-nowNs <= rate.Duration.Nanoseconds() {
+			return units
+		}
+	}
+	return 0
+}
+
+func ceilDiv(a, b int64) int64 {
+	return (a + b - 1) / b
+}
