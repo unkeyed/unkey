@@ -13,5 +13,3 @@ CREATE TABLE `roles` (
 	CONSTRAINT `unique_name_per_project_idx` UNIQUE(`project_id`,`name`)
 );
 
-CREATE INDEX `roles_project_id_idx` ON `roles` (`project_id`);
-
