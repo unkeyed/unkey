@@ -16,6 +16,8 @@ type entry struct {
 	// others are peer sessions and this pod's frozen sessions, unordered.
 	others []session
 
+	// summary caches `reset_at` and the two other times that `decide` needs,
+	// so a check is O(1) instead of O(n log n) for `summarize`.
 	summary summary
 }
 
