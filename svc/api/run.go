@@ -35,6 +35,7 @@ import (
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	authworkos "github.com/unkeyed/unkey/pkg/auth/workos"
+	"github.com/unkeyed/unkey/pkg/workos"
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
@@ -431,7 +432,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	var cliMemberships clidevice.Memberships
 	if key := strings.TrimSpace(cfg.CLIAuth.WorkOSAPIKey); key != "" {
-		cliMemberships = authworkos.NewMembershipClient(key, cfg.CLIAuth.WorkOSAPIBaseURL)
+		cliMemberships = workos.New(key, cfg.CLIAuth.WorkOSAPIBaseURL)
 	}
 	cliSecrets := make([][]byte, 0, len(cfg.CLIAuth.SigningSecrets))
 	for _, secret := range cfg.CLIAuth.SigningSecrets {

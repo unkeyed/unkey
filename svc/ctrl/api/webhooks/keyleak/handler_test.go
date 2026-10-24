@@ -36,10 +36,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
+	"github.com/unkeyed/unkey/pkg/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	worker "github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -392,7 +392,7 @@ func TestKeyLeakNoopProvidersStillDeliverSlack(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	service := worker.New(worker.Config{
-		Members:         workos.New(""),
+		Members:         workos.New("", ""),
 		Email:           email.NewResend("", ""),
 		SlackWebhookURL: server.URL,
 	})
