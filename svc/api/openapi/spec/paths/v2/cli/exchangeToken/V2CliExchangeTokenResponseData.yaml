@@ -1,0 +1,32 @@
+type: object
+required:
+  - status
+  - interval
+if:
+  properties:
+    status:
+      const: complete
+  required:
+    - status
+then:
+  required:
+    - credentials
+properties:
+  status:
+    type: string
+    enum:
+      - permissions_required
+      - access_denied
+      - expired_token
+      - complete
+    description: |
+      `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
+  interval:
+    type: integer
+    format: int64
+    description: Seconds to wait before polling again. Zero after a refresh-token exchange.
+  detail:
+    type: string
+    description: Human-readable reason for a terminal status.
+  credentials:
+    $ref: ./V2CliExchangeTokenCredentials.yaml

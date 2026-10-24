@@ -1,5 +1,4 @@
 type: object
-additionalProperties: false
 required:
   - meta
   - data
@@ -7,4 +6,4 @@ properties:
   meta:
     $ref: ../../../../common/Meta.yaml
   data:
-    $ref: ../../../../common/EmptyResponse.yaml
+    $ref: ./V2CliExchangeTokenResponseData.yaml

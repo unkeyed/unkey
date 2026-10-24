@@ -620,12 +620,12 @@ components:
                 data:
                     "$ref": "#/components/schemas/App"
             additionalProperties: false
-        V2CliApproveDeviceLoginRequestBody:
+        V2CliDecideDeviceLoginRequestBody:
             type: object
             additionalProperties: false
             required:
                 - userCode
-                - permissions
+                - decision
             properties:
                 userCode:
                     type: string
@@ -633,6 +633,11 @@ components:
                     maxLength: 32
                     x-unkey-redact: true
                     description: Code shown in the terminal.
+                decision:
+                    type: string
+                    enum:
+                        - approve
+                        - deny
                 permissions:
                     type: array
                     minItems: 1
@@ -643,7 +648,23 @@ components:
                         type: string
                         minLength: 1
                         maxLength: 512
-        V2CliApproveDeviceLoginResponseBody:
+            oneOf:
+                - properties:
+                    decision:
+                        type: string
+                        enum:
+                            - approve
+                  required:
+                    - permissions
+                - properties:
+                    userCode:
+                        type: string
+                    decision:
+                        type: string
+                        enum:
+                            - deny
+                  additionalProperties: false
+        V2CliDecideDeviceLoginResponseBody:
             type: object
             additionalProperties: false
             required:
@@ -654,19 +675,29 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
-        V2CliDenyDeviceLoginRequestBody:
+        V2CliExchangeTokenRequestBody:
             type: object
             additionalProperties: false
-            required:
-                - userCode
             properties:
-                userCode:
+                loginId:
                     type: string
-                    minLength: 4
-                    maxLength: 32
-        V2CliDenyDeviceLoginResponseBody:
+                    minLength: 8
+                    maxLength: 48
+                    x-unkey-redact: true
+                    description: loginId from cli.startDeviceLogin.
+                refreshToken:
+                    type: string
+                    minLength: 8
+                    x-unkey-redact: true
+                    description: Refresh token from the previous login or token exchange.
+            oneOf:
+                - required:
+                    - loginId
+                - required:
+                    - refreshToken
+            description: Supply exactly one credential. A loginId polls for approval; a refreshToken rotates an existing session.
+        V2CliExchangeTokenResponseBody:
             type: object
-            additionalProperties: false
             required:
                 - meta
                 - data
@@ -674,7 +705,7 @@ components:
                 meta:
                     $ref: '#/components/schemas/Meta'
                 data:
-                    $ref: '#/components/schemas/EmptyResponse'
+                    $ref: '#/components/schemas/V2CliExchangeTokenResponseData'
         V2CliGetDeviceLoginRequestBody:
             type: object
             additionalProperties: false
@@ -696,9 +727,6 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/V2CliGetDeviceLoginResponseData'
-        V2CliListSessionsRequestBody:
-            type: object
-            additionalProperties: false
         V2CliListSessionsResponseBody:
             type: object
             required:
@@ -709,49 +737,6 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/V2CliListSessionsResponseData'
-        V2CliPollDeviceLoginRequestBody:
-            type: object
-            additionalProperties: false
-            required:
-                - loginId
-            properties:
-                loginId:
-                    type: string
-                    minLength: 8
-                    maxLength: 48
-                    x-unkey-redact: true
-                    description: loginId from cli.startDeviceLogin.
-        V2CliPollDeviceLoginResponseBody:
-            type: object
-            required:
-                - meta
-                - data
-            properties:
-                meta:
-                    $ref: '#/components/schemas/Meta'
-                data:
-                    $ref: '#/components/schemas/V2CliPollDeviceLoginResponseData'
-        V2CliRefreshTokenRequestBody:
-            type: object
-            additionalProperties: false
-            required:
-                - refreshToken
-            properties:
-                refreshToken:
-                    type: string
-                    minLength: 8
-                    x-unkey-redact: true
-                    description: Refresh token from the previous login or refresh.
-        V2CliRefreshTokenResponseBody:
-            type: object
-            required:
-                - meta
-                - data
-            properties:
-                meta:
-                    $ref: '#/components/schemas/Meta'
-                data:
-                    $ref: '#/components/schemas/V2CliRefreshTokenResponseData'
         V2CliRevokeSessionRequestBody:
             type: object
             additionalProperties: false
@@ -5455,6 +5440,67 @@ components:
                         branch of the connected repository.
                     example: main
             additionalProperties: false
+        V2CliExchangeTokenResponseData:
+            type: object
+            required:
+                - status
+                - interval
+            if:
+                properties:
+                    status:
+                        const: complete
+                required:
+                    - status
+            then:
+                required:
+                    - credentials
+            properties:
+                status:
+                    type: string
+                    enum:
+                        - permissions_required
+                        - access_denied
+                        - expired_token
+                        - complete
+                    description: |
+                        `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes credentials.
+                interval:
+                    type: integer
+                    format: int64
+                    description: Seconds to wait before polling again. Zero after a refresh-token exchange.
+                detail:
+                    type: string
+                    description: Human-readable reason for a terminal status.
+                credentials:
+                    $ref: '#/components/schemas/V2CliExchangeTokenCredentials'
+        V2CliExchangeTokenCredentials:
+            type: object
+            description: Session credentials returned when token exchange is complete.
+            required:
+                - accessToken
+                - refreshToken
+                - expiresIn
+                - workspaceId
+                - sessionId
+            properties:
+                accessToken:
+                    type: string
+                    x-unkey-redact: true
+                    description: Short-lived access token.
+                refreshToken:
+                    type: string
+                    x-unkey-redact: true
+                    description: Rotating refresh token. Store it. It is returned only once.
+                expiresIn:
+                    type: integer
+                    format: int64
+                    description: Seconds until the access token expires. Access tokens last 15 minutes.
+                workspaceId:
+                    type: string
+                    description: Workspace the session belongs to.
+                sessionId:
+                    type: string
+                    description: CLI session id.
         V2CliGetDeviceLoginResponseData:
             type: object
             required:
@@ -5536,70 +5582,6 @@ components:
                     type: integer
                     format: int64
                     description: Unix millisecond time the session was revoked. Omitted when the session is still active.
-        V2CliPollDeviceLoginResponseData:
-            type: object
-            required:
-                - status
-                - interval
-            properties:
-                status:
-                    type: string
-                    enum:
-                        - permissions_required
-                        - access_denied
-                        - expired_token
-                        - complete
-                    description: |
-                        `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
-                interval:
-                    type: integer
-                    format: int64
-                    description: Seconds to wait before polling again.
-                detail:
-                    type: string
-                    description: Human-readable reason for a terminal status.
-                accessToken:
-                    type: string
-                    x-unkey-redact: true
-                    description: Short-lived access token. Present only when status is complete.
-                refreshToken:
-                    type: string
-                    x-unkey-redact: true
-                    description: Rotating refresh token. Present only when status is complete. Store it. It is returned only once.
-                expiresIn:
-                    type: integer
-                    format: int64
-                    description: Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
-                workspaceId:
-                    type: string
-                    description: Workspace the session belongs to. Present only when status is complete.
-                sessionId:
-                    type: string
-                    description: CLI session id. Present only when status is complete.
-        V2CliRefreshTokenResponseData:
-            type: object
-            required:
-                - accessToken
-                - refreshToken
-                - expiresIn
-                - workspaceId
-                - sessionId
-            properties:
-                accessToken:
-                    type: string
-                    x-unkey-redact: true
-                refreshToken:
-                    type: string
-                    x-unkey-redact: true
-                    description: The next refresh token. The previous one no longer works.
-                expiresIn:
-                    type: integer
-                    format: int64
-                    description: Seconds until the access token expires. Access tokens last 15 minutes.
-                workspaceId:
-                    type: string
-                sessionId:
-                    type: string
         V2CliStartDeviceLoginResponseData:
             type: object
             required:
@@ -5613,7 +5595,7 @@ components:
                 loginId:
                     type: string
                     x-unkey-redact: true
-                    description: Secret the CLI sends to cli.pollDeviceLogin. Do not display it.
+                    description: Secret credential used to poll for approval. Do not display it.
                 userCode:
                     type: string
                     description: Code the user confirms in the browser.
@@ -11045,32 +11027,33 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: updateApp
-    /v2/cli.approveDeviceLogin:
+    /v2/cli.decideDeviceLogin:
         post:
             description: |
-                Stores the permissions selected by the signed-in user.
+                Approves or denies a device login using the signed-in dashboard user's session.
+                Approval requires permissions. Denial must not include permissions and prevents token issuance.
                 Every permission must fit inside the caller's role. Any member can approve, not only admins.
                 The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
-            operationId: cli.approveDeviceLogin
+            operationId: cli.decideDeviceLogin
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/V2CliApproveDeviceLoginRequestBody'
+                            $ref: '#/components/schemas/V2CliDecideDeviceLoginRequestBody'
                 required: true
             responses:
                 "200":
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/V2CliApproveDeviceLoginResponseBody'
-                    description: Permissions stored.
+                                $ref: '#/components/schemas/V2CliDecideDeviceLoginResponseBody'
+                    description: Decision recorded.
                 "400":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Invalid code or permission.
+                    description: Invalid decision, code, or permission, or the login is closed.
                 "401":
                     content:
                         application/json:
@@ -11082,65 +11065,80 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: The caller cannot grant these permissions.
+                    description: The caller cannot grant these permissions or another account approved this login.
                 "500":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error.
-            summary: Approve CLI device login
+            summary: Decide CLI device login
             tags:
                 - cli
             x-speakeasy-ignore: true
-            x-speakeasy-name-override: approveDeviceLogin
-    /v2/cli.denyDeviceLogin:
+            x-speakeasy-name-override: decideDeviceLogin
+    /v2/cli.exchangeToken:
         post:
             description: |
-                Denies a device login so the CLI does not receive a session.
-            operationId: cli.denyDeviceLogin
+                Supply exactly one of `loginId` or `refreshToken`. No authentication header is required.
+                A `loginId` polls a device login started by cli.startDeviceLogin. While the user has not approved it,
+                the status is `permissions_required`. Approval returns access and refresh tokens exactly once.
+                Device polling is rate limited per IP address.
+                A `refreshToken` rotates an existing session and returns `complete` with new tokens.
+                The user's current membership and permissions are checked again. Reuse of the previous token
+                after the retry grace period revokes the session.
+                Access tokens last 15 minutes. A session expires after 7 days without a refresh,
+                and no later than 30 days after login.
+            operationId: cli.exchangeToken
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/V2CliDenyDeviceLoginRequestBody'
+                            $ref: '#/components/schemas/V2CliExchangeTokenRequestBody'
                 required: true
             responses:
                 "200":
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/V2CliDenyDeviceLoginResponseBody'
-                    description: Login denied.
+                                $ref: '#/components/schemas/V2CliExchangeTokenResponseBody'
+                    description: Current login state. `complete` includes the access token and refresh token.
                 "400":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Unknown or closed login.
+                    description: Invalid credential selection or unknown login.
                 "401":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: Unauthorized
+                    description: The refresh token is invalid, expired, or reused outside the retry grace period.
                 "403":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Another account already approved this login.
+                    description: The user was removed or no longer has the session's permissions.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests from this IP address.
                 "500":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error.
-            summary: Deny CLI device login
+                    description: Internal server error, including when CLI login is not configured on this API.
+            security: []
+            summary: Exchange a CLI credential
             tags:
                 - cli
             x-speakeasy-ignore: true
-            x-speakeasy-name-override: denyDeviceLogin
+            x-speakeasy-name-override: exchangeToken
     /v2/cli.getDeviceLogin:
         post:
             description: |
@@ -11188,13 +11186,8 @@ paths:
             description: |
                 Lists CLI sessions in the caller's workspace. A member sees their own sessions. An admin sees every session.
                 Requires a dashboard session or a CLI access token. Root keys are rejected.
+                This endpoint takes no request body.
             operationId: cli.listSessions
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/V2CliListSessionsRequestBody'
-                required: true
             responses:
                 "200":
                     content:
@@ -11225,97 +11218,6 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: listSessions
-    /v2/cli.pollDeviceLogin:
-        post:
-            description: |
-                Polls a device login started by cli.startDeviceLogin.
-                While the user is confirming the code or choosing permissions, the status is `permissions_required`.
-                When both steps are done, the response includes an access token and a refresh token exactly once.
-                No authentication header is required. `loginId` is the secret. Requests are rate limited per IP address.
-            operationId: cli.pollDeviceLogin
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/V2CliPollDeviceLoginRequestBody'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/V2CliPollDeviceLoginResponseBody'
-                    description: Current login state. `complete` includes the access token and refresh token.
-                "400":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Unknown login.
-                "429":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: Too many requests from this IP address.
-                "500":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error, including when CLI login is not configured on this API.
-            security: []
-            summary: Poll CLI device login
-            tags:
-                - cli
-            x-speakeasy-ignore: true
-            x-speakeasy-name-override: pollDeviceLogin
-    /v2/cli.refreshToken:
-        post:
-            description: |
-                Exchanges a CLI refresh token for a new access token and a new refresh token.
-                The user's current role is checked again. If they were removed, or their role no longer includes any of the session's permissions, the session is revoked.
-                Reusing an old refresh token revokes the session.
-                Access tokens last 15 minutes. A session expires after 7 days without a refresh, and 30 days after login even when it is refreshed.
-                No authentication header is required. The refresh token is the credential.
-            operationId: cli.refreshToken
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/V2CliRefreshTokenRequestBody'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/V2CliRefreshTokenResponseBody'
-                    description: New access token and refresh token.
-                "401":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: The refresh token is invalid, expired, or was already used.
-                "403":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: The user was removed or no longer has the session's permissions.
-                "500":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error, including when CLI login is not configured on this API.
-            security: []
-            summary: Refresh a CLI session
-            tags:
-                - cli
-            x-speakeasy-ignore: true
-            x-speakeasy-name-override: refreshToken
     /v2/cli.revokeSession:
         post:
             description: |

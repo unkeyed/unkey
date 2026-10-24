@@ -9,7 +9,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_deny_device_login"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_decide_device_login"
 )
 
 func TestDenyRequiresADashboardSession(t *testing.T) {
@@ -24,7 +24,7 @@ func TestDenyRequiresADashboardSession(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write", "unkey:v1:"+workspace.ID+":rootKeys/*#read")
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{
 		"Authorization": {"Bearer " + rootKey}, "Content-Type": {"application/json"},
-	}, handler.Request{UserCode: started.UserCode})
+	}, handler.Request{UserCode: started.UserCode, Decision: "deny"})
 	require.Equal(t, http.StatusForbidden, res.Status, res.RawBody)
 }
 
@@ -35,6 +35,6 @@ func TestDenyRejectsAnInvalidBearer(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, http.Header{
 		"Authorization": {"Bearer invalid"}, "Content-Type": {"application/json"},
-	}, handler.Request{UserCode: "TEST-0001"})
+	}, handler.Request{UserCode: "TEST-0001", Decision: "deny"})
 	require.Equal(t, http.StatusUnauthorized, res.Status, res.RawBody)
 }

@@ -2,7 +2,7 @@ type: object
 additionalProperties: false
 required:
   - userCode
-  - permissions
+  - decision
 properties:
   userCode:
     type: string
@@ -10,6 +10,11 @@ properties:
     maxLength: 32
     x-unkey-redact: true
     description: Code shown in the terminal.
+  decision:
+    type: string
+    enum:
+      - approve
+      - deny
   permissions:
     type: array
     minItems: 1
@@ -20,3 +25,16 @@ properties:
       type: string
       minLength: 1
       maxLength: 512
+oneOf:
+  - properties:
+      decision:
+        type: string
+        enum: [approve]
+    required: [permissions]
+  - properties:
+      userCode:
+        type: string
+      decision:
+        type: string
+        enum: [deny]
+    additionalProperties: false

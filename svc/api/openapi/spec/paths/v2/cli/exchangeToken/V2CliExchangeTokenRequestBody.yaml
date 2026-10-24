@@ -1,0 +1,18 @@
+type: object
+additionalProperties: false
+properties:
+  loginId:
+    type: string
+    minLength: 8
+    maxLength: 48
+    x-unkey-redact: true
+    description: loginId from cli.startDeviceLogin.
+  refreshToken:
+    type: string
+    minLength: 8
+    x-unkey-redact: true
+    description: Refresh token from the previous login or token exchange.
+oneOf:
+  - required: [loginId]
+  - required: [refreshToken]
+description: Supply exactly one credential. A loginId polls for approval; a refreshToken rotates an existing session.

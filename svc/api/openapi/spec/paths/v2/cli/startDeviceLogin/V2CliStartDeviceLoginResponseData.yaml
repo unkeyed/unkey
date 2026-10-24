@@ -10,7 +10,7 @@ properties:
   loginId:
     type: string
     x-unkey-redact: true
-    description: Secret the CLI sends to cli.pollDeviceLogin. Do not display it.
+    description: Secret credential used to poll for approval. Do not display it.
   userCode:
     type: string
     description: Code the user confirms in the browser.
