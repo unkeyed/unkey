@@ -15,6 +15,9 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 	if err := RequireDashboardSession(req.Principal); err != nil {
 		return Authorization{}, err
 	}
+	if err := s.limitUserCodeAttempts(ctx, req.Principal.Subject.ID); err != nil {
+		return Authorization{}, err
+	}
 	code, err := normalizeUserCode(req.UserCode)
 	if err != nil {
 		return Authorization{}, err
@@ -36,6 +39,9 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 		return err
 	}
 	if err := RequireDashboardSession(req.Principal); err != nil {
+		return err
+	}
+	if err := s.limitUserCodeAttempts(ctx, req.Principal.Subject.ID); err != nil {
 		return err
 	}
 	code, err := normalizeUserCode(req.UserCode)
@@ -124,6 +130,9 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 		return err
 	}
 	if err := RequireDashboardSession(req.Principal); err != nil {
+		return err
+	}
+	if err := s.limitUserCodeAttempts(ctx, req.Principal.Subject.ID); err != nil {
 		return err
 	}
 	code, err := normalizeUserCode(req.UserCode)

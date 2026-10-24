@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"slices"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -54,6 +56,7 @@ func newService(h *testutil.Harness, membership mem) *Service {
 		DB:               h.DB,
 		Auditlogs:        h.Auditlogs,
 		Clock:            h.Clock,
+		Ratelimit:        h.Ratelimit,
 		Memberships:      membership,
 		DashboardBaseURL: "http://localhost:3000",
 		Signer:           signer,
@@ -89,6 +92,90 @@ func permissionOnlyDeveloperHas(t *testing.T, workspaceID string) string {
 	}
 	t.Fatal("developer role has no permission beyond viewer")
 	return ""
+}
+
+func TestUserCodeAttemptsShareAUserBudgetAcrossActionsAndWorkspaces(t *testing.T) {
+	h := testutil.NewHarness(t)
+	svc := newService(h, mem{})
+	limiter := ratelimit.NewLocal(h.Clock)
+	t.Cleanup(func() { require.NoError(t, limiter.Close()) })
+	svc.Ratelimit = limiter
+	workspace := h.Resources().UserWorkspace
+	p := adminPrincipal(workspace, uid.New(uid.TestPrefix))
+	started, err := svc.Start(t.Context(), StartRequest{RemoteIP: "203.0.113.7"})
+	require.NoError(t, err)
+	otherWorkspace := workspace
+	otherWorkspace.ID = uid.New(uid.WorkspacePrefix)
+	other := adminPrincipal(otherWorkspace, p.Subject.ID)
+
+	for i := range 60 {
+		caller := p
+		if i%2 == 1 {
+			caller = other
+		}
+		code, err := newUserCode()
+		require.NoError(t, err)
+		require.NotEqual(t, started.UserCode, code)
+		switch i % 3 {
+		case 0:
+			_, err = svc.Get(t.Context(), GetRequest{Principal: caller, UserCode: code})
+		case 1:
+			err = svc.Approve(t.Context(), ApproveRequest{Principal: caller, UserCode: code, Permissions: caller.Permissions})
+		case 2:
+			err = svc.Deny(t.Context(), DenyRequest{Principal: caller, UserCode: code})
+		}
+		require.Equal(t, "This login code was not found. Run unkey login again.", fault.UserFacingMessage(err))
+	}
+
+	_, err = svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
+	require.Equal(t, codes.User.TooManyRequests.UserRateLimited.URN(), codeOf(t, err))
+	err = svc.Approve(t.Context(), ApproveRequest{Principal: p, UserCode: started.UserCode, Permissions: p.Permissions})
+	require.Equal(t, codes.User.TooManyRequests.UserRateLimited.URN(), codeOf(t, err))
+	err = svc.Deny(t.Context(), DenyRequest{Principal: p, UserCode: started.UserCode})
+	require.Equal(t, codes.User.TooManyRequests.UserRateLimited.URN(), codeOf(t, err))
+
+	otherUser := adminPrincipal(workspace, uid.New(uid.TestPrefix))
+	login, err := svc.Get(t.Context(), GetRequest{Principal: otherUser, UserCode: started.UserCode})
+	require.NoError(t, err)
+	require.Equal(t, "pending", login.Status)
+
+	h.Clock.Tick(10*time.Minute + time.Second)
+	login, err = svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
+	require.NoError(t, err)
+	require.Equal(t, "expired", login.Status)
+}
+
+type unavailableCodeLimiter struct{}
+
+func (unavailableCodeLimiter) Ratelimit(context.Context, ratelimit.RatelimitRequest) (ratelimit.RatelimitResponse, error) {
+	return ratelimit.RatelimitResponse{}, errors.New("limiter unavailable")
+}
+
+func (unavailableCodeLimiter) RatelimitMany(context.Context, []ratelimit.RatelimitRequest) ([]ratelimit.RatelimitResponse, error) {
+	return nil, errors.New("limiter unavailable")
+}
+
+func TestUserCodeActionsRejectUnavailableLimiters(t *testing.T) {
+	h := testutil.NewHarness(t)
+	svc := newService(h, mem{})
+	p := adminPrincipal(h.Resources().UserWorkspace, uid.New(uid.TestPrefix))
+	started, err := svc.Start(t.Context(), StartRequest{RemoteIP: "203.0.113.9"})
+	require.NoError(t, err)
+
+	for _, limiter := range []ratelimit.Service{nil, unavailableCodeLimiter{}} {
+		svc.Ratelimit = limiter
+		_, err := svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
+		require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
+		err = svc.Approve(t.Context(), ApproveRequest{Principal: p, UserCode: started.UserCode, Permissions: p.Permissions})
+		require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
+		err = svc.Deny(t.Context(), DenyRequest{Principal: p, UserCode: started.UserCode})
+		require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
+	}
+
+	svc.Ratelimit = h.Ratelimit
+	login, err := svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
+	require.NoError(t, err)
+	require.Equal(t, "pending", login.Status)
 }
 
 func TestApproveRejectsMissingMaliciousAndOverscopedPermissions(t *testing.T) {
