@@ -10,18 +10,19 @@ import (
 
 func TestPromoteDeploymentSwapsLiveRoutes(t *testing.T) {
 	f := newFixture(t)
+	other := f.newReadyDeployment(t)
 
 	// The target carries a parked stop from an earlier demotion; the untouched
 	// deployment carries one too and proves the parked stop mechanism works.
 	f.scheduleStop(t, f.candidate.ID)
-	f.scheduleStop(t, f.other.ID)
+	f.scheduleStop(t, other.ID)
 
 	require.NoError(t, f.promote(f.env.ID, f.candidate.ID))
 
 	f.requireLive(t, f.candidate.ID, false)
 	f.requireRoutes(t, f.candidate.ID, f.live.ID)
 	f.requireDesiredStateAfterStopDelay(t, f.candidate.ID, mysqltype.DeploymentsDesiredStateRunning)
-	f.requireDesiredStateAfterStopDelay(t, f.other.ID, mysqltype.DeploymentsDesiredStateStopped)
+	f.requireDesiredStateAfterStopDelay(t, other.ID, mysqltype.DeploymentsDesiredStateStopped)
 	require.Equal(t, 1, countAudits(t, f.ctx, f.db, f.workspaceID, auditlog.DeploymentPromoteEvent, f.candidate.ID, f.actorID))
 	f.requireAuditTargets(t, auditlog.DeploymentPromoteEvent, map[string]string{
 		f.candidate.ID: "deployment",
@@ -32,8 +33,9 @@ func TestPromoteDeploymentSwapsLiveRoutes(t *testing.T) {
 
 func TestPromoteDeploymentConfirmsRollback(t *testing.T) {
 	f := newFixture(t)
-	f.moveStickyRoutes(t, f.candidate.ID)
-	f.setLive(t, f.candidate.ID, true)
+	require.NoError(t, f.rollback(f.env.ID, f.live.ID, f.candidate.ID))
+	f.requireLive(t, f.candidate.ID, true)
+	f.requireRoutes(t, f.candidate.ID, f.live.ID)
 
 	require.NoError(t, f.promote(f.env.ID, f.candidate.ID))
 
@@ -43,7 +45,7 @@ func TestPromoteDeploymentConfirmsRollback(t *testing.T) {
 	f.requireAuditTargets(t, auditlog.DeploymentPromoteEvent, map[string]string{
 		f.candidate.ID: "deployment",
 		f.app.ID:       "app",
-		f.other.ID:     "deployment",
+		f.live.ID:      "deployment",
 	})
 }
 
