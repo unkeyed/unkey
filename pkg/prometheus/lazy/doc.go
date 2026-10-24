@@ -39,4 +39,9 @@
 //	}
 //
 // Leave labels with unbounded or externally supplied values to first use.
+//
+// On hot paths, call Bind once when the label values are known, such as in a
+// constructor, and update the bound child. WithLabelValues hashes the labels
+// and takes the vector's read lock on every call, and that lock contends
+// across cores.
 package lazy
