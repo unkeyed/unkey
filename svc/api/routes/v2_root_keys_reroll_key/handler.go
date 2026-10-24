@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -80,6 +81,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 		source = current
+		if caller, ok := p.Source.(authprincipal.KeySource); ok && caller.ExpiresAt != nil {
+			if !source.Expires.Valid || source.Expires.Int64 > caller.ExpiresAt.UnixMilli() {
+				return fault.New("target root key outlives caller",
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Public("An expiring root key can only reroll root keys that expire no later than itself."),
+				)
+			}
+		}
 		rootKeyPermissions, err := db.Query.ListUnkeyPermissionsByPrincipal(ctx, tx, db.ListUnkeyPermissionsByPrincipalParams{
 			WorkspaceID:   p.AuthorizedWorkspaceID,
 			PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
