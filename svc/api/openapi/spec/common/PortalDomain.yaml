@@ -1,0 +1,57 @@
+type: object
+required:
+  - id
+  - portalId
+  - domain
+  - status
+  - dnsRecords
+  - createdAt
+properties:
+  id:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: The portal domain's ID. Pass it as `domainId` to the other portal domain operations.
+    example: pdom_1234abcd
+  portalId:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: The portal this domain serves.
+    example: prt_1234abcd
+  domain:
+    type: string
+    minLength: 4
+    maxLength: 253
+    description: Fully qualified domain name attached to the portal.
+    example: portal.acme.com
+  status:
+    "$ref": "./DomainStatus.yaml"
+  verificationError:
+    type: string
+    maxLength: 512
+    description: |
+      Why the most recent verification attempt did not succeed, in plain language.
+      Omitted while verification is progressing normally.
+    example: domain verification timed out after 24 hours
+  dnsRecords:
+    type: array
+    minItems: 1
+    items:
+      "$ref": "./DnsRecord.yaml"
+    description: |
+      The DNS records this domain needs. Create each record at your DNS provider.
+      Each record has a `verified` flag showing whether Unkey has read that record back.
+  createdAt:
+    type: integer
+    format: int64
+    description: Unix timestamp in milliseconds when the domain was created.
+    example: 1704067200000
+  updatedAt:
+    type: integer
+    format: int64
+    description: Unix timestamp in milliseconds of the last change to this domain. Omitted if it has never changed.
+    example: 1704153600000
+additionalProperties: false

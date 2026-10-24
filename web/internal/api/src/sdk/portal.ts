@@ -7,6 +7,7 @@ import { portalCreatePortal } from "../funcs/portalCreatePortal.js";
 import { portalCreateSession } from "../funcs/portalCreateSession.js";
 import { portalDeletePortal } from "../funcs/portalDeletePortal.js";
 import { portalExchangeCode } from "../funcs/portalExchangeCode.js";
+import { portalGetDomain } from "../funcs/portalGetDomain.js";
 import { portalGetPortal } from "../funcs/portalGetPortal.js";
 import { portalGetVerifications } from "../funcs/portalGetVerifications.js";
 import { portalListKeys } from "../funcs/portalListKeys.js";
@@ -179,6 +180,33 @@ export class Portal extends ClientSDK {
     options?: RequestOptions,
   ): Promise<operations.PortalExchangeCodeResponse> {
     return unwrapAsync(portalExchangeCode(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Get portal domain
+   *
+   * @remarks
+   * Read one custom domain attached to a portal, with its verification status and DNS records.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of:
+   * - `portal.*.read_portal` (to read domains on any portal in the workspace)
+   * - `portal.<portal_id>.read_portal` (to read domains on a specific portal)
+   * - `portal.*.update_portal` or `portal.<portal_id>.update_portal`, so a key that
+   *   creates a domain can poll it
+   *
+   * Without the permission this returns **404**, not 403.
+   */
+  async getDomain(
+    request: components.V2PortalGetDomainRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PortalGetDomainResponseBody> {
+    return unwrapAsync(portalGetDomain(
       this,
       request,
       options,
