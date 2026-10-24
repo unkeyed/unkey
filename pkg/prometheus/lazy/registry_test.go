@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func resetState(t testing.TB) {
+func resetState(t *testing.T) {
 	t.Helper()
 	reset := func() {
 		state.mu.Lock()
