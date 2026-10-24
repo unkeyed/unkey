@@ -433,7 +433,7 @@ function PendingLogin({
 }
 
 function WorkspacePicker({ userCode, disabled }: { userCode: string; disabled: boolean }) {
-  const { workspace } = useWorkspace();
+  const { workspace, switchWorkspace } = useWorkspace();
   const available = trpc.workspace.listAvailable.useQuery();
   const orgs = available.data ?? [];
   if (orgs.length < 2 || !workspace?.orgId) {
@@ -446,19 +446,14 @@ function WorkspacePicker({ userCode, disabled }: { userCode: string; disabled: b
         aria-label="Workspace"
         className="w-full max-w-60"
         disabled={disabled}
-        options={orgs.map((org) => ({ value: org.orgId, label: org.name }))}
+        options={orgs.map((org) => ({
+          value: org.orgId,
+          label: org.name,
+          searchValue: org.name,
+        }))}
         value={workspace.orgId}
         onSelect={(organizationId) => {
-          if (organizationId === workspace.orgId) {
-            return;
-          }
-          const returnTo = routes.cli.device({ user_code: userCode });
-          window.location.assign(
-            routes.auth.switchOrganization({
-              organizationId,
-              returnTo,
-            }),
-          );
+          switchWorkspace(organizationId, routes.cli.device({ user_code: userCode }));
         }}
       />
     </div>

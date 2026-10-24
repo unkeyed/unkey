@@ -18,6 +18,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/hooks/use-workspace-navigation", () => ({
   useWorkspaceNavigation: () => ({ orgId: "org_current", name: "Current" }),
 }));
+vi.mock("@/providers/workspace-provider", () => ({
+  useWorkspace: () => ({ switchWorkspace: vi.fn() }),
+}));
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
     workspace: { listAvailable: { useQuery: () => mocks.query } },
