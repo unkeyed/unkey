@@ -1,17 +1,14 @@
 package handler_test
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/auth/workos"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
@@ -37,8 +34,10 @@ func TestApproveRequiresADashboardSession(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, res.Status, res.RawBody)
 }
 
-func TestApproveHandlerRejectsMissingMaliciousAndOverscopedPermissions(t *testing.T) {
-	workspaceID := uid.New(uid.WorkspacePrefix)
+func TestApproveRejectsMaliciousAndOverscopedPermissions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspaceID := h.Resources().UserWorkspace.ID
+	route := &handler.Handler{Devices: clidevicetest.New(h)}
 	developer := &principal.Principal{
 		Version:               principal.Version,
 		Type:                  principal.TypeJWT,
@@ -47,29 +46,30 @@ func TestApproveHandlerRejectsMissingMaliciousAndOverscopedPermissions(t *testin
 		AuthorizedWorkspaceID: workspaceID,
 		Permissions:           workos.PermissionsForRoles(workspaceID, []string{"developer"}),
 	}
+	h.Register(route, append(h.PublicMiddleware(), func(next zen.HandleFunc) zen.HandleFunc {
+		return func(ctx context.Context, session *zen.Session) error {
+			session.SetPrincipal(developer)
+			return next(ctx, session)
+		}
+	})...)
 	cases := []struct {
 		name        string
 		permissions []string
-		code        codes.URN
+		code        codes.Code
+		status      int
 	}{
-		{name: "missing", permissions: []string{}, code: codes.App.Validation.InvalidInput.URN()},
-		{name: "malicious", permissions: []string{"not-a-permission"}, code: codes.App.Validation.InvalidInput.URN()},
-		{name: "other workspace", permissions: []string{"unkey:v1:" + uid.New(uid.WorkspacePrefix) + ":rootKeys/*#read"}, code: codes.App.Validation.InvalidInput.URN()},
-		{name: "over scoped", permissions: []string{"unkey:v1:" + workspaceID + ":rootKeys/*#write"}, code: codes.Auth.Authorization.InsufficientPermissions.URN()},
+		{name: "malicious", permissions: []string{"not-a-permission"}, code: codes.App.Validation.InvalidInput, status: http.StatusBadRequest},
+		{name: "other workspace", permissions: []string{"unkey:v1:" + uid.New(uid.WorkspacePrefix) + ":rootKeys/*#read"}, code: codes.App.Validation.InvalidInput, status: http.StatusBadRequest},
+		{name: "over scoped", permissions: []string{"unkey:v1:" + workspaceID + ":rootKeys/*#write"}, code: codes.Auth.Authorization.InsufficientPermissions, status: http.StatusForbidden},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			body, err := json.Marshal(handler.Request{UserCode: "ABCD-EFGH", Decision: "approve", Permissions: &tc.permissions})
-			require.NoError(t, err)
-			req := httptest.NewRequest(http.MethodPost, "/v2/cli.decideDeviceLogin", bytes.NewReader(body))
-			req.Header.Set("Content-Type", "application/json")
-			sess := &zen.Session{}
-			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 1<<20))
-			sess.SetPrincipal(developer)
-			err = (&handler.Handler{}).Handle(t.Context(), sess)
-			code, ok := fault.GetCode(err)
-			require.True(t, ok)
-			require.Equal(t, tc.code, code)
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {"Bearer " + uid.New(uid.TestPrefix)},
+			}, handler.Request{UserCode: "ABCD-EFGH", Decision: "approve", Permissions: &tc.permissions})
+			require.Equal(t, tc.status, res.Status, res.RawBody)
+			require.Equal(t, tc.code.DocsURL(), res.Body.Error.Type)
 		})
 	}
 }

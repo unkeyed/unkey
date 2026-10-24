@@ -1,18 +1,14 @@
 package handler_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/auth/workos"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
@@ -22,16 +18,12 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_decide_device_login"
 )
 
-func TestDecisionRejectsInvalidInputWithoutMiddleware(t *testing.T) {
-	workspaceID := uid.New(uid.WorkspacePrefix)
-	p := &principal.Principal{
-		Version:               principal.Version,
-		Type:                  principal.TypeJWT,
-		Subject:               principal.Subject{ID: uid.New(uid.TestPrefix), Type: principal.SubjectTypeUser},
-		Source:                principal.JWTSource{Roles: []string{"admin"}},
-		AuthorizedWorkspaceID: workspaceID,
-		Permissions:           workos.PermissionsForRoles(workspaceID, []string{"admin"}),
-	}
+func TestDecisionRejectsInvalidInputOverHTTP(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspaceID := h.Resources().UserWorkspace.ID
+	route := &handler.Handler{Devices: clidevicetest.New(h)}
+	h.Register(route)
+	rootKey := h.CreateRootKey(workspaceID)
 	cases := []struct {
 		name string
 		req  handler.Request
@@ -45,18 +37,12 @@ func TestDecisionRejectsInvalidInputWithoutMiddleware(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			body, err := json.Marshal(tc.req)
-			require.NoError(t, err)
-			route := &handler.Handler{}
-			req := httptest.NewRequest(route.Method(), route.Path(), bytes.NewReader(body))
-			req.Header.Set("Content-Type", "application/json")
-			session := &zen.Session{}
-			require.NoError(t, session.Init(httptest.NewRecorder(), req, 1<<20))
-			session.SetPrincipal(p)
-			err = route.Handle(t.Context(), session)
-			code, ok := fault.GetCode(err)
-			require.True(t, ok)
-			require.Equal(t, codes.App.Validation.InvalidInput.URN(), code)
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {"Bearer " + rootKey},
+			}, tc.req)
+			require.Equal(t, http.StatusBadRequest, res.Status, res.RawBody)
+			require.Equal(t, codes.App.Validation.InvalidInput.DocsURL(), res.Body.Error.Type)
 		})
 	}
 }

@@ -30,8 +30,6 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 }
 
 // Approve stores the permissions the dashboard user granted.
-// The handler checks the subset first. This checks it again so a caller of
-// the service cannot skip it.
 func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 	if err := s.requireEnabled(); err != nil {
 		return err

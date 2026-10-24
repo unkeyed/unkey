@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -28,12 +26,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if (req.LoginId == nil) == (req.RefreshToken == nil) {
-		return fault.New("cli token exchange needs exactly one credential",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("Provide exactly one of loginId or refreshToken."),
-		)
-	}
 	if req.RefreshToken != nil {
 		tokens, err := h.Devices.Refresh(ctx, clidevice.RefreshRequest{
 			RefreshToken: *req.RefreshToken,
