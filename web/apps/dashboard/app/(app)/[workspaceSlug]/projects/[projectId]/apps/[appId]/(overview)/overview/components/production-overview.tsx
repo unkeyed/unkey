@@ -4,7 +4,7 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { appSource } from "@/components/deploy/app-source";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type Deployment, type DeploymentSummary, collection } from "@/lib/collections";
-import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import { isDeploymentInFlight, statusGroupOf } from "@/lib/collections/deploy/deployment-status";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { previousRollbackTarget, rollbackCandidates } from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
@@ -54,6 +54,7 @@ type ProductionOverviewModel =
       newer: {
         deployment: DeploymentSummary & Pick<Deployment, "buildEndedAt">;
         href: Route;
+        actionLabel?: string;
       } | null;
       rollbackDialog: { target: DeploymentSummary; close: () => void } | null;
       undoDialog: { open: boolean; close: () => void } | null;
@@ -189,18 +190,18 @@ function useProductionOverview({
       }),
     }))
     .with("failed", () => ({
-      label: "View build error",
+      label: "View error",
       href: routes.projects.apps.deployment({
         workspaceSlug: workspace.slug,
         projectId,
         appId,
         deploymentId: deployment.id,
-        build: true,
       }),
     }))
     .otherwise(() => null);
 
   const appScope = { workspaceSlug: workspace.slug, projectId, appId };
+  const newerFailed = newerDeployment ? statusGroupOf(newerDeployment.status) === "failed" : false;
 
   const ctx: ProductionCardContextValue = {
     deployment,
@@ -257,12 +258,11 @@ function useProductionOverview({
       ? {
           deployment: newerDeployment,
           href: routes.projects.apps.deployment({
-            workspaceSlug: workspace.slug,
-            projectId,
-            appId,
+            ...appScope,
             deploymentId: newerDeployment.id,
-            build: true,
+            build: !newerFailed,
           }),
+          actionLabel: newerFailed ? "View error" : undefined,
         }
       : null,
     rollbackDialog:
