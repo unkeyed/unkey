@@ -51,7 +51,6 @@ type DenyRequest struct {
 	UserCode  string
 }
 
-// PollRequest is an unauthenticated cli.pollDeviceLogin call.
 type PollRequest struct {
 	LoginID   string
 	RemoteIP  string

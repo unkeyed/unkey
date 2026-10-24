@@ -512,16 +512,64 @@ func (e UpdateKeyCreditsRefillInterval) Valid() bool {
 	}
 }
 
-// Defines values for V2CliPollDeviceLoginResponseDataStatus.
+// Defines values for V2CliDecideDeviceLoginRequestBodyDecision.
 const (
-	AccessDenied        V2CliPollDeviceLoginResponseDataStatus = "access_denied"
-	Complete            V2CliPollDeviceLoginResponseDataStatus = "complete"
-	ExpiredToken        V2CliPollDeviceLoginResponseDataStatus = "expired_token"
-	PermissionsRequired V2CliPollDeviceLoginResponseDataStatus = "permissions_required"
+	V2CliDecideDeviceLoginRequestBodyDecisionApprove V2CliDecideDeviceLoginRequestBodyDecision = "approve"
+	V2CliDecideDeviceLoginRequestBodyDecisionDeny    V2CliDecideDeviceLoginRequestBodyDecision = "deny"
 )
 
-// Valid indicates whether the value is a known member of the V2CliPollDeviceLoginResponseDataStatus enum.
-func (e V2CliPollDeviceLoginResponseDataStatus) Valid() bool {
+// Valid indicates whether the value is a known member of the V2CliDecideDeviceLoginRequestBodyDecision enum.
+func (e V2CliDecideDeviceLoginRequestBodyDecision) Valid() bool {
+	switch e {
+	case V2CliDecideDeviceLoginRequestBodyDecisionApprove:
+		return true
+	case V2CliDecideDeviceLoginRequestBodyDecisionDeny:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for V2CliDecideDeviceLoginRequestBody0Decision.
+const (
+	V2CliDecideDeviceLoginRequestBody0DecisionApprove V2CliDecideDeviceLoginRequestBody0Decision = "approve"
+)
+
+// Valid indicates whether the value is a known member of the V2CliDecideDeviceLoginRequestBody0Decision enum.
+func (e V2CliDecideDeviceLoginRequestBody0Decision) Valid() bool {
+	switch e {
+	case V2CliDecideDeviceLoginRequestBody0DecisionApprove:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for V2CliDecideDeviceLoginRequestBody1Decision.
+const (
+	V2CliDecideDeviceLoginRequestBody1DecisionDeny V2CliDecideDeviceLoginRequestBody1Decision = "deny"
+)
+
+// Valid indicates whether the value is a known member of the V2CliDecideDeviceLoginRequestBody1Decision enum.
+func (e V2CliDecideDeviceLoginRequestBody1Decision) Valid() bool {
+	switch e {
+	case V2CliDecideDeviceLoginRequestBody1DecisionDeny:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for V2CliExchangeTokenResponseDataStatus.
+const (
+	AccessDenied        V2CliExchangeTokenResponseDataStatus = "access_denied"
+	Complete            V2CliExchangeTokenResponseDataStatus = "complete"
+	ExpiredToken        V2CliExchangeTokenResponseDataStatus = "expired_token"
+	PermissionsRequired V2CliExchangeTokenResponseDataStatus = "permissions_required"
+)
+
+// Valid indicates whether the value is a known member of the V2CliExchangeTokenResponseDataStatus enum.
+func (e V2CliExchangeTokenResponseDataStatus) Valid() bool {
 	switch e {
 	case AccessDenied:
 		return true
@@ -3616,17 +3664,40 @@ type V2AppsUpdateAppResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
-// V2CliApproveDeviceLoginRequestBody defines model for V2CliApproveDeviceLoginRequestBody.
-type V2CliApproveDeviceLoginRequestBody struct {
+// V2CliDecideDeviceLoginRequestBody defines model for V2CliDecideDeviceLoginRequestBody.
+type V2CliDecideDeviceLoginRequestBody struct {
+	Decision V2CliDecideDeviceLoginRequestBodyDecision `json:"decision"`
+
 	// Permissions Permissions to grant. Each permission must be within the caller's role.
-	Permissions []string `json:"permissions"`
+	Permissions *[]string `json:"permissions,omitempty"`
 
 	// UserCode Code shown in the terminal.
 	UserCode string `json:"userCode"`
+	union    json.RawMessage
 }
 
-// V2CliApproveDeviceLoginResponseBody defines model for V2CliApproveDeviceLoginResponseBody.
-type V2CliApproveDeviceLoginResponseBody struct {
+// V2CliDecideDeviceLoginRequestBodyDecision defines model for V2CliDecideDeviceLoginRequestBody.Decision.
+type V2CliDecideDeviceLoginRequestBodyDecision string
+
+// V2CliDecideDeviceLoginRequestBody0 defines model for V2CliDecideDeviceLoginRequestBody.0.
+type V2CliDecideDeviceLoginRequestBody0 struct {
+	Decision *V2CliDecideDeviceLoginRequestBody0Decision `json:"decision,omitempty"`
+}
+
+// V2CliDecideDeviceLoginRequestBody0Decision defines model for V2CliDecideDeviceLoginRequestBody.0.Decision.
+type V2CliDecideDeviceLoginRequestBody0Decision string
+
+// V2CliDecideDeviceLoginRequestBody1 defines model for V2CliDecideDeviceLoginRequestBody.1.
+type V2CliDecideDeviceLoginRequestBody1 struct {
+	Decision *V2CliDecideDeviceLoginRequestBody1Decision `json:"decision,omitempty"`
+	UserCode *string                                     `json:"userCode,omitempty"`
+}
+
+// V2CliDecideDeviceLoginRequestBody1Decision defines model for V2CliDecideDeviceLoginRequestBody.1.Decision.
+type V2CliDecideDeviceLoginRequestBody1Decision string
+
+// V2CliDecideDeviceLoginResponseBody defines model for V2CliDecideDeviceLoginResponseBody.
+type V2CliDecideDeviceLoginResponseBody struct {
 	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
 	Data EmptyResponse `json:"data"`
 
@@ -3634,19 +3705,59 @@ type V2CliApproveDeviceLoginResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
-// V2CliDenyDeviceLoginRequestBody defines model for V2CliDenyDeviceLoginRequestBody.
-type V2CliDenyDeviceLoginRequestBody struct {
-	UserCode string `json:"userCode"`
+// V2CliExchangeTokenRequestBody Supply exactly one credential. A loginId polls for approval; a refreshToken rotates an existing session.
+type V2CliExchangeTokenRequestBody struct {
+	// LoginId loginId from cli.startDeviceLogin.
+	LoginId *string `json:"loginId,omitempty"`
+
+	// RefreshToken Refresh token from the previous login or token exchange.
+	RefreshToken *string `json:"refreshToken,omitempty"`
+	union        json.RawMessage
 }
 
-// V2CliDenyDeviceLoginResponseBody defines model for V2CliDenyDeviceLoginResponseBody.
-type V2CliDenyDeviceLoginResponseBody struct {
-	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
-	Data EmptyResponse `json:"data"`
+// V2CliExchangeTokenRequestBody0 defines model for V2CliExchangeTokenRequestBody.0.
+type V2CliExchangeTokenRequestBody0 = interface{}
+
+// V2CliExchangeTokenRequestBody1 defines model for V2CliExchangeTokenRequestBody.1.
+type V2CliExchangeTokenRequestBody1 = interface{}
+
+// V2CliExchangeTokenResponseBody defines model for V2CliExchangeTokenResponseBody.
+type V2CliExchangeTokenResponseBody struct {
+	Data V2CliExchangeTokenResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// V2CliExchangeTokenResponseData defines model for V2CliExchangeTokenResponseData.
+type V2CliExchangeTokenResponseData struct {
+	// AccessToken Short-lived access token. Present only when status is complete.
+	AccessToken *string `json:"accessToken,omitempty"`
+
+	// Detail Human-readable reason for a terminal status.
+	Detail *string `json:"detail,omitempty"`
+
+	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
+	ExpiresIn *int64 `json:"expiresIn,omitempty"`
+
+	// Interval Seconds to wait before polling again. Zero after a refresh-token exchange.
+	Interval int64 `json:"interval"`
+
+	// RefreshToken Rotating refresh token. Present only when status is complete. Store it. It is returned only once.
+	RefreshToken *string `json:"refreshToken,omitempty"`
+
+	// SessionId CLI session id. Present only when status is complete.
+	SessionId *string `json:"sessionId,omitempty"`
+
+	// Status `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
+	Status V2CliExchangeTokenResponseDataStatus `json:"status"`
+
+	// WorkspaceId Workspace the session belongs to. Present only when status is complete.
+	WorkspaceId *string `json:"workspaceId,omitempty"`
+}
+
+// V2CliExchangeTokenResponseDataStatus `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
+type V2CliExchangeTokenResponseDataStatus string
 
 // V2CliGetDeviceLoginRequestBody defines model for V2CliGetDeviceLoginRequestBody.
 type V2CliGetDeviceLoginRequestBody struct {
@@ -3690,9 +3801,6 @@ type V2CliGetDeviceLoginResponseData struct {
 	WorkspaceId *string `json:"workspaceId,omitempty"`
 }
 
-// V2CliListSessionsRequestBody defines model for V2CliListSessionsRequestBody.
-type V2CliListSessionsRequestBody = map[string]interface{}
-
 // V2CliListSessionsResponseBody defines model for V2CliListSessionsResponseBody.
 type V2CliListSessionsResponseBody struct {
 	Data V2CliListSessionsResponseData `json:"data"`
@@ -3720,77 +3828,6 @@ type V2CliListSessionsSession struct {
 	// RevokedAt Unix millisecond time the session was revoked. Omitted when the session is still active.
 	RevokedAt *int64 `json:"revokedAt,omitempty"`
 	UserId    string `json:"userId"`
-}
-
-// V2CliPollDeviceLoginRequestBody defines model for V2CliPollDeviceLoginRequestBody.
-type V2CliPollDeviceLoginRequestBody struct {
-	// LoginId loginId from cli.startDeviceLogin.
-	LoginId string `json:"loginId"`
-}
-
-// V2CliPollDeviceLoginResponseBody defines model for V2CliPollDeviceLoginResponseBody.
-type V2CliPollDeviceLoginResponseBody struct {
-	Data V2CliPollDeviceLoginResponseData `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// V2CliPollDeviceLoginResponseData defines model for V2CliPollDeviceLoginResponseData.
-type V2CliPollDeviceLoginResponseData struct {
-	// AccessToken Short-lived access token. Present only when status is complete.
-	AccessToken *string `json:"accessToken,omitempty"`
-
-	// Detail Human-readable reason for a terminal status.
-	Detail *string `json:"detail,omitempty"`
-
-	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
-	ExpiresIn *int64 `json:"expiresIn,omitempty"`
-
-	// Interval Seconds to wait before polling again.
-	Interval int64 `json:"interval"`
-
-	// RefreshToken Rotating refresh token. Present only when status is complete. Store it. It is returned only once.
-	RefreshToken *string `json:"refreshToken,omitempty"`
-
-	// SessionId CLI session id. Present only when status is complete.
-	SessionId *string `json:"sessionId,omitempty"`
-
-	// Status `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
-	Status V2CliPollDeviceLoginResponseDataStatus `json:"status"`
-
-	// WorkspaceId Workspace the session belongs to. Present only when status is complete.
-	WorkspaceId *string `json:"workspaceId,omitempty"`
-}
-
-// V2CliPollDeviceLoginResponseDataStatus `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
-type V2CliPollDeviceLoginResponseDataStatus string
-
-// V2CliRefreshTokenRequestBody defines model for V2CliRefreshTokenRequestBody.
-type V2CliRefreshTokenRequestBody struct {
-	// RefreshToken Refresh token from the previous login or refresh.
-	RefreshToken string `json:"refreshToken"`
-}
-
-// V2CliRefreshTokenResponseBody defines model for V2CliRefreshTokenResponseBody.
-type V2CliRefreshTokenResponseBody struct {
-	Data V2CliRefreshTokenResponseData `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// V2CliRefreshTokenResponseData defines model for V2CliRefreshTokenResponseData.
-type V2CliRefreshTokenResponseData struct {
-	AccessToken string `json:"accessToken"`
-
-	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes.
-	ExpiresIn int64 `json:"expiresIn"`
-
-	// RefreshToken The next refresh token. The previous one no longer works.
-	RefreshToken string `json:"refreshToken"`
-	SessionId    string `json:"sessionId"`
-	WorkspaceId  string `json:"workspaceId"`
 }
 
 // V2CliRevokeSessionRequestBody defines model for V2CliRevokeSessionRequestBody.
@@ -3830,7 +3867,7 @@ type V2CliStartDeviceLoginResponseData struct {
 	// Interval Seconds to wait between polls.
 	Interval int64 `json:"interval"`
 
-	// LoginId Secret the CLI sends to cli.pollDeviceLogin. Do not display it.
+	// LoginId Secret credential used to poll for approval. Do not display it.
 	LoginId string `json:"loginId"`
 
 	// UserCode Code the user confirms in the browser.
@@ -8454,23 +8491,14 @@ type AppsListAppsJSONRequestBody = V2AppsListAppsRequestBody
 // AppsUpdateAppJSONRequestBody defines body for AppsUpdateApp for application/json ContentType.
 type AppsUpdateAppJSONRequestBody = V2AppsUpdateAppRequestBody
 
-// CliApproveDeviceLoginJSONRequestBody defines body for CliApproveDeviceLogin for application/json ContentType.
-type CliApproveDeviceLoginJSONRequestBody = V2CliApproveDeviceLoginRequestBody
+// CliDecideDeviceLoginJSONRequestBody defines body for CliDecideDeviceLogin for application/json ContentType.
+type CliDecideDeviceLoginJSONRequestBody = V2CliDecideDeviceLoginRequestBody
 
-// CliDenyDeviceLoginJSONRequestBody defines body for CliDenyDeviceLogin for application/json ContentType.
-type CliDenyDeviceLoginJSONRequestBody = V2CliDenyDeviceLoginRequestBody
+// CliExchangeTokenJSONRequestBody defines body for CliExchangeToken for application/json ContentType.
+type CliExchangeTokenJSONRequestBody = V2CliExchangeTokenRequestBody
 
 // CliGetDeviceLoginJSONRequestBody defines body for CliGetDeviceLogin for application/json ContentType.
 type CliGetDeviceLoginJSONRequestBody = V2CliGetDeviceLoginRequestBody
-
-// CliListSessionsJSONRequestBody defines body for CliListSessions for application/json ContentType.
-type CliListSessionsJSONRequestBody = V2CliListSessionsRequestBody
-
-// CliPollDeviceLoginJSONRequestBody defines body for CliPollDeviceLogin for application/json ContentType.
-type CliPollDeviceLoginJSONRequestBody = V2CliPollDeviceLoginRequestBody
-
-// CliRefreshTokenJSONRequestBody defines body for CliRefreshToken for application/json ContentType.
-type CliRefreshTokenJSONRequestBody = V2CliRefreshTokenRequestBody
 
 // CliRevokeSessionJSONRequestBody defines body for CliRevokeSession for application/json ContentType.
 type CliRevokeSessionJSONRequestBody = V2CliRevokeSessionRequestBody
@@ -8904,6 +8932,237 @@ func (t *V2AppsCreateAppRequestBody) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.Slug)
 		if err != nil {
 			return fmt.Errorf("error reading 'slug': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsV2CliDecideDeviceLoginRequestBody0 returns the union data inside the V2CliDecideDeviceLoginRequestBody as a V2CliDecideDeviceLoginRequestBody0
+func (t V2CliDecideDeviceLoginRequestBody) AsV2CliDecideDeviceLoginRequestBody0() (V2CliDecideDeviceLoginRequestBody0, error) {
+	var body V2CliDecideDeviceLoginRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2CliDecideDeviceLoginRequestBody0 overwrites any union data inside the V2CliDecideDeviceLoginRequestBody as the provided V2CliDecideDeviceLoginRequestBody0
+func (t *V2CliDecideDeviceLoginRequestBody) FromV2CliDecideDeviceLoginRequestBody0(v V2CliDecideDeviceLoginRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2CliDecideDeviceLoginRequestBody0 performs a merge with any union data inside the V2CliDecideDeviceLoginRequestBody, using the provided V2CliDecideDeviceLoginRequestBody0
+func (t *V2CliDecideDeviceLoginRequestBody) MergeV2CliDecideDeviceLoginRequestBody0(v V2CliDecideDeviceLoginRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2CliDecideDeviceLoginRequestBody1 returns the union data inside the V2CliDecideDeviceLoginRequestBody as a V2CliDecideDeviceLoginRequestBody1
+func (t V2CliDecideDeviceLoginRequestBody) AsV2CliDecideDeviceLoginRequestBody1() (V2CliDecideDeviceLoginRequestBody1, error) {
+	var body V2CliDecideDeviceLoginRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2CliDecideDeviceLoginRequestBody1 overwrites any union data inside the V2CliDecideDeviceLoginRequestBody as the provided V2CliDecideDeviceLoginRequestBody1
+func (t *V2CliDecideDeviceLoginRequestBody) FromV2CliDecideDeviceLoginRequestBody1(v V2CliDecideDeviceLoginRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2CliDecideDeviceLoginRequestBody1 performs a merge with any union data inside the V2CliDecideDeviceLoginRequestBody, using the provided V2CliDecideDeviceLoginRequestBody1
+func (t *V2CliDecideDeviceLoginRequestBody) MergeV2CliDecideDeviceLoginRequestBody1(v V2CliDecideDeviceLoginRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2CliDecideDeviceLoginRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["decision"], err = json.Marshal(t.Decision)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'decision': %w", err)
+	}
+
+	if t.Permissions != nil {
+		object["permissions"], err = json.Marshal(t.Permissions)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'permissions': %w", err)
+		}
+	}
+
+	object["userCode"], err = json.Marshal(t.UserCode)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'userCode': %w", err)
+	}
+
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2CliDecideDeviceLoginRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["decision"]; found {
+		err = json.Unmarshal(raw, &t.Decision)
+		if err != nil {
+			return fmt.Errorf("error reading 'decision': %w", err)
+		}
+	}
+
+	if raw, found := object["permissions"]; found {
+		err = json.Unmarshal(raw, &t.Permissions)
+		if err != nil {
+			return fmt.Errorf("error reading 'permissions': %w", err)
+		}
+	}
+
+	if raw, found := object["userCode"]; found {
+		err = json.Unmarshal(raw, &t.UserCode)
+		if err != nil {
+			return fmt.Errorf("error reading 'userCode': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsV2CliExchangeTokenRequestBody0 returns the union data inside the V2CliExchangeTokenRequestBody as a V2CliExchangeTokenRequestBody0
+func (t V2CliExchangeTokenRequestBody) AsV2CliExchangeTokenRequestBody0() (V2CliExchangeTokenRequestBody0, error) {
+	var body V2CliExchangeTokenRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2CliExchangeTokenRequestBody0 overwrites any union data inside the V2CliExchangeTokenRequestBody as the provided V2CliExchangeTokenRequestBody0
+func (t *V2CliExchangeTokenRequestBody) FromV2CliExchangeTokenRequestBody0(v V2CliExchangeTokenRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2CliExchangeTokenRequestBody0 performs a merge with any union data inside the V2CliExchangeTokenRequestBody, using the provided V2CliExchangeTokenRequestBody0
+func (t *V2CliExchangeTokenRequestBody) MergeV2CliExchangeTokenRequestBody0(v V2CliExchangeTokenRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2CliExchangeTokenRequestBody1 returns the union data inside the V2CliExchangeTokenRequestBody as a V2CliExchangeTokenRequestBody1
+func (t V2CliExchangeTokenRequestBody) AsV2CliExchangeTokenRequestBody1() (V2CliExchangeTokenRequestBody1, error) {
+	var body V2CliExchangeTokenRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2CliExchangeTokenRequestBody1 overwrites any union data inside the V2CliExchangeTokenRequestBody as the provided V2CliExchangeTokenRequestBody1
+func (t *V2CliExchangeTokenRequestBody) FromV2CliExchangeTokenRequestBody1(v V2CliExchangeTokenRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2CliExchangeTokenRequestBody1 performs a merge with any union data inside the V2CliExchangeTokenRequestBody, using the provided V2CliExchangeTokenRequestBody1
+func (t *V2CliExchangeTokenRequestBody) MergeV2CliExchangeTokenRequestBody1(v V2CliExchangeTokenRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2CliExchangeTokenRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.LoginId != nil {
+		object["loginId"], err = json.Marshal(t.LoginId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'loginId': %w", err)
+		}
+	}
+
+	if t.RefreshToken != nil {
+		object["refreshToken"], err = json.Marshal(t.RefreshToken)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'refreshToken': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2CliExchangeTokenRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["loginId"]; found {
+		err = json.Unmarshal(raw, &t.LoginId)
+		if err != nil {
+			return fmt.Errorf("error reading 'loginId': %w", err)
+		}
+	}
+
+	if raw, found := object["refreshToken"]; found {
+		err = json.Unmarshal(raw, &t.RefreshToken)
+		if err != nil {
+			return fmt.Errorf("error reading 'refreshToken': %w", err)
 		}
 	}
 

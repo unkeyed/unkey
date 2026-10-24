@@ -49,7 +49,7 @@ func (f *fakeAPI) handler(t *testing.T) http.HandlerFunc {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		switch r.URL.Path {
-		case "/v2/cli.refreshToken":
+		case "/v2/cli.exchangeToken":
 			var req refreshRequest
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
 			f.refreshes = append(f.refreshes, req.RefreshToken)

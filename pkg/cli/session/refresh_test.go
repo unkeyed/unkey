@@ -52,7 +52,7 @@ func TestRefreshReturnsTheNewPair(t *testing.T) {
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	sessionID := uid.New(uid.CLISessionPrefix)
 	srv := newRefreshServer(t, func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/v2/cli.refreshToken", r.URL.Path)
+		require.Equal(t, "/v2/cli.exchangeToken", r.URL.Path)
 		var req refreshRequest
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
 		require.Equal(t, "refresh_a", req.RefreshToken)
