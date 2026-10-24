@@ -179,6 +179,7 @@ export function useDeploymentHeaderActions({
           appId: deployment.appId,
           build: true,
         }),
+        replace: appV2,
       });
     }
 
