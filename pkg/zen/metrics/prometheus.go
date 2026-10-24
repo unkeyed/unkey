@@ -81,21 +81,6 @@ var (
 		[]string{"method", "path", "status"},
 	)
 
-	// HTTPRequestErrorTotal tracks the total number of HTTP request errors,
-	// labeled by method, path, and status. Use this counter to monitor error rates by endpoint.
-	//
-	// Example usage:
-	//   metrics.HTTPRequestErrorTotal.WithLabelValues("POST", "/api/keys", "500").Inc()
-	HTTPRequestErrorTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "http",
-			Name:      "requests_errors_total",
-			Help:      "Total number of HTTP request errors.",
-		},
-		[]string{"method", "path", "status"},
-	)
-
 	// HTTPRequestBodySize tracks the distribution of HTTP request body sizes as a histogram,
 	// labeled by method, path, and status. This helps monitor payload sizes and identify potentially
 	// problematic large requests.
