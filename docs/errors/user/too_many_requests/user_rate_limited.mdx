@@ -1,0 +1,19 @@
+---
+title: "user_rate_limited"
+sidebarTitle: "user_rate_limited"
+description: "Your account is sending too many CLI login verification requests."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/internal/clidevice/service.go
+---
+
+<Danger>`err:user:too_many_requests:user_rate_limited`</Danger>
+
+Your account exceeded the CLI login verification rate limit. Unkey returns HTTP 429 before looking up, approving, or denying the login code.
+
+The configured budget is 60 requests per 10 minutes, shared across these actions and all your workspaces. Changing your network address does not reset the budget. Other accounts have separate budgets, even when they share your network.
+
+## How to fix
+
+Wait 10 minutes before retrying. If the login code expires, run `unkey login` again to start a new login after the wait.

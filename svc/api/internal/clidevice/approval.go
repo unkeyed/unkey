@@ -15,6 +15,9 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 	if _, err := RequireDashboardSession(req.Principal); err != nil {
 		return Authorization{}, err
 	}
+	if err := s.limitUserCodeAttempts(ctx, req.Principal.Subject.ID); err != nil {
+		return Authorization{}, err
+	}
 
 	row, err := db.Query.FindDeviceAuthorizationByUserCode(ctx, s.DB.RO(), normalizeUserCode(req.UserCode))
 	if err != nil {
@@ -42,6 +45,9 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 	}
 	source, err := RequireDashboardSession(req.Principal)
 	if err != nil {
+		return err
+	}
+	if err := s.limitUserCodeAttempts(ctx, req.Principal.Subject.ID); err != nil {
 		return err
 	}
 
@@ -119,6 +125,9 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 		return err
 	}
 	if _, err := RequireDashboardSession(req.Principal); err != nil {
+		return err
+	}
+	if err := s.limitUserCodeAttempts(ctx, req.Principal.Subject.ID); err != nil {
 		return err
 	}
 
