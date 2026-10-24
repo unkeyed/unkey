@@ -7,16 +7,27 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { summarizeInstances } from "@/lib/collections/deploy/instance-status";
 import type { NodeTone } from "./canvas/nodes";
 
-export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
+export type DeploymentDisplayStatus =
+  | "live"
+  | "deploying"
+  | "crashing"
+  | "failed"
+  | "stopped"
+  | "cancelled"
+  | "superseded"
+  | "skipped";
 
 export function deriveProductionStatus(
   deployment: Pick<Deployment, "status" | "instances" | "targetRegions" | "desiredState">,
 ): DeploymentDisplayStatus {
-  if (deployment.status === "stopped") {
-    return "stopped";
-  }
-  if (deployment.status === "failed") {
-    return "failed";
+  if (
+    deployment.status === "stopped" ||
+    deployment.status === "failed" ||
+    deployment.status === "cancelled" ||
+    deployment.status === "superseded" ||
+    deployment.status === "skipped"
+  ) {
+    return deployment.status;
   }
   if (summarizeInstances(deployment)?.state === "unhealthy") {
     return "crashing";
@@ -46,6 +57,21 @@ export const STATUS_META: Record<
   stopped: {
     label: DEPLOYMENT_STATUS_LABELS.stopped,
     dotClass: DEPLOYMENT_GROUP_COLOR.stopped,
+    tone: "default",
+  },
+  cancelled: {
+    label: DEPLOYMENT_STATUS_LABELS.cancelled,
+    dotClass: DEPLOYMENT_GROUP_COLOR.cancelled,
+    tone: "default",
+  },
+  superseded: {
+    label: DEPLOYMENT_STATUS_LABELS.superseded,
+    dotClass: DEPLOYMENT_GROUP_COLOR.superseded,
+    tone: "default",
+  },
+  skipped: {
+    label: DEPLOYMENT_STATUS_LABELS.skipped,
+    dotClass: DEPLOYMENT_GROUP_COLOR.skipped,
     tone: "default",
   },
 };
