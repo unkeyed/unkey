@@ -6,6 +6,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { hasBuildLogs } from "@/lib/collections/deploy/deployments";
+import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
@@ -69,6 +70,7 @@ export function useDeploymentHeaderActions({
   const workspace = useWorkspaceNavigation();
   const { currentDeployment, isRolledBack } = useAppCurrentDeployment();
   const { gated, openPaywall, planGate } = useDeployActionGate();
+  const appV2 = useFlag("appV2");
 
   const currentDeploymentId = currentDeployment?.id ?? null;
   const hasCurrentDeployment = currentDeployment !== undefined;
@@ -167,7 +169,7 @@ export function useDeploymentHeaderActions({
         href: routes.projects.requests({ ...deploymentScope, since: "6h" }),
       },
     ];
-    if (hasBuildLogs({ source: deployment.source, status })) {
+    if (!appV2 || hasBuildLogs({ source: deployment.source, status })) {
       navigationActions.push({
         id: "build-steps",
         label: "Go to build logs",
@@ -190,6 +192,7 @@ export function useDeploymentHeaderActions({
     deployment.id,
     deployment.desiredState,
     deployment.source,
+    appV2,
     status,
     currentDeploymentId,
     isRolledBack,

@@ -87,9 +87,12 @@ export function resolveStages({
 }: StagesInput): Stage[] {
   const { queued, starting, building, deploying, network, finalizing } = steps ?? {};
   const phase = PHASE_BY_STATUS[status];
+  const failed = phase.kind === "failed";
+  // A prebuilt image never builds, so its start-up failure belongs to instances
+  const startFailure = failed ? firstFailed(queued, starting) : undefined;
 
   const build = resolveStep(
-    firstFailed(queued, starting) ?? building,
+    (isPrebuilt ? undefined : startFailure) ?? building,
     now,
     isPrebuilt ? SETTLED : phase,
     {
@@ -98,30 +101,40 @@ export function resolveStages({
       waiting: "Waiting to start",
     },
   );
-  const instancesStep = resolveStep(deploying, now, phase, {
-    completed: instancesText(instances, desiredState),
-    inProgress: "Starting instances",
-    waiting: "Waiting for build",
-  });
-  const domains = resolveStep(firstFailed(finalizing) ?? network, now, phase, {
-    completed:
-      domainCount === null ? "Assigning domains" : `${plural(domainCount, "domain")} assigned`,
-    inProgress: "Assigning domains",
-    waiting: "Waiting for instances",
-  });
+  const instancesStep = resolveStep(
+    (isPrebuilt ? startFailure : undefined) ?? deploying,
+    now,
+    phase,
+    {
+      completed: instancesText(instances, desiredState),
+      inProgress: "Starting instances",
+      waiting: "Waiting for build",
+    },
+  );
+  const domains = resolveStep(
+    (failed ? firstFailed(finalizing) : undefined) ?? network,
+    now,
+    phase,
+    {
+      completed:
+        domainCount === null ? "Assigning domains" : `${plural(domainCount, "domain")} assigned`,
+      inProgress: "Assigning domains",
+      waiting: "Waiting for instances",
+    },
+  );
 
   const stages: Stage[] = [
     {
       key: "build",
       label: "Build Logs",
       resolution: build,
-      expandable: !isPrebuilt || build.status === "error",
+      expandable: !isPrebuilt,
     },
     {
       key: "instances",
       label: stageLabels.instances[instancesStep.status],
       resolution: withInstanceHealth(instancesStep, instances),
-      expandable: Boolean(deploying) || status === "ready",
+      expandable: instancesStep.status === "error" || Boolean(deploying) || status === "ready",
     },
     {
       key: "domains",
@@ -132,7 +145,7 @@ export function resolveStages({
         (domainCount !== 0 && (Boolean(network) || status === "ready")),
     },
   ];
-  return phase.kind === "failed" && steps !== undefined ? withFailure(stages) : stages;
+  return failed && steps !== undefined ? withFailure(stages) : stages;
 }
 
 function firstFailed(...candidates: Array<StepData | null | undefined>): StepData | undefined {
@@ -143,7 +156,8 @@ function withFailure(stages: Stage[]): Stage[] {
   if (stages.some((stage) => stage.resolution.status === "error")) {
     return stages;
   }
-  const failedAt = stages.findIndex((stage) => stage.resolution.status !== "completed");
+  const unfinished = stages.findIndex((stage) => stage.resolution.status !== "completed");
+  const failedAt = unfinished === -1 ? stages.length - 1 : unfinished;
   return stages.map((stage, i) =>
     i === failedAt
       ? {
@@ -225,13 +239,22 @@ export function initialOpenStage({
   };
 }
 
-export function followRequestedStage(state: OpenStage, requested: StageKey | null): OpenStage {
-  if (requested === state.requested) {
-    return state;
+// The request leaves the URL before steps load, so its pin holds until they do and
+// absorbs the failure they bring; a later failure opens its own stage
+export function followRequestedStage(
+  state: OpenStage,
+  requested: StageKey | null,
+  stepsLoaded: boolean,
+): OpenStage {
+  if (requested) {
+    return requested === state.requested
+      ? state
+      : { ...state, requested, open: requested, pinned: true };
   }
-  return requested
-    ? { ...state, requested, open: requested, pinned: true }
-    : { ...state, requested, pinned: false };
+  const pinned = state.pinned && !stepsLoaded;
+  return state.requested === null && pinned === state.pinned
+    ? state
+    : { ...state, requested: null, pinned };
 }
 
 export function followFailedStage(state: OpenStage, failed: StageKey | null): OpenStage {

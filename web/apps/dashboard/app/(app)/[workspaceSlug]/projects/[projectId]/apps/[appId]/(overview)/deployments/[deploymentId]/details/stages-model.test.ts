@@ -102,7 +102,7 @@ describe("resolveStages", () => {
     }
   });
 
-  test("a queued failure on a prebuilt image still opens the build stage", () => {
+  test("a start-up failure on a prebuilt image fails the instances stage", () => {
     const stages = byKey(
       resolveStages(
         input({
@@ -112,8 +112,43 @@ describe("resolveStages", () => {
         }),
       ),
     );
-    expect(stages.build.resolution.status).toBe("error");
-    expect(stages.build.expandable).toBe(true);
+    expect(stages.build.resolution.status).toBe("completed");
+    expect(stages.build.expandable).toBe(false);
+    expect(stages.instances.resolution).toMatchObject({
+      status: "error",
+      description: "quota exceeded",
+    });
+    expect(stages.instances.expandable).toBe(true);
+  });
+
+  test("a cancel reason on a stopped prebuilt deployment is not a failure", () => {
+    const stages = byKey(
+      resolveStages(
+        input({
+          status: "superseded",
+          isPrebuilt: true,
+          steps: { queued: step({ error: "Superseded by newer commit", completed: false }) },
+        }),
+      ),
+    );
+    expect(stages.build.resolution.status).toBe("completed");
+    expect(stages.instances.resolution.status).toBe("skipped");
+  });
+
+  test("a failed deployment whose steps all finished fails its last stage", () => {
+    const stages = byKey(
+      resolveStages(
+        input({
+          status: "failed",
+          domainCount: 1,
+          steps: { building: step(), deploying: step(), network: step() },
+        }),
+      ),
+    );
+    expect(stages.domains.resolution).toMatchObject({
+      status: "error",
+      description: "Deployment failed",
+    });
   });
 
   test("a finalizing failure fails the domains stage", () => {
@@ -324,10 +359,10 @@ describe("open stage", () => {
   });
 
   test("a request made on the page opens its stage once", () => {
-    let state = followRequestedStage(initialOpenStage(closed), "build");
+    let state = followRequestedStage(initialOpenStage(closed), "build", true);
     expect(state.open).toBe("build");
     state = toggleStage(state, "build");
-    expect(followRequestedStage(state, "build")).toBe(state);
+    expect(followRequestedStage(state, "build", true)).toBe(state);
   });
 
   test("opens a stage the first time it fails and keeps it open when it recovers", () => {
@@ -347,16 +382,25 @@ describe("open stage", () => {
   });
 
   test("a stage failing while the request is live does not close the requested stage", () => {
-    let state = followRequestedStage(initialOpenStage(closed), "build");
+    let state = followRequestedStage(initialOpenStage(closed), "build", false);
     state = followFailedStage(state, "instances");
     expect(state.open).toBe("build");
   });
 
-  test("a stage failing after the request clears opens that stage", () => {
+  test("a request cleared before steps load still wins over the failure they bring", () => {
     let state = initialOpenStage({ failed: null, requested: "build" });
-    state = followRequestedStage(state, null);
+    state = followRequestedStage(state, null, false);
+    expect(state.pinned).toBe(true);
+    state = followRequestedStage(followFailedStage(state, "instances"), null, true);
+    expect(state.open).toBe("build");
     expect(state.pinned).toBe(false);
-    expect(followFailedStage(state, "instances").open).toBe("instances");
+  });
+
+  test("a stage failing after the request clears and steps load opens that stage", () => {
+    let state = initialOpenStage({ failed: null, requested: "build" });
+    state = followRequestedStage(state, null, true);
+    expect(state.pinned).toBe(false);
+    expect(followFailedStage(state, "domains").open).toBe("domains");
   });
 
   test("a flapping stage does not reopen after the user closes it", () => {
