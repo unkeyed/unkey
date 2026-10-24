@@ -710,6 +710,7 @@ type Querier interface {
 	//  SELECT
 	//      p.workspace_id AS workspace_id,
 	//      w.slug AS workspace_slug,
+	//      w.k8s_namespace AS k8s_namespace,
 	//      p.id AS project_id,
 	//      a.id AS app_id,
 	//      a.source_type AS source_type,

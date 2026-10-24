@@ -6,6 +6,7 @@
 //
 // Validate names with [IsValidName] before generating a variable:
 //
-//	key, host := app.HostVariable("worker")
-//	// key is WORKER_HOST; host is worker.unkey.internal.
+//	key, host := app.HostVariable(callerDeploymentID, "worker", namespace)
+//	// key is WORKER_HOST; host is
+//	// unkey-connection-<hash>.<namespace>.unkey.internal.
 package app
