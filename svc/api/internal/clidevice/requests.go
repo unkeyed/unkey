@@ -38,7 +38,6 @@ type Authorization struct {
 }
 
 // ApproveRequest records the permissions the dashboard user granted.
-// Permissions must already be a subset of the approver's role.
 type ApproveRequest struct {
 	Principal   *principal.Principal
 	UserCode    string
