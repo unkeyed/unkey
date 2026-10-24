@@ -45,13 +45,19 @@ const CLOCK_DRIVEN = { staleTime: Number.POSITIVE_INFINITY, refetchOnWindowFocus
 const CLAMPED_RETRY_MS = 2_000;
 
 // The server clamps endMs to its own clock, so a tick that lands just before the
-// server reaches the boundary gets the previous bucket back; ask again shortly
+// server reaches the boundary gets the previous bucket back; ask again shortly.
+// A gap wider than one bucket is clock skew, which retrying cannot close.
 function gridDriven<T extends { grid: Grid }>(scope: AppMetricsScope | null, enabled = true) {
   return {
     ...CLOCK_DRIVEN,
     enabled: enabled && scope !== null,
-    refetchInterval: (data: T | undefined) =>
-      data && scope && data.grid.endMs < scope.grid.endMs ? CLAMPED_RETRY_MS : false,
+    refetchInterval: (data: T | undefined) => {
+      if (!data || !scope) {
+        return false;
+      }
+      const behindMs = scope.grid.endMs - data.grid.endMs;
+      return behindMs > 0 && behindMs <= scope.grid.bucketMs ? CLAMPED_RETRY_MS : false;
+    },
   };
 }
 
@@ -80,7 +86,6 @@ export function useDeployMarkers(scope: AppMetricsScope | null) {
   return useHeldAcrossTicks(scope, query);
 }
 
-// podSet is the polled live pods; a rollout refetches the series without a new bucket
 export function useMetricSourceByInstance(
   scope: AppMetricsScope | null,
   {
@@ -93,18 +98,20 @@ export function useMetricSourceByInstance(
     { ...inputOf(scope), openInstance },
     gridDriven<InstanceSeries>(scope, enabled),
   );
-  const { refetch } = query;
-  const seenPodSet = useRef(podSet);
+  const utils = trpc.useUtils();
+  const appId = scope?.appId;
+  const environmentId = scope?.environmentId;
+  const seen = useRef<{ environmentId: string; podSet: string } | null>(null);
   useEffect(() => {
-    if (podSet === null) {
+    if (podSet === null || !appId || !environmentId) {
       return;
     }
-    const changed = seenPodSet.current !== null && seenPodSet.current !== podSet;
-    seenPodSet.current = podSet;
-    if (changed && enabled) {
-      refetch();
+    const previous = seen.current;
+    seen.current = { environmentId, podSet };
+    if (previous?.environmentId === environmentId && previous.podSet !== podSet) {
+      utils.deploy.appMetrics.sourceByInstance.invalidate({ appId, environmentId });
     }
-  }, [podSet, enabled, refetch]);
+  }, [podSet, appId, environmentId, utils]);
   return useHeldAcrossTicks(scope, query);
 }
 
