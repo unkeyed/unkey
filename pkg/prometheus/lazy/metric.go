@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // metric is the generic lazy wrapper. The init function is called once on
@@ -37,7 +36,7 @@ func NewCounterVec(opts prometheus.CounterOpts, labels []string) *CounterVec {
 		once:  sync.Once{},
 		inner: nil,
 		initFunc: func() *prometheus.CounterVec {
-			return promauto.With(getRegistry()).NewCounterVec(opts, labels)
+			return registered(prometheus.NewCounterVec(opts, labels))
 		},
 	}}
 }
@@ -60,7 +59,7 @@ func NewGaugeVec(opts prometheus.GaugeOpts, labels []string) *GaugeVec {
 		once:  sync.Once{},
 		inner: nil,
 		initFunc: func() *prometheus.GaugeVec {
-			return promauto.With(getRegistry()).NewGaugeVec(opts, labels)
+			return registered(prometheus.NewGaugeVec(opts, labels))
 		},
 	}}
 }
@@ -85,7 +84,7 @@ func NewHistogramVec(opts prometheus.HistogramOpts, labels []string) *HistogramV
 		once:  sync.Once{},
 		inner: nil,
 		initFunc: func() *prometheus.HistogramVec {
-			return promauto.With(getRegistry()).NewHistogramVec(opts, labels)
+			return registered(prometheus.NewHistogramVec(opts, labels))
 		},
 	}}
 }
@@ -110,7 +109,7 @@ func NewCounter(opts prometheus.CounterOpts) *Counter {
 		once:  sync.Once{},
 		inner: nil,
 		initFunc: func() prometheus.Counter {
-			return promauto.With(getRegistry()).NewCounter(opts)
+			return registered(prometheus.NewCounter(opts))
 		},
 	}}
 }
@@ -127,7 +126,7 @@ func NewGauge(opts prometheus.GaugeOpts) *Gauge {
 		once:  sync.Once{},
 		inner: nil,
 		initFunc: func() prometheus.Gauge {
-			return promauto.With(getRegistry()).NewGauge(opts)
+			return registered(prometheus.NewGauge(opts))
 		},
 	}}
 }
@@ -147,7 +146,7 @@ func NewHistogram(opts prometheus.HistogramOpts) *Histogram {
 		once:  sync.Once{},
 		inner: nil,
 		initFunc: func() prometheus.Histogram {
-			return promauto.With(getRegistry()).NewHistogram(opts)
+			return registered(prometheus.NewHistogram(opts))
 		},
 	}}
 }
