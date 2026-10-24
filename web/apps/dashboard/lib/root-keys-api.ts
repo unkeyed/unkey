@@ -1,89 +1,12 @@
-import { z } from "zod";
+import { getUnkeyClient } from "@/lib/unkey-client";
+import type { V2RootKeysListKeysResponseData } from "@unkey/api/models/components";
 
-const rootKeySchema = z.object({
-  keyId: z.string(),
-  name: z.string().nullable(),
-  start: z.string(),
-  end: z.string(),
-  enabled: z.boolean(),
-  createdAt: z.number(),
-  lastUsedAt: z.number(),
-  expires: z.number().nullable(),
-  permissions: z.array(z.string()),
-});
-
-const rootKeySecretSchema = z.object({
-  keyId: z.string(),
-  key: z.string(),
-});
-
-const listResponseSchema = z.object({
-  data: z.array(rootKeySchema),
-  pagination: z.object({
-    cursor: z.string().optional(),
-    hasMore: z.boolean(),
-  }),
-});
-
-const secretResponseSchema = z.object({ data: rootKeySecretSchema });
-
-const apiErrorSchema = z.object({
-  error: z.union([
-    z.string(),
-    z.object({
-      detail: z.string().optional(),
-      title: z.string().optional(),
-    }),
-  ]),
-});
-
-export type V2RootKey = z.infer<typeof rootKeySchema>;
-export type RootKeySecret = z.infer<typeof rootKeySecretSchema>;
-
-export type CreateRootKeyRequest = {
-  name?: string;
-  permissions: string[];
-  expires?: number | null;
-};
-
-export type UpdateRootKeyRequest = {
-  keyId: string;
-  name?: string | null;
-  enabled?: boolean;
-  permissions?: string[];
-};
-
-export type RerollRootKeyRequest = {
-  keyId: string;
-  expiration: number | null;
-};
+export type V2RootKey = V2RootKeysListKeysResponseData;
 
 export const rootKeysV2QueryKeys = {
   all: ["rootKeys", "v2"] as const,
   workspace: (workspaceId: string) => [...rootKeysV2QueryKeys.all, workspaceId] as const,
 };
-
-async function post(path: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
-  const response = await fetch(`/proxy/v2/rootKeys.${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-    signal,
-  });
-
-  const payload: unknown = await response.json();
-  if (!response.ok) {
-    const error = apiErrorSchema.safeParse(payload);
-    const message = error.success
-      ? typeof error.data.error === "string"
-        ? error.data.error
-        : (error.data.error.detail ?? error.data.error.title)
-      : undefined;
-    throw new Error(message ?? "Root key request failed");
-  }
-
-  return payload;
-}
 
 export async function listRootKeys(signal?: AbortSignal): Promise<V2RootKey[]> {
   const rootKeys: V2RootKey[] = [];
@@ -91,8 +14,10 @@ export async function listRootKeys(signal?: AbortSignal): Promise<V2RootKey[]> {
   let cursor: string | undefined;
 
   do {
-    const body = cursor ? { limit: 100, cursor } : { limit: 100 };
-    const page = listResponseSchema.parse(await post("listKeys", body, signal));
+    const { result: page } = await getUnkeyClient().rootKeys.listKeys(
+      { limit: 100, cursor },
+      { signal },
+    );
     rootKeys.push(...page.data);
 
     if (page.pagination.hasMore && !page.pagination.cursor) {
@@ -108,20 +33,4 @@ export async function listRootKeys(signal?: AbortSignal): Promise<V2RootKey[]> {
   } while (cursor);
 
   return rootKeys;
-}
-
-export async function createRootKey(request: CreateRootKeyRequest): Promise<RootKeySecret> {
-  return secretResponseSchema.parse(await post("createKey", request)).data;
-}
-
-export async function updateRootKey(request: UpdateRootKeyRequest): Promise<void> {
-  await post("updateKey", request);
-}
-
-export async function deleteRootKey(request: { keyId: string }): Promise<void> {
-  await post("deleteKey", request);
-}
-
-export async function rerollRootKey(request: RerollRootKeyRequest): Promise<RootKeySecret> {
-  return secretResponseSchema.parse(await post("rerollKey", request)).data;
 }
