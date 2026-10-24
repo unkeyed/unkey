@@ -4,9 +4,6 @@ import "strings"
 
 // Header constants for frontline debugging and tracing
 const (
-	// unkeyHeaderPrefix identifies headers reserved for Frontline.
-	unkeyHeaderPrefix = "X-Unkey-"
-
 	// These headers identify the Frontline that handled the request. Frontline
 	// sets them on responses and requests to deployment instances.
 	HeaderFrontlineID = "X-Unkey-Frontline-Id" // ID of the frontline instance
@@ -17,8 +14,10 @@ const (
 	HeaderFrontlineMeta = "X-Unkey-Frontline-Meta"
 )
 
-// IsUnkeyHeader reports whether a canonical HTTP header name is reserved for
-// Frontline.
+// IsUnkeyHeader includes underscore aliases because downstream adapters can
+// normalize hyphens and underscores to the same field name.
 func IsUnkeyHeader(name string) bool {
-	return strings.HasPrefix(name, unkeyHeaderPrefix)
+	name = strings.ToLower(name)
+	return strings.HasPrefix(name, "x-unkey") || strings.HasPrefix(name, "x_unkey") ||
+		strings.HasPrefix(name, "unkey-") || strings.HasPrefix(name, "unkey_")
 }
