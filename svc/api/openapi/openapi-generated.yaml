@@ -3878,6 +3878,28 @@ components:
                 data:
                     "$ref": "#/components/schemas/Portal"
             additionalProperties: false
+        V2PortalVerifyDomainRequestBody:
+            type: object
+            required:
+                - portal
+                - domainId
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                domainId:
+                    "$ref": "#/components/schemas/PortalDomainId"
+            additionalProperties: false
+        V2PortalVerifyDomainResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2ProjectsCreateProjectRequestBody:
             type: object
             required:
@@ -18721,6 +18743,88 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: updatePortal
+    /v2/portal.verifyDomain:
+        post:
+            description: |
+                Restart verification for a portal domain.
+
+                Call this after you correct the DNS records of a domain that shows `failed`, or to give a
+                `pending` domain a new 24-hour verification period. The endpoint returns when Unkey accepts
+                the retry. Poll `portal.getDomain` for the result.
+
+                A domain that is already `verified` returns a 412.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.update_portal` (to manage domains on any portal in the workspace)
+                - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.verifyDomain
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalVerifyDomainRequestBody'
+                required: true
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            examples:
+                                accepted:
+                                    summary: Verification restarted
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2PortalVerifyDomainResponseBody'
+                    description: Verification retry accepted. The workflow runs in the background.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal or domain on that portal, or your root key may not update the portal.
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: The domain is already verified. There is nothing to retry.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Verify portal domain
+            tags:
+                - portal
+            x-speakeasy-name-override: verifyDomain
     /v2/projects.createProject:
         post:
             description: |

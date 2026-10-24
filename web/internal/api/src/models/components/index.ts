@@ -302,6 +302,8 @@ export * from "./v2portalrevokesessionresponsebody.js";
 export * from "./v2portalrevokesessionresponsedata.js";
 export * from "./v2portalupdateportalrequestbody.js";
 export * from "./v2portalupdateportalresponsebody.js";
+export * from "./v2portalverifydomainrequestbody.js";
+export * from "./v2portalverifydomainresponsebody.js";
 export * from "./v2projectscreateprojectrequestbody.js";
 export * from "./v2projectscreateprojectresponsebody.js";
 export * from "./v2projectscreateprojectresponsedata.js";

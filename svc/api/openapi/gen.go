@@ -7149,6 +7149,30 @@ type V2PortalUpdatePortalResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2PortalVerifyDomainRequestBody defines model for V2PortalVerifyDomainRequestBody.
+type V2PortalVerifyDomainRequestBody struct {
+	// DomainId The portal domain ID that `portal.createDomain` returned.
+	//
+	// Example: pdom_1234abcd
+	DomainId PortalDomainId `json:"domainId"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalVerifyDomainResponseBody defines model for V2PortalVerifyDomainResponseBody.
+type V2PortalVerifyDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2ProjectsCreateProjectRequestBody defines model for V2ProjectsCreateProjectRequestBody.
 type V2ProjectsCreateProjectRequestBody struct {
 	// Name Human-readable name for this project.
@@ -8562,6 +8586,9 @@ type PortalRevokeSessionJSONRequestBody = V2PortalRevokeSessionRequestBody
 
 // PortalUpdatePortalJSONRequestBody defines body for PortalUpdatePortal for application/json ContentType.
 type PortalUpdatePortalJSONRequestBody = V2PortalUpdatePortalRequestBody
+
+// PortalVerifyDomainJSONRequestBody defines body for PortalVerifyDomain for application/json ContentType.
+type PortalVerifyDomainJSONRequestBody = V2PortalVerifyDomainRequestBody
 
 // ProjectsCreateProjectJSONRequestBody defines body for ProjectsCreateProject for application/json ContentType.
 type ProjectsCreateProjectJSONRequestBody = V2ProjectsCreateProjectRequestBody
