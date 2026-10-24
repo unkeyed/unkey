@@ -2,10 +2,13 @@
 
 import { SourceIcon } from "@/components/deploy/app-source";
 import { RegionFlag } from "@/components/region-flag";
+import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
 import {
-  DEPLOYMENT_STATUS_LABELS,
-  deploymentStatusColor,
-} from "@/lib/collections/deploy/deployment-status";
+  type InstanceSummary,
+  groupInstancesByRegion,
+  summarizeInstances,
+} from "@/lib/collections/deploy/instance-status";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import {
@@ -23,15 +26,16 @@ import {
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { InfoTooltip, Skeleton, useElapsed } from "@unkey/ui";
+import { Badge, Button, InfoTooltip, Skeleton, useElapsed } from "@unkey/ui";
 import { cn } from "cn";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { DeploymentStatusIndicator, StatusDot } from "../../../components/deployment-status-dot";
 import type { DisplayDomain } from "../../../components/display-domain";
+import { useProductionPolicies } from "../../policies/hooks/use-policies-data";
 import { POLICY_KINDS } from "../../policies/policy-kinds";
 import {
-  Badge,
   Canvas,
   GhostNode,
   Group,
@@ -45,14 +49,15 @@ import {
   StatusBadge,
 } from "./canvas/nodes";
 import { useProductionCard } from "./production-card-context";
-import { STATUS_META } from "./status";
+import { type DeploymentDisplayStatus, STATUS_META } from "./status";
 
 const NODE_ROW_LIMIT = 5;
 
 export function AppCanvas() {
   const { isCurrent, canvas } = useProductionCard();
   const { domains, domainsHref, policiesHref } = canvas;
-  const { policies, view, retry } = canvas.policies;
+  const { policies, view, retry, isRetrying } = useProductionPolicies();
+  const listed = view.type === "list";
 
   return (
     <Canvas label="App canvas">
@@ -66,14 +71,14 @@ export function AppCanvas() {
       <Group icon={<IconCubeOutline18 />} label="App">
         <AppNode />
       </Group>
-      <HFlow empty={policies.length === 0} />
+      <HFlow empty={!listed} />
       <Group
         icon={<IconGridOutline18 />}
-        label={policies.length > 0 ? `Services · ${policies.length}` : "Services"}
+        label={listed ? `Services · ${policies.length}` : "Services"}
       >
         {match(view.type)
           .with("loading", () => <PoliciesLoadingNode />)
-          .with("error", () => <PoliciesErrorNode onRetry={retry} />)
+          .with("error", () => <PoliciesErrorNode onRetry={retry} retrying={isRetrying} />)
           .with("empty", () => (
             <GhostNode
               icon={<IconShieldKeyOutline18 />}
@@ -103,14 +108,14 @@ function DomainsNode({
   href: Route;
   isCurrent: boolean;
 }) {
-  const platform = domains.filter((d) => d.source === "platform");
-  const custom = domains.filter((d) => d.source === "custom");
-  const shown = [...platform, ...custom].slice(0, NODE_ROW_LIMIT);
+  const hasPlatform = domains.some((d) => d.source === "platform");
+  const hasCustom = domains.some((d) => d.source === "custom");
+  const shown = domains.slice(0, NODE_ROW_LIMIT);
   return (
     <Node link={{ href, label: "Domain settings" }}>
       <NodeHeader icon={<IconEarthOutline18 />} name="Domains" />
       <Rows>
-        {platform.length === 0 && (
+        {!hasPlatform && (
           <RowItem
             icon={DOMAIN_ROW.platform.icon}
             label={DOMAIN_ROW.platform.label}
@@ -119,13 +124,13 @@ function DomainsNode({
         )}
         {shown.map((d) => (
           <RowItem
-            key={d.hostname}
+            key={d.id}
             icon={DOMAIN_ROW[d.source].icon}
             label={DOMAIN_ROW[d.source].label}
             value={<HostnameLink domain={d} />}
           />
         ))}
-        {isCurrent && custom.length === 0 && (
+        {isCurrent && !hasCustom && (
           <RowItem
             icon={DOMAIN_ROW.custom.icon}
             label={DOMAIN_ROW.custom.label}
@@ -161,30 +166,20 @@ function HostnameLink({ domain }: { domain: DisplayDomain }) {
 function AppNode() {
   const { deployment, status, isCurrent, isRolledBack, deploymentHref, canvas } =
     useProductionCard();
-  const badge = isCurrent
-    ? STATUS_META[status]
-    : {
-        label: DEPLOYMENT_STATUS_LABELS[deployment.status],
-        dotClass: deploymentStatusColor(deployment.status),
-      };
+  const badge = appStatusOf({ deployment, status, isCurrent });
   const deployedAgo = useElapsed(deployment.createdAt, "narrow");
-  const tone: NodeTone = status === "failed" || status === "crashing" ? "error" : "default";
-
-  const instances = deployment.instances ?? [];
-  const running = instances.filter((i) => i.status === "running").length;
-  const regions =
-    instances.length > 0
-      ? [...new Set(instances.map((i) => i.region.name))]
-      : deployment.desiredRegions.map((r) => r.region.name);
+  const summary = summarizeInstances(deployment);
+  const regions = groupInstancesByRegion(deployment).map((r) => r.name);
   const image = deployment.requestedImage ?? deployment.resolvedImage;
+  const commitMessage = deployment.gitCommitMessage?.split("\n")[0];
 
   return (
-    <Node tone={tone} link={{ href: deploymentHref, label: `${canvas.appName} deployment` }}>
+    <Node tone={badge.tone} link={{ href: deploymentHref, label: `${canvas.appName} deployment` }}>
       <NodeHeader
         icon={<SourceIcon source={canvas.appSource} />}
         name={canvas.appName}
         right={
-          <StatusBadge dotClass={badge.dotClass} tone={tone}>
+          <StatusBadge indicator={badge.indicator} tone={badge.tone}>
             {badge.label}
             {isRolledBack && <span className="text-warning-11">· Rolled back</span>}
           </StatusBadge>
@@ -197,17 +192,20 @@ function AppNode() {
               <RowItem
                 icon={<IconCodeBranchOutline18 />}
                 label="Branch"
-                value={deployment.gitBranch || canvas.defaultBranch || "—"}
+                value={deployment.gitBranch || "—"}
+                fullValue={deployment.gitBranch || undefined}
                 hint={deployment.gitCommitSha?.slice(0, 7)}
+                copy={
+                  deployment.gitCommitSha
+                    ? { value: deployment.gitCommitSha, label: "Copy commit SHA" }
+                    : undefined
+                }
               />
               <RowItem
                 icon={<IconCodeCommitOutline18 />}
                 label="Commit"
-                value={
-                  <span className="font-sans">
-                    {deployment.gitCommitMessage?.split("\n")[0] || "—"}
-                  </span>
-                }
+                value={<span className="font-sans">{commitMessage || "—"}</span>}
+                fullValue={commitMessage || undefined}
                 hint={deployedAgo}
               />
             </>
@@ -217,7 +215,9 @@ function AppNode() {
               icon={<IconLayers2Outline18 />}
               label="Image"
               value={image ?? "Unknown"}
+              fullValue={image ?? undefined}
               hint={deployedAgo}
+              copy={image ? { value: image, label: "Copy image" } : undefined}
             />
           ))
           .with("unknown", () => (
@@ -231,8 +231,9 @@ function AppNode() {
               {canvas.defaultBranch && (
                 <RowItem
                   icon={<IconCodeBranchOutline18 />}
-                  label="Branch"
+                  label="Default branch"
                   value={canvas.defaultBranch}
+                  fullValue={canvas.defaultBranch}
                 />
               )}
             </>
@@ -265,10 +266,7 @@ function AppNode() {
         <RowItem
           icon={<IconLayers3Outline18 />}
           label="Instances"
-          value={match(instances.length)
-            .with(0, () => "—")
-            .with(running, () => running)
-            .otherwise(() => `${running}/${instances.length}`)}
+          value={instancesValue(summary)}
         />
         <RowItem
           icon={<IconMicrochipOutline18 />}
@@ -287,7 +285,7 @@ function PoliciesNode({ policies, href }: { policies: PolicyRow[]; href: Route }
       <NodeHeader
         icon={<IconShieldKeyOutline18 />}
         name="Policies"
-        right={<Badge>{policies.length}</Badge>}
+        right={<Badge variant="count">{policies.length}</Badge>}
       />
       <Rows>
         {policies.slice(0, NODE_ROW_LIMIT).map((p) => (
@@ -307,7 +305,7 @@ function PoliciesNode({ policies, href }: { policies: PolicyRow[]; href: Route }
   );
 }
 
-function PoliciesErrorNode({ onRetry }: { onRetry: () => void }) {
+function PoliciesErrorNode({ onRetry, retrying }: { onRetry: () => void; retrying: boolean }) {
   return (
     <Node>
       <NodeHeader icon={<IconShieldKeyOutline18 />} name="Policies" />
@@ -315,13 +313,16 @@ function PoliciesErrorNode({ onRetry }: { onRetry: () => void }) {
         <span className="flex items-center gap-2">
           <IconTriangleWarningOutline18 className="size-3 shrink-0 text-error-9" />
           <span className="text-gray-11">Couldn't load</span>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
             onClick={onRetry}
-            className="ml-auto text-gray-11 hover:text-gray-12 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
+            loading={retrying}
+            disabled={retrying}
           >
             Retry
-          </button>
+          </Button>
         </span>
       </Rows>
     </Node>
@@ -330,4 +331,39 @@ function PoliciesErrorNode({ onRetry }: { onRetry: () => void }) {
 
 function PoliciesLoadingNode() {
   return <Skeleton className="h-28 w-full rounded-lg" />;
+}
+
+type AppStatus = { label: string; indicator: ReactNode; tone: NodeTone };
+
+function appStatusOf({
+  deployment,
+  status,
+  isCurrent,
+}: {
+  deployment: Deployment;
+  status: DeploymentDisplayStatus;
+  isCurrent: boolean;
+}): AppStatus {
+  const meta = STATUS_META[status];
+  if (isCurrent) {
+    return {
+      label: meta.label,
+      indicator: <StatusDot colorClass={meta.dotClass} size="sm" />,
+      tone: meta.tone,
+    };
+  }
+  return {
+    label: DEPLOYMENT_STATUS_LABELS[deployment.status],
+    indicator: <DeploymentStatusIndicator status={deployment.status} size="sm" />,
+    tone: meta.tone,
+  };
+}
+
+function instancesValue(summary: InstanceSummary | null): string {
+  if (!summary) {
+    return "—";
+  }
+  return summary.running === summary.total
+    ? `${summary.running}`
+    : `${summary.running}/${summary.total}`;
 }

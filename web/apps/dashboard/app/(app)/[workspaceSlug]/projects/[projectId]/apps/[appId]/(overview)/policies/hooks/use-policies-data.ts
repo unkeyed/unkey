@@ -70,6 +70,7 @@ export type ProductionPolicies = {
   policies: PolicyRow[];
   view: PoliciesView;
   retry: () => void;
+  isRetrying: boolean;
 };
 
 export function useProductionPolicies(): ProductionPolicies {
@@ -87,12 +88,13 @@ export function useProductionPolicies(): ProductionPolicies {
       policies.length,
     ),
     retry: production.retry,
+    isRetrying: production.isRetrying,
   };
 }
 
 function useEnvPolicies(projectId: string, appId: string, environmentId: string | null) {
   const rows = usePolicyRows(projectId, appId, environmentId);
-  const { failed, retry } = useCollectionLoad(
+  const { failed, retry, retrying } = useCollectionLoad(
     ...(environmentId === null ? [] : [policyListLoad(environmentId)]),
   );
   return {
@@ -100,6 +102,7 @@ function useEnvPolicies(projectId: string, appId: string, environmentId: string 
     isLoading: rows.isLoading,
     isError: rows.isError || failed,
     retry,
+    isRetrying: retrying,
   };
 }
 
