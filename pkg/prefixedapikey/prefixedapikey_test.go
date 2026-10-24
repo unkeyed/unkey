@@ -1,170 +1,210 @@
 package prefixedapikey
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/base58"
+	"github.com/unkeyed/unkey/pkg/fuzz"
 )
 
-// exampleKey represents a known test key for consistent testing
-var exampleKey = &APIKey{
-	ShortToken:    "12345678",
-	LongToken:     "abcdefghijklmnopqrstuvwx",
-	LongTokenHash: HashLongToken("abcdefghijklmnopqrstuvwx"),
-	Token:         "test_12345678_abcdefghijklmnopqrstuvwx",
-}
+const (
+	exampleLongToken     = "abcdefghijklmnopqrstuvwx"
+	exampleLongTokenHash = "93b0cabf8668e0c534c52a568957499e12a284f59d97dc9b2725ef836804875b"
+	exampleShortToken    = "12345678"
+	exampleToken         = "test_12345678_abcdefghijklmnopqrstuvwx"
+)
 
 func TestHashLongToken(t *testing.T) {
-	result := HashLongToken(exampleKey.LongToken)
-	expected := exampleKey.LongTokenHash
+	t.Run("matches an independent SHA-256 vector", func(t *testing.T) {
+		expectedBytes := sha256.Sum256([]byte(exampleLongToken))
 
-	if result != expected {
-		t.Errorf("HashLongToken() = %v, want %v", result, expected)
-	}
+		require.Equal(t, exampleLongTokenHash, hex.EncodeToString(expectedBytes[:]))
+		require.Equal(t, expectedBytes[:], hashLongTokenToBytes(exampleLongToken))
+		require.Equal(t, exampleLongTokenHash, HashLongToken(exampleLongToken))
+	})
 }
 
-func TestExtractLongToken(t *testing.T) {
-	result := ExtractLongToken(exampleKey.Token)
-	expected := exampleKey.LongToken
-
-	if result != expected {
-		t.Errorf("ExtractLongToken() = %v, want %v", result, expected)
-	}
-
-	// Additional test cases
+func TestPadStart(t *testing.T) {
 	tests := []struct {
 		name     string
-		token    string
+		input    string
+		length   int
+		padChar  string
 		expected string
 	}{
 		{
-			name:     "standard token format",
-			token:    "test_12345678_abcdefghijklmnopqrstuvwx",
-			expected: "abcdefghijklmnopqrstuvwx",
+			name:     "longer input",
+			input:    "token",
+			length:   3,
+			padChar:  "0",
+			expected: "token",
 		},
 		{
-			name:     "token with multiple underscores",
-			token:    "prefix_with_underscores_short_long",
-			expected: "long",
+			name:     "equal input",
+			input:    "token",
+			length:   5,
+			padChar:  "0",
+			expected: "token",
 		},
 		{
-			name:     "single underscore",
-			token:    "prefix_longtoken",
-			expected: "longtoken",
+			name:     "shorter input",
+			input:    "key",
+			length:   5,
+			padChar:  "0",
+			expected: "00key",
 		},
 		{
-			name:     "no underscores",
-			token:    "notokenstructure",
-			expected: "notokenstructure",
+			name:     "empty input",
+			input:    "",
+			length:   3,
+			padChar:  "0",
+			expected: "000",
 		},
 		{
-			name:     "empty token",
-			token:    "",
-			expected: "",
+			name:     "empty pad character",
+			input:    "key",
+			length:   5,
+			padChar:  "",
+			expected: "key",
+		},
+		{
+			name:     "multi-byte pad character",
+			input:    "x",
+			length:   3,
+			padChar:  "界",
+			expected: "界界x",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := ExtractLongToken(tt.token)
-			if result != tt.expected {
-				t.Errorf("ExtractLongToken(%v) = %v, want %v", tt.token, result, tt.expected)
-			}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.expected, padStart(test.input, test.length, test.padChar))
 		})
 	}
 }
 
-func TestExtractShortToken(t *testing.T) {
-	result := ExtractShortToken(exampleKey.Token)
-	expected := exampleKey.ShortToken
+func TestGenerateAPIKey(t *testing.T) {
+	t.Run("requires options", func(t *testing.T) {
+		key, err := GenerateAPIKey(nil)
 
-	if result != expected {
-		t.Errorf("ExtractShortToken() = %v, want %v", result, expected)
-	}
+		require.ErrorIs(t, err, ErrMissingKeyPrefix)
+		require.Nil(t, key)
+	})
 
-	// Additional test cases
+	t.Run("requires a key prefix", func(t *testing.T) {
+		key, err := GenerateAPIKey(&GenerateAPIKeyOptions{})
+
+		require.ErrorIs(t, err, ErrMissingKeyPrefix)
+		require.Nil(t, key)
+	})
+
+	t.Run("uses default token lengths", func(t *testing.T) {
+		key, err := GenerateAPIKey(&GenerateAPIKeyOptions{KeyPrefix: "test"})
+		require.NoError(t, err)
+
+		requireGeneratedKey(t, key, "test", 8, 24)
+	})
+
+	t.Run("uses configured token lengths and short token prefix", func(t *testing.T) {
+		key, err := GenerateAPIKey(&GenerateAPIKeyOptions{
+			KeyPrefix:        "api",
+			ShortTokenPrefix: "dev",
+			ShortTokenLength: 16,
+			LongTokenLength:  32,
+		})
+		require.NoError(t, err)
+
+		requireGeneratedKey(t, key, "api", 16, 32)
+		require.True(t, strings.HasPrefix(key.ShortToken, "dev"))
+	})
+
+	t.Run("generates different key material", func(t *testing.T) {
+		first, err := GenerateAPIKey(&GenerateAPIKeyOptions{KeyPrefix: "test"})
+		require.NoError(t, err)
+		second, err := GenerateAPIKey(&GenerateAPIKeyOptions{KeyPrefix: "test"})
+		require.NoError(t, err)
+
+		require.NotEqual(t, first.ShortToken, second.ShortToken)
+		require.NotEqual(t, first.LongToken, second.LongToken)
+		require.NotEqual(t, first.Token, second.Token)
+	})
+}
+
+func TestExtractTokenParts(t *testing.T) {
 	tests := []struct {
-		name     string
-		token    string
-		expected string
+		name               string
+		token              string
+		expectedShortToken string
+		expectedLongToken  string
 	}{
 		{
-			name:     "standard token format",
-			token:    "test_12345678_abcdefghijklmnopqrstuvwx",
-			expected: "12345678",
+			name:               "generated token format",
+			token:              exampleToken,
+			expectedShortToken: exampleShortToken,
+			expectedLongToken:  exampleLongToken,
 		},
 		{
-			name:     "token with multiple underscores",
-			token:    "prefix_with_underscores_short_long",
-			expected: "with",
+			name:               "no separator",
+			token:              "opaque",
+			expectedShortToken: "",
+			expectedLongToken:  "opaque",
 		},
 		{
-			name:     "single underscore",
-			token:    "prefix_shorttoken",
-			expected: "shorttoken",
+			name:               "too few parts",
+			token:              "prefix_long",
+			expectedShortToken: "long",
+			expectedLongToken:  "long",
 		},
 		{
-			name:     "no underscores",
-			token:    "notokenstructure",
-			expected: "",
+			name:               "too many parts",
+			token:              "prefix_short_extra_long",
+			expectedShortToken: "short",
+			expectedLongToken:  "long",
 		},
 		{
-			name:     "empty token",
-			token:    "",
-			expected: "",
+			name:               "empty token",
+			token:              "",
+			expectedShortToken: "",
+			expectedLongToken:  "",
 		},
 		{
-			name:     "only prefix",
-			token:    "prefix_",
-			expected: "",
+			name:               "prefix contains separator",
+			token:              "prefix_with_short_long",
+			expectedShortToken: "with",
+			expectedLongToken:  "long",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := ExtractShortToken(tt.token)
-			if result != tt.expected {
-				t.Errorf("ExtractShortToken(%v) = %v, want %v", tt.token, result, tt.expected)
-			}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.expectedShortToken, ExtractShortToken(test.token))
+			require.Equal(t, test.expectedLongToken, ExtractLongToken(test.token))
 		})
 	}
+}
+
+func TestExtractLongTokenHash(t *testing.T) {
+	t.Run("hashes the extracted long token", func(t *testing.T) {
+		require.Equal(t, exampleLongTokenHash, ExtractLongTokenHash(exampleToken))
+	})
 }
 
 func TestGetTokenComponents(t *testing.T) {
-	result := GetTokenComponents(exampleKey.Token)
-
-	expected := &TokenComponents{
-		LongToken:     exampleKey.LongToken,
-		ShortToken:    exampleKey.ShortToken,
-		LongTokenHash: exampleKey.LongTokenHash,
-		Token:         exampleKey.Token,
-	}
-
-	if result.LongToken != expected.LongToken {
-		t.Errorf("GetTokenComponents().LongToken = %v, want %v", result.LongToken, expected.LongToken)
-	}
-
-	if result.ShortToken != expected.ShortToken {
-		t.Errorf("GetTokenComponents().ShortToken = %v, want %v", result.ShortToken, expected.ShortToken)
-	}
-
-	if result.LongTokenHash != expected.LongTokenHash {
-		t.Errorf("GetTokenComponents().LongTokenHash = %v, want %v", result.LongTokenHash, expected.LongTokenHash)
-	}
-
-	if result.Token != expected.Token {
-		t.Errorf("GetTokenComponents().Token = %v, want %v", result.Token, expected.Token)
-	}
+	t.Run("returns all token components", func(t *testing.T) {
+		require.Equal(t, &TokenComponents{
+			LongToken:     exampleLongToken,
+			ShortToken:    exampleShortToken,
+			LongTokenHash: exampleLongTokenHash,
+			Token:         exampleToken,
+		}, GetTokenComponents(exampleToken))
+	})
 }
 
 func TestCheckAPIKey(t *testing.T) {
-	result := CheckAPIKey(exampleKey.Token, exampleKey.LongTokenHash)
-	expected := true
-
-	if result != expected {
-		t.Errorf("CheckAPIKey() = %v, want %v", result, expected)
-	}
-
-	// Additional test cases
-	invalidHash := "invalid_hash"
 	tests := []struct {
 		name         string
 		token        string
@@ -172,197 +212,94 @@ func TestCheckAPIKey(t *testing.T) {
 		expected     bool
 	}{
 		{
-			name:         "valid token and hash",
-			token:        exampleKey.Token,
-			expectedHash: exampleKey.LongTokenHash,
+			name:         "matching long token hash",
+			token:        exampleToken,
+			expectedHash: exampleLongTokenHash,
 			expected:     true,
 		},
 		{
-			name:         "invalid hash",
-			token:        exampleKey.Token,
-			expectedHash: invalidHash,
+			name:         "changed long token",
+			token:        "test_12345678_abcdefghijklmnopqrstuvwy",
+			expectedHash: exampleLongTokenHash,
+			expected:     false,
+		},
+		{
+			name:         "different hash",
+			token:        exampleToken,
+			expectedHash: strings.Repeat("0", sha256.Size*2),
+			expected:     false,
+		},
+		{
+			name:         "invalid hex hash",
+			token:        exampleToken,
+			expectedHash: "invalid_hash",
+			expected:     false,
+		},
+		{
+			name:         "short hash",
+			token:        exampleToken,
+			expectedHash: "00",
 			expected:     false,
 		},
 		{
 			name:         "empty token",
 			token:        "",
-			expectedHash: exampleKey.LongTokenHash,
-			expected:     false,
-		},
-		{
-			name:         "empty hash",
-			token:        exampleKey.Token,
-			expectedHash: "",
-			expected:     false,
-		},
-		{
-			name:         "malformed token",
-			token:        "malformed_token",
-			expectedHash: exampleKey.LongTokenHash,
+			expectedHash: exampleLongTokenHash,
 			expected:     false,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := CheckAPIKey(tt.token, tt.expectedHash)
-			if result != tt.expected {
-				t.Errorf("CheckAPIKey(%v, %v) = %v, want %v", tt.token, tt.expectedHash, result, tt.expected)
-			}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.expected, CheckAPIKey(test.token, test.expectedHash))
 		})
 	}
 }
 
-func TestGenerateAPIKey(t *testing.T) {
-	tests := []struct {
-		name     string
-		opts     *GenerateAPIKeyOptions
-		hasError bool
-	}{
-		{
-			name: "standard generation",
-			opts: &GenerateAPIKeyOptions{
-				KeyPrefix:        "test",
-				ShortTokenPrefix: "",
-				ShortTokenLength: 8,
-				LongTokenLength:  24,
-			},
-			hasError: false,
-		},
-		{
-			name: "with short token prefix",
-			opts: &GenerateAPIKeyOptions{
-				KeyPrefix:        "api",
-				ShortTokenPrefix: "dev",
-				ShortTokenLength: 10,
-				LongTokenLength:  32,
-			},
-			hasError: false,
-		},
-		{
-			name: "minimal options",
-			opts: &GenerateAPIKeyOptions{
-				KeyPrefix:        "min",
-				ShortTokenPrefix: "",
-				ShortTokenLength: 0,
-				LongTokenLength:  0,
-			},
-			hasError: false,
-		},
-		{
-			name:     "nil options returns error",
-			opts:     nil,
-			hasError: true,
-		},
-		{
-			name: "empty key prefix returns error",
-			opts: &GenerateAPIKeyOptions{
-				KeyPrefix:        "",
-				ShortTokenPrefix: "",
-				ShortTokenLength: 0,
-				LongTokenLength:  0,
-			},
-			hasError: true,
-		},
+// FuzzAPIKeyParsingAndVerification guarantees that untrusted token and hash input cannot cause a panic.
+func FuzzAPIKeyParsingAndVerification(f *testing.F) {
+	fuzz.Seed(f)
+
+	key, err := GenerateAPIKey(&GenerateAPIKeyOptions{KeyPrefix: "fuzz"})
+	require.NoError(f, err)
+	require.True(f, CheckAPIKey(key.Token, key.LongTokenHash))
+
+	replacement := byte('1')
+	if key.Token[len(key.Token)-1] == replacement {
+		replacement = '2'
 	}
+	changedToken := key.Token[:len(key.Token)-1] + string(replacement)
+	require.False(f, CheckAPIKey(changedToken, key.LongTokenHash))
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := GenerateAPIKey(tt.opts)
+	f.Fuzz(func(t *testing.T, data []byte) {
+		consumer := fuzz.New(t, data)
+		input := string(consumer.BytesN(consumer.Remaining()))
 
-			if tt.hasError {
-				if err == nil {
-					t.Errorf("GenerateAPIKey() expected error, got nil")
-				}
-				return
-			}
-
-			if err != nil {
-				t.Errorf("GenerateAPIKey() unexpected error: %v", err)
-				return
-			}
-
-			// Validate the generated key structure
-			if result.Token == "" {
-				t.Errorf("GenerateAPIKey() generated empty token")
-			}
-
-			if result.ShortToken == "" {
-				t.Errorf("GenerateAPIKey() generated empty short token")
-			}
-
-			if result.LongToken == "" {
-				t.Errorf("GenerateAPIKey() generated empty long token")
-			}
-
-			if result.LongTokenHash == "" {
-				t.Errorf("GenerateAPIKey() generated empty long token hash")
-			}
-
-			// Verify the hash matches
-			expectedHash := HashLongToken(result.LongToken)
-			if result.LongTokenHash != expectedHash {
-				t.Errorf("GenerateAPIKey() hash mismatch: got %v, want %v", result.LongTokenHash, expectedHash)
-			}
-
-			// Verify token structure
-			components := GetTokenComponents(result.Token)
-			if components.LongToken != result.LongToken {
-				t.Errorf("GenerateAPIKey() token structure invalid: long token mismatch")
-			}
-
-			if components.ShortToken != result.ShortToken {
-				t.Errorf("GenerateAPIKey() token structure invalid: short token mismatch")
-			}
-
-			// Verify token can be validated
-			if !CheckAPIKey(result.Token, result.LongTokenHash) {
-				t.Errorf("GenerateAPIKey() generated token fails validation")
-			}
+		require.NotPanics(t, func() {
+			_ = GetTokenComponents(input)
+			_ = ExtractLongToken(input)
+			_ = CheckAPIKey(input, exampleLongTokenHash)
+			_ = CheckAPIKey(exampleToken, input)
 		})
-	}
+	})
 }
 
-func TestGenerateAPIKeyConsistency(t *testing.T) {
-	opts := &GenerateAPIKeyOptions{
-		KeyPrefix:        "test",
-		ShortTokenLength: 8,
-		LongTokenLength:  24,
-	}
+func requireGeneratedKey(t *testing.T, key *APIKey, keyPrefix string, shortTokenLength int, longTokenLength int) {
+	t.Helper()
 
-	// Generate multiple keys to ensure they're different
-	keys := make([]*APIKey, 10)
-	for i := 0; i < 10; i++ {
-		key, err := GenerateAPIKey(opts)
-		if err != nil {
-			t.Fatalf("GenerateAPIKey() unexpected error: %v", err)
-		}
-		keys[i] = key
-	}
-
-	// Ensure all generated keys are unique
-	for i := 0; i < len(keys); i++ {
-		for j := i + 1; j < len(keys); j++ {
-			if keys[i].Token == keys[j].Token {
-				t.Errorf("GenerateAPIKey() generated duplicate tokens: %v", keys[i].Token)
-			}
-			if keys[i].LongToken == keys[j].LongToken {
-				t.Errorf("GenerateAPIKey() generated duplicate long tokens")
-			}
-			if keys[i].ShortToken == keys[j].ShortToken {
-				t.Errorf("GenerateAPIKey() generated duplicate short tokens")
-			}
-		}
-	}
+	require.Len(t, key.ShortToken, shortTokenLength)
+	require.Len(t, key.LongToken, longTokenLength)
+	requireBase58Alphabet(t, key.ShortToken)
+	requireBase58Alphabet(t, key.LongToken)
+	require.Equal(t, HashLongToken(key.LongToken), key.LongTokenHash)
+	require.Equal(t, keyPrefix+"_"+key.ShortToken+"_"+key.LongToken, key.Token)
+	require.True(t, CheckAPIKey(key.Token, key.LongTokenHash))
 }
 
-func TestExtractLongTokenHash(t *testing.T) {
-	token := "test_12345678_abcdefghijklmnopqrstuvwx"
+func requireBase58Alphabet(t *testing.T, token string) {
+	t.Helper()
 
-	result := ExtractLongTokenHash(token)
-	expected := HashLongToken("abcdefghijklmnopqrstuvwx")
-
-	if result != expected {
-		t.Errorf("ExtractLongTokenHash(%v) = %v, want %v", token, result, expected)
+	for _, character := range token {
+		require.Contains(t, base58.Alphabet, string(character))
 	}
 }
