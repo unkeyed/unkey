@@ -24,7 +24,8 @@ export function useBucketClock(range: RangePreset): Grid {
       return;
     }
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const tick = () => setClock({ range, nowMs: Date.now() });
+    // A timer can fire a little early; never tick to a time before the boundary
+    const tick = () => setClock({ range, nowMs: Math.max(Date.now(), tickAtMs) });
     const schedule = () => {
       clearTimeout(timer);
       if (document.hidden) {
