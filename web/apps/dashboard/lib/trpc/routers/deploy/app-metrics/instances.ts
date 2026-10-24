@@ -79,7 +79,7 @@ export const appMetricsInstances = workspaceProcedure
     }));
   });
 
-function liveInstancesOf(scope: EnvironmentScope) {
+export function liveInstancesOf(scope: EnvironmentScope) {
   const d = schema.deployments;
   const i = schema.instances;
   const environmentDeployments = db

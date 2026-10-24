@@ -1,14 +1,13 @@
 import { failed, loading, ready } from "@/lib/loadable/fixtures";
-import {
-  type Grid,
-  INSTANCE_SERIES_MAX,
-  type InstanceRow,
-  type InstanceSeries,
-  type ReplicaTarget,
-  type ResourcePoint,
+import type {
+  Grid,
+  InstanceRow,
+  InstanceSeries,
+  ReplicaTarget,
+  ResourcePoint,
 } from "@/lib/metrics/app-metrics";
 import { describe, expect, it } from "vitest";
-import { replicaSheetModel, replicaUsage, seriesInstancesOf } from "./replica-model";
+import { openInstanceOf, replicaSheetModel, replicaUsage } from "./replica-model";
 
 const MIB = 2 ** 20;
 
@@ -207,7 +206,7 @@ describe("replicaSheetModel", () => {
   });
 });
 
-describe("seriesInstancesOf", () => {
+describe("openInstanceOf", () => {
   const row = (k8sName: string): InstanceRow => ({
     instanceId: k8sName,
     region: { name: "us-east-1" },
@@ -217,45 +216,11 @@ describe("seriesInstancesOf", () => {
     deployment: { id: "d_new", source: null },
     replica: { k8sName, cpuMillicores: 500, memoryMib: 512, storageMib: 0 },
   });
-  const rows = ready([row("pod-b"), row("pod-a")]);
-  const open = { environmentId: "env_prod", row: row("pod-gone") };
 
-  it("names nothing until the page needs the series and the rows are ready", () => {
-    const input = { open: null, environmentId: "env_prod", instances: rows };
-    expect(seriesInstancesOf({ ...input, needed: false })).toBe(null);
-    expect(seriesInstancesOf({ ...input, needed: true, instances: loading })).toBe(null);
-  });
-
-  it("keeps an open sheet's pod only in its own environment", () => {
-    const input = { needed: true, open, instances: rows };
-    expect(seriesInstancesOf({ ...input, environmentId: "env_prod" })).toEqual([
-      "pod-a",
-      "pod-b",
-      "pod-gone",
-    ]);
-    expect(seriesInstancesOf({ ...input, environmentId: "env_preview" })).toEqual([
-      "pod-a",
-      "pod-b",
-    ]);
-  });
-
-  it("names a live sheet pod once", () => {
-    const live = { environmentId: "env_prod", row: row("pod-a") };
-    expect(
-      seriesInstancesOf({ needed: true, open: live, environmentId: "env_prod", instances: rows }),
-    ).toEqual(["pod-a", "pod-b"]);
-  });
-
-  it("keeps the open sheet's pod when the list is over the cap", () => {
-    const many = ready(Array.from({ length: INSTANCE_SERIES_MAX + 5 }, (_, i) => row(`pod-${i}`)));
-    const sheet = { environmentId: "env_prod", row: row("pod-zz") };
-    const names = seriesInstancesOf({
-      needed: true,
-      open: sheet,
-      environmentId: "env_prod",
-      instances: many,
-    });
-    expect(names).toHaveLength(INSTANCE_SERIES_MAX);
-    expect(names).toContain("pod-zz");
+  it("names the open sheet's pod only in its own environment", () => {
+    const open = { environmentId: "env_prod", row: row("pod-gone") };
+    expect(openInstanceOf(open, "env_prod")).toBe("pod-gone");
+    expect(openInstanceOf(open, "env_preview")).toBe(null);
+    expect(openInstanceOf(null, "env_prod")).toBe(null);
   });
 });

@@ -1,19 +1,31 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { INSTANCE_SERIES_MAX, type InstanceSeries } from "@/lib/metrics/app-metrics";
+import { db } from "@/lib/db";
+import type { InstanceSeries } from "@/lib/metrics/app-metrics";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
+import { liveInstancesOf } from "./instances";
 import { loadMetricsScope, metricsScopeInput, orThrow } from "./scope";
 
 const instanceSeriesInput = metricsScopeInput.extend({
-  instances: z.array(z.string().max(255)).max(INSTANCE_SERIES_MAX),
+  openInstance: z.string().max(255).nullable(),
 });
 
+// Live pods resolve here; the client names only the open sheet's pod, which may have stopped
 export const appMetricsSourceByInstance = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(instanceSeriesInput)
   .query(async ({ ctx, input }): Promise<InstanceSeries> => {
     const scope = await loadMetricsScope(ctx.workspace.id, input);
-    const instances = [...new Set(input.instances)];
+    const live = await db.query.instances.findMany({
+      where: liveInstancesOf(scope),
+      columns: { k8sName: true },
+    });
+    const instances = [
+      ...new Set([
+        ...live.map((i) => i.k8sName),
+        ...(input.openInstance ? [input.openInstance] : []),
+      ]),
+    ];
     if (instances.length === 0) {
       return { grid: scope.grid, instances: [] };
     }

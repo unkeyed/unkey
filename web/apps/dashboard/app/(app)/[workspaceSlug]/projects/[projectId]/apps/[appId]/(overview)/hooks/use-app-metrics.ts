@@ -21,7 +21,7 @@ function viewKeyOf(scope: AppMetricsScope | null): string | null {
   return scope && `${scope.appId}:${scope.environmentId}:${scope.grid.range}`;
 }
 
-// Holds the last result while only endMs or the pod list moved, so charts do not
+// Holds the last result while only endMs or the open pod moved, so charts do not
 // flash to loading every bucket or rollout. A new app, environment or range
 // shows loading instead of the previous view's data.
 function useHeldAcrossTicks<T>(scope: AppMetricsScope | null, query: QueryResult<T>): Loadable<T> {
@@ -58,14 +58,12 @@ export function useDeployMarkers(scope: AppMetricsScope | null) {
 
 export function useMetricSourceByInstance(
   scope: AppMetricsScope | null,
-  instances: string[] | null,
+  enabled: boolean,
+  openInstance: string | null,
 ) {
   const query = trpc.deploy.appMetrics.sourceByInstance.useQuery(
-    { ...inputOf(scope), instances: instances ?? [] },
-    {
-      ...CLOCK_DRIVEN,
-      enabled: instances !== null && scope !== null,
-    },
+    { ...inputOf(scope), openInstance },
+    { ...CLOCK_DRIVEN, enabled: enabled && scope !== null },
   );
   return useHeldAcrossTicks(scope, query);
 }
