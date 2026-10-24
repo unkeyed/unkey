@@ -12,11 +12,13 @@ export type NodeTone = "default" | "error";
 const NODE_TONE: Record<NodeTone, { base: string; linkHover: string }> = {
   default: {
     base: "bg-raised shadow-xs ring-1 ring-grayA-4",
-    linkHover: "hover:ring-gray-10 hover:outline-2 hover:outline-offset-1 hover:outline-grayA-3",
+    linkHover:
+      "outline-2 outline-offset-1 outline-transparent hover:ring-gray-10 hover:outline-grayA-3",
   },
   error: {
     base: "bg-error-2 shadow-xs ring-1 ring-error-6",
-    linkHover: "hover:ring-error-9 hover:outline-2 hover:outline-offset-1 hover:outline-errorA-3",
+    linkHover:
+      "outline-2 outline-offset-1 outline-transparent hover:ring-error-9 hover:outline-errorA-3",
   },
 };
 

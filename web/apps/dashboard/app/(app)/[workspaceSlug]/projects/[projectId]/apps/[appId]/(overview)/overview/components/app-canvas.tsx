@@ -113,7 +113,9 @@ function DomainsNode({
 }) {
   const hasPlatform = domains.some((d) => d.source === "platform");
   const hasCustom = domains.some((d) => d.source === "custom");
-  const shown = domains.slice(0, hasPlatform ? NODE_ROW_LIMIT : NODE_ROW_LIMIT - 1);
+  const offerCustom = isCurrent && !hasCustom;
+  const placeholders = Number(!hasPlatform) + Number(offerCustom);
+  const shown = domains.slice(0, NODE_ROW_LIMIT - placeholders);
   return (
     <Node link={{ href, label: "Domain settings" }}>
       <NodeHeader icon={<IconEarthOutline18 />} name="Domains" />
@@ -133,7 +135,7 @@ function DomainsNode({
             value={<HostnameLink domain={d} />}
           />
         ))}
-        {isCurrent && !hasCustom && (
+        {offerCustom && (
           <RowItem
             icon={DOMAIN_ROW.custom.icon}
             label={DOMAIN_ROW.custom.label}
