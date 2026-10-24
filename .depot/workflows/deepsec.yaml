@@ -1,0 +1,135 @@
+name: DeepSec
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+concurrency:
+  group: deepsec-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  analyze:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 30
+    continue-on-error: true
+    outputs:
+      scan_result: ${{ steps.scan.outcome }}
+      job_url: ${{ steps.depot.outputs.url }}
+    steps:
+      - name: Record scan job link
+        id: depot
+        run: echo "url=$DEPOT_JOB_URL" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Require trusted scanner configuration
+        run: |
+          if [ ! -f .deepsec/deepsec.config.ts ]; then
+            echo '::error::DeepSec must be merged into the base branch before CI scans can run. PR configuration is not trusted.'
+            exit 1
+          fi
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: review-source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare scanner
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mise exec -- pnpm --dir .deepsec install --frozen-lockfile --ignore-scripts
+          merge_base=$(git -C review-source merge-base "$BASE_SHA" "$HEAD_SHA")
+          git -C review-source diff --name-only --diff-filter=ACMR "$merge_base" "$HEAD_SHA" -- \
+            . ':!gen/**' ':!**/node_modules/**' ':!**/dist/**' ':!**/vendor/**' \
+            ':!**/*.generated.*' ':!**/*_generated.*' ':!**/*.pb.go' \
+            ':!**/pnpm-lock.yaml' ':!go.sum' ':!web/apps/agent/gen/**' \
+            > .deepsec/files.txt
+      - name: Review changed files
+        id: scan
+        timeout-minutes: 20
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.DEEPSEC_VERCEL_GATEWAY_KEY }}
+        working-directory: .deepsec
+        run: |
+          if [ -z "$AI_GATEWAY_API_KEY" ]; then
+            echo '::error::Set the DEEPSEC_VERCEL_GATEWAY_KEY Depot CI secret to enable reviews.'
+            exit 2
+          fi
+          mise exec -- pnpm exec deepsec process \
+            --root "$GITHUB_WORKSPACE/review-source" \
+            --project-id unkey \
+            --concurrency 2 \
+            --files-from files.txt \
+            --comment-out comment.md
+      - name: Upload findings
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: deepsec-comment
+          path: .deepsec/comment.md
+          if-no-files-found: ignore
+          retention-days: 7
+  comment:
+    needs: analyze
+    if: always() && !cancelled() && needs.analyze.result != 'skipped'
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        continue-on-error: true
+        with:
+          name: deepsec-comment
+          path: report
+      - name: Update PR comment
+        id: publish
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          REVIEW_SHA: ${{ github.event.pull_request.head.sha }}
+          SCAN_RESULT: ${{ needs.analyze.outputs.scan_result }}
+          SCAN_JOB_URL: ${{ needs.analyze.outputs.job_url }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const marker = '<!-- unkey-deepsec -->';
+            const issue_number = context.issue.number;
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo, pull_number: issue_number,
+            });
+            if (pr.head.sha !== process.env.REVIEW_SHA) {
+              core.info('Skipping results for an outdated PR head.');
+              return;
+            }
+            const jobUrl = process.env.SCAN_JOB_URL || process.env.DEPOT_JOB_URL;
+            if (!jobUrl) throw new Error('Depot job URL is missing');
+            let summary;
+            if (fs.existsSync('report/comment.md')) {
+              summary = fs.readFileSync('report/comment.md', 'utf8');
+            } else if (process.env.SCAN_RESULT === 'success') {
+              summary = 'No new findings in the selected changed files, or no eligible files to review.';
+            } else {
+              summary = 'The scan did not complete. Check the CI run for missing credentials, timeouts, or scanner errors. This is not a clean review.';
+            }
+            const body = `${marker}\n## DeepSec security review\n\nAdvisory review of ${process.env.REVIEW_SHA}.\n\n${summary.slice(0, 50000)}\n\n[View logs and report artifacts on Depot](${jobUrl})`;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              ...context.repo, issue_number, per_page: 100,
+            });
+            const previous = comments.find(comment =>
+              comment.user?.login === 'depot-code-access[bot]' && comment.body?.startsWith(marker)
+            );
+            if (previous) {
+              await github.rest.issues.updateComment({
+                ...context.repo, comment_id: previous.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number, body });
+            }
