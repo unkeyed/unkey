@@ -1,6 +1,7 @@
 name: DeepSec
 on:
   pull_request:
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
 concurrency:
   group: deepsec-${{ github.event.pull_request.number }}
@@ -43,6 +44,8 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          FILES_MAX: 40
+          PRIORITY_PATTERN: ^(svc/(api|frontline|vault|ctrl)/|internal/services/(keys|portal|ratelimit|usagelimiter)/|pkg/(auth|db|encryption|jwt|paseto|prefixedapikey|rbac|redaction|ssrf|tls|webhook|zen)/|web/apps/dashboard/(lib/(trpc|auth)/|app/(api|auth|proxy)/|proxy[.]ts$|.*/actions[.]ts$)|web/apps/portal/src/(lib|routes)/)
         run: |
           mise exec -- pnpm --dir .deepsec install --frozen-lockfile --ignore-scripts
           merge_base=$(git -C review-source merge-base "$BASE_SHA" "$HEAD_SHA")
@@ -50,24 +53,131 @@ jobs:
             . ':!gen/**' ':!**/node_modules/**' ':!**/dist/**' ':!**/vendor/**' \
             ':!**/*.generated.*' ':!**/*_generated.*' ':!**/*.pb.go' \
             ':!**/pnpm-lock.yaml' ':!go.sum' ':!web/apps/agent/gen/**' \
-            > .deepsec/files.txt
+            ':!*_test.go' ':!**/testdata/**' ':!*.md' ':!*.mdx' \
+            | awk -v priority="$PRIORITY_PATTERN" '
+                { tier = 3 }
+                /[.](go|ts|tsx|js|mjs|sql|proto|c|h)$/ { tier = $0 ~ priority ? 1 : 2 }
+                { print tier "\t" $0 }' \
+            | sort -s -n -k1,1 | cut -f2- > .deepsec/ranked.txt
+          head -n "$FILES_MAX" .deepsec/ranked.txt > .deepsec/files.txt
+          tail -n "+$((FILES_MAX + 1))" .deepsec/ranked.txt > .deepsec/skipped.txt
       - name: Review changed files
         id: scan
         timeout-minutes: 20
         env:
           AI_GATEWAY_API_KEY: ${{ secrets.DEEPSEC_VERCEL_GATEWAY_KEY }}
+          CHUNK_SIZE: 10
+          CHUNK_TIMEOUT: 18m
         working-directory: .deepsec
         run: |
           if [ -z "$AI_GATEWAY_API_KEY" ]; then
             echo '::error::Set the DEEPSEC_VERCEL_GATEWAY_KEY Depot CI secret to enable reviews.'
             exit 2
           fi
-          mise exec -- pnpm exec deepsec process \
-            --root "$GITHUB_WORKSPACE/review-source" \
-            --project-id unkey \
-            --concurrency 2 \
-            --files-from files.txt \
-            --comment-out comment.md
+          mkdir chunks
+          if [ -s files.txt ]; then
+            split -l "$CHUNK_SIZE" -d -a 3 files.txt chunks/files-
+          fi
+          # Each chunk gets its own data root so a failed or timed-out chunk
+          # cannot lose findings from the others.
+          pids=()
+          lists=()
+          for list in chunks/files-*; do
+            [ -e "$list" ] || continue
+            mkdir -p "$list.data"
+            cp -R data/unkey "$list.data/"
+            DEEPSEC_DATA_ROOT="$list.data" timeout --kill-after=30s "$CHUNK_TIMEOUT" \
+              mise exec -- node_modules/.bin/deepsec process \
+                --root "$GITHUB_WORKSPACE/review-source" \
+                --project-id unkey \
+                --concurrency 2 \
+                --files-from "$list" \
+                --comment-out "$list.md" \
+                > "$list.log" 2>&1 &
+            pids+=("$!")
+            lists+=("$list")
+          done
+          incomplete=()
+          comments=()
+          for i in "${!pids[@]}"; do
+            list=${lists[$i]}
+            if wait "${pids[$i]}"; then status=0; else status=$?; fi
+            echo "::group::$(basename "$list") (exit $status)"
+            cat "$list.log"
+            echo '::endgroup::'
+            if [ "$status" -eq 0 ]; then
+              continue
+            elif [ "$status" -eq 1 ] && [ -s "$list.md" ]; then
+              comments+=("$list.md")
+            else
+              incomplete+=("$list")
+            fi
+          done
+          reviewed=$(($(wc -l < files.txt)))
+          skipped=$(($(wc -l < skipped.txt)))
+          {
+            if [ "${#incomplete[@]}" -gt 0 ]; then
+              echo '**Incomplete review.** A scan chunk failed or timed out, so these files were not fully reviewed:'
+              echo
+              cat "${incomplete[@]}" | sed 's/.*/- `&`/'
+              echo
+            fi
+            if [ "$skipped" -gt 0 ]; then
+              echo "**Partial review.** This PR changes $((reviewed + skipped)) eligible files. DeepSec reviewed the $reviewed highest-priority files and skipped the rest."
+              echo
+              echo '<details><summary>Skipped files</summary>'
+              echo
+              sed 's/.*/- `&`/' skipped.txt
+              echo
+              echo '</details>'
+              echo
+            fi
+            if [ "${#comments[@]}" -gt 0 ]; then
+              for comment in "${comments[@]}"; do
+                cat "$comment"
+                echo
+              done
+            elif [ "$reviewed" -gt 0 ]; then
+              echo 'No new findings in the files that were reviewed.'
+            else
+              echo 'No eligible files to review.'
+            fi
+            if [ "${#lists[@]}" -gt 0 ]; then
+              echo
+              mise exec -- node -e '
+                const fs = require("node:fs");
+                const path = require("node:path");
+                let usd = 0;
+                const tokens = { input: 0, cached: 0, output: 0 };
+                const models = new Set();
+                for (const root of process.argv.slice(1)) {
+                  const dir = path.join(root, "unkey", "files");
+                  if (!fs.existsSync(dir)) continue;
+                  for (const name of fs.readdirSync(dir, { recursive: true })) {
+                    if (!name.endsWith(".json")) continue;
+                    const record = JSON.parse(fs.readFileSync(path.join(dir, name), "utf8"));
+                    for (const entry of record.analysisHistory ?? []) {
+                      usd += entry.costUsd ?? 0;
+                      tokens.input += entry.usage?.inputTokens ?? 0;
+                      tokens.cached += entry.usage?.cacheReadInputTokens ?? 0;
+                      tokens.output += entry.usage?.outputTokens ?? 0;
+                      if (entry.model) models.add(entry.model);
+                    }
+                  }
+                }
+                const count = (n) => Math.round(n).toLocaleString("en-US");
+                const model = models.size > 0 ? ` with ${[...models].map((m) => `\`${m}\``).join(", ")}` : "";
+                console.log(
+                  `<sub>Estimated model cost: $${usd.toFixed(usd < 1 ? 4 : 2)}${model} · ` +
+                    `${count(tokens.input)} input, ${count(tokens.cached)} cached input, ${count(tokens.output)} output tokens. ` +
+                    "Uses DeepSec price data and excludes batches that failed or were stopped.</sub>",
+                );
+              ' "${lists[@]/%/.data}"
+            fi
+          } > comment.md
+          if [ "${#incomplete[@]}" -gt 0 ] || [ "${#comments[@]}" -gt 0 ]; then
+            exit 1
+          fi
       - name: Upload findings
         if: always()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
