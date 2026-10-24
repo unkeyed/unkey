@@ -1,8 +1,10 @@
 import { RotateKeyDialog } from "@/components/api-keys-table/components/actions/components/rotate-key/rotate-key-dialog";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { rerollRootKey, rootKeysV2QueryKeys } from "@/lib/root-keys-api";
+import { rootKeysV2QueryKeys } from "@/lib/root-keys-api";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { V2RootKeysRerollKeyRequestBody } from "@unkey/api/models/components";
 import { RootKeyNameCell, toast } from "@unkey/ui";
 
 type RotateRootKeyProps = {
@@ -14,10 +16,13 @@ export function RotateRootKey({ rootKeyDetails, isOpen, onClose, onRotated }: Ro
   const workspace = useWorkspaceNavigation();
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: rerollRootKey,
+    mutationFn: async (request: V2RootKeysRerollKeyRequestBody) => {
+      const response = await getUnkeyClient().rootKeys.rerollKey(request);
+      return response.data;
+    },
     onError: (error) => {
       toast.error("Failed to rotate Root Key", {
-        description: error instanceof Error ? error.message : "Please try again later.",
+        description: getErrorMessage(error, "Please try again later."),
       });
     },
   });

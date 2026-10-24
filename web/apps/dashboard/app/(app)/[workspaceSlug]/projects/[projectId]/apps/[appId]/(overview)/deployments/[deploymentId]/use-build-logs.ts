@@ -61,12 +61,12 @@ export function useBuildLogs(
       const pollStartedAt = Date.now();
       let hasFinishedStep = false;
       let publishedAt = Date.now();
-      do {
-        const page = await getUnkeyClient().deployments.listBuildLogs({
-          deploymentId: deployment.id,
-          cursor: logs.cursor,
-          limit: BUILD_LOGS_PAGE_ENTRIES_MAX,
-        });
+      const pages = await getUnkeyClient().deployments.listBuildLogs({
+        deploymentId: deployment.id,
+        cursor: logs.cursor,
+        limit: BUILD_LOGS_PAGE_ENTRIES_MAX,
+      });
+      for await (const { result: page } of pages) {
         logs = {
           entries: [...logs.entries, ...page.data].slice(-BUILD_LOG_ENTRIES_SHOWN_MAX),
           entriesTotal: logs.entriesTotal + page.data.length,
@@ -80,7 +80,10 @@ export function useBuildLogs(
           queryClient.setQueryData(queryKey, logs);
           publishedAt = Date.now();
         }
-      } while (readsToEnd && logs.hasMore);
+        if (!readsToEnd || !logs.hasMore) {
+          break;
+        }
+      }
       const isInFlight = isDeploymentInFlight(deployment.status);
       if (hasFinishedStep && isInFlight) {
         void trpcUtils.deploy.deployment.steps.invalidate({ deploymentId: deployment.id });

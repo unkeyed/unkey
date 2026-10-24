@@ -269,8 +269,10 @@ export class Portal extends ClientSDK {
   async listSessions(
     request: components.V2PortalListSessionsRequestBody,
     options?: RequestOptions,
-  ): Promise<components.V2PortalListSessionsResponseBody> {
-    return unwrapAsync(portalListSessions(
+  ): Promise<
+    PageIterator<operations.PortalListSessionsResponse, { cursor: string }>
+  > {
+    return unwrapResultIterator(portalListSessions(
       this,
       request,
       options,

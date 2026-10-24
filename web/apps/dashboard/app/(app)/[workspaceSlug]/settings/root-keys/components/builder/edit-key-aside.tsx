@@ -1,8 +1,10 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { rootKeysV2QueryKeys, updateRootKey } from "@/lib/root-keys-api";
+import { rootKeysV2QueryKeys } from "@/lib/root-keys-api";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { V2RootKeysUpdateKeyRequestBody } from "@unkey/api/models/components";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconTrashOutline18,
@@ -138,7 +140,10 @@ function EditablePolicyForm({
 }: { draft: EditableRootKeyDraft; onSaved: () => void } & ActionProps) {
   const workspace = useWorkspaceNavigation();
   const queryClient = useQueryClient();
-  const update = useMutation({ mutationFn: updateRootKey });
+  const update = useMutation({
+    mutationFn: (request: V2RootKeysUpdateKeyRequestBody) =>
+      getUnkeyClient().rootKeys.updateKey(request),
+  });
 
   const { form, bodyRef, submit } = useRootKeyPolicyForm(
     { name: draft.name, policies: draft.policies },
@@ -150,7 +155,7 @@ function EditablePolicyForm({
           permissions: buildUrns(workspace.id, values.policies),
         });
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to update the Root Key.");
+        toast.error(getErrorMessage(error, "Failed to update the Root Key."));
         return;
       }
 

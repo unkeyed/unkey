@@ -11451,6 +11451,14 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: listBuildLogs
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
             x-unkey-idempotency: idempotent
     /v2/deployments.listDeployments:
         post:
@@ -13038,6 +13046,14 @@ paths:
             tags:
                 - domains
             x-speakeasy-name-override: listDomains
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
             x-unkey-idempotency: idempotent
     /v2/domains.verifyDomain:
         post:
@@ -13455,6 +13471,14 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: listEnvironmentVariables
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v2/environments.listEnvironments:
         post:
             description: |
@@ -18010,6 +18034,14 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: listSessions
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v2/portal.rerollKey:
         post:
             description: |
