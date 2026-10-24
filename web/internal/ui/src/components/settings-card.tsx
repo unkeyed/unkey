@@ -9,7 +9,7 @@ import { Skeleton } from "./skeleton";
 
 export type ChevronState = "hidden" | "interactive" | "disabled";
 
-export type SettingCardBorder = "top" | "middle" | "bottom" | "both" | "none" | "default";
+export type SettingCardBorder = "both" | "none" | "default";
 
 type SettingCardProps = {
   title: string | React.ReactNode;
@@ -84,39 +84,6 @@ function SettingCard({
   const shouldShowChevron = effectiveChevronState !== "hidden";
   const isInteractive = effectiveChevronState === "interactive" && expandable;
 
-  const getBorderRadiusClass = () => {
-    if (inGroup) {
-      return "";
-    }
-    if (border === "none" || border === "default") {
-      return "";
-    }
-    if (border === "top") {
-      return "rounded-t-lg";
-    }
-    if (border === "bottom") {
-      return !expandable || !isExpanded ? "rounded-b-lg" : "";
-    }
-    if (border === "both") {
-      const bottom = !expandable || !isExpanded ? "rounded-b-lg" : "";
-      return cn("rounded-t-lg", bottom);
-    }
-    return "";
-  };
-
-  const borderClass = inGroup
-    ? {}
-    : {
-        border: border !== "none",
-        "border-t-0": border === "bottom",
-        "border-b-0": border === "top",
-      };
-
-  const expandedBottomRadius =
-    !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
-      ? "rounded-b-lg"
-      : "";
-
   const handleToggle = () => {
     if (!isInteractive) {
       return;
@@ -151,9 +118,8 @@ function SettingCard({
     <div
       className={cn(
         "@container w-full bg-raised",
-        getBorderRadiusClass(),
-        borderClass,
-        expandedBottomRadius,
+        !inGroup && border !== "none" && "shadow-raised",
+        !inGroup && border === "both" && "rounded-lg",
       )}
     >
       <div
