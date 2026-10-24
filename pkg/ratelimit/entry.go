@@ -61,17 +61,17 @@ func (e *entry) check(nowNs int64, rate Rate, units int64) (decision, error) {
 	return decide(e.resetTimes, nowNs, rate, units)
 }
 
-// spend writes a decision from `check` into the sessions. A new session gets
+// apply writes a decision from `check` into the sessions. A new session gets
 // `newSessionID`, which must be new: the upsert keeps the larger
-// `consumed_ns`, so a reused ID would hide the new session. On an error spend
+// `consumed_ns`, so a reused ID would hide the new session. On an error apply
 // changes nothing.
-func (e *entry) spend(spent decision, newSessionID string) error {
-	if !spent.allowed || spent.consumedNs == 0 {
+func (e *entry) apply(applied decision, newSessionID string) error {
+	if !applied.allowed || applied.consumedNs == 0 {
 		return nil
 	}
-	if spent.createNewSessionAtNs == 0 {
+	if applied.createNewSessionAtNs == 0 {
 		live := e.sessions[e.liveID]
-		live.consumedNs += spent.consumedNs
+		live.consumedNs += applied.consumedNs
 		e.sessions[e.liveID] = live
 	} else {
 		_, known := e.sessions[newSessionID]
@@ -87,17 +87,19 @@ func (e *entry) spend(spent decision, newSessionID string) error {
 		}
 		e.sessions[newSessionID] = session{
 			id:         newSessionID,
-			anchorAtNs: spent.createNewSessionAtNs,
-			consumedNs: spent.consumedNs,
+			anchorAtNs: applied.createNewSessionAtNs,
+			consumedNs: applied.consumedNs,
 		}
 		e.liveID = newSessionID
 	}
-	e.resetTimes = resetTimesAfter(e.resetTimes, spent)
+	e.resetTimes = resetTimesAfter(e.resetTimes, applied)
 	return nil
 }
 
-// endLiveSession freezes the live session, for example when its lifetime
-// ended. It keeps counting.
+// endLiveSession stops new requests from going into the live session, for
+// example when its lifetime ended. The session stays in `sessions`, and its
+// consumed time still counts toward `reset_at`. The next allowed request
+// starts a new session.
 func (e *entry) endLiveSession() {
 	e.liveID = ""
 	// `reset_at` does not change. No session is live, so no candidate is

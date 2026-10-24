@@ -138,7 +138,7 @@ func computeResetTimes(sessions map[string]session, liveID string) (resetTimes, 
 }
 
 // decide applies the GCRA rule to a request of `units` at `nowNs`. It is pure,
-// so a caller can decide several rate limits before spending on any. It
+// so a caller can decide several rate limits before applying any. It
 // returns an error for invalid input or an int64 overflow.
 func decide(current resetTimes, nowNs int64, rate Rate, units int64) (decision, error) {
 	err := assert.All(
@@ -202,16 +202,16 @@ func decide(current resetTimes, nowNs int64, rate Rate, units int64) (decision, 
 }
 
 // resetTimesAfter returns the reset times after an allowed decision with positive
-// `consumedNs` was spent. The decision must come from `decide` on `current`.
-func resetTimesAfter(current resetTimes, spent decision) resetTimes {
+// `consumedNs` was applied. The decision must come from `decide` on `current`.
+func resetTimesAfter(current resetTimes, applied decision) resetTimes {
 	// Either way, the largest raised candidate is the new `reset_at`.
 	next := resetTimes{
-		resetAtNs:                         spent.resetAtNs,
-		maxCandidateRaisedByLiveSessionNs: spent.resetAtNs,
+		resetAtNs:                         applied.resetAtNs,
+		maxCandidateRaisedByLiveSessionNs: applied.resetAtNs,
 		newestAnchorAtNs:                  current.newestAnchorAtNs,
 	}
-	if spent.createNewSessionAtNs != 0 {
-		next.newestAnchorAtNs = spent.createNewSessionAtNs
+	if applied.createNewSessionAtNs != 0 {
+		next.newestAnchorAtNs = applied.createNewSessionAtNs
 	}
 	return next
 }
