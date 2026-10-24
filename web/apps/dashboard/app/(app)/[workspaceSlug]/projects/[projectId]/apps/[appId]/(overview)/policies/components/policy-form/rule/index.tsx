@@ -88,12 +88,12 @@ export function RuleCard({
             ) : null}
           </button>
           {OpenFields ? (
-            <div className="border-t border-grayA-4 px-4 pt-4 pb-5">
+            <div className="border-t px-4 pt-4 pb-5">
               <OpenFields />
             </div>
           ) : null}
           {OpenFields && rejects.length > 0 ? (
-            <div className="flex items-start gap-2 border-t border-grayA-4 px-3 py-3">
+            <div className="flex items-start gap-2 border-t px-3 py-3">
               <span className="flex h-5 items-center">
                 <RuleLabel>On fail</RuleLabel>
               </span>

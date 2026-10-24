@@ -86,7 +86,7 @@ function StepTile({ step, className }: { step: StepView; className?: string }) {
     <span
       data-status={step.status}
       className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-sm border border-grayA-4 text-gray-11 data-[status=done]:border-gray-12 data-[status=done]:bg-gray-12 data-[status=done]:text-gray-1",
+        "flex size-8 shrink-0 items-center justify-center rounded-sm border text-gray-11 data-[status=done]:border-gray-12 data-[status=done]:bg-gray-12 data-[status=done]:text-gray-1",
         className,
       )}
     >
@@ -254,7 +254,7 @@ function StepStrip({ nav }: { nav: StepNavModel }) {
   const [open, setOpen] = useState(false);
   return (
     <Drawer.Root open={open} onOpenChange={setOpen}>
-      <Drawer.Trigger className="flex h-10 shrink-0 items-center gap-2.5 border-b border-grayA-4 px-4 text-xs text-gray-11 lg:hidden">
+      <Drawer.Trigger className="flex h-10 shrink-0 items-center gap-2.5 border-b px-4 text-xs text-gray-11 lg:hidden">
         <span>
           {label} · <span className="font-medium text-gray-12">{steps[at]?.title}</span>
         </span>

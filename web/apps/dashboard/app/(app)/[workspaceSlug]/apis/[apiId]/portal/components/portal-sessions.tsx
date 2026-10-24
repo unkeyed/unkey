@@ -348,7 +348,7 @@ function SessionGroupPanel({
           <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 py-4">
             <section className="flex flex-col gap-2">
               <h3 className="text-xs font-medium text-gray-12">Permissions</h3>
-              <ul className="divide-y divide-grayA-4 rounded-lg border text-sm text-gray-11">
+              <ul className="divide-y rounded-lg border text-sm text-gray-11">
                 {sessionGroupScopes(group).map((scope) => {
                   const { label, Icon } = SCOPES.get(scope) ?? {
                     label: scope,
@@ -377,7 +377,7 @@ function SessionGroupPanel({
                   <span>Created</span>
                   <span>Expires</span>
                 </div>
-                <ul className="divide-y divide-grayA-4">
+                <ul className="divide-y">
                   {group.sessions.map((session) => (
                     <li
                       key={session.id}

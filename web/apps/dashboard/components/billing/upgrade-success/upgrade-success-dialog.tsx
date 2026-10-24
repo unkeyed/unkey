@@ -161,7 +161,7 @@ function CelebrationDialog({
         }
       }}
     >
-      <DialogContent className="max-w-[440px] gap-0 overflow-hidden rounded-2xl! border-grayA-4 bg-raised p-0">
+      <DialogContent className="max-w-[440px] gap-0 overflow-hidden rounded-2xl! bg-raised p-0">
         <CoinHeader back={celebration.back} />
         <div className="relative flex flex-col gap-6 bg-raised p-6 pt-2">
           <div

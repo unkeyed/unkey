@@ -101,13 +101,11 @@ function StageLink() {
 function Stage({ label, note, children }: { label: string; note?: string; children: ReactNode }) {
   return (
     <section className="overflow-hidden rounded-lg border bg-raised">
-      <div className="flex border-b border-grayA-4 bg-grayA-2 px-3 py-1 text-2xs font-medium text-gray-11">
+      <div className="flex border-b bg-grayA-2 px-3 py-1 text-2xs font-medium text-gray-11">
         {label}
       </div>
-      <div className="flex flex-col divide-y divide-grayA-4">{children}</div>
-      {note ? (
-        <p className="border-t border-grayA-4 px-3 py-2 text-xs leading-5 text-gray-11">{note}</p>
-      ) : null}
+      <div className="flex flex-col divide-y">{children}</div>
+      {note ? <p className="border-t px-3 py-2 text-xs leading-5 text-gray-11">{note}</p> : null}
     </section>
   );
 }

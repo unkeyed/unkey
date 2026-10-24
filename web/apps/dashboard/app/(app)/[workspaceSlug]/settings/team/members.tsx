@@ -140,7 +140,7 @@ function MembersCard({
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="divide-y divide-grayA-4">
+        <div className="divide-y">
           {rows.map((membership) => {
             const { id, role, user: member } = membership;
             const isCurrentUser = member.id === user.id;

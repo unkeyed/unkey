@@ -53,7 +53,7 @@ export function HealthcheckFields({ form }: { form: UseFormReturn<RuntimeValues>
                         aria-label="HTTP method"
                         variant="ghost"
                         wrapperClassName="w-auto shrink-0"
-                        className="rounded-r-none border-0 border-r border-grayA-4 hover:bg-grayA-2 focus:border-grayA-4 focus:ring-0"
+                        className="rounded-r-none border-0 border-r border-(--hairline) hover:bg-grayA-2 focus:ring-0"
                         rightIcon={
                           <IconChevronDownOutline12 className="absolute right-3 text-gray-11" />
                         }
