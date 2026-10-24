@@ -4,7 +4,6 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { describe, expect, test } from "vitest";
 import {
   type DeploymentPageInput,
-  buildRequestOf,
   deploymentPageModel,
   resolvePageStatus,
 } from "./deployment-page-model";
@@ -57,7 +56,7 @@ const input = (overrides: Partial<DeploymentPageInput> = {}): DeploymentPageInpu
     source: "git",
   },
   status: "ready",
-  buildRequest: "none",
+  buildRequested: false,
   domains: [],
   domainsLoading: false,
   customDomains: [],
@@ -65,48 +64,36 @@ const input = (overrides: Partial<DeploymentPageInput> = {}): DeploymentPageInpu
   ...overrides,
 });
 
-describe("buildRequestOf", () => {
-  test("a request in the URL is active, and stays seen on the page after the URL drops it", () => {
-    expect(buildRequestOf({ inUrl: true, seenOnPage: true })).toBe("active");
-    expect(buildRequestOf({ inUrl: false, seenOnPage: true })).toBe("seen");
-    expect(buildRequestOf({ inUrl: false, seenOnPage: false })).toBe("none");
-  });
-});
-
 describe("deploymentPageModel", () => {
-  test("picks the body from the status", () => {
-    expect(deploymentPageModel(input({ status: "building" })).body).toBe("stages");
-    expect(deploymentPageModel(input({ status: "failed" })).body).toBe("stages");
-    expect(deploymentPageModel(input({ status: "skipped" })).body).toBe("skipped");
-    expect(deploymentPageModel(input({ status: "superseded" })).body).toBe("superseded");
-    expect(deploymentPageModel(input({ status: "cancelled" })).body).toBe("cancelled");
+  test("shows the stages for every status except skipped", () => {
+    const body = (status: DeploymentStatus) => deploymentPageModel(input({ status })).body;
+    expect(body("building")).toBe("stages");
+    expect(body("failed")).toBe("stages");
+    expect(body("superseded")).toBe("stages");
+    expect(body("cancelled")).toBe("stages");
+    expect(body("skipped")).toBe("skipped");
   });
 
   test("?build asks for the build stage and keeps the status body", () => {
-    const model = deploymentPageModel(input({ status: "building", buildRequest: "active" }));
+    const model = deploymentPageModel(input({ status: "building", buildRequested: true }));
     expect(model.body).toBe("stages");
     expect(model.requestedStage).toBe("build");
     expect(deploymentPageModel(input({ status: "building" })).requestedStage).toBe(null);
   });
 
-  test("a build request shows the stages of a cancelled or superseded deployment", () => {
-    const body = (status: DeploymentStatus) =>
-      deploymentPageModel(input({ status, buildRequest: "seen" })).body;
-    expect(body("cancelled")).toBe("stages");
-    expect(body("superseded")).toBe("stages");
-    expect(body("skipped")).toBe("skipped");
-  });
-
-  test("a prebuilt image has no build stage to request", () => {
-    const model = deploymentPageModel(
+  test("a prebuilt image or a skipped deployment has no build stage to request", () => {
+    const prebuilt = deploymentPageModel(
       input({
         deployment: { ...input().deployment, source: "oci" },
         status: "cancelled",
-        buildRequest: "active",
+        buildRequested: true,
       }),
     );
-    expect(model.requestedStage).toBe(null);
-    expect(model.body).toBe("cancelled");
+    expect(prebuilt.requestedStage).toBe(null);
+    expect(prebuilt.body).toBe("stages");
+    expect(
+      deploymentPageModel(input({ status: "skipped", buildRequested: true })).requestedStage,
+    ).toBe(null);
   });
 
   test("a current deployment lists its verified custom domain first", () => {

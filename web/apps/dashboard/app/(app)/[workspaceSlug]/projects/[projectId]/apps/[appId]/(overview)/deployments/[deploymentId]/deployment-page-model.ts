@@ -6,7 +6,7 @@ import {
   deploymentStatusColor,
   statusGroupOf,
 } from "@/lib/collections/deploy/deployment-status";
-import { type Deployment, isPrebuilt } from "@/lib/collections/deploy/deployments";
+import { type Deployment, hasBuildLogs } from "@/lib/collections/deploy/deployments";
 import {
   type InstanceSummary,
   instanceLabel,
@@ -15,22 +15,7 @@ import {
 import { type DomainPriorityResult, getDomainPriority } from "../../../components/domain-priority";
 import type { StageKey } from "./details/stages-model";
 
-export type DeploymentBody = "skipped" | "superseded" | "cancelled" | "stages";
-
-export type BuildRequest = "none" | "seen" | "active";
-
-export function buildRequestOf({
-  inUrl,
-  seenOnPage,
-}: {
-  inUrl: boolean;
-  seenOnPage: boolean;
-}): BuildRequest {
-  if (inUrl) {
-    return "active";
-  }
-  return seenOnPage ? "seen" : "none";
-}
+export type DeploymentBody = "skipped" | "stages";
 
 export type DeploymentPageInput = {
   deployment: Pick<
@@ -38,7 +23,7 @@ export type DeploymentPageInput = {
     "id" | "environmentId" | "instances" | "targetRegions" | "desiredState" | "source"
   >;
   status: DeploymentStatus;
-  buildRequest: BuildRequest;
+  buildRequested: boolean;
   domains: ReadonlyArray<Domain>;
   domainsLoading: boolean;
   customDomains: ReadonlyArray<CustomDomain>;
@@ -64,14 +49,13 @@ export type DeploymentPageModel = {
 export function deploymentPageModel({
   deployment,
   status,
-  buildRequest,
+  buildRequested,
   domains,
   domainsLoading,
   customDomains,
   currentDeploymentId,
 }: DeploymentPageInput): DeploymentPageModel {
   const instances = summarizeInstances(deployment);
-  const hasBuildLogs = !isPrebuilt(deployment);
   const domainPriority = getDomainPriority({
     domains,
     customDomains,
@@ -81,39 +65,15 @@ export function deploymentPageModel({
   });
   return {
     status,
-    body:
-      hasBuildLogs && buildRequest !== "none" ? BODY_WITH_BUILD[status] : BODY_BY_STATUS[status],
-    requestedStage: hasBuildLogs && buildRequest === "active" ? "build" : null,
+    body: status === "skipped" ? "skipped" : "stages",
+    requestedStage:
+      buildRequested && hasBuildLogs({ source: deployment.source, status }) ? "build" : null,
     instances,
     pageStatus: resolvePageStatus(status, instances),
     domains: domainPriority,
     domainCount: domainsLoading ? null : domainPriority.all.length,
   };
 }
-
-const BODY_BY_STATUS: Record<DeploymentStatus, DeploymentBody> = {
-  pending: "stages",
-  awaiting_approval: "stages",
-  starting: "stages",
-  building: "stages",
-  deploying: "stages",
-  network: "stages",
-  finalizing: "stages",
-  ready: "stages",
-  failed: "stages",
-  stopped: "stages",
-  skipped: "skipped",
-  superseded: "superseded",
-  cancelled: "cancelled",
-};
-
-// A cancelled or superseded deployment may have built, so a build request shows
-// its stages; a skipped one never did
-const BODY_WITH_BUILD: Record<DeploymentStatus, DeploymentBody> = {
-  ...BODY_BY_STATUS,
-  superseded: "stages",
-  cancelled: "stages",
-};
 
 export function resolvePageStatus(
   status: DeploymentStatus,
