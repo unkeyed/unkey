@@ -369,9 +369,9 @@ export const POST = async (req: Request): Promise<Response> => {
 
   const e = stripeEnv();
 
-  if (!e) {
+  if (!e?.STRIPE_WEBHOOK_SECRET) {
     console.error(
-      "Stripe environment configuration is missing. Check that STRIPE_SECRET_KEY and other required Stripe environment variables are properly set.",
+      "Stripe environment configuration is missing or invalid. Check the required Stripe environment variables, including STRIPE_WEBHOOK_SECRET.",
     );
     return new Response("Server configuration error", { status: 500 });
   }
