@@ -37,6 +37,41 @@ func TestFormatUserCode(t *testing.T) {
 	require.Equal(t, "Z H V G - S X Q M", formatUserCode("  ZHVG-SXQM  "))
 }
 
+func TestNonterminalLoginDoesNotOpenABrowser(t *testing.T) {
+	stdin, writer, err := os.Pipe()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, stdin.Close()) })
+	_, err = writer.WriteString("yes\n")
+	require.NoError(t, err)
+	require.NoError(t, writer.Close())
+
+	original := os.Stdin
+	os.Stdin = stdin
+	t.Cleanup(func() { os.Stdin = original })
+	t.Setenv("PATH", t.TempDir())
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v2/cli.startDeviceLogin" {
+			writeEnvelope(t, w, http.StatusOK, startedEnvelope(uid.New(uid.DeviceAuthorizationPrefix), 1))
+			return
+		}
+		denied := pollEnvelope(components.StatusAccessDenied, 1)
+		denied.Data.Detail = new("Authorization was denied.")
+		writeEnvelope(t, w, http.StatusOK, denied)
+	}))
+	t.Cleanup(srv.Close)
+
+	stderr := captureStderr(t, func() {
+		stdout := captureStdout(t, func() {
+			err := New().Run(t.Context(), []string{"unkey", "--api-url", srv.URL})
+			require.EqualError(t, err, "Authorization was denied.")
+		})
+		require.Contains(t, stdout, verificationURL)
+		require.NotContains(t, stdout, "Could not open a browser")
+	})
+	require.Empty(t, stderr)
+}
+
 func TestRootKeyFlagStoresTheKey(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
