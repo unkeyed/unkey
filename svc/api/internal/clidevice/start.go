@@ -2,14 +2,20 @@ package clidevice
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"errors"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
+
+const userCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 // Start creates a device authorization and returns the code the user compares.
 func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) {
@@ -42,7 +48,7 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 			)
 		}
 
-		loginID := newLoginID()
+		loginID := string(uid.DeviceAuthorizationPrefix) + "_" + uid.Secure(24)
 		err = db.Query.InsertDeviceAuthorization(ctx, s.DB.RW(), db.InsertDeviceAuthorizationParams{
 			ID:        loginID,
 			UserCode:  userCode,
@@ -84,4 +90,38 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 		fault.Internal("could not allocate a device login code"),
 		fault.Public("Could not start CLI login. Try again."),
 	)
+}
+
+func newUserCode() (string, error) {
+	buf := make([]byte, 8)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+
+	chars := make([]byte, 8)
+	for i, b := range buf {
+		chars[i] = userCodeAlphabet[int(b)%len(userCodeAlphabet)]
+	}
+	return string(chars[:4]) + "-" + string(chars[4:]), nil
+}
+
+func dashboardVerificationURL(base string, userCode string) (string, error) {
+	parsed, err := url.Parse(base)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return "", errors.New("dashboard base url must be an absolute http(s) url")
+	}
+
+	parsed.Path = strings.TrimRight(parsed.Path, "/") + "/cli/device"
+	query := parsed.Query()
+	query.Set("user_code", userCode)
+	parsed.RawQuery = query.Encode()
+	parsed.Fragment = ""
+	return parsed.String(), nil
+}
+
+func truncate(value string, runesMax int) string {
+	if runes := []rune(value); len(runes) > runesMax {
+		return string(runes[:runesMax])
+	}
+	return value
 }

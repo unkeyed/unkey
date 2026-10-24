@@ -57,14 +57,10 @@ type PollRequest struct {
 
 // PollResult is the current login. Tokens are set only when Status is complete.
 type PollResult struct {
-	Status       PollStatus
-	Interval     int32
-	Detail       string
-	AccessToken  string
-	RefreshToken string
-	ExpiresIn    int64
-	WorkspaceID  string
-	SessionID    string
+	Status   PollStatus
+	Interval int32
+	Detail   string
+	Tokens
 }
 
 // RefreshRequest exchanges a refresh token for a new pair.

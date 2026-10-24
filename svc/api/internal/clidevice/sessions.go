@@ -169,7 +169,7 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 
 	out := make([]SessionInfo, 0, len(rows))
 	for _, row := range rows {
-		permissions, err := decodeStrings(row.Permissions)
+		permissions, err := decodePermissions(row.Permissions)
 		if err != nil {
 			return nil, err
 		}

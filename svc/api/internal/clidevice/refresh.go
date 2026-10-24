@@ -65,7 +65,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		return Tokens{}, forbidden("You are no longer a member of this workspace. Run unkey login again.")
 	}
 
-	stored, err := decodeStrings(row.Permissions)
+	stored, err := decodePermissions(row.Permissions)
 	if err != nil {
 		return Tokens{}, err
 	}
