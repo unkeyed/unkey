@@ -2544,15 +2544,17 @@ type Querier interface {
 	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(? AS UNSIGNED)
 	RecordInstanceRunning(ctx context.Context, arg RecordInstanceRunningParams) error
 	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
-	// This is a bulk operation to minimize database round trips.
+	// The journaled refill time prevents a committed refill from running again.
+	// Call with one ID to determine whether that key needs an audit event.
 	//
 	//  UPDATE `keys`
 	//  SET remaining_requests = refill_amount,
-	//      last_refill_at = NOW(3),
+	//      last_refill_at = ?,
 	//      updated_at_m = ?
 	//  WHERE id IN (/*SLICE:ids*/?)
 	//    AND deleted_at_m IS NULL
-	RefillKeysByIDs(ctx context.Context, arg RefillKeysByIDsParams) error
+	//    AND (last_refill_at IS NULL OR last_refill_at < ?)
+	RefillKeysByIDs(ctx context.Context, arg RefillKeysByIDsParams) (int64, error)
 	//ResetCustomDomainVerification
 	//
 	//  UPDATE custom_domains
