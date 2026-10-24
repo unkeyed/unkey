@@ -17,13 +17,9 @@ export type V2CliStartDeviceLoginResponseData = {
    */
   userCode: string;
   /**
-   * Dashboard page where the user enters the code.
-   */
-  verificationUri: string;
-  /**
    * Dashboard page with the code filled in.
    */
-  verificationUriComplete: string;
+  verificationUrl: string;
   /**
    * Seconds until the login expires.
    */
@@ -42,8 +38,7 @@ export const V2CliStartDeviceLoginResponseData$inboundSchema: z.ZodType<
 > = z.object({
   loginId: z.string(),
   userCode: z.string(),
-  verificationUri: z.string(),
-  verificationUriComplete: z.string(),
+  verificationUrl: z.string(),
   expiresIn: z.number().int(),
   interval: z.number().int(),
 });

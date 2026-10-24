@@ -10,6 +10,7 @@ import { cliRevokeSession } from "../funcs/cliRevokeSession.js";
 import { cliStartDeviceLogin } from "../funcs/cliStartDeviceLogin.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
+import * as operations from "../models/operations/index.js";
 import { unwrapAsync } from "../types/fp.js";
 
 export class Cli extends ClientSDK {
@@ -39,9 +40,10 @@ export class Cli extends ClientSDK {
    * @remarks
    * Supply exactly one of `loginId` or `refreshToken`. No authentication header is required.
    * A `loginId` polls a device login started by cli.startDeviceLogin. While the user has not approved it,
-   * the status is `permissions_required`. Approval returns access and refresh tokens exactly once.
+   * the API returns HTTP 202 with a Retry-After header in seconds. Approval returns HTTP 200 with access and refresh tokens exactly once.
+   * Denial returns HTTP 403. An expired login returns HTTP 410. Stop polling on either response.
    * Device polling is rate limited per IP address.
-   * A `refreshToken` rotates an existing session and returns `complete` with new tokens.
+   * A `refreshToken` rotates an existing session and returns HTTP 200 with new tokens.
    * The user's current membership and permissions are checked again. Reuse of the previous token
    * after the retry grace period revokes the session.
    * Access tokens last 15 minutes. A session expires after 7 days without a refresh,
@@ -50,7 +52,7 @@ export class Cli extends ClientSDK {
   async exchangeToken(
     request: components.V2CliExchangeTokenRequestBodyUnion,
     options?: RequestOptions,
-  ): Promise<components.V2CliExchangeTokenResponseBody> {
+  ): Promise<operations.CliExchangeTokenResponse> {
     return unwrapAsync(cliExchangeToken(
       this,
       request,

@@ -17,6 +17,9 @@ export type V2CliExchangeTokenResponseBody = {
    * Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
    */
   meta: Meta;
+  /**
+   * Session credentials returned by a successful token exchange.
+   */
   data: V2CliExchangeTokenResponseData;
 };
 

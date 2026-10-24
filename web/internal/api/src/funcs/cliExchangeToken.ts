@@ -22,6 +22,7 @@ import * as errors from "../models/errors/index.js";
 import { ResponseValidationError } from "../models/errors/responsevalidationerror.js";
 import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import { UnkeyError } from "../models/errors/unkeyerror.js";
+import * as operations from "../models/operations/index.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
@@ -31,9 +32,10 @@ import { Result } from "../types/fp.js";
  * @remarks
  * Supply exactly one of `loginId` or `refreshToken`. No authentication header is required.
  * A `loginId` polls a device login started by cli.startDeviceLogin. While the user has not approved it,
- * the status is `permissions_required`. Approval returns access and refresh tokens exactly once.
+ * the API returns HTTP 202 with a Retry-After header in seconds. Approval returns HTTP 200 with access and refresh tokens exactly once.
+ * Denial returns HTTP 403. An expired login returns HTTP 410. Stop polling on either response.
  * Device polling is rate limited per IP address.
- * A `refreshToken` rotates an existing session and returns `complete` with new tokens.
+ * A `refreshToken` rotates an existing session and returns HTTP 200 with new tokens.
  * The user's current membership and permissions are checked again. Reuse of the previous token
  * after the retry grace period revokes the session.
  * Access tokens last 15 minutes. A session expires after 7 days without a refresh,
@@ -45,10 +47,11 @@ export function cliExchangeToken(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2CliExchangeTokenResponseBody,
+    operations.CliExchangeTokenResponse,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
+    | errors.GoneErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -75,10 +78,11 @@ async function $do(
 ): Promise<
   [
     Result<
-      components.V2CliExchangeTokenResponseBody,
+      operations.CliExchangeTokenResponse,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
+      | errors.GoneErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | UnkeyError
@@ -168,10 +172,11 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2CliExchangeTokenResponseBody,
+    operations.CliExchangeTokenResponse,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
+    | errors.GoneErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -183,10 +188,17 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, components.V2CliExchangeTokenResponseBody$inboundSchema),
+    M.json(200, operations.CliExchangeTokenResponse$inboundSchema, {
+      key: "Result",
+    }),
+    M.json(202, operations.CliExchangeTokenResponse$inboundSchema, {
+      hdrs: true,
+      key: "Result",
+    }),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
+    M.jsonErr(410, errors.GoneErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema),
     M.jsonErr(500, errors.InternalServerErrorResponse$inboundSchema),
     M.fail("4XX"),

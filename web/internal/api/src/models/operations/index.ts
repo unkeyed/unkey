@@ -4,6 +4,7 @@
 
 export * from "./apislistkeys.js";
 export * from "./appslistapps.js";
+export * from "./cliexchangetoken.js";
 export * from "./deploymentslistdeployments.js";
 export * from "./identitieslistidentities.js";
 export * from "./logslistapirequests.js";
