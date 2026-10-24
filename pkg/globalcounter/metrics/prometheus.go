@@ -57,6 +57,7 @@ var (
 	// Possible result values are:
 	// - "ok": the change was applied and queued for MySQL.
 	// - "overflow": the count, total or revision would overflow, so nothing changed.
+	// - "skipped": a ConditionalAdd chose a zero delta, so nothing changed.
 	//
 	// Example usage:
 	//   metrics.AddsTotal.WithLabelValues("ok").Inc()
