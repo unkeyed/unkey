@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -28,6 +29,9 @@ func TestDecisionRejectsInvalidInputOverHTTP(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
+		{name: "missing code", req: handler.Request{Decision: "deny"}},
+		{name: "short code", req: handler.Request{UserCode: "ABC", Decision: "deny"}},
+		{name: "long code", req: handler.Request{UserCode: strings.Repeat("A", 33), Decision: "deny"}},
 		{name: "missing decision", req: handler.Request{UserCode: "ABCD-EFGH"}},
 		{name: "unknown decision", req: handler.Request{UserCode: "ABCD-EFGH", Decision: "unknown"}},
 		{name: "approve without permissions", req: handler.Request{UserCode: "ABCD-EFGH", Decision: "approve"}},

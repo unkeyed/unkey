@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -25,6 +26,8 @@ func TestExchangeRejectsInvalidCredentialsOverHTTP(t *testing.T) {
 		{name: "mixed", req: handler.Request{LoginId: new(uid.New(uid.DeviceAuthorizationPrefix)), RefreshToken: new("invalid-refresh-token")}},
 		{name: "empty mixed", req: handler.Request{LoginId: new(""), RefreshToken: new("")}},
 		{name: "empty login", req: handler.Request{LoginId: new("")}},
+		{name: "short login", req: handler.Request{LoginId: new(strings.Repeat("a", 7))}},
+		{name: "long login", req: handler.Request{LoginId: new(strings.Repeat("a", 49))}},
 		{name: "empty refresh", req: handler.Request{RefreshToken: new("")}},
 	}
 	for _, tc := range cases {
