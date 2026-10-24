@@ -36,7 +36,7 @@ Your root key must have the following permission:
 			util.OutputFlag(),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}
