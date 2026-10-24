@@ -1,4 +1,4 @@
-import type { AreaChartPoint } from "@/components/charts/area-timeseries";
+import type { AreaChartPoint } from "@/components/charts/legacy/area-timeseries";
 
 export type WindowKey = "hour" | "day" | "week";
 

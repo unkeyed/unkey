@@ -96,4 +96,29 @@ describe("deriveProductionStatus", () => {
       }),
     ).toBe("live");
   });
+
+  test.each(["cancelled", "superseded", "skipped"] as const)(
+    "a %s deployment keeps its status even with unhealthy instances",
+    (status) => {
+      expect(
+        deriveProductionStatus({
+          status,
+          desiredState: "running",
+          targetRegions: [],
+          instances: [instance({ lastExit: waiting("CrashLoopBackOff") })],
+        }),
+      ).toBe(status);
+    },
+  );
+
+  test("an in-flight deployment reads deploying", () => {
+    expect(
+      deriveProductionStatus({
+        status: "building",
+        desiredState: "running",
+        targetRegions: [],
+        instances: [],
+      }),
+    ).toBe("deploying");
+  });
 });

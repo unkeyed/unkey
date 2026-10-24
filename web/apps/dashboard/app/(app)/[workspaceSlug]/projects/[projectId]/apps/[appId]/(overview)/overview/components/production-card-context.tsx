@@ -1,37 +1,34 @@
 "use client";
 
+import type { AppSource } from "@/components/deploy/app-source";
 import type { Deployment, DeploymentSummary } from "@/lib/collections";
 import type { Route } from "next";
 import { createContext, use } from "react";
 import type { DisplayDomain } from "../../../components/display-domain";
-import type { Pulse } from "./g-pulse";
 import type { DeploymentDisplayStatus } from "./status";
 
-export type CardDomain = { hostname: string; url: string };
+export type CanvasModel = {
+  appName: string;
+  appSource: AppSource;
+  defaultBranch: string | null;
+  domains: ReadonlyArray<DisplayDomain>;
+  domainsHref: Route;
+  policiesHref: Route;
+};
 
 export type ProductionCardContextValue = {
   deployment: Deployment;
   status: DeploymentDisplayStatus;
   isCurrent: boolean;
   isRolledBack: boolean;
-  rolledBackFrom: {
-    commitSha: string | null;
-    commitMessage: string | null;
-    image: string | null;
-  } | null;
+  canvas: CanvasModel;
   sourceRepo: string | null;
-  primaryDomain: CardDomain | null;
-  additionalDomains: readonly DisplayDomain[];
-  addCustomDomainHref: Route | null;
   diagnostic: { label: string; href: Route } | null;
   deploymentHref: Route;
   logsHref: Route;
   requestsHref: Route;
   rollbackTarget: DeploymentSummary | undefined;
   undoCandidates: DeploymentSummary[];
-  pulse: Pulse;
-  isChartLoading: boolean;
-  isChartError: boolean;
   openRollback: () => void;
   openUndo: () => void;
 };
@@ -43,7 +40,7 @@ export const ProductionCardProvider = ProductionCardContext.Provider;
 export function useProductionCard(): ProductionCardContextValue {
   const ctx = use(ProductionCardContext);
   if (!ctx) {
-    throw new Error("useProductionCard must be used within AppProductionCard");
+    throw new Error("useProductionCard must be used inside a deployed ProductionOverview");
   }
   return ctx;
 }

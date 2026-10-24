@@ -3,7 +3,7 @@
 import type { Deployment, DeploymentSummary } from "@/lib/collections";
 import type { Route } from "next";
 import { createContext, use } from "react";
-import type { Pulse } from "../../components/g-pulse";
+import type { Pulse } from "./g-pulse";
 import type { DeploymentDisplayStatus } from "./status";
 
 export type CardDomain = { hostname: string; url: string };
