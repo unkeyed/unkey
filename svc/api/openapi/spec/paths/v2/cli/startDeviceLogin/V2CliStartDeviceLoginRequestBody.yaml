@@ -1,0 +1,7 @@
+type: object
+additionalProperties: false
+properties:
+  deviceName:
+    type: string
+    maxLength: 512
+    description: Hostname or other label shown on the authorize page.

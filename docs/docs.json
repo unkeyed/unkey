@@ -247,6 +247,7 @@
                       {
                         "group": "Authentication",
                         "pages": [
+                          "errors/unkey/authentication/credential_rejected",
                           "errors/unkey/authentication/key_not_found",
                           "errors/unkey/authentication/malformed",
                           "errors/unkey/authentication/missing",
@@ -331,6 +332,7 @@
                       {
                         "group": "Too many requests",
                         "pages": [
+                          "errors/user/too_many_requests/ip_rate_limited",
                           "errors/user/too_many_requests/query_quota_exceeded",
                           "errors/user/too_many_requests/workspace_rate_limited"
                         ]
