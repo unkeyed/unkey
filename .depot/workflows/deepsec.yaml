@@ -15,10 +15,14 @@ jobs:
     continue-on-error: true
     outputs:
       scan_result: ${{ steps.scan.outcome }}
+      job_url: ${{ steps.depot.outputs.url }}
     steps:
+      - name: Record scan job link
+        id: depot
+        run: echo "url=$DEPOT_JOB_URL" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - uses: ./.depot/actions/setup-mise
         with:
@@ -36,7 +40,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/deepsec"
           cp -R .deepsec/. "$RUNNER_TEMP/deepsec/"
-          mise exec -- npm ci --prefix "$RUNNER_TEMP/deepsec" --ignore-scripts --no-audit --no-fund
+          mise exec -- pnpm --dir "$RUNNER_TEMP/deepsec" install --frozen-lockfile --ignore-scripts
           merge_base=$(git -C source merge-base "$BASE_SHA" "$HEAD_SHA")
           git -C source diff --name-only --diff-filter=ACMR "$merge_base" "$HEAD_SHA" -- \
             . ':!gen/**' ':!**/node_modules/**' ':!**/dist/**' ':!**/vendor/**' \
@@ -89,6 +93,7 @@ jobs:
         env:
           REVIEW_SHA: ${{ github.event.pull_request.head.sha }}
           SCAN_RESULT: ${{ needs.analyze.outputs.scan_result }}
+          SCAN_JOB_URL: ${{ needs.analyze.outputs.job_url }}
         with:
           script: |
             const fs = require('node:fs');
@@ -101,7 +106,8 @@ jobs:
               core.info('Skipping results for an outdated PR head.');
               return;
             }
-            const checksUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/pull/${issue_number}/checks`;
+            const jobUrl = process.env.SCAN_JOB_URL || process.env.DEPOT_JOB_URL;
+            if (!jobUrl) throw new Error('Depot job URL is missing');
             let summary;
             if (fs.existsSync('report/comment.md')) {
               summary = fs.readFileSync('report/comment.md', 'utf8');
@@ -110,7 +116,7 @@ jobs:
             } else {
               summary = 'The scan did not complete. Check the CI run for missing credentials, timeouts, or scanner errors. This is not a clean review.';
             }
-            const body = `${marker}\n## DeepSec security review\n\nAdvisory review of ${process.env.REVIEW_SHA}.\n\n${summary.slice(0, 50000)}\n\n[CI checks](${checksUrl}): open DeepSec, then View job on Depot for logs and report artifacts.`;
+            const body = `${marker}\n## DeepSec security review\n\nAdvisory review of ${process.env.REVIEW_SHA}.\n\n${summary.slice(0, 50000)}\n\n[View logs and report artifacts on Depot](${jobUrl})`;
             const comments = await github.paginate(github.rest.issues.listComments, {
               ...context.repo, issue_number, per_page: 100,
             });

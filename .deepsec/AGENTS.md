@@ -5,10 +5,10 @@ authentication and `data/unkey/INFO.md` for the supplied repository context.
 
 ## Common tasks
 
-- **Install dependencies**: run `mise exec -- npm ci --ignore-scripts` here.
-- **Scan or process**: run `mise exec -- deepsec scan` or
-  `mise exec -- deepsec process`. Processing makes paid AI Gateway calls.
-- **Add a new project**: run `mise exec -- deepsec init-project <root>`; it
+- **Install dependencies**: run `mise exec -- pnpm install --frozen-lockfile --ignore-scripts` here.
+- **Scan or process**: run `mise exec -- pnpm exec deepsec scan` or
+  `mise exec -- pnpm exec deepsec process`. Processing makes paid AI Gateway calls.
+- **Add a new project**: run `mise exec -- pnpm exec deepsec init-project <root>`; it
   scaffolds `data/<id>/` and prints/writes the setup prompt for the
   new project.
 - **Write a custom matcher** (only after a real true-positive shows you
@@ -18,5 +18,5 @@ authentication and `data/unkey/INFO.md` for the supplied repository context.
 ## Reference
 
 The deepsec skill is at `node_modules/deepsec/SKILL.md` (after
-`mise exec -- npm ci --ignore-scripts`). The full docs ship at
+`mise exec -- pnpm install --frozen-lockfile --ignore-scripts`). The full docs ship at
 `node_modules/deepsec/dist/docs/`.
