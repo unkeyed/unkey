@@ -85,7 +85,7 @@ export function resolveStages({
   desiredState,
   domainCount,
 }: StagesInput): Stage[] {
-  const { building, deploying, network } = steps ?? {};
+  const { deploying, network } = steps ?? {};
   const phase = PHASE_BY_STATUS[status];
   const failed = phase.kind === "failed";
   const step = stepsByStage(steps, { failed, isPrebuilt });
