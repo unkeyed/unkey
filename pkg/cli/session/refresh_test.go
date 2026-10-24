@@ -10,29 +10,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/sdk/models/apierrors"
+	"github.com/unkeyed/unkey/internal/sdk/models/components"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
-
-type refreshRequest struct {
-	RefreshToken string `json:"refreshToken"`
-}
-
-type refreshData struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	ExpiresIn    int64  `json:"expiresIn"`
-	WorkspaceID  string `json:"workspaceId"`
-	SessionID    string `json:"sessionId"`
-}
-
-type refreshError struct {
-	Detail string `json:"detail"`
-}
-
-type refreshResponse struct {
-	Data  *refreshData  `json:"data,omitempty"`
-	Error *refreshError `json:"error,omitempty"`
-}
 
 func newRefreshServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 	t.Helper()
@@ -41,7 +22,7 @@ func newRefreshServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 	return srv
 }
 
-func writeRefreshResponse(t *testing.T, w http.ResponseWriter, status int, body refreshResponse) {
+func writeRefreshResponse[T any](t *testing.T, w http.ResponseWriter, status int, body T) {
 	t.Helper()
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(status)
@@ -52,17 +33,24 @@ func TestRefreshReturnsTheNewPair(t *testing.T) {
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	sessionID := uid.New(uid.CLISessionPrefix)
 	srv := newRefreshServer(t, func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/v2/cli.refreshToken", r.URL.Path)
-		var req refreshRequest
+		require.Equal(t, "/v2/cli.exchangeToken", r.URL.Path)
+		var req components.V2CliExchangeTokenRequestBody2
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
 		require.Equal(t, "refresh_a", req.RefreshToken)
-		writeRefreshResponse(t, w, http.StatusOK, refreshResponse{Data: &refreshData{
-			AccessToken:  "access_b",
-			RefreshToken: "refresh_b",
-			ExpiresIn:    3600,
-			WorkspaceID:  workspaceID,
-			SessionID:    sessionID,
-		}})
+		require.Nil(t, req.LoginID)
+		writeRefreshResponse(t, w, http.StatusOK, components.V2CliExchangeTokenResponseBody{
+			Data: components.V2CliExchangeTokenResponseData{
+				Status: components.StatusComplete,
+				Credentials: &components.V2CliExchangeTokenCredentials{
+					AccessToken:  "access_b",
+					RefreshToken: "refresh_b",
+					ExpiresIn:    3600,
+					WorkspaceID:  workspaceID,
+					SessionID:    sessionID,
+				},
+			},
+			Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+		})
 	})
 
 	before := time.Now()
@@ -77,16 +65,85 @@ func TestRefreshReturnsTheNewPair(t *testing.T) {
 	require.LessOrEqual(t, next.ExpiresAt, time.Now().Add(time.Hour).Unix())
 }
 
-func TestRefreshReportsTheErrorDetail(t *testing.T) {
-	var calls atomic.Int32
-	srv := newRefreshServer(t, func(w http.ResponseWriter, _ *http.Request) {
-		calls.Add(1)
-		writeRefreshResponse(t, w, http.StatusUnauthorized, refreshResponse{Error: &refreshError{Detail: "The refresh token was revoked."}})
-	})
+func TestRefreshRejectsIncompleteExchangesWithoutRetrying(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		change func(*components.V2CliExchangeTokenResponseData)
+	}{
+		{name: "pending without tokens", change: func(data *components.V2CliExchangeTokenResponseData) {
+			*data = components.V2CliExchangeTokenResponseData{Status: components.StatusPermissionsRequired, Interval: 5}
+		}},
+		{name: "pending with tokens", change: func(data *components.V2CliExchangeTokenResponseData) {
+			data.Status = components.StatusPermissionsRequired
+		}},
+		{name: "denied", change: func(data *components.V2CliExchangeTokenResponseData) { data.Status = components.StatusAccessDenied }},
+		{name: "expired", change: func(data *components.V2CliExchangeTokenResponseData) { data.Status = components.StatusExpiredToken }},
+		{name: "unknown status", change: func(data *components.V2CliExchangeTokenResponseData) { data.Status = "unknown" }},
+		{name: "missing status", change: func(data *components.V2CliExchangeTokenResponseData) { data.Status = "" }},
+		{name: "missing credentials", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials = nil }},
+		{name: "empty credentials", change: func(data *components.V2CliExchangeTokenResponseData) {
+			data.Credentials = &components.V2CliExchangeTokenCredentials{}
+		}},
+		{name: "empty access token", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.AccessToken = "" }},
+		{name: "empty refresh token", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.RefreshToken = "" }},
+		{name: "empty workspace", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.WorkspaceID = "" }},
+		{name: "empty session", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.SessionID = "" }},
+		{name: "zero expiry", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.ExpiresIn = 0 }},
+		{name: "negative expiry", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.ExpiresIn = -1 }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data := components.V2CliExchangeTokenResponseData{
+				Status: components.StatusComplete,
+				Credentials: &components.V2CliExchangeTokenCredentials{
+					AccessToken:  "access_b",
+					RefreshToken: "refresh_b",
+					ExpiresIn:    3600,
+					WorkspaceID:  uid.New(uid.WorkspacePrefix),
+					SessionID:    uid.New(uid.CLISessionPrefix),
+				},
+			}
+			tc.change(&data)
+			var calls atomic.Int32
+			srv := newRefreshServer(t, func(w http.ResponseWriter, _ *http.Request) {
+				calls.Add(1)
+				writeRefreshResponse(t, w, http.StatusOK, components.V2CliExchangeTokenResponseBody{
+					Data: data,
+					Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+				})
+			})
 
-	_, err := Refresh(context.Background(), srv.URL, "refresh_a")
-	require.EqualError(t, err, "The refresh token was revoked.")
-	require.Equal(t, int32(1), calls.Load())
+			next, err := Refresh(t.Context(), srv.URL, "refresh_a")
+			require.Error(t, err)
+			require.Empty(t, next)
+			require.Equal(t, int32(1), calls.Load())
+		})
+	}
+}
+
+func TestRefreshReportsTheErrorDetail(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		status int
+		detail string
+	}{
+		{name: "revoked", status: http.StatusUnauthorized, detail: "The refresh token was revoked."},
+		{name: "rate limited", status: http.StatusTooManyRequests, detail: "Try again later."},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var calls atomic.Int32
+			srv := newRefreshServer(t, func(w http.ResponseWriter, _ *http.Request) {
+				calls.Add(1)
+				writeRefreshResponse(t, w, tc.status, apierrors.UnauthorizedErrorResponse{
+					Error_: components.BaseError{Detail: tc.detail, Status: int64(tc.status)},
+					Meta:   components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+				})
+			})
+
+			_, err := Refresh(context.Background(), srv.URL, "refresh_a")
+			require.EqualError(t, err, tc.detail)
+			require.Equal(t, int32(1), calls.Load())
+		})
+	}
 }
 
 func TestRefreshRejectsANonJSONBody(t *testing.T) {
@@ -102,22 +159,29 @@ func TestRefreshRejectsANonJSONBody(t *testing.T) {
 func TestRefreshRetriesAServerErrorWithTheSameToken(t *testing.T) {
 	var calls atomic.Int32
 	srv := newRefreshServer(t, func(w http.ResponseWriter, r *http.Request) {
-		var req refreshRequest
+		var req components.V2CliExchangeTokenRequestBody2
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
 		require.Equal(t, "refresh_a", req.RefreshToken)
+		require.Nil(t, req.LoginID)
 		if calls.Add(1) == 1 {
 			w.Header().Set("content-type", "text/html")
 			w.WriteHeader(http.StatusBadGateway)
 			_, _ = w.Write([]byte("<html>bad gateway</html>"))
 			return
 		}
-		writeRefreshResponse(t, w, http.StatusOK, refreshResponse{Data: &refreshData{
-			AccessToken:  "access_b",
-			RefreshToken: "refresh_b",
-			ExpiresIn:    3600,
-			WorkspaceID:  uid.New(uid.WorkspacePrefix),
-			SessionID:    uid.New(uid.CLISessionPrefix),
-		}})
+		writeRefreshResponse(t, w, http.StatusOK, components.V2CliExchangeTokenResponseBody{
+			Data: components.V2CliExchangeTokenResponseData{
+				Status: components.StatusComplete,
+				Credentials: &components.V2CliExchangeTokenCredentials{
+					AccessToken:  "access_b",
+					RefreshToken: "refresh_b",
+					ExpiresIn:    3600,
+					WorkspaceID:  uid.New(uid.WorkspacePrefix),
+					SessionID:    uid.New(uid.CLISessionPrefix),
+				},
+			},
+			Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+		})
 	})
 
 	next, err := Refresh(context.Background(), srv.URL, "refresh_a")
