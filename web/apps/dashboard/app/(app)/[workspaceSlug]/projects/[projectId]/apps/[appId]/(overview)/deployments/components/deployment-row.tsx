@@ -1,13 +1,14 @@
 "use client";
 
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import {
   EnvironmentBadge,
   type EnvironmentBadgeRollout,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
+import { LastExitHover } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import { summarizeCrashLoop } from "@/lib/collections/deploy/exit-reasons";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem } from "@unkey/ui";
@@ -55,10 +56,6 @@ export function DeploymentRow({
   const isGit = deployment.source === "git";
   const image = deployment.requestedImage ?? deployment.resolvedImage;
   const title = isGit ? deployment.gitCommitMessage : null;
-  const showLastExit =
-    deployment.lastExit !== null &&
-    deployment.status !== "ready" &&
-    deployment.status !== "superseded";
 
   return (
     <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
@@ -94,16 +91,19 @@ export function DeploymentRow({
               ? imageRefDisplay(image)
               : shortenId(deployment.id))}
         </span>
-        {showLastExit && deployment.lastExit && (
-          <span className="relative z-20 shrink-0">
-            <LastExitBadge lastExit={deployment.lastExit} />
-          </span>
-        )}
       </span>
 
       <span className="flex min-w-0 shrink-0 items-center gap-2 md:w-44">
         <DeploymentStatusDot status={deployment.status} />
-        <span className="truncate text-sm font-medium text-gray-12">{statusLabel}</span>
+        <span className="flex min-w-0 text-sm font-medium text-gray-12">
+          {deployment.crashLoop ? (
+            <LastExitHover summary={summarizeCrashLoop(deployment.crashLoop)}>
+              {statusLabel}
+            </LastExitHover>
+          ) : (
+            <span className="truncate">{statusLabel}</span>
+          )}
+        </span>
         <DeploymentDuration
           status={deployment.status}
           createdAt={deployment.createdAt}

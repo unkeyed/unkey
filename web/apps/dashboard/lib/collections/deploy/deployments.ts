@@ -2,7 +2,10 @@
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { type LoadSubsetOptions, createCollection } from "@tanstack/react-db";
-import type { Deployment as ApiDeployment } from "@unkey/api/models/components";
+import {
+  type Deployment as ApiDeployment,
+  DeploymentIssueType,
+} from "@unkey/api/models/components";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
@@ -79,20 +82,13 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
-  // Most-recent exit info across the deployment's instances. Null when
-  // no instance has reported a termination yet (healthy deployments).
-  // Powers the header "OOMKilled · exit=137" badge — see
-  // active-deployment-card/index.tsx:LastExitBadge. Sourced from
-  // instances.containerStatus on the trpc layer; the flat shape is kept
-  // here so consumers don't have to walk the JSON's optional sub-fields.
-  lastExit: z
+  crashLoop: z
     .object({
-      restartCount: z.number().int(),
-      exitCode: z.number().int().nullable(),
-      signal: z.number().int().nullable(),
       reason: z.string().nullable(),
+      message: z.string(),
+      exitCode: z.number().int().nullable(),
+      restartCount: z.number().int(),
       finishedAt: z.number().nullable(),
-      statusReason: z.string().nullable(),
     })
     .nullable(),
 });
@@ -142,7 +138,6 @@ type RowDetails = Pick<
   | "desiredInstanceCount"
   | "desiredRegions"
   | "triggerReason"
-  | "lastExit"
 >;
 
 // Once a row in one of these statuses has no instances left, nothing changes its
@@ -187,6 +182,7 @@ function toDeployment(
   projectId: string,
 ): Deployment {
   const { git, docker, runtime } = deployment;
+  const crashLoop = deployment.issues.find((issue) => issue.type === DeploymentIssueType.CrashLoop);
   return {
     id: deployment.id,
     projectId,
@@ -231,7 +227,15 @@ function toDeployment(
     createdAt: deployment.createdAt,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
-    lastExit: details.lastExit,
+    crashLoop: crashLoop
+      ? {
+          reason: crashLoop.meta?.reason ?? null,
+          message: crashLoop.message,
+          exitCode: crashLoop.meta?.exitCode ?? null,
+          restartCount: crashLoop.meta?.restartCount ?? 0,
+          finishedAt: crashLoop.time ?? null,
+        }
+      : null,
   };
 }
 

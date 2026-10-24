@@ -15,7 +15,7 @@ export function deriveProductionStatus(deployment: Deployment): DeploymentDispla
     return "failed";
   }
   const crashing =
-    deployment.lastExit?.statusReason === "CrashLoopBackOff" ||
+    deployment.crashLoop !== null ||
     (deployment.instances ?? []).some((i) => i.status === "failed");
   if (crashing) {
     return "crashing";

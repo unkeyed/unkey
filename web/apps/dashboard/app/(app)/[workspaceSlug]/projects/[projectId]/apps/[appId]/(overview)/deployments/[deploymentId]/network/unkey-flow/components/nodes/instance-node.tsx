@@ -1,4 +1,5 @@
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
+import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
+import { isFatalWaitingReason, summarizeExit } from "@/lib/collections/deploy/exit-reasons";
 import { trpc } from "@/lib/trpc/client";
 import { IconLayers3Outline18 } from "@unkey/icons";
 import { CardFooter } from "./components/card-footer";
@@ -14,8 +15,8 @@ type InstanceNodeProps = {
 
 // RECENT_CRASH_WINDOW_MS bounds how long a stale `lastExit` keeps the
 // instance card painted red. Without this, a one-off crash from hours ago
-// would mark a since-recovered pod as unhealthy forever (we never clear
-// last_exit_* on a successful run; ctrl only updates on newer events).
+// would mark a since-recovered pod as unhealthy forever (container_status
+// keeps the last exit after a successful run; ctrl only updates on newer events).
 // 30 minutes is wide enough to surface flapping pods that briefly stabilise
 // between restarts but narrow enough that a card recovering after a fix
 // returns to its normal styling within one product feedback loop.
@@ -36,13 +37,13 @@ export function InstanceNode({ node, region, deploymentId }: InstanceNodeProps) 
 
   // Promote the card to "unhealthy" styling whenever there's something
   // actively wrong. Two triggers:
-  //   - statusReason === "CrashLoopBackOff" — kubelet is currently
+  //   - a fatal waiting reason (e.g. CrashLoopBackOff) — kubelet is currently
   //     throttling restarts; ALWAYS unhealthy regardless of finishedAt
   //   - finishedAt within the recent window — there was a crash
   //     recently enough that the user still cares
   // Otherwise, defer to the kubelet-derived health (running pod with
   // an old crash 6h ago should look normal).
-  const isInActiveCrashloop = lastExit?.statusReason === "CrashLoopBackOff";
+  const isInActiveCrashloop = isFatalWaitingReason(lastExit?.statusReason ?? null);
   const isRecentCrash =
     lastExit?.finishedAt != null && Date.now() - lastExit.finishedAt < RECENT_CRASH_WINDOW_MS;
   const effectiveHealth = isInActiveCrashloop || isRecentCrash ? "unhealthy" : health;
@@ -51,7 +52,11 @@ export function InstanceNode({ node, region, deploymentId }: InstanceNodeProps) 
   // when ctrl has recorded a crash. The diagnostic should be readable
   // directly on the graph card — clicking into the panel shouldn't be
   // required to see "this pod is OOMKilling".
-  const subtitle = lastExit ? <LastExitBadge lastExit={lastExit} /> : "Instance Replica";
+  const subtitle = lastExit ? (
+    <LastExitText summary={summarizeExit(lastExit)} />
+  ) : (
+    "Instance Replica"
+  );
 
   return (
     <NodeWrapper health={effectiveHealth}>
