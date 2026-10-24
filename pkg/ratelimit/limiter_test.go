@@ -17,10 +17,8 @@ import (
 func newTestLimiter(t *testing.T) (*limiter, *clock.TestClock) {
 	t.Helper()
 	testClock := clock.NewTestClock(time.Unix(1_700_000_000, 0))
-	created, err := New(Config{Clock: testClock, Random: rand.New(rand.NewPCG(1, 2))})
+	l, err := newLimiter(Config{Clock: testClock, Store: newMemoryStore(), Random: rand.New(rand.NewPCG(1, 2))})
 	require.NoError(t, err)
-	l, ok := created.(*limiter)
-	require.True(t, ok)
 	t.Cleanup(func() { require.NoError(t, l.Close()) })
 	return l, testClock
 }
@@ -148,7 +146,7 @@ func TestLimiterStartsANewSessionWhenTheLifetimeEnds(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, first.id, e.liveID)
 	require.Len(t, e.sessions, 2)
-	require.Equal(t, session{id: first.id, anchorAtNs: first.anchorAtNs, consumedNs: 1801 * time.Second.Nanoseconds()}, e.sessions[first.id])
+	require.Equal(t, session{id: first.id, anchorAtNs: first.anchorAtNs, consumedNs: 1801 * time.Second.Nanoseconds(), own: true, committedNs: 0}, e.sessions[first.id])
 	require.Equal(t, start.Add(1802*time.Second), result.ResetAt)
 }
 
@@ -171,17 +169,17 @@ func TestLimiterNewSessionGivesUniqueIDsAndLifetimesOf12To15Minutes(t *testing.T
 
 func TestLimiterSessionIDsFollowTheSeed(t *testing.T) {
 	sessionID := func(random *rand.Rand) string {
-		created, err := New(Config{Clock: clock.NewTestClock(), Random: random})
+		l, err := newLimiter(Config{Clock: clock.NewTestClock(), Store: newMemoryStore(), Random: random})
 		require.NoError(t, err)
-		l, ok := created.(*limiter)
-		require.True(t, ok)
 		id, _ := l.newSession()
 		return id
 	}
 	require.Equal(t, sessionID(rand.New(rand.NewPCG(1, 2))), sessionID(rand.New(rand.NewPCG(1, 2))))
 	require.NotEqual(t, sessionID(nil), sessionID(nil))
 
-	_, err := New(Config{Clock: nil, Random: nil})
+	_, err := New(Config{Clock: nil, Store: newMemoryStore(), Random: nil})
+	require.Error(t, err)
+	_, err = New(Config{Clock: clock.NewTestClock(), Store: nil, Random: nil})
 	require.Error(t, err)
 }
 

@@ -21,6 +21,13 @@ type session struct {
 
 	// consumedNs only grows.
 	consumedNs int64
+
+	// own is true if this pod created the session, so this pod writes it.
+	own bool
+
+	// committedNs is the consumed time that the store acknowledged. It is
+	// only used for own sessions.
+	committedNs int64
 }
 
 // resetTimes holds `reset_at` and the two other times that `decide` needs
@@ -96,6 +103,8 @@ type decision struct {
 // anchor. `liveID` is "" if the pod has no live session. computeResetTimes
 // returns an error for a non-positive anchor, a negative consumed time, an
 // int64 overflow, or a `liveID` that is not in `sessions`.
+//
+// It only reads its arguments, so it is safe to call concurrently.
 func computeResetTimes(sessions map[string]session, liveID string) (resetTimes, error) {
 	live, hasLive := sessions[liveID]
 	if liveID != "" && !hasLive {
@@ -139,7 +148,8 @@ func computeResetTimes(sessions map[string]session, liveID string) (resetTimes, 
 
 // decide applies the GCRA rule to a request of `units` at `nowNs`. It is pure,
 // so a caller can decide several rate limits before applying any. It
-// returns an error for invalid input or an int64 overflow.
+// returns an error for invalid input or an int64 overflow. It is safe to call
+// concurrently.
 func decide(current resetTimes, nowNs int64, rate Rate, units int64) (decision, error) {
 	err := assert.All(
 		rate.Validate(),
@@ -203,6 +213,7 @@ func decide(current resetTimes, nowNs int64, rate Rate, units int64) (decision, 
 
 // resetTimesAfter returns the reset times after an allowed decision with positive
 // `consumedNs` was applied. The decision must come from `decide` on `current`.
+// It only reads its arguments, so it is safe to call concurrently.
 func resetTimesAfter(current resetTimes, d decision) resetTimes {
 	// Either way, the largest raised candidate is the new `reset_at`.
 	next := resetTimes{
@@ -217,7 +228,8 @@ func resetTimesAfter(current resetTimes, d decision) resetTimes {
 }
 
 // checkedAdd returns `a + b` for non-negative `a` and `b`, or an error on
-// overflow. A wrapped `reset_at` would open the rate limit.
+// overflow. A wrapped `reset_at` would open the rate limit. It is safe to call
+// concurrently.
 func checkedAdd(a, b int64) (int64, error) {
 	if a > math.MaxInt64-b {
 		return 0, fault.New("sum overflows int64") //faultline:equivalent callers discard the value when there is an error

@@ -9,7 +9,8 @@ import (
 // entry holds the sessions of one rate limit on this pod and their reset
 // times. Only its methods change the sessions, so the reset times always match
 // them.
-// The caller holds the shard lock.
+// entry has no lock of its own: every method needs the shard lock of its
+// fingerprint.
 type entry struct {
 	// sessions holds every session this pod knows, by ID: its own and its
 	// peers'. Sessions are never removed.
@@ -25,11 +26,20 @@ type entry struct {
 	// liveSessionEndsAtNs is when the live session ends, even if the rate
 	// limit has no pause. Only the limiter sets it.
 	liveSessionEndsAtNs int64
+
+	// rowsReadAtNs is when the last read of peer rows started, whether it
+	// succeeded or not. Zero means never.
+	rowsReadAtNs int64
+
+	// readDone is set while a read of peer rows runs, and closed when it
+	// has finished.
+	readDone chan struct{}
 }
 
 // mergeRows adds database rows and keeps the larger `consumedNs` per session,
 // so a stale replica never moves a session back. It never removes a session,
 // and on an error it changes nothing.
+// The caller must hold the shard lock of the entry.
 func (e *entry) mergeRows(rows []session) error {
 	next := maps.Clone(e.sessions)
 	if next == nil {
@@ -41,14 +51,16 @@ func (e *entry) mergeRows(rows []session) error {
 			return err
 		}
 		known, ok := next[row.id]
-		if ok {
-			err = assert.Equal(known.anchorAtNs, row.anchorAtNs, "the anchor of a session never changes")
-			if err != nil {
-				return err
-			}
-			row.consumedNs = max(known.consumedNs, row.consumedNs)
+		if !ok {
+			next[row.id] = session{id: row.id, anchorAtNs: row.anchorAtNs, consumedNs: row.consumedNs, own: false, committedNs: 0}
+			continue
 		}
-		next[row.id] = row
+		err = assert.Equal(known.anchorAtNs, row.anchorAtNs, "the anchor of a session never changes")
+		if err != nil {
+			return err
+		}
+		known.consumedNs = max(known.consumedNs, row.consumedNs)
+		next[row.id] = known
 	}
 
 	nextResetTimes, err := computeResetTimes(next, e.liveID)
@@ -60,7 +72,8 @@ func (e *entry) mergeRows(rows []session) error {
 	return nil
 }
 
-// check decides a request without changing the entry.
+// check decides a request without changing the entry. The caller must hold
+// the shard lock of the entry.
 func (e *entry) check(nowNs int64, rate Rate, units int64) (decision, error) {
 	return decide(e.resetTimes, nowNs, rate, units)
 }
@@ -68,7 +81,7 @@ func (e *entry) check(nowNs int64, rate Rate, units int64) (decision, error) {
 // apply writes a decision from `check` into the sessions. A new session gets
 // `newSessionID`, which must be new: the upsert keeps the larger
 // `consumed_ns`, so a reused ID would hide the new session. On an error apply
-// changes nothing.
+// changes nothing. The caller must hold the shard lock of the entry.
 func (e *entry) apply(d decision, newSessionID string) error {
 	if !d.allowed || d.consumedNs == 0 {
 		return nil
@@ -90,9 +103,11 @@ func (e *entry) apply(d decision, newSessionID string) error {
 			e.sessions = make(map[string]session)
 		}
 		e.sessions[newSessionID] = session{
-			id:         newSessionID,
-			anchorAtNs: d.createNewSessionAtNs,
-			consumedNs: d.consumedNs,
+			id:          newSessionID,
+			anchorAtNs:  d.createNewSessionAtNs,
+			consumedNs:  d.consumedNs,
+			own:         true,
+			committedNs: 0,
 		}
 		e.liveID = newSessionID
 	}
@@ -103,10 +118,25 @@ func (e *entry) apply(d decision, newSessionID string) error {
 // endLiveSession stops new requests from going into the live session, for
 // example when its lifetime ended. The session stays in `sessions`, and its
 // consumed time still counts toward `reset_at`. The next allowed request
-// starts a new session.
+// starts a new session. The caller must hold the shard lock of the entry.
 func (e *entry) endLiveSession() {
 	e.liveID = ""
 	// `reset_at` does not change. No session is live, so no candidate is
 	// raised by one.
 	e.resetTimes.maxCandidateRaisedByLiveSessionNs = 0
+}
+
+// uncommittedSessions returns this pod's sessions whose consumed time the
+// store has not acknowledged. A session at or past its `compact_after` is
+// left out: cleanup may already have merged its row, so a late write would
+// count its units twice. It does not change the entry.
+// The caller must hold the shard lock of the entry.
+func (e *entry) uncommittedSessions(nowNs int64) []session {
+	var uncommitted []session
+	for _, s := range e.sessions {
+		if s.own && s.consumedNs > s.committedNs && nowNs < s.anchorAtNs+compactAfter.Nanoseconds() {
+			uncommitted = append(uncommitted, s)
+		}
+	}
+	return uncommitted
 }
