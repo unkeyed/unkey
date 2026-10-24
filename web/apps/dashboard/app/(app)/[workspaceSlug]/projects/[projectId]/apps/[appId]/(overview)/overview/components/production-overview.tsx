@@ -4,7 +4,7 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { appSource } from "@/components/deploy/app-source";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type Deployment, type DeploymentSummary, collection } from "@/lib/collections";
-import { isDeploymentInFlight, statusGroupOf } from "@/lib/collections/deploy/deployment-status";
+import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { previousRollbackTarget, rollbackCandidates } from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
@@ -29,7 +29,7 @@ import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deploymen
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
 import { OverviewHeader, ProductionActions, ProductionActionsSkeleton } from "./overview-header";
 import { type ProductionCardContextValue, ProductionCardProvider } from "./production-card-context";
-import { deriveProductionStatus } from "./status";
+import { STATUS_META, deriveProductionStatus } from "./status";
 
 const RollbackDialog = dynamic(
   () =>
@@ -136,9 +136,7 @@ function useProductionOverview({
   useCollectionPolling(() => collection.deployments.utils.refetch(), {
     intervalMs: 10_000,
     enabled:
-      productionStatus === "live" ||
-      productionStatus === "crashing" ||
-      productionStatus === "deploying" ||
+      (productionStatus ? STATUS_META[productionStatus].polls : false) ||
       (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
   });
 
@@ -178,6 +176,12 @@ function useProductionOverview({
       )
     : [];
 
+  const deploymentHref = routes.projects.apps.deployment({
+    workspaceSlug: workspace.slug,
+    projectId,
+    appId,
+    deploymentId: deployment.id,
+  });
   const diagnostic = match(status)
     .returnType<ProductionCardContextValue["diagnostic"]>()
     .with("crashing", () => ({
@@ -189,19 +193,11 @@ function useProductionOverview({
         deploymentId: deployment.id,
       }),
     }))
-    .with("failed", () => ({
-      label: "View error",
-      href: routes.projects.apps.deployment({
-        workspaceSlug: workspace.slug,
-        projectId,
-        appId,
-        deploymentId: deployment.id,
-      }),
-    }))
+    .with("failed", () => ({ label: "View error", href: deploymentHref }))
     .otherwise(() => null);
 
   const appScope = { workspaceSlug: workspace.slug, projectId, appId };
-  const newerFailed = newerDeployment ? statusGroupOf(newerDeployment.status) === "failed" : false;
+  const newerFailed = newerDeployment?.status === "failed";
 
   const ctx: ProductionCardContextValue = {
     deployment,
@@ -218,12 +214,7 @@ function useProductionOverview({
     },
     sourceRepo,
     diagnostic,
-    deploymentHref: routes.projects.apps.deployment({
-      workspaceSlug: workspace.slug,
-      projectId,
-      appId,
-      deploymentId: deployment.id,
-    }),
+    deploymentHref,
     logsHref: routes.projects.logs({ workspaceSlug: workspace.slug, projectId, appId }),
     requestsHref: routes.projects.requests({
       workspaceSlug: workspace.slug,
