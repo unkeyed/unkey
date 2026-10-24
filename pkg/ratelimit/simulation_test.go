@@ -25,21 +25,25 @@ var (
 )
 
 // TestSimulation runs 1 to 8 pods against one shared store that delays,
-// reorders, fails and loses writes, and serves stale or failed reads. Each
-// seed picks its own failure rates. Pod clocks differ, some pods get few
-// requests, and half the seeds send everything to one limit.
+// reorders, fails and loses writes, and serves stale or failed reads. Pods
+// also run cleanup passes that delete and merge rows. Each seed picks its
+// own failure rates. Pod clocks differ, some pods get few requests, and half
+// the seeds send everything to one limit. Runs last from about half an hour
+// to a few hours, so rows reach `compactAfter` and get cleaned up.
 //
-// The ledger records every session that any pod wrote units into. From it
-// we compute the true reset_at. Each pod computes its local reset_at from
-// the sessions it has seen. For every request we check:
+// The ledger records every session that any pod wrote units into, and every
+// cleanup that the store applied. From it we compute the true reset_at. Each
+// pod computes its local reset_at from the sessions it has seen. Decisions
+// only use `max(reset_at, now)`, so every reset_at below means that. For
+// every request we check:
 //
 //	local ≤ true                       a pod sees no units that do not exist
-//	max(local, now) ≥ max(own, now)    a pod never forgets its own units
-//	allowed = max(local, now) + units - now ≤ duration
-//	true' ≤ max(true, now) + units     a pod never charges more than the GCRA rule
+//	local ≥ own                        a pod never forgets its own units
+//	allowed = local + units - now ≤ duration
+//	true' ≤ true + units               a pod never charges more than the GCRA rule
 //
-// `own` is the reset_at of the sessions the pod created, and `true'` is the
-// true reset_at after the request.
+// `own` is the reset_at of the sessions that the pod created and still
+// writes, and `true'` is the true reset_at after the request.
 //
 // If the pod has seen every session, local = true and the last line is an
 // equality. At the end every write is delivered and every pod reads again,
@@ -95,14 +99,14 @@ func runSimulation(t *testing.T, rng *rand.Rand) {
 	t.Helper()
 	var state *simState
 	simulation := sim.NewWithRand(rng,
-		sim.WithTicks[simState](2_000+rng.Int64N(8_000)),
+		sim.WithTicks[simState](3_000+rng.Int64N(12_000)),
 		sim.WithState(func(rng *rand.Rand) *simState {
 			state = newSimState(t, rng)
 			return state
 		}),
 	)
 	require.NoError(t, simulation.Run([]sim.Event[simState]{
-		requestEvent{}, requestEvent{}, flushEvent{}, deliverWriteEvent{}, replicateEvent{}, backgroundReadEvent{}, advanceTimeEvent{}, settleEvent{},
+		requestEvent{}, requestEvent{}, flushEvent{}, deliverWriteEvent{}, replicateEvent{}, backgroundReadEvent{}, advanceTimeEvent{}, settleEvent{}, cleanupEvent{},
 	}))
 	if len(simulation.Errors) > 0 {
 		t.Fatalf("%d failed checks, the first: %v", len(simulation.Errors), simulation.Errors[0])
@@ -163,7 +167,6 @@ type simState struct {
 	// owner maps each session ID to the pod that created it.
 	owner map[string]*simPod
 
-	// elapsed stays below `compactAfter`, so no pod drops unwritten units.
 	elapsed time.Duration
 
 	exactDecisions int
@@ -177,8 +180,9 @@ func newSimState(t *testing.T, rng *rand.Rand) *simState {
 		ledger: make(map[[32]byte]map[string]session),
 		owner:  make(map[string]*simPod),
 	}
-	// Large skews put a peer's anchors ahead of this pod's clock.
-	skews := []time.Duration{0, 50 * time.Millisecond, 2 * time.Second, 10 * time.Second}
+	// Large skews put a peer's anchors ahead of this pod's clock. Two pods
+	// differ by at most `maxClockSkew`.
+	skews := []time.Duration{0, 50 * time.Millisecond, 2 * time.Second, 10 * time.Second, maxClockSkew / 2}
 	maxSkew := skews[rng.IntN(len(skews))]
 	start := time.Unix(1_700_000_000, 0)
 	for range 1 + rng.IntN(8) {
@@ -193,7 +197,13 @@ func newSimState(t *testing.T, rng *rand.Rand) *simState {
 		pod.limiter = l
 		state.pods = append(state.pods, pod)
 	}
-	durations := []time.Duration{100 * time.Millisecond, time.Second, 10 * time.Second, time.Minute}
+	state.store.cleanUpOnAnotherPod = func() {
+		// A failed read or transaction is part of the simulation.
+		_ = state.pods[rng.IntN(len(state.pods))].limiter.cleanUp(context.Background())
+	}
+	// Limits longer than `compactAfter` keep `reset_at` in the future while
+	// their rows are due.
+	durations := []time.Duration{100 * time.Millisecond, time.Second, 10 * time.Second, time.Minute, 10 * time.Minute, time.Hour}
 	// Half the seeds put every request on one limit, so pods contend.
 	limitCount := 1
 	if rng.IntN(2) == 0 {
@@ -223,11 +233,14 @@ func (st *simState) request(pod *simPod, limit simLimit, units int64) (bool, err
 	if err != nil {
 		return false, err
 	}
+	nowNs := pod.clock.Now().UnixNano()
 	ownNs, err := st.truth(limit.fingerprint, pod)
 	if err != nil {
 		return false, err
 	}
-	nowNs := pod.clock.Now().UnixNano()
+	localNs = max(localNs, nowNs)
+	truthBeforeNs = max(truthBeforeNs, nowNs)
+	ownNs = max(ownNs, nowNs)
 
 	result, err := pod.limiter.Allow(ctx, request)
 	if err != nil {
@@ -247,20 +260,21 @@ func (st *simState) request(pod *simPod, limit simLimit, units int64) (bool, err
 	if err != nil {
 		return false, err
 	}
+	truthAfterNs = max(truthAfterNs, nowNs)
 
 	fits := func(resetAtNs int64) bool {
-		return units <= limit.rate.Limit && max(resetAtNs, nowNs)+limit.rate.unitsToNs(units)-nowNs <= limit.rate.Duration.Nanoseconds()
+		return units <= limit.rate.Limit && resetAtNs+limit.rate.unitsToNs(units)-nowNs <= limit.rate.Duration.Nanoseconds()
 	}
 	// Zero units spend nothing, so they leave reset_at as it is.
 	gcraResetAtNs := truthBeforeNs
 	if units > 0 && units <= limit.rate.Limit {
-		gcraResetAtNs = max(truthBeforeNs, nowNs) + limit.rate.unitsToNs(units)
+		gcraResetAtNs = truthBeforeNs + limit.rate.unitsToNs(units)
 	}
 	describe := fmt.Sprintf("units %d, rate %+v, local %d, true %d → %d, now %d", units, limit.rate, localNs, truthBeforeNs, truthAfterNs, nowNs)
 	switch {
 	case localNs > truthBeforeNs:
 		return false, fault.New("the pod knows more than the ledger: " + describe)
-	case max(localNs, nowNs) < max(ownNs, nowNs):
+	case localNs < ownNs:
 		return false, fault.New("the pod forgot its own units: " + describe)
 	case result.Allowed != fits(localNs):
 		return false, fault.New("the pod did not follow the GCRA rule on what it knows: " + describe)
@@ -280,11 +294,11 @@ func (st *simState) request(pod *simPod, limit simLimit, units int64) (bool, err
 }
 
 // truth returns the reset_at of the ledger, or of the sessions that `owner`
-// created if it is not nil.
+// created and still writes if it is not nil.
 func (st *simState) truth(fingerprint [32]byte, owner *simPod) (int64, error) {
 	sessions := make(map[string]session)
 	for _, s := range st.ledger[fingerprint] {
-		if owner == nil || st.owner[s.id] == owner {
+		if owner == nil || (st.owner[s.id] == owner && owner.clock.Now().UnixNano() <= lastWriteAtNs(s.anchorAtNs)) {
 			sessions[s.id] = s
 		}
 	}
@@ -376,9 +390,6 @@ type settleEvent struct{}
 func (settleEvent) Name() string { return "settle" }
 
 func (settleEvent) Run(_ *rand.Rand, st *simState) error {
-	if st.elapsed+rowsStaleFor >= compactAfter-5*time.Minute {
-		return nil
-	}
 	st.store.reliable = true
 	defer func() { st.store.reliable = false }()
 	return st.settle()
@@ -438,22 +449,60 @@ func (advanceTimeEvent) Run(rng *rand.Rand, st *simState) error {
 	if rng.IntN(10) == 0 {
 		steps = []time.Duration{10 * time.Second, 30 * time.Second}
 	}
-	d := steps[rng.IntN(len(steps))]
-	if st.elapsed+d < compactAfter-5*time.Minute {
-		st.advance(d)
+	st.advance(steps[rng.IntN(len(steps))])
+	return nil
+}
+
+// cleanupEvent runs a cleanup pass on one pod and applies every cleanup that
+// reached the store to the ledger.
+type cleanupEvent struct{}
+
+func (cleanupEvent) Name() string { return "cleanup" }
+
+func (cleanupEvent) Run(rng *rand.Rand, st *simState) error {
+	// A failed read or transaction is part of the simulation, not a defect.
+	_ = st.pods[rng.IntN(len(st.pods))].limiter.cleanUp(context.Background())
+	for _, applied := range st.store.appliedCleanups {
+		for _, row := range applied.deleted {
+			// Pods write a session only until `lastWriteAtNs`, so cleanup
+			// must never delete units that are still on their way.
+			if st.ledger[row.Fingerprint][row.SessionID].consumedNs != row.ConsumedNs {
+				return fault.New(fmt.Sprintf("cleanup deleted session %s with %d ns, but the pods consumed %d ns", row.SessionID, row.ConsumedNs, st.ledger[row.Fingerprint][row.SessionID].consumedNs))
+			}
+			delete(st.ledger[row.Fingerprint], row.SessionID)
+		}
+		for _, row := range applied.inserted {
+			st.ledger[row.Fingerprint][row.SessionID] = session{id: row.SessionID, anchorAtNs: row.AnchorAtNs, consumedNs: row.ConsumedNs}
+		}
 	}
+	st.store.appliedCleanups = nil
 	return nil
 }
 
 // simStore is a [Store] with a primary and a lagging replica. Writes wait in
 // flight until delivered in random order, and some wait up to a minute. Some
-// writes fail, some fail after they were applied, and some reads fail. Reads
-// come from the replica. Each seed picks its own rates.
+// writes and cleanups fail, some fail after they were applied, and some
+// reads fail. Some writes and other pods' cleanups land between a cleanup's
+// read and its transaction. Reads come from the replica, except cleanup reads. A cleanup
+// reaches the replica as one transaction. Each seed picks its own rates.
 type simStore struct {
 	rng      *rand.Rand
 	primary  map[[32]byte]map[string]StoredSession
 	replica  map[[32]byte]map[string]StoredSession
 	inFlight []inFlightWrite
+
+	// cleanupsToReplicate are applied on the primary but not yet on the
+	// replica, oldest first.
+	cleanupsToReplicate []appliedCleanup
+
+	// appliedCleanups are applied on the primary but not yet on the ledger.
+	appliedCleanups []appliedCleanup
+
+	// cleanUpOnAnotherPod runs a cleanup pass on a random pod. ApplyCleanup
+	// sometimes calls it first, as if another pod's pass ran at the same
+	// time and committed first.
+	cleanUpOnAnotherPod func()
+	insideOtherCleanup  bool
 
 	// elapsed is the simulation time, for writes that wait.
 	elapsed time.Duration
@@ -466,6 +515,11 @@ type simStore struct {
 
 	// reliable turns off failures for the final checks.
 	reliable bool
+}
+
+type appliedCleanup struct {
+	deleted  []StoredSession
+	inserted []StoredSession
 }
 
 type inFlightWrite struct {
@@ -515,6 +569,53 @@ func (s *simStore) ReadSessions(_ context.Context, fingerprint [32]byte, limit i
 	return sessions[:min(limit, len(sessions))], nil
 }
 
+func (s *simStore) ReadSessionsFromPrimary(_ context.Context, fingerprint [32]byte, limit int) ([]StoredSession, error) {
+	if !s.reliable && s.rng.IntN(100) < s.readFailPercent {
+		return nil, fault.New("read failed")
+	}
+	sessions := sortedSessions(s.primary[fingerprint])
+	return sessions[:min(limit, len(sessions))], nil
+}
+
+func (s *simStore) ListDueRows(_ context.Context, beforeMs int64, after DueRow, limit int) ([]DueRow, error) {
+	if !s.reliable && s.rng.IntN(100) < s.readFailPercent {
+		return nil, fault.New("read failed")
+	}
+	return listDueRows(s.primary, beforeMs, after, limit), nil
+}
+
+func (s *simStore) ApplyCleanup(_ context.Context, deleted []StoredSession, inserted []StoredSession) (bool, error) {
+	if !s.reliable {
+		if s.rng.IntN(4) == 0 {
+			s.deliverOne()
+		}
+		if !s.insideOtherCleanup && s.rng.IntN(4) == 0 {
+			s.insideOtherCleanup = true
+			s.cleanUpOnAnotherPod()
+			s.insideOtherCleanup = false
+		}
+		roll := s.rng.IntN(100)
+		if roll < s.writeFailPercent {
+			return false, fault.New("cleanup failed")
+		}
+		if roll < s.writeFailPercent+s.answerLostPercent {
+			s.applyCleanup(deleted, inserted)
+			return false, fault.New("cleanup applied, but the answer was lost")
+		}
+	}
+	return s.applyCleanup(deleted, inserted), nil
+}
+
+func (s *simStore) applyCleanup(deleted []StoredSession, inserted []StoredSession) bool {
+	if !applyCleanupTo(s.primary, deleted, inserted) {
+		return false
+	}
+	applied := appliedCleanup{deleted: slices.Clone(deleted), inserted: slices.Clone(inserted)}
+	s.cleanupsToReplicate = append(s.cleanupsToReplicate, applied)
+	s.appliedCleanups = append(s.appliedCleanups, applied)
+	return true
+}
+
 // deliverOne applies one random write whose wait is over.
 func (s *simStore) deliverOne() {
 	var ready []int
@@ -541,18 +642,42 @@ func (s *simStore) deliverAll() {
 }
 
 // replicateSome copies some primary rows to the replica, so the replica can
-// hold some rows newer than others.
+// hold some rows newer than others. Cleanups reach the replica in order,
+// each in one step, and a merged row only with its cleanup.
 func (s *simStore) replicateSome() {
+	for len(s.cleanupsToReplicate) > 0 && s.rng.IntN(100) < s.replicateRowsPercent {
+		s.replicateCleanup()
+	}
+	waiting := make(map[string]bool)
+	for _, applied := range s.cleanupsToReplicate {
+		for _, row := range applied.inserted {
+			waiting[row.SessionID] = true
+		}
+	}
 	for _, fingerprint := range sortedFingerprints(s.primary) {
 		for _, row := range sortedSessions(s.primary[fingerprint]) {
-			if s.rng.IntN(100) < s.replicateRowsPercent {
+			if !waiting[row.SessionID] && s.rng.IntN(100) < s.replicateRowsPercent {
 				upsert(s.replica, []StoredSession{row})
 			}
 		}
 	}
 }
 
+// replicateCleanup applies the oldest cleanup to the replica. A deleted row
+// that the replica never had is not there to delete.
+func (s *simStore) replicateCleanup() {
+	applied := s.cleanupsToReplicate[0]
+	s.cleanupsToReplicate = s.cleanupsToReplicate[1:]
+	for _, row := range applied.deleted {
+		delete(s.replica[row.Fingerprint], row.SessionID)
+	}
+	upsert(s.replica, applied.inserted)
+}
+
 func (s *simStore) replicateAll() {
+	for len(s.cleanupsToReplicate) > 0 {
+		s.replicateCleanup()
+	}
 	for _, rows := range s.primary {
 		for _, row := range rows {
 			upsert(s.replica, []StoredSession{row})

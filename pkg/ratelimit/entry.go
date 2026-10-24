@@ -1,8 +1,6 @@
 package ratelimit
 
 import (
-	"maps"
-
 	"github.com/unkeyed/unkey/pkg/assert"
 )
 
@@ -13,7 +11,7 @@ import (
 // fingerprint.
 type entry struct {
 	// sessions holds every session this pod knows, by ID: its own and its
-	// peers'. Sessions are never removed.
+	// peers'. Only `replaceRows` removes sessions.
 	sessions map[string]session
 
 	// liveID is the ID of this pod's live session, or "" if it has none.
@@ -36,21 +34,24 @@ type entry struct {
 	readDone chan struct{}
 }
 
-// mergeRows adds database rows and keeps the larger `consumedNs` per session,
-// so a stale replica never moves a session back. It never removes a session,
-// and on an error it changes nothing.
+// replaceRows replaces what this pod knows with the rows of a complete read
+// at `nowNs`. It keeps the larger `consumedNs` per session, so a stale
+// replica never moves a session back. A session that the read did not return
+// is forgotten, because cleanup may have deleted it or merged it into a
+// returned row. Only this pod's own sessions that it still writes are kept,
+// see `lastWriteAtNs`. On an error it changes nothing.
 // The caller must hold the shard lock of the entry.
-func (e *entry) mergeRows(rows []session) error {
-	next := maps.Clone(e.sessions)
-	if next == nil {
-		next = make(map[string]session, len(rows))
-	}
+func (e *entry) replaceRows(rows []session, nowNs int64) error {
+	next := make(map[string]session, len(rows))
 	for _, row := range rows {
 		err := assert.NotEmpty(row.id, "session ID must not be empty")
 		if err != nil {
 			return err
 		}
 		known, ok := next[row.id]
+		if !ok {
+			known, ok = e.sessions[row.id]
+		}
 		if !ok {
 			next[row.id] = session{id: row.id, anchorAtNs: row.anchorAtNs, consumedNs: row.consumedNs, own: false, committedNs: 0}
 			continue
@@ -62,12 +63,24 @@ func (e *entry) mergeRows(rows []session) error {
 		known.consumedNs = max(known.consumedNs, row.consumedNs)
 		next[row.id] = known
 	}
+	for id, stored := range e.sessions {
+		if _, ok := next[id]; !ok && stored.own && nowNs <= lastWriteAtNs(stored.anchorAtNs) {
+			next[id] = stored
+		}
+	}
 
-	nextResetTimes, err := computeResetTimes(next, e.liveID)
+	// A live session past its last write has also passed its lifetime, so
+	// it ends here instead of on the next request.
+	liveID := e.liveID
+	if _, ok := next[liveID]; !ok {
+		liveID = ""
+	}
+	nextResetTimes, err := computeResetTimes(next, liveID)
 	if err != nil {
 		return err
 	}
 	e.sessions = next
+	e.liveID = liveID
 	e.resetTimes = nextResetTimes
 	return nil
 }
@@ -127,16 +140,25 @@ func (e *entry) endLiveSession() {
 }
 
 // uncommittedSessions returns this pod's sessions whose consumed time the
-// store has not acknowledged. A session at or past its `compact_after` is
-// left out: cleanup may already have merged its row, so a late write would
-// count its units twice. It does not change the entry.
+// store has not acknowledged. A session past its `lastWriteAtNs` is left
+// out: cleanup may soon merge its row, so a late write would count its units
+// twice. It does not change the entry.
 // The caller must hold the shard lock of the entry.
 func (e *entry) uncommittedSessions(nowNs int64) []session {
 	var uncommitted []session
 	for _, s := range e.sessions {
-		if s.own && s.consumedNs > s.committedNs && nowNs < s.anchorAtNs+compactAfter.Nanoseconds() {
+		if s.own && s.consumedNs > s.committedNs && nowNs <= lastWriteAtNs(s.anchorAtNs) {
 			uncommitted = append(uncommitted, s)
 		}
 	}
 	return uncommitted
+}
+
+// lastWriteAtNs is the last time at which this pod writes a session with
+// this anchor. Cleanup may compact the row from `compactAfter` after the
+// anchor, by the clock of another pod. The `writeMargin` covers the
+// difference between pod clocks and the time a write takes to land. It is
+// safe to call concurrently.
+func lastWriteAtNs(anchorAtNs int64) int64 {
+	return anchorAtNs + (compactAfter - writeMargin).Nanoseconds()
 }

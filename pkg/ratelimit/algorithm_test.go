@@ -182,7 +182,7 @@ func TestDecideReplaysTheDocumentationTables(t *testing.T) {
 	t.Run("over-admission is paid back", func(t *testing.T) {
 		var e entry
 		replay(t, &e, []step{{0, 10, true, 10}})
-		require.NoError(t, e.mergeRows([]session{{id: "pod_b", anchorAtNs: noonNs, consumedNs: 10 * secondNs}}))
+		require.NoError(t, e.replaceRows([]session{{id: "pod_b", anchorAtNs: noonNs, consumedNs: 10 * secondNs}}, noonNs))
 		require.Equal(t, noonNs+20*secondNs, e.resetTimes.resetAtNs)
 		replay(t, &e, []step{
 			{10, 1, false, 20},
@@ -219,16 +219,16 @@ func FuzzDecideFollowsGCRARule(f *testing.F) {
 		ownCount := 0
 
 		for range 100 {
-			switch c.Uint8() % 5 {
+			switch c.Uint8() % 6 {
 			case 0:
 				nowNs += int64(c.Uint8())
 			case 1:
 				peerCount++
-				require.NoError(t, e.mergeRows([]session{{
+				require.NoError(t, e.replaceRows(append(peerRows(&e), session{
 					id:         fmt.Sprintf("peer_%d", peerCount),
 					anchorAtNs: nowNs + int64(c.Int8()),
 					consumedNs: int64(c.Uint8()),
-				}}))
+				}), nowNs))
 			case 2:
 				all := allSessions(e)
 				if len(all) == 0 {
@@ -239,19 +239,39 @@ func FuzzDecideFollowsGCRARule(f *testing.F) {
 				// copy of this pod flushed; a stale row must change nothing.
 				row := all[int(c.Uint8())%len(all)]
 				row.consumedNs = max(0, row.consumedNs+int64(c.Int8()))
-				require.NoError(t, e.mergeRows([]session{row}))
+				require.NoError(t, e.replaceRows(append(peerRows(&e), row), nowNs))
 			case 3:
 				e.endLiveSession()
 			case 4:
 				units := int64(c.Uint8()) % (rate.Limit + 2)
 				ownCount++
 				requestFollowsGCRARule(t, &e, rate, nowNs, units, fmt.Sprintf("own_%d", ownCount))
+			case 5:
+				// A read that no longer returns one peer row, as after
+				// cleanup deleted it.
+				peers := peerRows(&e)
+				if len(peers) > 0 {
+					forgotten := int(c.Uint8()) % len(peers)
+					require.NoError(t, e.replaceRows(slices.Delete(peers, forgotten, forgotten+1), nowNs))
+				}
 			}
 			fresh, err := computeResetTimes(e.sessions, e.liveID)
 			require.NoError(t, err)
 			require.Equal(t, fresh, e.resetTimes)
 		}
 	})
+}
+
+// peerRows returns the sessions of other pods in an entry, as a complete
+// read would return them.
+func peerRows(e *entry) []session {
+	var rows []session
+	for _, s := range allSessions(*e) {
+		if !e.sessions[s.id].own {
+			rows = append(rows, s)
+		}
+	}
+	return rows
 }
 
 // requestFollowsGCRARule checks one request against the GCRA rule
