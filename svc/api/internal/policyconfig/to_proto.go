@@ -258,11 +258,11 @@ func mapMatchExprToProto(path string, m openapi.MatchExpr) (*frontlinev1.MatchEx
 	case m.Header != nil:
 		header := &frontlinev1.HeaderMatch{Name: m.Header.Name}
 		if err := exactlyOne(path+".header", "present or value",
-			m.Header.Present != nil, m.Header.Value != nil); err != nil {
+			m.Header.Present != nil || m.Header.Value == nil, m.Header.Value != nil); err != nil {
 			return nil, err
 		}
-		if m.Header.Present != nil {
-			header.Match = &frontlinev1.HeaderMatch_Present{Present: *m.Header.Present}
+		if m.Header.Value == nil {
+			header.Match = &frontlinev1.HeaderMatch_Present{Present: ptr.SafeDeref(m.Header.Present, true)}
 		} else {
 			sm, err := mapStringMatchToProto(path+".header.value", *m.Header.Value)
 			if err != nil {
@@ -275,11 +275,11 @@ func mapMatchExprToProto(path string, m openapi.MatchExpr) (*frontlinev1.MatchEx
 	case m.QueryParam != nil:
 		queryParam := &frontlinev1.QueryParamMatch{Name: m.QueryParam.Name}
 		if err := exactlyOne(path+".queryParam", "present or value",
-			m.QueryParam.Present != nil, m.QueryParam.Value != nil); err != nil {
+			m.QueryParam.Present != nil || m.QueryParam.Value == nil, m.QueryParam.Value != nil); err != nil {
 			return nil, err
 		}
-		if m.QueryParam.Present != nil {
-			queryParam.Match = &frontlinev1.QueryParamMatch_Present{Present: *m.QueryParam.Present}
+		if m.QueryParam.Value == nil {
+			queryParam.Match = &frontlinev1.QueryParamMatch_Present{Present: ptr.SafeDeref(m.QueryParam.Present, true)}
 		} else {
 			sm, err := mapStringMatchToProto(path+".queryParam.value", *m.QueryParam.Value)
 			if err != nil {
