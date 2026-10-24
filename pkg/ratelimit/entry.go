@@ -21,6 +21,10 @@ type entry struct {
 	// resetTimes caches `reset_at` and the two other times that `decide` needs,
 	// so a check is O(1) instead of O(n log n) for `computeResetTimes`.
 	resetTimes resetTimes
+
+	// liveSessionEndsAtNs is when the live session ends, even if the rate
+	// limit has no pause. Only the limiter sets it.
+	liveSessionEndsAtNs int64
 }
 
 // mergeRows adds database rows and keeps the larger `consumedNs` per session,
