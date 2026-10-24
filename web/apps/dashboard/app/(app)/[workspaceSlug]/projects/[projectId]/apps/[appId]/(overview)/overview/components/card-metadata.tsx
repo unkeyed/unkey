@@ -1,6 +1,7 @@
 "use client";
 
 import { RegionFlag } from "@/components/region-flag";
+import { instancesText, summarizeInstances } from "@/lib/collections/deploy/instance-status";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
 import {
@@ -119,7 +120,6 @@ export function ProductionCardMetadata() {
   const { deployment } = useProductionCard();
 
   const instances = deployment.instances ?? [];
-  const runningCount = instances.filter((i) => i.status === "running").length;
   const regions =
     instances.length > 0
       ? [...new Map(instances.map((i) => [i.region.id, i])).values()]
@@ -160,8 +160,8 @@ export function ProductionCardMetadata() {
       </MetadataCell>
 
       <MetadataCell label="Instances">
-        <span className="text-sm text-gray-9">
-          <span className="text-gray-12 tabular-nums">{runningCount}</span> running
+        <span className="text-sm text-gray-12 tabular-nums">
+          {instancesText(summarizeInstances(deployment), deployment.desiredState)}
         </span>
       </MetadataCell>
 
