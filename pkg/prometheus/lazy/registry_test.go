@@ -17,16 +17,18 @@ func resetState(t *testing.T) {
 		state.registry = nil
 		state.explicit = false
 		state.collectors = nil
-		state.declarations = nil
 	}
 	reset()
+	declarations.mu.Lock()
+	declarations.primes = nil
+	declarations.mu.Unlock()
 	t.Cleanup(reset)
 }
 
 func TestSetRegistryMovesMetricsUsedBeforeIt(t *testing.T) {
 	resetState(t)
 
-	early := NewCounterVec(prometheus.CounterOpts{Name: "early_total", Help: "h"}, []string{"result"}, Values("result", "error"))
+	early := NewCounterVec(prometheus.CounterOpts{Name: "early_total", Help: "h"}, Values("result", "error"))
 	early.WithLabelValues("error").Inc()
 
 	reg := prometheus.NewRegistry()
@@ -114,11 +116,11 @@ func counterValue(t *testing.T, reg *prometheus.Registry, name string) float64 {
 func TestSetRegistryCreatesDeclaredSeriesAtZero(t *testing.T) {
 	resetState(t)
 
-	NewCounterVec(prometheus.CounterOpts{Name: "fixed_total", Help: "h"}, []string{"op", "result"},
+	NewCounterVec(prometheus.CounterOpts{Name: "fixed_total", Help: "h"},
 		Values("op", "read", "write"), Values("result", "success", "error"))
-	NewCounterVec(prometheus.CounterOpts{Name: "dynamic_total", Help: "h"}, []string{"resource", "result"},
+	NewCounterVec(prometheus.CounterOpts{Name: "dynamic_total", Help: "h"},
 		Dynamic("resource"), Values("result", "success", "error"))
-	NewHistogramVec(prometheus.HistogramOpts{Name: "fixed_seconds", Help: "h"}, []string{"op"}, Values("op", "read"))
+	NewHistogramVec(prometheus.HistogramOpts{Name: "fixed_seconds", Help: "h"}, Values("op", "read"))
 	NewCounter(prometheus.CounterOpts{Name: "plain_total", Help: "h"})
 	NewHistogram(prometheus.HistogramOpts{Name: "plain_seconds", Help: "h"})
 	NewGauge(prometheus.GaugeOpts{Name: "plain_gauge", Help: "h"})
@@ -135,30 +137,12 @@ func TestSetRegistryCreatesDeclaredSeriesAtZero(t *testing.T) {
 	require.InDelta(t, 0, counterValue(t, reg, "plain_total"), 0)
 }
 
-func TestSetRegistryPanicsOnUndeclaredLabelInTests(t *testing.T) {
-	resetState(t)
-
-	NewCounterVec(prometheus.CounterOpts{Name: "undeclared_total", Help: "h"}, []string{"result", "op"}, Values("op", "read"))
-
-	require.PanicsWithValue(t,
-		"lazy: declare these labels with lazy.Values or lazy.Dynamic: undeclared_total{result}",
-		func() { SetRegistry(prometheus.NewRegistry()) })
-}
-
-func TestDeclaringUnknownLabelPanics(t *testing.T) {
-	resetState(t)
-
-	require.Panics(t, func() {
-		NewCounterVec(prometheus.CounterOpts{Name: "typo_total", Help: "h"}, []string{"result"}, Values("reslt", "ok"))
-	})
-}
-
 func TestBindCounterCreatesSeriesAtZero(t *testing.T) {
 	resetState(t)
 	reg := prometheus.NewRegistry()
 	SetRegistry(reg)
 
-	vec := NewCounterVec(prometheus.CounterOpts{Name: "bound_total", Help: "h"}, []string{"resource"}, Dynamic("resource"))
+	vec := NewCounterVec(prometheus.CounterOpts{Name: "bound_total", Help: "h"}, Dynamic("resource"))
 	child := vec.Bind("keys")
 	require.Equal(t, 1, series(t, reg, "bound_total"))
 	require.InDelta(t, 0, counterValue(t, reg, "bound_total"), 0)
@@ -173,7 +157,7 @@ func TestBindHistogramCreatesSeriesOnFirstUseOnly(t *testing.T) {
 	SetRegistry(reg)
 
 	lvs := []string{"keys"}
-	child := NewHistogramVec(prometheus.HistogramOpts{Name: "bound_seconds", Help: "h"}, []string{"resource"}, Dynamic("resource")).Bind(lvs...)
+	child := NewHistogramVec(prometheus.HistogramOpts{Name: "bound_seconds", Help: "h"}, Dynamic("resource")).Bind(lvs...)
 	lvs[0] = "changed"
 	require.Equal(t, 0, series(t, reg, "bound_seconds"))
 

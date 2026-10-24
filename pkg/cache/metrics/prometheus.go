@@ -19,7 +19,6 @@ var (
 			Name:      "reads_total",
 			Help:      "Number of cache reads by resource type and hit status.",
 		},
-		[]string{"resource", "hit"},
 		lazy.Dynamic("resource"),
 		lazy.Values("hit", "true", "false"),
 	)
@@ -38,7 +37,6 @@ var (
 			Name:      "deleted_total",
 			Help:      "Number of cache entries deleted by resource type and reason.",
 		},
-		[]string{"resource", "reason"},
 		lazy.Dynamic("resource"),
 		lazy.Values("reason", "Replaced", "Size", "Expired", "Explicit"),
 	)
@@ -85,7 +83,6 @@ var (
 			Name:      "revalidations_total",
 			Help:      "Total number of cache revalidations by resource type.",
 		},
-		[]string{"resource"},
 		lazy.Dynamic("resource"),
 	)
 
@@ -96,7 +93,6 @@ var (
 			Name:      "revalidation_enqueues_total",
 			Help:      "Refresh enqueue attempts by outcome: enqueued, deduplicated (all keys already pending), queue_full, or closed. Each batch is one attempt.",
 		},
-		[]string{"resource", "outcome"},
 		lazy.Dynamic("resource"),
 		lazy.Values("outcome", "enqueued", "deduplicated", "queue_full", "closed"),
 	)
@@ -109,7 +105,6 @@ var (
 			Help:      "Queued jobs observed before enqueue attempts with new keys, excluding running jobs. Each batch occupies one slot.",
 			Buckets:   []float64{0, 1, 5, 10, 50, 100, 250, 500, 750, 1000},
 		},
-		[]string{"resource"},
 		lazy.Dynamic("resource"),
 	)
 
@@ -121,7 +116,6 @@ var (
 			Help:      "Time from enqueue to execution for background refresh jobs. Each batch is one observation.",
 			Buckets:   []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60},
 		},
-		[]string{"resource"},
 		lazy.Dynamic("resource"),
 	)
 
@@ -152,7 +146,6 @@ var (
 			Help:      "Duration of cache reads by resource type, operation (get, swr, swr_fallback), and status (fresh, stale, miss).",
 			Buckets:   prometheus.ExponentialBuckets(100e-9, 2, 24),
 		},
-		[]string{"resource", "operation", "status"},
 		lazy.Dynamic("resource"),
 		lazy.Values("operation", "get", "swr", "swr_fallback"),
 		lazy.Values("status", "fresh", "stale", "miss"),
@@ -166,7 +159,6 @@ var (
 			Help:      "Execution time of background refresh jobs, including failed refreshes and excluding queue wait. Each batch is one observation.",
 			Buckets:   []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60},
 		},
-		[]string{"resource"},
 		lazy.Dynamic("resource"),
 	)
 
@@ -182,7 +174,6 @@ var (
 			Name:      "revalidations_errors_total",
 			Help:      "Total number of cache revalidation errors by resource type.",
 		},
-		[]string{"resource"},
 		lazy.Dynamic("resource"),
 	)
 )

@@ -108,7 +108,6 @@ var (
 			Name:      "decisions_total",
 			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin) and outcome (passed|denied).",
 		},
-		[]string{"workspace_id", "source", "outcome"},
 		lazy.Dynamic("workspace_id"),
 		lazy.Values("source", "local", "origin"),
 		lazy.Values("outcome", "passed", "denied"),
@@ -148,7 +147,6 @@ var (
 			Name:      "strict_mode_activations_total",
 			Help:      "Total number of denials that raised the strict-mode deadline for a rate-limit tuple, labeled by workspace_id.",
 		},
-		[]string{"workspace_id"},
 		lazy.Dynamic("workspace_id"),
 	)
 )
@@ -179,7 +177,6 @@ var (
 			Name:      "origin_operations_total",
 			Help:      "Total number of origin operations attempted, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync).",
 		},
-		[]string{"op"},
 		lazy.Values("op", "fetch_cold", "fetch_stale", "fetch_strict", "sync"),
 	)
 
@@ -197,7 +194,6 @@ var (
 			Help:      "Latency of origin operations in seconds, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync).",
 			Buckets:   latencyBuckets,
 		},
-		[]string{"op"},
 		lazy.Values("op", "fetch_cold", "fetch_stale", "fetch_strict", "sync"),
 	)
 
@@ -214,7 +210,6 @@ var (
 			Name:      "origin_errors_total",
 			Help:      "Total number of origin operations that returned an error, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync) and reason (circuit_open|timeout|other).",
 		},
-		[]string{"op", "reason"},
 		lazy.Values("op", "fetch_cold", "fetch_stale", "fetch_strict", "sync"),
 		lazy.Values("reason", "circuit_open", "timeout", "other"),
 	)

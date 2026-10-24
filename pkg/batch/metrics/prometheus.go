@@ -36,7 +36,6 @@ var (
 			Help:      "Distribution of batch sizes when flushed",
 			Buckets:   batchSizeBuckets,
 		},
-		[]string{"name", "trigger"},
 		lazy.Dynamic("name"),
 		lazy.Values("trigger", "size_limit", "time_interval", "close"),
 	)
@@ -64,7 +63,6 @@ var (
 			Name:      "operations_total",
 			Help:      "Total number of batch flush operations processed",
 		},
-		[]string{"name", "trigger", "status"},
 		lazy.Dynamic("name"),
 		lazy.Values("trigger", "size_limit", "time_interval", "close"),
 		lazy.Values("status", "success", "error"),
@@ -84,7 +82,6 @@ var (
 			Name:      "items_processed_total",
 			Help:      "Total number of items processed through batches",
 		},
-		[]string{"name"},
 		lazy.Dynamic("name"),
 	)
 
@@ -101,7 +98,6 @@ var (
 			Name:      "items_processed_errors_total",
 			Help:      "Total number of items processed through batches that resulted in an error",
 		},
-		[]string{"name"},
 		lazy.Dynamic("name"),
 	)
 )

@@ -20,7 +20,6 @@ var (
 			Name:      "reconcile_operations_total",
 			Help:      "Total number of reconciliation operations (apply/delete).",
 		},
-		[]string{"resource_type", "operation", "result"},
 		lazy.Values("resource_type", "deployment"),
 		lazy.Values("operation", "apply", "delete"),
 		lazy.Values("result", "success", "error"),
@@ -38,7 +37,6 @@ var (
 			Name:      "resync_corrections_total",
 			Help:      "Total number of corrections made by the resync loop (indicates missed streaming events).",
 		},
-		[]string{"resource_type"},
 		lazy.Values("resource_type", "deployment"),
 	)
 
@@ -65,7 +63,6 @@ var (
 			Name:      "stream_connections_total",
 			Help:      "Total number of incremental stream connection attempts.",
 		},
-		[]string{"status"},
 		lazy.Values("status", "success", "error"),
 	)
 
@@ -119,7 +116,6 @@ var (
 			Name:      "dispatch_total",
 			Help:      "Total number of event dispatches to controllers.",
 		},
-		[]string{"source", "resource_type", "status"},
 		lazy.Values("source", "stream", "full_sync"),
 		lazy.Values("resource_type", "deployment"),
 		lazy.Values("status", "success", "error"),
@@ -150,7 +146,6 @@ var (
 			Name:      "full_sync_errors_total",
 			Help:      "Total number of full syncs that failed to open or ended with an error.",
 		},
-		[]string{"stage"},
 		lazy.Values("stage", "open", "receive"),
 	)
 
@@ -190,7 +185,6 @@ var (
 			Name:      "pod_watch_events_total",
 			Help:      "Pod watch events received by krane controllers.",
 		},
-		[]string{"component", "event_type", "outcome"},
 		lazy.Values("component", "deployment"),
 		lazy.Dynamic("event_type"),
 		lazy.Values("outcome", "reported", "deduped", "skipped_no_rs", "skipped_rs_gone", "error"),
@@ -218,7 +212,6 @@ var (
 			Help:      "Lag between pod ContainersReady=True and krane observing it via the watch.",
 			Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60},
 		},
-		[]string{"component", "source"},
 		lazy.Values("component", "deployment"),
 		lazy.Values("source", "watch"),
 	)
@@ -238,7 +231,6 @@ var (
 			Name:      "pod_watch_reconnects_total",
 			Help:      "Pod watch reconnect attempts by reason.",
 		},
-		[]string{"component", "reason"},
 		lazy.Values("component", "deployment"),
 		lazy.Values("reason", "channel_closed", "error"),
 	)
@@ -257,7 +249,6 @@ var (
 			Help:      "Duration of ReportDeploymentStatus calls from krane.",
 			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5},
 		},
-		[]string{"component", "result"},
 		lazy.Values("component", "deployment"),
 		lazy.Values("result", "success", "error"),
 	)
@@ -274,7 +265,6 @@ var (
 			Name:      "report_deduped_total",
 			Help:      "Status reports skipped by fingerprint dedup.",
 		},
-		[]string{"component"},
 		lazy.Values("component", "deployment"),
 	)
 
@@ -292,7 +282,6 @@ var (
 			Name:      "instance_events_emitted_total",
 			Help:      "Container lifecycle events successfully reported via ReportInstanceEvents.",
 		},
-		[]string{"kind", "reason"},
 		lazy.Values("kind", "running", "terminated", "waiting"),
 		lazy.Dynamic("reason"),
 	)
@@ -311,7 +300,6 @@ var (
 			Name:      "instance_events_dedup_dropped_total",
 			Help:      "Container lifecycle events skipped because the LRU already saw them.",
 		},
-		[]string{"kind"},
 		lazy.Values("kind", "running", "terminated", "waiting"),
 	)
 

@@ -28,7 +28,6 @@ var (
 			Name:      "state_total",
 			Help:      "Number of buffer inserts by name and state",
 		},
-		[]string{"name", "state"},
 		lazy.Dynamic("name"),
 		lazy.Values("state", "buffered", "dropped", "closed"),
 	)

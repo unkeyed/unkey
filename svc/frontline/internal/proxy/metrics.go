@@ -27,7 +27,6 @@ var (
 			Help:      "Upstream call duration.",
 			Buckets:   []float64{0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300},
 		},
-		[]string{"destination"},
 		lazy.Values("destination", "instance", "frontline"),
 	)
 
@@ -48,7 +47,6 @@ var (
 			Help:      "Cross-region hop count distribution by source and destination region.",
 			Buckets:   []float64{1, 2, 3},
 		},
-		[]string{"src_region", "dst_region"},
 		lazy.Dynamic("src_region"),
 		lazy.Dynamic("dst_region"),
 	)
@@ -64,7 +62,6 @@ var (
 			Name:      "upstream_dials_total",
 			Help:      "TCP dials issued for upstream connections.",
 		},
-		[]string{"destination", "outcome"},
 		lazy.Values("destination", "instance", "frontline"),
 		lazy.Values("outcome", "success", "error"),
 	)

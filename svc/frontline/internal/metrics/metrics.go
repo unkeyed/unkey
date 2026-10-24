@@ -28,7 +28,6 @@ var RequestsTotal = lazy.NewCounterVec(
 		Name:      "requests_total",
 		Help:      "Total requests by status class, attribution domain, and fault code (URN).",
 	},
-	[]string{"status_class", "fault_domain", "code"},
 	lazy.Values("status_class", "2xx", "3xx", "4xx", "5xx"),
 	lazy.Dynamic("fault_domain"),
 	lazy.Dynamic("code"),

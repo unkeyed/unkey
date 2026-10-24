@@ -21,7 +21,7 @@ var (
 		Subsystem: "internal",
 		Name:      "panics_total",
 		Help:      "Total number of panics recovered in HTTP handlers.",
-	}, []string{"caller", "path"},
+	},
 		lazy.Dynamic("caller"),
 		lazy.Dynamic("path"),
 	)

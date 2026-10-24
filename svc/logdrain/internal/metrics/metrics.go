@@ -58,7 +58,7 @@ var (
 		Subsystem: "logdrain",
 		Name:      "polls_total",
 		Help:      "Total number of logdrain polls.",
-	}, []string{"result"},
+	},
 		lazy.Values("result", "success", "error"),
 	)
 
@@ -73,7 +73,7 @@ var (
 		Subsystem: "logdrain",
 		Name:      "deliveries_total",
 		Help:      "Total number of logdrain delivery attempts.",
-	}, []string{"kind", "stream", "outcome"},
+	},
 		lazy.Values("kind", "http", "axiom", "unknown"),
 		lazy.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
 		lazy.Values("outcome", "success", "error"),
@@ -89,7 +89,7 @@ var (
 		Subsystem: "logdrain",
 		Name:      "events_delivered_total",
 		Help:      "Total number of events in successful committed deliveries.",
-	}, []string{"kind", "stream"},
+	},
 		lazy.Values("kind", "http", "axiom", "unknown"),
 		lazy.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
 	)
@@ -106,7 +106,7 @@ var (
 		Name:      "delivery_duration_seconds",
 		Help:      "Duration of logdrain delivery attempts in seconds.",
 		Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
-	}, []string{"kind", "stream", "outcome"},
+	},
 		lazy.Dynamic("kind"),
 		lazy.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
 		lazy.Values("outcome", "success", "error"),
@@ -121,7 +121,7 @@ var (
 		Subsystem: "logdrain",
 		Name:      "drain_failures_total",
 		Help:      "Total number of logdrain failures.",
-	}, []string{"stream"},
+	},
 		lazy.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
 	)
 
@@ -134,7 +134,7 @@ var (
 		Subsystem: "logdrain",
 		Name:      "drains_paused_total",
 		Help:      "Total number of logdrains paused by the engine.",
-	}, []string{"stream"},
+	},
 		lazy.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
 	)
 )

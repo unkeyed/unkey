@@ -12,7 +12,7 @@ var OperationsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 	Subsystem: "vault",
 	Name:      "operations_total",
 	Help:      "Completed Vault encryption RPCs by operation and outcome; bulk calls count once per RPC.",
-}, []string{"operation", "outcome"},
+},
 	lazy.Values("operation", "encrypt", "encrypt_bulk", "decrypt", "decrypt_bulk", "reencrypt"),
 	lazy.Values("outcome", "success", "error"),
 )
@@ -23,7 +23,7 @@ var S3OperationsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 	Subsystem: "vault",
 	Name:      "s3_operations_total",
 	Help:      "Completed S3 storage operations after SDK retries, by operation, outcome, and bounded error code.",
-}, []string{"operation", "outcome", "error_code"},
+},
 	lazy.Values("operation", "put", "get", "list"),
 	lazy.Values("outcome", "success", "canceled", "error"),
 	lazy.Dynamic("error_code"),

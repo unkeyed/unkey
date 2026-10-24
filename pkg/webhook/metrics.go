@@ -32,7 +32,7 @@ var (
 		Subsystem: "webhook",
 		Name:      "events_total",
 		Help:      "Inbound webhook events by provider, event type and outcome.",
-	}, []string{"provider", "event", "outcome"},
+	},
 		lazy.Dynamic("provider"),
 		lazy.Dynamic("event"),
 		lazy.Values("outcome",
@@ -61,7 +61,7 @@ var (
 		Name:      "handler_duration_seconds",
 		Help:      "Duration of webhook event handlers.",
 		Buckets:   prometheus.DefBuckets,
-	}, []string{"provider", "event"},
+	},
 		lazy.Dynamic("provider"),
 		lazy.Dynamic("event"),
 	)

@@ -14,7 +14,6 @@ var (
 			Name:      "collection_total",
 			Help:      "Total number of collection ticks.",
 		},
-		[]string{"result"}, // "success", "error"
 		lazy.Values("result", "success", "error"),
 	)
 
@@ -58,7 +57,6 @@ var (
 			Name:      "lifecycle_checkpoints_emitted_total",
 			Help:      "Total number of CRI lifecycle checkpoints written to the buffer.",
 		},
-		[]string{"kind"}, // "start", "stop"
 		lazy.Values("kind", "start", "stop"),
 	)
 
@@ -72,7 +70,6 @@ var (
 			Name:      "lifecycle_checkpoints_dropped_total",
 			Help:      "Total CRI lifecycle events that did not produce a checkpoint. Each drop is a bounded undercharge.",
 		},
-		[]string{"kind", "reason"}, // kind: "start"|"stop"; reason: "pod_not_found"|"cgroup_read_failed"|"restart_count_unknown"
 		lazy.Values("kind", "start", "stop"),
 		lazy.Values("reason", "pod_not_found", "cgroup_read_failed", "restart_count_unknown"),
 	)
@@ -89,7 +86,6 @@ var (
 			Name:      "periodic_skips_total",
 			Help:      "Pods skipped by the periodic collection tick (did not produce a checkpoint).",
 		},
-		[]string{"reason"}, // "restart_count_unknown", "cgroup_read_failed"
 		lazy.Values("reason", "restart_count_unknown", "cgroup_read_failed"),
 	)
 
@@ -104,7 +100,6 @@ var (
 			Name:      "network_attach_failures_total",
 			Help:      "Per-pod network attach failures, labeled by reason.",
 		},
-		[]string{"reason"}, // "sandbox_not_found", "netns_gone", "netns_open", "veth_lookup", "tcx_attach", "queue_full", "other"
 		lazy.Values("reason",
 			"sandbox_not_found",
 			"netns_gone",
@@ -175,7 +170,6 @@ var (
 			Name:      "cri_events_received_total",
 			Help:      "Raw CRI task events received from containerd, pre-filtering.",
 		},
-		[]string{"kind"}, // "start", "exit"
 		lazy.Values("kind", "start", "exit"),
 	)
 
@@ -203,7 +197,6 @@ var (
 			Name:      "disk_read_errors_total",
 			Help:      "Failures reading ephemeral-volume disk usage. Each failure undercharges one tick.",
 		},
-		[]string{"op"}, // "stat_root", "stat_mount", "statfs"
 		lazy.Values("op", "stat_root", "stat_mount", "statfs"),
 	)
 

@@ -40,16 +40,15 @@ type CounterVec struct {
 	m metric[*prometheus.CounterVec]
 }
 
-// NewCounterVec declares a counter vector. Declare every label with [Values]
-// or [Dynamic]; SetRegistry creates every combination of declared values at 0.
-func NewCounterVec(opts prometheus.CounterOpts, labels []string, options ...Option) *CounterVec {
-	name := fqName(opts.Namespace, opts.Subsystem, opts.Name)
-	spec := newLabelSpec(name, labels, options)
+// NewCounterVec declares a counter vector with labels in order. SetRegistry
+// creates every combination of [Values] labels at 0.
+func NewCounterVec(opts prometheus.CounterOpts, labels ...Label) *CounterVec {
+	names := labelNames(labels)
 	c := &CounterVec{m: newMetric(func() *prometheus.CounterVec {
-		return prometheus.NewCounterVec(opts, labels)
+		return prometheus.NewCounterVec(opts, names)
 	})}
-	declare(name, spec.undeclared(labels), func() {
-		for _, lvs := range spec.combinations(labels) {
+	declare(func() {
+		for _, lvs := range combinations(labels) {
 			c.WithLabelValues(lvs...)
 		}
 	})
@@ -91,17 +90,15 @@ type HistogramVec struct {
 	m metric[*prometheus.HistogramVec]
 }
 
-// NewHistogramVec declares a histogram vector. Declare every label with
-// [Values] or [Dynamic]; SetRegistry creates every combination of declared
-// values at 0.
-func NewHistogramVec(opts prometheus.HistogramOpts, labels []string, options ...Option) *HistogramVec {
-	name := fqName(opts.Namespace, opts.Subsystem, opts.Name)
-	spec := newLabelSpec(name, labels, options)
+// NewHistogramVec declares a histogram vector with labels in order.
+// SetRegistry creates every combination of [Values] labels at 0.
+func NewHistogramVec(opts prometheus.HistogramOpts, labels ...Label) *HistogramVec {
+	names := labelNames(labels)
 	h := &HistogramVec{m: newMetric(func() *prometheus.HistogramVec {
-		return prometheus.NewHistogramVec(opts, labels)
+		return prometheus.NewHistogramVec(opts, names)
 	})}
-	declare(name, spec.undeclared(labels), func() {
-		for _, lvs := range spec.combinations(labels) {
+	declare(func() {
+		for _, lvs := range combinations(labels) {
 			h.WithLabelValues(lvs...)
 		}
 	})
@@ -128,7 +125,7 @@ func NewCounter(opts prometheus.CounterOpts) *Counter {
 	c := &Counter{m: newMetric(func() prometheus.Counter {
 		return prometheus.NewCounter(opts)
 	})}
-	declare(fqName(opts.Namespace, opts.Subsystem, opts.Name), nil, c.Register)
+	declare(c.Register)
 	return c
 }
 
@@ -161,7 +158,7 @@ func NewHistogram(opts prometheus.HistogramOpts) *Histogram {
 	h := &Histogram{m: newMetric(func() prometheus.Histogram {
 		return prometheus.NewHistogram(opts)
 	})}
-	declare(fqName(opts.Namespace, opts.Subsystem, opts.Name), nil, h.Register)
+	declare(h.Register)
 	return h
 }
 

@@ -28,7 +28,6 @@ var routingDecisionsTotal = lazy.NewCounterVec(
 		Name:      "routing_decisions_total",
 		Help:      "Routing decisions by type and target region.",
 	},
-	[]string{"decision", "target_region"},
 	lazy.Values("decision", "local", "remote"),
 	lazy.Dynamic("target_region"),
 )

@@ -29,7 +29,6 @@ var (
 			Name:      "sync_desired_state_total",
 			Help:      "Total number of SyncDesiredState RPC calls.",
 		},
-		[]string{"status"},
 		lazy.Values("status", "success", "error"),
 	)
 
@@ -44,7 +43,6 @@ var (
 			Name:      "sync_desired_state_events_sent_total",
 			Help:      "Total number of events sent during SyncDesiredState.",
 		},
-		[]string{"resource_type"},
 		lazy.Values("resource_type", "deployment"),
 	)
 
@@ -60,7 +58,6 @@ var (
 			Name:      "deployment_changes_processed_total",
 			Help:      "Total number of deployment changes processed from VStream.",
 		},
-		[]string{"resource_type", "status"},
 		lazy.Values("resource_type", "deployment_topology"),
 		lazy.Values("status", "success", "not_found", "error"),
 	)
@@ -83,7 +80,6 @@ var (
 			Name:      "notify_instances_ready_total",
 			Help:      "Outcome of maybeNotifyInstancesReady evaluations.",
 		},
-		[]string{"outcome"},
 		lazy.Values("outcome",
 			"notified",
 			"inactive_status",
@@ -113,7 +109,6 @@ var (
 			Help:      "Handler latency of ReportDeploymentStatus.",
 			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5},
 		},
-		[]string{"result"},
 		lazy.Values("result", "success", "error"),
 	)
 )

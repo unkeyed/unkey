@@ -11,11 +11,9 @@
 // histogram at 0:
 //
 //   - [Counter] and [Histogram] are exported at 0.
-//   - [CounterVec] and [HistogramVec] must declare every label, with [Values]
-//     for a closed set of values or [Dynamic] for values known only at
-//     runtime. When every label has values, every combination is exported
-//     at 0. In tests, SetRegistry panics if a label is undeclared, so a new
-//     metric without declarations fails CI.
+//   - [CounterVec] and [HistogramVec] take their labels as [Values], for a
+//     closed set of values, or [Dynamic], for values known only at runtime.
+//     When every label has values, every combination is exported at 0.
 //   - For a dynamic label, call [CounterVec.Bind] when the owner of the value
 //     is constructed, such as a cache with its resource name. That creates
 //     the series at 0 before the first event.
@@ -28,7 +26,7 @@
 //	    Namespace: "unkey",
 //	    Subsystem: "krane",
 //	    Name:      "syncs_total",
-//	}, []string{"resource", "result"},
+//	},
 //	    lazy.Dynamic("resource"),
 //	    lazy.Values("result", "success", "error"),
 //	)

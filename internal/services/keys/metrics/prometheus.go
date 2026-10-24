@@ -31,7 +31,6 @@ var (
 			Name:      "verifications_total",
 			Help:      "Total number of Key verifications processed.",
 		},
-		[]string{"type", "code"},
 		lazy.Values("type", "key", "root_key"),
 		lazy.Values("code",
 			"VALID",
@@ -61,7 +60,6 @@ var (
 			Name:      "verification_errors_total",
 			Help:      "Total number of key verification errors",
 		},
-		[]string{"type"},
 		lazy.Values("type", "key", "root_key"),
 	)
 )

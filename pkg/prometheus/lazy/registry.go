@@ -9,11 +9,10 @@ import (
 // state tracks where lazy metrics register. Only first-use registration and
 // SetRegistry take the lock, never Inc or Observe.
 var state struct {
-	mu           sync.Mutex
-	registry     *prometheus.Registry
-	explicit     bool
-	collectors   []prometheus.Collector
-	declarations []declaration
+	mu         sync.Mutex
+	registry   *prometheus.Registry
+	explicit   bool
+	collectors []prometheus.Collector
 }
 
 // SetRegistry sets the registry that all lazy metrics register to, and
