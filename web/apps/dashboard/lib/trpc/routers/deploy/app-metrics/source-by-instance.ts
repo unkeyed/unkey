@@ -10,7 +10,6 @@ const instanceSeriesInput = metricsScopeInput.extend({
   openInstance: z.string().max(255).nullable(),
 });
 
-// Live pods resolve here; the client names only the open sheet's pod, which may have stopped
 export const appMetricsSourceByInstance = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(instanceSeriesInput)

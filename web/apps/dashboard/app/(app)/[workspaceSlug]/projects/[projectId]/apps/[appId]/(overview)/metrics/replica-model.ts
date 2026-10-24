@@ -96,7 +96,6 @@ export type ReplicaSheetModel = {
   usage: ReplicaUsage;
 };
 
-// The server reads the live pods; an open sheet names its pod only once it stops
 export function openInstanceOf(
   open: OpenReplica | null,
   environmentId: string | null,
