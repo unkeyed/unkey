@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/sdk"
 	"github.com/unkeyed/unkey/internal/sdk/models/apierrors"
 	"github.com/unkeyed/unkey/internal/sdk/models/components"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -103,9 +104,11 @@ func TestDeviceLoginPollsUntilTheKeyIsIssued(t *testing.T) {
 			mu.Unlock()
 			switch n {
 			case 1:
-				writeEnvelope(t, w, http.StatusOK, pollEnvelope(components.StatusPermissionsRequired, 1))
+				w.Header().Set("Retry-After", "1")
+				writeEnvelope(t, w, http.StatusAccepted, pendingEnvelope())
 			case 2, 3:
-				writeEnvelope(t, w, http.StatusOK, pollEnvelope(components.StatusPermissionsRequired, 2))
+				w.Header().Set("Retry-After", "2")
+				writeEnvelope(t, w, http.StatusAccepted, pendingEnvelope())
 			default:
 				writeEnvelope(t, w, http.StatusOK, completeEnvelope(workspaceID, sessionID))
 			}
@@ -139,8 +142,10 @@ func TestDeviceLoginPollsUntilTheKeyIsIssued(t *testing.T) {
 
 	stored, err := session.Active()
 	require.NoError(t, err)
+	require.Equal(t, "access_issued", stored.AccessToken)
 	require.Equal(t, "refresh_issued", stored.RefreshToken)
 	require.Equal(t, workspaceID, stored.WorkspaceID)
+	require.Equal(t, sessionID, stored.SessionID)
 	require.Equal(t, srv.URL, stored.APIURL)
 }
 
@@ -150,9 +155,10 @@ func TestDeviceLoginStopsWhenDenied(t *testing.T) {
 			writeEnvelope(t, w, http.StatusOK, startedEnvelope(uid.New(uid.DeviceAuthorizationPrefix), 5))
 			return
 		}
-		denied := pollEnvelope(components.StatusAccessDenied, 5)
-		denied.Data.Detail = new("Authorization was denied.")
-		writeEnvelope(t, w, http.StatusOK, denied)
+		writeEnvelope(t, w, http.StatusForbidden, apierrors.ForbiddenErrorResponse{
+			Error_: components.BaseError{Detail: "Authorization was denied.", Status: http.StatusForbidden},
+			Meta:   components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+		})
 	}))
 	t.Cleanup(srv.Close)
 
@@ -165,6 +171,9 @@ func TestDeviceLoginStopsWhenDenied(t *testing.T) {
 			return nil
 		},
 	})
+	var response *sdk.ResponseError
+	require.ErrorAs(t, err, &response)
+	require.Equal(t, http.StatusForbidden, response.StatusCode)
 	require.EqualError(t, err, "Authorization was denied.")
 }
 
@@ -270,8 +279,8 @@ func TestDeviceLoginRevokesTheSessionWhenItCannotBeStored(t *testing.T) {
 func TestPollUntilKey(t *testing.T) {
 	complete := completeEnvelope(uid.New(uid.WorkspacePrefix), uid.New(uid.CLISessionPrefix))
 	withoutTokens := completeEnvelope(uid.New(uid.WorkspacePrefix), uid.New(uid.CLISessionPrefix))
-	withoutTokens.Data.Credentials.AccessToken = ""
-	withoutTokens.Data.Credentials.RefreshToken = ""
+	withoutTokens.Data.AccessToken = ""
+	withoutTokens.Data.RefreshToken = ""
 
 	htmlBadGateway := func(w http.ResponseWriter) {
 		w.Header().Set("content-type", "text/html")
@@ -296,10 +305,13 @@ func TestPollUntilKey(t *testing.T) {
 			name: "expired token",
 			responses: []func(w http.ResponseWriter){
 				func(w http.ResponseWriter) {
-					writeEnvelope(t, w, http.StatusOK, pollEnvelope(components.StatusExpiredToken, 1))
+					writeEnvelope(t, w, http.StatusGone, apierrors.GoneErrorResponse{
+						Error_: components.BaseError{Detail: "This login expired.", Status: http.StatusGone},
+						Meta:   components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+					})
 				},
 			},
-			wantErr:   "login expired token",
+			wantErr:   "This login expired.",
 			wantPolls: 1,
 		},
 		{
@@ -308,16 +320,6 @@ func TestPollUntilKey(t *testing.T) {
 				func(w http.ResponseWriter) { writeEnvelope(t, w, http.StatusOK, withoutTokens) },
 			},
 			wantErr:   "login completed without a session",
-			wantPolls: 1,
-		},
-		{
-			name: "unknown status",
-			responses: []func(w http.ResponseWriter){
-				func(w http.ResponseWriter) {
-					writeEnvelope(t, w, http.StatusOK, pollEnvelope("authorization_pending", 1))
-				},
-			},
-			wantErr:   `unexpected login status "authorization_pending"`,
 			wantPolls: 1,
 		},
 		{
@@ -365,8 +367,8 @@ func TestPollUntilKey(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, complete.Data.Credentials.AccessToken, issued.AccessToken)
-			require.Equal(t, complete.Data.Credentials.WorkspaceID, issued.WorkspaceID)
+			require.Equal(t, complete.Data.AccessToken, issued.AccessToken)
+			require.Equal(t, complete.Data.WorkspaceID, issued.WorkspaceID)
 		})
 	}
 }
@@ -376,16 +378,15 @@ func TestPollUntilKeyRejectsIncompleteSession(t *testing.T) {
 		name   string
 		change func(*components.V2CliExchangeTokenResponseData)
 	}{
-		{name: "missing credentials", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials = nil }},
-		{name: "empty credentials", change: func(data *components.V2CliExchangeTokenResponseData) {
-			data.Credentials = &components.V2CliExchangeTokenCredentials{}
+		{name: "empty data", change: func(data *components.V2CliExchangeTokenResponseData) {
+			*data = components.V2CliExchangeTokenResponseData{}
 		}},
-		{name: "empty access token", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.AccessToken = "" }},
-		{name: "empty refresh token", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.RefreshToken = "" }},
-		{name: "empty workspace", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.WorkspaceID = "" }},
-		{name: "empty session", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.SessionID = "" }},
-		{name: "zero expiry", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.ExpiresIn = 0 }},
-		{name: "negative expiry", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.ExpiresIn = -1 }},
+		{name: "empty access token", change: func(data *components.V2CliExchangeTokenResponseData) { data.AccessToken = "" }},
+		{name: "empty refresh token", change: func(data *components.V2CliExchangeTokenResponseData) { data.RefreshToken = "" }},
+		{name: "empty workspace", change: func(data *components.V2CliExchangeTokenResponseData) { data.WorkspaceID = "" }},
+		{name: "empty session", change: func(data *components.V2CliExchangeTokenResponseData) { data.SessionID = "" }},
+		{name: "zero expiry", change: func(data *components.V2CliExchangeTokenResponseData) { data.ExpiresIn = 0 }},
+		{name: "negative expiry", change: func(data *components.V2CliExchangeTokenResponseData) { data.ExpiresIn = -1 }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			response := completeEnvelope(uid.New(uid.WorkspacePrefix), uid.New(uid.CLISessionPrefix))
@@ -414,34 +415,34 @@ func writeEnvelope[T any](t *testing.T, w http.ResponseWriter, status int, envel
 func startedEnvelope(loginID string, interval int64) components.V2CliStartDeviceLoginResponseBody {
 	return components.V2CliStartDeviceLoginResponseBody{
 		Data: components.V2CliStartDeviceLoginResponseData{
-			LoginID:                 loginID,
-			UserCode:                "ABCD-EFGH",
-			VerificationURI:         "http://dashboard.example/cli/device",
-			VerificationURIComplete: verificationURL,
-			ExpiresIn:               300,
-			Interval:                interval,
+			LoginID:         loginID,
+			UserCode:        "ABCD-EFGH",
+			VerificationURL: verificationURL,
+			ExpiresIn:       300,
+			Interval:        interval,
 		},
 		Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
 	}
 }
 
-func pollEnvelope(status components.Status, interval int64) components.V2CliExchangeTokenResponseBody {
-	return components.V2CliExchangeTokenResponseBody{
-		Data: components.V2CliExchangeTokenResponseData{Status: status, Interval: interval},
+func pendingEnvelope() components.V2CliExchangeTokenPendingResponseBody {
+	return components.V2CliExchangeTokenPendingResponseBody{
+		Data: components.EmptyResponse{},
 		Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
 	}
 }
 
 func completeEnvelope(workspaceID string, sessionID string) components.V2CliExchangeTokenResponseBody {
-	envelope := pollEnvelope(components.StatusComplete, 1)
-	envelope.Data.Credentials = &components.V2CliExchangeTokenCredentials{
-		AccessToken:  "access_issued",
-		RefreshToken: "refresh_issued",
-		ExpiresIn:    3600,
-		WorkspaceID:  workspaceID,
-		SessionID:    sessionID,
+	return components.V2CliExchangeTokenResponseBody{
+		Data: components.V2CliExchangeTokenResponseData{
+			AccessToken:  "access_issued",
+			RefreshToken: "refresh_issued",
+			ExpiresIn:    3600,
+			WorkspaceID:  workspaceID,
+			SessionID:    sessionID,
+		},
+		Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
 	}
-	return envelope
 }
 
 func TestReadRootKeyFromStdin(t *testing.T) {

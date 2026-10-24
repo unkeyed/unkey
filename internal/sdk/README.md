@@ -48,14 +48,18 @@ two-attempt policy.
 
 Speakeasy generates `Cli.ExchangeTokenWaitForCompletion` from the overlay's
 `x-speakeasy-polling` extension. Pass it through `operations.WithPolling` to
-`Cli.ExchangeToken` with a `loginId`. It stops on `complete`, returns a
-`polling.FailureCriteriaError` with the response for `access_denied` or
-`expired_token`, and returns `polling.LimitCountError` after 120 pending responses.
+`Cli.ExchangeToken` with a `loginId`. HTTP 202 means approval is pending. HTTP 200
+returns credentials directly in `data`. HTTP 403 means the login was denied;
+HTTP 410 means it expired. Both stop polling with an error. After 120 pending
+responses, the poller returns `polling.LimitCountError`.
 
 The CLI uses `client.WaitForDeviceLogin` to run that generated poller with
-server-provided intervals and cancellable waits. Speakeasy's generated Go loop
-uses a fixed `time.Sleep`, so this adapter disables that sleep and supplies
-request pacing. It retries transport failures, 429, and 5xx responses at the
+`Retry-After` intervals and cancellable waits. The API supplies positive integer
+seconds on HTTP 202 responses. Missing, invalid, or overflowing values retain
+the previous interval. Speakeasy's generated Go loop uses a fixed `time.Sleep`,
+so this adapter disables that sleep and supplies request pacing. Speakeasy's
+automatic `Retry-After` support applies to retries, not polling.
+The adapter retries transport failures, 429, and 5xx responses at the
 last interval. Pass a context with a deadline to bound retries and in-flight
 requests, the interval from `startDeviceLogin`, and nil for the default wait.
 The CLI uses the login's expiry, or 10 minutes if the server omits it.

@@ -3,10 +3,13 @@ package sdk_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -16,7 +19,6 @@ import (
 	"github.com/unkeyed/unkey/internal/sdk"
 	"github.com/unkeyed/unkey/internal/sdk/models/apierrors"
 	"github.com/unkeyed/unkey/internal/sdk/models/components"
-	"github.com/unkeyed/unkey/internal/sdk/models/operations"
 	"github.com/unkeyed/unkey/internal/sdk/polling"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -26,11 +28,11 @@ func TestClientUsesTypedBodiesAndRequestScopedCredentials(t *testing.T) {
 	sessionID := uid.New(uid.CLISessionPrefix)
 	started := components.V2CliStartDeviceLoginResponseBody{
 		Data: components.V2CliStartDeviceLoginResponseData{
-			LoginID:                 uid.New(uid.DeviceAuthorizationPrefix),
-			UserCode:                "BCDF-GHJK",
-			VerificationURIComplete: "https://app.unkey.com/cli/device?user_code=BCDF-GHJK",
-			ExpiresIn:               600,
-			Interval:                5,
+			LoginID:         uid.New(uid.DeviceAuthorizationPrefix),
+			UserCode:        "BCDF-GHJK",
+			VerificationURL: "https://app.unkey.com/cli/device?user_code=BCDF-GHJK",
+			ExpiresIn:       600,
+			Interval:        5,
 		},
 		Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
 	}
@@ -226,9 +228,16 @@ func TestClientPreservesTransferAndCancellationErrors(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 }
 
-func TestGeneratedDeviceLoginPollingStopsAtTerminalStatusOrLimit(t *testing.T) {
-	for _, status := range []components.Status{components.StatusComplete, components.StatusAccessDenied, components.StatusExpiredToken, components.StatusPermissionsRequired} {
-		t.Run(string(status), func(t *testing.T) {
+func TestDeviceLoginPollingStopsAtTerminalStatusOrLimit(t *testing.T) {
+	complete := components.V2CliExchangeTokenResponseBody{
+		Data: components.V2CliExchangeTokenResponseData{
+			AccessToken: "access-token", RefreshToken: "refresh-token", ExpiresIn: 3600,
+			WorkspaceID: uid.New(uid.WorkspacePrefix), SessionID: uid.New(uid.CLISessionPrefix),
+		},
+		Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+	}
+	for _, status := range []int{http.StatusOK, http.StatusForbidden, http.StatusGone, http.StatusAccepted} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
 			loginID := uid.New(uid.DeviceAuthorizationPrefix)
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -237,50 +246,223 @@ func TestGeneratedDeviceLoginPollingStopsAtTerminalStatusOrLimit(t *testing.T) {
 				require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
 				require.Equal(t, loginID, body.LoginID)
 				require.Nil(t, body.RefreshToken)
-				responseStatus := components.StatusPermissionsRequired
+				responseStatus := http.StatusAccepted
 				if calls.Add(1) > 1 {
 					responseStatus = status
 				}
 				w.Header().Set("Content-Type", "application/json")
-				require.NoError(t, json.NewEncoder(w).Encode(components.V2CliExchangeTokenResponseBody{
-					Data: components.V2CliExchangeTokenResponseData{Status: responseStatus, Interval: 5},
-					Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
-				}))
+				w.Header().Set("Retry-After", "2")
+				w.WriteHeader(responseStatus)
+				switch responseStatus {
+				case http.StatusOK:
+					require.NoError(t, json.NewEncoder(w).Encode(complete))
+				case http.StatusAccepted:
+					require.NoError(t, json.NewEncoder(w).Encode(components.V2CliExchangeTokenPendingResponseBody{
+						Data: components.EmptyResponse{}, Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+					}))
+				default:
+					require.NoError(t, json.NewEncoder(w).Encode(apierrors.ForbiddenErrorResponse{
+						Error_: components.BaseError{Detail: "Login is no longer available.", Status: int64(responseStatus)},
+						Meta:   components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+					}))
+				}
 			}))
 			t.Cleanup(server.Close)
 			client := sdk.NewClient(server.URL, server.Client())
 			request := components.CreateV2CliExchangeTokenRequestBodyV2CliExchangeTokenRequestBody1(components.V2CliExchangeTokenRequestBody1{LoginID: loginID})
-			res, err := client.Cli.ExchangeToken(t.Context(), request, operations.WithPolling(
-				client.Cli.ExchangeTokenWaitForCompletion(), polling.WithIntervalSecondsOverride(0), polling.WithLimitCountOverride(2),
-			))
+			waits := 0
+			res, err := client.WaitForDeviceLogin(t.Context(), request, 5*time.Second, func(_ context.Context, interval time.Duration) error {
+				waits++
+				require.Equal(t, 2*time.Second, interval)
+				return nil
+			})
 			switch status {
-			case components.StatusComplete:
+			case http.StatusOK:
 				require.NoError(t, err)
-			case components.StatusAccessDenied, components.StatusExpiredToken:
-				var terminal *polling.FailureCriteriaError
+				require.Equal(t, &complete, res.V2CliExchangeTokenResponseBody)
+				require.Nil(t, res.V2CliExchangeTokenPendingResponseBody)
+			case http.StatusForbidden, http.StatusGone:
+				var terminal *sdk.ResponseError
 				require.ErrorAs(t, err, &terminal)
-			case components.StatusPermissionsRequired:
+				require.Equal(t, status, terminal.StatusCode)
+				require.Equal(t, "Login is no longer available.", terminal.Detail)
+			case http.StatusAccepted:
 				var limit *polling.LimitCountError
 				require.ErrorAs(t, err, &limit)
+				require.NotNil(t, res.V2CliExchangeTokenPendingResponseBody)
+				require.Nil(t, res.V2CliExchangeTokenResponseBody)
+				require.Equal(t, int32(120), calls.Load())
+				require.Equal(t, 119, waits)
+				return
 			}
-			require.NotNil(t, res)
-			require.Equal(t, status, res.V2CliExchangeTokenResponseBody.Data.Status)
 			require.Equal(t, int32(2), calls.Load())
+			require.Equal(t, 1, waits)
 		})
 	}
 }
 
+func TestDeviceLoginWaitUsesLatestValidRetryAfter(t *testing.T) {
+	secondsMax := int64(math.MaxInt64 / time.Second)
+	for _, tc := range []struct {
+		name     string
+		header   string
+		interval time.Duration
+	}{
+		{name: "valid", header: "3", interval: 3 * time.Second},
+		{name: "missing", interval: 7 * time.Second},
+		{name: "invalid", header: "later", interval: 7 * time.Second},
+		{name: "fractional", header: "0.5", interval: 7 * time.Second},
+		{name: "zero", header: "0", interval: 7 * time.Second},
+		{name: "negative", header: "-2", interval: 7 * time.Second},
+		{name: "integer overflow", header: "9223372036854775808", interval: 7 * time.Second},
+		{name: "duration overflow", header: strconv.FormatInt(secondsMax+1, 10), interval: 7 * time.Second},
+		{name: "duration wraps positive", header: "18446744074", interval: 7 * time.Second},
+		{name: "maximum duration", header: strconv.FormatInt(secondsMax, 10), interval: time.Duration(secondsMax) * time.Second},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			headers := []string{"2", "7", tc.header}
+			complete := components.V2CliExchangeTokenResponseBody{
+				Data: components.V2CliExchangeTokenResponseData{
+					AccessToken: "access-token", RefreshToken: "refresh-token", ExpiresIn: 3600,
+					WorkspaceID: uid.New(uid.WorkspacePrefix), SessionID: uid.New(uid.CLISessionPrefix),
+				},
+				Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+			}
+			var calls atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				call := int(calls.Add(1))
+				w.Header().Set("Content-Type", "application/json")
+				if call > len(headers) {
+					require.NoError(t, json.NewEncoder(w).Encode(complete))
+					return
+				}
+				if headers[call-1] != "" {
+					w.Header().Set("Retry-After", headers[call-1])
+				}
+				w.WriteHeader(http.StatusAccepted)
+				require.NoError(t, json.NewEncoder(w).Encode(components.V2CliExchangeTokenPendingResponseBody{
+					Data: components.EmptyResponse{}, Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+				}))
+			}))
+			t.Cleanup(server.Close)
+			var waits []time.Duration
+			request := components.CreateV2CliExchangeTokenRequestBodyV2CliExchangeTokenRequestBody1(components.V2CliExchangeTokenRequestBody1{LoginID: uid.New(uid.DeviceAuthorizationPrefix)})
+			res, err := sdk.NewClient(server.URL, server.Client()).WaitForDeviceLogin(t.Context(), request, 5*time.Second, func(_ context.Context, interval time.Duration) error {
+				waits = append(waits, interval)
+				return nil
+			})
+			require.NoError(t, err)
+			require.Equal(t, &complete, res.V2CliExchangeTokenResponseBody)
+			require.Equal(t, []time.Duration{2 * time.Second, 7 * time.Second, tc.interval}, waits)
+			require.Equal(t, int32(4), calls.Load())
+		})
+	}
+}
+
+func TestDeviceLoginWaitRetainsInitialIntervalWithoutRetryAfter(t *testing.T) {
+	for _, interval := range []time.Duration{0, -time.Second, 3 * time.Second} {
+		t.Run(interval.String(), func(t *testing.T) {
+			var calls atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				calls.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				require.NoError(t, json.NewEncoder(w).Encode(components.V2CliExchangeTokenPendingResponseBody{
+					Data: components.EmptyResponse{}, Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+				}))
+			}))
+			t.Cleanup(server.Close)
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
+			var waited time.Duration
+			request := components.CreateV2CliExchangeTokenRequestBodyV2CliExchangeTokenRequestBody1(components.V2CliExchangeTokenRequestBody1{LoginID: uid.New(uid.DeviceAuthorizationPrefix)})
+			_, err := sdk.NewClient(server.URL, server.Client()).WaitForDeviceLogin(ctx, request, interval, func(ctx context.Context, duration time.Duration) error {
+				waited = duration
+				cancel()
+				return ctx.Err()
+			})
+			require.ErrorIs(t, err, context.Canceled)
+			if interval <= 0 {
+				interval = 5 * time.Second
+			}
+			require.Equal(t, interval, waited)
+			require.Equal(t, int32(1), calls.Load())
+		})
+	}
+}
+
+func TestDeviceLoginWaitReplaysRequestsAfterTransientFailures(t *testing.T) {
+	loginID := uid.New(uid.DeviceAuthorizationPrefix)
+	complete := components.V2CliExchangeTokenResponseBody{
+		Data: components.V2CliExchangeTokenResponseData{
+			AccessToken: "access-token", RefreshToken: "refresh-token", ExpiresIn: 3600,
+			WorkspaceID: uid.New(uid.WorkspacePrefix), SessionID: uid.New(uid.CLISessionPrefix),
+		},
+		Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+	}
+	var calls int
+	client := &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		calls++
+		var body components.V2CliExchangeTokenRequestBody1
+		require.NoError(t, json.NewDecoder(req.Body).Decode(&body))
+		require.NoError(t, req.Body.Close())
+		require.Equal(t, loginID, body.LoginID)
+		require.Nil(t, body.RefreshToken)
+		if calls == 1 {
+			return nil, errors.New("connection reset")
+		}
+		status := http.StatusOK
+		var envelope any = complete
+		switch calls {
+		case 2:
+			status = http.StatusTooManyRequests
+		case 3:
+			status = http.StatusBadGateway
+		case 4:
+			status = http.StatusServiceUnavailable
+		}
+		if status != http.StatusOK {
+			envelope = apierrors.InternalServerErrorResponse{
+				Error_: components.BaseError{Detail: "Try again.", Status: int64(status)},
+				Meta:   components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+			}
+		}
+		payload, err := json.Marshal(envelope)
+		require.NoError(t, err)
+		return &http.Response{
+			StatusCode: status, Header: http.Header{"Content-Type": {"application/json"}, "Retry-After": {"99"}},
+			Body: io.NopCloser(strings.NewReader(string(payload))), Request: req,
+		}, nil
+	})}
+	var waits []time.Duration
+	request := components.CreateV2CliExchangeTokenRequestBodyV2CliExchangeTokenRequestBody1(components.V2CliExchangeTokenRequestBody1{LoginID: loginID})
+	res, err := sdk.NewClient("https://api.example.com", client).WaitForDeviceLogin(t.Context(), request, 2*time.Second, func(_ context.Context, interval time.Duration) error {
+		waits = append(waits, interval)
+		return nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, &complete, res.V2CliExchangeTokenResponseBody)
+	require.Equal(t, 5, calls)
+	require.Equal(t, []time.Duration{2 * time.Second, 2 * time.Second, 2 * time.Second, 2 * time.Second}, waits)
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
 func TestDeviceLoginWaitHonorsDeadlineDuringServerIntervalAndRetries(t *testing.T) {
-	for _, status := range []int{http.StatusOK, http.StatusTooManyRequests, http.StatusServiceUnavailable} {
+	for _, status := range []int{http.StatusAccepted, http.StatusTooManyRequests, http.StatusServiceUnavailable} {
 		t.Run(fmt.Sprint(status), func(t *testing.T) {
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				calls.Add(1)
 				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("Retry-After", "3600")
 				w.WriteHeader(status)
-				require.NoError(t, json.NewEncoder(w).Encode(components.V2CliExchangeTokenResponseBody{
-					Data: components.V2CliExchangeTokenResponseData{Status: components.StatusPermissionsRequired, Interval: 3600},
-					Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+				require.NoError(t, json.NewEncoder(w).Encode(components.V2CliExchangeTokenPendingResponseBody{
+					Data: components.EmptyResponse{}, Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
 				}))
 			}))
 			t.Cleanup(server.Close)

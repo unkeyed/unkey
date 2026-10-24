@@ -1,13 +1,11 @@
 package sdk
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
+	"math"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/sdk/internal/utils"
@@ -18,7 +16,6 @@ import (
 
 // WaitForDeviceLogin uses generated polling with cancellable, server-paced waits.
 // It retries transport, 429, and 5xx failures until ctx ends. A nil wait uses a timer.
-// Denied or expired logins return both the response and a polling.FailureCriteriaError.
 func (c *Client) WaitForDeviceLogin(ctx context.Context, request components.V2CliExchangeTokenRequestBody, interval time.Duration, wait func(context.Context, time.Duration) error) (*operations.CliExchangeTokenResponse, error) {
 	if interval <= 0 {
 		interval = 5 * time.Second
@@ -30,7 +27,7 @@ func (c *Client) WaitForDeviceLogin(ctx context.Context, request components.V2Cl
 		WithServerURL(utils.ReplaceParameters(c.sdkConfiguration.GetServerDetails())),
 		WithClient(&deviceLoginClient{client: c.sdkConfiguration.Client, interval: interval, wait: wait, started: false}),
 	)
-	// Generated Go polling sleeps without observing context or response intervals.
+	// Generated Go polling sleeps without observing context or Retry-After.
 	// The transport supplies those waits; generated code owns terminal criteria.
 	res, err := api.Cli.ExchangeToken(ctx, request, operations.WithPolling(
 		api.Cli.ExchangeTokenWaitForCompletion(), polling.WithIntervalSecondsOverride(0),
@@ -62,7 +59,13 @@ func (c *deviceLoginClient) Do(req *http.Request) (*http.Response, error) {
 		c.started = true
 		res, err := c.client.Do(req)
 		if err == nil {
-			return c.updateInterval(res)
+			if res.StatusCode == http.StatusAccepted {
+				seconds, err := strconv.ParseInt(res.Header.Get("Retry-After"), 10, 64)
+				if err == nil && seconds > 0 && seconds <= int64(math.MaxInt64/time.Second) {
+					c.interval = time.Duration(seconds) * time.Second
+				}
+			}
+			return res, nil
 		}
 		var transport *TransportError
 		var response *ResponseError
@@ -77,28 +80,6 @@ func (c *deviceLoginClient) Do(req *http.Request) (*http.Response, error) {
 			return nil, err
 		}
 	}
-}
-
-func (c *deviceLoginClient) updateInterval(res *http.Response) (*http.Response, error) {
-	payload, readErr := io.ReadAll(res.Body)
-	closeErr := res.Body.Close()
-	if err := errors.Join(readErr, closeErr); err != nil {
-		return nil, err
-	}
-	res.Body = io.NopCloser(bytes.NewReader(payload))
-	if res.StatusCode == http.StatusOK {
-		var body components.V2CliExchangeTokenResponseBody
-		if err := json.Unmarshal(payload, &body); err != nil {
-			return nil, err
-		}
-		if !body.Data.Status.IsExact() {
-			return nil, &ResponseError{StatusCode: res.StatusCode, Detail: fmt.Sprintf("unexpected login status %q", body.Data.Status)}
-		}
-		if body.Data.Interval > 0 {
-			c.interval = time.Duration(body.Data.Interval) * time.Second
-		}
-	}
-	return res, nil
 }
 
 func waitContext(ctx context.Context, duration time.Duration) error {

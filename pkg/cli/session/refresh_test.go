@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/sdk"
 	"github.com/unkeyed/unkey/internal/sdk/models/apierrors"
 	"github.com/unkeyed/unkey/internal/sdk/models/components"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -40,14 +41,11 @@ func TestRefreshReturnsTheNewPair(t *testing.T) {
 		require.Nil(t, req.LoginID)
 		writeRefreshResponse(t, w, http.StatusOK, components.V2CliExchangeTokenResponseBody{
 			Data: components.V2CliExchangeTokenResponseData{
-				Status: components.StatusComplete,
-				Credentials: &components.V2CliExchangeTokenCredentials{
-					AccessToken:  "access_b",
-					RefreshToken: "refresh_b",
-					ExpiresIn:    3600,
-					WorkspaceID:  workspaceID,
-					SessionID:    sessionID,
-				},
+				AccessToken:  "access_b",
+				RefreshToken: "refresh_b",
+				ExpiresIn:    3600,
+				WorkspaceID:  workspaceID,
+				SessionID:    sessionID,
 			},
 			Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
 		})
@@ -70,37 +68,23 @@ func TestRefreshRejectsIncompleteExchangesWithoutRetrying(t *testing.T) {
 		name   string
 		change func(*components.V2CliExchangeTokenResponseData)
 	}{
-		{name: "pending without tokens", change: func(data *components.V2CliExchangeTokenResponseData) {
-			*data = components.V2CliExchangeTokenResponseData{Status: components.StatusPermissionsRequired, Interval: 5}
+		{name: "empty data", change: func(data *components.V2CliExchangeTokenResponseData) {
+			*data = components.V2CliExchangeTokenResponseData{}
 		}},
-		{name: "pending with tokens", change: func(data *components.V2CliExchangeTokenResponseData) {
-			data.Status = components.StatusPermissionsRequired
-		}},
-		{name: "denied", change: func(data *components.V2CliExchangeTokenResponseData) { data.Status = components.StatusAccessDenied }},
-		{name: "expired", change: func(data *components.V2CliExchangeTokenResponseData) { data.Status = components.StatusExpiredToken }},
-		{name: "unknown status", change: func(data *components.V2CliExchangeTokenResponseData) { data.Status = "unknown" }},
-		{name: "missing status", change: func(data *components.V2CliExchangeTokenResponseData) { data.Status = "" }},
-		{name: "missing credentials", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials = nil }},
-		{name: "empty credentials", change: func(data *components.V2CliExchangeTokenResponseData) {
-			data.Credentials = &components.V2CliExchangeTokenCredentials{}
-		}},
-		{name: "empty access token", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.AccessToken = "" }},
-		{name: "empty refresh token", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.RefreshToken = "" }},
-		{name: "empty workspace", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.WorkspaceID = "" }},
-		{name: "empty session", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.SessionID = "" }},
-		{name: "zero expiry", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.ExpiresIn = 0 }},
-		{name: "negative expiry", change: func(data *components.V2CliExchangeTokenResponseData) { data.Credentials.ExpiresIn = -1 }},
+		{name: "empty access token", change: func(data *components.V2CliExchangeTokenResponseData) { data.AccessToken = "" }},
+		{name: "empty refresh token", change: func(data *components.V2CliExchangeTokenResponseData) { data.RefreshToken = "" }},
+		{name: "empty workspace", change: func(data *components.V2CliExchangeTokenResponseData) { data.WorkspaceID = "" }},
+		{name: "empty session", change: func(data *components.V2CliExchangeTokenResponseData) { data.SessionID = "" }},
+		{name: "zero expiry", change: func(data *components.V2CliExchangeTokenResponseData) { data.ExpiresIn = 0 }},
+		{name: "negative expiry", change: func(data *components.V2CliExchangeTokenResponseData) { data.ExpiresIn = -1 }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			data := components.V2CliExchangeTokenResponseData{
-				Status: components.StatusComplete,
-				Credentials: &components.V2CliExchangeTokenCredentials{
-					AccessToken:  "access_b",
-					RefreshToken: "refresh_b",
-					ExpiresIn:    3600,
-					WorkspaceID:  uid.New(uid.WorkspacePrefix),
-					SessionID:    uid.New(uid.CLISessionPrefix),
-				},
+				AccessToken:  "access_b",
+				RefreshToken: "refresh_b",
+				ExpiresIn:    3600,
+				WorkspaceID:  uid.New(uid.WorkspacePrefix),
+				SessionID:    uid.New(uid.CLISessionPrefix),
 			}
 			tc.change(&data)
 			var calls atomic.Int32
@@ -120,6 +104,50 @@ func TestRefreshRejectsIncompleteExchangesWithoutRetrying(t *testing.T) {
 	}
 }
 
+func TestRefreshRejectsPendingAndMissingSuccessBodiesWithoutRetrying(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		status int
+		body   any
+	}{
+		{
+			name: "pending", status: http.StatusAccepted,
+			body: components.V2CliExchangeTokenPendingResponseBody{
+				Data: components.EmptyResponse{}, Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+			},
+		},
+		{
+			name: "pending with tokens", status: http.StatusAccepted,
+			body: components.V2CliExchangeTokenResponseBody{
+				Data: components.V2CliExchangeTokenResponseData{
+					AccessToken: "access_b", RefreshToken: "refresh_b", ExpiresIn: 3600,
+					WorkspaceID: uid.New(uid.WorkspacePrefix), SessionID: uid.New(uid.CLISessionPrefix),
+				},
+				Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+			},
+		},
+		{name: "no content", status: http.StatusNoContent},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var calls atomic.Int32
+			srv := newRefreshServer(t, func(w http.ResponseWriter, _ *http.Request) {
+				calls.Add(1)
+				if tc.body == nil {
+					w.WriteHeader(tc.status)
+					return
+				}
+				w.Header().Set("Retry-After", "2")
+				writeRefreshResponse(t, w, tc.status, tc.body)
+			})
+
+			next, err := Refresh(t.Context(), srv.URL, "refresh_a")
+			require.Error(t, err)
+			require.Empty(t, next)
+			require.Equal(t, int32(1), calls.Load())
+		})
+	}
+}
+
 func TestRefreshReportsTheErrorDetail(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
@@ -127,6 +155,8 @@ func TestRefreshReportsTheErrorDetail(t *testing.T) {
 		detail string
 	}{
 		{name: "revoked", status: http.StatusUnauthorized, detail: "The refresh token was revoked."},
+		{name: "denied", status: http.StatusForbidden, detail: "Authorization was denied."},
+		{name: "expired", status: http.StatusGone, detail: "This session expired."},
 		{name: "rate limited", status: http.StatusTooManyRequests, detail: "Try again later."},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -140,6 +170,9 @@ func TestRefreshReportsTheErrorDetail(t *testing.T) {
 			})
 
 			_, err := Refresh(context.Background(), srv.URL, "refresh_a")
+			var response *sdk.ResponseError
+			require.ErrorAs(t, err, &response)
+			require.Equal(t, tc.status, response.StatusCode)
 			require.EqualError(t, err, tc.detail)
 			require.Equal(t, int32(1), calls.Load())
 		})
@@ -171,14 +204,11 @@ func TestRefreshRetriesAServerErrorWithTheSameToken(t *testing.T) {
 		}
 		writeRefreshResponse(t, w, http.StatusOK, components.V2CliExchangeTokenResponseBody{
 			Data: components.V2CliExchangeTokenResponseData{
-				Status: components.StatusComplete,
-				Credentials: &components.V2CliExchangeTokenCredentials{
-					AccessToken:  "access_b",
-					RefreshToken: "refresh_b",
-					ExpiresIn:    3600,
-					WorkspaceID:  uid.New(uid.WorkspacePrefix),
-					SessionID:    uid.New(uid.CLISessionPrefix),
-				},
+				AccessToken:  "access_b",
+				RefreshToken: "refresh_b",
+				ExpiresIn:    3600,
+				WorkspaceID:  uid.New(uid.WorkspacePrefix),
+				SessionID:    uid.New(uid.CLISessionPrefix),
 			},
 			Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
 		})

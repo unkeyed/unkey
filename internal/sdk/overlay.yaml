@@ -20,9 +20,3 @@ actions:
           limitCount: 120
           successCriteria:
             - condition: $statusCode == 200
-            - condition: $response.body#/data/status == "complete"
-          failureCriteria:
-            - condition: $statusCode == 200
-            - context: $response.body#/data/status
-              condition: "^(access_denied|expired_token)$"
-              type: regex

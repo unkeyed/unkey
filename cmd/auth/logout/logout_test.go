@@ -41,14 +41,11 @@ func (f *fakeAPI) handler(t *testing.T) http.HandlerFunc {
 			w.Header().Set("content-type", "application/json")
 			require.NoError(t, json.NewEncoder(w).Encode(components.V2CliExchangeTokenResponseBody{
 				Data: components.V2CliExchangeTokenResponseData{
-					Status: components.StatusComplete,
-					Credentials: &components.V2CliExchangeTokenCredentials{
-						AccessToken:  "access_refreshed",
-						RefreshToken: "refresh_refreshed",
-						ExpiresIn:    3600,
-						WorkspaceID:  f.refreshed.WorkspaceID,
-						SessionID:    f.refreshed.SessionID,
-					},
+					AccessToken:  "access_refreshed",
+					RefreshToken: "refresh_refreshed",
+					ExpiresIn:    3600,
+					WorkspaceID:  f.refreshed.WorkspaceID,
+					SessionID:    f.refreshed.SessionID,
 				},
 				Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
 			}))
