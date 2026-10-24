@@ -256,6 +256,7 @@ async function linkCheckoutSession(
       eventId: event.id,
       reason: "missing_client_reference_id",
       product,
+      livemode: event.livemode,
     });
     return stripeWebhookResponse(event, "checkout_link_failed", {
       product,
@@ -299,6 +300,7 @@ async function linkCheckoutSession(
         eventId: event.id,
         reason: result.reason,
         product,
+        livemode: event.livemode,
       });
     }
     return stripeWebhookResponse(event, "checkout_link_failed", {
@@ -451,6 +453,7 @@ export const POST = async (req: Request): Promise<Response> => {
             subscriptionId: eventSub.id,
             eventId: event.id,
             reason: "workspace_not_found",
+            livemode: event.livemode,
           });
           return new Response("OK", { status: 200 });
         }
@@ -584,6 +587,7 @@ export const POST = async (req: Request): Promise<Response> => {
             productName: product.name,
             subscriptionId: sub.id,
             eventId: event.id,
+            livemode: event.livemode,
           });
           return new Response("OK", { status: 200 });
         }
@@ -756,6 +760,7 @@ export const POST = async (req: Request): Promise<Response> => {
               subscriptionId: sub.id,
               eventId: event.id,
               reason: "workspace_not_found",
+              livemode: event.livemode,
             });
           }
           return new Response("OK", { status: 200 });
