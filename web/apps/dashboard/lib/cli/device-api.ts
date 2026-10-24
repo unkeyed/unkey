@@ -47,15 +47,15 @@ export async function approveDeviceLogin(request: {
   userCode: string;
   permissions: string[];
 }): Promise<void> {
-  await post("approveDeviceLogin", request);
+  await post("decideDeviceLogin", { ...request, decision: "approve" });
 }
 
 export async function denyDeviceLogin(userCode: string): Promise<void> {
-  await post("denyDeviceLogin", { userCode });
+  await post("decideDeviceLogin", { userCode, decision: "deny" });
 }
 
 export async function listCliSessions(): Promise<CliSession[]> {
-  return sessionsSchema.parse(await post("listSessions", {})).data.sessions;
+  return sessionsSchema.parse(await post("listSessions", undefined)).data.sessions;
 }
 
 export async function revokeCliSession(sessionId: string): Promise<void> {

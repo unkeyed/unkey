@@ -18,7 +18,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_approve_device_login"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_decide_device_login"
 )
 
 func TestApproveRequiresADashboardSession(t *testing.T) {
@@ -33,7 +33,7 @@ func TestApproveRequiresADashboardSession(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write", "unkey:v1:"+workspace.ID+":rootKeys/*#read")
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{
 		"Authorization": {"Bearer " + rootKey}, "Content-Type": {"application/json"},
-	}, handler.Request{UserCode: started.UserCode, Permissions: []string{"unkey:v1:ws:rootKeys/*#read"}})
+	}, handler.Request{UserCode: started.UserCode, Decision: "approve", Permissions: new([]string{"unkey:v1:" + workspace.ID + ":rootKeys/*#read"})})
 	require.Equal(t, http.StatusForbidden, res.Status, res.RawBody)
 }
 
@@ -59,9 +59,9 @@ func TestApproveHandlerRejectsMissingMaliciousAndOverscopedPermissions(t *testin
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			body, err := json.Marshal(handler.Request{UserCode: "ABCD-EFGH", Permissions: tc.permissions})
+			body, err := json.Marshal(handler.Request{UserCode: "ABCD-EFGH", Decision: "approve", Permissions: &tc.permissions})
 			require.NoError(t, err)
-			req := httptest.NewRequest(http.MethodPost, "/v2/cli.approveDeviceLogin", bytes.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/v2/cli.decideDeviceLogin", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			sess := &zen.Session{}
 			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 1<<20))
@@ -81,6 +81,6 @@ func TestApproveRejectsAnInvalidBearer(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, http.Header{
 		"Authorization": {"Bearer invalid"}, "Content-Type": {"application/json"},
-	}, handler.Request{UserCode: "TEST-0001", Permissions: []string{"unkey:v1:ws:rootKeys/*#read"}})
+	}, handler.Request{UserCode: "TEST-0001", Decision: "approve", Permissions: new([]string{"unkey:v1:" + h.Resources().UserWorkspace.ID + ":rootKeys/*#read"})})
 	require.Equal(t, http.StatusUnauthorized, res.Status, res.RawBody)
 }

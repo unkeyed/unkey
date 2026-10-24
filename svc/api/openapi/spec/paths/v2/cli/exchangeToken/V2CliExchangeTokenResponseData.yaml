@@ -15,7 +15,7 @@ properties:
   interval:
     type: integer
     format: int64
-    description: Seconds to wait before polling again.
+    description: Seconds to wait before polling again. Zero after a refresh-token exchange.
   detail:
     type: string
     description: Human-readable reason for a terminal status.

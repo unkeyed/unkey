@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-type Request = openapi.V2CliListSessionsRequestBody
 type Response = openapi.V2CliListSessionsResponseBody
 
 type Handler struct {
@@ -26,10 +25,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 	if err := clidevice.RequireUserSession(p); err != nil {
-		return err
-	}
-
-	if _, err := zen.BindBody[Request](s); err != nil {
 		return err
 	}
 

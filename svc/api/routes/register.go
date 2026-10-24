@@ -58,12 +58,10 @@ import (
 	v2PermissionsUpdatePermission "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_update_permission"
 	v2PermissionsUpdateRole "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_update_role"
 
-	v2CliApproveDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_approve_device_login"
-	v2CliDenyDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_deny_device_login"
+	v2CliDecideDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_decide_device_login"
+	v2CliExchangeToken "github.com/unkeyed/unkey/svc/api/routes/v2_cli_exchange_token"
 	v2CliGetDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_get_device_login"
 	v2CliListSessions "github.com/unkeyed/unkey/svc/api/routes/v2_cli_list_sessions"
-	v2CliPollDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_poll_device_login"
-	v2CliRefreshToken "github.com/unkeyed/unkey/svc/api/routes/v2_cli_refresh_token"
 	v2CliRevokeSession "github.com/unkeyed/unkey/svc/api/routes/v2_cli_revoke_session"
 	v2CliStartDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_start_device_login"
 	v2KeysAddPermissions "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_permissions"
@@ -659,11 +657,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	)
 
 	srv.RegisterRoute(publicMiddlewares, &v2CliStartDeviceLogin.Handler{Devices: svc.CLIDevice})
-	srv.RegisterRoute(publicMiddlewares, &v2CliPollDeviceLogin.Handler{Devices: svc.CLIDevice})
-	srv.RegisterRoute(publicMiddlewares, &v2CliRefreshToken.Handler{Devices: svc.CLIDevice})
+	srv.RegisterRoute(publicMiddlewares, &v2CliExchangeToken.Handler{Devices: svc.CLIDevice})
 	srv.RegisterRoute(protectedMiddlewares, &v2CliGetDeviceLogin.Handler{Devices: svc.CLIDevice})
-	srv.RegisterRoute(protectedMiddlewares, &v2CliApproveDeviceLogin.Handler{Devices: svc.CLIDevice})
-	srv.RegisterRoute(protectedMiddlewares, &v2CliDenyDeviceLogin.Handler{Devices: svc.CLIDevice})
+	srv.RegisterRoute(protectedMiddlewares, &v2CliDecideDeviceLogin.Handler{Devices: svc.CLIDevice})
 	srv.RegisterRoute(protectedMiddlewares, &v2CliListSessions.Handler{Devices: svc.CLIDevice})
 	srv.RegisterRoute(protectedMiddlewares, &v2CliRevokeSession.Handler{Devices: svc.CLIDevice})
 
