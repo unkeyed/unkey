@@ -35,6 +35,8 @@ const (
 	ratelimitScope      = "cli_device_login"
 	startLimitPerMinute = 20
 	pollLimitPerMinute  = 120
+	userCodeLimit       = 60
+	userCodeLimitWindow = 10 * time.Minute
 )
 
 type PollStatus string
@@ -126,6 +128,38 @@ func dashboardSessionRequired() error {
 
 func workspaceUsable(workspace db.Workspace) bool {
 	return !workspace.DeletedAtM.Valid && workspace.Enabled && strings.TrimSpace(workspace.OrgID) != ""
+}
+
+func (s *Service) limitUserCodeAttempts(ctx context.Context, userID string) error {
+	if s.Ratelimit == nil {
+		return fault.New("cli user code limiter is not configured",
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Public("CLI login is temporarily unavailable. Try again later."),
+		)
+	}
+	resp, err := s.Ratelimit.Ratelimit(ctx, ratelimit.RatelimitRequest{
+		WorkspaceID: ratelimitScope,
+		Namespace:   ratelimitScope + ".user_code",
+		Identifier:  userID,
+		Limit:       userCodeLimit,
+		Duration:    userCodeLimitWindow,
+		Cost:        1,
+		Time:        s.Clock.Now(),
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("cli user code rate limit failed"),
+			fault.Public("CLI login is temporarily unavailable. Try again later."),
+		)
+	}
+	if !resp.Success {
+		return fault.New("cli user code rate limit exceeded",
+			fault.Code(codes.User.TooManyRequests.UserRateLimited.URN()),
+			fault.Public("Too many CLI login attempts. Wait 10 minutes and try again."),
+		)
+	}
+	return nil
 }
 
 func (s *Service) limit(ctx context.Context, action string, remoteIP string, perMinute int64) error {
