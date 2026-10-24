@@ -2,7 +2,10 @@
 
 import { SourceIcon } from "@/components/deploy/app-source";
 import { RegionFlag } from "@/components/region-flag";
-import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import {
+  DEPLOYMENT_STATUS_LABELS,
+  statusGroupOf,
+} from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import {
   type InstanceSummary,
@@ -110,7 +113,7 @@ function DomainsNode({
 }) {
   const hasPlatform = domains.some((d) => d.source === "platform");
   const hasCustom = domains.some((d) => d.source === "custom");
-  const shown = domains.slice(0, NODE_ROW_LIMIT);
+  const shown = domains.slice(0, hasPlatform ? NODE_ROW_LIMIT : NODE_ROW_LIMIT - 1);
   return (
     <Node link={{ href, label: "Domain settings" }}>
       <NodeHeader icon={<IconEarthOutline18 />} name="Domains" />
@@ -195,11 +198,7 @@ function AppNode() {
                 value={deployment.gitBranch || "—"}
                 fullValue={deployment.gitBranch || undefined}
                 hint={deployment.gitCommitSha?.slice(0, 7)}
-                copy={
-                  deployment.gitCommitSha
-                    ? { value: deployment.gitCommitSha, label: "Copy commit SHA" }
-                    : undefined
-                }
+                copy={deployment.gitCommitSha ?? undefined}
               />
               <RowItem
                 icon={<IconCodeCommitOutline18 />}
@@ -217,7 +216,7 @@ function AppNode() {
               value={image ?? "Unknown"}
               fullValue={image ?? undefined}
               hint={deployedAgo}
-              copy={image ? { value: image, label: "Copy image" } : undefined}
+              copy={image ?? undefined}
             />
           ))
           .with("unknown", () => (
@@ -233,7 +232,6 @@ function AppNode() {
                   icon={<IconCodeBranchOutline18 />}
                   label="Default branch"
                   value={canvas.defaultBranch}
-                  fullValue={canvas.defaultBranch}
                 />
               )}
             </>
@@ -319,7 +317,6 @@ function PoliciesErrorNode({ onRetry, retrying }: { onRetry: () => void; retryin
             className="ml-auto"
             onClick={onRetry}
             loading={retrying}
-            disabled={retrying}
           >
             Retry
           </Button>
@@ -355,7 +352,7 @@ function appStatusOf({
   return {
     label: DEPLOYMENT_STATUS_LABELS[deployment.status],
     indicator: <DeploymentStatusIndicator status={deployment.status} size="sm" />,
-    tone: meta.tone,
+    tone: statusGroupOf(deployment.status) === "failed" ? "error" : "default",
   };
 }
 

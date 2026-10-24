@@ -52,7 +52,6 @@ export function ProductionActionsSkeleton() {
   return (
     <>
       <Skeleton className="h-8 w-36 rounded-md" />
-      <Skeleton className="h-8 w-36 rounded-md" />
       <Skeleton className="size-8 rounded-md" />
     </>
   );
