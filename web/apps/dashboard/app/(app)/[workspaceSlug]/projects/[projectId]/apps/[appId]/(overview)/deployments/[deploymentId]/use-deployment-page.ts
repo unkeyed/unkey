@@ -46,6 +46,7 @@ export function useDeploymentPage() {
   return {
     deployment,
     steps: steps.data,
+    stepsFetched: steps.isFetchedAfterMount,
     domainsLoading,
     showSuccessBanner,
     ...deploymentPageModel({
