@@ -1,3 +1,4 @@
 export function formatUserCode(code: string): string {
-  return [...code.trim().toUpperCase()].join(" ");
+  const symbols = code.trim().toUpperCase().replaceAll("-", "");
+  return `${symbols.slice(0, 4)}-${symbols.slice(4)}`;
 }
