@@ -166,3 +166,24 @@ func TestLimiterAllowManyReadsPeerRowsOfEveryLimit(t *testing.T) {
 	require.False(t, results[1].Allowed)
 	require.Equal(t, 2, store.readCallCount())
 }
+
+// TestLimiterNeverWritesPeerRows guarantees that a pod writes only its own
+// sessions. Writing a peer's row back could bring it back after cleanup
+// deleted or merged it, and count its units twice.
+func TestLimiterNeverWritesPeerRows(t *testing.T) {
+	ctx := context.Background()
+	l, testClock := newTestLimiter(t)
+	store := memoryStoreOf(t, l)
+	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: 10 * time.Second}, Units: 1}
+	writePeer(t, store, request, "peer", testClock.Now(), 3)
+	writes := store.writeCallCount()
+
+	_, err := l.Allow(ctx, request)
+	require.NoError(t, err)
+	require.NoError(t, l.flush(ctx))
+
+	require.Equal(t, writes+1, store.writeCallCount())
+	for _, written := range store.writeCalls[writes] {
+		require.NotEqual(t, "peer", written.SessionID)
+	}
+}

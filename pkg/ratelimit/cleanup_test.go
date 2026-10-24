@@ -2,13 +2,17 @@ package ratelimit
 
 import (
 	"cmp"
+	"context"
 	"fmt"
 	"maps"
+	"math"
+	"math/rand/v2"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/fuzz"
 )
 
@@ -141,4 +145,151 @@ func sessionsOf(table map[string]StoredSession) []session {
 		sessions = append(sessions, session{id: row.SessionID, anchorAtNs: row.AnchorAtNs, consumedNs: row.ConsumedNs})
 	}
 	return sessions
+}
+
+// TestCleanUpDeletesEveryIdleFingerprintInOnePass guarantees that one pass
+// reaches every due row: past its random start, before it after the wrap,
+// and across several pages. 900 fingerprints with 4 due rows each give 3,600
+// due rows, more than `dueRowsPerPage`, but fewer fingerprints than
+// `maxFingerprintsPerCleanupPass`.
+func TestCleanUpDeletesEveryIdleFingerprintInOnePass(t *testing.T) {
+	const fingerprints = 900
+	const rowsPerFingerprint = 4
+	for seed := range uint64(5) {
+		t.Run(fmt.Sprintf("seed %d", seed), func(t *testing.T) {
+			testClock := clock.NewTestClock(time.Unix(1_700_000_000, 0))
+			store := newMemoryStore()
+			l, err := newLimiter(Config{Clock: testClock, Store: store, Random: rand.New(rand.NewPCG(seed, 1))})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, l.Close()) })
+
+			// Anchors spread over 20 minutes and end 50 minutes ago, so every
+			// row is due and every limit has been idle for half an hour.
+			oldestAnchorNs := testClock.Now().Add(-70 * time.Minute).UnixNano()
+			var rows []StoredSession
+			for f := range fingerprints {
+				for r := range rowsPerFingerprint {
+					anchorAtNs := oldestAnchorNs + int64(f*rowsPerFingerprint+r)*(20*time.Minute).Nanoseconds()/(fingerprints*rowsPerFingerprint)
+					rows = append(rows, StoredSession{
+						Fingerprint:    fingerprint(fmt.Sprintf("idle %d", f)),
+						SessionID:      fmt.Sprintf("session %d", r),
+						AnchorAtNs:     anchorAtNs,
+						ConsumedNs:     time.Millisecond.Nanoseconds(),
+						CompactAfterMs: (anchorAtNs + compactAfter.Nanoseconds()) / time.Millisecond.Nanoseconds(),
+					})
+				}
+			}
+			require.NoError(t, store.WriteSessions(context.Background(), rows))
+
+			require.NoError(t, l.cleanUp(context.Background()))
+			for f := range fingerprints {
+				require.Empty(t, store.sessions(fingerprint(fmt.Sprintf("idle %d", f))), "fingerprint %d", f)
+			}
+		})
+	}
+}
+
+func TestCleanUpReturnsAFailedPrimaryRead(t *testing.T) {
+	testClock := clock.NewTestClock(time.Unix(1_700_000_000, 0))
+	store := newMemoryStore()
+	l, err := newLimiter(Config{Clock: testClock, Store: store, Random: rand.New(rand.NewPCG(1, 2))})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, l.Close()) })
+
+	anchorAtNs := testClock.Now().Add(-time.Hour).UnixNano()
+	require.NoError(t, store.WriteSessions(context.Background(), []StoredSession{{
+		Fingerprint:    fingerprint("idle"),
+		SessionID:      "session",
+		AnchorAtNs:     anchorAtNs,
+		ConsumedNs:     time.Millisecond.Nanoseconds(),
+		CompactAfterMs: (anchorAtNs + compactAfter.Nanoseconds()) / time.Millisecond.Nanoseconds(),
+	}}))
+	store.setFailReads(true)
+
+	require.Error(t, l.cleanUp(context.Background()))
+}
+
+// TestCleanUpPagesPastRowsItKeeps guarantees that a pass moves past a full
+// page of due rows that it cannot change. The busy fingerprint has
+// `dueRowsPerPage + 1` due rows, each alone between two rows that are not
+// due, so there is nothing to merge, and its oldest run is still counted by
+// the next row. The idle fingerprint sorts after it with the same
+// `CompactAfterMs`, so only the second page reaches it.
+func TestCleanUpPagesPastRowsItKeeps(t *testing.T) {
+	testClock := clock.NewTestClock(time.Unix(1_700_000_000, 0))
+	store := newMemoryStore()
+	l, err := newLimiter(Config{Clock: testClock, Store: store, Random: rand.New(rand.NewPCG(1, 2))})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, l.Close()) })
+
+	busy := [32]byte{1}
+	idle := [32]byte{2}
+	dueMs := testClock.Now().UnixMilli() - 1
+	notDueMs := testClock.Now().UnixMilli() + time.Hour.Milliseconds()
+	baseAnchorNs := testClock.Now().Add(-time.Hour).UnixNano()
+	var rows []StoredSession
+	for i := range dueRowsPerPage + 1 {
+		rows = append(rows,
+			StoredSession{Fingerprint: busy, SessionID: fmt.Sprintf("due %d", i), AnchorAtNs: baseAnchorNs + int64(2*i), ConsumedNs: 5, CompactAfterMs: dueMs},
+			StoredSession{Fingerprint: busy, SessionID: fmt.Sprintf("not due %d", i), AnchorAtNs: baseAnchorNs + int64(2*i+1), ConsumedNs: 5, CompactAfterMs: notDueMs},
+		)
+	}
+	rows = append(rows, StoredSession{Fingerprint: idle, SessionID: "idle", AnchorAtNs: baseAnchorNs, ConsumedNs: 5, CompactAfterMs: dueMs})
+	require.NoError(t, store.WriteSessions(context.Background(), rows))
+
+	require.NoError(t, l.cleanUp(context.Background()))
+	require.Len(t, store.sessions(busy), 2*(dueRowsPerPage+1))
+	require.Empty(t, store.sessions(idle))
+}
+
+// TestPlanCleanupRejectsInvalidRows guarantees that cleanup leaves rows alone
+// that it cannot reason about, instead of deleting or merging them.
+func TestPlanCleanupRejectsInvalidRows(t *testing.T) {
+	const nowNs = int64(time.Hour)
+	dueMs := nowNs/time.Millisecond.Nanoseconds() - 1
+	valid := StoredSession{Fingerprint: [32]byte{1}, SessionID: "valid", AnchorAtNs: 100, ConsumedNs: 10, CompactAfterMs: dueMs}
+	with := func(change func(*StoredSession)) StoredSession {
+		row := valid
+		row.SessionID = "changed"
+		change(&row)
+		return row
+	}
+
+	cases := []struct {
+		name  string
+		nowNs int64
+		rows  []StoredSession
+	}{
+		{name: "time at the Unix epoch", nowNs: 0, rows: []StoredSession{valid}},
+		{name: "two fingerprints", nowNs: nowNs, rows: []StoredSession{valid, with(func(r *StoredSession) { r.Fingerprint = [32]byte{2} })}},
+		{name: "repeated session ID", nowNs: nowNs, rows: []StoredSession{valid, valid}},
+		{name: "zero anchor", nowNs: nowNs, rows: []StoredSession{valid, with(func(r *StoredSession) { r.AnchorAtNs = 0 })}},
+		{name: "negative consumed time", nowNs: nowNs, rows: []StoredSession{valid, with(func(r *StoredSession) { r.ConsumedNs = -1 })}},
+		{name: "consumed sum overflows", nowNs: nowNs, rows: []StoredSession{
+			with(func(r *StoredSession) { r.SessionID = "a"; r.ConsumedNs = math.MaxInt64/2 + 1 }),
+			with(func(r *StoredSession) { r.SessionID = "b"; r.ConsumedNs = math.MaxInt64/2 + 1 }),
+		}},
+		{name: "anchor plus consumed overflows", nowNs: nowNs, rows: []StoredSession{with(func(r *StoredSession) { r.AnchorAtNs = math.MaxInt64 - 5 })}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := planCleanup(tc.rows, true, tc.nowNs, func() string { return "merged" })
+			require.Error(t, err)
+		})
+	}
+}
+
+// TestPlanCleanupLeavesALoneDueRowThatIsStillCounted guarantees that a single
+// due row that cannot be deleted is not rewritten on every pass.
+func TestPlanCleanupLeavesALoneDueRowThatIsStillCounted(t *testing.T) {
+	const nowNs = int64(time.Hour)
+	dueMs := nowNs/time.Millisecond.Nanoseconds() - 1
+	rows := []StoredSession{
+		{SessionID: "due", AnchorAtNs: 100, ConsumedNs: 10, CompactAfterMs: dueMs},
+		{SessionID: "not due", AnchorAtNs: 105, ConsumedNs: 5, CompactAfterMs: dueMs + 2},
+	}
+	plan, err := planCleanup(rows, true, nowNs, func() string { return "merged" })
+	require.NoError(t, err)
+	require.Empty(t, plan.deleted)
+	require.Empty(t, plan.inserted)
 }
