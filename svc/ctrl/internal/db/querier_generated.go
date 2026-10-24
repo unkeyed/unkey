@@ -1930,6 +1930,19 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertPermission(ctx context.Context, arg InsertPermissionParams) error
+	// Creates a bare portal row. Portals are created through the API, so ctrl only
+	// needs this to seed tests that attach domains to one.
+	//
+	//  INSERT INTO portals (id, workspace_id, project_id, slug, display_name, created_at)
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertPortal(ctx context.Context, arg InsertPortalParams) error
 	// Creates a portal domain awaiting verification. A duplicate (workspace_id, domain)
 	// or target_cname surfaces as a unique-key error for the caller to map.
 	//
@@ -2475,6 +2488,14 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  FOR UPDATE
 	LockLimitsByWorkspaceID(ctx context.Context, workspaceID string) (LockLimitsByWorkspaceIDRow, error)
+	// Share-locks a tenant's portal while a domain is attached to it. Deleting the
+	// portal locks the same row exclusively, so the two serialize and a domain can
+	// never be attached to a portal that is mid-delete or already gone.
+	//
+	//  SELECT id FROM portals
+	//  WHERE id = ? AND workspace_id = ?
+	//  LOCK IN SHARE MODE
+	LockPortal(ctx context.Context, arg LockPortalParams) (string, error)
 	//MarkAppDeleted
 	//
 	//  UPDATE apps SET deleted_at = COALESCE(deleted_at, ?)

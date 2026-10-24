@@ -21,6 +21,12 @@ data:
     keyspace = "unkey"
     insecure = true
 
+    # The portal app's production environment. No local portal app is seeded,
+    # so portal domains cannot be added until this names one.
+    [portal]
+    environment_id = ""
+    cname_domain = "portal.unkey.local"
+
     [restate]
     url = "http://restate:8080"
     admin_url = "http://restate:9070"

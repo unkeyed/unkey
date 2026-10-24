@@ -205,6 +205,15 @@ func TestCheckAllowance(t *testing.T) {
 	requireCode(t, codes.Limits.CustomDomain.Exceeded, domaingate.CheckAllowance(3, 1))
 }
 
+func TestCheckPortalAllowance(t *testing.T) {
+	t.Parallel()
+
+	require.NoError(t, domaingate.CheckPortalAllowance(0))
+	require.NoError(t, domaingate.CheckPortalAllowance(domaingate.PortalDomainsMax-1))
+	requireCode(t, codes.Limits.CustomDomain.Exceeded, domaingate.CheckPortalAllowance(domaingate.PortalDomainsMax))
+	requireCode(t, codes.Limits.CustomDomain.Exceeded, domaingate.CheckPortalAllowance(domaingate.PortalDomainsMax+1))
+}
+
 // ctrl surfaces fault.UserFacingMessage on its own error surface, so verify each
 // outcome exposes exactly the caller-facing message and never the internal detail.
 func TestFaultUserFacingMessage(t *testing.T) {
