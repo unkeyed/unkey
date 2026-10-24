@@ -13,9 +13,33 @@ notion:
 
 Do not use `time.Sleep` to wait for async work. Use `require.Eventually` or a test clock.
 
+Prefer an observable completion signal when one exists. Polling must have a
+bounded timeout and a condition from the public contract. Increasing a sleep or
+timeout until CI passes does not establish synchronization. Assertions that
+terminate a test must run in its owning goroutine; send worker results back
+instead of calling `require` from workers or HTTP handler callbacks.
+
 ## Testing implementation details
 
 Verify public behavior, not internal fields. Refactors must not break tests when behavior is unchanged.
+
+## Copying the implementation into expected values
+
+Do not calculate expected results with the helper or algorithm being tested.
+Do not accept a guessed status code because the implementation returns it.
+Anchor expectations to an independent contract and test an input that a
+plausible wrong implementation handles differently. See
+[independent expectations](./index.md#establish-an-independent-expectation).
+
+## Passing by omission
+
+A cached result, missing test name, skipped witness, or all-rejected fuzz input
+does not demonstrate the claimed behavior. Preserve the first failure and its
+seed. Do not add retries, suppress a race report, or weaken an assertion to
+produce a green run. A build or setup error cannot substitute for a red
+regression witness. Intentional skips and lint suppressions need a reason and
+review; temporary disabled tests must not become permanent substitutes for
+coverage.
 
 ## Treating tests as throwaway code
 
