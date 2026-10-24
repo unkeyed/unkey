@@ -60,6 +60,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
+	workerportaldomain "github.com/unkeyed/unkey/svc/ctrl/worker/portaldomain"
 
 	"github.com/unkeyed/unkey/internal/services/flags"
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
@@ -487,14 +488,28 @@ func Run(ctx context.Context, cfg Config) error {
 		Resolver:    domainverify.SystemResolver{},
 		CnameDomain: cfg.CnameDomain,
 	}),
-		// Retry every 1 minute for up to 24 hours (1440 attempts). Pause (not
-		// kill) on exhaustion so compensations remain possible via operator
-		// cancel.
+		// Pause (not kill) on exhaustion so compensations remain possible via
+		// operator cancel.
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialRetryInterval(1*time.Minute),
-			restate.WithRetryIntervalFactor(1.0), // Fixed interval, no exponential backoff
-			restate.WithMaxRetryInterval(1*time.Minute),
-			restate.WithMaxRetryAttempts(1440),
+			restate.WithInitialRetryInterval(domainverify.RetryInterval),
+			restate.WithRetryIntervalFactor(1.0),
+			restate.WithMaxRetryInterval(domainverify.RetryInterval),
+			restate.WithMaxRetryAttempts(domainverify.RetryAttemptsMax),
+			restate.PauseOnMaxAttempts(),
+		),
+	))
+
+	restateSrv.Bind(hydrav1.NewPortalDomainServiceServer(workerportaldomain.New(workerportaldomain.Config{
+		DB:            database,
+		Resolver:      domainverify.SystemResolver{},
+		EnvironmentID: cfg.Portal.EnvironmentID,
+	}),
+		// Same cadence and exhaustion behavior as custom domain verification.
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(domainverify.RetryInterval),
+			restate.WithRetryIntervalFactor(1.0),
+			restate.WithMaxRetryInterval(domainverify.RetryInterval),
+			restate.WithMaxRetryAttempts(domainverify.RetryAttemptsMax),
 			restate.PauseOnMaxAttempts(),
 		),
 	))

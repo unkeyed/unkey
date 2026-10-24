@@ -14,6 +14,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/domainverify"
 )
 
 // missingRowDB answers the domain lookup with NotFound. The embedded interface
@@ -27,7 +28,7 @@ func (missingRowDB) FindCustomDomainById(_ context.Context, _ string) (db.Custom
 
 // AddCustomDomain submits the workflow inside the transaction that inserts the
 // domain row, so the first attempts can run before the commit lands. Within
-// rowVisibilityGrace a missing row must surface as a retryable error, not a
+// domainverify.RowCommitGrace a missing row must surface as a retryable error, not a
 // terminal one: terminal here would kill the workflow for good and strand the
 // row in `pending` once the commit does land.
 func TestVerifyDomainToleratesRowNotYetVisible(t *testing.T) {
@@ -50,8 +51,8 @@ func TestVerifyDomainToleratesRowNotYetVisible(t *testing.T) {
 // terminates, pinning the `<` so the window cannot quietly become one retry wider.
 func TestVerifyDomainTerminatesWhenRowStaysMissing(t *testing.T) {
 	for name, age := range map[string]time.Duration{
-		"past the window":         rowVisibilityGrace + time.Second,
-		"exactly on the boundary": rowVisibilityGrace,
+		"past the window":         domainverify.RowCommitGrace + time.Second,
+		"exactly on the boundary": domainverify.RowCommitGrace,
 	} {
 		t.Run(name, func(t *testing.T) {
 			svc := New(Config{DB: missingRowDB{}, Resolver: nil, CnameDomain: "cname.unkey.local"})
@@ -92,7 +93,7 @@ func TestVerifyDomainOldRowDoesNotTimeOut(t *testing.T) {
 	svc := New(Config{DB: staleRowDB{row: db.CustomDomain{
 		ID:        domainID,
 		Domain:    "retry.example.com",
-		CreatedAt: time.Now().Add(-2 * maxVerificationDuration).UnixMilli(),
+		CreatedAt: time.Now().Add(-2 * domainverify.DurationMax).UnixMilli(),
 	}}, Resolver: nil, CnameDomain: "cname.unkey.local"})
 
 	mockCtx := mocks.NewMockContext(t)
@@ -117,7 +118,7 @@ func TestVerifyDomainOldInvocationTimesOut(t *testing.T) {
 
 	mockCtx := mocks.NewMockContext(t)
 	mockCtx.EXPECT().Key().Return(domainID)
-	mockStartedAt(mockCtx, time.Now().Add(-maxVerificationDuration-time.Second))
+	mockStartedAt(mockCtx, time.Now().Add(-domainverify.DurationMax-time.Second))
 	// The mark-failed step writes into an *encoding.Void target, so it needs its
 	// own expectation next to the *time.Time one above.
 	mockCtx.EXPECT().Run(mock.Anything, mock.AnythingOfType("*encoding.Void"), mock.Anything).Return(nil)
