@@ -15,6 +15,7 @@ import {
 import { formatUserCode } from "@/lib/cli/format-user-code";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
@@ -74,7 +75,7 @@ export function AuthorizeDeviceLogin({ userCode }: AuthorizeDeviceLoginProps) {
         />
       ) : query.isError ? (
         <p className="max-w-md text-balance text-center text-sm leading-5 text-gray-11">
-          {query.error instanceof Error ? query.error.message : "This login could not be loaded."}
+          {getErrorMessage(query.error, "This login could not be loaded.")}
         </p>
       ) : null}
     </CenteredFlow>
@@ -249,7 +250,7 @@ function PendingLogin({
       await onChanged();
     },
     onError(error) {
-      toast.error(error instanceof Error ? error.message : "Could not approve this login.");
+      toast.error(getErrorMessage(error, "Could not approve this login."));
     },
   });
   const deny = useMutation({
@@ -259,7 +260,7 @@ function PendingLogin({
       await onChanged();
     },
     onError(error) {
-      toast.error(error instanceof Error ? error.message : "Could not deny this login.");
+      toast.error(getErrorMessage(error, "Could not deny this login."));
     },
   });
 
