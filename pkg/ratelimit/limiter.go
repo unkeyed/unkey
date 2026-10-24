@@ -254,12 +254,12 @@ func (l *limiter) entryOf(fingerprint [32]byte) *entry {
 
 // apply writes an allowed decision into the entry. A new session gets a fresh
 // ID and a random lifetime. The caller holds the shard lock.
-func (l *limiter) apply(e *entry, applied decision, nowNs int64) error {
-	if applied.createNewSessionAtNs == 0 {
-		return e.apply(applied, "")
+func (l *limiter) apply(e *entry, d decision, nowNs int64) error {
+	if d.createNewSessionAtNs == 0 {
+		return e.apply(d, "")
 	}
 	id, lifetime := l.newSession()
-	err := e.apply(applied, id)
+	err := e.apply(d, id)
 	if err != nil {
 		return err
 	}

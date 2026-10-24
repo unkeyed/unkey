@@ -203,15 +203,15 @@ func decide(current resetTimes, nowNs int64, rate Rate, units int64) (decision, 
 
 // resetTimesAfter returns the reset times after an allowed decision with positive
 // `consumedNs` was applied. The decision must come from `decide` on `current`.
-func resetTimesAfter(current resetTimes, applied decision) resetTimes {
+func resetTimesAfter(current resetTimes, d decision) resetTimes {
 	// Either way, the largest raised candidate is the new `reset_at`.
 	next := resetTimes{
-		resetAtNs:                         applied.resetAtNs,
-		maxCandidateRaisedByLiveSessionNs: applied.resetAtNs,
+		resetAtNs:                         d.resetAtNs,
+		maxCandidateRaisedByLiveSessionNs: d.resetAtNs,
 		newestAnchorAtNs:                  current.newestAnchorAtNs,
 	}
-	if applied.createNewSessionAtNs != 0 {
-		next.newestAnchorAtNs = applied.createNewSessionAtNs
+	if d.createNewSessionAtNs != 0 {
+		next.newestAnchorAtNs = d.createNewSessionAtNs
 	}
 	return next
 }
