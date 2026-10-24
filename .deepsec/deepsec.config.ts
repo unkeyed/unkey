@@ -2,7 +2,8 @@ import { defineConfig } from "deepsec/config";
 import { generatedMatchersPlugin } from "./generated-matchers.js";
 
 export default defineConfig({
-	defaultAgent: "codex",
+	defaultAgent: "pi",
+	defaultModel: "deepseek/deepseek-v4-flash",
 	defaultThinkingLevel: "xhigh",
 	ai: {
 		mode: "gateway",
