@@ -49,7 +49,11 @@ export function useStagesCard({
   const [openStage, setOpenStage] = useState<OpenStage>(() =>
     initialOpenStage({ failed: failedStage, requested: requestedStage }),
   );
-  const followed = followRequestedStage(followFailedStage(openStage, failedStage), requestedStage);
+  const followed = followRequestedStage(
+    followFailedStage(openStage, failedStage),
+    requestedStage,
+    steps !== undefined,
+  );
   if (followed !== openStage) {
     setOpenStage(followed);
   }

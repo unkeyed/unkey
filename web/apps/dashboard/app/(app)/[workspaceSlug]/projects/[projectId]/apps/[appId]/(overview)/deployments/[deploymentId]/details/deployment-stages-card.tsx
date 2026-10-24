@@ -1,6 +1,5 @@
 "use client";
 
-import { isPrebuilt } from "@/lib/collections/deploy/deployments";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import {
   IconCheckOutline12,
@@ -59,12 +58,10 @@ export function DeploymentStagesCard({ page }: { page: StagesCardPage }) {
 
   const panel = (key: StageKey, status: StageStatus) =>
     match(key)
-      .with("build", () =>
-        isPrebuilt(page.deployment) ? null : (
-          // A remount on a build failure starts the logs at the last error
-          <DeploymentBuildLogs key={failedStage === "build" ? "failed" : "live"} {...buildPanel} />
-        ),
-      )
+      .with("build", () => (
+        // A remount on a build failure starts the logs at the last error
+        <DeploymentBuildLogs key={failedStage === "build" ? "failed" : "live"} {...buildPanel} />
+      ))
       .with("instances", () => <InstancesDiagram stage={status} />)
       .with("domains", () => (
         <DomainList domains={page.domains.all} loading={page.domainCount === null} />
