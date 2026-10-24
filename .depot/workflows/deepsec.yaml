@@ -22,7 +22,18 @@ jobs:
         run: echo "url=$DEPOT_JOB_URL" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Require trusted scanner configuration
+        run: |
+          if [ ! -f .deepsec/deepsec.config.ts ]; then
+            echo '::error::DeepSec must be merged into the base branch before CI scans can run. PR configuration is not trusted.'
+            exit 1
+          fi
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
           ref: ${{ github.event.pull_request.head.sha }}
+          path: review-source
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.depot/actions/setup-mise
@@ -34,8 +45,8 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           mise exec -- pnpm --dir .deepsec install --frozen-lockfile --ignore-scripts
-          merge_base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
-          git diff --name-only --diff-filter=ACMR "$merge_base" "$HEAD_SHA" -- \
+          merge_base=$(git -C review-source merge-base "$BASE_SHA" "$HEAD_SHA")
+          git -C review-source diff --name-only --diff-filter=ACMR "$merge_base" "$HEAD_SHA" -- \
             . ':!gen/**' ':!**/node_modules/**' ':!**/dist/**' ':!**/vendor/**' \
             ':!**/*.generated.*' ':!**/*_generated.*' ':!**/*.pb.go' \
             ':!**/pnpm-lock.yaml' ':!go.sum' ':!web/apps/agent/gen/**' \
@@ -52,7 +63,7 @@ jobs:
             exit 2
           fi
           mise exec -- pnpm exec deepsec process \
-            --root "$GITHUB_WORKSPACE" \
+            --root "$GITHUB_WORKSPACE/review-source" \
             --project-id unkey \
             --concurrency 2 \
             --files-from files.txt \

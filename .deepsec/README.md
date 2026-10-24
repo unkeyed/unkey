@@ -35,10 +35,16 @@ maps it to DeepSec's `AI_GATEWAY_API_KEY` environment variable. Use a dedicated
 Gateway key and configure its spending limit in Vercel.
 
 The `.depot/workflows/deepsec.yaml` workflow reviews same-repository PRs,
-including drafts. It loads this workspace and the reviewed source from the
-PR head, so configuration changes are tested before merge. Same-repository
-contributors are trusted: scanner configuration executes with the Gateway key
-available. Fork PRs are excluded.
+including drafts. It loads the scanner workspace, dependencies, and setup
+action from the PR's base commit. A separate `review-source` checkout holds
+the PR head as scan input. Fork PRs are excluded.
+
+The scanner workspace must exist in the base branch before CI scans can run.
+If it is missing, the job stops without loading configuration from the PR.
+Scanner configuration changes take effect only after merge. This separation
+prevents PR configuration from being loaded as scanner code, but does not
+sandbox the scanner or its agent. Repository writers must still be trusted
+to change CI workflows that have access to repository secrets.
 
 CI installs `pnpm-lock.yaml` with `--frozen-lockfile`, then uses that
 workspace's CLI so its runtime dependencies also match the lockfile.
