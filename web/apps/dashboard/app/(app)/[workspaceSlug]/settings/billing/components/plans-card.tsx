@@ -51,7 +51,7 @@ export function PlansCard({ isAdmin, hasPaymentMethod, workspaceSlug, billing }:
   const emphasize = billing !== undefined && !deploySubscription?.plan && !hasPaidApiPlan;
 
   return (
-    <ItemGroup variant="outline">
+    <ItemGroup variant="raised">
       <ItemHeader>
         <ItemContent>
           <ItemTitle>Plans</ItemTitle>
