@@ -57,7 +57,14 @@ export function SeriesChart({
     ))
     .with({ status: "loading" }, () => (
       <ChartFrame {...frame} data={null}>
-        <AreaTimeseriesChart data={[]} isLoading config={series} height={height} />
+        <AreaTimeseriesChart
+          data={[]}
+          isLoading
+          config={series}
+          height={height}
+          fill="flat"
+          formatTooltipValue={UNITS[scale.unit].format}
+        />
       </ChartFrame>
     ))
     .with({ status: "ready" }, (ready) => (
