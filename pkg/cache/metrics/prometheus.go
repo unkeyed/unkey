@@ -22,22 +22,6 @@ var (
 		[]string{"resource", "hit"},
 	)
 
-	// CacheWrites tracks the number of cache write operations, labeled by resource type.
-	// Use this to monitor write pressure on the cache.
-	//
-	// Example usage:
-	//   metrics.CacheWrites.WithLabelValues("user_profile").Inc()
-	//   metrics.CacheWrites.WithLabelValues("user_profile").Set(float64(writeCount))
-	CacheWrites = lazy.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "cache",
-			Name:      "writes",
-			Help:      "Number of cache writes by resource type.",
-		},
-		[]string{"resource"},
-	)
-
 	// CacheDeleted tracks the number of items removed from the cache due to space constraints
 	// or explicit deletion, labeled by resource type and reason.
 	// Use this to monitor cache churn and capacity issues.
@@ -169,21 +153,6 @@ var (
 			Name:      "revalidation_duration_seconds",
 			Help:      "Execution time of background refresh jobs, including failed refreshes and excluding queue wait. Each batch is one observation.",
 			Buckets:   []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60},
-		},
-		[]string{"resource"},
-	)
-
-	// CacheReadsErrorsTotal tracks the total number of cache read errors,
-	// labeled by resource type. Use this counter to monitor cache read error rates.
-	//
-	// Example usage:
-	//   metrics.CacheReadsErrorsTotal.WithLabelValues("user_profile").Inc()
-	CacheReadsErrorsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cache",
-			Name:      "reads_errors_total",
-			Help:      "Total number of cache read errors by resource type.",
 		},
 		[]string{"resource"},
 	)
