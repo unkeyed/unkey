@@ -33,9 +33,7 @@ const SettingCardGroupContext = React.createContext(false);
 function SettingCardGroup({ children }: { children: React.ReactNode }) {
   return (
     <SettingCardGroupContext.Provider value={true}>
-      <div className="border rounded-lg overflow-hidden divide-y divide-grayA-4 bg-raised">
-        {children}
-      </div>
+      <div className="rounded-lg overflow-hidden divide-y bg-raised shadow-raised">{children}</div>
     </SettingCardGroupContext.Provider>
   );
 }
@@ -252,9 +250,9 @@ type SettingsZoneVariant = "danger" | "warning";
 
 const SettingsZoneContext = React.createContext<SettingsZoneVariant>("danger");
 
-const zoneStyles: Record<SettingsZoneVariant, { heading: string; border: string }> = {
-  danger: { heading: "text-error-11", border: "border-error-7 divide-error-7" },
-  warning: { heading: "text-warning-11", border: "border-warning-7 divide-warning-7" },
+const zoneStyles: Record<SettingsZoneVariant, { heading: string; frame: string }> = {
+  danger: { heading: "text-error-11", frame: "[--hairline:var(--color-error-7)]" },
+  warning: { heading: "text-warning-11", frame: "[--hairline:var(--color-warning-7)]" },
 };
 
 function SettingsZone({
@@ -275,8 +273,8 @@ function SettingsZone({
         <h2 className={cn("font-semibold text-lg leading-6", styles.heading)}>{title}</h2>
         <div
           className={cn(
-            "@container rounded-lg border overflow-hidden divide-y bg-raised",
-            styles.border,
+            "@container rounded-lg overflow-hidden divide-y bg-raised shadow-raised",
+            styles.frame,
           )}
         >
           {children}

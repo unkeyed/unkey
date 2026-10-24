@@ -3,7 +3,7 @@ import type * as React from "react";
 
 import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";
-import { Card, CardContent } from "./card";
+import { CardContent } from "./card";
 
 export interface BannerCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onDismiss?: () => void;
@@ -22,9 +22,12 @@ export function BannerCard({
   ...props
 }: BannerCardProps) {
   return (
-    <Card
+    <div
       ref={ref}
-      className={cn("relative overflow-hidden rounded-xl shadow-lg", className)}
+      className={cn(
+        "relative w-full overflow-hidden rounded-xl border bg-raised shadow-lg",
+        className,
+      )}
       {...props}
     >
       {illustration ? (
@@ -47,6 +50,6 @@ export function BannerCard({
         ) : null}
         {children}
       </CardContent>
-    </Card>
+    </div>
   );
 }

@@ -6,13 +6,14 @@ When to use certain tokens:
   hairline            border             (border-strong to emphasise,
                                           border-input on a control edge)
   text                text-gray-12       (text-gray-11 muted, text-gray-9 dim)
-  lifted off the page shadow-floating    (for a card that only sits use shadow-xs)
+  lifted off the page shadow-floating    (a card that sits on the page: shadow-raised)
   status colour       success, warning, error, info, feature
 */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --default-border-width: var(--hairline-width);
   --text-*: initial;
   --text-3xs: 0.625rem;
   --text-3xs--line-height: 1rem;
@@ -127,6 +128,11 @@ When to use certain tokens:
       grid-template-rows: 1fr;
     }
   }
+}
+
+@theme inline {
+  --shadow-raised:
+    var(--raised-ring, var(--hairline)) 0 0 0 var(--hairline-width), var(--elevation-raised);
 }
 
 @theme static {
@@ -362,10 +368,21 @@ When to use certain tokens:
   }
 
   :root {
+    --hairline-width: 1px;
     --hairline: var(--color-grayA-4);
     --elevation-floating:
-      0 0 0 1px var(--hairline), 0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 0 0 var(--hairline-width) var(--hairline), 0 10px 15px -3px rgb(0 0 0 / 0.1),
       0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --elevation-raised: 0 1px 2px rgb(0 0 0 / 0.03), 0 2px 4px -1px rgb(0 0 0 / 0.04);
+  }
+
+  @media (min-resolution: 2dppx) {
+    :root {
+      --hairline-width: 0.5px;
+      --hairline: var(--color-grayA-6);
+      --border-color-input: var(--color-grayA-7);
+      --border-color-strong: var(--color-grayA-8);
+    }
   }
 
   .dark {
@@ -581,8 +598,9 @@ When to use certain tokens:
     --background-color-raised: oklch(0.2044 0 0);
     --background-color-table-header: var(--color-gray-2);
     --elevation-floating:
-      0 0 0 1px var(--hairline), 0 10px 15px -3px rgb(0 0 0 / 0.5),
+      0 0 0 var(--hairline-width) var(--hairline), 0 10px 15px -3px rgb(0 0 0 / 0.5),
       0 4px 6px -4px rgb(0 0 0 / 0.5);
+    --elevation-raised: 0 1px 2px rgb(0 0 0 / 0.2), 0 2px 4px -1px rgb(0 0 0 / 0.25);
   }
 
   *,
