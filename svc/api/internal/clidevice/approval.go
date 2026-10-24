@@ -15,11 +15,7 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 	if err := RequireDashboardSession(req.Principal); err != nil {
 		return Authorization{}, err
 	}
-	code, err := normalizeUserCode(req.UserCode)
-	if err != nil {
-		return Authorization{}, err
-	}
-	row, err := db.Query.FindDeviceAuthorizationByUserCode(ctx, s.DB.RO(), code)
+	row, err := db.Query.FindDeviceAuthorizationByUserCode(ctx, s.DB.RO(), normalizeUserCode(req.UserCode))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return Authorization{}, loginNotFound()
@@ -37,16 +33,9 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 	if err := RequireDashboardSession(req.Principal); err != nil {
 		return err
 	}
-	code, err := normalizeUserCode(req.UserCode)
-	if err != nil {
-		return err
-	}
 	validated, err := principalpermissions.ValidateDelegatedPermissions(ctx, req.Principal, req.Permissions)
 	if err != nil {
 		return err
-	}
-	if len(validated) == 0 {
-		return invalid("Select at least one permission.")
 	}
 	source, ok := req.Principal.Source.(principal.JWTSource)
 	if !ok {
@@ -62,7 +51,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 	}
 
 	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, code)
+		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
 				return loginNotFound()
@@ -109,12 +98,8 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 	if err := RequireDashboardSession(req.Principal); err != nil {
 		return err
 	}
-	code, err := normalizeUserCode(req.UserCode)
-	if err != nil {
-		return err
-	}
 	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, code)
+		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
 				return loginNotFound()

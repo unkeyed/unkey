@@ -80,11 +80,7 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 	if err := RequireUserSession(req.Principal); err != nil {
 		return err
 	}
-	sessionID := strings.TrimSpace(req.SessionID)
-	if sessionID == "" {
-		return invalid("The session id is invalid.")
-	}
-	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), sessionID)
+	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), strings.TrimSpace(req.SessionID))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return invalid("This CLI session was not found.")
