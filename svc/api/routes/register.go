@@ -726,6 +726,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -1013,6 +1014,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		}),
 	)
 
