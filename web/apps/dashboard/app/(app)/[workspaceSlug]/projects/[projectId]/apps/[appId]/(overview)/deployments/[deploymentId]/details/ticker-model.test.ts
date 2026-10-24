@@ -196,6 +196,28 @@ describe("stageTickerLine", () => {
     });
   });
 
+  it("swaps the instance count line when only its tone changes", () => {
+    const countLine = (state: "starting" | "unhealthy") =>
+      stageTickerLine(
+        stage("instances", "started"),
+        sources({ runtimeLogs: [], instances: { state, running: 0, total: 2 } }),
+      );
+    const starting = countLine("starting");
+    const unhealthy = countLine("unhealthy");
+    if (!starting || !unhealthy) {
+      throw new Error("expected instance count lines");
+    }
+    const state = [starting, unhealthy].reduce(
+      (s, line) => tickerReducer(s, { type: "receive", line, animate: false }),
+      emptyTicker,
+    );
+    expect(state.shown).toEqual({
+      id: "instances-error-0 of 2 running",
+      text: "0 of 2 running",
+      tone: "error",
+    });
+  });
+
   it("shows nothing for stages without their own logs", () => {
     expect(stageTickerLine(stage("domains", "started"), sources())).toBeNull();
   });

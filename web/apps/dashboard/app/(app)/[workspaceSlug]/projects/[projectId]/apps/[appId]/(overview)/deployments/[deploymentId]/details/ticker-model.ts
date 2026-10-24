@@ -142,11 +142,8 @@ function instancesLine(instances: InstanceSummary | null): TickerLine | null {
     return null;
   }
   const text = runningCountText(instances);
-  return {
-    id: `instances-${text}`,
-    text,
-    tone: instances.state === "unhealthy" ? "error" : "plain",
-  };
+  const tone = instances.state === "unhealthy" ? "error" : "plain";
+  return { id: `instances-${tone}-${text}`, text, tone };
 }
 
 const liveLine: Record<StageKey, (sources: TickerSources) => TickerLine | null> = {
