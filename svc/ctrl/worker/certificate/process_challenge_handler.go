@@ -82,9 +82,11 @@ func (s *Service) ProcessChallenge(
 		return nil, err
 	}
 
-	// Step 2: Claim the challenge
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, s.db.UpdateAcmeChallengeTryClaiming(stepCtx, db.UpdateAcmeChallengeTryClaimingParams{
+	// Step 2: Claim the challenge. The update only matches a row still in
+	// waiting, so zero rows means another run already claimed it, or it is
+	// already verified and has nothing to reissue
+	claimed, err := restate.Run(ctx, func(stepCtx restate.RunContext) (int64, error) {
+		return s.db.UpdateAcmeChallengeTryClaiming(stepCtx, db.UpdateAcmeChallengeTryClaimingParams{
 			DomainID:  dom.ID,
 			Status:    db.AcmeChallengesStatusPending,
 			UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
@@ -92,6 +94,10 @@ func (s *Service) ProcessChallenge(
 	}, restate.WithName("claim challenge"))
 	if err != nil {
 		return nil, err
+	}
+	if claimed == 0 {
+		logger.Info("challenge already claimed or not waiting, skipping", "domain", req.GetDomain())
+		return &hydrav1.ProcessChallengeResponse{Status: "skipped"}, nil
 	}
 
 	// Compensation: if anything fails after claiming, mark challenge as failed

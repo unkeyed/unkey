@@ -124,13 +124,11 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete deployments: %w", err)
 	}
 
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteEnvironmentById(runCtx, envID)
-	}, restate.WithName("delete environment")); err != nil {
-		return nil, fmt.Errorf("delete environment: %w", err)
-	}
-
-	// The environment has no display name, so its slug stands in.
+	// The audit entry goes before the row delete. A retried invocation whose
+	// audit step failed would find no row and stop, leaving the delete
+	// unaudited. Written first, a failed audit keeps the row in place so the
+	// retry can try again. The environment has no display name, so its slug
+	// stands in.
 	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
 		Actor:         req.GetActor(),
 		CorrelationID: req.GetCorrelationId(),
@@ -146,6 +144,12 @@ func (s *Service) Delete(
 		}},
 	}); err != nil {
 		return nil, fmt.Errorf("insert audit log: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return s.db.DeleteEnvironmentById(runCtx, envID)
+	}, restate.WithName("delete environment")); err != nil {
+		return nil, fmt.Errorf("delete environment: %w", err)
 	}
 
 	logger.Info("environment deletion complete", "environment_id", envID)

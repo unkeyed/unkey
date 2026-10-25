@@ -562,7 +562,20 @@ func Run(ctx context.Context, cfg Config) error {
 		DNSProvider:  dnsProvider,
 		HTTPProvider: httpProvider,
 		Heartbeat:    certHeartbeat,
-	}), restate.WithInactivityTimeout(15*time.Minute)))
+	}),
+		restate.WithInactivityTimeout(15*time.Minute),
+		// RenewExpiringCertificates runs on the fixed "global" key, so one
+		// invocation that never finishes blocks every later renewal. Bound it
+		// and kill on exhaustion: a renewal run is idempotent and the next tick
+		// retries from a clean slate, while a paused run parks certificates
+		// that need renewing.
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(time.Second),
+			restate.WithRetryIntervalFactor(2.0),
+			restate.WithMaxRetryInterval(time.Minute),
+			restate.WithMaxRetryAttempts(10),
+			restate.KillOnMaxAttempts(),
+		)))
 
 	// ClickHouse user provisioning service (optional - requires admin URL and vault)
 	if cfg.ClickHouse.AdminURL == "" {

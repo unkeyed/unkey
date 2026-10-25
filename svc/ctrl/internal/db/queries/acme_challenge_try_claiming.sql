@@ -1,4 +1,4 @@
--- name: UpdateAcmeChallengeTryClaiming :exec
+-- name: UpdateAcmeChallengeTryClaiming :execrows
 UPDATE acme_challenges
 SET status = ?, updated_at = ?
-WHERE domain_id = ? AND status = 'waiting';
+WHERE domain_id = ? AND status IN ('waiting', 'verified');
