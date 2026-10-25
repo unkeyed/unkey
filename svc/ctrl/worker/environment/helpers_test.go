@@ -30,8 +30,8 @@ import (
 // enough for the handler under test to run first, short enough to wait out.
 const stopDelay = 300 * time.Millisecond
 
-// fixture is one production environment with three ready deployments.
-// live owns the sticky routes and a commit route; the others are candidates.
+// fixture is one production environment with two ready deployments.
+// live owns the sticky routes and a commit route; candidate is the rollback target.
 // The seeder has no helper for routes or the app's live pointer, so the fixture
 // writes those rows itself.
 type fixture struct {
@@ -45,7 +45,6 @@ type fixture struct {
 	env         db.Environment
 	live        db.Deployment
 	candidate   db.Deployment
-	other       db.Deployment
 	actorID     string
 }
 
@@ -87,13 +86,11 @@ func newFixture(t *testing.T) *fixture {
 		env:         db.Environment{},
 		live:        db.Deployment{},
 		candidate:   db.Deployment{},
-		other:       db.Deployment{},
 		actorID:     uid.New("user"),
 	}
 	f.env = f.newProductionEnvironment(t, "production")
 	f.live = f.newReadyDeployment(t)
 	f.candidate = f.newReadyDeployment(t)
-	f.other = f.newReadyDeployment(t)
 
 	f.insertRoute(t, f.live.ID, db.FrontlineRoutesStickyLive)
 	f.insertRoute(t, f.live.ID, db.FrontlineRoutesStickyEnvironment)
@@ -159,23 +156,6 @@ func (f *fixture) insertRoute(t *testing.T, deploymentID string, sticky db.Front
 		CreatedAt:                time.Now().UnixMilli(),
 		UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
 	}))
-}
-
-// moveStickyRoutes points the live and environment routes at deploymentID.
-func (f *fixture) moveStickyRoutes(t *testing.T, deploymentID string) {
-	t.Helper()
-	routes, err := f.db.FindFrontlineRoutesByEnvironmentAndSticky(f.ctx, db.FindFrontlineRoutesByEnvironmentAndStickyParams{
-		EnvironmentID: f.env.ID,
-		Sticky:        []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyLive, db.FrontlineRoutesStickyEnvironment},
-	})
-	require.NoError(t, err)
-	for _, route := range routes {
-		require.NoError(t, f.db.ReassignFrontlineRoute(f.ctx, db.ReassignFrontlineRouteParams{
-			DeploymentID: deploymentID,
-			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			ID:           route.ID,
-		}))
-	}
 }
 
 func (f *fixture) setLive(t *testing.T, deploymentID string, rolledBack bool) {

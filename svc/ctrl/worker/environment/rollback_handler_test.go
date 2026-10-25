@@ -27,8 +27,9 @@ func TestRollbackDeploymentSwitchesLiveRoutesBack(t *testing.T) {
 
 func TestRollbackDeploymentRejectsStaleSource(t *testing.T) {
 	f := newFixture(t)
+	other := f.newReadyDeployment(t)
 
-	err := f.rollback(f.env.ID, f.other.ID, f.candidate.ID)
+	err := f.rollback(f.env.ID, other.ID, f.candidate.ID)
 	require.ErrorContains(t, err, "no longer live")
 
 	f.requireLive(t, f.live.ID, false)
