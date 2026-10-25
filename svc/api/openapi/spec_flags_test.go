@@ -77,6 +77,7 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 		"portal.listSessions",
 		"portal.revokeSession",
 		"portal.updatePortal",
+		"portal.verifyDomain",
 	}
 	for _, op := range portal {
 		if !slices.Contains(public, op) {
