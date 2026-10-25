@@ -9,6 +9,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -38,15 +39,24 @@ func (s *Service) SwapLiveDeployment(
 		previousDeploymentID, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 			deployment, findErr := s.db.FindDeploymentById(runCtx, deploymentID)
 			if findErr != nil {
-				return "", fmt.Errorf("find target deployment: %w", findErr)
+				return "", restateutil.TerminalNotFound(findErr, db.IsNotFound)
 			}
 			app, findErr := s.db.FindAppById(runCtx, deployment.AppID)
 			if findErr != nil {
-				return "", fmt.Errorf("find app: %w", findErr)
+				return "", restateutil.TerminalNotFound(findErr, db.IsNotFound)
 			}
 			return app.CurrentDeploymentID.String, nil
 		}, restate.WithName("record current deployment before automatic promotion"))
 		if err != nil {
+			// The deployment or its app was deleted while the swap was queued,
+			// so there is no live pointer left to move
+			if restateutil.IsNotFoundTerminal(err) {
+				logger.Info("routing swap skipped, deployment no longer exists",
+					"env_id", restate.Key(ctx),
+					"deployment_id", deploymentID,
+				)
+				return &hydrav1.SwapLiveDeploymentResponse{}, nil
+			}
 			return nil, err
 		}
 	}
@@ -55,6 +65,15 @@ func (s *Service) SwapLiveDeployment(
 		return s.swapLiveDeployment(runCtx, req, previousDeploymentID)
 	}, restate.WithName("swap live deployment"))
 	if err != nil {
+		// A manual swap lost the race with a delete, which already dropped the
+		// deployment and its live pointer
+		if restateutil.IsNotFoundTerminal(err) {
+			logger.Info("routing swap skipped, deployment no longer exists",
+				"env_id", restate.Key(ctx),
+				"deployment_id", deploymentID,
+			)
+			return &hydrav1.SwapLiveDeploymentResponse{}, nil
+		}
 		return nil, err
 	}
 
@@ -100,11 +119,11 @@ func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveD
 		queries := db.NewQueries(tx)
 		deployment, findErr := queries.FindDeploymentById(txCtx, deploymentID)
 		if findErr != nil {
-			return swapLiveDeploymentResult{}, fmt.Errorf("find target deployment: %w", findErr)
+			return swapLiveDeploymentResult{}, restateutil.TerminalNotFound(findErr, db.IsNotFound)
 		}
 		currentApp, findErr := queries.FindAppById(txCtx, deployment.AppID)
 		if findErr != nil {
-			return swapLiveDeploymentResult{}, fmt.Errorf("find app: %w", findErr)
+			return swapLiveDeploymentResult{}, restateutil.TerminalNotFound(findErr, db.IsNotFound)
 		}
 
 		if req.GetAutomaticPromotion() &&
@@ -137,12 +156,14 @@ func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveD
 
 		if req.GetAutomaticPromotion() && currentApp.CurrentDeploymentID.Valid {
 			currentDeployment, currentErr := queries.FindDeploymentById(txCtx, currentApp.CurrentDeploymentID.String)
-			if currentErr != nil {
+			// A live pointer to a row that no longer exists orders nothing, so
+			// the swap proceeds instead of failing
+			if currentErr != nil && !db.IsNotFound(currentErr) {
 				return swapLiveDeploymentResult{}, fmt.Errorf("find current deployment: %w", currentErr)
 			}
 			// pk is the database insertion order. Unlike millisecond timestamps,
 			// it provides a strict order when deployments are created together.
-			if currentDeployment.Pk > deployment.Pk {
+			if currentErr == nil && currentDeployment.Pk > deployment.Pk {
 				return swapLiveDeploymentResult{
 					PreviousDeploymentID:         "",
 					CurrentDeploymentID:          currentDeployment.ID,
