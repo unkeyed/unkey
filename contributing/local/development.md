@@ -106,11 +106,24 @@ does not block application startup. Orbs use bridge networking and wait for
 node readiness during Minikube startup instead.
 
 Private networking uses the cluster CoreDNS in both modes. The
-`coredns-private-network` resource appends the `unkey.internal` server block
-from `dev/k8s/coredns/private-network.Corefile` to the `coredns` ConfigMap.
-It replaces only that marked block and leaves the default server block
-unchanged. CoreDNS restarts only when the Corefile changes. The block resolves
-only `unkey-connection-<32 hex>.<namespace>.unkey.internal` to the Service of
+`coredns-private-network` resource applies `dev/k8s/coredns/configmap.yaml`.
+This file owns the complete local Corefile, including normal cluster DNS and
+the `unkey.internal` zone. Tilt reads `host.minikube.internal` from the Minikube
+node to preserve its host address. Keep the default server block aligned with
+the pinned Minikube and Kubernetes versions when upgrading them.
+
+The rewrite patterns use `REGION_LABEL`, `CONNECTION_TOKEN`, and
+`NAMESPACE_LABEL` parts defined in `dev/Tiltfile`. Tilt expands these parts
+before applying the ConfigMap. Apply this template through Tilt, not directly
+with `kubectl`.
+
+CoreDNS reloads configuration without restarting. Allow up to two minutes for
+ConfigMap changes to reach CoreDNS and reload. The ConfigMap has
+`tilt.dev/down-policy: keep` so `tilt down` does not delete cluster DNS
+configuration.
+
+The private zone resolves
+`unkey-connection-<32 hex>.<namespace>.unkey.internal` to the Service of
 that name in that namespace, with a 5 second TTL. A region prefix of 1 to 22
 characters, as in `<region>.unkey-connection-<32 hex>.<namespace>.unkey.internal`,
 resolves to the `unkey-r-<32 hex>-<region>` Service instead. A region with no

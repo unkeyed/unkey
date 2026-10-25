@@ -650,31 +650,25 @@ k8s_resource(
 )
 
 # ─── Private network DNS ───────────────────────────────────────────────────
-# Adds the unkey.internal server block to the cluster CoreDNS and leaves the
-# stock server block unchanged. Reruns replace only the marked block.
-local_resource(
-  'coredns-private-network',
-  '''
-  set -euo pipefail
-  current=$(mktemp)
-  desired=$(mktemp)
-  trap 'rm -f "$current" "$desired"' EXIT
-  kubectl -n kube-system get configmap coredns -o go-template='{{.data.Corefile}}' > "$current"
-  {
-    awk '/^# BEGIN unkey private network$/ { skip = 1 } !skip { print } /^# END unkey private network$/ { skip = 0 }' "$current"
-    cat k8s/coredns/private-network.Corefile
-  } > "$desired"
-  if ! cmp -s "$current" "$desired"; then
-    kubectl -n kube-system patch configmap coredns --type merge \
-      -p "$(jq -n --rawfile corefile "$desired" '{data: {Corefile: $corefile}}')"
-    kubectl -n kube-system rollout restart deployment/coredns
-  fi
-  kubectl -n kube-system rollout status deployment/coredns --timeout=180s
-  ''',
-  deps=['k8s/coredns/private-network.Corefile'],
+minikube_host_ip = str(local(
+    ['minikube', '-p', 'unkey', 'ssh', '--', 'getent', 'hosts', 'host.minikube.internal'],
+    quiet=True, echo_off=True,
+)).split()[0]
+coredns_config = read_yaml('k8s/coredns/configmap.yaml')
+coredns_values = {
+    'MINIKUBE_HOST_IP': minikube_host_ip,
+    'REGION_LABEL': '[a-z0-9](?:[a-z0-9-]{0,20}[a-z0-9])?',
+    'CONNECTION_TOKEN': '[0-9a-f]{32}',
+    'NAMESPACE_LABEL': '[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?',
+}
+for name, value in coredns_values.items():
+    coredns_config['data']['Corefile'] = coredns_config['data']['Corefile'].replace('${' + name + '}', value)
+k8s_yaml(encode_yaml(coredns_config))
+k8s_resource(
+  new_name='coredns-private-network',
+  objects=['coredns:configmap:kube-system'],
   resource_deps=[] if ORB else ['cilium-ready'],
   labels=['setup'],
-  allow_parallel=True,
 )
 
 # ─── Krane ─────────────────────────────────────────────────────────────────
