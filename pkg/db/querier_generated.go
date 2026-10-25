@@ -61,6 +61,12 @@ type Querier interface {
 	//  FROM permissions
 	//  WHERE workspace_id = ?
 	CountPermissionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// Covered by unique_workspace_domain_idx, which leads on workspace_id.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portal_domains
+	//  WHERE workspace_id = ?
+	CountPortalDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	// CountPortalSessionsByExternalID counts every session minted for one end user
 	// in a workspace, in any state. Intended for tests.
 	//

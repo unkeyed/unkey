@@ -86,6 +86,7 @@ import (
 
 	v2LogsGetApiRequestMetrics "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
 	v2LogsListApiRequests "github.com/unkeyed/unkey/svc/api/routes/v2_logs_list_api_requests"
+	v2PortalCreateDomain "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_domain"
 	v2PortalCreatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 	v2PortalDeletePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
@@ -953,6 +954,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 			Clock:     svc.Clock,
+		},
+	)
+
+	// v2/portal.createDomain
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalCreateDomain.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlPortalDomainClient,
 		},
 	)
 

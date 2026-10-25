@@ -23,7 +23,7 @@ examples:
   byId:
     summary: Look up by portal id
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd
   bySlug:
     summary: Look up by portal slug
     value:
