@@ -298,6 +298,25 @@ describe("rulesCoveringResource", () => {
     expect(scoped.map((r) => r.id)).toEqual(["app"]);
     expect(inherited.map((r) => r.id)).toEqual(["workspace", "project"]);
   });
+
+  it("includes broader rules but excludes sibling environments", () => {
+    const { scoped, inherited } = rulesCoveringResource(
+      [
+        ...rules,
+        rule({
+          id: "production",
+          scope: { projectId: "proj_a", appId: "app_a", environmentId: "env_prod" },
+        }),
+        rule({
+          id: "preview",
+          scope: { projectId: "proj_a", appId: "app_a", environmentId: "env_preview" },
+        }),
+      ],
+      { projectId: "proj_a", appId: "app_a", environmentId: "env_prod" },
+    );
+    expect(scoped.map((r) => r.id)).toEqual(["production"]);
+    expect(inherited.map((r) => r.id)).toEqual(["workspace", "project", "app"]);
+  });
 });
 
 describe("rule and preference updates", () => {

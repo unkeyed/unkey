@@ -6,6 +6,7 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { ManagedUserWidgets } from "@unkey/workos-widgets";
 import { useAccessToken, useAuth } from "@workos-inc/authkit-nextjs/components";
+import type { Route } from "next";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AccountSettingsSkeleton } from "./account-settings-skeleton";
@@ -30,7 +31,7 @@ function redactAccountWidgetError(error: unknown) {
   }
 }
 
-export function ManagedAccount() {
+export function ManagedAccount({ notificationsHref }: { notificationsHref?: Route }) {
   const { user, impersonator, loading, getAuth, refreshAuth } = useAuth();
   const utils = trpc.useUtils();
   const refreshInFlightRef = useRef<Promise<boolean> | null>(null);
@@ -90,7 +91,13 @@ export function ManagedAccount() {
     );
   }
 
-  return <AccountShell>{content}</AccountShell>;
+  return (
+    <AccountShell
+      notificationsHref={!loading && user && !impersonator ? notificationsHref : undefined}
+    >
+      {content}
+    </AccountShell>
+  );
 }
 
 function ManagedAccountWidgets({

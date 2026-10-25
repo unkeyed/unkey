@@ -2,8 +2,27 @@
 
 import { Switch } from "@/components/ui/switch";
 import { IconPlusOutline12 } from "@unkey/icons";
-import { Badge, Button, cn, toast } from "@unkey/ui";
-import { type Rule, typeHasSendableRecipients } from "./notification-model";
+import {
+  Badge,
+  Button,
+  FormSelect,
+  ResourceList,
+  ResourceListBody,
+  ResourceListContent,
+  ResourceListHeader,
+  ResourceListItem,
+  SettingsGroup,
+  SettingsGroupTitle,
+  cn,
+  toast,
+} from "@unkey/ui";
+import { parseAsString, useQueryStates } from "nuqs";
+import {
+  type ResourceScope,
+  type Rule,
+  rulesCoveringResource,
+  typeHasSendableRecipients,
+} from "./notification-model";
 import {
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_TYPES,
@@ -17,34 +36,42 @@ export function RuleRow({
   rule,
   canManage,
   onEdit,
-  showType = false,
+  broader = false,
 }: {
   rule: Rule;
   canManage: boolean;
   onEdit: (target: RuleEditorTarget) => void;
-  showType?: boolean;
+  broader?: boolean;
 }) {
   const preview = useNotificationPreview();
   const { scopeLabel } = useResourceNames();
-
   return (
-    <div className={cn("flex items-center gap-3 px-4 py-3", !rule.enabled && "opacity-60")}>
+    <ResourceListItem
+      className={cn(
+        "flex items-center gap-4 px-4 py-4 transition-colors hover:bg-grayA-2",
+        !rule.enabled && "opacity-60",
+      )}
+    >
       <button
         type="button"
         disabled={!canManage}
         onClick={() => onEdit({ mode: "edit", rule })}
         aria-label={`Edit ${rule.name}`}
-        className="group flex min-w-0 flex-1 flex-col gap-1.5 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7 enabled:cursor-pointer"
+        className="group flex min-w-0 flex-1 flex-col gap-2 rounded-md text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-5 enabled:cursor-pointer"
       >
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate group-hover:underline text-sm text-gray-12">{rule.name}</span>
-          <span className="shrink-0 text-xs text-gray-9">
-            {showType ? `${rule.notificationType} · ` : ""}
-            {findNotificationType(rule.notificationType)?.resourceScoped
-              ? scopeLabel(rule.scope)
-              : "Whole workspace"}
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-gray-12 group-hover:underline">
+            {rule.name}
           </span>
           {rule.enabled ? null : <Badge variant="secondary">Paused</Badge>}
+          {broader ? <Badge variant="secondary">Broader rule</Badge> : null}
+        </span>
+        <span className="text-xs text-gray-11">
+          {findNotificationType(rule.notificationType)?.label ?? rule.notificationType}
+          {" · "}
+          {findNotificationType(rule.notificationType)?.resourceScoped
+            ? scopeLabel(rule.scope)
+            : "Whole workspace"}
         </span>
         <TargetChips
           targets={rule.targets}
@@ -64,7 +91,7 @@ export function RuleRow({
           );
         }}
       />
-    </div>
+    </ResourceListItem>
   );
 }
 
@@ -76,80 +103,162 @@ export function RulesTab({
   onTestRouting: () => void;
 }) {
   const preview = useNotificationPreview();
+  const resources = useResourceNames();
+  const [scope, setScope] = useQueryStates({
+    projectId: parseAsString,
+    appId: parseAsString,
+    environmentId: parseAsString,
+  });
+  const project = resources.projects.find((candidate) => candidate.id === scope.projectId);
+  const covering = scope.projectId
+    ? rulesCoveringResource(
+        preview.rules.filter((rule) => findNotificationType(rule.notificationType)?.resourceScoped),
+        {
+          projectId: scope.projectId,
+          appId: scope.appId ?? undefined,
+          environmentId: scope.environmentId ?? undefined,
+        },
+      )
+    : { scoped: preview.rules, inherited: [] };
+  const rules = [...covering.scoped, ...covering.inherited];
+  const ruleScope: ResourceScope = {
+    projectId: scope.projectId,
+    appId: scope.projectId ? scope.appId : null,
+    environmentId: scope.appId ? scope.environmentId : null,
+  };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
-        <p className="max-w-xl text-sm text-gray-11">
-          Rules choose who hears about each event. Rules add up: when several match, each person and
-          destination still gets one message.
+    <ResourceList className="gap-6">
+      <ResourceListHeader className="items-start justify-between gap-3">
+        <p className="max-w-md text-sm leading-5 text-gray-11">
+          Match an event to people and destinations. Matching rules add up; each recipient gets one
+          message.
         </p>
         <div className="flex shrink-0 items-center gap-2">
-          <Button variant="outline" onClick={onTestRouting}>
-            Test routing
+          <Button variant="outline" size="sm" onClick={onTestRouting}>
+            Preview recipients
           </Button>
           <Button
             variant="primary"
+            size="sm"
             disabled={!preview.canManage}
-            onClick={() => onEditRule({ mode: "create" })}
+            onClick={() => onEditRule({ mode: "create", scope: ruleScope })}
           >
             <IconPlusOutline12 />
             Add rule
           </Button>
         </div>
+      </ResourceListHeader>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <FormSelect
+          label="Project"
+          value={scope.projectId ?? "all"}
+          onValueChange={(value) =>
+            setScope({
+              projectId: value === "all" ? null : value,
+              appId: null,
+              environmentId: null,
+            })
+          }
+          options={[
+            { value: "all", label: "All projects" },
+            ...resources.projects.map((project) => ({ value: project.id, label: project.name })),
+          ]}
+        />
+        <FormSelect
+          label="App"
+          value={scope.appId ?? "all"}
+          disabled={!project}
+          onValueChange={(value) =>
+            setScope({ appId: value === "all" ? null : value, environmentId: null })
+          }
+          options={[
+            { value: "all", label: "All apps" },
+            ...(project?.apps ?? []).map((app) => ({ value: app.id, label: app.name })),
+          ]}
+        />
+        <FormSelect
+          label="Environment"
+          value={scope.environmentId ?? "all"}
+          disabled={!scope.appId}
+          onValueChange={(value) => setScope({ environmentId: value === "all" ? null : value })}
+          options={[
+            { value: "all", label: "All environments" },
+            ...resources.environments
+              .filter((environment) => environment.appId === scope.appId)
+              .map((environment) => ({ value: environment.id, label: environment.slug })),
+          ]}
+        />
       </div>
-
+      {scope.projectId ? (
+        <p className="text-xs text-gray-11">
+          Broader rules also apply here. Editing one changes it for every resource it covers.
+        </p>
+      ) : null}
       {preview.canManage ? null : (
-        <p className="text-xs text-gray-9">Only workspace admins can change rules.</p>
+        <p className="text-xs text-gray-11">Only workspace admins can change rules.</p>
       )}
-
-      {NOTIFICATION_CATEGORIES.map(({ category, label }) => (
-        <section key={category} className="flex flex-col gap-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-gray-9">{label}</h2>
-          <div className="divide-y divide-grayA-4 overflow-hidden rounded-lg border bg-raised">
-            {NOTIFICATION_TYPES.filter((type) => type.category === category).map((type) => {
-              const rules = preview.rules.filter((rule) => rule.notificationType === type.type);
-              const active = typeHasSendableRecipients(preview, type.type);
-              return (
-                <div key={type.type}>
-                  <div className="flex items-center gap-3 bg-grayA-1 px-4 py-3">
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-12">{type.label}</span>
-                        <code className="text-xs text-gray-9">{type.type}</code>
-                      </span>
-                      <span className="text-xs text-gray-9">{type.description}</span>
-                    </div>
-                    {active ? null : <Badge variant="warning">Nobody is notified</Badge>}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={!preview.canManage}
-                      onClick={() => onEditRule({ mode: "create", notificationType: type.type })}
-                      aria-label={`Add rule for ${type.label}`}
+      {NOTIFICATION_CATEGORIES.filter(
+        ({ category }) => !scope.projectId || category === "deployments",
+      ).map(({ category, label }) => {
+        const types = NOTIFICATION_TYPES.filter((type) => type.category === category);
+        const categoryRules = rules.filter((rule) =>
+          types.some((type) => type.type === rule.notificationType),
+        );
+        return (
+          <SettingsGroup key={category}>
+            <SettingsGroupTitle>{label}</SettingsGroupTitle>
+            <ResourceListContent>
+              <ResourceListBody>
+                {categoryRules.map((rule) => (
+                  <RuleRow
+                    key={rule.id}
+                    rule={rule}
+                    canManage={preview.canManage}
+                    onEdit={onEditRule}
+                    broader={covering.inherited.includes(rule)}
+                  />
+                ))}
+                {types
+                  .filter((type) => !typeHasSendableRecipients({ ...preview, rules }, type.type))
+                  .map((type) => (
+                    <ResourceListItem
+                      key={type.type}
+                      className="flex items-center justify-between gap-3 px-4 py-4"
                     >
-                      <IconPlusOutline12 />
-                      Rule
-                    </Button>
-                  </div>
-                  {rules.length > 0 ? (
-                    <div className="divide-y divide-grayA-3 border-t border-grayA-3 pl-4">
-                      {rules.map((rule) => (
-                        <RuleRow
-                          key={rule.id}
-                          rule={rule}
-                          canManage={preview.canManage}
-                          onEdit={onEditRule}
-                        />
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ))}
-    </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm text-gray-12">{type.label}</span>
+                        <span className="text-xs text-gray-11">
+                          No active recipients{scope.projectId ? " in this scope" : ""}.
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!preview.canManage}
+                        onClick={() =>
+                          onEditRule({
+                            mode: "create",
+                            notificationType: type.type,
+                            scope: ruleScope,
+                          })
+                        }
+                      >
+                        <IconPlusOutline12 />
+                        Add rule
+                      </Button>
+                    </ResourceListItem>
+                  ))}
+              </ResourceListBody>
+            </ResourceListContent>
+          </SettingsGroup>
+        );
+      })}
+      {scope.projectId ? null : (
+        <p className="text-xs text-gray-11">
+          All projects includes projects and apps created later.
+        </p>
+      )}
+    </ResourceList>
   );
 }

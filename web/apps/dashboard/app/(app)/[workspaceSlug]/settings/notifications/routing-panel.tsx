@@ -70,7 +70,7 @@ export function RoutingPanel({
     <SlidePanel isOpen={isOpen} onClose={onClose} widthClassName="w-160">
       <SlidePanelHeader className="items-start">
         <div className="flex flex-col gap-1">
-          <SlidePanelTitle>Test routing</SlidePanelTitle>
+          <SlidePanelTitle>Preview recipients</SlidePanelTitle>
           <SlidePanelDescription className="text-xs text-gray-9">
             See who would hear about an event. Nothing is sent.
           </SlidePanelDescription>

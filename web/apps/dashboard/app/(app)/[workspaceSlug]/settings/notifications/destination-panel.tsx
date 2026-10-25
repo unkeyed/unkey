@@ -19,15 +19,18 @@ import {
   ItemContent,
   ItemDescription,
   ItemTitle,
-  SlidePanel,
-  SlidePanelCloseButton,
-  SlidePanelContent,
-  SlidePanelHeader,
-  SlidePanelTitle,
+  SettingsForm,
+  SettingsPanel,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowDescription,
+  SettingsRowHeader,
+  SettingsRowTitle,
   cn,
+  formSaveState,
   toast,
 } from "@unkey/ui";
-import { useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -156,6 +159,7 @@ export function DestinationPanel({
   const { actions } = useNotificationPreview();
   const [revealedSecret, setRevealedSecret] = useState<string | null>(null);
   const [pendingSecret, setPendingSecret] = useState<string | null>(null);
+  const savedRef = useRef(false);
   const form = useForm<DestinationFormValues>({
     resolver: standardSchemaResolver(formSchema(target)),
     defaultValues: defaults(target),
@@ -167,47 +171,58 @@ export function DestinationPanel({
   const enabled = form.watch("enabled");
   const usedBy = target.mode === "edit" ? rulesUsingDestination(rules, target.destination.id) : [];
   const previous = target.mode === "edit" ? target.destination.config : null;
-
-  const submit = form.handleSubmit((values) => {
-    if (!values.channel) {
-      return;
-    }
-    const id = target.mode === "edit" ? target.destination.id : newPreviewId("dst");
-    const createdSecret =
-      values.channel === "webhook" && target.mode === "create" ? generateSigningSecret() : null;
-    const signingSecret = createdSecret ?? pendingSecret;
-    actions.saveDestination({
-      id,
-      name: values.name.trim(),
-      enabled: values.enabled,
-      config: nextConfig(values.channel, values, previous, signingSecret),
-    });
-    toast.success(
-      target.mode === "edit" ? "Destination updated in preview" : "Destination added to preview",
-    );
-    if (createdSecret) {
-      setRevealedSecret(createdSecret);
-      return;
-    }
-    onClose();
+  const dirty = formState.isDirty || pendingSecret !== null;
+  const saveState = formSaveState({
+    isSubmitting: formState.isSubmitting,
+    isValid: formState.isValid,
+    isDirty: dirty,
   });
 
-  return (
-    <SlidePanel isOpen={isOpen} onClose={onClose} widthClassName="w-160">
-      <SlidePanelHeader className="items-center">
-        <SlidePanelTitle>
-          {target.mode === "edit" ? target.destination.name : "New destination"}
-        </SlidePanelTitle>
-        <SlidePanelCloseButton />
-      </SlidePanelHeader>
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    let saved = false;
+    await form.handleSubmit((values) => {
+      if (!values.channel || savedRef.current) {
+        return;
+      }
+      const id = target.mode === "edit" ? target.destination.id : newPreviewId("dst");
+      const createdSecret =
+        values.channel === "webhook" && target.mode === "create" ? generateSigningSecret() : null;
+      actions.saveDestination({
+        id,
+        name: values.name.trim(),
+        enabled: values.enabled,
+        config: nextConfig(values.channel, values, previous, createdSecret ?? pendingSecret),
+      });
+      savedRef.current = true;
+      saved = true;
+      form.reset(values);
+      setPendingSecret(null);
+      setRevealedSecret(createdSecret);
+      toast.success(
+        target.mode === "edit" ? "Destination updated in preview" : "Destination added to preview",
+      );
+      onClose();
+    })(event);
+    return saved;
+  };
 
-      <SlidePanelContent>
-        <form onSubmit={submit} className="flex h-full flex-col">
-          <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 pb-4 pt-1">
-            {target.mode === "create" ? (
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 text-sm text-gray-11">Channel</legend>
-                <div className="grid gap-2">
+  return (
+    <>
+      <SettingsPanel
+        isOpen={isOpen}
+        onClose={onClose}
+        onSaved={onClose}
+        title={target.mode === "edit" ? target.destination.name : "New destination"}
+        description="Preview only. Changes stay in this browser tab and do not send notifications."
+      >
+        <SettingsForm dirty={dirty} saveState={saveState} onSubmit={submit}>
+          <SettingsRow>
+            <SettingsRowHeader>
+              <SettingsRowTitle>Channel</SettingsRowTitle>
+            </SettingsRowHeader>
+            <SettingsRowContent>
+              {target.mode === "create" ? (
+                <fieldset className="grid gap-2" aria-label="Channel">
                   {DESTINATION_CHANNELS.map((option) => (
                     <Item
                       key={option.channel}
@@ -235,71 +250,89 @@ export function DestinationPanel({
                       }
                     />
                   ))}
+                  {formState.errors.channel?.message ? (
+                    <p role="alert" className="text-xs text-error-11">
+                      {formState.errors.channel.message}
+                    </p>
+                  ) : null}
+                </fieldset>
+              ) : (
+                <div className="flex items-center gap-3 text-sm text-gray-12">
+                  <ChannelMedia channel={target.destination.config.channel} />
+                  {channelTitle(target.destination.config.channel)}
                 </div>
-                {formState.errors.channel?.message ? (
-                  <p role="alert" className="text-xs text-error-11">
-                    {formState.errors.channel.message}
-                  </p>
-                ) : null}
-              </fieldset>
-            ) : (
-              <div className="flex items-center gap-3 rounded-lg border bg-raised px-4 py-3">
-                <ChannelMedia channel={target.destination.config.channel} />
-                <div className="flex min-w-0 flex-col">
-                  <span className="text-sm text-gray-12">
-                    {channelTitle(target.destination.config.channel)}
-                  </span>
-                  <span className="truncate font-mono text-xs text-gray-9">
-                    {target.destination.config.urlHint}
-                  </span>
-                </div>
-              </div>
-            )}
+              )}
+            </SettingsRowContent>
+          </SettingsRow>
 
-            {channel ? (
-              <>
-                <FormInput
-                  requirement="required"
-                  label="Name"
-                  description="Shown when you choose recipients for a rule."
-                  placeholder={channel === "webhook" ? "On-call bridge" : "#incidents"}
-                  error={formState.errors.name?.message}
-                  {...register("name")}
-                />
-                <FormInput
-                  requirement={target.mode === "create" ? "required" : undefined}
-                  label={channel === "webhook" ? "Endpoint URL" : "Webhook URL"}
-                  description={
-                    target.mode === "edit"
-                      ? "Leave empty to keep the current URL. Unkey encrypts it and only shows a hint."
-                      : "Unkey encrypts this URL and only shows a hint after you save."
-                  }
-                  placeholder={URL_PLACEHOLDER[channel]}
-                  error={formState.errors.url?.message}
-                  autoComplete="off"
-                  {...register("url")}
-                />
-                {channel === "webhook" ? (
-                  <>
-                    <fieldset className="flex flex-col gap-2">
-                      <legend className="text-sm text-gray-11">Headers</legend>
-                      <span className="text-xs text-gray-9">
-                        Optional. Values are encrypted. Leave a saved header's value empty to keep
-                        it.
-                      </span>
+          {channel ? (
+            <>
+              <SettingsRow>
+                <SettingsRowHeader>
+                  <SettingsRowTitle>Name</SettingsRowTitle>
+                  <SettingsRowDescription>
+                    Shown when you choose recipients for a rule.
+                  </SettingsRowDescription>
+                </SettingsRowHeader>
+                <SettingsRowContent>
+                  <FormInput
+                    requirement="required"
+                    aria-label="Name"
+                    placeholder={channel === "webhook" ? "On-call bridge" : "#incidents"}
+                    error={formState.errors.name?.message}
+                    {...register("name")}
+                  />
+                </SettingsRowContent>
+              </SettingsRow>
+              <SettingsRow>
+                <SettingsRowHeader>
+                  <SettingsRowTitle>
+                    {channel === "webhook" ? "Endpoint URL" : "Webhook URL"}
+                  </SettingsRowTitle>
+                  <SettingsRowDescription>
+                    {target.mode === "edit"
+                      ? "Leave empty to keep the saved URL hint. This preview does not store the full URL."
+                      : "Only a URL hint is kept in this preview."}
+                    {previous ? (
+                      <span className="mt-1 block break-all font-mono">{previous.urlHint}</span>
+                    ) : null}
+                  </SettingsRowDescription>
+                </SettingsRowHeader>
+                <SettingsRowContent>
+                  <FormInput
+                    requirement={target.mode === "create" ? "required" : undefined}
+                    aria-label={channel === "webhook" ? "Endpoint URL" : "Webhook URL"}
+                    placeholder={URL_PLACEHOLDER[channel]}
+                    error={formState.errors.url?.message}
+                    autoComplete="off"
+                    {...register("url")}
+                  />
+                </SettingsRowContent>
+              </SettingsRow>
+              {channel === "webhook" ? (
+                <>
+                  <SettingsRow>
+                    <SettingsRowHeader>
+                      <SettingsRowTitle>Headers</SettingsRowTitle>
+                      <SettingsRowDescription>
+                        Optional. Leave a saved header's value empty to keep it. Only header names
+                        are kept in this preview.
+                      </SettingsRowDescription>
+                    </SettingsRowHeader>
+                    <SettingsRowContent className="flex flex-col gap-2">
                       {headers.fields.map((field, index) => (
                         <div
                           key={field.id}
                           className="grid grid-cols-[1fr_1fr_auto] items-start gap-2"
                         >
                           <FormInput
-                            aria-label="Header name"
+                            aria-label={`Header ${index + 1} name`}
                             placeholder="X-Routing-Key"
                             error={formState.errors.headers?.[index]?.name?.message}
                             {...register(`headers.${index}.name`)}
                           />
                           <FormInput
-                            aria-label="Header value"
+                            aria-label={`Header ${index + 1} value`}
                             type="password"
                             autoComplete="off"
                             placeholder="Value"
@@ -310,7 +343,7 @@ export function DestinationPanel({
                             type="button"
                             variant="ghost"
                             className="mt-1 size-8 p-0"
-                            aria-label="Remove header"
+                            aria-label={`Remove header ${index + 1}`}
                             onClick={() => headers.remove(index)}
                           >
                             <IconTrashOutline12 />
@@ -327,19 +360,21 @@ export function DestinationPanel({
                         <IconPlusOutline12 />
                         Add header
                       </Button>
-                    </fieldset>
-                    <div className="flex items-center justify-between gap-3 rounded-lg border bg-raised px-4 py-3">
-                      <div className="flex flex-col">
-                        <span className="text-sm text-gray-12">Signing secret</span>
-                        <span className="text-xs text-gray-9">
-                          {target.mode === "create"
-                            ? "Unkey generates a secret when you save and shows it once."
-                            : pendingSecret
-                              ? `New secret ${secretHint(pendingSecret)} replaces the old one when you save.`
-                              : `Requests are signed with ${previous?.channel === "webhook" ? previous.signingSecretHint : "a secret"}.`}
-                        </span>
-                      </div>
-                      {target.mode === "edit" ? (
+                    </SettingsRowContent>
+                  </SettingsRow>
+                  <SettingsRow>
+                    <SettingsRowHeader>
+                      <SettingsRowTitle>Signing secret</SettingsRowTitle>
+                      <SettingsRowDescription>
+                        {target.mode === "create"
+                          ? "Saving generates a preview secret and shows it once. Only its hint is kept."
+                          : pendingSecret
+                            ? `New secret ${secretHint(pendingSecret)} replaces the saved hint when you save.`
+                            : `Saved preview hint: ${previous?.channel === "webhook" ? previous.signingSecretHint : "none"}.`}
+                      </SettingsRowDescription>
+                    </SettingsRowHeader>
+                    {target.mode === "edit" ? (
+                      <SettingsRowContent>
                         <Button
                           type="button"
                           variant="outline"
@@ -352,74 +387,72 @@ export function DestinationPanel({
                         >
                           Rotate
                         </Button>
-                      ) : null}
-                    </div>
-                  </>
-                ) : null}
+                      </SettingsRowContent>
+                    ) : null}
+                  </SettingsRow>
+                </>
+              ) : null}
 
-                <div className="flex items-center justify-between gap-3 rounded-lg border bg-raised px-4 py-3">
-                  <div className="flex flex-col">
-                    <span className="text-sm text-gray-12">Deliver to this destination</span>
-                    <span className="text-xs text-gray-9">
-                      Paused destinations stay on rules but receive nothing.
-                    </span>
-                  </div>
+              <SettingsRow>
+                <SettingsRowHeader>
+                  <SettingsRowTitle>Deliver to this destination</SettingsRowTitle>
+                  <SettingsRowDescription>
+                    Paused destinations stay on rules but receive nothing.
+                  </SettingsRowDescription>
+                </SettingsRowHeader>
+                <SettingsRowContent>
                   <Switch
                     aria-label="Deliver to this destination"
                     checked={enabled}
-                    onCheckedChange={(next) => setValue("enabled", next, { shouldDirty: true })}
+                    onCheckedChange={(next) =>
+                      setValue("enabled", next, { shouldDirty: true, shouldValidate: true })
+                    }
                   />
-                </div>
+                </SettingsRowContent>
+              </SettingsRow>
 
-                {target.mode === "edit" ? (
-                  <div className="flex flex-col gap-1 rounded-lg border bg-raised px-4 py-3">
-                    <span className="text-sm text-gray-12">
+              {target.mode === "edit" ? (
+                <SettingsRow>
+                  <SettingsRowHeader>
+                    <SettingsRowTitle>
                       Used by {usedBy.length} {usedBy.length === 1 ? "rule" : "rules"}
-                    </span>
-                    <span className="text-xs text-gray-9">
+                    </SettingsRowTitle>
+                    <SettingsRowDescription>
                       {usedBy.length > 0
                         ? usedBy.map((rule) => rule.name).join(", ")
-                        : "Add it to a rule to start receiving events."}
-                    </span>
-                  </div>
-                ) : null}
+                        : "No rules use this destination."}
+                    </SettingsRowDescription>
+                  </SettingsRowHeader>
+                  <SettingsRowContent>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      color="danger"
+                      onClick={() => setConfirmDelete(true)}
+                    >
+                      Delete destination
+                    </Button>
+                  </SettingsRowContent>
+                </SettingsRow>
+              ) : null}
 
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3">
-                  <span className="text-xs text-gray-9">
+              <SettingsRow>
+                <SettingsRowHeader>
+                  <SettingsRowTitle>Test delivery</SettingsRowTitle>
+                  <SettingsRowDescription>
                     Test messages need the delivery worker, which this preview does not include.
-                  </span>
+                  </SettingsRowDescription>
+                </SettingsRowHeader>
+                <SettingsRowContent>
                   <Button type="button" variant="outline" size="sm" disabled>
                     Send test
                   </Button>
-                </div>
-              </>
-            ) : null}
-          </div>
-
-          <div className="flex items-center justify-between gap-2 border-t px-6 py-4">
-            <div>
-              {target.mode === "edit" ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  color="danger"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  Delete
-                </Button>
-              ) : null}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="primary" disabled={!channel}>
-                {target.mode === "edit" ? "Save destination" : "Add destination"}
-              </Button>
-            </div>
-          </div>
-        </form>
-      </SlidePanelContent>
+                </SettingsRowContent>
+              </SettingsRow>
+            </>
+          ) : null}
+        </SettingsForm>
+      </SettingsPanel>
 
       {target.mode === "edit" ? (
         <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
@@ -433,8 +466,9 @@ export function DestinationPanel({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Keep destination</AlertDialogCancel>
+              <AlertDialogCancel type="button">Keep destination</AlertDialogCancel>
               <AlertDialogAction
+                type="button"
                 color="danger"
                 onClick={() => {
                   actions.deleteDestination(target.destination.id);
@@ -453,11 +487,7 @@ export function DestinationPanel({
         open={revealedSecret !== null}
         onOpenChange={(open) => {
           if (!open) {
-            const wasCreate = target.mode === "create";
             setRevealedSecret(null);
-            if (wasCreate) {
-              onClose();
-            }
           }
         }}
       >
@@ -465,21 +495,21 @@ export function DestinationPanel({
           <AlertDialogHeader>
             <AlertDialogTitle>Copy the signing secret</AlertDialogTitle>
             <AlertDialogDescription>
-              Use it to verify that requests come from Unkey. You will not see it again. This
-              preview secret is not stored anywhere.
+              This preview secret is not used for deliveries. You will not see it again. Only its
+              hint is kept when you save.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex min-w-0 items-center gap-2 rounded-lg border bg-grayA-2 px-3 py-2">
             <code className="min-w-0 flex-1 break-all font-mono text-xs text-gray-12">
               {revealedSecret}
             </code>
-            <CopyButton value={revealedSecret ?? ""} variant="ghost" />
+            <CopyButton type="button" value={revealedSecret ?? ""} variant="ghost" />
           </div>
           <AlertDialogFooter>
-            <AlertDialogAction>Done</AlertDialogAction>
+            <AlertDialogAction type="button">Done</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </SlidePanel>
+    </>
   );
 }

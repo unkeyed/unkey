@@ -4,10 +4,17 @@ import { redirect } from "next/navigation";
 import { AccountShell } from "./account-shell";
 import { AccountUnavailable } from "./account-unavailable";
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  params,
+}: {
+  params: Promise<{ workspaceSlug: string }>;
+}) {
+  const { workspaceSlug } = await params;
+  const notificationsHref = routes.account.notifications({ workspaceSlug });
+
   if (env().AUTH_PROVIDER === "local") {
     return (
-      <AccountShell>
+      <AccountShell notificationsHref={notificationsHref}>
         <AccountUnavailable reason="local" />
       </AccountShell>
     );
@@ -31,5 +38,5 @@ export default async function AccountPage() {
     );
   }
 
-  return <ManagedAccount />;
+  return <ManagedAccount notificationsHref={notificationsHref} />;
 }

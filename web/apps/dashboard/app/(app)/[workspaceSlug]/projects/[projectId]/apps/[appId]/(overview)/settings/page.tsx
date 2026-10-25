@@ -15,6 +15,7 @@ import { useApp } from "../../../_components/settings/hooks/use-app";
 import { AppName } from "./components/app-name";
 import { DeleteApp } from "./components/delete-app";
 import { DisconnectGitHub } from "./components/disconnect-github";
+import { GitHubReporting } from "./components/github-reporting";
 
 export default function GeneralSettingsPage() {
   const { app, isLoading } = useApp();
@@ -34,6 +35,7 @@ export default function GeneralSettingsPage() {
         </SettingsGroupContent>
       </SettingsGroup>
       <ResourceNotifications projectId={app.projectId} appId={app.id} />
+      <GitHubReporting />
       <SettingsDangerZone>
         <DisconnectGitHub />
         <DeleteApp />

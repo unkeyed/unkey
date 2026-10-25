@@ -45,11 +45,19 @@ export const settingsRoutes = {
   notifications({
     workspaceSlug,
     tab,
-  }: WorkspaceScope & { tab?: "rules" | "destinations" | "email" }): Route {
+    projectId,
+    appId,
+    environmentId,
+  }: WorkspaceScope & {
+    tab?: "rules" | "destinations";
+    projectId?: string;
+    appId?: string;
+    environmentId?: string;
+  }): Route {
     return buildRoute(
       "/[workspaceSlug]/settings/notifications",
       { workspaceSlug },
-      tab ? { tab } : undefined,
+      { tab, projectId, appId, environmentId },
     );
   },
 

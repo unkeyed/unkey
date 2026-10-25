@@ -10,4 +10,7 @@ export const accountRoutes = {
   overview({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/account", { workspaceSlug });
   },
+  notifications({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/account/notifications", { workspaceSlug });
+  },
 };

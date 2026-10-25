@@ -294,19 +294,31 @@ export function withoutDestination(rules: ReadonlyArray<Rule>, destinationId: st
 
 export function rulesCoveringResource(
   rules: ReadonlyArray<Rule>,
-  resource: { projectId: string; appId?: string },
+  resource: { projectId: string; appId?: string; environmentId?: string },
 ): { scoped: Rule[]; inherited: Rule[] } {
   const scoped: Rule[] = [];
   const inherited: Rule[] = [];
   for (const rule of rules) {
-    const { projectId, appId } = rule.scope;
+    const { projectId, appId, environmentId } = rule.scope;
     if (projectId !== null && projectId !== resource.projectId) {
       continue;
     }
     if (resource.appId !== undefined && appId !== null && appId !== resource.appId) {
       continue;
     }
-    const isTargeted = resource.appId === undefined ? projectId !== null : appId !== null;
+    if (
+      resource.environmentId !== undefined &&
+      environmentId !== null &&
+      environmentId !== resource.environmentId
+    ) {
+      continue;
+    }
+    const isTargeted =
+      resource.environmentId !== undefined
+        ? environmentId !== null
+        : resource.appId !== undefined
+          ? appId !== null
+          : projectId !== null;
     (isTargeted ? scoped : inherited).push(rule);
   }
   return { scoped, inherited };

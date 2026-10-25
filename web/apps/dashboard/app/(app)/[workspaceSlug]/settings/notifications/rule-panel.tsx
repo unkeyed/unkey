@@ -29,15 +29,17 @@ import {
   Checkbox,
   FormInput,
   FormSelect,
-  SlidePanel,
-  SlidePanelCloseButton,
-  SlidePanelContent,
-  SlidePanelDescription,
-  SlidePanelHeader,
-  SlidePanelTitle,
+  SettingsForm,
+  SettingsPanel,
+  SettingsRow,
+  SettingsRowContent,
+  SettingsRowDescription,
+  SettingsRowHeader,
+  SettingsRowTitle,
+  formSaveState,
   toast,
 } from "@unkey/ui";
-import { type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -159,13 +161,15 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <fieldset className="flex flex-col gap-3 rounded-lg border bg-raised p-4">
-      <div className="flex flex-col gap-0.5">
-        <legend className="text-sm font-semibold text-gray-12">{title}</legend>
-        {description ? <p className="text-xs text-gray-9">{description}</p> : null}
-      </div>
-      {children}
-    </fieldset>
+    <SettingsRow>
+      <SettingsRowHeader>
+        <SettingsRowTitle>{title}</SettingsRowTitle>
+        {description ? <SettingsRowDescription>{description}</SettingsRowDescription> : null}
+      </SettingsRowHeader>
+      <SettingsRowContent>
+        <div className="flex flex-col gap-3">{children}</div>
+      </SettingsRowContent>
+    </SettingsRow>
   );
 }
 
@@ -221,263 +225,254 @@ export function RulePanel({
     return userId === currentUserId ? `${member.name} (you)` : member.name;
   };
 
-  const submit = form.handleSubmit((submitted) => {
-    const id = target.mode === "edit" ? target.rule.id : newPreviewId("rule");
-    actions.saveRule(toRule(id, submitted));
-    toast.success(target.mode === "edit" ? "Rule updated in preview" : "Rule added to preview");
-    onClose();
-  });
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    let saved = false;
+    await form.handleSubmit((submitted) => {
+      const id = target.mode === "edit" ? target.rule.id : newPreviewId("rule");
+      actions.saveRule(toRule(id, submitted));
+      form.reset(submitted);
+      toast.success(target.mode === "edit" ? "Rule updated in preview" : "Rule added to preview");
+      saved = true;
+    })(event);
+    return saved;
+  };
 
   return (
-    <SlidePanel isOpen={isOpen} onClose={onClose} widthClassName="w-160">
-      <SlidePanelHeader className="items-start">
-        <div className="flex flex-col gap-1">
-          <SlidePanelTitle>{target.mode === "edit" ? "Edit rule" : "New rule"}</SlidePanelTitle>
-          <SlidePanelDescription className="text-xs text-gray-9">
-            When an event matches, everyone on this rule is notified. Other matching rules still
-            apply, and each recipient gets one message.
-          </SlidePanelDescription>
-        </div>
-        <SlidePanelCloseButton />
-      </SlidePanelHeader>
-
-      <SlidePanelContent>
-        <form onSubmit={submit} className="flex h-full flex-col">
-          <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 pb-4 pt-1">
-            <Section title="Event">
-              <FormInput
+    <SettingsPanel
+      isOpen={isOpen}
+      onClose={onClose}
+      onSaved={onClose}
+      title={target.mode === "edit" ? "Edit rule" : "New rule"}
+      description="Other matching rules still apply. Each recipient gets one message."
+    >
+      <SettingsForm
+        onSubmit={submit}
+        dirty={formState.isDirty}
+        saveState={formSaveState(formState)}
+      >
+        <Section title="Event">
+          <FormInput
+            requirement="required"
+            label="Rule name"
+            placeholder="Production deploy failures"
+            error={formState.errors.name?.message}
+            {...register("name")}
+          />
+          <Controller
+            control={control}
+            name="notificationType"
+            render={({ field, fieldState }) => (
+              <FormSelect
                 requirement="required"
-                label="Rule name"
-                placeholder="Production deploy failures"
-                error={formState.errors.name?.message}
-                {...register("name")}
-              />
-              <Controller
-                control={control}
-                name="notificationType"
-                render={({ field, fieldState }) => (
-                  <FormSelect
-                    requirement="required"
-                    label="Notify about"
-                    placeholder="Choose an event"
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    error={fieldState.error?.message}
-                    description={typeDefinition?.description}
-                    options={NOTIFICATION_CATEGORIES.flatMap(({ category, label }) =>
-                      NOTIFICATION_TYPES.filter((type) => type.category === category).map(
-                        (type) => ({
-                          value: type.type,
-                          label: (
-                            <span className="flex items-center gap-2">
-                              <span className="text-gray-9">{label} /</span>
-                              {type.label}
-                            </span>
-                          ),
-                        }),
-                      ),
-                    )}
-                  />
+                label="Notify about"
+                placeholder="Choose an event"
+                value={field.value}
+                onValueChange={field.onChange}
+                error={fieldState.error?.message}
+                description={typeDefinition?.description}
+                options={NOTIFICATION_CATEGORIES.flatMap(({ category, label }) =>
+                  NOTIFICATION_TYPES.filter((type) => type.category === category).map((type) => ({
+                    value: type.type,
+                    label: (
+                      <span className="flex items-center gap-2">
+                        <span className="text-gray-9">{label} /</span>
+                        {type.label}
+                      </span>
+                    ),
+                  })),
                 )}
               />
-            </Section>
+            )}
+          />
+        </Section>
 
-            {typeDefinition?.resourceScoped ? (
-              <Section
-                title="Where"
-                description="Narrow the rule to one project, app, or environment. Leave a field on All to match everything below it."
-              >
-                <div className="grid grid-cols-3 gap-3">
-                  <FormSelect
-                    label="Project"
-                    value={values.projectId}
-                    onValueChange={(next) => {
-                      setValue("projectId", next, { shouldDirty: true });
-                      setValue("appId", ALL);
-                      setValue("environmentId", ALL);
-                    }}
-                    options={[
-                      { value: ALL, label: "All projects" },
-                      ...resources.projects.map((p) => ({ value: p.id, label: p.name })),
-                    ]}
-                  />
-                  <FormSelect
-                    label="App"
-                    value={values.appId}
-                    disabled={!project}
-                    onValueChange={(next) => {
-                      setValue("appId", next, { shouldDirty: true });
-                      setValue("environmentId", ALL);
-                    }}
-                    options={[
-                      { value: ALL, label: "All apps" },
-                      ...(project?.apps ?? []).map((app) => ({ value: app.id, label: app.name })),
-                    ]}
-                  />
-                  <FormSelect
-                    label="Environment"
-                    value={values.environmentId}
-                    disabled={values.appId === ALL}
-                    onValueChange={(next) => setValue("environmentId", next, { shouldDirty: true })}
-                    options={[
-                      { value: ALL, label: "All environments" },
-                      ...appEnvironments.map((env) => ({ value: env.id, label: env.slug })),
-                    ]}
-                  />
-                </div>
-              </Section>
-            ) : typeDefinition ? (
-              <p className="px-1 text-xs text-gray-9">
-                {typeDefinition.label} events apply to the whole workspace.
-              </p>
-            ) : null}
-
-            <Section
-              title="Email"
-              description="Unkey sends email to each member's account address. Members can turn off email per event in their own preferences."
-            >
-              <Controller
-                control={control}
-                name="audiences"
-                render={({ field }) => (
-                  <div className="flex flex-col gap-2">
-                    {NAMED_AUDIENCES.map((option) => {
-                      const count = audienceMembers(members, option.audience).length;
-                      const checked = field.value.includes(option.audience);
-                      return (
-                        <label
-                          key={option.audience}
-                          htmlFor={`rule-audience-${option.audience}`}
-                          className="flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 hover:bg-grayA-2"
-                        >
-                          <Checkbox
-                            id={`rule-audience-${option.audience}`}
-                            className="mt-0.5"
-                            checked={checked}
-                            onCheckedChange={(next) =>
-                              field.onChange(
-                                next
-                                  ? [...field.value, option.audience]
-                                  : field.value.filter((value) => value !== option.audience),
-                              )
-                            }
-                          />
-                          <span className="flex min-w-0 flex-1 flex-col">
-                            <span className="text-sm text-gray-12">{option.label}</span>
-                            <span className="text-xs text-gray-9">{option.description}</span>
-                          </span>
-                          <span className="shrink-0 text-xs text-gray-9 tabular-nums">
-                            {count} {count === 1 ? "member" : "members"}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
+        {typeDefinition?.resourceScoped ? (
+          <Section
+            title="Where"
+            description="All includes matching resources created later. This rule adds recipients; it does not override broader rules."
+          >
+            <div className="grid gap-3 sm:grid-cols-3">
+              <FormSelect
+                label="Project"
+                value={values.projectId}
+                onValueChange={(next) => {
+                  setValue("projectId", next, { shouldDirty: true });
+                  setValue("appId", ALL);
+                  setValue("environmentId", ALL);
+                }}
+                options={[
+                  { value: ALL, label: "All projects" },
+                  ...resources.projects.map((p) => ({ value: p.id, label: p.name })),
+                ]}
               />
-              <MemberPicker
-                value={values.memberIds}
-                onChange={(next) =>
-                  setValue("memberIds", next, { shouldDirty: true, shouldValidate: true })
-                }
-                members={members}
-                getLabel={memberLabel}
+              <FormSelect
+                label="App"
+                value={values.appId}
+                disabled={!project}
+                onValueChange={(next) => {
+                  setValue("appId", next, { shouldDirty: true });
+                  setValue("environmentId", ALL);
+                }}
+                options={[
+                  { value: ALL, label: "All apps" },
+                  ...(project?.apps ?? []).map((app) => ({ value: app.id, label: app.name })),
+                ]}
               />
-            </Section>
+              <FormSelect
+                label="Environment"
+                value={values.environmentId}
+                disabled={values.appId === ALL}
+                onValueChange={(next) => setValue("environmentId", next, { shouldDirty: true })}
+                options={[
+                  { value: ALL, label: "All environments" },
+                  ...appEnvironments.map((env) => ({ value: env.id, label: env.slug })),
+                ]}
+              />
+            </div>
+          </Section>
+        ) : typeDefinition ? (
+          <p className="px-1 text-xs text-gray-9">
+            {typeDefinition.label} events apply to the whole workspace.
+          </p>
+        ) : null}
 
-            <Section
-              title="Destinations"
-              description="Shared channels and endpoints. Manage them in the Destinations tab."
-            >
-              {destinations.length === 0 ? (
-                <p className="text-xs text-gray-9">No destinations yet.</p>
-              ) : (
-                <Controller
-                  control={control}
-                  name="destinationIds"
-                  render={({ field }) => (
-                    <div className="flex flex-col gap-2">
-                      {destinations.map((destination) => (
-                        <label
-                          key={destination.id}
-                          htmlFor={`rule-destination-${destination.id}`}
-                          className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 hover:bg-grayA-2"
-                        >
-                          <Checkbox
-                            id={`rule-destination-${destination.id}`}
-                            checked={field.value.includes(destination.id)}
-                            onCheckedChange={(next) =>
-                              field.onChange(
-                                next
-                                  ? [...field.value, destination.id]
-                                  : field.value.filter((value) => value !== destination.id),
-                              )
-                            }
-                          />
-                          <ChannelIcon channel={destination.config.channel} className="size-4" />
-                          <span className="min-w-0 flex-1 truncate text-sm text-gray-12">
-                            {destination.name}
-                          </span>
-                          {destination.enabled ? null : <Badge variant="secondary">Paused</Badge>}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                />
-              )}
-            </Section>
-
-            {formState.errors.audiences?.message ? (
-              <p role="alert" className="px-1 text-xs text-error-11">
-                {formState.errors.audiences.message}
-              </p>
-            ) : null}
-
-            <div className="flex items-center justify-between gap-3 rounded-lg border bg-raised px-4 py-3">
-              <div className="flex flex-col">
-                <span className="text-sm text-gray-12">Rule is active</span>
-                <span className="text-xs text-gray-9">Paused rules keep their recipients.</span>
+        <Section
+          title="Email"
+          description="Unkey sends email to each member's account address. Members can turn off email per event in their own preferences."
+        >
+          <Controller
+            control={control}
+            name="audiences"
+            render={({ field }) => (
+              <div className="flex flex-col gap-2">
+                {NAMED_AUDIENCES.map((option) => {
+                  const count = audienceMembers(members, option.audience).length;
+                  const checked = field.value.includes(option.audience);
+                  return (
+                    <label
+                      key={option.audience}
+                      htmlFor={`rule-audience-${option.audience}`}
+                      className="flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 hover:bg-grayA-2"
+                    >
+                      <Checkbox
+                        id={`rule-audience-${option.audience}`}
+                        className="mt-0.5"
+                        checked={checked}
+                        onCheckedChange={(next) =>
+                          field.onChange(
+                            next
+                              ? [...field.value, option.audience]
+                              : field.value.filter((value) => value !== option.audience),
+                          )
+                        }
+                      />
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="text-sm text-gray-12">{option.label}</span>
+                        <span className="text-xs text-gray-9">{option.description}</span>
+                      </span>
+                      <span className="shrink-0 text-xs text-gray-9 tabular-nums">
+                        {count} {count === 1 ? "member" : "members"}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
-              <Controller
-                control={control}
-                name="enabled"
-                render={({ field }) => (
-                  <Switch
-                    aria-label="Rule is active"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-            </div>
-          </div>
+            )}
+          />
+          <MemberPicker
+            value={values.memberIds}
+            onChange={(next) =>
+              setValue("memberIds", next, { shouldDirty: true, shouldValidate: true })
+            }
+            members={members}
+            getLabel={memberLabel}
+          />
+        </Section>
 
-          <div className="flex items-center justify-between gap-3 border-t px-6 py-4">
-            <output className="text-xs text-gray-11" aria-live="polite">
-              Emails {emailCount} {emailCount === 1 ? "person" : "people"}, posts to{" "}
-              {destinationCount} {destinationCount === 1 ? "destination" : "destinations"}
-            </output>
-            <div className="flex items-center gap-2">
-              {target.mode === "edit" ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  color="danger"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  Delete
-                </Button>
-              ) : null}
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="primary">
-                {target.mode === "edit" ? "Save rule" : "Add rule"}
-              </Button>
-            </div>
+        <Section
+          title="Destinations"
+          description="Shared channels and endpoints. Manage them in the Destinations tab."
+        >
+          {destinations.length === 0 ? (
+            <p className="text-xs text-gray-9">No destinations yet.</p>
+          ) : (
+            <Controller
+              control={control}
+              name="destinationIds"
+              render={({ field }) => (
+                <div className="flex flex-col gap-2">
+                  {destinations.map((destination) => (
+                    <label
+                      key={destination.id}
+                      htmlFor={`rule-destination-${destination.id}`}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 hover:bg-grayA-2"
+                    >
+                      <Checkbox
+                        id={`rule-destination-${destination.id}`}
+                        checked={field.value.includes(destination.id)}
+                        onCheckedChange={(next) =>
+                          field.onChange(
+                            next
+                              ? [...field.value, destination.id]
+                              : field.value.filter((value) => value !== destination.id),
+                          )
+                        }
+                      />
+                      <ChannelIcon channel={destination.config.channel} className="size-4" />
+                      <span className="min-w-0 flex-1 truncate text-sm text-gray-12">
+                        {destination.name}
+                      </span>
+                      {destination.enabled ? null : <Badge variant="secondary">Paused</Badge>}
+                    </label>
+                  ))}
+                </div>
+              )}
+            />
+          )}
+        </Section>
+
+        {formState.errors.audiences?.message ? (
+          <p role="alert" className="px-1 text-xs text-error-11">
+            {formState.errors.audiences.message}
+          </p>
+        ) : null}
+
+        <div className="flex items-center justify-between gap-3 rounded-lg border bg-raised px-4 py-3">
+          <div className="flex flex-col">
+            <span className="text-sm text-gray-12">Rule is active</span>
+            <span className="text-xs text-gray-9">Paused rules keep their recipients.</span>
           </div>
-        </form>
-      </SlidePanelContent>
+          <Controller
+            control={control}
+            name="enabled"
+            render={({ field }) => (
+              <Switch
+                aria-label="Rule is active"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            )}
+          />
+        </div>
+        <Section title="Recipients">
+          <output className="text-xs text-gray-11" aria-live="polite">
+            Emails {emailCount} {emailCount === 1 ? "person" : "people"}, posts to{" "}
+            {destinationCount} {destinationCount === 1 ? "destination" : "destinations"}
+          </output>
+        </Section>
+      </SettingsForm>
+      {target.mode === "edit" ? (
+        <div className="mt-6 border-t pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            color="danger"
+            onClick={() => setConfirmDelete(true)}
+          >
+            Delete rule
+          </Button>
+        </div>
+      ) : null}
 
       {target.mode === "edit" ? (
         <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
@@ -504,7 +499,7 @@ export function RulePanel({
           </AlertDialogContent>
         </AlertDialog>
       ) : null}
-    </SlidePanel>
+    </SettingsPanel>
   );
 }
 

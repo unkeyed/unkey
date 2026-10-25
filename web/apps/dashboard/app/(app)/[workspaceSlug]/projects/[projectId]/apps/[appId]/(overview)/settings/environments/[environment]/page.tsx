@@ -1,5 +1,6 @@
 "use client";
 
+import { ResourceNotifications } from "@/app/(app)/[workspaceSlug]/settings/notifications/resource-notifications";
 import { LoadError } from "@/components/load-error";
 import { collection } from "@/lib/collections";
 import { useCollectionLoad } from "@/lib/collections/use-collection-load";
@@ -38,6 +39,11 @@ export default function EnvironmentSettingsPage() {
         {appV2 ? <RuntimeOverview /> : <LegacyRuntimeOverview />}
         <EnvironmentDomains environment={environment} />
         {hasRepository ? <BranchTracking environment={environment} /> : null}
+        <ResourceNotifications
+          projectId={environment.projectId}
+          appId={environment.appId}
+          environmentId={environment.id}
+        />
       </SettingsGroups>
     </EnvironmentSettingsScope>
   );
