@@ -12,15 +12,16 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
 
 // domainLookup is the minimal slice of the frontline db.Querier the ACME
 // handler needs. ACME HTTP-01 only validates ownership of a custom domain,
 // not routing configuration, so the handler bypasses the router entirely and
-// consults custom_domains directly.
+// consults the deploy and portal domain tables directly.
 type domainLookup interface {
-	FindCustomDomainIDByDomain(ctx context.Context, domain string) (string, error)
+	FindDomainIDByHostname(ctx context.Context, arg db.FindDomainIDByHostnameParams) (string, error)
 }
 
 type Handler struct {
@@ -42,7 +43,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// Look up target configuration based on the request host
 	hostname := proxy.ExtractHostname(req.Host)
 
-	_, err := h.DB.FindCustomDomainIDByDomain(ctx, hostname)
+	_, err := h.DB.FindDomainIDByHostname(ctx, db.FindDomainIDByHostnameParams{Domain: hostname})
 	if err != nil {
 		if mysql.IsNotFound(err) {
 			return fault.New("no custom domain registered for hostname: "+hostname,

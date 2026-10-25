@@ -31,7 +31,7 @@ func (missingRowDB) FindCustomDomainById(_ context.Context, _ string) (db.Custom
 // terminal one: terminal here would kill the workflow for good and strand the
 // row in `pending` once the commit does land.
 func TestVerifyDomainToleratesRowNotYetVisible(t *testing.T) {
-	svc := New(Config{DB: missingRowDB{}, CnameDomain: "cname.unkey.local"})
+	svc := New(Config{DB: missingRowDB{}, Resolver: nil, CnameDomain: "cname.unkey.local"})
 
 	mockCtx := mocks.NewMockContext(t)
 	mockCtx.EXPECT().Key().Return("dom_notyetvisible")
@@ -54,7 +54,7 @@ func TestVerifyDomainTerminatesWhenRowStaysMissing(t *testing.T) {
 		"exactly on the boundary": rowVisibilityGrace,
 	} {
 		t.Run(name, func(t *testing.T) {
-			svc := New(Config{DB: missingRowDB{}, CnameDomain: "cname.unkey.local"})
+			svc := New(Config{DB: missingRowDB{}, Resolver: nil, CnameDomain: "cname.unkey.local"})
 
 			mockCtx := mocks.NewMockContext(t)
 			mockCtx.EXPECT().Key().Return("dom_staysmissing")
@@ -93,7 +93,7 @@ func TestVerifyDomainOldRowDoesNotTimeOut(t *testing.T) {
 		ID:        domainID,
 		Domain:    "retry.example.com",
 		CreatedAt: time.Now().Add(-2 * maxVerificationDuration).UnixMilli(),
-	}}, CnameDomain: "cname.unkey.local"})
+	}}, Resolver: nil, CnameDomain: "cname.unkey.local"})
 
 	mockCtx := mocks.NewMockContext(t)
 	mockCtx.EXPECT().Key().Return(domainID)
@@ -113,7 +113,7 @@ func TestVerifyDomainOldInvocationTimesOut(t *testing.T) {
 		ID:        domainID,
 		Domain:    "timeout.example.com",
 		CreatedAt: time.Now().UnixMilli(),
-	}}, CnameDomain: "cname.unkey.local"})
+	}}, Resolver: nil, CnameDomain: "cname.unkey.local"})
 
 	mockCtx := mocks.NewMockContext(t)
 	mockCtx.EXPECT().Key().Return(domainID)
