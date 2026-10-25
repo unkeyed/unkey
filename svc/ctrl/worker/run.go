@@ -485,14 +485,16 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:          database,
 		CnameDomain: cfg.CnameDomain,
 	}),
-		// Retry every 1 minute for up to 24 hours (1440 attempts). Pause (not
-		// kill) on exhaustion so compensations remain possible via operator
-		// cancel.
+		// Retry every 1 minute. VerifyDomain marks the domain failed once 24
+		// hours have passed; the extra hour of attempts guarantees an attempt
+		// runs past that deadline instead of the budget running out first and
+		// leaving the domain in `verifying`. Pause (not kill) on exhaustion so
+		// compensations remain possible via operator cancel.
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialRetryInterval(1*time.Minute),
 			restate.WithRetryIntervalFactor(1.0), // Fixed interval, no exponential backoff
 			restate.WithMaxRetryInterval(1*time.Minute),
-			restate.WithMaxRetryAttempts(1440),
+			restate.WithMaxRetryAttempts(1500),
 			restate.PauseOnMaxAttempts(),
 		),
 	))

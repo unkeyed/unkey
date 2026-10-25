@@ -52,13 +52,13 @@ var errNotVerified = errors.New("domain not verified yet")
 // per invocation - Restate's retry policy handles periodic re-checks (every 1 minute
 // for up to 24 hours).
 //
-// Once verification succeeds, the workflow:
-// 1. Updates domain status to "verified"
-// 2. Revokes any existing verified domain from another workspace (contention case)
+// Once verification succeeds, one transaction:
+// 1. Revokes any existing verified domain from another workspace (contention case)
+// 2. Updates domain status to "verified"
 // 3. Creates an ACME challenge record to trigger certificate issuance
 // 4. Creates a frontline route to enable traffic routing
 //
-// If verification fails after ~24 hours of retries, Restate kills the invocation.
+// If verification is still incomplete after 24 hours, the domain is marked failed.
 func (s *Service) VerifyDomain(
 	ctx restate.ObjectContext,
 	_ *hydrav1.VerifyDomainRequest,
@@ -72,12 +72,39 @@ func (s *Service) VerifyDomain(
 		return nil, err
 	}
 
-	// Fetch domain - NOT journaled so we get fresh state on each retry
+	// The row, the clock, and DNS all change between attempts. Branching on them
+	// outside a step makes replays diverge from the journal, so the whole check is
+	// one step that Restate retries until it journals an outcome.
+	check, err := restate.Run(ctx, func(runCtx restate.RunContext) (domainCheck, error) {
+		return s.checkDomain(runCtx, domainID, startedAt)
+	}, restate.WithName("check domain"))
+	if err != nil {
+		return nil, err
+	}
+
+	if check.TimedOut {
+		return s.onVerificationFailed(ctx, check.Domain, "domain verification timed out after 24 hours")
+	}
+	return s.onVerificationSuccess(ctx, check.Domain, check.OwnershipProven)
+}
+
+// domainCheck is the journaled outcome of [Service.checkDomain]. Without
+// TimedOut, Domain passed verification.
+type domainCheck struct {
+	Domain   db.CustomDomain
+	TimedOut bool
+	// OwnershipProven is set when the TXT record was checked and matched.
+	OwnershipProven bool
+}
+
+// checkDomain runs one verification attempt. It returns errNotVerified while
+// DNS is not ready, which fails the step so Restate retries the invocation.
+func (s *Service) checkDomain(ctx context.Context, domainID string, startedAt time.Time) (domainCheck, error) {
 	dom, err := s.db.FindCustomDomainById(ctx, domainID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			if time.Since(startedAt) < rowVisibilityGrace {
-				return nil, fault.Wrap(err, fault.Internal("domain row not visible yet"))
+				return domainCheck{}, fault.Wrap(err, fault.Internal("domain row not visible yet"))
 			}
 
 			// The domain row was deleted (DeleteCustomDomain, environment cascade,
@@ -86,24 +113,23 @@ func (s *Service) VerifyDomain(
 			logger.Info("domain record deleted, stopping verification workflow",
 				"domain_id", domainID,
 			)
-			return nil, restate.ToTerminalError(fmt.Errorf("domain record not found: %s", domainID), restate.WithErrorCode(404))
+			return domainCheck{}, restate.ToTerminalError(fmt.Errorf("domain record not found: %s", domainID), restate.WithErrorCode(404))
 		}
-		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
+		return domainCheck{}, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
 
 	elapsed := time.Since(startedAt)
 	if elapsed > maxVerificationDuration {
-		return s.onVerificationFailed(ctx, dom, "domain verification timed out after 24 hours")
+		return domainCheck{Domain: dom, TimedOut: true, OwnershipProven: false}, nil
 	}
 
-	// Mark domain as actively being verified - NOT journaled
 	err = s.db.UpdateCustomDomainVerificationStatus(ctx, db.UpdateCustomDomainVerificationStatusParams{
 		ID:                 dom.ID,
 		VerificationStatus: db.CustomDomainsVerificationStatusVerifying,
 		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 	if err != nil {
-		return nil, err
+		return domainCheck{}, err
 	}
 
 	// Step 1: Try CNAME verification. This works for subdomains with a real CNAME record.
@@ -132,7 +158,7 @@ func (s *Service) VerifyDomain(
 			WorkspaceID: dom.WorkspaceID,
 		})
 		if contestErr != nil && !db.IsNotFound(contestErr) {
-			return nil, fault.Wrap(contestErr, fault.Internal("failed to check domain contention"))
+			return domainCheck{}, fault.Wrap(contestErr, fault.Internal("failed to check domain contention"))
 		}
 		if contestErr == nil {
 			contested = true
@@ -172,7 +198,6 @@ func (s *Service) VerifyDomain(
 		}
 	}
 
-	// Update attempt count and verification flags - NOT journaled so we get fresh updates
 	err = s.db.UpdateCustomDomainCheckAttempt(ctx, db.UpdateCustomDomainCheckAttemptParams{
 		ID:            dom.ID,
 		CheckAttempts: dom.CheckAttempts + 1,
@@ -180,7 +205,7 @@ func (s *Service) VerifyDomain(
 		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 	if err != nil {
-		return nil, err
+		return domainCheck{}, err
 	}
 
 	err = s.db.UpdateCustomDomainOwnership(ctx, db.UpdateCustomDomainOwnershipParams{
@@ -190,7 +215,7 @@ func (s *Service) VerifyDomain(
 		ID:                dom.ID,
 	})
 	if err != nil {
-		return nil, err
+		return domainCheck{}, err
 	}
 
 	// Log current status
@@ -216,12 +241,10 @@ func (s *Service) VerifyDomain(
 	if isApex {
 		verified = verified && apexHasRecords
 	}
-	if verified {
-		return s.onVerificationSuccess(ctx, dom)
+	if !verified {
+		return domainCheck{}, errNotVerified
 	}
-
-	// Not fully verified yet - return error to trigger Restate retry
-	return nil, errNotVerified
+	return domainCheck{Domain: dom, TimedOut: false, OwnershipProven: requiresTxt && txtVerified}, nil
 }
 
 // RetryVerification resets a failed domain and restarts verification after the
@@ -234,13 +257,7 @@ func (s *Service) RetryVerification(
 	logger.Info("retrying domain verification", "domain_id", domainID)
 
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, s.db.ResetCustomDomainVerification(stepCtx, db.ResetCustomDomainVerificationParams{
-			ID:                 domainID,
-			VerificationStatus: db.CustomDomainsVerificationStatusPending,
-			CheckAttempts:      0,
-			InvocationID:       sql.NullString{Valid: false},
-			UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
+		return restate.Void{}, s.resetVerification(stepCtx, domainID)
 	}, restate.WithName("reset verification"))
 	if err != nil {
 		return nil, err
@@ -252,6 +269,30 @@ func (s *Service) RetryVerification(
 	}
 
 	return &hydrav1.RetryVerificationResponse{}, nil
+}
+
+// resetVerification moves a domain back to pending. It refuses a verified
+// domain, as the ctrl RetryVerification does, so a retry cannot take a serving
+// domain out of verified.
+func (s *Service) resetVerification(ctx context.Context, domainID string) error {
+	dom, err := s.db.FindCustomDomainById(ctx, domainID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return restate.ToTerminalError(fmt.Errorf("domain record not found: %s", domainID), restate.WithErrorCode(404))
+		}
+		return fault.Wrap(err, fault.Internal("failed to fetch domain record"))
+	}
+	if dom.VerificationStatus == db.CustomDomainsVerificationStatusVerified {
+		return restate.ToTerminalError(fmt.Errorf("domain already verified: %s", domainID), restate.WithErrorCode(409))
+	}
+
+	return s.db.ResetCustomDomainVerification(ctx, db.ResetCustomDomainVerificationParams{
+		ID:                 domainID,
+		VerificationStatus: db.CustomDomainsVerificationStatusPending,
+		CheckAttempts:      0,
+		InvocationID:       sql.NullString{Valid: false},
+		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	})
 }
 
 // checkTXTRecord verifies that the domain has a TXT record proving ownership.
@@ -328,126 +369,44 @@ func (s *Service) hasAddressRecords(ctx context.Context, domain string) (bool, e
 	return len(addrs) > 0, nil
 }
 
-// onVerificationSuccess handles successful domain verification by updating status,
-// creating an ACME challenge for certificate issuance, and setting up traffic routing.
+// verifyOutcome is the journaled result of [Service.completeVerification].
+type verifyOutcome string
+
+const (
+	verifyOutcomeRouted   verifyOutcome = "routed"
+	verifyOutcomeConflict verifyOutcome = "conflict"
+	verifyOutcomeDeleted  verifyOutcome = "deleted"
+)
+
+// onVerificationSuccess marks a verified domain, routes it, and starts
+// certificate issuance.
 func (s *Service) onVerificationSuccess(
 	ctx restate.ObjectContext,
 	dom db.CustomDomain,
+	ownershipProven bool,
 ) (*hydrav1.VerifyDomainResponse, error) {
 	now := time.Now().UnixMilli()
 
-	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, s.db.UpdateCustomDomainVerificationStatus(stepCtx, db.UpdateCustomDomainVerificationStatusParams{
-			ID:                 dom.ID,
-			VerificationStatus: db.CustomDomainsVerificationStatusVerified,
-			UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
-		})
-	}, restate.WithName("mark verified"))
+	outcome, err := restate.Run(ctx, func(stepCtx restate.RunContext) (verifyOutcome, error) {
+		return s.completeVerification(stepCtx, dom, ownershipProven, now)
+	}, restate.WithName("complete verification"))
 	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to mark domain as verified"))
+		return nil, fault.Wrap(err, fault.Internal("failed to complete domain verification"))
 	}
 
-	// Create a placeholder ACME challenge record. Token and Authorization are empty
-	// because they're provided by the ACME server during the challenge flow, not by us.
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, s.db.InsertAcmeChallenge(stepCtx, db.InsertAcmeChallengeParams{
-			DomainID:      dom.ID,
-			WorkspaceID:   dom.WorkspaceID,
-			Token:         "",
-			ChallengeType: db.AcmeChallengesChallengeTypeHTTP01,
-			Authorization: "",
-			Status:        db.AcmeChallengesStatusWaiting,
-			ExpiresAt:     time.Now().Add(30 * 24 * time.Hour).UnixMilli(),
-			CreatedAt:     now,
-			UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-		})
-	}, restate.WithName("create acme challenge"))
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to create ACME challenge record"))
+	switch outcome {
+	case verifyOutcomeDeleted:
+		logger.Info("domain record deleted, stopping verification workflow", "domain_id", dom.ID)
+		return nil, restate.ToTerminalError(fmt.Errorf("domain record not found: %s", dom.ID), restate.WithErrorCode(404))
+	case verifyOutcomeConflict:
+		return s.onVerificationFailed(ctx, dom, "domain is already routed to another app")
+	case verifyOutcomeRouted:
 	}
 
-	// Kick off certificate issuance asynchronously via Restate.
-	certClient := hydrav1.NewCertificateServiceClient(ctx, dom.Domain)
-	certClient.ProcessChallenge().Send(&hydrav1.ProcessChallengeRequest{
+	hydrav1.NewCertificateServiceClient(ctx, dom.Domain).ProcessChallenge().Send(&hydrav1.ProcessChallengeRequest{
 		WorkspaceId: dom.WorkspaceID,
 		Domain:      dom.Domain,
 	})
-
-	// Revoke any existing verified domain from another workspace. This handles the
-	// contention case where workspace B proves ownership and routing for a domain
-	// that workspace A previously verified.
-	err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
-		oldDom, findErr := s.db.FindVerifiedCustomDomainByDomainExcludingWorkspace(stepCtx, db.FindVerifiedCustomDomainByDomainExcludingWorkspaceParams{
-			Domain:      dom.Domain,
-			WorkspaceID: dom.WorkspaceID,
-		})
-		if findErr != nil {
-			if db.IsNotFound(findErr) {
-				return nil // No contention
-			}
-			return findErr
-		}
-
-		logger.Info("revoking domain from previous workspace",
-			"domain", dom.Domain,
-			"old_workspace", oldDom.WorkspaceID,
-			"new_workspace", dom.WorkspaceID,
-		)
-
-		// Mark old domain as failed
-		if updateErr := s.db.UpdateCustomDomainFailed(stepCtx, db.UpdateCustomDomainFailedParams{
-			ID:                 oldDom.ID,
-			VerificationStatus: db.CustomDomainsVerificationStatusFailed,
-			VerificationError:  sql.NullString{Valid: true, String: "domain claimed by another workspace"},
-			UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
-		}); updateErr != nil {
-			return updateErr
-		}
-
-		// Delete old frontline route
-		if deleteErr := s.db.DeleteFrontlineRouteByFQDN(stepCtx, dom.Domain); deleteErr != nil && !db.IsNotFound(deleteErr) {
-			return deleteErr
-		}
-
-		// Delete old ACME challenge
-		if deleteErr := s.db.DeleteAcmeChallengeByDomainID(stepCtx, oldDom.ID); deleteErr != nil && !db.IsNotFound(deleteErr) {
-			return deleteErr
-		}
-
-		return nil
-	}, restate.WithName("revoke contested domain"))
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to revoke contested domain"))
-	}
-
-	// Create frontline route for traffic routing. If no deployment exists yet,
-	// the route will be assigned when the first deployment happens.
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		app, appErr := s.db.FindAppById(stepCtx, dom.AppID)
-		if appErr != nil {
-			return restate.Void{}, fault.Wrap(appErr, fault.Internal("failed to find app for frontline route"))
-		}
-
-		deploymentID := ""
-		if app.CurrentDeploymentID.Valid {
-			deploymentID = app.CurrentDeploymentID.String
-		}
-
-		return restate.Void{}, s.db.InsertFrontlineRoute(stepCtx, db.InsertFrontlineRouteParams{
-			ID:                       uid.New(uid.FrontlineRoutePrefix),
-			ProjectID:                dom.ProjectID,
-			AppID:                    dom.AppID,
-			DeploymentID:             deploymentID,
-			EnvironmentID:            dom.EnvironmentID,
-			FullyQualifiedDomainName: dom.Domain,
-			Sticky:                   db.FrontlineRoutesStickyLive,
-			CreatedAt:                now,
-			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
-		})
-	}, restate.WithName("create frontline route"))
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to create frontline route"))
-	}
 
 	logger.Info("domain verification completed successfully",
 		"domain", dom.Domain,
@@ -482,4 +441,133 @@ func (s *Service) onVerificationFailed(
 
 	// Return terminal error to stop Restate retries
 	return nil, restate.ToTerminalError(fmt.Errorf("domain verification failed: %s", errorMsg))
+}
+
+// completeVerification applies every write for a verified domain in one
+// transaction, so a retry after an unjournaled commit finds its own work and
+// a concurrent delete or claim sees all of it or none of it.
+//
+// The share lock on the domain row makes DeleteCustomDomain wait for this
+// transaction, or makes this one see the row gone. Two workspaces verifying
+// the same FQDN at once serialize on the unique route: the loser's insert
+// fails, the step retries, and it then sees the winner's committed claim. When
+// another workspace has verified the domain, the later verifier takes it over
+// only with TXT proof. The DNS check is journaled and does not rerun when this
+// step retries, so a claim that commits in between must be checked here.
+func (s *Service) completeVerification(ctx context.Context, dom db.CustomDomain, ownershipProven bool, now int64) (verifyOutcome, error) {
+	app, err := s.db.FindAppById(ctx, dom.AppID)
+	if err != nil {
+		return "", fault.Wrap(err, fault.Internal("failed to find app for frontline route"))
+	}
+
+	deploymentID := ""
+	if app.CurrentDeploymentID.Valid {
+		deploymentID = app.CurrentDeploymentID.String
+	}
+
+	return db.TxWithResultRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (verifyOutcome, error) {
+		q := db.NewQueries(tx)
+
+		if _, lockErr := q.LockCustomDomain(txCtx, dom.ID); lockErr != nil {
+			if db.IsNotFound(lockErr) {
+				return verifyOutcomeDeleted, nil
+			}
+			return "", lockErr
+		}
+
+		contested, contestErr := q.FindVerifiedCustomDomainByDomainExcludingWorkspace(txCtx, db.FindVerifiedCustomDomainByDomainExcludingWorkspaceParams{
+			Domain:      dom.Domain,
+			WorkspaceID: dom.WorkspaceID,
+		})
+		hasContested := contestErr == nil
+		if contestErr != nil && !db.IsNotFound(contestErr) {
+			return "", contestErr
+		}
+		if hasContested && !ownershipProven {
+			return verifyOutcomeConflict, nil
+		}
+
+		routeExists := false
+		route, routeErr := q.FindFrontlineRouteByFQDN(txCtx, dom.Domain)
+		switch {
+		case routeErr == nil:
+			routeExists = true
+			ours := route.AppID == dom.AppID && route.EnvironmentID == dom.EnvironmentID
+			takeover := hasContested && route.ProjectID == contested.ProjectID
+			if !ours && !takeover {
+				return verifyOutcomeConflict, nil
+			}
+		case !db.IsNotFound(routeErr):
+			return "", routeErr
+		}
+
+		if hasContested {
+			logger.Info("revoking domain from previous workspace",
+				"domain", dom.Domain,
+				"old_workspace", contested.WorkspaceID,
+				"new_workspace", dom.WorkspaceID,
+			)
+			if err := q.UpdateCustomDomainFailed(txCtx, db.UpdateCustomDomainFailedParams{
+				ID:                 contested.ID,
+				VerificationStatus: db.CustomDomainsVerificationStatusFailed,
+				VerificationError:  sql.NullString{Valid: true, String: "domain claimed by another workspace"},
+				UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
+			}); err != nil {
+				return "", err
+			}
+			if err := q.DeleteAcmeChallengeByDomainID(txCtx, contested.ID); err != nil && !db.IsNotFound(err) {
+				return "", err
+			}
+			if routeExists && route.ProjectID == contested.ProjectID {
+				if err := q.DeleteFrontlineRouteByFQDNAndProject(txCtx, db.DeleteFrontlineRouteByFQDNAndProjectParams{
+					Fqdn:      dom.Domain,
+					ProjectID: contested.ProjectID,
+				}); err != nil && !db.IsNotFound(err) {
+					return "", err
+				}
+				routeExists = false
+			}
+		}
+
+		if err := q.UpdateCustomDomainVerificationStatus(txCtx, db.UpdateCustomDomainVerificationStatusParams{
+			ID:                 dom.ID,
+			VerificationStatus: db.CustomDomainsVerificationStatusVerified,
+			UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
+		}); err != nil {
+			return "", err
+		}
+
+		// Token and Authorization stay empty: the ACME server provides them
+		// during the challenge flow. domain_id is unique, so an existing row
+		// from an earlier attempt already satisfies this.
+		err := q.InsertAcmeChallenge(txCtx, db.InsertAcmeChallengeParams{
+			DomainID:      dom.ID,
+			WorkspaceID:   dom.WorkspaceID,
+			Token:         "",
+			ChallengeType: db.AcmeChallengesChallengeTypeHTTP01,
+			Authorization: "",
+			Status:        db.AcmeChallengesStatusWaiting,
+			ExpiresAt:     time.UnixMilli(now).Add(30 * 24 * time.Hour).UnixMilli(),
+			CreatedAt:     now,
+			UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+		})
+		if err != nil && !db.IsDuplicateKeyError(err) {
+			return "", err
+		}
+
+		if routeExists {
+			return verifyOutcomeRouted, nil
+		}
+		return verifyOutcomeRouted, q.InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
+			ID:                       uid.New(uid.FrontlineRoutePrefix),
+			ProjectID:                dom.ProjectID,
+			AppID:                    dom.AppID,
+			DeploymentID:             deploymentID,
+			EnvironmentID:            dom.EnvironmentID,
+			FullyQualifiedDomainName: dom.Domain,
+			Sticky:                   db.FrontlineRoutesStickyLive,
+			CreatedAt:                now,
+			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
+		})
+	})
 }
