@@ -42,6 +42,17 @@ export const settingsRoutes = {
     },
   },
 
+  notifications({
+    workspaceSlug,
+    tab,
+  }: WorkspaceScope & { tab?: "rules" | "destinations" | "email" }): Route {
+    return buildRoute(
+      "/[workspaceSlug]/settings/notifications",
+      { workspaceSlug },
+      tab ? { tab } : undefined,
+    );
+  },
+
   billing({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/billing", { workspaceSlug });
   },

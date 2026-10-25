@@ -19,6 +19,7 @@ const ITEMS = [
   },
   { segment: "team", label: "Team", getHref: routes.settings.team },
   { segment: "logdrains", label: "Log Drains", getHref: routes.settings.logdrains.list },
+  { segment: "notifications", label: "Notifications", getHref: routes.settings.notifications },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
   { segment: "usage", label: "Usage", getHref: routes.settings.usage },
   { segment: "limits", label: "Limits", getHref: routes.settings.limits },

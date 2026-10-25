@@ -1,5 +1,6 @@
 "use client";
 
+import { ResourceNotifications } from "@/app/(app)/[workspaceSlug]/settings/notifications/resource-notifications";
 import { LoadError } from "@/components/load-error";
 import { collection } from "@/lib/collections";
 import { useCollectionLoad } from "@/lib/collections/use-collection-load";
@@ -32,6 +33,7 @@ export default function GeneralSettingsPage() {
           <AppName appId={app.id} name={app.name} />
         </SettingsGroupContent>
       </SettingsGroup>
+      <ResourceNotifications projectId={app.projectId} appId={app.id} />
       <SettingsDangerZone>
         <DisconnectGitHub />
         <DeleteApp />

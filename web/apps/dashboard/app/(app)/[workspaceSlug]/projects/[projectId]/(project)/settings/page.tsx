@@ -1,5 +1,6 @@
 "use client";
 
+import { ResourceNotifications } from "@/app/(app)/[workspaceSlug]/settings/notifications/resource-notifications";
 import { useProject } from "@/hooks/use-project";
 import {
   PageContainer,
@@ -26,6 +27,7 @@ export default function ProjectSettingsPage() {
         {project ? (
           <>
             <UpdateProjectSettings project={project} />
+            {project.isDefault ? null : <ResourceNotifications projectId={project.id} />}
             {project.isDefault ? null : (
               <SettingsDangerZone>
                 <DeleteProject project={project} />
