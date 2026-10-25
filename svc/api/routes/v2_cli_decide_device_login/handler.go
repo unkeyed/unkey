@@ -27,7 +27,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if err := clidevice.RequireDashboardSession(p); err != nil {
+	if _, err := clidevice.RequireDashboardSession(p); err != nil {
 		return err
 	}
 

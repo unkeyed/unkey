@@ -6,14 +6,13 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/db"
 	principalpermissions "github.com/unkeyed/unkey/svc/api/internal/principal"
 )
 
 // Get returns the authorization behind a user code.
 func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error) {
-	if err := RequireDashboardSession(req.Principal); err != nil {
+	if _, err := RequireDashboardSession(req.Principal); err != nil {
 		return Authorization{}, err
 	}
 
@@ -41,7 +40,8 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 	if err := s.requireEnabled(); err != nil {
 		return err
 	}
-	if err := RequireDashboardSession(req.Principal); err != nil {
+	source, err := RequireDashboardSession(req.Principal)
+	if err != nil {
 		return err
 	}
 
@@ -50,10 +50,6 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 		return err
 	}
 
-	source, ok := req.Principal.Source.(principal.JWTSource)
-	if !ok {
-		return dashboardSessionRequired()
-	}
 	rolesJSON, err := json.Marshal(source.Roles)
 	if err != nil {
 		return err
@@ -122,7 +118,7 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 	if err := s.requireEnabled(); err != nil {
 		return err
 	}
-	if err := RequireDashboardSession(req.Principal); err != nil {
+	if _, err := RequireDashboardSession(req.Principal); err != nil {
 		return err
 	}
 

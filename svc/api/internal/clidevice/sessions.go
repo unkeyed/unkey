@@ -18,20 +18,18 @@ import (
 
 // Allow reports whether a CLI session may authenticate a request.
 func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Session, error) {
-	if s.SessionCache != nil {
-		if verdict, hit := s.SessionCache.Get(ctx, sessionID); hit == cache.Hit {
-			if !verdict.Allowed {
-				return clisession.Session{}, clisession.ErrInactive
-			}
-			return verdict.Session, nil
+	if verdict, hit := s.SessionCache.Get(ctx, sessionID); hit == cache.Hit {
+		if !verdict.Allowed {
+			return clisession.Session{}, clisession.ErrInactive
 		}
+		return verdict.Session, nil
 	}
 
 	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), sessionID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			var inactive clisession.Session
-			s.remember(ctx, sessionID, SessionVerdict{
+			s.SessionCache.Set(ctx, sessionID, SessionVerdict{
 				Allowed: false,
 				Session: inactive,
 			})
@@ -55,7 +53,7 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 		active = err == nil && workspaceUsable(workspace)
 	}
 
-	s.remember(ctx, sessionID, SessionVerdict{
+	s.SessionCache.Set(ctx, sessionID, SessionVerdict{
 		Allowed: active,
 		Session: session,
 	})
@@ -63,20 +61,6 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 		return clisession.Session{}, clisession.ErrInactive
 	}
 	return session, nil
-}
-
-func (s *Service) remember(ctx context.Context, sessionID string, verdict SessionVerdict) {
-	if s.SessionCache == nil {
-		return
-	}
-	s.SessionCache.Set(ctx, sessionID, verdict)
-}
-
-func (s *Service) forget(ctx context.Context, sessionID string) {
-	if s.SessionCache == nil {
-		return
-	}
-	s.SessionCache.Remove(ctx, sessionID)
 }
 
 // Revoke ends a session. The owner can revoke their own. An admin can revoke
@@ -103,7 +87,7 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		return forbidden("You can only revoke your own CLI sessions.")
 	}
 	if row.RevokedAt.Valid {
-		s.forget(ctx, row.ID)
+		s.SessionCache.Remove(ctx, row.ID)
 		return nil
 	}
 
@@ -137,7 +121,7 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		}); err != nil {
 			return err
 		}
-		s.forget(ctx, row.ID)
+		s.SessionCache.Remove(ctx, row.ID)
 		return nil
 	})
 }
