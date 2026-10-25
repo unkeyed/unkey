@@ -148,11 +148,13 @@ export function DestinationPanel({
   target,
   isOpen,
   onClose,
+  onSave,
   rules,
 }: {
   target: DestinationEditorTarget;
   isOpen: boolean;
   onClose: () => void;
+  onSave?: (destination: Destination) => void;
   rules: ReadonlyArray<Rule>;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -187,19 +189,21 @@ export function DestinationPanel({
       const id = target.mode === "edit" ? target.destination.id : newPreviewId("dst");
       const createdSecret =
         values.channel === "webhook" && target.mode === "create" ? generateSigningSecret() : null;
-      actions.saveDestination({
+      const destination: Destination = {
         id,
         name: values.name.trim(),
         enabled: values.enabled,
         config: nextConfig(values.channel, values, previous, createdSecret ?? pendingSecret),
-      });
+      };
+      actions.saveDestination(destination);
+      onSave?.(destination);
       savedRef.current = true;
       saved = true;
       form.reset(values);
       setPendingSecret(null);
       setRevealedSecret(createdSecret);
       toast.success(
-        target.mode === "edit" ? "Destination updated in preview" : "Destination added to preview",
+        target.mode === "edit" ? "Channel updated in preview" : "Channel added to preview",
       );
       onClose();
     })(event);
@@ -212,7 +216,7 @@ export function DestinationPanel({
         isOpen={isOpen}
         onClose={onClose}
         onSaved={onClose}
-        title={target.mode === "edit" ? target.destination.name : "New destination"}
+        title={target.mode === "edit" ? target.destination.name : "Connect channel"}
         description="Preview only. Changes stay in this browser tab and do not send notifications."
       >
         <SettingsForm dirty={dirty} saveState={saveState} onSubmit={submit}>

@@ -10,11 +10,12 @@ import {
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateTitle,
-  ResourceList,
   ResourceListBody,
   ResourceListContent,
   ResourceListHeader,
   ResourceListItem,
+  SettingsGroup,
+  SettingsGroupTitle,
   toast,
 } from "@unkey/ui";
 import type { DestinationEditorTarget } from "./destination-panel";
@@ -22,7 +23,7 @@ import { rulesUsingDestination } from "./notification-model";
 import { ChannelMedia, channelTitle } from "./notification-ui";
 import { useNotificationPreview } from "./preview-context";
 
-export function DestinationsTab({
+export function ConnectedChannels({
   onEditDestination,
 }: {
   onEditDestination: (target: DestinationEditorTarget) => void;
@@ -30,32 +31,35 @@ export function DestinationsTab({
   const preview = useNotificationPreview();
   const addButton = (
     <Button
-      variant="primary"
+      type="button"
+      variant="outline"
+      size="sm"
       disabled={!preview.canManage}
       onClick={() => onEditDestination({ mode: "create" })}
     >
       <IconPlusOutline12 />
-      Add destination
+      Connect channel
     </Button>
   );
 
   return (
-    <ResourceList className="gap-6">
-      <ResourceListHeader className="justify-between gap-4">
-        <p className="max-w-xl text-sm text-gray-11">
-          Set up a Slack channel, Discord channel, or webhook once, then add it to any rule. Pausing
-          a destination stops every rule from posting to it.
-        </p>
+    <SettingsGroup>
+      <ResourceListHeader className="justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <SettingsGroupTitle>Connected channels</SettingsGroupTitle>
+          <p className="text-xs leading-5 text-gray-11">
+            Reuse a channel across events. Pausing it stops every route that uses it.
+          </p>
+        </div>
         <div className="shrink-0">{addButton}</div>
       </ResourceListHeader>
 
       {preview.destinations.length === 0 ? (
         <EmptyState>
           <EmptyStateHeader>
-            <EmptyStateTitle>No destinations</EmptyStateTitle>
+            <EmptyStateTitle>No connected channels</EmptyStateTitle>
             <EmptyStateDescription>
-              Rules can still email members. Add a destination to post to Slack, Discord, or your
-              own endpoint.
+              Rules can still email members. Connect Slack, Discord, or your own endpoint.
             </EmptyStateDescription>
           </EmptyStateHeader>
           <EmptyStateActions>{addButton}</EmptyStateActions>
@@ -83,11 +87,7 @@ export function DestinationsTab({
                         <span className="truncate group-hover:underline text-sm font-medium text-gray-12">
                           {destination.name}
                         </span>
-                        {destination.enabled ? (
-                          <Badge variant="success">Active</Badge>
-                        ) : (
-                          <Badge variant="secondary">Paused</Badge>
-                        )}
+                        {destination.enabled ? null : <Badge variant="secondary">Paused</Badge>}
                       </span>
                       <span className="truncate text-xs text-gray-9">
                         {channelTitle(destination.config.channel)} ·{" "}
@@ -121,8 +121,8 @@ export function DestinationsTab({
         </ResourceListContent>
       )}
       <p className="text-xs text-gray-11">
-        Active means enabled, not verified. Open a destination to view its configuration.
+        Sample connections only. Delivery and connection tests are not available in this preview.
       </p>
-    </ResourceList>
+    </SettingsGroup>
   );
 }

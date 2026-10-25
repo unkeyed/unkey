@@ -1,7 +1,6 @@
 "use client";
 
 import { Switch } from "@/components/ui/switch";
-import { useWorkspace } from "@/providers/workspace-provider";
 import {
   SettingsGroup,
   SettingsGroupContent,
@@ -16,11 +15,12 @@ import {
 } from "@unkey/ui";
 import { emailRoutesForMember, isEmailEnabled } from "./notification-model";
 import { NOTIFICATION_CATEGORIES, NOTIFICATION_TYPES } from "./notification-types";
+import { useResourceNames } from "./notification-ui";
 import { useNotificationPreview } from "./preview-context";
 
 export function EmailTab() {
   const preview = useNotificationPreview();
-  const { workspace } = useWorkspace();
+  const { scopeLabel } = useResourceNames();
   const me = preview.members.find((member) => member.userId === preview.currentUserId);
 
   if (!me) {
@@ -29,12 +29,15 @@ export function EmailTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="max-w-xl text-sm text-gray-11">
-        Manage your email at <span className="text-gray-12">{me.email}</span> for{" "}
-        {workspace?.name ?? "this workspace"}. Workspace rules decide which events reach you.
-        Turning an event off only stops your email; turning it on does not add you to any rule.
-        Shared Slack, Discord, and webhook destinations are not affected.
-      </p>
+      <div className="max-w-xl space-y-2 text-sm text-gray-11">
+        <p className="break-words">
+          Email to <span className="text-gray-12">{me.email}</span>
+        </p>
+        <p id="email-preferences-description">
+          On only allows email from enabled rules that include you. It does not subscribe you to an
+          event. Off stops your email without changing shared destinations.
+        </p>
+      </div>
 
       <SettingsGroups className="max-w-none p-0">
         {NOTIFICATION_CATEGORIES.map(({ category, label }) => (
@@ -46,28 +49,48 @@ export function EmailTab() {
                 const enabled = isEmailEnabled(preview.preferences, me.userId, type.type);
                 const switchId = `email-${type.type}`;
                 const descriptionId = `${switchId}-description`;
+                const statusId = `${switchId}-status`;
                 return (
                   <SettingsRow key={type.type}>
-                    <SettingsRowHeader>
+                    <SettingsRowHeader className="min-w-0">
                       <SettingsRowTitle>
                         <label htmlFor={switchId}>{type.label}</label>
                       </SettingsRowTitle>
                       <SettingsRowDescription id={descriptionId}>
-                        <p>{type.description}</p>
-                        <p className="mt-1">
-                          {routes.length > 0
-                            ? `Rules that include you: ${routes.map(({ rule, via }) => `${rule.name} (${via})`).join(", ")}`
-                            : "No rule currently includes you."}
-                        </p>
+                        {type.description}
                       </SettingsRowDescription>
                     </SettingsRowHeader>
-                    <SettingsRowContent className="flex items-center justify-end gap-3">
-                      <span className="text-xs text-gray-11">
-                        {enabled ? "Email allowed" : "Email off"}
-                      </span>
+                    <SettingsRowContent className="flex items-start justify-between gap-4">
+                      <div
+                        id={statusId}
+                        className="min-w-0 flex-1 space-y-2 break-words text-xs leading-5 text-gray-11"
+                      >
+                        <p className="font-medium text-gray-12">
+                          {enabled
+                            ? routes.length > 0
+                              ? "Email on for matching events"
+                              : "Inactive"
+                            : "Email off"}
+                        </p>
+                        {routes.length > 0 ? (
+                          <ul className="space-y-2">
+                            {routes.map(({ rule, via }) => (
+                              <li key={rule.id}>
+                                <p>{rule.name}</p>
+                                <p>
+                                  {via} ·{" "}
+                                  {type.resourceScoped ? scopeLabel(rule.scope) : "Workspace-wide"}
+                                </p>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>No enabled rules include you.</p>
+                        )}
+                      </div>
                       <Switch
                         id={switchId}
-                        aria-describedby={descriptionId}
+                        aria-describedby={`${descriptionId} ${statusId} email-preferences-description`}
                         checked={enabled}
                         onCheckedChange={(next) => {
                           preview.actions.setEmailPreference({
@@ -76,9 +99,7 @@ export function EmailTab() {
                             enabled: next,
                           });
                           toast.success(
-                            next
-                              ? `Email allowed for ${type.label} (preview)`
-                              : `Email turned off for ${type.label} (preview)`,
+                            `${type.label} email preference ${next ? "on" : "off"} (preview)`,
                           );
                         }}
                       />

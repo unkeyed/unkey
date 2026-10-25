@@ -42,6 +42,7 @@ import {
 import { type FormEvent, type ReactNode, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { DestinationPanel } from "./destination-panel";
 import {
   type Destination,
   type Member,
@@ -93,7 +94,7 @@ function toFormValues(target: RuleEditorTarget): RuleFormValues {
   if (target.mode === "create") {
     const scope = target.scope ?? WORKSPACE_WIDE;
     return {
-      name: "",
+      name: findNotificationType(target.notificationType ?? "")?.label ?? "",
       notificationType: target.notificationType ?? "",
       projectId: scope.projectId ?? ALL,
       appId: scope.appId ?? ALL,
@@ -200,7 +201,10 @@ export function RulePanel({
   currentUserId: string | null;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const { actions, preferences } = useNotificationPreview();
+  const [channelEditor, setChannelEditor] = useState<{ session: number; isOpen: boolean } | null>(
+    null,
+  );
+  const { actions, preferences, rules } = useNotificationPreview();
   const form = useForm<RuleFormValues>({
     resolver: standardSchemaResolver(ruleFormSchema),
     defaultValues: toFormValues(target),
@@ -242,7 +246,7 @@ export function RulePanel({
       isOpen={isOpen}
       onClose={onClose}
       onSaved={onClose}
-      title={target.mode === "edit" ? "Edit rule" : "New rule"}
+      title={target.mode === "edit" ? "Edit notification route" : "New notification route"}
       description="Other matching rules still apply. Each recipient gets one message."
     >
       <SettingsForm
@@ -390,11 +394,11 @@ export function RulePanel({
         </Section>
 
         <Section
-          title="Destinations"
-          description="Shared channels and endpoints. Manage them in the Destinations tab."
+          title="Connected channels"
+          description="Send to shared channels as well as email. New connections are saved separately from this route."
         >
           {destinations.length === 0 ? (
-            <p className="text-xs text-gray-9">No destinations yet.</p>
+            <p className="text-xs text-gray-9">No connected channels yet.</p>
           ) : (
             <Controller
               control={control}
@@ -429,6 +433,20 @@ export function RulePanel({
               )}
             />
           )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit"
+            onClick={() =>
+              setChannelEditor((previous) => ({
+                session: (previous?.session ?? 0) + 1,
+                isOpen: true,
+              }))
+            }
+          >
+            Connect channel
+          </Button>
         </Section>
 
         {formState.errors.audiences?.message ? (
@@ -498,6 +516,23 @@ export function RulePanel({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      ) : null}
+      {channelEditor ? (
+        <DestinationPanel
+          key={channelEditor.session}
+          target={{ mode: "create" }}
+          isOpen={isOpen && channelEditor.isOpen}
+          onClose={() =>
+            setChannelEditor((previous) => (previous ? { ...previous, isOpen: false } : null))
+          }
+          onSave={(destination) =>
+            setValue("destinationIds", [...form.getValues("destinationIds"), destination.id], {
+              shouldDirty: true,
+              shouldValidate: true,
+            })
+          }
+          rules={rules}
+        />
       ) : null}
     </SettingsPanel>
   );

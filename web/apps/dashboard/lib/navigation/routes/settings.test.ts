@@ -13,9 +13,6 @@ describe("settings-scoped paths", () => {
       "/acme/settings/logdrains/ld_1",
     );
     expect(routes.settings.notifications(scope)).toBe("/acme/settings/notifications");
-    expect(routes.settings.notifications({ ...scope, tab: "destinations" })).toBe(
-      "/acme/settings/notifications?tab=destinations",
-    );
     expect(
       routes.settings.notifications({
         ...scope,

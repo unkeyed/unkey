@@ -1,7 +1,12 @@
 "use client";
 
 import { LeaveGuard } from "@/components/leave-guard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import {
@@ -16,16 +21,13 @@ import {
   toast,
 } from "@unkey/ui";
 import Link from "next/link";
-import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useState } from "react";
-import { DestinationsTab } from "./destinations-tab";
+import { ConnectedChannels } from "./connected-channels";
 import { useDestinationEditor, useRuleEditor } from "./editors";
-import { PreviewBadge, PreviewBanner } from "./notification-ui";
+import { EventRouting } from "./event-routing";
+import { PreviewNotice } from "./notification-ui";
 import { NotificationPreviewProvider, useNotificationPreview } from "./preview-context";
 import { RoutingPanel } from "./routing-panel";
-import { RulesTab } from "./rules-tab";
-
-const TABS = ["rules", "destinations"] as const;
 
 export default function NotificationsPage() {
   return (
@@ -36,12 +38,8 @@ export default function NotificationsPage() {
 }
 
 function NotificationsPageContent() {
-  const { actions } = useNotificationPreview();
+  const { actions, canManage } = useNotificationPreview();
   const workspace = useWorkspaceNavigation();
-  const [tab, setTab] = useQueryState(
-    "tab",
-    parseAsStringLiteral(TABS).withDefault("rules").withOptions({ clearOnDefault: true }),
-  );
   const ruleEditor = useRuleEditor();
   const destinationEditor = useDestinationEditor();
   const [isRoutingOpen, setIsRoutingOpen] = useState(false);
@@ -51,12 +49,9 @@ function NotificationsPageContent() {
       <PageContainer>
         <PageHeader className="max-w-[920px] px-6">
           <PageHeaderContent>
-            <div className="flex items-center gap-2">
-              <PageHeaderTitle>Notifications</PageHeaderTitle>
-              <PreviewBadge />
-            </div>
+            <PageHeaderTitle>Notifications</PageHeaderTitle>
             <PageHeaderDescription>
-              Choose who hears about events in your workspace.
+              Choose who gets notified about events in {workspace.name}.
             </PageHeaderDescription>
           </PageHeaderContent>
           <PageHeaderActions>
@@ -67,38 +62,33 @@ function NotificationsPageContent() {
                 <Link href={routes.account.notifications({ workspaceSlug: workspace.slug })} />
               }
             >
-              Personal notifications
+              My preferences
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
+                More
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsRoutingOpen(true)}>
+                  Preview recipients
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!canManage}
+                  onClick={() => {
+                    actions.reset();
+                    toast.success("Sample data restored");
+                  }}
+                >
+                  Reset sample data
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </PageHeaderActions>
         </PageHeader>
-        <SettingsGroups className="gap-5">
-          <PreviewBanner
-            onReset={() => {
-              actions.reset();
-              toast.success("Sample data restored");
-            }}
-          />
-          <Tabs
-            value={tab}
-            onValueChange={(next: string) => {
-              const parsed = TABS.find((candidate) => candidate === next);
-              if (parsed) {
-                setTab(parsed);
-              }
-            }}
-            className="flex flex-col gap-6"
-          >
-            <TabsList className="w-fit">
-              <TabsTrigger value="rules">Rules</TabsTrigger>
-              <TabsTrigger value="destinations">Destinations</TabsTrigger>
-            </TabsList>
-            <TabsContent value="rules">
-              <RulesTab onEditRule={ruleEditor.open} onTestRouting={() => setIsRoutingOpen(true)} />
-            </TabsContent>
-            <TabsContent value="destinations">
-              <DestinationsTab onEditDestination={destinationEditor.open} />
-            </TabsContent>
-          </Tabs>
+        <SettingsGroups className="gap-8">
+          <PreviewNotice />
+          <EventRouting onEditRule={ruleEditor.open} />
+          <ConnectedChannels onEditDestination={destinationEditor.open} />
         </SettingsGroups>
 
         {ruleEditor.element}

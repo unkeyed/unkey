@@ -8,16 +8,7 @@ import {
   IconLink4Outline18,
   IconUserOutline18,
 } from "@unkey/icons";
-import {
-  AlertBanner,
-  AlertBannerActions,
-  AlertBannerDescription,
-  AlertBannerTitle,
-  Badge,
-  Button,
-  ItemMedia,
-  cn,
-} from "@unkey/ui";
+import { Badge, ItemMedia, cn } from "@unkey/ui";
 import { useCallback } from "react";
 import {
   type Destination,
@@ -92,22 +83,12 @@ export function PreviewBadge() {
   );
 }
 
-export function PreviewBanner({ onReset }: { onReset?: () => void }) {
+export function PreviewNotice() {
   return (
-    <AlertBanner variant="info">
-      <AlertBannerTitle>Design preview with sample data</AlertBannerTitle>
-      <AlertBannerDescription>
-        Edits stay in this browser tab. Unkey does not save these settings or send any notifications
-        yet.
-      </AlertBannerDescription>
-      {onReset ? (
-        <AlertBannerActions>
-          <Button variant="outline" size="sm" onClick={onReset}>
-            Reset sample data
-          </Button>
-        </AlertBannerActions>
-      ) : null}
-    </AlertBanner>
+    <p className="text-xs leading-5 text-gray-11">
+      <span className="font-medium text-gray-12">Preview</span> · Sample data. Changes stay in this
+      tab; nothing is sent.
+    </p>
   );
 }
 
