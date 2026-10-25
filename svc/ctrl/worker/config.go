@@ -281,6 +281,11 @@ type EmailConfig struct {
 	From string `toml:"from"`
 }
 
+type NotificationsConfig struct {
+	Enabled bool   `toml:"enabled"`
+	From    string `toml:"from"`
+}
+
 // Config holds the complete configuration for the Restate worker service.
 // It is designed to be loaded from a TOML file using [config.Load]:
 //
@@ -361,6 +366,8 @@ type Config struct {
 	Billing BillingConfig `toml:"billing"`
 
 	Email EmailConfig `toml:"email"`
+
+	Notifications NotificationsConfig `toml:"notifications"`
 
 	// WorkOSAPIKey resolves notification recipients. Empty resolves no recipients.
 	WorkOSAPIKey string `toml:"workos_api_key"`

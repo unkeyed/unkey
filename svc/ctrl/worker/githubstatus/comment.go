@@ -86,6 +86,8 @@ func stateLabel(state string) string {
 		return "Building"
 	case "success":
 		return "Ready"
+	case "inactive":
+		return "Not promoted"
 	case "failure", "error":
 		return "Failed"
 	default:

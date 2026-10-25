@@ -768,20 +768,24 @@ func (c *Client) FindBotComment(installationID int64, repo string, prNumber int,
 		return 0, "", err
 	}
 
-	// Paginate through comments looking for our marker (most recent first)
-	apiURL := fmt.Sprintf("%s/repos/%s/issues/%d/comments?per_page=100&direction=desc", c.baseURL, repo, prNumber)
-
-	comments, err := request[[]ghIssueComment](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
-	if err != nil {
-		return 0, "", err
-	}
-
-	for _, c := range comments {
-		if strings.Contains(c.Body, marker) {
-			return c.ID, c.Body, nil
+	const pageSize = 100
+	const pagesMax = 100
+	for page := 1; page <= pagesMax; page++ {
+		apiURL := fmt.Sprintf("%s/repos/%s/issues/%d/comments?per_page=%d&page=%d", c.baseURL, repo, prNumber, pageSize, page)
+		comments, err := request[[]ghIssueComment](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+		if err != nil {
+			return 0, "", err
+		}
+		for _, comment := range comments {
+			if strings.Contains(comment.Body, marker) {
+				return comment.ID, comment.Body, nil
+			}
+		}
+		if len(comments) < pageSize {
+			return 0, "", nil
 		}
 	}
-	return 0, "", nil
+	return 0, "", fault.New("GitHub comment search exceeded pagination limit")
 }
 
 // IsCollaborator checks whether a GitHub user is a collaborator on a repository.

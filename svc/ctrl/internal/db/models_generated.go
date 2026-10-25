@@ -918,6 +918,184 @@ func (ns NullInstancesStatus) Value() (driver.Value, error) {
 	return string(ns.InstancesStatus), nil
 }
 
+type NotificationDeliveriesChannel string
+
+const (
+	NotificationDeliveriesChannelEmail   NotificationDeliveriesChannel = "email"
+	NotificationDeliveriesChannelDiscord NotificationDeliveriesChannel = "discord"
+	NotificationDeliveriesChannelSlack   NotificationDeliveriesChannel = "slack"
+	NotificationDeliveriesChannelWebhook NotificationDeliveriesChannel = "webhook"
+)
+
+func (e *NotificationDeliveriesChannel) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NotificationDeliveriesChannel(s)
+	case string:
+		*e = NotificationDeliveriesChannel(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NotificationDeliveriesChannel: %T", src)
+	}
+	return nil
+}
+
+type NullNotificationDeliveriesChannel struct {
+	NotificationDeliveriesChannel NotificationDeliveriesChannel
+	Valid                         bool // Valid is true if NotificationDeliveriesChannel is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNotificationDeliveriesChannel) Scan(value interface{}) error {
+	if value == nil {
+		ns.NotificationDeliveriesChannel, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NotificationDeliveriesChannel.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNotificationDeliveriesChannel) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NotificationDeliveriesChannel), nil
+}
+
+type NotificationDeliveriesStatus string
+
+const (
+	NotificationDeliveriesStatusPending    NotificationDeliveriesStatus = "pending"
+	NotificationDeliveriesStatusSending    NotificationDeliveriesStatus = "sending"
+	NotificationDeliveriesStatusAccepted   NotificationDeliveriesStatus = "accepted"
+	NotificationDeliveriesStatusDelivered  NotificationDeliveriesStatus = "delivered"
+	NotificationDeliveriesStatusFailed     NotificationDeliveriesStatus = "failed"
+	NotificationDeliveriesStatusSuppressed NotificationDeliveriesStatus = "suppressed"
+	NotificationDeliveriesStatusUnknown    NotificationDeliveriesStatus = "unknown"
+)
+
+func (e *NotificationDeliveriesStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NotificationDeliveriesStatus(s)
+	case string:
+		*e = NotificationDeliveriesStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NotificationDeliveriesStatus: %T", src)
+	}
+	return nil
+}
+
+type NullNotificationDeliveriesStatus struct {
+	NotificationDeliveriesStatus NotificationDeliveriesStatus
+	Valid                        bool // Valid is true if NotificationDeliveriesStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNotificationDeliveriesStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.NotificationDeliveriesStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NotificationDeliveriesStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNotificationDeliveriesStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NotificationDeliveriesStatus), nil
+}
+
+type NotificationDestinationsChannel string
+
+const (
+	NotificationDestinationsChannelDiscord NotificationDestinationsChannel = "discord"
+	NotificationDestinationsChannelSlack   NotificationDestinationsChannel = "slack"
+	NotificationDestinationsChannelWebhook NotificationDestinationsChannel = "webhook"
+)
+
+func (e *NotificationDestinationsChannel) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NotificationDestinationsChannel(s)
+	case string:
+		*e = NotificationDestinationsChannel(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NotificationDestinationsChannel: %T", src)
+	}
+	return nil
+}
+
+type NullNotificationDestinationsChannel struct {
+	NotificationDestinationsChannel NotificationDestinationsChannel
+	Valid                           bool // Valid is true if NotificationDestinationsChannel is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNotificationDestinationsChannel) Scan(value interface{}) error {
+	if value == nil {
+		ns.NotificationDestinationsChannel, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NotificationDestinationsChannel.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNotificationDestinationsChannel) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NotificationDestinationsChannel), nil
+}
+
+type NotificationSubscriptionTargetsChannel string
+
+const (
+	NotificationSubscriptionTargetsChannelEmail   NotificationSubscriptionTargetsChannel = "email"
+	NotificationSubscriptionTargetsChannelDiscord NotificationSubscriptionTargetsChannel = "discord"
+	NotificationSubscriptionTargetsChannelSlack   NotificationSubscriptionTargetsChannel = "slack"
+	NotificationSubscriptionTargetsChannelWebhook NotificationSubscriptionTargetsChannel = "webhook"
+)
+
+func (e *NotificationSubscriptionTargetsChannel) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NotificationSubscriptionTargetsChannel(s)
+	case string:
+		*e = NotificationSubscriptionTargetsChannel(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NotificationSubscriptionTargetsChannel: %T", src)
+	}
+	return nil
+}
+
+type NullNotificationSubscriptionTargetsChannel struct {
+	NotificationSubscriptionTargetsChannel NotificationSubscriptionTargetsChannel
+	Valid                                  bool // Valid is true if NotificationSubscriptionTargetsChannel is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNotificationSubscriptionTargetsChannel) Scan(value interface{}) error {
+	if value == nil {
+		ns.NotificationSubscriptionTargetsChannel, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NotificationSubscriptionTargetsChannel.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNotificationSubscriptionTargetsChannel) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NotificationSubscriptionTargetsChannel), nil
+}
+
 type PortalDomainsVerificationStatus string
 
 const (
@@ -1258,6 +1436,41 @@ type Limit struct {
 	BuildsConcurrentMax                   uint16        `db:"builds_concurrent_max"`
 	CustomDomainsMax                      uint32        `db:"custom_domains_max"`
 	AutoscalingReplicasMax                uint16        `db:"autoscaling_replicas_max"`
+}
+
+type Notification struct {
+	Pk               uint64          `db:"pk"`
+	ID               string          `db:"id"`
+	WorkspaceID      string          `db:"workspace_id"`
+	SourceEventID    string          `db:"source_event_id"`
+	NotificationType string          `db:"notification_type"`
+	RequestHash      string          `db:"request_hash"`
+	SchemaVersion    uint32          `db:"schema_version"`
+	ResourceContext  json.RawMessage `db:"resource_context"`
+	Payload          json.RawMessage `db:"payload"`
+	OccurredAt       int64           `db:"occurred_at"`
+	ExpiresAt        sql.NullInt64   `db:"expires_at"`
+	CreatedAt        int64           `db:"created_at"`
+	UpdatedAt        sql.NullInt64   `db:"updated_at"`
+}
+
+type NotificationDelivery struct {
+	Pk                      uint64                        `db:"pk"`
+	ID                      string                        `db:"id"`
+	WorkspaceID             string                        `db:"workspace_id"`
+	NotificationID          string                        `db:"notification_id"`
+	Channel                 NotificationDeliveriesChannel `db:"channel"`
+	TargetKey               string                        `db:"target_key"`
+	EncryptedTargetSnapshot string                        `db:"encrypted_target_snapshot"`
+	Provider                sql.NullString                `db:"provider"`
+	ProviderMessageID       sql.NullString                `db:"provider_message_id"`
+	Status                  NotificationDeliveriesStatus  `db:"status"`
+	Reason                  sql.NullString                `db:"reason"`
+	AttemptCount            uint32                        `db:"attempt_count"`
+	FirstAttemptAt          sql.NullInt64                 `db:"first_attempt_at"`
+	NextAttemptAt           sql.NullInt64                 `db:"next_attempt_at"`
+	CreatedAt               int64                         `db:"created_at"`
+	UpdatedAt               sql.NullInt64                 `db:"updated_at"`
 }
 
 type OpenapiSpec struct {

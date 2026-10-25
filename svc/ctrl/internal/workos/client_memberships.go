@@ -29,11 +29,11 @@ type membershipsPage struct {
 	ListMetadata listMetadata `json:"list_metadata"`
 }
 
-// membership is one organization member: the user and the role that decides
-// whether they receive billing alerts.
 type membership struct {
-	UserID string         `json:"user_id"`
-	Role   membershipRole `json:"role"`
+	UserID         string         `json:"user_id"`
+	OrganizationID string         `json:"organization_id"`
+	Status         string         `json:"status"`
+	Role           membershipRole `json:"role"`
 }
 
 // membershipRole carries the role slug compared against adminRoleSlug.

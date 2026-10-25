@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// ErrForbiddenIP means no resolved address passed the SSRF guard; no connection was made.
+var ErrForbiddenIP = errors.New("endpoint host resolved only to forbidden IP addresses")
+
 // nonPublicNetworks contains special-use global-unicast ranges not classified
 // by netip as private, link-local, loopback, multicast, or unspecified.
 var nonPublicNetworks = []netip.Prefix{
@@ -178,7 +181,7 @@ func dialContext(cfg config) func(context.Context, string, string) (net.Conn, er
 		if dialErr != nil {
 			return nil, fmt.Errorf("dial endpoint: %w", dialErr)
 		}
-		return nil, errors.New("endpoint host resolved only to forbidden IP addresses")
+		return nil, ErrForbiddenIP
 	}
 }
 

@@ -27,6 +27,7 @@ import (
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	deploymentnotification "github.com/unkeyed/unkey/pkg/notification/deployment"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -42,8 +43,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deploymentnotify"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	workernotification "github.com/unkeyed/unkey/svc/ctrl/worker/notification"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
 
@@ -326,6 +329,15 @@ func New(t *testing.T, opts ...Option) *Harness {
 	})
 	require.NoError(t, err)
 
+	notificationDispatcher, err := workernotification.NewDispatcher(workernotification.DispatcherConfig{
+		Definitions: deploymentnotification.Definitions(), Integrations: nil, DeliveryEnabled: false,
+	})
+	require.NoError(t, err)
+	deploymentNotifications, err := deploymentnotify.New(deploymentnotify.Config{
+		DB: database, Clock: o.clock, DashboardURL: "https://app.unkey.com", Dispatcher: notificationDispatcher,
+	})
+	require.NoError(t, err)
+
 	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
 		DB:         database,
 		Clickhouse: chClient,
@@ -366,6 +378,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
 		hydrav1.NewDeployWorkflowServer(deploySvc),
+		deploymentNotifications.Definition(),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 	)

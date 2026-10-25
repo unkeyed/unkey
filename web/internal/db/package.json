@@ -25,6 +25,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "2.8.0",
     "@unkey/id": "workspace:^",
     "drizzle-orm": "0.45.1",
     "mysql2": "catalog:"

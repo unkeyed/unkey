@@ -1,7 +1,6 @@
 package deploy
 
 import (
-	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -21,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	deploymentnotify "github.com/unkeyed/unkey/pkg/notification/deployment"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -154,13 +154,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		}
 	}
 
-	ghStatus := w.initGitHubStatus(ctx, deployment)
+	deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.Preparing)
 
 	if err = w.resolveOrBuildImage(ctx, req, deployment); err != nil {
-		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
-			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
-			Description: "Build or image preparation failed",
-		})
+		deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.BuildFailed)
 		// A failed resolve keeps its own message. A Build's does not survive
 		// the Restate service boundary, so it falls back to the generic one
 		reason := fault.UserFacingMessage(err)
@@ -189,17 +186,18 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		return found, err
 	}, restate.WithName("loading deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
-		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
-			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_ERROR,
-			Description: "Could not load deployment after build",
-		})
+		deploymentnotify.Report(ctx, req.GetDeploymentId(), deploymentnotify.LoadFailed)
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 	if deployment.Status.IsTerminal() {
-		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
-			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_ERROR,
-			Description: "Deployment stopped: " + string(deployment.Status),
-		})
+		switch {
+		case deployment.Status == mysqltype.DeploymentsStatusCancelled:
+			deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.Cancelled)
+		case deployment.Status == mysqltype.DeploymentsStatusSuperseded:
+			deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.Superseded)
+		default:
+			deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.LoadFailed)
+		}
 		logger.Info("deployment became terminal during build, not deploying",
 			"deployment_id", deployment.ID,
 			"status", deployment.Status,
@@ -207,10 +205,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		return &hydrav1.DeployResponse{}, nil
 	}
 
-	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
-		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_IN_PROGRESS,
-		Description: "Deploying to regions...",
-	})
+	deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.RegionsStarted)
 
 	// --- Deploy ---
 	err = DeploymentStep(w, ctx, db.DeploymentStepsStepDeploying, deployment.ID, func(stepCtx restate.WorkflowContext) error {
@@ -225,17 +220,11 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		return nil
 	})
 	if err != nil {
-		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
-			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
-			Description: "Deployment to regions failed",
-		})
+		deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.RegionsFailed)
 		return nil, err
 	}
 
-	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
-		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_IN_PROGRESS,
-		Description: "Configuring routing...",
-	})
+	deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.RoutingStarted)
 
 	var (
 		reassignRouteIDs  []string
@@ -249,10 +238,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		return err
 	})
 	if err != nil {
-		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
-			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
-			Description: "Routing configuration failed",
-		})
+		deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.RoutingFailed)
 		return nil, err
 	}
 
@@ -307,23 +293,15 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		return nil
 	})
 	if err != nil {
-		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
-			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
-			Description: "Finalization failed",
-		})
+		deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.FinalizationFailed)
 		return nil, err
 	}
 
-	githubStatusDescription := "Deployment is live"
-	githubStatusState := hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_SUCCESS
 	if promotionSkipReason != hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED {
-		githubStatusDescription = "Deployment completed without changing live traffic"
-		githubStatusState = hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_INACTIVE
+		deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.CompletedWithoutPromotion)
+	} else {
+		deploymentnotify.Report(ctx, deployment.ID, deploymentnotify.Live)
 	}
-	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
-		State:       githubStatusState,
-		Description: githubStatusDescription,
-	})
 
 	logger.Info(
 		"deployment workflow completed",
@@ -844,147 +822,11 @@ func (w *Workflow) swapLiveDeployment(
 	return skipReason, nil
 }
 
-// ghStatusReporter wraps a GitHubStatusServiceClient and silently skips all
-// Restate calls when no GitHub repo connection exists, avoiding wasteful
-// network round-trips for deployments without a connected repository.
-type ghStatusReporter struct {
-	client    hydrav1.GitHubStatusServiceClient
-	connected bool
-}
-
-func (r *ghStatusReporter) ReportStatus(req *hydrav1.GitHubStatusReportRequest) {
-	if !r.connected {
-		return
-	}
-
-	r.client.ReportStatus().Send(req)
-}
-
-// initGitHubStatus looks up the repo connection and fires a GitHubStatusService.Init
-// call. Returns a reporter so callers can send subsequent ReportStatus calls.
-// If no GitHub repo is connected, the reporter silently discards all calls.
-func (w *Workflow) initGitHubStatus(
-	ctx restate.ObjectContext,
-	deployment db.FindDeploymentForDeployRow,
-) *ghStatusReporter {
-	reporter := &ghStatusReporter{
-		client:    hydrav1.NewGitHubStatusServiceClient(ctx, deployment.ID),
-		connected: false,
-	}
-
-	repoConn, err := w.findRepoConnectionAndEnvHostname(ctx, deployment)
-	if err != nil {
-		logger.Warn(
-			"failed to look up github repo connection, skipping deployment status reporting",
-			"app_id", deployment.AppID,
-			"error", err,
-		)
-
-		return reporter
-	}
-
-	if repoConn.InstallationID == 0 {
-		logger.Info(
-			"no github repo connection, skipping deployment status reporting",
-			"app_id", deployment.AppID,
-		)
-
-		return reporter
-	}
-
-	reporter.connected = true
-
-	envLabel := formatEnvironmentLabel(deployment.ProjectSlug, deployment.AppSlug, deployment.EnvironmentSlug)
-	envURL := "https://" + repoConn.EnvHostname
-	logURL := w.deploymentURL(deployment.WorkspaceSlug, deployment.ProjectID, deployment.AppID, deployment.ID)
-
-	var existingGHDeploymentID int64
-	if deployment.GithubDeploymentID.Valid {
-		existingGHDeploymentID = deployment.GithubDeploymentID.Int64
-	}
-
-	var prNumber int32
-	if deployment.PrNumber.Valid {
-		prNumber = int32(deployment.PrNumber.Int64)
-	}
-
-	reporter.client.Init().Send(&hydrav1.GitHubStatusInitRequest{
-		InstallationId:             repoConn.InstallationID,
-		Repo:                       repoConn.RepositoryFullName,
-		CommitSha:                  deployment.GitCommitSha.String,
-		Branch:                     deployment.GitBranch.String,
-		EnvironmentLabel:           envLabel,
-		EnvironmentUrl:             envURL,
-		LogUrl:                     logURL,
-		IsProduction:               deployment.EnvironmentKind.IsProduction(),
-		ProjectSlug:                deployment.ProjectSlug,
-		AppSlug:                    deployment.AppSlug,
-		EnvSlug:                    deployment.EnvironmentSlug,
-		PrNumber:                   prNumber,
-		ExistingGithubDeploymentId: existingGHDeploymentID,
-	})
-
-	return reporter
-}
-
-// repoConnectionAndEnvHostname is what the "find github repo connection" step
-// journals. The environment hostname lives in that step, not its own Run, so
-// deploys journaled by an older worker still replay. They decode an empty
-// EnvHostname
-type repoConnectionAndEnvHostname struct {
-	db.GithubRepoConnection
-	EnvHostname string
-}
-
-// findRepoConnectionAndEnvHostname returns the GitHub repo connection and the
-// environment hostname the status links to, which is the fallback when another
-// app owns the plain one. A zero InstallationID means no repo is connected
-func (w *Workflow) findRepoConnectionAndEnvHostname(ctx restate.Context, deployment db.FindDeploymentForDeployRow) (repoConnectionAndEnvHostname, error) {
-	envHead := formatDomainPrefix(deployment.ProjectSlug, deployment.AppSlug) + "-" + deployment.EnvironmentSlug
-	envHostname := cappedDomain(envHead, deployment.WorkspaceSlug, "", w.defaultDomain)
-	envFallback := cappedDomain(envHead, deployment.WorkspaceSlug, appCode(deployment.AppID), w.defaultDomain)
-
-	result, err := restate.Run(ctx, func(runCtx restate.RunContext) (repoConnectionAndEnvHostname, error) {
-		found, findErr := w.db.FindGithubRepoConnectionByAppId(runCtx, deployment.AppID)
-		if findErr != nil {
-			if db.IsNotFound(findErr) {
-				// No connection: return zero value, not an error.
-				// Returning an error here would cause Restate to retry forever.
-				return repoConnectionAndEnvHostname{}, nil //nolint:exhaustruct
-			}
-			return repoConnectionAndEnvHostname{}, findErr //nolint:exhaustruct
-		}
-
-		route, findErr := w.db.FindFrontlineRouteByFQDN(runCtx, envHostname)
-		if findErr != nil && !db.IsNotFound(findErr) {
-			return repoConnectionAndEnvHostname{}, findErr //nolint:exhaustruct
-		}
-		if findErr == nil && route.AppID != deployment.AppID {
-			return repoConnectionAndEnvHostname{GithubRepoConnection: found, EnvHostname: envFallback}, nil
-		}
-		return repoConnectionAndEnvHostname{GithubRepoConnection: found, EnvHostname: envHostname}, nil
-	}, restate.WithName("find github repo connection"), restate.WithMaxRetryAttempts(runMaxAttempts))
-
-	result.EnvHostname = cmp.Or(result.EnvHostname, envHostname)
-	return result, err
-}
-
 func (w *Workflow) deploymentURL(workspaceSlug, projectID, appID, deploymentID string) string {
 	return fmt.Sprintf("%s/%s/projects/%s/apps/%s/deployments/%s",
 		strings.TrimRight(w.dashboardURL, "/"), workspaceSlug, projectID, appID, deploymentID)
 }
 
-// formatEnvironmentLabel builds a human-readable label like "project - env"
-// or "project/app - env" for non-default apps.
-func formatEnvironmentLabel(projectSlug, appSlug, envSlug string) string {
-	if appSlug != "default" {
-		return projectSlug + "/" + appSlug + " - " + envSlug
-	}
-	return projectSlug + " - " + envSlug
-}
-
-// formatDomainPrefix builds the domain prefix like "project" or "project-app"
-// for non-default apps.
 func formatDomainPrefix(projectSlug, appSlug string) string {
 	if appSlug != "default" {
 		return projectSlug + "-" + appSlug

@@ -1066,6 +1066,18 @@ type Querier interface {
 	//  FROM `limits`
 	//  WHERE workspace_id = ?
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
+	//FindNotification
+	//
+	//  SELECT pk, id, workspace_id, source_event_id, notification_type, request_hash, schema_version,
+	//         resource_context, payload, occurred_at, expires_at, created_at, updated_at
+	//  FROM notifications WHERE workspace_id = ? AND id = ?
+	FindNotification(ctx context.Context, arg FindNotificationParams) (Notification, error)
+	//FindNotificationDelivery
+	//
+	//  SELECT pk, id, workspace_id, notification_id, channel, target_key, encrypted_target_snapshot,
+	//         provider, provider_message_id, status, reason, attempt_count, first_attempt_at, next_attempt_at, created_at, updated_at
+	//  FROM notification_deliveries WHERE workspace_id = ? AND id = ?
+	FindNotificationDelivery(ctx context.Context, arg FindNotificationDeliveryParams) (NotificationDelivery, error)
 	//FindOldestEnvironmentDeletion
 	//
 	//  SELECT CAST(COALESCE(MIN(deleted_at), 0) AS SIGNED) AS started_at
@@ -1861,6 +1873,16 @@ type Querier interface {
 	//      0
 	//  )
 	InsertKeySpace(ctx context.Context, arg InsertKeySpaceParams) error
+	//InsertNotification
+	//
+	//  INSERT INTO notifications (id, workspace_id, source_event_id, notification_type, request_hash, schema_version, resource_context, payload, occurred_at, expires_at, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertNotification(ctx context.Context, arg InsertNotificationParams) error
+	//InsertNotificationDelivery
+	//
+	//  INSERT INTO notification_deliveries (id, workspace_id, notification_id, channel, target_key, encrypted_target_snapshot, provider, status, reason, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertNotificationDelivery(ctx context.Context, arg InsertNotificationDeliveryParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (
@@ -2185,6 +2207,36 @@ type Querier interface {
 	//  WHERE builds_concurrent_max > ?
 	//  ORDER BY workspace_id
 	ListLimitsWithBuildsConcurrentMaxAbove(ctx context.Context, buildsConcurrentMax uint16) ([]ListLimitsWithBuildsConcurrentMaxAboveRow, error)
+	//ListNotificationDeliveries
+	//
+	//  SELECT pk, id, workspace_id, notification_id, channel, target_key, encrypted_target_snapshot,
+	//         provider, provider_message_id, status, reason, attempt_count, first_attempt_at, next_attempt_at, created_at, updated_at
+	//  FROM notification_deliveries
+	//  WHERE workspace_id = ? AND notification_id = ?
+	//  ORDER BY id LIMIT 1001
+	ListNotificationDeliveries(ctx context.Context, arg ListNotificationDeliveriesParams) ([]NotificationDelivery, error)
+	//ListNotificationPreferences
+	//
+	//  SELECT user_id, enabled FROM notification_preferences
+	//  WHERE workspace_id = ? AND notification_type = ? AND channel = 'email'
+	//  ORDER BY user_id LIMIT 10001
+	ListNotificationPreferences(ctx context.Context, arg ListNotificationPreferencesParams) ([]ListNotificationPreferencesRow, error)
+	//ListNotificationTargets
+	//
+	//  SELECT t.channel, t.audience, t.user_id, t.destination_id,
+	//         d.config AS destination_config, d.enabled AS destination_enabled
+	//  FROM notification_subscriptions s
+	//  JOIN notification_subscription_targets t ON t.workspace_id = s.workspace_id AND t.subscription_id = s.id
+	//  LEFT JOIN notification_destinations d ON d.workspace_id = t.workspace_id AND d.id = t.destination_id AND d.channel = t.channel
+	//  WHERE s.workspace_id = ?
+	//    AND s.notification_type = ?
+	//    AND s.enabled = TRUE
+	//    AND (s.project_id IS NULL OR s.project_id = ?)
+	//    AND (s.app_id IS NULL OR s.app_id = ?)
+	//    AND (s.environment_id IS NULL OR s.environment_id = ?)
+	//  ORDER BY t.id
+	//  LIMIT 1001
+	ListNotificationTargets(ctx context.Context, arg ListNotificationTargetsParams) ([]ListNotificationTargetsRow, error)
 	// Only deployments still in the queue can be replaced by a newer commit. Once a
 	// deployment transitions to `building`, which happens when Restate lets its
 	// Build run, it is committed: we don't cancel work that's already running.
@@ -2226,6 +2278,13 @@ type Querier interface {
 	//  ORDER BY dt.pk
 	//  LIMIT ?
 	ListOrphanedDeploymentTopologiesByRegion(ctx context.Context, arg ListOrphanedDeploymentTopologiesByRegionParams) ([]ListOrphanedDeploymentTopologiesByRegionRow, error)
+	//ListPendingNotificationDeliveries
+	//
+	//  SELECT id, workspace_id FROM notification_deliveries
+	//  WHERE workspace_id = ? AND notification_id = ?
+	//    AND status IN ('pending', 'sending')
+	//  ORDER BY id LIMIT 1001
+	ListPendingNotificationDeliveries(ctx context.Context, arg ListPendingNotificationDeliveriesParams) ([]ListPendingNotificationDeliveriesRow, error)
 	// Returns every domain attached to a portal, verified or not. Unscoped by
 	// workspace because portal ids are globally unique and ctrl callers already hold one.
 	//
@@ -2453,6 +2512,31 @@ type Querier interface {
 	//  UPDATE projects SET deleted_at = COALESCE(deleted_at, ?)
 	//  WHERE id = ?
 	MarkProjectDeleted(ctx context.Context, arg MarkProjectDeletedParams) error
+	//NotificationDestinationEnabled
+	//
+	//  SELECT EXISTS (
+	//    SELECT 1 FROM notification_destinations
+	//    WHERE workspace_id = ? AND id = ? AND channel = ? AND enabled = TRUE
+	//  ) AS enabled
+	NotificationDestinationEnabled(ctx context.Context, arg NotificationDestinationEnabledParams) (bool, error)
+	//NotificationEmailEnabled
+	//
+	//  SELECT NOT EXISTS (
+	//    SELECT 1 FROM notification_preferences
+	//    WHERE workspace_id = ? AND user_id = ?
+	//      AND notification_type = ? AND channel = 'email' AND enabled = FALSE
+	//  ) AS enabled
+	NotificationEmailEnabled(ctx context.Context, arg NotificationEmailEnabledParams) (bool, error)
+	//NotificationResourceBelongsToWorkspace
+	//
+	//  SELECT EXISTS (
+	//    SELECT 1 FROM workspaces w
+	//    WHERE w.id = ? AND w.enabled = TRUE AND w.deleted_at_m IS NULL
+	//      AND (? = '' OR EXISTS (SELECT 1 FROM projects p WHERE p.id = ? AND p.workspace_id = w.id))
+	//      AND (? = '' OR EXISTS (SELECT 1 FROM apps a WHERE a.id = ? AND a.project_id = ? AND a.workspace_id = w.id))
+	//      AND (? = '' OR EXISTS (SELECT 1 FROM environments e WHERE e.id = ? AND e.app_id = ? AND e.workspace_id = w.id))
+	//  ) AS valid
+	NotificationResourceBelongsToWorkspace(ctx context.Context, arg NotificationResourceBelongsToWorkspaceParams) (bool, error)
 	//NotifyDeploymentTopologiesByApp
 	//
 	//  UPDATE deployment_topology dt
@@ -2678,6 +2762,15 @@ type Querier interface {
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
 	SoftDeleteKeyByID(ctx context.Context, arg SoftDeleteKeyByIDParams) error
+	//StartNotificationDeliveryAttempt
+	//
+	//  UPDATE notification_deliveries
+	//  SET status = 'sending', attempt_count = attempt_count + 1,
+	//      first_attempt_at = COALESCE(first_attempt_at, ?), next_attempt_at = NULL, updated_at = ?
+	//  WHERE workspace_id = ? AND id = ?
+	//    AND status = ? AND attempt_count = ?
+	//    AND status IN ('pending', 'sending')
+	StartNotificationDeliveryAttempt(ctx context.Context, arg StartNotificationDeliveryAttemptParams) (int64, error)
 	// StopDeploymentIfNoInstances finalizes a requested stop only after krane has
 	// reported that no instances remain. The desired_state guard prevents stale
 	// delete reports from marking a deployment stopped after it has been woken.
@@ -2915,6 +3008,15 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateKeysLastUsed(ctx context.Context, arg UpdateKeysLastUsedParams) error
+	//UpdateNotificationDelivery
+	//
+	//  UPDATE notification_deliveries
+	//  SET status = ?, reason = ?, provider_message_id = ?,
+	//      next_attempt_at = ?, updated_at = ?
+	//  WHERE workspace_id = ? AND id = ?
+	//    AND status = ? AND attempt_count = ?
+	//    AND status IN ('pending', 'sending')
+	UpdateNotificationDelivery(ctx context.Context, arg UpdateNotificationDeliveryParams) (int64, error)
 	// Records one DNS check so callers can bound retries and show when the domain
 	// was last checked.
 	//

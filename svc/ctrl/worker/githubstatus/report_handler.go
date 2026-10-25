@@ -76,14 +76,7 @@ func (s *Service) reportCommitStatus(ctx restate.Context, config *hydrav1.GitHub
 		return
 	}
 
-	commitState := "pending"
-	switch state {
-	case "success", "inactive":
-		commitState = "success"
-	case "failure", "error":
-		commitState = state
-	}
-
+	commitState := gitHubCommitState(state)
 	if err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
 		return s.github.CreateCommitStatus(
 			config.GetInstallationId(), config.GetRepo(), config.GetCommitSha(),

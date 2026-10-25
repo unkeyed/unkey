@@ -1,7 +1,8 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "files": {
-    "maxSize": 1572864
+    "maxSize": 1572864,
+    "ignore": ["./internal/db/src/gen/**/*.ts"]
   },
   "linter": {
     "enabled": true,

@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/flags"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -40,7 +39,7 @@ func TestDeployRejectsPrivateRegistryDigest(t *testing.T) {
 		DashboardURL:  "https://app.unkey.com", DefaultDomain: "unkey.app",
 	})
 	require.NoError(t, err)
-	cfg := containers.Restate(t, hydrav1.NewDeployWorkflowServer(workflow))
+	cfg := deployRuntimeWithReporting(t, database, githubclient.NewNoop(), workflow)
 	invocation, err := hydrav1.NewDeployWorkflowIngressClient(cfg.IngressClient, row.ID).Submit(ctx, &hydrav1.DeployRequest{
 		DeploymentId: row.ID,
 		Source: &hydrav1.DeployRequest_OciImage{OciImage: &hydrav1.OciImage{

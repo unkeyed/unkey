@@ -421,6 +421,9 @@ importers:
 
   internal/db:
     dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.8.0
+        version: 2.8.0
       '@unkey/id':
         specifier: workspace:^
         version: link:../id

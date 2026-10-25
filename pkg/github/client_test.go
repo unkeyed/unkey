@@ -265,3 +265,57 @@ func TestGetRawFile(t *testing.T) {
 		})
 	}
 }
+
+func TestFindBotCommentBeyondFirstPage(t *testing.T) {
+	const marker = "<!-- unkey-deploy -->"
+	for _, scenario := range []string{"found", "absent", "page_failed"} {
+		t.Run(scenario, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				var comments []ghIssueComment
+				switch req.URL.Query().Get("page") {
+				case "", "1":
+					comments = make([]ghIssueComment, 100)
+					for i := range comments {
+						comments[i] = ghIssueComment{ID: int64(i + 1), Body: "unrelated"}
+					}
+				case "2":
+					if scenario == "page_failed" {
+						w.WriteHeader(http.StatusServiceUnavailable)
+						return
+					}
+					comments = []ghIssueComment{{ID: 101, Body: "unrelated"}}
+					if scenario == "found" {
+						comments = append(comments, ghIssueComment{ID: 102, Body: marker + "existing report"})
+					}
+				default:
+					http.Error(w, "unexpected page", http.StatusBadRequest)
+					return
+				}
+				if err := json.NewEncoder(w).Encode(comments); err != nil {
+					t.Error(err)
+				}
+			}))
+			t.Cleanup(server.Close)
+			tokens, err := cache.New(cache.Config[int64, InstallationToken]{
+				Fresh: time.Hour, Stale: time.Hour, MaxSize: 10, Resource: "github_test_tokens", Clock: clock.New(),
+			})
+			require.NoError(t, err)
+			t.Cleanup(tokens.Close)
+			tokens.Set(t.Context(), 1, InstallationToken{Token: "test-token"})
+			client := &Client{baseURL: server.URL, httpClient: server.Client(), tokenCache: tokens}
+			id, body, err := client.FindBotComment(1, "acme/app", 23, marker)
+			if scenario == "page_failed" {
+				require.Error(t, err, "incomplete search must not authorize a new comment")
+				return
+			}
+			require.NoError(t, err)
+			if scenario == "found" {
+				require.EqualValues(t, 102, id)
+				require.Equal(t, marker+"existing report", body)
+			} else {
+				require.Zero(t, id)
+				require.Empty(t, body)
+			}
+		})
+	}
+}

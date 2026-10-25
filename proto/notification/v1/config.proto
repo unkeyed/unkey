@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/notification/v1;notificationv1";
+
+enum Audience {
+  AUDIENCE_UNSPECIFIED = 0;
+  AUDIENCE_WORKSPACE_ADMINS = 1;
+  AUDIENCE_BILLING_CONTACTS = 2;
+}
+
+message DestinationConfig {
+  oneof destination {
+    DiscordConfig discord = 1;
+    SlackConfig slack = 2;
+    WebhookConfig webhook = 3;
+  }
+}
+
+message DiscordConfig {
+  string encrypted_webhook_url = 1;
+}
+
+message SlackConfig {
+  string encrypted_webhook_url = 1;
+}
+
+message WebhookConfig {
+  string encrypted_url = 1;
+  repeated WebhookHeader headers = 2;
+  string encrypted_signing_secret = 3;
+}
+
+message WebhookHeader {
+  string name = 1;
+  string encrypted_value = 2;
+}

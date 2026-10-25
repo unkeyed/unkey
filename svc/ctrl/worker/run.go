@@ -18,6 +18,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	restateServer "github.com/restatedev/sdk-go/server"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	notificationv1 "github.com/unkeyed/unkey/gen/proto/notification/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -32,6 +33,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	"github.com/unkeyed/unkey/pkg/notification"
+	deploymentnotification "github.com/unkeyed/unkey/pkg/notification/deployment"
+	notificationproviders "github.com/unkeyed/unkey/pkg/notification/providers"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
@@ -52,6 +56,7 @@ import (
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deploymentnotify"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
@@ -59,6 +64,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
+	workernotification "github.com/unkeyed/unkey/svc/ctrl/worker/notification"
 
 	"github.com/unkeyed/unkey/internal/services/flags"
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
@@ -233,6 +239,53 @@ func Run(ctx context.Context, cfg Config) error {
 	// panics) still surface, its routine success noise is dropped, and the
 	// app's own INFO/DEBUG logs (which honor UNKEY_LOG_LEVEL) are unaffected.
 	restateSrv := restateServer.NewRestate().WithLogger(logger.AtLevel(logger.GetHandler(), slog.LevelWarn), false)
+	githubNotifications := githubstatus.New(githubstatus.Config{GitHub: ghClient, DB: database})
+	notificationDispatcher, err := workernotification.NewDispatcher(workernotification.DispatcherConfig{
+		Definitions: deploymentnotification.Definitions(), Integrations: []workernotification.Integration{githubNotifications},
+		DeliveryEnabled: cfg.Notifications.Enabled,
+	})
+	if err != nil {
+		return fmt.Errorf("configure notification dispatcher: %w", err)
+	}
+	deploymentNotifications, err := deploymentnotify.New(deploymentnotify.Config{
+		DB: database, Clock: cfg.Clock, DashboardURL: cfg.DashboardURL, Dispatcher: notificationDispatcher,
+	})
+	if err != nil {
+		return fmt.Errorf("configure deployment notifications: %w", err)
+	}
+	restateSrv.Bind(deploymentNotifications.Definition()).
+		Bind(githubNotifications.DeploymentDefinition()).Bind(githubNotifications.CommentDefinition())
+	if cfg.Notifications.Enabled {
+		directory, err := workos.NewDirectory(cfg.WorkOSAPIKey)
+		if err != nil {
+			return fmt.Errorf("configure notification directory: %w", err)
+		}
+		email, err := notificationproviders.NewResend(cfg.Email.ResendAPIKey, cfg.Notifications.From)
+		if err != nil {
+			return fmt.Errorf("configure notification email: %w", err)
+		}
+		notificationSvc, err := workernotification.New(workernotification.Config{
+			DB:          database,
+			Vault:       vaultClient,
+			Directory:   directory,
+			Clock:       cfg.Clock,
+			Definitions: deploymentnotification.Definitions(),
+			Audiences: map[notificationv1.Audience]workernotification.AudienceResolver{
+				notificationv1.Audience_AUDIENCE_WORKSPACE_ADMINS: workernotification.WorkspaceAdmins,
+			},
+			Providers: []notification.Provider{email, notificationproviders.NewSlack(), notificationproviders.NewDiscord(), notificationproviders.NewWebhook()},
+			Defaults: map[notification.Channel]string{
+				notification.Email:   "resend",
+				notification.Slack:   "slack",
+				notification.Discord: "discord",
+				notification.Webhook: "webhook",
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("configure notifications: %w", err)
+		}
+		restateSrv.Bind(notificationSvc.Definition()).Bind(notificationSvc.DeliveryDefinition())
+	}
 	if clickhouseClient == nil {
 		logger.Info("LegacyBillingWorkflow disabled: real ClickHouse client not configured")
 	} else if cfg.Billing.StripeSecretKey == "" {
@@ -397,10 +450,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewDeployTeardownServiceServer(teardownSvc))
 
-	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
-		GitHub: ghClient,
-		DB:     database,
-	}), restate.WithIngressPrivate(true)))
+	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubNotifications, restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		DB:            database,

@@ -13,15 +13,19 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/internal/services/flags"
+	"github.com/unkeyed/unkey/pkg/clock"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	deploymentnotification "github.com/unkeyed/unkey/pkg/notification/deployment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deploymentnotify"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
+	workernotification "github.com/unkeyed/unkey/svc/ctrl/worker/notification"
 )
 
 func TestGitHubStatusReportsBuildFailure(t *testing.T) {
@@ -50,10 +54,7 @@ func TestGitHubStatusReportsBuildFailure(t *testing.T) {
 		DashboardURL: "https://app.unkey.com", DefaultDomain: "unkey.app",
 	})
 	require.NoError(t, err)
-	cfg := containers.Restate(t,
-		hydrav1.NewDeployWorkflowServer(workflow),
-		hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{DB: database, GitHub: github})),
-	)
+	cfg := deployRuntimeWithReporting(t, database, github, workflow)
 
 	invocation, err := hydrav1.NewDeployWorkflowIngressClient(cfg.IngressClient, row.ID).Submit(ctx, &hydrav1.DeployRequest{
 		DeploymentId: row.ID,
@@ -126,7 +127,7 @@ func TestDeploymentShowsSafeMessagesForUnrecognizedBuildFailures(t *testing.T) {
 				DashboardURL: "https://app.unkey.com", DefaultDomain: "unkey.app",
 			})
 			require.NoError(t, err)
-			cfg := containers.Restate(t, hydrav1.NewDeployWorkflowServer(workflow))
+			cfg := deployRuntimeWithReporting(t, database, github, workflow)
 			invocation, err := hydrav1.NewDeployWorkflowIngressClient(cfg.IngressClient, row.ID).Submit(ctx, &hydrav1.DeployRequest{
 				DeploymentId: row.ID,
 				Source: &hydrav1.DeployRequest_Git{Git: &hydrav1.GitSource{
@@ -230,6 +231,20 @@ func TestGitHubStatusCommitLifecycle(t *testing.T) {
 			}
 		})
 	}
+}
+
+func deployRuntimeWithReporting(t *testing.T, database db.Database, github githubclient.GitHubClient, workflow *deploy.Workflow) containers.RestateConfig {
+	t.Helper()
+	reporter := githubstatus.New(githubstatus.Config{DB: database, GitHub: github})
+	dispatcher, err := workernotification.NewDispatcher(workernotification.DispatcherConfig{
+		Definitions: deploymentnotification.Definitions(), Integrations: []workernotification.Integration{reporter}, DeliveryEnabled: false,
+	})
+	require.NoError(t, err)
+	source, err := deploymentnotify.New(deploymentnotify.Config{
+		DB: database, Clock: clock.New(), DashboardURL: "https://app.unkey.com", Dispatcher: dispatcher,
+	})
+	require.NoError(t, err)
+	return containers.Restate(t, hydrav1.NewDeployWorkflowServer(workflow), source.Definition(), reporter.DeploymentDefinition(), reporter.CommentDefinition())
 }
 
 type deploymentCommitStatus struct {
