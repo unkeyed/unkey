@@ -57,6 +57,6 @@
 // # Retry Behavior
 //
 // The service uses a fixed 1-minute retry interval (no exponential backoff) for up to
-// 24 hours (1440 attempts). If verification fails after this window, the domain is
+// 24 hours ([domainverify.DurationMax]). If verification fails after this window, the domain is
 // marked as failed and Restate terminates the invocation.
 package customdomain
