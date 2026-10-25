@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
+	"github.com/unkeyed/unkey/pkg/cache"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -32,6 +33,6 @@ func New(h *testutil.Harness) *clidevice.Service {
 		Memberships:      allowAdmin{},
 		DashboardBaseURL: "http://dashboard.test",
 		Signer:           signer,
-		SessionCache:     nil,
+		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),
 	}
 }

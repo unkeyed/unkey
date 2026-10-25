@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/auth/workos"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -54,9 +55,11 @@ func newService(h *testutil.Harness, membership mem) *Service {
 		DB:               h.DB,
 		Auditlogs:        h.Auditlogs,
 		Clock:            h.Clock,
+		Ratelimit:        h.Ratelimit,
 		Memberships:      membership,
 		DashboardBaseURL: "http://localhost:3000",
 		Signer:           signer,
+		SessionCache:     cache.NewNoopCache[string, SessionVerdict](),
 	}
 }
 

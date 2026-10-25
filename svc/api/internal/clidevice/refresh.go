@@ -210,6 +210,6 @@ func (s *Service) endSession(ctx context.Context, row db.CliSession) error {
 	}); err != nil {
 		return err
 	}
-	s.forget(ctx, row.ID)
+	s.SessionCache.Remove(ctx, row.ID)
 	return nil
 }

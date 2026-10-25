@@ -33,21 +33,33 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 
 	switch s.authorizationStatus(row) {
 	case db.DeviceAuthorizationsStatusDenied:
-		return deniedPoll("Authorization was denied."), nil
+		return PollResult{
+			Status:   PollDenied,
+			Interval: pollIntervalSeconds,
+			Detail:   "Authorization was denied.",
+			Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
+		}, nil
 	case db.DeviceAuthorizationsStatusExpired:
-		return expiredPoll(), nil
+		return PollResult{
+			Status:   PollExpired,
+			Interval: pollIntervalSeconds,
+			Detail:   "The login code expired. Run unkey login again.",
+			Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
+		}, nil
 	case db.DeviceAuthorizationsStatusApproved:
-		if !row.ApproverUserID.Valid || !row.WorkspaceID.Valid {
-			return waitingPoll(), nil
+		if row.ApproverUserID.Valid && row.WorkspaceID.Valid {
+			return s.issue(ctx, row, req.RemoteIP, req.UserAgent)
 		}
-		return s.issue(ctx, row, req.RemoteIP, req.UserAgent)
 	case db.DeviceAuthorizationsStatusConsumed:
 		return PollResult{}, alreadyIssued()
 	case db.DeviceAuthorizationsStatusPending:
-		return waitingPoll(), nil
-	default:
-		return waitingPoll(), nil
 	}
+	return PollResult{
+		Status:   PollPermissionsRequired,
+		Interval: pollIntervalSeconds,
+		Detail:   "",
+		Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
+	}, nil
 }
 
 func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteIP string, userAgent string) (PollResult, error) {
@@ -59,7 +71,12 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		if err := s.denyAuthorization(ctx, row.ID); err != nil {
 			return PollResult{}, err
 		}
-		return deniedPoll("This workspace cannot approve a CLI login."), nil
+		return PollResult{
+			Status:   PollDenied,
+			Interval: pollIntervalSeconds,
+			Detail:   "This workspace cannot approve a CLI login.",
+			Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
+		}, nil
 	}
 
 	roles, found, err := s.Memberships.ActiveRoles(ctx, workspace.OrgID, row.ApproverUserID.String)
@@ -81,7 +98,12 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		if err := s.denyAuthorization(ctx, row.ID); err != nil {
 			return PollResult{}, err
 		}
-		return deniedPoll("You no longer have permission to finish this login."), nil
+		return PollResult{
+			Status:   PollDenied,
+			Interval: pollIntervalSeconds,
+			Detail:   "You no longer have permission to finish this login.",
+			Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
+		}, nil
 	}
 
 	sessionID := uid.New(uid.CLISessionPrefix)
@@ -107,7 +129,12 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			return alreadyIssued()
 		}
 		if locked.Status != db.DeviceAuthorizationsStatusApproved || approvalChanged(row, locked) {
-			result = waitingPoll()
+			result = PollResult{
+				Status:   PollPermissionsRequired,
+				Interval: pollIntervalSeconds,
+				Detail:   "",
+				Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
+			}
 			return nil
 		}
 
@@ -188,31 +215,4 @@ func (s *Service) denyAuthorization(ctx context.Context, id string) error {
 		return alreadyIssued()
 	}
 	return nil
-}
-
-func waitingPoll() PollResult {
-	return PollResult{
-		Status:   PollPermissionsRequired,
-		Interval: pollIntervalSeconds,
-		Detail:   "",
-		Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
-	}
-}
-
-func deniedPoll(detail string) PollResult {
-	return PollResult{
-		Status:   PollDenied,
-		Interval: pollIntervalSeconds,
-		Detail:   detail,
-		Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
-	}
-}
-
-func expiredPoll() PollResult {
-	return PollResult{
-		Status:   PollExpired,
-		Interval: pollIntervalSeconds,
-		Detail:   "The login code expired. Run unkey login again.",
-		Tokens:   Tokens{AccessToken: "", RefreshToken: "", ExpiresIn: 0, WorkspaceID: "", SessionID: ""},
-	}
 }
