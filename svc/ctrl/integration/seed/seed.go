@@ -189,6 +189,22 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	return api
 }
 
+// CreatePortal creates a portal in workspaceID's default project and returns
+// its id.
+func (s *Seeder) CreatePortal(ctx context.Context, workspaceID string) string {
+	id := uid.New(uid.PortalPrefix)
+	err := s.DB.InsertPortal(ctx, db.InsertPortalParams{
+		ID:          id,
+		WorkspaceID: workspaceID,
+		ProjectID:   s.defaultProjectID(ctx, workspaceID),
+		Slug:        uid.DNS1035(16),
+		DisplayName: "Portal",
+		CreatedAt:   time.Now().UnixMilli(),
+	})
+	require.NoError(s.t, err)
+	return id
+}
+
 // defaultProjectID returns the exact default project established by CreateWorkspace.
 func (s *Seeder) defaultProjectID(ctx context.Context, workspaceID string) string {
 	projectID, err := s.DB.FindDefaultProjectByWorkspaceID(ctx, workspaceID)
