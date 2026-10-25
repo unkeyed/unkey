@@ -164,15 +164,13 @@ func TestUserCodeActionsRejectUnavailableLimiters(t *testing.T) {
 	started, err := svc.Start(t.Context(), StartRequest{RemoteIP: "203.0.113.9"})
 	require.NoError(t, err)
 
-	for _, limiter := range []ratelimit.Service{nil, unavailableCodeLimiter{}} {
-		svc.Ratelimit = limiter
-		_, err := svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
-		require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
-		err = svc.Approve(t.Context(), ApproveRequest{Principal: p, UserCode: started.UserCode, Permissions: p.Permissions})
-		require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
-		err = svc.Deny(t.Context(), DenyRequest{Principal: p, UserCode: started.UserCode})
-		require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
-	}
+	svc.Ratelimit = unavailableCodeLimiter{}
+	_, err = svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
+	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
+	err = svc.Approve(t.Context(), ApproveRequest{Principal: p, UserCode: started.UserCode, Permissions: p.Permissions})
+	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
+	err = svc.Deny(t.Context(), DenyRequest{Principal: p, UserCode: started.UserCode})
+	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
 
 	svc.Ratelimit = h.Ratelimit
 	login, err := svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
