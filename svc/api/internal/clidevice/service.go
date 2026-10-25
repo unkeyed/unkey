@@ -130,12 +130,6 @@ func workspaceUsable(workspace db.Workspace) bool {
 }
 
 func (s *Service) limitUserCodeAttempts(ctx context.Context, userID string) error {
-	if s.Ratelimit == nil {
-		return fault.New("cli user code limiter is not configured",
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Public("CLI login is temporarily unavailable. Try again later."),
-		)
-	}
 	resp, err := s.Ratelimit.Ratelimit(ctx, ratelimit.RatelimitRequest{
 		WorkspaceID: ratelimitScope,
 		Namespace:   ratelimitScope + ".user_code",
