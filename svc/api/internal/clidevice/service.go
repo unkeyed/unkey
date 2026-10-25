@@ -89,23 +89,22 @@ func (s *Service) requireEnabled() error {
 	return nil
 }
 
-// RequireDashboardSession rejects root keys and CLI access tokens.
-// Get, approve, and deny are dashboard actions.
-func RequireDashboardSession(p *principal.Principal) error {
+// RequireDashboardSession returns the dashboard JWT source and rejects other credentials.
+func RequireDashboardSession(p *principal.Principal) (principal.JWTSource, error) {
 	if p == nil {
-		return dashboardSessionRequired()
+		return principal.JWTSource{}, dashboardSessionRequired()
 	}
 	source, ok := p.Source.(principal.JWTSource)
 	if !ok || len(source.Roles) == 0 || p.Subject.Type != principal.SubjectTypeUser || p.Subject.ID == "" {
-		return dashboardSessionRequired()
+		return principal.JWTSource{}, dashboardSessionRequired()
 	}
-	return nil
+	return source, nil
 }
 
 // RequireUserSession accepts a dashboard session or a CLI access token.
 // List and revoke use it. Root keys are rejected.
 func RequireUserSession(p *principal.Principal) error {
-	if err := RequireDashboardSession(p); err == nil {
+	if _, err := RequireDashboardSession(p); err == nil {
 		return nil
 	}
 	if p == nil {
@@ -129,10 +128,6 @@ func workspaceUsable(workspace db.Workspace) bool {
 }
 
 func (s *Service) limit(ctx context.Context, action string, remoteIP string, perMinute int64) error {
-	if s.Ratelimit == nil {
-		return nil
-	}
-
 	// The identifier is the client IP. Start and poll run before any workspace
 	// is chosen, and the request does not carry one. A workspace id would be
 	// missing or caller-supplied, so it cannot key this limit. Per-IP keeps
