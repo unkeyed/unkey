@@ -136,14 +136,14 @@ var (
 	//     "unavailable" (the platform's catalog is not built yet or its CDC
 	//     stream has been silent for 15 seconds), or "send_error" (Krane went
 	//     away or timed out while the snapshot streamed)
-	PrivateNetworkSnapshotsTotal = lazy.NewCounterVec(
+	PrivateNetworkSnapshotsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
 			Name:      "private_network_snapshots_total",
 			Help:      "StreamPrivateNetworkState calls by outcome.",
 		},
-		[]string{"result"},
+		vec.Values("result", "success", "unauthenticated", "unknown_cluster", "database_error", "unavailable", "send_error"),
 	)
 
 	// PrivateNetworkCatalogRefreshesTotal counts catalog refreshes. A

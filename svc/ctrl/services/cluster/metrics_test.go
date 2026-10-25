@@ -1,24 +1,15 @@
 package cluster
 
 import (
-	"os"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
-
-var metricsRegistry = prometheus.NewRegistry()
-
-func TestMain(m *testing.M) {
-	lazy.SetRegistry(metricsRegistry)
-	os.Exit(m.Run())
-}
 
 func snapshotOutcomes(t *testing.T) map[string]float64 {
 	t.Helper()
-	families, err := metricsRegistry.Gather()
+	families, err := prometheus.DefaultGatherer.Gather()
 	require.NoError(t, err)
 	outcomes := map[string]float64{}
 	for _, family := range families {
@@ -44,7 +35,7 @@ type catalogCounters struct {
 
 func catalogWork(t *testing.T) catalogCounters {
 	t.Helper()
-	families, err := metricsRegistry.Gather()
+	families, err := prometheus.DefaultGatherer.Gather()
 	require.NoError(t, err)
 	var work catalogCounters
 	for _, family := range families {
