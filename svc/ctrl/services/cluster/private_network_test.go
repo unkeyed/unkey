@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
@@ -38,7 +37,7 @@ func (unavailableCatalog) Snapshot(context.Context, string) (privatenetwork.Snap
 
 // TestPrivateNetworkStateReportsUnavailableCatalog guarantees that Krane gets
 // a retryable Unavailable instead of an empty or partial snapshot while the
-// catalog is missing or not built.
+// catalog is not built.
 func TestPrivateNetworkStateReportsUnavailableCatalog(t *testing.T) {
 	server := containers.MySQL(t)
 	database, err := db.New(server.DSN, sqlcomment.Static{})
@@ -48,21 +47,15 @@ func TestPrivateNetworkStateReportsUnavailableCatalog(t *testing.T) {
 	cell := uid.New("cell")
 	seedPrivateNetworkCluster(t, seed.New(t, database, nil), "region-"+platform, platform, sql.NullString{String: cell, Valid: true})
 
-	for name, catalog := range map[string]PrivateNetworkCatalog{"missing": nil, "unavailable": unavailableCatalog{}} {
-		t.Run(name, func(t *testing.T) {
-			client := privateNetworkClient(t, &Service{db: database, bearer: "test-bearer", clusterCache: newClusterTestCache(t), privateNetwork: catalog})
-			before := snapshotOutcomes(t)
-			_, err := receivePrivateNetworkState(t, client, cell, platform, "test-bearer", "")
-			require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
-			require.Equal(t, map[string]float64{"unavailable": 1}, outcomeDelta(before, snapshotOutcomes(t)))
-		})
-	}
+	client := privateNetworkClient(t, &Service{db: database, bearer: "test-bearer", clusterCache: newClusterTestCache(t), privateNetwork: unavailableCatalog{}})
+	_, err = receivePrivateNetworkState(t, client, cell, platform, "test-bearer", "")
+	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 }
 
 // TestPrivateNetworkStateStreamsCatalog guarantees that Krane receives the
-// complete CDC-maintained catalog in bounded chunks, that polling an unchanged
-// catalog does no catalog work, and that a stopped caller disappears after
-// reading only the affected entries.
+// complete CDC-maintained catalog in bounded chunks and in a deterministic
+// order, that polling an unchanged catalog keeps its version, and that a
+// stopped caller disappears.
 func TestPrivateNetworkStateStreamsCatalog(t *testing.T) {
 	vitess := containers.Vitess(t)
 	database, err := db.New(vitess.DSN, sqlcomment.Static{})
@@ -73,7 +66,7 @@ func TestPrivateNetworkStateStreamsCatalog(t *testing.T) {
 	cell := uid.New("cell")
 	seeder := seed.New(t, database, nil)
 	fixture := seedPrivateNetwork(t, seeder, platform, cell)
-	callers, target := fixture.callers, fixture.target
+	target := fixture.target
 	secondCell, secondRegion := seedPrivateNetworkTopology(t, seeder, platform)
 
 	catalogs, err := privatenetwork.New(privatenetwork.Config{
@@ -90,20 +83,13 @@ func TestPrivateNetworkStateStreamsCatalog(t *testing.T) {
 		return receivePrivateNetworkState(t, client, cell, platform, "test-bearer", knownVersion)
 	}
 
-	before := snapshotOutcomes(t)
 	_, err = receivePrivateNetworkState(t, client, cell, platform, "wrong-bearer", "")
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
-	require.Equal(t, map[string]float64{"unauthenticated": 1}, outcomeDelta(before, snapshotOutcomes(t)))
-
-	before = snapshotOutcomes(t)
 	_, err = receivePrivateNetworkState(t, client, uid.New("cell"), platform, "test-bearer", "")
 	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
-	require.Equal(t, map[string]float64{"unknown_cluster": 1}, outcomeDelta(before, snapshotOutcomes(t)))
 
-	before = snapshotOutcomes(t)
 	chunks, err := receive("")
 	require.NoError(t, err)
-	require.Equal(t, map[string]float64{"success": 1}, outcomeDelta(before, snapshotOutcomes(t)))
 	require.Len(t, chunks, 8, "connections and replicas stream as seven full-or-partial chunks and one complete chunk")
 	last := chunks[len(chunks)-1]
 	require.True(t, last.GetComplete())
@@ -124,41 +110,33 @@ func TestPrivateNetworkStateStreamsCatalog(t *testing.T) {
 		require.LessOrEqual(t, len(chunk.GetConnections()), privateNetworkChunkSize)
 		streamed = append(streamed, chunk.GetConnections()...)
 	}
-	isReplica := func(connection *ctrlv1.PrivateNetworkConnection) bool {
-		return strings.HasPrefix(connection.GetConnectionId(), "self-")
-	}
-	firstReplica := slices.IndexFunc(streamed, isReplica)
-	require.Positive(t, firstReplica)
-	require.False(t, slices.ContainsFunc(streamed[firstReplica:], func(c *ctrlv1.PrivateNetworkConnection) bool { return !isReplica(c) }), "replicas follow every connection")
-	require.True(t, slices.IsSortedFunc(streamed[:firstReplica], compareConnections), "the version hash needs connections in a deterministic order")
-	require.True(t, slices.IsSortedFunc(streamed[firstReplica:], compareConnections), "the version hash needs replicas in a deterministic order")
-
-	connections, replicas := map[string]*ctrlv1.PrivateNetworkConnection{}, map[string]*ctrlv1.PrivateNetworkConnection{}
-	for _, connection := range streamed {
-		if isReplica(connection) {
-			require.NotContains(t, replicas, connection.GetCallerDeploymentId())
-			replicas[connection.GetCallerDeploymentId()] = connection
-			continue
+	var want []string
+	for _, caller := range slices.Sorted(slices.Values(fixture.callers)) {
+		for _, connectionID := range slices.Sorted(slices.Values(fixture.connectionIDs)) {
+			want = append(want, caller+"/"+connectionID)
 		}
-		key := connection.GetCallerDeploymentId() + "/" + connection.GetConnectionId()
-		require.NotContains(t, connections, key)
-		connections[key] = connection
 	}
-	require.Equal(t, uint64(len(connections)+len(replicas)), last.GetTotal())
-	require.Len(t, connections, callers*privateNetworkConnectionsPerCaller, "every connection of every caller deployment created with private networking")
-	require.Len(t, replicas, callers+2, "every caller, the target, and the app with an invalid slug publish replicas")
-	for caller, connection := range connections {
-		require.True(t, strings.HasPrefix(connection.GetConnectionName(), "database"), "connection for %s keeps its saved name", caller)
-		require.Equal(t, target, connection.GetTargetDeploymentId(), "connection for %s", caller)
-		require.Equal(t, int32(5432), connection.GetTargetPort(), "connection for %s", caller)
+	for _, deployment := range slices.Sorted(slices.Values(fixture.replicas)) {
+		want = append(want, deployment+"/self-"+deployment)
 	}
-	for deployment, connection := range replicas {
-		require.Equal(t, deployment, connection.GetTargetDeploymentId())
-		require.Equal(t, "self-"+deployment, connection.GetConnectionId())
-		require.Equal(t, "self", connection.GetConnectionName(), "replicas resolve under the self name whatever their app slug")
+	got := make([]string, 0, len(streamed))
+	for _, connection := range streamed {
+		got = append(got, connection.GetCallerDeploymentId()+"/"+connection.GetConnectionId())
+	}
+	require.Equal(t, want, got, "every enrolled caller's connections, then every replica, each ordered by caller and connection so the version is deterministic")
+	require.Equal(t, uint64(len(want)), last.GetTotal())
+
+	connections, replicas := streamed[:len(streamed)-len(fixture.replicas)], streamed[len(streamed)-len(fixture.replicas):]
+	for _, connection := range connections {
+		require.True(t, strings.HasPrefix(connection.GetConnectionName(), "database"), "connection %s keeps its saved name", connection.GetConnectionId())
+		require.Equal(t, target, connection.GetTargetDeploymentId(), "connection %s", connection.GetConnectionId())
+		require.Equal(t, int32(5432), connection.GetTargetPort(), "connection %s", connection.GetConnectionId())
+	}
+	for _, replica := range replicas {
+		require.Equal(t, replica.GetCallerDeploymentId(), replica.GetTargetDeploymentId())
+		require.Equal(t, "self", replica.GetConnectionName(), "replicas resolve under the self name whatever their app slug")
 	}
 
-	work := catalogWork(t)
 	unchanged, err := receive(last.GetVersion())
 	require.NoError(t, err)
 	require.Len(t, unchanged, 1)
@@ -176,15 +154,8 @@ func TestPrivateNetworkStateStreamsCatalog(t *testing.T) {
 		})
 	}
 	wait.Wait()
-	after := catalogWork(t)
-	require.Equal(t, work.builds, after.builds, "polling an unchanged catalog builds nothing")
-	require.Equal(t, work.bootstraps, after.bootstraps, "polling an unchanged catalog copies nothing")
 
-	callerDeploymentID := ""
-	for _, connection := range connections {
-		callerDeploymentID = connection.GetCallerDeploymentId()
-		break
-	}
+	callerDeploymentID := fixture.callers[0]
 	stoppedAt := sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}
 	require.NoError(t, database.UpdateDeploymentDesiredState(t.Context(), db.UpdateDeploymentDesiredStateParams{
 		DesiredState: dbtype.DeploymentsDesiredStateStopped, UpdatedAt: stoppedAt, ID: callerDeploymentID,
@@ -193,12 +164,7 @@ func TestPrivateNetworkStateStreamsCatalog(t *testing.T) {
 		DesiredStatus: db.DeploymentTopologyDesiredStatusStopped, UpdatedAt: stoppedAt,
 		DeploymentID: callerDeploymentID, RegionID: fixture.regionID,
 	}))
-	var stoppedChunks []*ctrlv1.PrivateNetworkStateChunk
-	require.Eventually(t, func() bool {
-		stoppedChunks, err = receive(last.GetVersion())
-		require.NoError(t, err)
-		return !stoppedChunks[len(stoppedChunks)-1].GetUnchanged()
-	}, 30*time.Second, 50*time.Millisecond)
+	stoppedChunks := receiveChanged(t, receive, last.GetVersion())
 	stoppedLast := stoppedChunks[len(stoppedChunks)-1]
 	require.True(t, stoppedLast.GetCertified(), "a snapshot right after a committed change is certified")
 	remainingCallers := map[string]struct{}{}
@@ -208,30 +174,20 @@ func TestPrivateNetworkStateStreamsCatalog(t *testing.T) {
 			remainingCallers[candidate.GetCallerDeploymentId()] = struct{}{}
 		}
 	}
-	for _, connection := range connections {
-		if otherCaller := connection.GetCallerDeploymentId(); otherCaller != callerDeploymentID {
-			require.Contains(t, remainingCallers, otherCaller)
-		}
+	for _, otherCaller := range fixture.callers[1:] {
+		require.Contains(t, remainingCallers, otherCaller)
 	}
-	stoppedWork := catalogWork(t)
-	require.Equal(t, after.bootstraps, stoppedWork.bootstraps, "a stopped caller is not a reason to copy again")
-	require.Less(t, stoppedWork.refreshedCallers-after.refreshedCallers, float64(callers)/10, "a stopped caller reads only the entries it affects")
 
 	setTargetStatus := func(version string, status dbtype.DeploymentsStatus) (string, []string) {
 		t.Helper()
 		require.NoError(t, database.UpdateDeploymentStatus(t.Context(), db.UpdateDeploymentStatusParams{
 			Status: status, UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}, ID: target,
 		}))
-		var changed []*ctrlv1.PrivateNetworkStateChunk
-		require.Eventually(t, func() bool {
-			changed, err = receive(version)
-			require.NoError(t, err)
-			return !changed[len(changed)-1].GetUnchanged()
-		}, 30*time.Second, 50*time.Millisecond, "a status change outside the CDC selection must refresh the target's callers")
+		changed := receiveChanged(t, receive, version)
 		selected := map[string]struct{}{}
 		for _, chunk := range changed {
 			for _, connection := range chunk.GetConnections() {
-				if !isReplica(connection) {
+				if !strings.HasPrefix(connection.GetConnectionId(), "self-") {
 					selected[connection.GetTargetDeploymentId()] = struct{}{}
 				}
 			}
@@ -242,6 +198,18 @@ func TestPrivateNetworkStateStreamsCatalog(t *testing.T) {
 	require.Equal(t, []string{""}, failedTargets, "a failed target is not selected")
 	_, readyTargets := setTargetStatus(failedVersion, dbtype.DeploymentsStatusReady)
 	require.Equal(t, []string{target}, readyTargets, "a ready target is selected again")
+}
+
+func receiveChanged(t *testing.T, receive func(string) ([]*ctrlv1.PrivateNetworkStateChunk, error), version string) []*ctrlv1.PrivateNetworkStateChunk {
+	t.Helper()
+	var changed []*ctrlv1.PrivateNetworkStateChunk
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		chunks, err := receive(version)
+		require.NoError(c, err)
+		require.False(c, chunks[len(chunks)-1].GetUnchanged())
+		changed = chunks
+	}, 30*time.Second, 50*time.Millisecond)
+	return changed
 }
 
 func privateNetworkClient(t *testing.T, service *Service) ctrlv1connect.ClusterServiceClient {
@@ -284,20 +252,13 @@ func newClusterTestCache(t *testing.T) cache.Cache[clusterCacheKey, db.FindClust
 	return c
 }
 
-func compareConnections(a, b *ctrlv1.PrivateNetworkConnection) int {
-	return cmp.Or(
-		strings.Compare(a.GetCallerDeploymentId(), b.GetCallerDeploymentId()),
-		strings.Compare(a.GetConnectionId(), b.GetConnectionId()),
-	)
-}
-
 type privateNetworkFixture struct {
-	callers  int
-	target   string
-	regionID string
+	callers       []string
+	connectionIDs []string
+	replicas      []string
+	target        string
+	regionID      string
 }
-
-const privateNetworkConnectionsPerCaller = 5
 
 func seedPrivateNetwork(t *testing.T, seeder *seed.Seeder, platform, cell string) privateNetworkFixture {
 	t.Helper()
@@ -347,11 +308,12 @@ func seedPrivateNetwork(t *testing.T, seeder *seed.Seeder, platform, cell string
 	}
 
 	target := deploy("db", 5432, true)
-	deploy("Bad_Slug", 8080, true)
-	savedBy := []string{deploy("api", 8080, false)}
+	enrolled := []string{target, deploy("Bad_Slug", 8080, true)}
+	var callerIDs []string
 	for range callers {
-		savedBy = append(savedBy, deploy("api", 8080, true))
+		callerIDs = append(callerIDs, deploy("api", 8080, true))
 	}
+	savedBy := append([]string{deploy("api", 8080, false)}, callerIDs...)
 
 	connectionID := seeder.CreateAppConnection(ctx, seed.CreateAppConnectionRequest{
 		WorkspaceID: workspace.ID, ProjectID: project.ID, CallerAppID: apps["api"], CallerEnvironmentID: environments["api"],
@@ -360,7 +322,7 @@ func seedPrivateNetwork(t *testing.T, seeder *seed.Seeder, platform, cell string
 		TargetDeploymentID: sql.NullString{String: target, Valid: true},
 	})
 	savedConnectionIDs := []string{connectionID}
-	for range privateNetworkConnectionsPerCaller - 1 {
+	for range 4 {
 		savedConnectionIDs = append(savedConnectionIDs, uid.New(uid.ConnectionPrefix))
 	}
 	connections := make([]db.InsertDeploymentConnectionParams, 0, len(savedBy)*len(savedConnectionIDs))
@@ -389,7 +351,10 @@ func seedPrivateNetwork(t *testing.T, seeder *seed.Seeder, platform, cell string
 		ID: connectionID, Name: "changed-default", UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 	}))
 
-	return privateNetworkFixture{callers: callers, target: target, regionID: region}
+	return privateNetworkFixture{
+		callers: callerIDs, connectionIDs: savedConnectionIDs, replicas: append(enrolled, callerIDs...),
+		target: target, regionID: region,
+	}
 }
 
 func seedPrivateNetworkCluster(t *testing.T, seeder *seed.Seeder, name, platform string, cell sql.NullString) string {

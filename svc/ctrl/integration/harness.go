@@ -21,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/privatenetwork"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 )
 
@@ -98,6 +99,7 @@ func (h *Harness) ClusterService(clusterKey *ctrlv1.ClusterKey, bearer string) *
 		Clock:            clock.New(),
 		TopologyCache:    topologyCache,
 		DeploymentStream: nil,
+		PrivateNetwork:   unavailablePrivateNetwork{},
 		RegionalDomain:   "",
 		InstanceEvents:   batch.NewNoop[schema.InstanceEventV1](),
 	})
@@ -109,6 +111,12 @@ func (h *Harness) ClusterService(clusterKey *ctrlv1.ClusterKey, bearer string) *
 	require.NoError(h.t, err)
 
 	return svc
+}
+
+type unavailablePrivateNetwork struct{}
+
+func (unavailablePrivateNetwork) Snapshot(context.Context, string) (privatenetwork.Snapshot, error) {
+	return privatenetwork.Snapshot{Connections: nil, Topology: nil, Version: "", ID: "", Certified: false}, privatenetwork.ErrUnavailable
 }
 
 // CreateDeploymentRequest contains parameters for creating a test deployment.

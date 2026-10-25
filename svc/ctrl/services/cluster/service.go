@@ -98,8 +98,7 @@ type Config struct {
 	Database         db.Database
 	DeploymentStream DeploymentStream
 
-	// PrivateNetwork serves the private network catalog to Krane. When nil,
-	// StreamPrivateNetworkState reports Unavailable.
+	// PrivateNetwork serves the private network catalog to Krane. Required.
 	PrivateNetwork PrivateNetworkCatalog
 
 	// Restate is the ingress client used to trigger durable workflows.
@@ -145,6 +144,9 @@ func New(cfg Config) (*Service, error) {
 	}
 	if cfg.RestateAdmin == nil {
 		return nil, fmt.Errorf("cluster: RestateAdmin is required")
+	}
+	if cfg.PrivateNetwork == nil {
+		return nil, fmt.Errorf("cluster: PrivateNetwork is required")
 	}
 
 	clk := cfg.Clock

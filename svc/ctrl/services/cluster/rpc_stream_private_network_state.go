@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"errors"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -35,10 +34,6 @@ func (s *Service) StreamPrivateNetworkState(ctx context.Context, req *connect.Re
 		return err
 	}
 
-	if s.privateNetwork == nil {
-		result = "unavailable"
-		return connect.NewError(connect.CodeUnavailable, errors.New("private network catalog is not configured"))
-	}
 	snapshot, err := s.privateNetwork.Snapshot(ctx, cluster.RegionPlatform)
 	if err != nil {
 		result = "unavailable"
