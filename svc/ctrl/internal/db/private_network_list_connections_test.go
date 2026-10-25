@@ -12,20 +12,20 @@ import (
 )
 
 type catalogIDs struct {
-	workspace, otherWorkspace, unscheduledWorkspace string
-	project, otherProject, foreignProject, unscheduledProject string
-	caller, target, otherTarget, foreign, unscheduledCaller, unscheduledTarget string
-	callerProd, callerCanary, callerStaging, callerPreview, callerManual, callerPin, callerRollback string
-	targetProd, targetCanary, targetPreview, targetManual, foreignProd, unscheduledEnv string
-	region, region2, otherRegion string
-	callerCanaryOCI, callerPreviewOwn, callerPreviewFork, callerPreviewMissing, callerUnapproved, callerWrongPlatform string
+	workspace, otherWorkspace, unscheduledWorkspace                                                                                        string
+	project, otherProject, foreignProject, unscheduledProject                                                                              string
+	caller, target, otherTarget, foreign, unscheduledCaller, unscheduledTarget                                                             string
+	callerProd, callerCanary, callerStaging, callerPreview, callerManual, callerPin, callerRollback                                        string
+	targetProd, targetCanary, targetPreview, targetManual, foreignProd, unscheduledEnv                                                     string
+	region, region2, otherRegion                                                                                                           string
+	callerCanaryOCI, callerPreviewOwn, callerPreviewFork, callerPreviewMissing, callerUnapproved, callerWrongPlatform                      string
 	callerManualDep, callerPinDep, callerRollbackDep, callerStagingGit, callerProdLive, callerProdDeploying, callerProdDisabled, callerNew string
-	targetCanaryReady, targetCanaryFeature, targetNewProd, targetPreviewOld, targetPreviewNever, targetPreviewAwaiting, targetPreviewFork string
-	targetManualOld, targetManualLatestFailed, targetPinnedStopped, targetLive, targetCanaryRecreated, foreignLive string
-	unscheduledCaller1, unscheduledCaller2 string
-	productionConnection, selfProdConnection, crossWorkspaceConnection, otherProjectConnection, canaryConnection, canaryAutoConnection string
-	selfCanaryToProdConnection, previewConnection, selfPreviewConnection, manualConnection, reservedPrefixConnection, pinnedConnection string
-	reservedSelfConnection, explicitProdConnection, stagingAutoConnection, unscheduledConnection string
+	targetCanaryReady, targetCanaryFeature, targetNewProd, targetPreviewOld, targetPreviewNever, targetPreviewAwaiting, targetPreviewFork  string
+	targetManualOld, targetManualLatestFailed, targetPinnedStopped, targetLive, targetCanaryRecreated, foreignLive                         string
+	unscheduledCaller1, unscheduledCaller2                                                                                                 string
+	productionConnection, selfProdConnection, crossWorkspaceConnection, otherProjectConnection, canaryConnection, canaryAutoConnection     string
+	selfCanaryToProdConnection, previewConnection, selfPreviewConnection, manualConnection, reservedPrefixConnection, pinnedConnection     string
+	reservedSelfConnection, explicitProdConnection, stagingAutoConnection, unscheduledConnection                                           string
 }
 
 func newCatalogIDs() catalogIDs {
@@ -176,13 +176,13 @@ func (ids catalogIDs) seedCatalogDeployments(t *testing.T, q *Queries, platform 
 func (ids catalogIDs) seedCatalogConnections(t *testing.T, q *Queries) {
 	t.Helper()
 	callers := map[string][]string{
-		ids.callerProd: {ids.callerProdDeploying, ids.callerProdLive, ids.callerProdDisabled},
-		ids.callerCanary: {ids.callerCanaryOCI},
-		ids.callerPreview: {ids.callerPreviewOwn, ids.callerPreviewFork, ids.callerPreviewMissing, ids.callerUnapproved, ids.callerWrongPlatform},
-		ids.callerManual: {ids.callerManualDep},
-		ids.callerPin: {ids.callerPinDep},
+		ids.callerProd:     {ids.callerProdDeploying, ids.callerProdLive, ids.callerProdDisabled},
+		ids.callerCanary:   {ids.callerCanaryOCI},
+		ids.callerPreview:  {ids.callerPreviewOwn, ids.callerPreviewFork, ids.callerPreviewMissing, ids.callerUnapproved, ids.callerWrongPlatform},
+		ids.callerManual:   {ids.callerManualDep},
+		ids.callerPin:      {ids.callerPinDep},
 		ids.callerRollback: {ids.callerRollbackDep},
-		ids.callerStaging: {ids.callerStagingGit},
+		ids.callerStaging:  {ids.callerStagingGit},
 	}
 	connection := func(id, name, environment, target, mode, targetEnvironment, targetDeployment string) testConnection {
 		return testConnection{
@@ -400,14 +400,14 @@ func TestListPrivateNetworkConnections(t *testing.T) {
 		q := newCatalog(t)
 		selected := list(t, q)
 		for key, want := range map[string]string{
-			q.productionConnection+"/"+q.callerProdDeploying: q.targetLive,
-			q.productionConnection+"/"+q.callerProdLive: q.targetLive,
-			q.canaryAutoConnection+"/"+q.callerCanaryOCI: "",
-			q.previewConnection+"/"+q.callerPreviewFork: q.targetPreviewFork,
-			q.previewConnection+"/"+q.callerPreviewMissing: "",
-			q.manualConnection+"/"+q.callerManualDep: "",
-			q.pinnedConnection+"/"+q.callerPinDep: "",
-			q.explicitProdConnection+"/"+q.callerRollbackDep: q.targetLive,
+			q.productionConnection + "/" + q.callerProdDeploying: q.targetLive,
+			q.productionConnection + "/" + q.callerProdLive:      q.targetLive,
+			q.canaryAutoConnection + "/" + q.callerCanaryOCI:     "",
+			q.previewConnection + "/" + q.callerPreviewFork:      q.targetPreviewFork,
+			q.previewConnection + "/" + q.callerPreviewMissing:   "",
+			q.manualConnection + "/" + q.callerManualDep:         "",
+			q.pinnedConnection + "/" + q.callerPinDep:            "",
+			q.explicitProdConnection + "/" + q.callerRollbackDep: q.targetLive,
 		} {
 			require.Contains(t, selected, key)
 			require.Equal(t, want, selected[key].DeploymentID, key)
@@ -418,11 +418,11 @@ func TestListPrivateNetworkConnections(t *testing.T) {
 		require.Empty(t, selected[q.canaryConnection+"/"+q.callerCanaryOCI].DeploymentID, "an explicit production-kind environment without the live deployment must not fall back to its newest ready build")
 		require.Equal(t, int32(7946), selected[q.productionConnection+"/"+q.callerProdLive].Port, "port comes from the target deployment")
 		for _, excluded := range []string{
-			q.crossWorkspaceConnection+"/"+q.callerProdLive, q.otherProjectConnection+"/"+q.callerProdLive,
-			q.previewConnection+"/"+q.callerUnapproved, q.previewConnection+"/"+q.callerWrongPlatform,
-			q.selfPreviewConnection+"/"+q.callerUnapproved, q.selfPreviewConnection+"/"+q.callerWrongPlatform,
-			q.reservedSelfConnection+"/"+q.callerPinDep, q.reservedPrefixConnection+"/"+q.callerManualDep,
-			q.productionConnection+"/"+q.callerProdDisabled,
+			q.crossWorkspaceConnection + "/" + q.callerProdLive, q.otherProjectConnection + "/" + q.callerProdLive,
+			q.previewConnection + "/" + q.callerUnapproved, q.previewConnection + "/" + q.callerWrongPlatform,
+			q.selfPreviewConnection + "/" + q.callerUnapproved, q.selfPreviewConnection + "/" + q.callerWrongPlatform,
+			q.reservedSelfConnection + "/" + q.callerPinDep, q.reservedPrefixConnection + "/" + q.callerManualDep,
+			q.productionConnection + "/" + q.callerProdDisabled,
 		} {
 			require.NotContains(t, selected, excluded)
 		}
