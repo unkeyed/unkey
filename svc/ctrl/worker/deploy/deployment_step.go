@@ -51,7 +51,8 @@ func DeploymentStep[C restate.Context](
 		}
 
 		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			current, err := db.NewQueries(tx).FindDeploymentForStep(txCtx, deploymentID)
+			q := db.NewQueries(tx)
+			current, err := q.FindDeploymentForStep(txCtx, deploymentID)
 			if err != nil {
 				return err
 			}
@@ -63,8 +64,14 @@ func DeploymentStep[C restate.Context](
 					restate.WithErrorCode(409),
 				)
 			}
+			if _, err := q.LockActiveEnvironment(txCtx, current.EnvironmentID); err != nil {
+				if db.IsNotFound(err) {
+					return restate.ToTerminalError(fmt.Errorf("environment is not active: %w", err), restate.WithErrorCode(409))
+				}
+				return err
+			}
 
-			if err := db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
+			if err := q.InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
 				WorkspaceID:   current.WorkspaceID,
 				ProjectID:     current.ProjectID,
 				AppID:         current.AppID,
@@ -76,7 +83,7 @@ func DeploymentStep[C restate.Context](
 				return err
 			}
 
-			return db.NewQueries(tx).UpdateDeploymentStatusIfActive(txCtx, db.UpdateDeploymentStatusIfActiveParams{
+			return q.UpdateDeploymentStatusIfActive(txCtx, db.UpdateDeploymentStatusIfActiveParams{
 				ID:                  deploymentID,
 				Status:              deploymentStatus,
 				UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},

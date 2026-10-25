@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -11,6 +12,32 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
+
+func TestUpdatePortalRejectsDeletedParent(t *testing.T) {
+	for _, table := range []string{"projects", "apps"} {
+		t.Run(table, func(t *testing.T) {
+			h := testutil.NewHarness(t)
+			route, headers := newRoute(t, h, "portal.*.update_portal")
+			workspace := h.Resources().UserWorkspace
+			mapping := appMapping(t, h, workspace.ID, "deleted-parent")
+			stored := h.SeedPortal(t, workspace.ID, "deleted-parent", "deleted-parent", mapping, nil, nil)
+			id := mapping.ID
+			if table == "projects" {
+				id = stored.ProjectID
+			}
+			_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = 1 WHERE id = ?", id)
+			require.NoError(t, err)
+			req := baseRequest(stored.ID)
+			req.Enabled = new(false)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+			absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, baseRequest(uid.New(uid.PortalPrefix)))
+			require.Equal(t, normalizeRequestID(absent.RawBody), normalizeRequestID(res.RawBody))
+			require.True(t, fetchPortal(t, h, workspace.ID, stored.ID).Enabled)
+			require.Zero(t, countAuditEntriesMentioning(t, h, workspace.ID, "portal.update"))
+		})
+	}
+}
 
 // Every way an update can fail to reach a portal returns the same bytes. If
 // any of these diverged the response would answer whether an id exists in a

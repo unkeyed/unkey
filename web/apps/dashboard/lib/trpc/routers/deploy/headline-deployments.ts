@@ -1,5 +1,6 @@
 import { type SQL, and, db, eq, ne, sql } from "@/lib/db";
 import { deployments, environments } from "@unkey/db/src/schema";
+import { activeDeploymentParents } from "./deployment/deployment-query-helpers";
 
 // Skipped deployments never ran, so they never headline.
 export function queryHeadlineDeployments(workspaceId: string, scope: SQL | undefined) {
@@ -19,7 +20,14 @@ export function queryHeadlineDeployments(workspaceId: string, scope: SQL | undef
         eq(environments.workspaceId, workspaceId),
       ),
     )
-    .where(and(eq(deployments.workspaceId, workspaceId), ne(deployments.status, "skipped"), scope))
+    .where(
+      and(
+        eq(deployments.workspaceId, workspaceId),
+        activeDeploymentParents(),
+        ne(deployments.status, "skipped"),
+        scope,
+      ),
+    )
     .as("ranked_headline_deployments");
 
   return db

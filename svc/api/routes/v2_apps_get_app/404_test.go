@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,6 +13,37 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_get_app"
 )
+
+func TestGetAppDeletedAncestors(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"unkey:v1:{workspaceID}:projects/*/apps/*#read"},
+	})
+	headers := http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + setup.RootKey}}
+	for _, table := range []string{"projects", "apps"} {
+		t.Run(table, func(t *testing.T) {
+			req := handler.Request{Project: setup.Project.ID, App: setup.App.ID}
+			live := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, http.StatusOK, live.Status, "%s", live.RawBody)
+			id := setup.App.ID
+			if table == "projects" {
+				id = setup.Project.ID
+			}
+			_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = 1 WHERE id = ?", id)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = NULL WHERE id = ?", id)
+				require.NoError(t, err)
+			})
+			for _, target := range []handler.Request{req, {Project: setup.Project.Slug, App: setup.App.Slug}} {
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, target)
+				require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+			}
+		})
+	}
+}
 
 func TestGetAppNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)

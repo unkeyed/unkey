@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -166,23 +167,48 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 		return &hydrav1.ScrapeSpecResponse{}, nil
 	}
 
-	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.UpsertOpenApiSpec(runCtx, db.UpsertOpenApiSpecParams{
-			ID:           uid.New(uid.OpenApiSpecPrefix),
-			PortalID:     sql.NullString{Valid: false},
-			WorkspaceID:  deployment.WorkspaceID,
-			DeploymentID: sql.NullString{Valid: true, String: deploymentID},
-			Content:      specBody,
-			CreatedAt:    time.Now().UnixMilli(),
-			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
+	persisted, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
+		return s.persistOpenAPISpec(runCtx, deployment, specBody)
 	}, restate.WithName("persist openapi spec"))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to persist OpenAPI spec."))
 	}
+	if !persisted {
+		logger.Info("environment is not active, skipping openapi spec persistence", "deployment_id", deploymentID)
+		return &hydrav1.ScrapeSpecResponse{}, nil
+	}
 
 	logger.Info("openapi spec scraped and persisted", "deployment_id", deploymentID)
 	return &hydrav1.ScrapeSpecResponse{}, nil
+}
+
+func (s *Service) persistOpenAPISpec(ctx context.Context, deployment db.Deployment, specBody []byte) (bool, error) {
+	persisted := false
+	err := db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		queries := db.NewQueries(tx)
+		if _, err := queries.LockActiveEnvironment(txCtx, deployment.EnvironmentID); err != nil {
+			if db.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+
+		now := time.Now().UnixMilli()
+		if err := queries.UpsertOpenApiSpec(txCtx, db.UpsertOpenApiSpecParams{
+			ID:           uid.New(uid.OpenApiSpecPrefix),
+			PortalID:     sql.NullString{Valid: false},
+			WorkspaceID:  deployment.WorkspaceID,
+			DeploymentID: sql.NullString{Valid: true, String: deployment.ID},
+			Content:      specBody,
+			CreatedAt:    now,
+			UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+		}); err != nil {
+			return err
+		}
+		persisted = true
+		return nil
+	})
+	return persisted, err
 }
 
 // readOpenAPISpecBody caps the response reader before buffering it. Reading one

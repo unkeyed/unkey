@@ -21,6 +21,46 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_deployments"
 )
 
+func TestListDeploymentsExcludesDeletedAncestors(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"unkey:v1:{workspaceID}:projects/*/apps/*/environments/*/deployments/*#read"},
+	})
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	for _, table := range []string{"projects", "apps", "environments"} {
+		t.Run(table, func(t *testing.T) {
+			live := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{})
+			require.Equal(t, http.StatusOK, live.Status, "%s", live.RawBody)
+			require.Len(t, live.Body.Data, 1)
+			require.Equal(t, dep.ID, live.Body.Data[0].Id)
+			id := map[string]string{"projects": setup.Project.ID, "apps": setup.App.ID, "environments": setup.Environment.ID}[table]
+			_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = 1 WHERE id = ?", id)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE "+table+" SET deleted_at = NULL WHERE id = ?", id)
+				require.NoError(t, err)
+			})
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{})
+			require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+			require.Empty(t, res.Body.Data)
+			filtered := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{
+				Project:     rid(setup.Project.Slug),
+				App:         rid(setup.App.Slug),
+				Environment: rid(setup.Environment.Slug),
+			})
+			require.Equal(t, http.StatusNotFound, filtered.Status, "%s", filtered.RawBody)
+		})
+	}
+}
+
 func TestListWorkspaceWide(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)

@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -49,6 +50,13 @@ func TestListProjectsSuccessfully(t *testing.T) {
 		})
 		seeded[project.Slug] = project.ID
 	}
+
+	deleted := h.CreateProject(seed.CreateProjectRequest{
+		ID: uid.New(uid.ProjectPrefix), WorkspaceID: workspace.ID,
+		Name: "Deleted project", Slug: uid.DNS1035(16),
+	})
+	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE projects SET deleted_at = 1 WHERE id = ?", deleted.ID)
+	require.NoError(t, err)
 
 	t.Run("lists seeded projects with populated fields", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{})

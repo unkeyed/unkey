@@ -1,7 +1,7 @@
-import { and, db, desc, eq } from "@/lib/db";
+import { and, db, desc, eq, isNull } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { frontlineRoutes, projects } from "@unkey/db/src/schema";
+import { apps, environments, frontlineRoutes, projects } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 export const listDomains = workspaceProcedure
@@ -26,6 +26,11 @@ export const listDomains = workspaceProcedure
         updatedAt: frontlineRoutes.updatedAt,
       })
       .from(frontlineRoutes)
+      .innerJoin(apps, and(eq(apps.id, frontlineRoutes.appId), isNull(apps.deletedAt)))
+      .innerJoin(
+        environments,
+        and(eq(environments.id, frontlineRoutes.environmentId), isNull(environments.deletedAt)),
+      )
       .innerJoin(
         projects,
         and(eq(projects.id, frontlineRoutes.projectId), eq(projects.workspaceId, ctx.workspace.id)),
@@ -35,6 +40,7 @@ export const listDomains = workspaceProcedure
           eq(frontlineRoutes.projectId, input.projectId),
           input.appId ? eq(frontlineRoutes.appId, input.appId) : undefined,
           eq(projects.workspaceId, ctx.workspace.id),
+          isNull(projects.deletedAt),
         ),
       )
       .orderBy(desc(frontlineRoutes.updatedAt))

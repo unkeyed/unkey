@@ -12,9 +12,39 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+func TestVerificationCannotRecreateChallengeAfterDomainDeletion(t *testing.T) {
+	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	svc := New(Config{DB: database})
+	dom := db.CustomDomain{ID: uid.New(uid.DomainPrefix), WorkspaceID: uid.New(uid.WorkspacePrefix)}
+	mockCtx := mocks.NewMockContext(t)
+	mockCtx.EXPECT().Value(mock.Anything).Return(nil).Maybe()
+	mockCtx.EXPECT().Deadline().Return(time.Time{}, false).Maybe()
+	mockCtx.EXPECT().Done().Return(nil).Maybe()
+	mockCtx.EXPECT().Err().Return(nil).Maybe()
+	mockCtx.EXPECT().Run(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(
+		func(fn func(restate.RunContext) (any, error), _ any, _ ...restate.RunOption) restate.TerminalError {
+			_, err := fn(mockCtx)
+			if err != nil {
+				require.True(t, restate.IsTerminalError(err), "%v", err)
+				return restate.ToTerminalError(err)
+			}
+			return nil
+		},
+	).Twice()
+	_, err = svc.onVerificationSuccess(restate.WithMockContext(mockCtx), dom)
+	require.True(t, restate.IsTerminalError(err), "%v", err)
+	var count int
+	require.NoError(t, database.RW().QueryRowContext(t.Context(), "SELECT COUNT(*) FROM acme_challenges WHERE domain_id = ?", dom.ID).Scan(&count))
+	require.Zero(t, count)
+}
 
 // missingRowDB answers the domain lookup with NotFound. The embedded interface
 // is nil, so any other query panics, pinning that VerifyDomain returns before

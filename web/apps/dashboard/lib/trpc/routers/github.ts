@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, inArray, isNull, schema } from "@/lib/db";
 import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
   type BranchActivity,
@@ -91,12 +91,13 @@ const fetchGithubContext = async (workspaceId: string, projectId: string, appId?
   const project = await db.query.projects
     .findFirst({
       where: (table, { and, eq }) =>
-        and(eq(table.id, projectId), eq(table.workspaceId, workspaceId)),
+        and(eq(table.id, projectId), eq(table.workspaceId, workspaceId), isNull(table.deletedAt)),
       columns: {
         id: true,
       },
       with: {
         apps: {
+          where: (table, { isNull }) => isNull(table.deletedAt),
           columns: { id: true },
           with: {
             githubRepoConnection: {
@@ -142,6 +143,10 @@ const fetchGithubContext = async (workspaceId: string, projectId: string, appId?
     ? (project.apps.find((a) => a.id === appId) ?? null)
     : (project.apps.find((a) => a.githubRepoConnection != null) ?? project.apps[0] ?? null);
 
+  if (appId && !app) {
+    return null;
+  }
+
   return {
     appId: app?.id ?? null,
     defaultBranch: app?.githubRepoConnection?.defaultBranch ?? "main",
@@ -166,7 +171,7 @@ const fetchProjectInstallation = async (
   const project = await db.query.projects
     .findFirst({
       where: (table, { and, eq }) =>
-        and(eq(table.id, projectId), eq(table.workspaceId, workspaceId)),
+        and(eq(table.id, projectId), eq(table.workspaceId, workspaceId), isNull(table.deletedAt)),
       columns: {
         id: true,
       },
@@ -256,10 +261,21 @@ export const githubRouter = t.router({
       // arbitrary project id.
       const project = await db.query.projects.findFirst({
         where: (table, { and, eq }) =>
-          and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+          and(
+            eq(table.id, input.projectId),
+            eq(table.workspaceId, ctx.workspace.id),
+            isNull(table.deletedAt),
+          ),
         columns: { id: true },
+        with: {
+          apps: {
+            where: (table, { and, eq, isNull }) =>
+              and(eq(table.id, input.appId), isNull(table.deletedAt)),
+            columns: { id: true },
+          },
+        },
       });
-      if (!project) {
+      if (!project || project.apps.length === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Project not found",
@@ -346,6 +362,10 @@ export const githubRouter = t.router({
               returnTo: parsedState.returnTo ?? null,
             }
           : null;
+
+      if (target && !(await fetchGithubContext(ctx.workspace.id, target.projectId, target.appId))) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "App not found" });
+      }
 
       // A GitHub installation belongs to a GitHub account, not an Unkey
       // workspace. Multiple workspaces may use it, but each new workspace
@@ -452,6 +472,37 @@ export const githubRouter = t.router({
       // separately (apps.createApp / apps.updateApp), not during install.
       await db
         .transaction(async (tx) => {
+          if (target) {
+            const [project] = await tx
+              .select({ id: schema.projects.id })
+              .from(schema.projects)
+              .where(
+                and(
+                  eq(schema.projects.id, target.projectId),
+                  eq(schema.projects.workspaceId, ctx.workspace.id),
+                  isNull(schema.projects.deletedAt),
+                ),
+              )
+              .for("share");
+            if (!project) {
+              throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+            }
+            const [app] = await tx
+              .select({ id: schema.apps.id })
+              .from(schema.apps)
+              .where(
+                and(
+                  eq(schema.apps.id, target.appId),
+                  eq(schema.apps.projectId, project.id),
+                  eq(schema.apps.workspaceId, ctx.workspace.id),
+                  isNull(schema.apps.deletedAt),
+                ),
+              )
+              .for("share");
+            if (!app) {
+              throw new TRPCError({ code: "NOT_FOUND", message: "App not found" });
+            }
+          }
           await tx
             .insert(schema.githubAppInstallations)
             .values({
@@ -487,6 +538,9 @@ export const githubRouter = t.router({
           ]);
         })
         .catch((err) => {
+          if (err instanceof TRPCError) {
+            throw err;
+          }
           console.error(err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -796,6 +850,7 @@ export const githubRouter = t.router({
               eq(table.id, requestedAppId),
               eq(table.workspaceId, ctx.workspace.id),
               eq(table.projectId, input.projectId),
+              isNull(table.deletedAt),
             ),
           columns: { id: true, sourceType: true },
         });
@@ -819,6 +874,7 @@ export const githubRouter = t.router({
               eq(table.projectId, input.projectId),
               eq(table.workspaceId, ctx.workspace.id),
               eq(table.slug, "default"),
+              isNull(table.deletedAt),
             ),
           columns: { id: true, sourceType: true },
         });
@@ -856,6 +912,41 @@ export const githubRouter = t.router({
       const branchToStore = input.selectedBranch ?? verifiedRepo.default_branch;
       await db
         .transaction(async (tx) => {
+          const [project] = await tx
+            .select({ id: schema.projects.id })
+            .from(schema.projects)
+            .where(
+              and(
+                eq(schema.projects.id, input.projectId),
+                eq(schema.projects.workspaceId, ctx.workspace.id),
+                isNull(schema.projects.deletedAt),
+              ),
+            )
+            .for("share");
+          if (!project) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+          }
+          const [app] = await tx
+            .select({ id: schema.apps.id, sourceType: schema.apps.sourceType })
+            .from(schema.apps)
+            .where(
+              and(
+                eq(schema.apps.id, appId),
+                eq(schema.apps.projectId, project.id),
+                eq(schema.apps.workspaceId, ctx.workspace.id),
+                isNull(schema.apps.deletedAt),
+              ),
+            )
+            .for("share");
+          if (!app) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "App not found" });
+          }
+          if (app.sourceType === "oci") {
+            throw new TRPCError({
+              code: "PRECONDITION_FAILED",
+              message: "Container image apps cannot connect a GitHub repository",
+            });
+          }
           const updatedAt = Date.now();
           await tx
             .insert(schema.githubRepoConnections)
@@ -880,7 +971,10 @@ export const githubRouter = t.router({
               },
             });
         })
-        .catch(() => {
+        .catch((error) => {
+          if (error instanceof TRPCError) {
+            throw error;
+          }
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to save GitHub repository connection",
@@ -900,8 +994,19 @@ export const githubRouter = t.router({
       const app = await db.query.apps
         .findFirst({
           where: (table, { and, eq }) =>
-            and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
-          columns: { id: true },
+            and(
+              eq(table.id, input.appId),
+              eq(table.workspaceId, ctx.workspace.id),
+              isNull(table.deletedAt),
+              inArray(
+                table.projectId,
+                db
+                  .select({ id: schema.projects.id })
+                  .from(schema.projects)
+                  .where(isNull(schema.projects.deletedAt)),
+              ),
+            ),
+          columns: { id: true, projectId: true },
         })
         .catch(() => {
           throw new TRPCError({
@@ -918,9 +1023,49 @@ export const githubRouter = t.router({
       }
 
       await db
-        .delete(schema.githubRepoConnections)
-        .where(eq(schema.githubRepoConnections.appId, input.appId))
-        .catch(() => {
+        .transaction(async (tx) => {
+          const [project] = await tx
+            .select({ id: schema.projects.id })
+            .from(schema.projects)
+            .where(
+              and(
+                eq(schema.projects.id, app.projectId),
+                eq(schema.projects.workspaceId, ctx.workspace.id),
+                isNull(schema.projects.deletedAt),
+              ),
+            )
+            .for("share");
+          if (!project) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+          }
+          const [activeApp] = await tx
+            .select({ id: schema.apps.id })
+            .from(schema.apps)
+            .where(
+              and(
+                eq(schema.apps.id, app.id),
+                eq(schema.apps.projectId, project.id),
+                eq(schema.apps.workspaceId, ctx.workspace.id),
+                isNull(schema.apps.deletedAt),
+              ),
+            )
+            .for("share");
+          if (!activeApp) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "App not found" });
+          }
+          await tx
+            .delete(schema.githubRepoConnections)
+            .where(
+              and(
+                eq(schema.githubRepoConnections.appId, app.id),
+                eq(schema.githubRepoConnections.workspaceId, ctx.workspace.id),
+              ),
+            );
+        })
+        .catch((error) => {
+          if (error instanceof TRPCError) {
+            throw error;
+          }
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to disconnect GitHub repository",

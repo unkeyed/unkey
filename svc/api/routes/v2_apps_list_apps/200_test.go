@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"slices"
@@ -57,6 +58,13 @@ func TestListAppsSuccessfully(t *testing.T) {
 		})
 		seeded[app.ID] = slug
 	}
+
+	deleted := h.CreateApp(seed.CreateAppRequest{
+		ID: uid.New(uid.AppPrefix), WorkspaceID: workspace.ID, ProjectID: project.ID,
+		Name: "Deleted app", Slug: uid.DNS1035(16),
+	})
+	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE apps SET deleted_at = 1 WHERE id = ?", deleted.ID)
+	require.NoError(t, err)
 
 	t.Run("lists seeded apps by project id", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
