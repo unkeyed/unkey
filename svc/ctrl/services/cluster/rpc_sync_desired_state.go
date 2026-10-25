@@ -39,6 +39,10 @@ func (s *Service) SyncDesiredState(
 		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
 	}
+	if err := s.syncOrphanedDeployments(ctx, stream, cluster.RegionID); err != nil {
+		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
+		return err
+	}
 
 	fullSyncDuration := time.Since(fullSyncStart).Seconds()
 	metrics.FullSyncDurationSeconds.Observe(fullSyncDuration)
@@ -72,6 +76,34 @@ func (s *Service) syncDeployments(
 			}
 			if err := stream.Send(&ctrlv1.DeploymentChangeEvent{
 				Event: &ctrlv1.DeploymentChangeEvent_Deployment{Deployment: state},
+			}); err != nil {
+				return err
+			}
+			metrics.SyncDesiredStateEventsSentTotal.WithLabelValues("deployment").Inc()
+		}
+		if len(rows) < deploymentSyncPageSize {
+			return nil
+		}
+	}
+}
+
+func (s *Service) syncOrphanedDeployments(ctx context.Context, stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent], regionID string) error {
+	var afterPK uint64
+	for {
+		rows, err := s.db.ListOrphanedDeploymentTopologiesByRegion(ctx, db.ListOrphanedDeploymentTopologiesByRegionParams{
+			RegionID: regionID, AfterPk: afterPK, Limit: deploymentSyncPageSize,
+		})
+		if err != nil {
+			return connect.NewError(connect.CodeInternal, err)
+		}
+		for _, row := range rows {
+			afterPK = row.Pk
+			if err := stream.Send(&ctrlv1.DeploymentChangeEvent{
+				Event: &ctrlv1.DeploymentChangeEvent_Deployment{Deployment: &ctrlv1.DeploymentState{
+					State: &ctrlv1.DeploymentState_Delete{Delete: &ctrlv1.DeleteDeployment{
+						DeploymentId: row.DeploymentID, K8SNamespace: row.K8sNamespace, Permanent: true,
+					}},
+				}},
 			}); err != nil {
 				return err
 			}

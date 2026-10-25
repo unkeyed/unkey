@@ -520,6 +520,86 @@ func (x *RunAuditLogOutboxCleanupResponse) GetRowsDeleted() int64 {
 	return 0
 }
 
+type RunResourceCleanupRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunResourceCleanupRequest) Reset() {
+	*x = RunResourceCleanupRequest{}
+	mi := &file_hydra_v1_cron_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunResourceCleanupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunResourceCleanupRequest) ProtoMessage() {}
+
+func (x *RunResourceCleanupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_cron_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunResourceCleanupRequest.ProtoReflect.Descriptor instead.
+func (*RunResourceCleanupRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{12}
+}
+
+type RunResourceCleanupResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RowsDeleted   int64                  `protobuf:"varint,1,opt,name=rows_deleted,json=rowsDeleted,proto3" json:"rows_deleted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunResourceCleanupResponse) Reset() {
+	*x = RunResourceCleanupResponse{}
+	mi := &file_hydra_v1_cron_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunResourceCleanupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunResourceCleanupResponse) ProtoMessage() {}
+
+func (x *RunResourceCleanupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_cron_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunResourceCleanupResponse.ProtoReflect.Descriptor instead.
+func (*RunResourceCleanupResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RunResourceCleanupResponse) GetRowsDeleted() int64 {
+	if x != nil {
+		return x.RowsDeleted
+	}
+	return 0
+}
+
 type RunDeployBillingPushRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -528,7 +608,7 @@ type RunDeployBillingPushRequest struct {
 
 func (x *RunDeployBillingPushRequest) Reset() {
 	*x = RunDeployBillingPushRequest{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[12]
+	mi := &file_hydra_v1_cron_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -540,7 +620,7 @@ func (x *RunDeployBillingPushRequest) String() string {
 func (*RunDeployBillingPushRequest) ProtoMessage() {}
 
 func (x *RunDeployBillingPushRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[12]
+	mi := &file_hydra_v1_cron_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -553,7 +633,7 @@ func (x *RunDeployBillingPushRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunDeployBillingPushRequest.ProtoReflect.Descriptor instead.
 func (*RunDeployBillingPushRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{12}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{14}
 }
 
 // RunDeployBillingPushResponse is intentionally empty: the run's outcome
@@ -567,7 +647,7 @@ type RunDeployBillingPushResponse struct {
 
 func (x *RunDeployBillingPushResponse) Reset() {
 	*x = RunDeployBillingPushResponse{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[13]
+	mi := &file_hydra_v1_cron_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -579,7 +659,7 @@ func (x *RunDeployBillingPushResponse) String() string {
 func (*RunDeployBillingPushResponse) ProtoMessage() {}
 
 func (x *RunDeployBillingPushResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[13]
+	mi := &file_hydra_v1_cron_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -592,7 +672,7 @@ func (x *RunDeployBillingPushResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunDeployBillingPushResponse.ProtoReflect.Descriptor instead.
 func (*RunDeployBillingPushResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{13}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{15}
 }
 
 type RunScaleDownIdlePreviewDeploymentsRequest struct {
@@ -603,7 +683,7 @@ type RunScaleDownIdlePreviewDeploymentsRequest struct {
 
 func (x *RunScaleDownIdlePreviewDeploymentsRequest) Reset() {
 	*x = RunScaleDownIdlePreviewDeploymentsRequest{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[14]
+	mi := &file_hydra_v1_cron_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -615,7 +695,7 @@ func (x *RunScaleDownIdlePreviewDeploymentsRequest) String() string {
 func (*RunScaleDownIdlePreviewDeploymentsRequest) ProtoMessage() {}
 
 func (x *RunScaleDownIdlePreviewDeploymentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[14]
+	mi := &file_hydra_v1_cron_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -628,7 +708,7 @@ func (x *RunScaleDownIdlePreviewDeploymentsRequest) ProtoReflect() protoreflect.
 
 // Deprecated: Use RunScaleDownIdlePreviewDeploymentsRequest.ProtoReflect.Descriptor instead.
 func (*RunScaleDownIdlePreviewDeploymentsRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{14}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{16}
 }
 
 type RunScaleDownIdlePreviewDeploymentsResponse struct {
@@ -639,7 +719,7 @@ type RunScaleDownIdlePreviewDeploymentsResponse struct {
 
 func (x *RunScaleDownIdlePreviewDeploymentsResponse) Reset() {
 	*x = RunScaleDownIdlePreviewDeploymentsResponse{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[15]
+	mi := &file_hydra_v1_cron_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -651,7 +731,7 @@ func (x *RunScaleDownIdlePreviewDeploymentsResponse) String() string {
 func (*RunScaleDownIdlePreviewDeploymentsResponse) ProtoMessage() {}
 
 func (x *RunScaleDownIdlePreviewDeploymentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[15]
+	mi := &file_hydra_v1_cron_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -664,7 +744,7 @@ func (x *RunScaleDownIdlePreviewDeploymentsResponse) ProtoReflect() protoreflect
 
 // Deprecated: Use RunScaleDownIdlePreviewDeploymentsResponse.ProtoReflect.Descriptor instead.
 func (*RunScaleDownIdlePreviewDeploymentsResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{15}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{17}
 }
 
 type RunDeployBillingCloseRequest struct {
@@ -679,7 +759,7 @@ type RunDeployBillingCloseRequest struct {
 
 func (x *RunDeployBillingCloseRequest) Reset() {
 	*x = RunDeployBillingCloseRequest{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[16]
+	mi := &file_hydra_v1_cron_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -691,7 +771,7 @@ func (x *RunDeployBillingCloseRequest) String() string {
 func (*RunDeployBillingCloseRequest) ProtoMessage() {}
 
 func (x *RunDeployBillingCloseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[16]
+	mi := &file_hydra_v1_cron_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -704,7 +784,7 @@ func (x *RunDeployBillingCloseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunDeployBillingCloseRequest.ProtoReflect.Descriptor instead.
 func (*RunDeployBillingCloseRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{16}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *RunDeployBillingCloseRequest) GetPeriodEnd() int64 {
@@ -728,7 +808,7 @@ type RunDeployBillingCloseResponse struct {
 
 func (x *RunDeployBillingCloseResponse) Reset() {
 	*x = RunDeployBillingCloseResponse{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[17]
+	mi := &file_hydra_v1_cron_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -740,7 +820,7 @@ func (x *RunDeployBillingCloseResponse) String() string {
 func (*RunDeployBillingCloseResponse) ProtoMessage() {}
 
 func (x *RunDeployBillingCloseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[17]
+	mi := &file_hydra_v1_cron_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -753,7 +833,7 @@ func (x *RunDeployBillingCloseResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunDeployBillingCloseResponse.ProtoReflect.Descriptor instead.
 func (*RunDeployBillingCloseResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{17}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RunDeployBillingCloseResponse) GetWorkspacesPushed() int32 {
@@ -792,7 +872,7 @@ type CloseDeployBillingWorkspaceRequest struct {
 
 func (x *CloseDeployBillingWorkspaceRequest) Reset() {
 	*x = CloseDeployBillingWorkspaceRequest{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[18]
+	mi := &file_hydra_v1_cron_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -804,7 +884,7 @@ func (x *CloseDeployBillingWorkspaceRequest) String() string {
 func (*CloseDeployBillingWorkspaceRequest) ProtoMessage() {}
 
 func (x *CloseDeployBillingWorkspaceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[18]
+	mi := &file_hydra_v1_cron_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -817,7 +897,7 @@ func (x *CloseDeployBillingWorkspaceRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CloseDeployBillingWorkspaceRequest.ProtoReflect.Descriptor instead.
 func (*CloseDeployBillingWorkspaceRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{18}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CloseDeployBillingWorkspaceRequest) GetPeriod() string {
@@ -851,7 +931,7 @@ type CloseDeployBillingWorkspaceResponse struct {
 
 func (x *CloseDeployBillingWorkspaceResponse) Reset() {
 	*x = CloseDeployBillingWorkspaceResponse{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[19]
+	mi := &file_hydra_v1_cron_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -863,7 +943,7 @@ func (x *CloseDeployBillingWorkspaceResponse) String() string {
 func (*CloseDeployBillingWorkspaceResponse) ProtoMessage() {}
 
 func (x *CloseDeployBillingWorkspaceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[19]
+	mi := &file_hydra_v1_cron_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -876,7 +956,7 @@ func (x *CloseDeployBillingWorkspaceResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use CloseDeployBillingWorkspaceResponse.ProtoReflect.Descriptor instead.
 func (*CloseDeployBillingWorkspaceResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{19}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{21}
 }
 
 type EnforceFreeTierRequest struct {
@@ -890,7 +970,7 @@ type EnforceFreeTierRequest struct {
 
 func (x *EnforceFreeTierRequest) Reset() {
 	*x = EnforceFreeTierRequest{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[20]
+	mi := &file_hydra_v1_cron_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -902,7 +982,7 @@ func (x *EnforceFreeTierRequest) String() string {
 func (*EnforceFreeTierRequest) ProtoMessage() {}
 
 func (x *EnforceFreeTierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[20]
+	mi := &file_hydra_v1_cron_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -915,7 +995,7 @@ func (x *EnforceFreeTierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnforceFreeTierRequest.ProtoReflect.Descriptor instead.
 func (*EnforceFreeTierRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{20}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *EnforceFreeTierRequest) GetWorkspaceId() string {
@@ -942,7 +1022,7 @@ type EnforceFreeTierResponse struct {
 
 func (x *EnforceFreeTierResponse) Reset() {
 	*x = EnforceFreeTierResponse{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[21]
+	mi := &file_hydra_v1_cron_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -954,7 +1034,7 @@ func (x *EnforceFreeTierResponse) String() string {
 func (*EnforceFreeTierResponse) ProtoMessage() {}
 
 func (x *EnforceFreeTierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[21]
+	mi := &file_hydra_v1_cron_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -967,7 +1047,7 @@ func (x *EnforceFreeTierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnforceFreeTierResponse.ProtoReflect.Descriptor instead.
 func (*EnforceFreeTierResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{21}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *EnforceFreeTierResponse) GetWarnedAt() int64 {
@@ -989,7 +1069,7 @@ type ThrottleFreeTierWorkspaceRequest struct {
 
 func (x *ThrottleFreeTierWorkspaceRequest) Reset() {
 	*x = ThrottleFreeTierWorkspaceRequest{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[22]
+	mi := &file_hydra_v1_cron_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1001,7 +1081,7 @@ func (x *ThrottleFreeTierWorkspaceRequest) String() string {
 func (*ThrottleFreeTierWorkspaceRequest) ProtoMessage() {}
 
 func (x *ThrottleFreeTierWorkspaceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[22]
+	mi := &file_hydra_v1_cron_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1014,7 +1094,7 @@ func (x *ThrottleFreeTierWorkspaceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ThrottleFreeTierWorkspaceRequest.ProtoReflect.Descriptor instead.
 func (*ThrottleFreeTierWorkspaceRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{22}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ThrottleFreeTierWorkspaceRequest) GetWorkspaceId() string {
@@ -1039,7 +1119,7 @@ type ThrottleFreeTierWorkspaceResponse struct {
 
 func (x *ThrottleFreeTierWorkspaceResponse) Reset() {
 	*x = ThrottleFreeTierWorkspaceResponse{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[23]
+	mi := &file_hydra_v1_cron_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1051,7 +1131,7 @@ func (x *ThrottleFreeTierWorkspaceResponse) String() string {
 func (*ThrottleFreeTierWorkspaceResponse) ProtoMessage() {}
 
 func (x *ThrottleFreeTierWorkspaceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[23]
+	mi := &file_hydra_v1_cron_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1064,7 +1144,7 @@ func (x *ThrottleFreeTierWorkspaceResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ThrottleFreeTierWorkspaceResponse.ProtoReflect.Descriptor instead.
 func (*ThrottleFreeTierWorkspaceResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{23}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{25}
 }
 
 type RunDeploySpendCheckRequest struct {
@@ -1075,7 +1155,7 @@ type RunDeploySpendCheckRequest struct {
 
 func (x *RunDeploySpendCheckRequest) Reset() {
 	*x = RunDeploySpendCheckRequest{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[24]
+	mi := &file_hydra_v1_cron_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1087,7 +1167,7 @@ func (x *RunDeploySpendCheckRequest) String() string {
 func (*RunDeploySpendCheckRequest) ProtoMessage() {}
 
 func (x *RunDeploySpendCheckRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[24]
+	mi := &file_hydra_v1_cron_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1100,7 +1180,7 @@ func (x *RunDeploySpendCheckRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunDeploySpendCheckRequest.ProtoReflect.Descriptor instead.
 func (*RunDeploySpendCheckRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{24}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{26}
 }
 
 type RunDeploySpendCheckResponse struct {
@@ -1113,7 +1193,7 @@ type RunDeploySpendCheckResponse struct {
 
 func (x *RunDeploySpendCheckResponse) Reset() {
 	*x = RunDeploySpendCheckResponse{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[25]
+	mi := &file_hydra_v1_cron_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1125,7 +1205,7 @@ func (x *RunDeploySpendCheckResponse) String() string {
 func (*RunDeploySpendCheckResponse) ProtoMessage() {}
 
 func (x *RunDeploySpendCheckResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[25]
+	mi := &file_hydra_v1_cron_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1138,7 +1218,7 @@ func (x *RunDeploySpendCheckResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunDeploySpendCheckResponse.ProtoReflect.Descriptor instead.
 func (*RunDeploySpendCheckResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{25}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *RunDeploySpendCheckResponse) GetWorkspacesDispatched() int32 {
@@ -1156,7 +1236,7 @@ type RunBuildLimitSyncRequest struct {
 
 func (x *RunBuildLimitSyncRequest) Reset() {
 	*x = RunBuildLimitSyncRequest{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[26]
+	mi := &file_hydra_v1_cron_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1168,7 +1248,7 @@ func (x *RunBuildLimitSyncRequest) String() string {
 func (*RunBuildLimitSyncRequest) ProtoMessage() {}
 
 func (x *RunBuildLimitSyncRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[26]
+	mi := &file_hydra_v1_cron_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1181,7 +1261,7 @@ func (x *RunBuildLimitSyncRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunBuildLimitSyncRequest.ProtoReflect.Descriptor instead.
 func (*RunBuildLimitSyncRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{26}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{28}
 }
 
 // RunBuildLimitSyncResponse is intentionally empty: every run writes the rules
@@ -1194,7 +1274,7 @@ type RunBuildLimitSyncResponse struct {
 
 func (x *RunBuildLimitSyncResponse) Reset() {
 	*x = RunBuildLimitSyncResponse{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[27]
+	mi := &file_hydra_v1_cron_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1206,7 +1286,7 @@ func (x *RunBuildLimitSyncResponse) String() string {
 func (*RunBuildLimitSyncResponse) ProtoMessage() {}
 
 func (x *RunBuildLimitSyncResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[27]
+	mi := &file_hydra_v1_cron_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1219,7 +1299,7 @@ func (x *RunBuildLimitSyncResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunBuildLimitSyncResponse.ProtoReflect.Descriptor instead.
 func (*RunBuildLimitSyncResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{27}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{29}
 }
 
 type RunClickhouseUserReconcileRequest struct {
@@ -1230,7 +1310,7 @@ type RunClickhouseUserReconcileRequest struct {
 
 func (x *RunClickhouseUserReconcileRequest) Reset() {
 	*x = RunClickhouseUserReconcileRequest{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[28]
+	mi := &file_hydra_v1_cron_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1242,7 +1322,7 @@ func (x *RunClickhouseUserReconcileRequest) String() string {
 func (*RunClickhouseUserReconcileRequest) ProtoMessage() {}
 
 func (x *RunClickhouseUserReconcileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[28]
+	mi := &file_hydra_v1_cron_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1255,7 +1335,7 @@ func (x *RunClickhouseUserReconcileRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use RunClickhouseUserReconcileRequest.ProtoReflect.Descriptor instead.
 func (*RunClickhouseUserReconcileRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{28}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{30}
 }
 
 type RunClickhouseUserReconcileResponse struct {
@@ -1269,7 +1349,7 @@ type RunClickhouseUserReconcileResponse struct {
 
 func (x *RunClickhouseUserReconcileResponse) Reset() {
 	*x = RunClickhouseUserReconcileResponse{}
-	mi := &file_hydra_v1_cron_proto_msgTypes[29]
+	mi := &file_hydra_v1_cron_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1281,7 +1361,7 @@ func (x *RunClickhouseUserReconcileResponse) String() string {
 func (*RunClickhouseUserReconcileResponse) ProtoMessage() {}
 
 func (x *RunClickhouseUserReconcileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_cron_proto_msgTypes[29]
+	mi := &file_hydra_v1_cron_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1294,7 +1374,7 @@ func (x *RunClickhouseUserReconcileResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use RunClickhouseUserReconcileResponse.ProtoReflect.Descriptor instead.
 func (*RunClickhouseUserReconcileResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{29}
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *RunClickhouseUserReconcileResponse) GetUsersReconfigured() int32 {
@@ -1329,6 +1409,9 @@ const file_hydra_v1_cron_proto_rawDesc = "" +
 	"\frows_deleted\x18\x01 \x01(\x03R\vrowsDeleted\"!\n" +
 	"\x1fRunAuditLogOutboxCleanupRequest\"E\n" +
 	" RunAuditLogOutboxCleanupResponse\x12!\n" +
+	"\frows_deleted\x18\x01 \x01(\x03R\vrowsDeleted\"\x1b\n" +
+	"\x19RunResourceCleanupRequest\"?\n" +
+	"\x1aRunResourceCleanupResponse\x12!\n" +
 	"\frows_deleted\x18\x01 \x01(\x03R\vrowsDeleted\"\x1d\n" +
 	"\x1bRunDeployBillingPushRequest\"\x1e\n" +
 	"\x1cRunDeployBillingPushResponse\"+\n" +
@@ -1364,14 +1447,15 @@ const file_hydra_v1_cron_proto_rawDesc = "" +
 	"\x19RunBuildLimitSyncResponse\"#\n" +
 	"!RunClickhouseUserReconcileRequest\"S\n" +
 	"\"RunClickhouseUserReconcileResponse\x12-\n" +
-	"\x12users_reconfigured\x18\x01 \x01(\x05R\x11usersReconfigured2\xfb\f\n" +
+	"\x12users_reconfigured\x18\x01 \x01(\x05R\x11usersReconfigured2\xde\r\n" +
 	"\vCronService\x12R\n" +
 	"\rRunQuotaCheck\x12\x1e.hydra.v1.RunQuotaCheckRequest\x1a\x1f.hydra.v1.RunQuotaCheckResponse\"\x00\x12O\n" +
 	"\fRunKeyRefill\x12\x1d.hydra.v1.RunKeyRefillRequest\x1a\x1e.hydra.v1.RunKeyRefillResponse\"\x00\x12a\n" +
 	"\x12RunKeyLastUsedSync\x12#.hydra.v1.RunKeyLastUsedSyncRequest\x1a$.hydra.v1.RunKeyLastUsedSyncResponse\"\x00\x12^\n" +
 	"\x11RunAuditLogExport\x12\".hydra.v1.RunAuditLogExportRequest\x1a#.hydra.v1.RunAuditLogExportResponse\"\x00\x12\x8e\x01\n" +
 	"!RunRatelimitGlobalCountersCleanup\x122.hydra.v1.RunRatelimitGlobalCountersCleanupRequest\x1a3.hydra.v1.RunRatelimitGlobalCountersCleanupResponse\"\x00\x12s\n" +
-	"\x18RunAuditLogOutboxCleanup\x12).hydra.v1.RunAuditLogOutboxCleanupRequest\x1a*.hydra.v1.RunAuditLogOutboxCleanupResponse\"\x00\x12g\n" +
+	"\x18RunAuditLogOutboxCleanup\x12).hydra.v1.RunAuditLogOutboxCleanupRequest\x1a*.hydra.v1.RunAuditLogOutboxCleanupResponse\"\x00\x12a\n" +
+	"\x12RunResourceCleanup\x12#.hydra.v1.RunResourceCleanupRequest\x1a$.hydra.v1.RunResourceCleanupResponse\"\x00\x12g\n" +
 	"\x14RunDeployBillingPush\x12%.hydra.v1.RunDeployBillingPushRequest\x1a&.hydra.v1.RunDeployBillingPushResponse\"\x00\x12\x91\x01\n" +
 	"\"RunScaleDownIdlePreviewDeployments\x123.hydra.v1.RunScaleDownIdlePreviewDeploymentsRequest\x1a4.hydra.v1.RunScaleDownIdlePreviewDeploymentsResponse\"\x00\x12j\n" +
 	"\x15RunDeployBillingClose\x12&.hydra.v1.RunDeployBillingCloseRequest\x1a'.hydra.v1.RunDeployBillingCloseResponse\"\x00\x12|\n" +
@@ -1395,7 +1479,7 @@ func file_hydra_v1_cron_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_cron_proto_rawDescData
 }
 
-var file_hydra_v1_cron_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_hydra_v1_cron_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_hydra_v1_cron_proto_goTypes = []any{
 	(*RunQuotaCheckRequest)(nil),                       // 0: hydra.v1.RunQuotaCheckRequest
 	(*RunQuotaCheckResponse)(nil),                      // 1: hydra.v1.RunQuotaCheckResponse
@@ -1409,24 +1493,26 @@ var file_hydra_v1_cron_proto_goTypes = []any{
 	(*RunRatelimitGlobalCountersCleanupResponse)(nil),  // 9: hydra.v1.RunRatelimitGlobalCountersCleanupResponse
 	(*RunAuditLogOutboxCleanupRequest)(nil),            // 10: hydra.v1.RunAuditLogOutboxCleanupRequest
 	(*RunAuditLogOutboxCleanupResponse)(nil),           // 11: hydra.v1.RunAuditLogOutboxCleanupResponse
-	(*RunDeployBillingPushRequest)(nil),                // 12: hydra.v1.RunDeployBillingPushRequest
-	(*RunDeployBillingPushResponse)(nil),               // 13: hydra.v1.RunDeployBillingPushResponse
-	(*RunScaleDownIdlePreviewDeploymentsRequest)(nil),  // 14: hydra.v1.RunScaleDownIdlePreviewDeploymentsRequest
-	(*RunScaleDownIdlePreviewDeploymentsResponse)(nil), // 15: hydra.v1.RunScaleDownIdlePreviewDeploymentsResponse
-	(*RunDeployBillingCloseRequest)(nil),               // 16: hydra.v1.RunDeployBillingCloseRequest
-	(*RunDeployBillingCloseResponse)(nil),              // 17: hydra.v1.RunDeployBillingCloseResponse
-	(*CloseDeployBillingWorkspaceRequest)(nil),         // 18: hydra.v1.CloseDeployBillingWorkspaceRequest
-	(*CloseDeployBillingWorkspaceResponse)(nil),        // 19: hydra.v1.CloseDeployBillingWorkspaceResponse
-	(*EnforceFreeTierRequest)(nil),                     // 20: hydra.v1.EnforceFreeTierRequest
-	(*EnforceFreeTierResponse)(nil),                    // 21: hydra.v1.EnforceFreeTierResponse
-	(*ThrottleFreeTierWorkspaceRequest)(nil),           // 22: hydra.v1.ThrottleFreeTierWorkspaceRequest
-	(*ThrottleFreeTierWorkspaceResponse)(nil),          // 23: hydra.v1.ThrottleFreeTierWorkspaceResponse
-	(*RunDeploySpendCheckRequest)(nil),                 // 24: hydra.v1.RunDeploySpendCheckRequest
-	(*RunDeploySpendCheckResponse)(nil),                // 25: hydra.v1.RunDeploySpendCheckResponse
-	(*RunBuildLimitSyncRequest)(nil),                   // 26: hydra.v1.RunBuildLimitSyncRequest
-	(*RunBuildLimitSyncResponse)(nil),                  // 27: hydra.v1.RunBuildLimitSyncResponse
-	(*RunClickhouseUserReconcileRequest)(nil),          // 28: hydra.v1.RunClickhouseUserReconcileRequest
-	(*RunClickhouseUserReconcileResponse)(nil),         // 29: hydra.v1.RunClickhouseUserReconcileResponse
+	(*RunResourceCleanupRequest)(nil),                  // 12: hydra.v1.RunResourceCleanupRequest
+	(*RunResourceCleanupResponse)(nil),                 // 13: hydra.v1.RunResourceCleanupResponse
+	(*RunDeployBillingPushRequest)(nil),                // 14: hydra.v1.RunDeployBillingPushRequest
+	(*RunDeployBillingPushResponse)(nil),               // 15: hydra.v1.RunDeployBillingPushResponse
+	(*RunScaleDownIdlePreviewDeploymentsRequest)(nil),  // 16: hydra.v1.RunScaleDownIdlePreviewDeploymentsRequest
+	(*RunScaleDownIdlePreviewDeploymentsResponse)(nil), // 17: hydra.v1.RunScaleDownIdlePreviewDeploymentsResponse
+	(*RunDeployBillingCloseRequest)(nil),               // 18: hydra.v1.RunDeployBillingCloseRequest
+	(*RunDeployBillingCloseResponse)(nil),              // 19: hydra.v1.RunDeployBillingCloseResponse
+	(*CloseDeployBillingWorkspaceRequest)(nil),         // 20: hydra.v1.CloseDeployBillingWorkspaceRequest
+	(*CloseDeployBillingWorkspaceResponse)(nil),        // 21: hydra.v1.CloseDeployBillingWorkspaceResponse
+	(*EnforceFreeTierRequest)(nil),                     // 22: hydra.v1.EnforceFreeTierRequest
+	(*EnforceFreeTierResponse)(nil),                    // 23: hydra.v1.EnforceFreeTierResponse
+	(*ThrottleFreeTierWorkspaceRequest)(nil),           // 24: hydra.v1.ThrottleFreeTierWorkspaceRequest
+	(*ThrottleFreeTierWorkspaceResponse)(nil),          // 25: hydra.v1.ThrottleFreeTierWorkspaceResponse
+	(*RunDeploySpendCheckRequest)(nil),                 // 26: hydra.v1.RunDeploySpendCheckRequest
+	(*RunDeploySpendCheckResponse)(nil),                // 27: hydra.v1.RunDeploySpendCheckResponse
+	(*RunBuildLimitSyncRequest)(nil),                   // 28: hydra.v1.RunBuildLimitSyncRequest
+	(*RunBuildLimitSyncResponse)(nil),                  // 29: hydra.v1.RunBuildLimitSyncResponse
+	(*RunClickhouseUserReconcileRequest)(nil),          // 30: hydra.v1.RunClickhouseUserReconcileRequest
+	(*RunClickhouseUserReconcileResponse)(nil),         // 31: hydra.v1.RunClickhouseUserReconcileResponse
 }
 var file_hydra_v1_cron_proto_depIdxs = []int32{
 	0,  // 0: hydra.v1.CronService.RunQuotaCheck:input_type -> hydra.v1.RunQuotaCheckRequest
@@ -1435,32 +1521,34 @@ var file_hydra_v1_cron_proto_depIdxs = []int32{
 	6,  // 3: hydra.v1.CronService.RunAuditLogExport:input_type -> hydra.v1.RunAuditLogExportRequest
 	8,  // 4: hydra.v1.CronService.RunRatelimitGlobalCountersCleanup:input_type -> hydra.v1.RunRatelimitGlobalCountersCleanupRequest
 	10, // 5: hydra.v1.CronService.RunAuditLogOutboxCleanup:input_type -> hydra.v1.RunAuditLogOutboxCleanupRequest
-	12, // 6: hydra.v1.CronService.RunDeployBillingPush:input_type -> hydra.v1.RunDeployBillingPushRequest
-	14, // 7: hydra.v1.CronService.RunScaleDownIdlePreviewDeployments:input_type -> hydra.v1.RunScaleDownIdlePreviewDeploymentsRequest
-	16, // 8: hydra.v1.CronService.RunDeployBillingClose:input_type -> hydra.v1.RunDeployBillingCloseRequest
-	18, // 9: hydra.v1.CronService.CloseDeployBillingWorkspace:input_type -> hydra.v1.CloseDeployBillingWorkspaceRequest
-	20, // 10: hydra.v1.CronService.EnforceFreeTier:input_type -> hydra.v1.EnforceFreeTierRequest
-	22, // 11: hydra.v1.CronService.ThrottleFreeTierWorkspace:input_type -> hydra.v1.ThrottleFreeTierWorkspaceRequest
-	24, // 12: hydra.v1.CronService.RunDeploySpendCheck:input_type -> hydra.v1.RunDeploySpendCheckRequest
-	26, // 13: hydra.v1.CronService.RunBuildLimitSync:input_type -> hydra.v1.RunBuildLimitSyncRequest
-	28, // 14: hydra.v1.CronService.RunClickhouseUserReconcile:input_type -> hydra.v1.RunClickhouseUserReconcileRequest
-	1,  // 15: hydra.v1.CronService.RunQuotaCheck:output_type -> hydra.v1.RunQuotaCheckResponse
-	3,  // 16: hydra.v1.CronService.RunKeyRefill:output_type -> hydra.v1.RunKeyRefillResponse
-	5,  // 17: hydra.v1.CronService.RunKeyLastUsedSync:output_type -> hydra.v1.RunKeyLastUsedSyncResponse
-	7,  // 18: hydra.v1.CronService.RunAuditLogExport:output_type -> hydra.v1.RunAuditLogExportResponse
-	9,  // 19: hydra.v1.CronService.RunRatelimitGlobalCountersCleanup:output_type -> hydra.v1.RunRatelimitGlobalCountersCleanupResponse
-	11, // 20: hydra.v1.CronService.RunAuditLogOutboxCleanup:output_type -> hydra.v1.RunAuditLogOutboxCleanupResponse
-	13, // 21: hydra.v1.CronService.RunDeployBillingPush:output_type -> hydra.v1.RunDeployBillingPushResponse
-	15, // 22: hydra.v1.CronService.RunScaleDownIdlePreviewDeployments:output_type -> hydra.v1.RunScaleDownIdlePreviewDeploymentsResponse
-	17, // 23: hydra.v1.CronService.RunDeployBillingClose:output_type -> hydra.v1.RunDeployBillingCloseResponse
-	19, // 24: hydra.v1.CronService.CloseDeployBillingWorkspace:output_type -> hydra.v1.CloseDeployBillingWorkspaceResponse
-	21, // 25: hydra.v1.CronService.EnforceFreeTier:output_type -> hydra.v1.EnforceFreeTierResponse
-	23, // 26: hydra.v1.CronService.ThrottleFreeTierWorkspace:output_type -> hydra.v1.ThrottleFreeTierWorkspaceResponse
-	25, // 27: hydra.v1.CronService.RunDeploySpendCheck:output_type -> hydra.v1.RunDeploySpendCheckResponse
-	27, // 28: hydra.v1.CronService.RunBuildLimitSync:output_type -> hydra.v1.RunBuildLimitSyncResponse
-	29, // 29: hydra.v1.CronService.RunClickhouseUserReconcile:output_type -> hydra.v1.RunClickhouseUserReconcileResponse
-	15, // [15:30] is the sub-list for method output_type
-	0,  // [0:15] is the sub-list for method input_type
+	12, // 6: hydra.v1.CronService.RunResourceCleanup:input_type -> hydra.v1.RunResourceCleanupRequest
+	14, // 7: hydra.v1.CronService.RunDeployBillingPush:input_type -> hydra.v1.RunDeployBillingPushRequest
+	16, // 8: hydra.v1.CronService.RunScaleDownIdlePreviewDeployments:input_type -> hydra.v1.RunScaleDownIdlePreviewDeploymentsRequest
+	18, // 9: hydra.v1.CronService.RunDeployBillingClose:input_type -> hydra.v1.RunDeployBillingCloseRequest
+	20, // 10: hydra.v1.CronService.CloseDeployBillingWorkspace:input_type -> hydra.v1.CloseDeployBillingWorkspaceRequest
+	22, // 11: hydra.v1.CronService.EnforceFreeTier:input_type -> hydra.v1.EnforceFreeTierRequest
+	24, // 12: hydra.v1.CronService.ThrottleFreeTierWorkspace:input_type -> hydra.v1.ThrottleFreeTierWorkspaceRequest
+	26, // 13: hydra.v1.CronService.RunDeploySpendCheck:input_type -> hydra.v1.RunDeploySpendCheckRequest
+	28, // 14: hydra.v1.CronService.RunBuildLimitSync:input_type -> hydra.v1.RunBuildLimitSyncRequest
+	30, // 15: hydra.v1.CronService.RunClickhouseUserReconcile:input_type -> hydra.v1.RunClickhouseUserReconcileRequest
+	1,  // 16: hydra.v1.CronService.RunQuotaCheck:output_type -> hydra.v1.RunQuotaCheckResponse
+	3,  // 17: hydra.v1.CronService.RunKeyRefill:output_type -> hydra.v1.RunKeyRefillResponse
+	5,  // 18: hydra.v1.CronService.RunKeyLastUsedSync:output_type -> hydra.v1.RunKeyLastUsedSyncResponse
+	7,  // 19: hydra.v1.CronService.RunAuditLogExport:output_type -> hydra.v1.RunAuditLogExportResponse
+	9,  // 20: hydra.v1.CronService.RunRatelimitGlobalCountersCleanup:output_type -> hydra.v1.RunRatelimitGlobalCountersCleanupResponse
+	11, // 21: hydra.v1.CronService.RunAuditLogOutboxCleanup:output_type -> hydra.v1.RunAuditLogOutboxCleanupResponse
+	13, // 22: hydra.v1.CronService.RunResourceCleanup:output_type -> hydra.v1.RunResourceCleanupResponse
+	15, // 23: hydra.v1.CronService.RunDeployBillingPush:output_type -> hydra.v1.RunDeployBillingPushResponse
+	17, // 24: hydra.v1.CronService.RunScaleDownIdlePreviewDeployments:output_type -> hydra.v1.RunScaleDownIdlePreviewDeploymentsResponse
+	19, // 25: hydra.v1.CronService.RunDeployBillingClose:output_type -> hydra.v1.RunDeployBillingCloseResponse
+	21, // 26: hydra.v1.CronService.CloseDeployBillingWorkspace:output_type -> hydra.v1.CloseDeployBillingWorkspaceResponse
+	23, // 27: hydra.v1.CronService.EnforceFreeTier:output_type -> hydra.v1.EnforceFreeTierResponse
+	25, // 28: hydra.v1.CronService.ThrottleFreeTierWorkspace:output_type -> hydra.v1.ThrottleFreeTierWorkspaceResponse
+	27, // 29: hydra.v1.CronService.RunDeploySpendCheck:output_type -> hydra.v1.RunDeploySpendCheckResponse
+	29, // 30: hydra.v1.CronService.RunBuildLimitSync:output_type -> hydra.v1.RunBuildLimitSyncResponse
+	31, // 31: hydra.v1.CronService.RunClickhouseUserReconcile:output_type -> hydra.v1.RunClickhouseUserReconcileResponse
+	16, // [16:32] is the sub-list for method output_type
+	0,  // [0:16] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
@@ -1477,7 +1565,7 @@ func file_hydra_v1_cron_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_cron_proto_rawDesc), len(file_hydra_v1_cron_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   30,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
