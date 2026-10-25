@@ -13,6 +13,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
@@ -68,9 +69,16 @@ func (s *Service) ProcessChallenge(
 
 	// Step 1: Resolve domain
 	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.CustomDomain, error) {
-		return s.db.FindCustomDomainByDomain(stepCtx, req.GetDomain())
+		row, findErr := s.db.FindCustomDomainByDomain(stepCtx, req.GetDomain())
+		return row, restateutil.TerminalNotFound(findErr, db.IsNotFound)
 	}, restate.WithName("resolve domain"))
 	if err != nil {
+		// The domain was deleted while this challenge was queued, so there is
+		// nothing left to certify
+		if restateutil.IsNotFoundTerminal(err) {
+			logger.Info("domain no longer exists, skipping certificate challenge", "domain", req.GetDomain())
+			return &hydrav1.ProcessChallengeResponse{Status: "skipped"}, nil
+		}
 		return nil, err
 	}
 

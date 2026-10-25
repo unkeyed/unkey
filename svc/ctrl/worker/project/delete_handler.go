@@ -7,6 +7,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -31,12 +32,18 @@ func (s *Service) Delete(
 
 	logger.Info("starting project deletion", "project_id", projectID)
 
-	// Capture project metadata before the row is deleted, for the audit log.
+	// Capture project metadata before the row is deleted, for the audit log
 	project, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Project, error) {
-		return s.db.FindProjectById(runCtx, projectID)
+		row, findErr := s.db.FindProjectById(runCtx, projectID)
+		return row, restateutil.TerminalNotFound(findErr, db.IsNotFound)
 	}, restate.WithName("find project"))
 	if err != nil {
-		return nil, fmt.Errorf("find project: %w", err)
+		if !restateutil.IsNotFoundTerminal(err) {
+			return nil, fmt.Errorf("find project: %w", err)
+		}
+		// Another delete already removed the row, so the postcondition holds
+		logger.Info("project already deleted", "project_id", projectID)
+		return &hydrav1.DeleteProjectResponse{}, nil
 	}
 
 	apps, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {

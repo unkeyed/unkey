@@ -9,6 +9,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
@@ -37,10 +38,16 @@ func (s *Service) Delete(
 
 	// Capture env metadata before the row is deleted, for the audit log.
 	env, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
-		return s.db.FindEnvironmentById(runCtx, envID)
+		row, findErr := s.db.FindEnvironmentById(runCtx, envID)
+		return row, restateutil.TerminalNotFound(findErr, db.IsNotFound)
 	}, restate.WithName("find environment"))
 	if err != nil {
-		return nil, fmt.Errorf("find environment: %w", err)
+		if !restateutil.IsNotFoundTerminal(err) {
+			return nil, fmt.Errorf("find environment: %w", err)
+		}
+		// Another delete already removed the row, so the postcondition holds
+		logger.Info("environment already deleted", "environment_id", envID)
+		return &hydrav1.DeleteEnvironmentResponse{}, nil
 	}
 
 	if err := s.cancelProgressingDeployments(ctx, env, req); err != nil {

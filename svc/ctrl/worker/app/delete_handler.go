@@ -7,6 +7,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -33,10 +34,16 @@ func (s *Service) Delete(
 	// Capture the app's metadata before the cascade deletes the row, so the
 	// audit log written at the end still has a name/slug to display.
 	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
-		return s.db.FindAppById(runCtx, appID)
+		row, findErr := s.db.FindAppById(runCtx, appID)
+		return row, restateutil.TerminalNotFound(findErr, db.IsNotFound)
 	}, restate.WithName("find app"))
 	if err != nil {
-		return nil, fmt.Errorf("find app: %w", err)
+		if !restateutil.IsNotFoundTerminal(err) {
+			return nil, fmt.Errorf("find app: %w", err)
+		}
+		// Another delete already removed the row, so the postcondition holds
+		logger.Info("app already deleted", "app_id", appID)
+		return &hydrav1.DeleteAppResponse{}, nil
 	}
 
 	envIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
