@@ -98,6 +98,7 @@ func (h *Harness) ClusterService(clusterKey *ctrlv1.ClusterKey, bearer string) *
 		Clock:            clock.New(),
 		TopologyCache:    topologyCache,
 		DeploymentStream: nil,
+		PrivateNetwork:   nil,
 		RegionalDomain:   "",
 		InstanceEvents:   batch.NewNoop[schema.InstanceEventV1](),
 	})
