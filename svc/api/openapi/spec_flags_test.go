@@ -71,6 +71,7 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 		"portal.createPortal",
 		"portal.createSession",
 		"portal.deletePortal",
+		"portal.getDomain",
 		"portal.getPortal",
 		"portal.listSessions",
 		"portal.revokeSession",
