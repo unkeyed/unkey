@@ -83,6 +83,7 @@ func (c *Controller) forEachWorkload(ctx context.Context, fn func(ctx context.Co
 	for {
 		replicaSets, err := c.clientSet.AppsV1().ReplicaSets("").List(ctx, metav1.ListOptions{
 			LabelSelector: managedWorkloadSelector(),
+			Limit:         500,
 			Continue:      cursor,
 		})
 		if err != nil {
@@ -114,6 +115,7 @@ func (c *Controller) forEachDeploymentPage(ctx context.Context, fn func([]appsv1
 	for {
 		deployments, err := c.clientSet.AppsV1().Deployments("").List(ctx, metav1.ListOptions{
 			LabelSelector: managedWorkloadSelector(),
+			Limit:         500,
 			Continue:      cursor,
 		})
 		if err != nil {
