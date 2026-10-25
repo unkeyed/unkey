@@ -270,11 +270,19 @@ the local API after changing its config or environment.
 
 `unkey login` checks the member's current WorkOS role when it issues and
 refreshes a CLI session. Copy `dev/.env.workos.example` to `dev/.env.workos`
-and set `WORKOS_API_KEY` to the same value as the dashboard. The local API
-config already has a CLI signing secret and sends the browser to
-`http://localhost:3000/cli/device`. Sign in, check the code, narrow the
-permissions if you want, and click Allow. Use `AUTH_PROVIDER=workos` so the
-signed-in user id is the WorkOS user stored on the workspace.
+and set `WORKOS_API_KEY` to the same value as the dashboard. Enable CLI login
+when starting Tilt:
+
+```bash
+mise run dev -- --cli_auth=true
+```
+
+CLI login is disabled by default, even when WorkOS credentials are present.
+The flag adds a local signing secret and sends the browser to
+`http://localhost:3000/cli/device`. No tracked config edits are needed. Sign
+in, check the code, narrow the permissions if you want, and click Allow. Use
+`AUTH_PROVIDER=workos` so the signed-in user id is the WorkOS user stored on
+the workspace.
 
 Stripe billing:
 

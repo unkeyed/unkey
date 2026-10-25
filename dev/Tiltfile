@@ -14,6 +14,7 @@ if k8s_context() != 'unkey':
 
 config.define_string('topolvm_backing_size')
 config.define_bool('orb')
+config.define_bool('cli_auth')
 config.define_string_list('resources', args=True)
 cfg = config.parse()
 ORB = cfg.get('orb', False)
@@ -507,16 +508,21 @@ k8s_resource(
 
 # ─── API ───────────────────────────────────────────────────────────────────
 go_service_image('unkey/api:dev', 'api')
-if not has_github_credentials:
-    # Kubernetes omits optional secret values rather than setting a typed zero.
-    # Use a valid integer so TOML parsing succeeds while GitHub remains disabled.
-    api_manifest = str(read_file('k8s/manifests/api.yaml')).replace(
-        'app_id = ${UNKEY_GITHUB_APP_ID}',
-        'app_id = 0',
-    )
-    k8s_yaml(blob(api_manifest))
-else:
-    k8s_yaml('k8s/manifests/api.yaml')
+api_resources = read_yaml_stream('k8s/manifests/api.yaml')
+for resource in api_resources:
+    if resource.get('kind') == 'ConfigMap' and resource['metadata']['name'] == 'api-config':
+        api_config = resource['data']['unkey.toml']
+        if not has_github_credentials:
+            api_config = api_config.replace('app_id = ${UNKEY_GITHUB_APP_ID}', 'app_id = 0')
+        if cfg.get('cli_auth', False):
+            api_config += '''
+[cli_auth]
+workos_api_key = "${WORKOS_API_KEY}"
+dashboard_base_url = "http://localhost:3000"
+signing_secrets = ["local-dev-cli-signing-secret-32bytes"]
+'''
+        resource['data']['unkey.toml'] = api_config
+k8s_yaml(encode_yaml_stream(api_resources))
 k8s_resource(
   'api',
   objects=['api-config:configmap'],
