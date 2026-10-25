@@ -64,7 +64,7 @@ func (r *ociImageResolver) Resolve(ctx context.Context, imageReference string) (
 		authenticator = r.internalAuth
 		transport = r.internalTransport
 		if r.internalInsecure {
-			reference, err = name.ParseReference(imageReference, name.WeakValidation, name.Insecure)
+			reference, err = imagename.ParseReference(imageReference, imagename.WeakValidation, imagename.Insecure)
 			if err != nil {
 				return "", fault.Wrap(err, fault.Internal("invalid internal OCI image reference"))
 			}

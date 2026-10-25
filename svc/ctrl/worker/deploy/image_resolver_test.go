@@ -152,7 +152,7 @@ func TestImageResolverUsesHTTPOnlyForConfiguredInsecureRepository(t *testing.T) 
 	t.Cleanup(transport.CloseIdleConnections)
 
 	for _, repository := range []string{"internal", "other"} {
-		tag, err := name.NewTag("registry.example:5000/"+repository+":v1", name.Insecure)
+		tag, err := imagename.NewTag("registry.example:5000/"+repository+":v1", imagename.Insecure)
 		require.NoError(t, err)
 		require.NoError(t, remote.Write(tag, empty.Image, remote.WithTransport(transport)))
 	}
