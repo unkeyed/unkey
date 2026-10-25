@@ -300,6 +300,8 @@ paths:
     $ref: "./spec/paths/v2/portal/listDomains/index.yaml"
   /v2/portal.verifyDomain:
     $ref: "./spec/paths/v2/portal/verifyDomain/index.yaml"
+  /v2/portal.deleteDomain:
+    $ref: "./spec/paths/v2/portal/deleteDomain/index.yaml"
 
   # Project Endpoints
   /v2/projects.createProject:

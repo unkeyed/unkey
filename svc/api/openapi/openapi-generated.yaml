@@ -3497,6 +3497,28 @@ components:
                 data:
                     $ref: "#/components/schemas/V2PortalCreateSessionResponseData"
             additionalProperties: false
+        V2PortalDeleteDomainRequestBody:
+            type: object
+            required:
+                - portal
+                - domainId
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                domainId:
+                    "$ref": "#/components/schemas/PortalDomainId"
+            additionalProperties: false
+        V2PortalDeleteDomainResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2PortalDeletePortalRequestBody:
             type: object
             required:
@@ -17836,6 +17858,76 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: createSession
+    /v2/portal.deleteDomain:
+        post:
+            description: |
+                Detach a custom domain from a portal. A verified domain stops serving the portal.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.update_portal` (to manage domains on any portal in the workspace)
+                - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.deleteDomain
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalDeleteDomainRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                accepted:
+                                    summary: Domain deleted
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2PortalDeleteDomainResponseBody'
+                    description: The domain was deleted.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal or domain on that portal, or your root key may not update the portal.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Delete portal domain
+            tags:
+                - portal
+            x-speakeasy-name-override: deleteDomain
     /v2/portal.deletePortal:
         post:
             description: |

@@ -941,6 +941,7 @@
                 "pages": [
                   "api-management/portal/overview",
                   "api-management/portal/sessions",
+                  "api-management/portal/custom-domains",
                   "api-management/portal/end-user-experience"
                 ]
               },
