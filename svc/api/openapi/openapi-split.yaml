@@ -296,6 +296,8 @@ paths:
     $ref: "./spec/paths/v2/portal/createDomain/index.yaml"
   /v2/portal.getDomain:
     $ref: "./spec/paths/v2/portal/getDomain/index.yaml"
+  /v2/portal.listDomains:
+    $ref: "./spec/paths/v2/portal/listDomains/index.yaml"
 
   # Project Endpoints
   /v2/projects.createProject:

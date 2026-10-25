@@ -94,6 +94,7 @@ import (
 	v2PortalGetDomain "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_domain"
 	v2PortalGetPortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 	v2PortalGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
+	v2PortalListDomains "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_domains"
 	v2PortalListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
 	v2PortalListSessions "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_sessions"
 	v2PortalRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
@@ -971,6 +972,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2PortalGetDomain.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/portal.listDomains
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalListDomains.Handler{
 			DB: svc.Database,
 		},
 	)
