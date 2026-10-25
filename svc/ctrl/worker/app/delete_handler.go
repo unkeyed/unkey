@@ -1,7 +1,10 @@
 package app
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -11,16 +14,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Delete removes an app by delegating environment cleanup to each environment's
-// virtual object, then deleting app-level resources and the app record itself.
-//
-// The app.delete audit log is written here as a durable step rather than on the
-// RPC that enqueued this workflow: a Restate enqueue can't share a transaction
-// with the audit insert, so writing it on the RPC path risked a
-// deleting-but-unaudited window. The actor and correlation ID are threaded in
-// via the request and forwarded to each environment delete so the whole teardown
-// groups under one correlation ID.
-//
 // Key: app_id
 func (s *Service) Delete(
 	ctx restate.ObjectContext,
@@ -30,13 +23,32 @@ func (s *Service) Delete(
 
 	logger.Info("starting app deletion", "app_id", appID)
 
-	// Capture the app's metadata before the cascade deletes the row, so the
-	// audit log written at the end still has a name/slug to display.
-	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
-		return s.db.FindAppById(runCtx, appID)
+	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (*db.App, error) {
+		app, err := s.db.FindAppById(runCtx, appID)
+		if db.IsNotFound(err) {
+			return nil, nil
+		}
+		return &app, err
 	}, restate.WithName("find app"))
 	if err != nil {
 		return nil, fmt.Errorf("find app: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.TxRetry(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			queries := db.NewQueries(tx)
+			now := time.Now().UnixMilli()
+			if err := queries.MarkAppDeleted(txCtx, db.MarkAppDeletedParams{
+				ID: appID, DeletedAt: sql.NullInt64{Valid: true, Int64: now},
+			}); err != nil {
+				return err
+			}
+			return queries.NotifyDeploymentTopologiesByApp(txCtx, db.NotifyDeploymentTopologiesByAppParams{
+				AppID: appID, UpdatedAt: now,
+			})
+		})
+	}, restate.WithName("mark app deleting")); err != nil {
+		return nil, fmt.Errorf("mark app deleting: %w", err)
 	}
 
 	envIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
@@ -50,16 +62,14 @@ func (s *Service) Delete(
 		logger.Info("deleting environment", "app_id", appID, "environment_id", envID)
 
 		envClient := hydrav1.NewEnvironmentServiceClient(ctx, envID)
-		envClient.Delete().Send(&hydrav1.DeleteEnvironmentRequest{
+		if _, err := envClient.Delete().Request(&hydrav1.DeleteEnvironmentRequest{
 			Actor:         req.GetActor(),
 			CorrelationId: req.GetCorrelationId(),
-		})
+		}); err != nil {
+			return nil, fmt.Errorf("delete environment %s: %w", envID, err)
+		}
 	}
 
-	// The environment deletes above are fire-and-forget and only reach domains
-	// whose environment they know about. A leftover domain row blocks the
-	// customer from attaching the hostname to another app, so remove the app's
-	// domains and their routes here as well.
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteCustomDomainsByAppId(runCtx, appID)
 	}, restate.WithName("delete custom domains")); err != nil {
@@ -73,21 +83,13 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteGithubRepoConnectionsByAppId(runCtx, appID)
-	}, restate.WithName("delete github repo connections")); err != nil {
-		return nil, fmt.Errorf("delete github repo connections: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteAppSourceOciByAppId(runCtx, appID)
-	}, restate.WithName("delete OCI source")); err != nil {
-		return nil, fmt.Errorf("delete OCI source: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteAppById(runCtx, appID)
 	}, restate.WithName("delete app")); err != nil {
 		return nil, fmt.Errorf("delete app: %w", err)
+	}
+
+	if app == nil {
+		return &hydrav1.DeleteAppResponse{}, nil
 	}
 
 	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
