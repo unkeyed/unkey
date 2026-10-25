@@ -1,7 +1,6 @@
 import { Resend as Client } from "resend";
 
 import { render, toPlainText } from "@react-email/render";
-import { ApiV1Migration } from "../emails/api_v1_migration";
 import { PaymentIssue } from "../emails/payment_issue";
 import { WelcomeEmail } from "../emails/welcome_email";
 export class Resend {
@@ -63,38 +62,6 @@ export class Resend {
       throw result.error;
     } catch (error) {
       console.error("Error occurred sending payment issue email ", JSON.stringify(error));
-    }
-  }
-
-  public async sendApiV1MigrationEmail(req: {
-    email: string;
-    name: string;
-    workspace: string;
-    deprecatedEndpoints: string[];
-  }): Promise<void> {
-    const html = await render(
-      <ApiV1Migration
-        username={req.name}
-        workspaceName={req.workspace}
-        deprecatedEndpoints={req.deprecatedEndpoints}
-      />,
-    );
-    try {
-      const result = await this.client.emails.send({
-        to: req.email,
-        from: "Andreas from Unkey <andreas@updates.unkey.com>",
-        replyTo: this.replyTo,
-        subject: "Action Required: Migrate from API v1 to v2 - Deadline January 1st, 2026",
-        html,
-        text: toPlainText(html),
-      });
-
-      if (!result.error) {
-        return;
-      }
-      throw result.error;
-    } catch (error) {
-      console.error("Error occurred sending API v1 migration email ", JSON.stringify(error));
     }
   }
 }
