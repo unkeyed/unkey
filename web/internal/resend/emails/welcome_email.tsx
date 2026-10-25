@@ -22,7 +22,6 @@ export function WelcomeEmail() {
               label: "How deployments work",
               href: "https://www.unkey.com/docs/build-and-deploy/overview",
             },
-            { label: "Join the Unkey community", href: "https://unkey.com/discord" },
           ],
         },
         {
@@ -44,6 +43,11 @@ export function WelcomeEmail() {
         },
       ]}
       signedBy="James"
+      socialLinks={[
+        { label: "X", href: "https://x.com/unkeydev" },
+        { label: "Discord", href: "https://unkey.com/discord" },
+        { label: "GitHub", href: "https://unkey.com/github" },
+      ]}
     />
   );
 }

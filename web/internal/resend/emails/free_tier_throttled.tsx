@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+import { Emphasis } from "../src/components/emphasis";
 import { Layout } from "../src/components/layout";
 
 export type Props = {
@@ -20,7 +22,11 @@ export function FreeTierThrottled({
       title="API requests limited"
       preview={`API requests for ${workspaceName} are now limited to ${requestsPerMinute} per minute.`}
       body={[
-        `${workspaceName} exceeded the free tier limit of ${limit} requests per month. Its API requests are now limited to ${requestsPerMinute} per minute.`,
+        <Fragment key="limit">
+          {workspaceName} exceeded the free tier limit of <Emphasis>{limit}</Emphasis> requests per
+          month. Its API requests are now limited to{" "}
+          <Emphasis>{`${requestsPerMinute} per minute`}</Emphasis>.
+        </Fragment>,
         "Upgrade to a paid plan to remove this limit right away.",
       ]}
       action={{ label: "Upgrade plan", href: billingUrl }}

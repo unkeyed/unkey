@@ -7,6 +7,7 @@ import { Link } from "@react-email/link";
 import { Preview } from "@react-email/preview";
 import { Section } from "@react-email/section";
 import { Text } from "@react-email/text";
+import { Children, Fragment, type ReactElement } from "react";
 import { Signature } from "./signature";
 import { styles, stylesheet } from "./theme";
 
@@ -20,10 +21,11 @@ type EmailSection =
 interface LayoutProps {
   title: string;
   preview: string;
-  body: readonly string[];
+  body: readonly (string | ReactElement)[];
   action: EmailLink;
   details?: readonly { label: string; value: string }[];
   sections?: readonly EmailSection[];
+  socialLinks?: readonly EmailLink[];
   signedBy?: string;
   reason?: string;
   year?: string;
@@ -36,6 +38,7 @@ export function Layout({
   action,
   details = [],
   sections = [],
+  socialLinks = [],
   signedBy,
   reason,
   year,
@@ -82,8 +85,8 @@ export function Layout({
                         <Heading as="h1" className="email-text" style={styles.heading}>
                           {title}
                         </Heading>
-                        {body.map((paragraph) => (
-                          <Text key={paragraph} className="email-copy" style={styles.text}>
+                        {Children.map(body, (paragraph) => (
+                          <Text className="email-copy" style={styles.text}>
                             {paragraph}
                           </Text>
                         ))}
@@ -115,6 +118,22 @@ export function Layout({
                           {year && (
                             <Text className="email-muted" style={styles.muted}>
                               © {year} Unkey
+                            </Text>
+                          )}
+                          {socialLinks.length > 0 && (
+                            <Text className="email-muted" style={styles.muted}>
+                              {socialLinks.map((link, index) => (
+                                <Fragment key={link.href}>
+                                  {index > 0 && " · "}
+                                  <Link
+                                    href={link.href}
+                                    className="email-muted"
+                                    style={{ ...styles.link, ...styles.muted }}
+                                  >
+                                    {link.label}
+                                  </Link>
+                                </Fragment>
+                              ))}
                             </Text>
                           )}
                         </Section>

@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+import { Emphasis } from "../src/components/emphasis";
 import { Layout } from "../src/components/layout";
 
 export type Props = {
@@ -13,7 +15,10 @@ export function PaymentIssue({ username, date, workspaceSlug }: Props) {
       title="Update your payment information"
       preview={`We couldn't process your payment on ${date}. Update your payment information to prevent a downgrade.`}
       body={[
-        `${username}, we couldn't process your payment on ${date}. Update your payment information to prevent your account from being downgraded.`,
+        <Fragment key="payment">
+          {username}, we couldn't process your payment on <Emphasis>{date}</Emphasis>. Update your
+          payment information to prevent your account from being downgraded.
+        </Fragment>,
       ]}
       action={{ label: "Update payment information", href: workspaceURL }}
     />

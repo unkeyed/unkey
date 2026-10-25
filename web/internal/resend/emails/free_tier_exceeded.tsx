@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+import { Emphasis } from "../src/components/emphasis";
 import { Layout } from "../src/components/layout";
 
 export type Props = {
@@ -24,8 +26,15 @@ export function FreeTierExceeded({
       title="You've exceeded the free tier"
       preview={`${workspaceName} has exceeded the Unkey free tier. Upgrade before ${throttleDate} to keep your current limits.`}
       body={[
-        `${workspaceName} has used ${used} requests this billing month, exceeding the free tier limit of ${limit} per month.`,
-        `On ${throttleDate}, we'll limit API requests for this workspace to ${requestsPerMinute} per minute. Upgrade before then to keep your current limits.`,
+        <Fragment key="usage">
+          {workspaceName} has used <Emphasis>{used}</Emphasis> requests this billing month,
+          exceeding the free tier limit of <Emphasis>{limit}</Emphasis> per month.
+        </Fragment>,
+        <Fragment key="throttle">
+          On <Emphasis>{throttleDate}</Emphasis>, we'll limit API requests for this workspace to{" "}
+          <Emphasis>{`${requestsPerMinute} per minute`}</Emphasis>. Upgrade before then to keep your
+          current limits.
+        </Fragment>,
       ]}
       action={{ label: "Upgrade plan", href: billingUrl }}
       year={year}

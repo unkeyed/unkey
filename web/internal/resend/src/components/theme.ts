@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+const accent = "#def135";
+
 export const colors = {
   light: {
     background: "#ffffff",
@@ -7,8 +9,8 @@ export const colors = {
     copy: "#464853",
     muted: "#60606c",
     border: "#e3e4e9",
-    button: "#121317",
-    buttonText: "#ffffff",
+    button: accent,
+    buttonText: "#121317",
   },
   dark: {
     background: "#040406",
@@ -16,7 +18,7 @@ export const colors = {
     copy: "#c7c9d1",
     muted: "#9194a1",
     border: "#2e3038",
-    button: "#eeeff1",
+    button: accent,
     buttonText: "#121317",
   },
 };
@@ -53,6 +55,14 @@ export const stylesheet = `
     font-display: swap;
     mso-font-alt: Arial;
     src: url(https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fMZg.ttf);
+  }
+  @font-face {
+    font-family: Inter;
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    mso-font-alt: Arial;
+    src: url(https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYMZg.ttf);
   }
   .email-logo-dark { mso-hide: all; }
   @media (prefers-color-scheme: dark) {
@@ -113,6 +123,10 @@ export const styles = {
     fontSize: "16px",
     lineHeight: "24px",
     margin: "0 0 16px",
+  },
+  emphasis: {
+    color: colors.light.text,
+    fontWeight: "600",
   },
   muted: {
     color: colors.light.muted,

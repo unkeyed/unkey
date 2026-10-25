@@ -48,6 +48,30 @@ test.each(emailFilenames)(
     expect(text).not.toMatch(/\b(?:undefined|null)\b/);
     expect(text).not.toMatch(/[\u200b-\u200f\ufeff]/);
 
+    for (const url of [
+      "https://x.com/unkeydev",
+      "https://unkey.com/discord",
+      "https://unkey.com/github",
+    ]) {
+      expect(html.split(`href="${url}"`).length - 1).toBe(filename === "welcome_email.tsx" ? 1 : 0);
+      expect(text.includes(url)).toBe(filename === "welcome_email.tsx");
+    }
+
+    if (filename !== "secret_scanning_key_detected.tsx") {
+      const emphasized = Array.from(
+        html.matchAll(/<strong\b[^>]*>(.*?)<\/strong>/g),
+        (match) => match[1],
+      );
+      for (const [field, value] of Object.entries(emailModule.default.PreviewProps)) {
+        if (["usage", "budget", "used", "limit", "throttleDate", "date"].includes(field)) {
+          expect(emphasized).toContain(value);
+        }
+        if (field === "requestsPerMinute") {
+          expect(emphasized).toContain(`${value} per minute`);
+        }
+      }
+    }
+
     for (const value of Object.values(emailModule.default.PreviewProps).flat()) {
       if (typeof value === "string" && value.length > 0) {
         expect(text).toContain(value);
@@ -83,17 +107,21 @@ test("Resend variables survive rendering in content and links", async () => {
   }
 });
 
-test("workspace names are escaped without losing the billing destination", async () => {
+test("plain and emphasized values are escaped without losing the billing destination", async () => {
   const element = React.createElement(ComputeBudgetAlert, {
     ...ComputeBudgetAlert.PreviewProps,
     workspaceName: '<script>alert("workspace")</script> & team',
+    usage: "<b>$81.40</b>",
     billingUrl: "https://app.unkey.com/acme/settings/billing?from=email&tab=budget",
   });
   const html = await render(element);
   const text = await render(element, { plainText: true });
 
   expect(html).not.toContain("<script>");
+  expect(html).not.toContain("<b>");
+  expect(html).toContain("&lt;b&gt;$81.40&lt;/b&gt;</strong>");
   expect(text).toContain('<script>alert("workspace")</script> & team');
+  expect(text).toContain("<b>$81.40</b>");
   expect(text).toContain("https://app.unkey.com/acme/settings/billing?from=email&tab=budget");
 });
 

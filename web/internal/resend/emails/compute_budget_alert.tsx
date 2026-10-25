@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+import { Emphasis } from "../src/components/emphasis";
 import { Layout } from "../src/components/layout";
 
 export type Props = {
@@ -22,7 +24,10 @@ export function ComputeBudgetAlert({
       title={`You've used ${percent}% of your spend budget`}
       preview={`${workspaceName} has used ${usage} of its ${budget} Compute spend budget. Nothing has been stopped.`}
       body={[
-        `${workspaceName} has used ${usage} of its ${budget} Compute spend budget for this billing period. Nothing has been stopped.`,
+        <Fragment key="usage">
+          {workspaceName} has used <Emphasis>{usage}</Emphasis> of its <Emphasis>{budget}</Emphasis>{" "}
+          Compute spend budget for this billing period. Nothing has been stopped.
+        </Fragment>,
         "If this is expected, no action is needed. Otherwise, review your usage or adjust the budget in your billing settings.",
       ]}
       action={{ label: "Manage billing", href: billingUrl }}

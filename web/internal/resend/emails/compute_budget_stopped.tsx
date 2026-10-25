@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+import { Emphasis } from "../src/components/emphasis";
 import { Layout } from "../src/components/layout";
 
 export type Props = {
@@ -14,7 +16,11 @@ export function ComputeBudgetStopped({ workspaceName, usage, budget, billingUrl,
       title="Compute workloads stopped"
       preview={`${workspaceName} hit its ${budget} Compute spend budget, so we stopped its Compute workloads.`}
       body={[
-        `${workspaceName} hit its ${budget} Compute spend budget for this billing period (${usage} used). We stopped its Compute workloads as configured in your budget settings.`,
+        <Fragment key="budget">
+          {workspaceName} hit its <Emphasis>{budget}</Emphasis> Compute spend budget for this
+          billing period (<Emphasis>{usage}</Emphasis> used). We stopped its Compute workloads as
+          configured in your budget settings.
+        </Fragment>,
       ]}
       action={{ label: "Manage billing", href: billingUrl }}
       sections={[
