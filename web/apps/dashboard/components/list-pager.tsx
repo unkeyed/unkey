@@ -4,7 +4,6 @@ import type { ListFooterState } from "@/lib/loadable/list";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { match } from "@unkey/match";
 import { Button, ResourceListFooter } from "@unkey/ui";
-import { cn } from "cn";
 
 type ErrorReason = Extract<ListFooterState, { kind: "error" }>["reason"];
 
@@ -25,14 +24,14 @@ export function ListPager({
   return match(state)
     .with({ kind: "hidden" }, () => null)
     .with({ kind: "more" }, ({ onLoadMore }) => (
-      <ResourceListFooter className={cn("py-6", className)}>
+      <ResourceListFooter className={className}>
         <Button size="md" variant="outline" onClick={onLoadMore}>
           Load more
         </Button>
       </ResourceListFooter>
     ))
     .with({ kind: "loadingMore" }, () => (
-      <ResourceListFooter className={cn("py-6", className)}>
+      <ResourceListFooter className={className}>
         <Button size="md" variant="outline" disabled loading>
           Load more
         </Button>
