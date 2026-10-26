@@ -1,15 +1,17 @@
 "use client";
 
+import type { User } from "@/lib/auth/types";
 import { type CliSession, listCliSessions, revokeCliSession } from "@/lib/cli/device-api";
-import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, TimestampInfo, toast } from "@unkey/ui";
-import Link from "next/link";
 
-export function CliSessions() {
+export type CliSessionOwner = Pick<User, "id" | "fullName" | "email">;
+
+export function CliSessions({ owners }: { owners: CliSessionOwner[] }) {
   const { user } = useWorkspace();
+  const ownersById = new Map(owners.map((owner) => [owner.id, owner]));
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["cli-sessions", user?.orgId],
@@ -33,10 +35,7 @@ export function CliSessions() {
         <p className="text-sm leading-5 text-gray-11">
           {user?.role === "admin"
             ? "You can see every CLI session in this workspace."
-            : "You can see and revoke your own CLI sessions."}{" "}
-          <Link href={routes.cli.device()} className="underline">
-            Approve a new login
-          </Link>
+            : "You can see and revoke your own CLI sessions."}
         </p>
       </div>
       {query.isLoading ? <p className="text-sm text-gray-11">Loading sessions...</p> : null}
@@ -54,6 +53,7 @@ export function CliSessions() {
             key={session.id}
             session={session}
             showUser={user?.role === "admin"}
+            owner={ownersById.get(session.userId)}
             revoking={revoke.isLoading && revoke.variables === session.id}
             onRevoke={() => revoke.mutate(session.id)}
           />
@@ -66,21 +66,30 @@ export function CliSessions() {
 function SessionRow({
   session,
   showUser,
+  owner,
   revoking,
   onRevoke,
 }: {
   session: CliSession;
   showUser: boolean;
+  owner: CliSessionOwner | undefined;
   revoking: boolean;
   onRevoke: () => void;
 }) {
   return (
     <li className="flex flex-col gap-2 rounded-md border p-4">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1 text-sm">
+        <div className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="font-medium text-gray-12">{session.deviceName || "Unknown device"}</span>
           {showUser ? (
-            <span className="font-mono text-xs text-gray-11">{session.userId}</span>
+            <>
+              <span className="break-words text-gray-11 secret">
+                {owner?.fullName || owner?.email || "User unavailable"}
+              </span>
+              {owner?.fullName ? (
+                <span className="break-all text-xs text-gray-11 secret">{owner.email}</span>
+              ) : null}
+            </>
           ) : null}
           <span className="text-gray-11">
             Started <TimestampInfo value={session.createdAt} displayType="relative" />
