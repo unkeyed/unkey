@@ -221,7 +221,7 @@ function NoComputePlan() {
             </EmptyStateDescription>
           </EmptyStateHeader>
           <EmptyStateActions>
-            <Button variant="outline" size="md" onClick={() => setPlansOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setPlansOpen(true)}>
               See deploy plans
             </Button>
           </EmptyStateActions>
