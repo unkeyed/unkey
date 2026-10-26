@@ -58,7 +58,7 @@ type newDomain struct {
 // trigger column.
 //
 // Every domain goes through [cappedDomain], so no label is longer than
-// [dnsLabelMaxLength]
+// [dnsLabelLengthMax]
 func buildDomains(
 	workspaceSlug, projectSlug, appSlug, environmentSlug,
 	gitSha, branchName, forkOwner, apex string,
@@ -66,7 +66,7 @@ func buildDomains(
 	uniquifyCommitDomain bool,
 	deploymentID, appID string,
 ) []newDomain {
-	token := tenantToken(appID)
+	code := appCode(appID)
 
 	// Skip the "default" app slug since it's not configurable yet and would
 	// just add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
@@ -105,7 +105,7 @@ func buildDomains(
 		short += disambiguator
 		domains = append(domains,
 			newDomain{
-				domain: cappedDomain(prefix+"-git-"+short, workspaceSlug, token, apex),
+				domain: cappedDomain(prefix+"-git-"+short, workspaceSlug, code, apex),
 				sticky: db.FrontlineRoutesStickyNone,
 			},
 		)
@@ -115,7 +115,7 @@ func buildDomains(
 		domains = append(
 			domains,
 			newDomain{
-				domain: cappedDomain(prefix+"-git-"+sluggify(branchName), workspaceSlug, token, apex),
+				domain: cappedDomain(prefix+"-git-"+sluggify(branchName), workspaceSlug, code, apex),
 				sticky: db.FrontlineRoutesStickyBranch,
 			},
 		)
@@ -124,7 +124,7 @@ func buildDomains(
 	domains = append(
 		domains,
 		newDomain{
-			domain: cappedDomain(prefix+"-"+environmentSlug, workspaceSlug, token, apex),
+			domain: cappedDomain(prefix+"-"+environmentSlug, workspaceSlug, code, apex),
 			sticky: db.FrontlineRoutesStickyEnvironment,
 		},
 	)
@@ -132,71 +132,74 @@ func buildDomains(
 	if isProduction {
 		domains = append(domains,
 			newDomain{
-				domain: cappedDomain(prefix, workspaceSlug, token, apex),
+				domain: cappedDomain(prefix, workspaceSlug, code, apex),
 				sticky: db.FrontlineRoutesStickyLive,
 			})
 	}
 
 	// deployment-specific domain for stable public access.
 	domains = append(domains, newDomain{
-		domain: cappedDomain(prefix+"-"+sluggify(deploymentID), workspaceSlug, token, apex),
+		domain: cappedDomain(prefix+"-"+sluggify(deploymentID), workspaceSlug, code, apex),
 		sticky: db.FrontlineRoutesStickyDeployment,
 	})
 
 	return domains
 }
 
-// dnsLabelMaxLength is the length limit for one label of a domain name, from
+// dnsLabelLengthMax is the length limit for one label of a domain name, from
 // [RFC 1035 section 2.3.4]. DNS clients reject a longer label, so a domain
 // with one never resolves
 //
 // [RFC 1035 section 2.3.4]: https://www.rfc-editor.org/rfc/rfc1035.html#section-2.3.4
-const dnsLabelMaxLength = 63
+const dnsLabelLengthMax = 63
 
 // labelHashLength is the number of hex characters of the hash that
 // [cappedDomain] puts in a cut label
 const labelHashLength = 8
 
-// workspaceSlugMaxLength is the longest workspace slug a cut label keeps. It
-// leaves room for the hash, the tenant token, three hyphens, and one character
-// of head
-const workspaceSlugMaxLength = dnsLabelMaxLength - labelHashLength - tenantTokenLength - 4
+// cutPartsLength is what a cut label spends on everything except the head and
+// the workspace slug: the hash, the app code, the three hyphens between them,
+// and one character of head
+const cutPartsLength = labelHashLength + appCodeLength + 4
 
-// cappedDomain returns `<head>-<workspaceSlug>-<tenantToken>.<apex>`. A label
-// longer than [dnsLabelMaxLength] becomes
-// `<cut head>-<hash of full label>-<workspaceSlug>-<tenantToken>`.
+// workspaceSlugLengthMax is the longest workspace slug a cut label keeps
+const workspaceSlugLengthMax = dnsLabelLengthMax - cutPartsLength
+
+// cappedDomain returns `<head>-<workspaceSlug>-<appCode>.<apex>`. A label
+// longer than [dnsLabelLengthMax] becomes
+// `<cut head>-<hash of full label>-<workspaceSlug>-<appCode>`.
 // The hash keeps long labels apart and is stable, so a branch keeps its sticky
 // domain across deploys.
 //
-// The tenant token is what makes a label unique to one app. The head is built
-// from user-controlled text joined by hyphens, so two apps can build the same
-// head: workspace "testing" on branch "main-x" and workspace "x-testing" on
-// branch "main" both produce "git-main-x-testing". A label is also the unique
-// key of a frontline route, so a shared label is a shared route, and the last
-// deploy wins. The token comes from the app ID, which no user chooses and no
-// two apps share, so two apps cannot produce the same label.
-func cappedDomain(head, workspaceSlug, token, apex string) string {
-	label := head + "-" + workspaceSlug + "-" + token
-	if len(label) <= dnsLabelMaxLength {
+// The app code is what makes a label unique to one app. The head is built from
+// user-controlled text joined by hyphens, so two apps can build the same head:
+// workspace "testing" on branch "main-x" and workspace "x-testing" on branch
+// "main" both produce "git-main-x-testing". A label is also the unique key of a
+// frontline route, so a shared label is a shared route, and the last deploy
+// wins. The code comes from the app id, which no user chooses and no two apps
+// share, so two apps cannot produce the same label.
+func cappedDomain(head, workspaceSlug, code, apex string) string {
+	label := head + "-" + workspaceSlug + "-" + code
+	if len(label) <= dnsLabelLengthMax {
 		return label + "." + apex
 	}
 
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(label)))[:labelHashLength]
-	tail := "-" + hash + "-" + cutLabel(workspaceSlug, workspaceSlugMaxLength) + "-" + token
-	return cutLabel(head, dnsLabelMaxLength-len(tail)) + tail + "." + apex
+	tail := "-" + hash + "-" + cutLabel(workspaceSlug, workspaceSlugLengthMax) + "-" + code
+	return cutLabel(head, dnsLabelLengthMax-len(tail)) + tail + "." + apex
 }
 
-// tenantTokenLength is the number of characters [tenantToken] returns. Six
+// appCodeLength is the number of characters [appCode] returns. Six
 // characters of a stable hash keep unrelated apps apart with room to spare
 // inside a 63-character label, and leave the readable head long enough to stay
 // recognizable.
-const tenantTokenLength = 6
+const appCodeLength = 6
 
-// tenantToken derives the fixed-length token that makes a domain label unique
-// to one app. The value is stable for the life of the app, so a branch keeps
-// the same sticky domain across deploys.
-func tenantToken(appID string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte("tenant:"+appID)))[:tenantTokenLength]
+// appCode returns the fixed-length code that makes a domain label unique to one
+// app. The value is stable for the life of the app, so a branch keeps the same
+// sticky domain across deploys.
+func appCode(appID string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte("app:"+appID)))[:appCodeLength]
 }
 
 // cutLabel shortens s to at most length characters and drops the hyphens

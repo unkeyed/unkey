@@ -98,7 +98,7 @@ func TestBuildDomainsKeepsStickyDomainsForOneApp(t *testing.T) {
 			domainBySticky(t, first, sticky), domainBySticky(t, second, sticky),
 			"a new deployment of the same app must reuse the sticky domain so it keeps following the branch and environment",
 		)
-		require.Contains(t, domainBySticky(t, first, sticky), tenantToken("app_kebap"),
+		require.Contains(t, domainBySticky(t, first, sticky), appCode("app_kebap"),
 			"every generated domain carries the app token")
 	}
 }
@@ -133,7 +133,7 @@ func TestBuildDomainsLeavesShortLabelsUnchanged(t *testing.T) {
 		false, false, "app_kebap", "app_kebap",
 	)
 
-	token := tenantToken("app_kebap")
+	token := appCode("app_kebap")
 	require.Equal(t, "homestead-home-tracking-git-main-stagejune26-"+token+".canary.unkey.app",
 		domainBySticky(t, domains, db.FrontlineRoutesStickyBranch))
 	require.Equal(t, "homestead-home-tracking-preview-stagejune26-"+token+".canary.unkey.app",
@@ -150,7 +150,7 @@ func TestBuildDomainsKeepsWorkspaceSlugWhenCut(t *testing.T) {
 	label, _, _ := strings.Cut(domainBySticky(t, domains, db.FrontlineRoutesStickyBranch), ".")
 	require.True(t, strings.HasPrefix(label, "homestead-home-tracking-git-michael"), label)
 	require.Contains(t, label, "-stagejune26", "the workspace slug must survive the cut")
-	require.True(t, strings.HasSuffix(label, "-"+tenantToken("app_kebap")), label)
+	require.True(t, strings.HasSuffix(label, "-"+appCode("app_kebap")), label)
 }
 
 func TestCappedDomainEveryWorkspaceLength(t *testing.T) {
@@ -161,7 +161,7 @@ func TestCappedDomainEveryWorkspaceLength(t *testing.T) {
 		require.LessOrEqual(t, len(label), 63, label)
 		require.Regexp(t, dnsLabelRegex, label)
 		require.True(t, strings.HasSuffix(label, "-abcdef"), label)
-		require.Contains(t, label, workspaceSlug[:min(length, workspaceSlugMaxLength)], "the workspace slug must survive the cut")
+		require.Contains(t, label, workspaceSlug[:min(length, workspaceSlugLengthMax)], "the workspace slug must survive the cut")
 	}
 }
 

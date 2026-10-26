@@ -965,7 +965,7 @@ func formatEnvironmentLabel(projectSlug, appSlug, envSlug string) string {
 // GitHub deployment status, must use this instead of formatting the pattern by
 // hand, so one naming rule serves every caller.
 func environmentDomain(workspaceSlug, projectSlug, appSlug, environmentSlug, apex, appID string) string {
-	return cappedDomain(domainPrefix(projectSlug, appSlug)+"-"+environmentSlug, workspaceSlug, tenantToken(appID), apex)
+	return cappedDomain(domainPrefix(projectSlug, appSlug)+"-"+environmentSlug, workspaceSlug, appCode(appID), apex)
 }
 
 // domainPrefix builds the domain prefix like "project" or "project-app"
