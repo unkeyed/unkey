@@ -1,0 +1,67 @@
+post:
+  tags:
+    - deployments
+  summary: List saved deployment connections
+  description: |
+    List the connections saved in this deployment, ordered by connection ID.
+    These snapshots are separate from the caller environment's current defaults.
+    Removed target apps and environments retain their saved IDs with null labels.
+    Requires read access to the deployment. Missing and unreadable deployments
+    return the same 404 response. Stopped deployments and soft-deleted parents
+    remain readable while their deployment records exist. Connections to target
+    apps the caller cannot read are omitted.
+  operationId: deployments.listConnections
+  x-speakeasy-name-override: listConnections
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsListConnectionsRequestBody.yaml"
+  responses:
+    "200":
+      description: Saved deployment connections.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsListConnectionsResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Deployment not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+    "503":
+      description: Database unavailable or authorized scan limit reached.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ServiceUnavailableErrorResponse.yaml"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"
