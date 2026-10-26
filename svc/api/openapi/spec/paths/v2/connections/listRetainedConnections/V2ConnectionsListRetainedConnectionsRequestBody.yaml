@@ -1,0 +1,21 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  limit:
+    type: integer
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: Cursor from the previous page.
+additionalProperties: false

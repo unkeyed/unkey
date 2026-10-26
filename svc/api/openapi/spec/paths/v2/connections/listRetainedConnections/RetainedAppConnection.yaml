@@ -1,0 +1,19 @@
+type: object
+required:
+  - id
+  - targetAppId
+  - targetAppName
+  - deployments
+properties:
+  id:
+    type: string
+  targetAppId:
+    type: string
+  targetAppName:
+    type: string
+  deployments:
+    type: integer
+    format: int64
+    minimum: 1
+    description: Number of deployments with a saved copy of the removed connection.
+additionalProperties: false
