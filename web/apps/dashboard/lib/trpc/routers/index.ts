@@ -27,6 +27,10 @@ import { queryRoles } from "./authorization/roles/query";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
+import { appMetricsDeploys } from "./deploy/app-metrics/deploys";
+import { appMetricsInstances } from "./deploy/app-metrics/instances";
+import { appMetricsResources, appMetricsTraffic } from "./deploy/app-metrics/source";
+import { appMetricsSourceByInstance } from "./deploy/app-metrics/source-by-instance";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
@@ -307,6 +311,13 @@ export const router = t.router({
       query: queryRuntimeLogs,
       llmSearch: runtimeLogsLlmSearch,
       listInstances,
+    }),
+    appMetrics: t.router({
+      traffic: appMetricsTraffic,
+      resources: appMetricsResources,
+      sourceByInstance: appMetricsSourceByInstance,
+      deploys: appMetricsDeploys,
+      instances: appMetricsInstances,
     }),
     metrics: t.router({
       getAppRpsMetrics,

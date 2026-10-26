@@ -4,7 +4,7 @@ import {
   type AreaChartPoint,
   AreaTimeseriesChart,
   formatYAxisCompactBytesPerSecond,
-} from "@/components/charts/area-timeseries";
+} from "@/components/charts/legacy/area-timeseries";
 import { trpc } from "@/lib/trpc/client";
 import {
   bytesToMib,

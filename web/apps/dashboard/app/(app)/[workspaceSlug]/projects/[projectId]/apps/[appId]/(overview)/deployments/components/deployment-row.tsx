@@ -8,6 +8,7 @@ import {
 import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit-badge";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import { latestExit } from "@/lib/collections/deploy/last-exit";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem } from "@unkey/ui";
@@ -58,7 +59,7 @@ export function DeploymentRow({
   const lastExit =
     deployment.status === "ready" || deployment.status === "superseded"
       ? null
-      : deployment.lastExit;
+      : latestExit(deployment.instances.map((i) => i.lastExit));
 
   return (
     <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">

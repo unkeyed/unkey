@@ -1,6 +1,9 @@
 "use client";
 
-import { type AreaChartPoint, AreaTimeseriesChart } from "@/components/charts/area-timeseries";
+import {
+  type AreaChartPoint,
+  AreaTimeseriesChart,
+} from "@/components/charts/legacy/area-timeseries";
 import type { ChartConfig } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
 import { Loading, Skeleton } from "@unkey/ui";

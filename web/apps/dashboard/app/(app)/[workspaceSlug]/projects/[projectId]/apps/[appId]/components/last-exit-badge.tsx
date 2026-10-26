@@ -1,37 +1,48 @@
 "use client";
 
-import { type ExitSummary, describeLastExit } from "@/lib/collections/deploy/last-exit";
+import type { FatalWaitingReason } from "@/lib/collections/deploy/instance-status";
+import { type ExitBadge, exitBadge } from "@/lib/collections/deploy/last-exit";
 import type { LastExit } from "@/lib/types/deploy";
 import { match } from "@unkey/match";
 import { Badge, InfoTooltip } from "@unkey/ui";
 
-export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
-  const summary = describeLastExit(lastExit);
-  const reason = summary.reason ?? "Error";
-  const variant = summary.kind === "waiting" ? "warning" : "error";
+const VARIANT: Record<ExitBadge["kind"], "warning" | "error"> = {
+  waiting: "warning",
+  exit: "error",
+};
 
-  const tooltip =
-    summary.kind === "waiting"
-      ? explainWaiting(summary)
-      : explainExit(reason, lastExit.exitCode, lastExit.signal);
+export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
+  const badge = exitBadge(lastExit);
+  const tooltip = match(badge)
+    .with({ kind: "waiting" }, ({ reason }) => WAITING_HINTS[reason])
+    .with({ kind: "exit" }, ({ reason }) => explainExit(reason, lastExit.exitCode, lastExit.signal))
+    .exhaustive();
 
   return (
     <InfoTooltip content={tooltip} position={{ side: "top", align: "end" }}>
-      <Badge variant={variant} className="text-xs whitespace-nowrap">
-        {reason}
-        {summary.kind === "exit" && summary.exit !== null ? (
-          <span className="ml-1 font-mono tabular-nums">· {summary.exit}</span>
-        ) : null}
+      <Badge variant={VARIANT[badge.kind]} className="text-xs whitespace-nowrap">
+        {badge.reason}
+        {badge.kind === "exit" && badge.exit && (
+          <span className="ml-1 font-mono tabular-nums">· {badge.exit}</span>
+        )}
       </Badge>
     </InfoTooltip>
   );
 }
 
-function explainWaiting({ reason }: Extract<ExitSummary, { kind: "waiting" }>): React.ReactNode {
-  if (reason !== "CrashLoopBackOff") {
-    return reason;
-  }
+function ReasonHint({ reason, children }: { reason: string; children: string }) {
   return (
+    <div className="flex flex-col gap-0.5 max-w-[280px]">
+      <div className="font-medium">{reason}</div>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+const IMAGE_PULL_HINT = "The image could not be pulled. Check the image name and registry access.";
+
+const WAITING_HINTS: Record<FatalWaitingReason, React.ReactNode> = {
+  CrashLoopBackOff: (
     <div className="flex flex-col gap-1.5 max-w-[280px]">
       <div className="font-medium">App keeps crashing on startup</div>
       <div>
@@ -40,10 +51,17 @@ function explainWaiting({ reason }: Extract<ExitSummary, { kind: "waiting" }>): 
       </div>
       <div>Check your logs for the exit code that's causing the loop and the underlying error.</div>
     </div>
-  );
-}
+  ),
+  ImagePullBackOff: <ReasonHint reason="ImagePullBackOff">{IMAGE_PULL_HINT}</ReasonHint>,
+  ErrImagePull: <ReasonHint reason="ErrImagePull">{IMAGE_PULL_HINT}</ReasonHint>,
+  InvalidImageName: <ReasonHint reason="InvalidImageName">The image name is not valid.</ReasonHint>,
+  CreateContainerConfigError: (
+    <ReasonHint reason="CreateContainerConfigError">
+      The container config is invalid, often a missing secret or variable.
+    </ReasonHint>
+  ),
+};
 
-// explainExit produces tooltip for LastExitBadge with user-friendly descriptions.
 function explainExit(
   reason: string,
   exitCode: number | null,

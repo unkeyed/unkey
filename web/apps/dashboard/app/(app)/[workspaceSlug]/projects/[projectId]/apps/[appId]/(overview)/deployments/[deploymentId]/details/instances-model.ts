@@ -5,8 +5,7 @@ import {
   instanceStateOf,
   instancesText,
 } from "@/lib/collections/deploy/instance-status";
-import { describeLastExit } from "@/lib/collections/deploy/last-exit";
-import { plural } from "@/lib/fmt";
+import { exitSummary } from "@/lib/collections/deploy/last-exit";
 import type { StepResolution } from "./stages-model";
 
 type DeploymentInstance = Deployment["instances"][number];
@@ -45,11 +44,7 @@ export function instanceDetail(instance: DeploymentInstance): string | null {
   if (instanceStateOf(instance) !== "unhealthy" || !instance.lastExit) {
     return null;
   }
-  const summary = describeLastExit(instance.lastExit);
-  const cause = summary.kind === "waiting" ? [summary.reason] : [summary.reason, summary.exit];
-  const { restartCount } = instance.lastExit;
-  const restarts = restartCount > 0 ? plural(restartCount, "restart") : null;
-  return [...cause, restarts].filter(Boolean).join(" · ") || null;
+  return exitSummary(instance.lastExit);
 }
 
 export function resolveInstancesView(input: InstancesInput): InstancesView {

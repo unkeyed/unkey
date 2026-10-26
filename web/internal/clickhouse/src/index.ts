@@ -1,3 +1,5 @@
+import { getAppResources, getAppResourcesByInstance } from "./app-metrics/resources";
+import { getAppTraffic } from "./app-metrics/traffic";
 import { getAuditLogs } from "./audit-logs";
 import {
   getActiveKeysUsage,
@@ -355,6 +357,13 @@ export class ClickHouse {
   public get environment() {
     return {
       requests: getEnvironmentRequests(this.querier),
+    };
+  }
+  public get appMetrics() {
+    return {
+      traffic: getAppTraffic(this.querier),
+      resources: getAppResources(this.querier),
+      resourcesByInstance: getAppResourcesByInstance(this.querier),
     };
   }
   public get frontline() {

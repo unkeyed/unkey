@@ -117,6 +117,13 @@ export const projectRoutes = {
       );
     },
 
+    metrics(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/metrics",
+        appParams(scope),
+      );
+    },
+
     deployments(scope: AppScope): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/deployments",
