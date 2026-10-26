@@ -76,7 +76,7 @@ func buildDomains(
 
 	// Skip the "default" app slug since it's not configurable yet and would
 	// just add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
-	prefix := domainPrefix(projectSlug, appSlug)
+	prefix := formatDomainPrefix(projectSlug, appSlug)
 
 	// Fork PRs include the fork owner in the domain to distinguish from same-repo
 	// deployments (e.g. "myproject-fork-contributor-git-abc1234-acme.unkey.app").

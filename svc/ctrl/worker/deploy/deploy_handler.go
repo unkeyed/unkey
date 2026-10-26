@@ -866,36 +866,7 @@ func (w *Workflow) initGitHubStatus(
 		connected: false,
 	}
 
-	envHead := domainPrefix(deployment.ProjectSlug, deployment.AppSlug) + "-" + deployment.EnvironmentSlug
-	envHostname := cappedDomain(envHead, deployment.WorkspaceSlug, "", w.defaultDomain)
-	envFallback := cappedDomain(envHead, deployment.WorkspaceSlug, appCode(deployment.AppID), w.defaultDomain)
-
-	// Inside this Run, not its own, so deploys journaled by an older worker
-	// still replay. They decode an empty EnvHostname
-	type repoLookup struct {
-		db.GithubRepoConnection
-		EnvHostname string
-	}
-	repoConn, err := restate.Run(ctx, func(runCtx restate.RunContext) (repoLookup, error) {
-		found, findErr := w.db.FindGithubRepoConnectionByAppId(runCtx, deployment.AppID)
-		if findErr != nil {
-			if db.IsNotFound(findErr) {
-				// No connection — return zero value, not an error.
-				// Returning an error here would cause Restate to retry forever.
-				return repoLookup{}, nil //nolint:exhaustruct
-			}
-			return repoLookup{}, findErr //nolint:exhaustruct
-		}
-
-		route, findErr := w.db.FindFrontlineRouteByFQDN(runCtx, envHostname)
-		if findErr != nil && !db.IsNotFound(findErr) {
-			return repoLookup{}, findErr //nolint:exhaustruct
-		}
-		if findErr == nil && route.AppID != deployment.AppID {
-			return repoLookup{GithubRepoConnection: found, EnvHostname: envFallback}, nil
-		}
-		return repoLookup{GithubRepoConnection: found, EnvHostname: envHostname}, nil
-	}, restate.WithName("find github repo connection"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	statusTarget, err := w.findGitHubStatusTarget(ctx, deployment)
 	if err != nil {
 		logger.Warn(
 			"failed to look up github repo connection, skipping deployment status reporting",
@@ -906,7 +877,7 @@ func (w *Workflow) initGitHubStatus(
 		return reporter
 	}
 
-	if repoConn.InstallationID == 0 {
+	if statusTarget.InstallationID == 0 {
 		logger.Info(
 			"no github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,
@@ -918,7 +889,7 @@ func (w *Workflow) initGitHubStatus(
 	reporter.connected = true
 
 	envLabel := formatEnvironmentLabel(deployment.ProjectSlug, deployment.AppSlug, deployment.EnvironmentSlug)
-	envURL := "https://" + cmp.Or(repoConn.EnvHostname, envHostname)
+	envURL := "https://" + statusTarget.EnvHostname
 	logURL := w.deploymentURL(deployment.WorkspaceSlug, deployment.ProjectID, deployment.AppID, deployment.ID)
 
 	var existingGHDeploymentID int64
@@ -932,8 +903,8 @@ func (w *Workflow) initGitHubStatus(
 	}
 
 	reporter.client.Init().Send(&hydrav1.GitHubStatusInitRequest{
-		InstallationId:             repoConn.InstallationID,
-		Repo:                       repoConn.RepositoryFullName,
+		InstallationId:             statusTarget.InstallationID,
+		Repo:                       statusTarget.RepositoryFullName,
 		CommitSha:                  deployment.GitCommitSha.String,
 		Branch:                     deployment.GitBranch.String,
 		EnvironmentLabel:           envLabel,
@@ -950,6 +921,40 @@ func (w *Workflow) initGitHubStatus(
 	return reporter
 }
 
+// findGitHubStatusTarget reads the repo connection a deployment reports to and
+// the environment hostname its report links to. The hostname is this app's
+// fallback when another app owns the plain one. A zero InstallationID means no
+// repo is connected
+func (w *Workflow) findGitHubStatusTarget(ctx restate.Context, deployment db.FindDeploymentForDeployRow) (githubStatusTarget, error) {
+	envHead := formatDomainPrefix(deployment.ProjectSlug, deployment.AppSlug) + "-" + deployment.EnvironmentSlug
+	envHostname := cappedDomain(envHead, deployment.WorkspaceSlug, "", w.defaultDomain)
+	envFallback := cappedDomain(envHead, deployment.WorkspaceSlug, appCode(deployment.AppID), w.defaultDomain)
+
+	target, err := restate.Run(ctx, func(runCtx restate.RunContext) (githubStatusTarget, error) {
+		found, findErr := w.db.FindGithubRepoConnectionByAppId(runCtx, deployment.AppID)
+		if findErr != nil {
+			if db.IsNotFound(findErr) {
+				// No connection — return zero value, not an error.
+				// Returning an error here would cause Restate to retry forever.
+				return githubStatusTarget{}, nil //nolint:exhaustruct
+			}
+			return githubStatusTarget{}, findErr //nolint:exhaustruct
+		}
+
+		route, findErr := w.db.FindFrontlineRouteByFQDN(runCtx, envHostname)
+		if findErr != nil && !db.IsNotFound(findErr) {
+			return githubStatusTarget{}, findErr //nolint:exhaustruct
+		}
+		if findErr == nil && route.AppID != deployment.AppID {
+			return githubStatusTarget{GithubRepoConnection: found, EnvHostname: envFallback}, nil
+		}
+		return githubStatusTarget{GithubRepoConnection: found, EnvHostname: envHostname}, nil
+	}, restate.WithName("find github repo connection"), restate.WithMaxRetryAttempts(runMaxAttempts))
+
+	target.EnvHostname = cmp.Or(target.EnvHostname, envHostname)
+	return target, err
+}
+
 func (w *Workflow) deploymentURL(workspaceSlug, projectID, appID, deploymentID string) string {
 	return fmt.Sprintf("%s/%s/projects/%s/apps/%s/deployments/%s",
 		strings.TrimRight(w.dashboardURL, "/"), workspaceSlug, projectID, appID, deploymentID)
@@ -964,9 +969,9 @@ func formatEnvironmentLabel(projectSlug, appSlug, envSlug string) string {
 	return projectSlug + " - " + envSlug
 }
 
-// domainPrefix builds the domain prefix like "project" or "project-app"
+// formatDomainPrefix builds the domain prefix like "project" or "project-app"
 // for non-default apps.
-func domainPrefix(projectSlug, appSlug string) string {
+func formatDomainPrefix(projectSlug, appSlug string) string {
 	if appSlug != "default" {
 		return projectSlug + "-" + appSlug
 	}
@@ -994,4 +999,12 @@ func (w *Workflow) decryptEnvVars(ctx context.Context, encrypted []byte, environ
 	}
 
 	return bulkRes.GetItems(), nil
+}
+
+// githubStatusTarget is what the "find github repo connection" step journals.
+// The environment hostname lives in that step, not its own Run, so deploys
+// journaled by an older worker still replay. They decode an empty EnvHostname
+type githubStatusTarget struct {
+	db.GithubRepoConnection
+	EnvHostname string
 }
