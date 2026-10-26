@@ -628,6 +628,7 @@ func (w *Workflow) ConfigureRouting(
 		deployment.EnvironmentKind.IsProduction(),
 		uniquifyCommitDomain,
 		deployment.ID,
+		deployment.AppID,
 	)
 
 	branchRouteIDs := make([]string, 0)
@@ -654,6 +655,16 @@ func (w *Workflow) ConfigureRouting(
 					}
 					return "", err
 				}
+
+				// A hostname is the unique key of a route, and labels are built
+				// from text a user chooses. The app token makes a shared label
+				// practically impossible, but a route row also records its
+				// owner, so a collision must fail here rather than silently
+				// point another app's route at this deployment.
+				if found.AppID != deployment.AppID {
+					return "", fmt.Errorf("hostname %q is already owned by app %q", domain.domain, found.AppID)
+				}
+
 				return found.ID, nil
 			})
 		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -888,8 +899,14 @@ func (w *Workflow) initGitHubStatus(
 	reporter.connected = true
 
 	envLabel := formatEnvironmentLabel(deployment.ProjectSlug, deployment.AppSlug, deployment.EnvironmentSlug)
-	prefix := formatDomainPrefix(deployment.ProjectSlug, deployment.AppSlug)
-	envURL := fmt.Sprintf("https://%s-%s-%s.%s", prefix, deployment.EnvironmentSlug, deployment.WorkspaceSlug, w.defaultDomain)
+	envURL := "https://" + environmentDomain(
+		deployment.WorkspaceSlug,
+		deployment.ProjectSlug,
+		deployment.AppSlug,
+		deployment.EnvironmentSlug,
+		w.defaultDomain,
+		deployment.AppID,
+	)
 	logURL := w.deploymentURL(deployment.WorkspaceSlug, deployment.ProjectID, deployment.AppID, deployment.ID)
 
 	var existingGHDeploymentID int64
@@ -935,9 +952,17 @@ func formatEnvironmentLabel(projectSlug, appSlug, envSlug string) string {
 	return projectSlug + " - " + envSlug
 }
 
-// formatDomainPrefix builds the domain prefix like "project" or "project-app"
+// environmentDomain returns the hostname that always follows an environment's
+// current deployment. Callers that need a link to a running app, such as the
+// GitHub deployment status, must use this instead of formatting the pattern by
+// hand, so one naming rule serves every caller.
+func environmentDomain(workspaceSlug, projectSlug, appSlug, environmentSlug, apex, appID string) string {
+	return cappedDomain(domainPrefix(projectSlug, appSlug)+"-"+environmentSlug, workspaceSlug, tenantToken(appID), apex)
+}
+
+// domainPrefix builds the domain prefix like "project" or "project-app"
 // for non-default apps.
-func formatDomainPrefix(projectSlug, appSlug string) string {
+func domainPrefix(projectSlug, appSlug string) string {
 	if appSlug != "default" {
 		return projectSlug + "-" + appSlug
 	}

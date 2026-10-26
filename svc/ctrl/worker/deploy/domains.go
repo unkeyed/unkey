@@ -25,22 +25,22 @@ type newDomain struct {
 //
 // The function creates three or four types of domains:
 //
-// 1. Per-commit domain: `<prefix>-git-<sha>-<workspace>.<apex>`
+// 1. Per-commit domain: `<prefix>-git-<sha>-<workspace>-<code>.<apex>`
 //   - Never reassigned, provides stable URL for specific commit
 //   - For CLI uploads, appends a deployment-ID-derived suffix to prevent collisions
 //
-// 2. Per-branch domain: `<prefix>-git-<branch>-<workspace>.<apex>`
+// 2. Per-branch domain: `<prefix>-git-<branch>-<workspace>-<code>.<apex>`
 //   - Sticky to branch, always points to latest deployment of that branch
 //   - Branch name is sluggified for URL safety
 //
-// 3. Per-environment domain: `<prefix>-<environment>-<workspace>.<apex>`
+// 3. Per-environment domain: `<prefix>-<environment>-<workspace>-<code>.<apex>`
 //   - Sticky to environment, points to latest deployment in that environment
 //   - Can be rolled back to previous deployment
 //
-// 4. Per-live domain (production only): `<prefix>-<workspace>.<apex>`
+// 4. Per-live domain (production only): `<prefix>-<workspace>-<code>.<apex>`
 //   - Sticky to live, points to the active production deployment
 //
-// 5. Per-deployment domain: `<prefix>-<deploymentID>-<workspace>.<apex>`
+// 5. Per-deployment domain: `<prefix>-<deploymentID>-<workspace>-<code>.<apex>`
 //   - Never reassigned, provides a stable deployment-specific URL
 //
 // Where <prefix> is `<project>-<app>` for custom app slugs, or just `<project>`
@@ -64,15 +64,13 @@ func buildDomains(
 	gitSha, branchName, forkOwner, apex string,
 	isProduction bool,
 	uniquifyCommitDomain bool,
-	deploymentID string,
+	deploymentID, appID string,
 ) []newDomain {
-	// Build the project-app prefix for domain names.
-	// Skip "default" app slug since it's not configurable yet and would just
-	// add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
-	prefix := projectSlug
-	if appSlug != "default" {
-		prefix = projectSlug + "-" + appSlug
-	}
+	token := tenantToken(appID)
+
+	// Skip the "default" app slug since it's not configurable yet and would
+	// just add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
+	prefix := domainPrefix(projectSlug, appSlug)
 
 	// Fork PRs include the fork owner in the domain to distinguish from same-repo
 	// deployments (e.g. "myproject-fork-contributor-git-abc1234-acme.unkey.app").
@@ -107,8 +105,7 @@ func buildDomains(
 		short += disambiguator
 		domains = append(domains,
 			newDomain{
-				domain: cappedDomain(prefix+"-git-"+short, workspaceSlug, apex),
-				//nolint: exhaustruct
+				domain: cappedDomain(prefix+"-git-"+short, workspaceSlug, token, apex),
 				sticky: db.FrontlineRoutesStickyNone,
 			},
 		)
@@ -118,7 +115,7 @@ func buildDomains(
 		domains = append(
 			domains,
 			newDomain{
-				domain: cappedDomain(prefix+"-git-"+sluggify(branchName), workspaceSlug, apex),
+				domain: cappedDomain(prefix+"-git-"+sluggify(branchName), workspaceSlug, token, apex),
 				sticky: db.FrontlineRoutesStickyBranch,
 			},
 		)
@@ -127,7 +124,7 @@ func buildDomains(
 	domains = append(
 		domains,
 		newDomain{
-			domain: cappedDomain(prefix+"-"+environmentSlug, workspaceSlug, apex),
+			domain: cappedDomain(prefix+"-"+environmentSlug, workspaceSlug, token, apex),
 			sticky: db.FrontlineRoutesStickyEnvironment,
 		},
 	)
@@ -135,15 +132,14 @@ func buildDomains(
 	if isProduction {
 		domains = append(domains,
 			newDomain{
-				domain: cappedDomain(prefix, workspaceSlug, apex),
+				domain: cappedDomain(prefix, workspaceSlug, token, apex),
 				sticky: db.FrontlineRoutesStickyLive,
 			})
 	}
 
 	// deployment-specific domain for stable public access.
 	domains = append(domains, newDomain{
-		domain: cappedDomain(prefix+"-"+sluggify(deploymentID), workspaceSlug, apex),
-		//nolint: exhaustruct
+		domain: cappedDomain(prefix+"-"+sluggify(deploymentID), workspaceSlug, token, apex),
 		sticky: db.FrontlineRoutesStickyDeployment,
 	})
 
@@ -162,22 +158,45 @@ const dnsLabelMaxLength = 63
 const labelHashLength = 8
 
 // workspaceSlugMaxLength is the longest workspace slug a cut label keeps. It
-// leaves room for the hash, two hyphens, and one character of head
-const workspaceSlugMaxLength = dnsLabelMaxLength - labelHashLength - 3
+// leaves room for the hash, the tenant token, three hyphens, and one character
+// of head
+const workspaceSlugMaxLength = dnsLabelMaxLength - labelHashLength - tenantTokenLength - 4
 
-// cappedDomain returns `<head>-<workspaceSlug>.<apex>`. A label longer than
-// [dnsLabelMaxLength] becomes `<cut head>-<hash of full label>-<workspaceSlug>`.
+// cappedDomain returns `<head>-<workspaceSlug>-<tenantToken>.<apex>`. A label
+// longer than [dnsLabelMaxLength] becomes
+// `<cut head>-<hash of full label>-<workspaceSlug>-<tenantToken>`.
 // The hash keeps long labels apart and is stable, so a branch keeps its sticky
-// domain across deploys
-func cappedDomain(head, workspaceSlug, apex string) string {
-	label := head + "-" + workspaceSlug
+// domain across deploys.
+//
+// The tenant token is what makes a label unique to one app. The head is built
+// from user-controlled text joined by hyphens, so two apps can build the same
+// head: workspace "testing" on branch "main-x" and workspace "x-testing" on
+// branch "main" both produce "git-main-x-testing". A label is also the unique
+// key of a frontline route, so a shared label is a shared route, and the last
+// deploy wins. The token comes from the app ID, which no user chooses and no
+// two apps share, so two apps cannot produce the same label.
+func cappedDomain(head, workspaceSlug, token, apex string) string {
+	label := head + "-" + workspaceSlug + "-" + token
 	if len(label) <= dnsLabelMaxLength {
 		return label + "." + apex
 	}
 
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(label)))[:labelHashLength]
-	tail := "-" + hash + "-" + cutLabel(workspaceSlug, workspaceSlugMaxLength)
+	tail := "-" + hash + "-" + cutLabel(workspaceSlug, workspaceSlugMaxLength) + "-" + token
 	return cutLabel(head, dnsLabelMaxLength-len(tail)) + tail + "." + apex
+}
+
+// tenantTokenLength is the number of characters [tenantToken] returns. Six
+// characters of a stable hash keep unrelated apps apart with room to spare
+// inside a 63-character label, and leave the readable head long enough to stay
+// recognizable.
+const tenantTokenLength = 6
+
+// tenantToken derives the fixed-length token that makes a domain label unique
+// to one app. The value is stable for the life of the app, so a branch keeps
+// the same sticky domain across deploys.
+func tenantToken(appID string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte("tenant:"+appID)))[:tenantTokenLength]
 }
 
 // cutLabel shortens s to at most length characters and drops the hyphens

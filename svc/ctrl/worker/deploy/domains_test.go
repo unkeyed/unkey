@@ -46,7 +46,7 @@ func TestBuildDomainsFitsDNSLabelLimit(t *testing.T) {
 			domains := buildDomains(
 				tc.workspaceSlug, tc.projectSlug, tc.appSlug, "preview",
 				"b8e86a2da52626e6faabbc90c33bf7c8abc23b32", tc.branch, tc.forkOwner, apex,
-				tc.isProduction, true, uid.New(uid.DeploymentPrefix),
+				tc.isProduction, true, uid.New(uid.DeploymentPrefix), uid.New(uid.AppPrefix),
 			)
 			require.NotEmpty(t, domains)
 
@@ -63,29 +63,80 @@ func TestBuildDomainsFitsDNSLabelLimit(t *testing.T) {
 
 func TestBuildDomainsKeepsLongBranchesApart(t *testing.T) {
 	shared := strings.Repeat("kebap-", 20)
-	branchDomain := func(branch string) string {
+	branchDomainFor := func(appID, branch string) string {
 		return domainBySticky(t, buildDomains(
 			"stagejune26", "homestead-home-tracking", "default", "preview",
 			"", branch, "", "canary.unkey.app",
-			false, false, uid.New(uid.DeploymentPrefix),
+			false, false, "d_kebap", appID,
 		), db.FrontlineRoutesStickyBranch)
 	}
 
-	first := branchDomain(shared + "one")
-	require.NotEqual(t, first, branchDomain(shared+"two"))
-	require.Equal(t, first, branchDomain(shared+"one"), "the branch domain must survive redeploys to stay sticky")
+	appID := "app_kebap"
+	first := branchDomainFor(appID, shared+"one")
+	require.NotEqual(t, first, branchDomainFor(appID, shared+"two"))
+	require.Equal(t, first, branchDomainFor(appID, shared+"one"), "the branch domain must survive redeploys to stay sticky")
+	require.NotEqual(t, first, branchDomainFor("app_other", shared+"one"), "two apps on the same branch need different labels")
+}
+
+func TestBuildDomainsKeepsStickyDomainsForOneApp(t *testing.T) {
+	domainsFor := func(appID, deploymentID, gitSha string) []newDomain {
+		return buildDomains(
+			"stagejune26", "homestead-home-tracking", "kebap-api", "preview",
+			gitSha, "feature/kebap", "kebap-contributor", "canary.unkey.app",
+			false, true, deploymentID, appID,
+		)
+	}
+
+	first := domainsFor("app_kebap", "d_kebap_one", "b8e86a2da52626e6faabbc90c33bf7c8abc23b32")
+	second := domainsFor("app_kebap", "d_kebap_two", "9f1c4b7e2a3d5f60718293a4b5c6d7e8f9012345")
+
+	for _, sticky := range []db.FrontlineRoutesSticky{
+		db.FrontlineRoutesStickyBranch,
+		db.FrontlineRoutesStickyEnvironment,
+	} {
+		require.Equal(t,
+			domainBySticky(t, first, sticky), domainBySticky(t, second, sticky),
+			"a new deployment of the same app must reuse the sticky domain so it keeps following the branch and environment",
+		)
+		require.Contains(t, domainBySticky(t, first, sticky), tenantToken("app_kebap"),
+			"every generated domain carries the app token")
+	}
+}
+
+func TestBuildDomainsSeparatesIdenticalBareLabels(t *testing.T) {
+	domainsFor := func(workspaceSlug, branch, appID string) string {
+		return domainBySticky(t, buildDomains(
+			workspaceSlug, "demo-1", "testing-leave", "preview",
+			"", branch, "", "canary.unkey.app",
+			false, false, "d_kebap", appID,
+		), db.FrontlineRoutesStickyBranch)
+	}
+
+	bare := func(domain string) string {
+		label, _, _ := strings.Cut(domain, ".")
+		withoutToken, _, _ := strings.CutLast(label, "-")
+		return withoutToken
+	}
+
+	testing := domainsFor("testing", "main-x", "app_kebap_one")
+	xTesting := domainsFor("x-testing", "main", "app_kebap_two")
+
+	require.Equal(t, bare(testing), bare(xTesting),
+		"the readable part of both labels is identical, which is what makes the token load-bearing")
+	require.NotEqual(t, testing, xTesting, "two apps must never share a label")
 }
 
 func TestBuildDomainsLeavesShortLabelsUnchanged(t *testing.T) {
 	domains := buildDomains(
 		"stagejune26", "homestead-home-tracking", "default", "preview",
 		"", "main", "", "canary.unkey.app",
-		false, false, uid.New(uid.DeploymentPrefix),
+		false, false, "app_kebap", "app_kebap",
 	)
 
-	require.Equal(t, "homestead-home-tracking-git-main-stagejune26.canary.unkey.app",
+	token := tenantToken("app_kebap")
+	require.Equal(t, "homestead-home-tracking-git-main-stagejune26-"+token+".canary.unkey.app",
 		domainBySticky(t, domains, db.FrontlineRoutesStickyBranch))
-	require.Equal(t, "homestead-home-tracking-preview-stagejune26.canary.unkey.app",
+	require.Equal(t, "homestead-home-tracking-preview-stagejune26-"+token+".canary.unkey.app",
 		domainBySticky(t, domains, db.FrontlineRoutesStickyEnvironment))
 }
 
@@ -93,21 +144,24 @@ func TestBuildDomainsKeepsWorkspaceSlugWhenCut(t *testing.T) {
 	domains := buildDomains(
 		"stagejune26", "homestead-home-tracking", "default", "preview",
 		"", "MichaelUnkey/phase-8-ui-foundation", "", "canary.unkey.app",
-		false, false, uid.New(uid.DeploymentPrefix),
+		false, false, "app_kebap", "app_kebap",
 	)
 
-	require.Equal(t, "homestead-home-tracking-git-michaelunkey-p-9141f508-stagejune26.canary.unkey.app",
-		domainBySticky(t, domains, db.FrontlineRoutesStickyBranch))
+	label, _, _ := strings.Cut(domainBySticky(t, domains, db.FrontlineRoutesStickyBranch), ".")
+	require.True(t, strings.HasPrefix(label, "homestead-home-tracking-git-michael"), label)
+	require.Contains(t, label, "-stagejune26", "the workspace slug must survive the cut")
+	require.True(t, strings.HasSuffix(label, "-"+tenantToken("app_kebap")), label)
 }
 
 func TestCappedDomainEveryWorkspaceLength(t *testing.T) {
 	for length := 3; length <= 64; length++ {
 		workspaceSlug := strings.Repeat("w", length)
-		label, _, _ := strings.Cut(cappedDomain(strings.Repeat("kebap", 12), workspaceSlug, "unkey.app"), ".")
+		label, _, _ := strings.Cut(cappedDomain(strings.Repeat("kebap", 12), workspaceSlug, "abcdef", "unkey.app"), ".")
 
 		require.LessOrEqual(t, len(label), 63, label)
 		require.Regexp(t, dnsLabelRegex, label)
-		require.Contains(t, label, workspaceSlug[:min(length, 52)], "the workspace slug must survive the cut")
+		require.True(t, strings.HasSuffix(label, "-abcdef"), label)
+		require.Contains(t, label, workspaceSlug[:min(length, workspaceSlugMaxLength)], "the workspace slug must survive the cut")
 	}
 }
 

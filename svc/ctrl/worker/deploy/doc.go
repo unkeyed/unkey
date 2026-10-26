@@ -104,11 +104,15 @@
 //
 // [buildDomains] produces four or five domain patterns per deployment:
 //
-//   - Per-commit: <project>-<app>-git-<sha>-<workspace>.<apex>  (non-sticky, immutable)
-//   - Per-branch: <project>-<app>-git-<branch>-<workspace>.<apex>  (sticky to branch)
-//   - Per-environment: <project>-<app>-<env>-<workspace>.<apex>  (sticky to environment)
-//   - Per-live (production only): <project>-<app>-<workspace>.<apex>  (sticky to live)
-//   - Per-deployment: <project>-<app>-dep-<id>-<workspace>.<apex>  (sticky to deployment)
+//   - Per-commit: <project>-<app>-git-<sha>-<workspace>-<code>.<apex>  (non-sticky, immutable)
+//   - Per-branch: <project>-<app>-git-<branch>-<workspace>-<code>.<apex>  (sticky to branch)
+//   - Per-environment: <project>-<app>-<env>-<workspace>-<code>.<apex>  (sticky to environment)
+//   - Per-live (production only): <project>-<app>-<workspace>-<code>.<apex>  (sticky to live)
+//   - Per-deployment: <project>-<app>-dep-<id>-<workspace>-<code>.<apex>  (sticky to deployment)
+//
+// <code> is six characters derived from the app ID. It makes a label unique to
+// one app, so no other app can own the same hostname, and it is stable, so a
+// branch or environment hostname keeps working across deploys.
 //
 // Sticky domains automatically follow the latest deployment matching their
 // criteria; commit domains never move. CLI uploads add a random numeric suffix
@@ -118,9 +122,9 @@
 //
 // A DNS label has at most 63 characters, see [RFC 1034 section 3.1] and
 // [RFC 1035 section 2.3.4]. When a generated label is longer, [buildDomains]
-// cuts the part before the workspace slug and puts a hash of the full label
-// there. The hash keeps long labels unique, and a branch keeps the same
-// domain across deploys.
+// cuts the readable head and puts a hash of the full label there, keeping the
+// workspace slug and the app code. The hash keeps long labels unique, and a
+// branch keeps the same domain across deploys.
 //
 // # Network Policy
 //

@@ -33,7 +33,7 @@ wss.on("connection", (socket) => {
 Connect to any hostname of the <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>, automatic or custom, with `wss://`. Plain `ws://` fails: it gets a `308` redirect to HTTPS, and WebSocket clients don't follow redirects.
 
 ```ts
-const ws = new WebSocket("wss://payments-acme.unkey.app/ws");
+const ws = new WebSocket("wss://payments-acme-a1b2c3.unkey.app/ws");
 ```
 
 ## Policies check the handshake
