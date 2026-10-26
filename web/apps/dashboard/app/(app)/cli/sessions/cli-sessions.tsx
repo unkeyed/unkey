@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { User } from "@/lib/auth/types";
 import { type CliSession, listCliSessions, revokeCliSession } from "@/lib/cli/device-api";
 import { getErrorMessage } from "@/lib/unkey-client";
@@ -7,7 +8,7 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, TimestampInfo, toast } from "@unkey/ui";
 
-export type CliSessionOwner = Pick<User, "id" | "fullName" | "email">;
+export type CliSessionOwner = Pick<User, "id" | "fullName" | "email" | "avatarUrl">;
 
 export function CliSessions({ owners }: { owners: CliSessionOwner[] }) {
   const { user } = useWorkspace();
@@ -82,14 +83,20 @@ function SessionRow({
         <div className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="font-medium text-gray-12">{session.deviceName || "Unknown device"}</span>
           {showUser ? (
-            <>
-              <span className="break-words text-gray-11 secret">
-                {owner?.fullName || owner?.email || "User unavailable"}
-              </span>
-              {owner?.fullName ? (
-                <span className="break-all text-xs text-gray-11 secret">{owner.email}</span>
-              ) : null}
-            </>
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8 secret" aria-hidden="true">
+                {owner?.avatarUrl ? <AvatarImage src={owner.avatarUrl} alt="" /> : null}
+                <AvatarFallback name={owner?.email ?? session.userId} />
+              </Avatar>
+              <div className="flex min-w-0 flex-col">
+                <span className="break-words text-gray-11 secret">
+                  {owner?.fullName || owner?.email || "User unavailable"}
+                </span>
+                {owner?.fullName ? (
+                  <span className="break-all text-xs text-gray-11 secret">{owner.email}</span>
+                ) : null}
+              </div>
+            </div>
           ) : null}
           <span className="text-gray-11">
             Started <TimestampInfo value={session.createdAt} displayType="relative" />
