@@ -143,9 +143,11 @@ type RowDetails = Pick<
   | "instances"
   | "desiredInstanceCount"
   | "desiredRegions"
-  | "targetRegions"
   | "triggerReason"
->;
+> & {
+  // A server older than this bundle omits it, as after a rollback with a tab still open
+  targetRegions?: Deployment["targetRegions"];
+};
 
 // Once a row in one of these statuses has no instances left, nothing changes its
 // details, so a refetch keeps the held details instead of asking again
@@ -211,7 +213,7 @@ function toDeployment(
     instances: details.instances,
     desiredInstanceCount: details.desiredInstanceCount,
     desiredRegions: details.desiredRegions,
-    targetRegions: details.targetRegions,
+    targetRegions: details.targetRegions ?? [],
     cpuMillicores: Math.round(runtime.vCpus * 1000),
     memoryMib: runtime.memoryMib,
     storageMib: runtime.storageMib,
