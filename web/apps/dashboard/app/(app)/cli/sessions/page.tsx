@@ -13,6 +13,7 @@ export default async function CLISessionsPage() {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
+        avatarUrl: user.avatarUrl,
       }));
     } catch (error) {
       console.error("Failed to load CLI session owners:", error);
