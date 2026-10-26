@@ -54,7 +54,7 @@ of floating versions like `latest`.
 [tools]
 node = "24.19.0"
 "github:pnpm/pnpm" = "11.5.0"
-"github:depot/cli" = "2.101.67"
+"http:depot" = "2.101.67"
 ```
 
 After changing tools, update `.mise/mise.lock`. Disable locked mode only for
@@ -68,7 +68,7 @@ Use the backend-qualified name when needed, for example:
 
 ```bash
 MISE_LOCKED=0 mise lock github:pnpm/pnpm
-MISE_LOCKED=0 mise lock github:depot/cli
+MISE_LOCKED=0 mise lock http:depot
 ```
 
 Keep lock entries for Linux and macOS on both x64 and ARM64:
@@ -88,6 +88,30 @@ container environments. External builders such as Vercel can start with another
 pnpm version. pnpm's default package manager handling then downloads and runs the
 version in `packageManager`. Module and package dependencies retain their native
 lockfiles. OS packages and container base images remain separate pins.
+
+## Download sources
+
+The mise bootstrap downloads its pinned archive from `mise.jdx.dev`, served by
+Cloudflare R2. Depot uses `dl-cdn.depot.dev`, and minikube uses
+`storage.googleapis.com/minikube`. These official hosts serve the same archives
+as the GitHub releases, checked against the existing SHA256 pins. Their installers
+do not fall back to GitHub. Go, Node.js, Helm, kubectl, and ngrok also use their
+upstream download hosts rather than GitHub release assets.
+
+Other tools still use GitHub releases: Buf, ctlptl, dprint, golangci-lint,
+GoReleaser Pro, jq, mkcert, pnpm, pscale, Rask, Speakeasy, Stripe CLI, and Tilt.
+No official mirror for their pinned release artifacts has been verified. Do not
+substitute an unrelated public proxy or disable checksum or provenance checks.
+Removing these download dependencies needs a trusted artifact mirror with
+approved storage and publishing access.
+
+Dev setup also downloads the TopoLVM and Vector Helm charts from GitHub release
+assets. Their chart repository domains do not remove that dependency. Cilium's
+chart archive is served by `helm.cilium.io`.
+
+Artifact mirrors do not replace GitHub-hosted actions, source checkouts, API
+calls, or container images. Locked provenance verification can also require
+GitHub attestation APIs. Tool caches reduce downloads but are not mirrors.
 
 ## CI setup and caching
 
