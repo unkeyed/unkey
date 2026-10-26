@@ -23,13 +23,15 @@ The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts
    - `contributing/quality/testing/integration-tests.md`
    - `contributing/quality/testing/anti-patterns.md`
 
-3. **Fix violations.** For every violation you find, fix it — don't just report it. If a fix would be too large or risky, flag it explicitly with what's wrong and why you're not fixing it now.
+3. **Review test purpose.** Test names and setup must make the expected behavior and its value to the user or caller clear, not just describe what the code does. Check that the assertions protect that behavior and the fixtures expose the relevant risk. Do not invent reasons for existing behavior. Use an accepted contract or recorded regression to justify expectations. If you cannot explain why a test is needed, question whether it belongs; flag an unclear requirement rather than inventing a justification or silently removing coverage.
 
-4. **Fight entropy.** Look at the code you touched and the code around it. Did you leave it better than you found it? Did you introduce complexity that isn't justified? Did you take a shortcut that a future reader will curse? If something nearby is already broken or messy and your change made it worse or left it as-is when a small improvement was obvious, fix it.
+4. **Fix violations.** For every violation you find, fix it — don't just report it. If a fix would be too large or risky, flag it explicitly with what's wrong and why you're not fixing it now.
 
-5. **Look for refactoring opportunities.** Actively ask yourself: what can be refactored in or around the code you touched to make it easier to maintain long term? Duplicated logic that should be extracted, unclear abstractions that should be simplified, tangled responsibilities that should be separated. Don't just preserve the status quo — improve it.
+5. **Fight entropy.** Look at the code you touched and the code around it. Did you leave it better than you found it? Did you introduce complexity that isn't justified? Did you take a shortcut that a future reader will curse? If something nearby is already broken or messy and your change made it worse or left it as-is when a small improvement was obvious, fix it.
 
-6. **Report.** After fixing everything, give a brief summary of what you changed and what you flagged.
+6. **Look for refactoring opportunities.** Actively ask yourself: what can be refactored in or around the code you touched to make it easier to maintain long term? Duplicated logic that should be extracted, unclear abstractions that should be simplified, tangled responsibilities that should be separated. Don't just preserve the status quo — improve it.
+
+7. **Report.** After fixing everything, give a brief summary of what you changed and what you flagged.
 
 ## The final question
 

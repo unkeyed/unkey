@@ -155,6 +155,9 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 - Build Go through `mise run build` and test Go through Rask with
   `mise run test` or `mise exec -- rask ./path`.
 - Use `mise exec -- go test` for targeted fuzzing, which needs Go's fuzz runner.
+- Use `mise run test-evidence -- ...` for fresh results, named red/green
+  witnesses, shuffle seeds, repetitions, and race checks. This task runs
+  `go test` explicitly. Rask does not forward these flags.
 - Use `github.com/stretchr/testify/require` in tests.
 - Use `t.Helper()` in test helpers.
 - Use `t.Cleanup()` for resources.
@@ -198,6 +201,30 @@ and pre-push requirements below still apply.
 After applicable checks pass, repeat or broaden verification only for subsequent
 changes, failures, or unresolved risks. Report failed or skipped verification
 honestly.
+
+Before writing a test, identify its independent contract, a plausible wrong
+implementation, and an input that distinguishes the two. Do not derive expected
+values from the implementation under test. For regressions and security features,
+record a named red witness against the unfixed code or a targeted source mutation,
+then a green witness with the same assertions. A build failure or skipped test is
+not red evidence. Review the actual failure and keep a positive control.
+
+Source mutations are temporary local test changes, never changes to ship. Restore
+the correct implementation before final checks, preserve unrelated work, and
+verify that no mutation remains in the delivery diff. Follow the
+[temporary mutation procedure](contributing/quality/testing/index.md#verify-a-test-with-a-temporary-source-mutation).
+
+Temporary probes establish evidence for this change. Keep a permanent test only
+when it protects observable behavior from a plausible regression that existing
+tests and types miss. Refactors do not require new tests. Reuse shared
+authentication conformance; keep resource authorization and production route
+wiring guarantees at their owning boundaries. See
+`contributing/quality/testing/index.md` for commands and review requirements.
+
+Depot checks new Go test lint findings and changed TypeScript test files, and
+runs changed Go package suites fresh. Run `mise run lint-test-go <base>` and
+`mise run lint-test-web <base>` locally. These checks do not establish the
+correctness of expected values or replace review of red/green evidence.
 
 ## PlanetScale and Query Insights
 

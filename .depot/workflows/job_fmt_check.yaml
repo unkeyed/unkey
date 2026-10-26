@@ -10,11 +10,17 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0
       - uses: ./.depot/actions/setup-mise
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Format
         run: mise run fmt
+      - name: Check changed TypeScript tests
+        run: mise run lint-test-web "$TEST_BASE"
+        env:
+          TEST_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || 'HEAD^' }}
       - name: Check for drift
         run: |
           if ! git diff --exit-code; then

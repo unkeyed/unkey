@@ -89,23 +89,25 @@ type Harness struct {
 	seeder                     *seed.Seeder
 }
 
-// HarnessConfig controls which optional Docker-backed dependencies are started.
-// Zero value starts MySQL only, uses an in-memory counter, and no-op analytics
-// buffers.
+// HarnessConfig selects database isolation and optional Docker dependencies.
+// The zero value uses shared MySQL, an in-memory counter, and no-op analytics buffers.
 type HarnessConfig struct {
-	Redis      bool
-	ClickHouse bool
+	IsolatedMySQL bool
+	Redis         bool
+	ClickHouse    bool
 }
 
-// NewHarness creates a fully initialized test harness wired against shared
-// Docker dependencies. Docker dependencies are started on demand by testutil.
+// NewHarness starts dependencies on demand and registers cleanup for its database,
+// caches, counter, buffers, rate limiter and usage limiter.
+// MySQL is shared unless IsolatedMySQL is set.
+// Shared fixture rows are suite-scoped and removed by mise test container teardown,
+// not by individual tests. Unique IDs do not isolate database-wide queries.
 func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
+	t.Helper()
 	clk := clock.NewTestClock()
-	cfg := HarnessConfig{
-		Redis:      false,
-		ClickHouse: false,
-	}
+	var cfg HarnessConfig
 	for _, c := range configs {
+		cfg.IsolatedMySQL = cfg.IsolatedMySQL || c.IsolatedMySQL
 		cfg.Redis = cfg.Redis || c.Redis
 		cfg.ClickHouse = cfg.ClickHouse || c.ClickHouse
 	}
@@ -116,7 +118,11 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	var chCfg containers.ClickHouseConfig
 
 	wg.Go(func() {
-		mysqlCfg = containers.MySQL(t)
+		if cfg.IsolatedMySQL {
+			mysqlCfg = containers.MySQLIsolated(t)
+		} else {
+			mysqlCfg = containers.MySQL(t)
+		}
 	})
 	if cfg.Redis {
 		wg.Go(func() {
@@ -138,11 +144,13 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
 	caches, err := caches.New(caches.Config{
 		Clock: clk,
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, caches.Close()) })
 
 	flagSvc, err := flags.New(flags.Config{DB: db.ToMySQL(database), Clock: clk})
 	require.NoError(t, err)
@@ -250,6 +258,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Region:  "test-region",
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, ratelimitService.Close()) })
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
@@ -271,6 +280,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		TTL:     60 * time.Second,
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, ulSvc.Close()) })
 
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
 	v := vault.NewConnectVaultServiceClient(testVault.Client)
@@ -564,6 +574,13 @@ func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Enviro
 	return h.seeder.CreateEnvironment(h.t.Context(), req)
 }
 
+// CreateEnvironmentTopology creates a project, app, environment and default settings
+// in the supplied workspace, without creating credentials or billing entitlements.
+func (h *Harness) CreateEnvironmentTopology(workspaceID string, kind mysqltype.EnvironmentKind) seed.EnvironmentTopology {
+	h.t.Helper()
+	return h.seeder.CreateEnvironmentTopology(h.t.Context(), workspaceID, kind)
+}
+
 // CreateCustomDomain attaches a custom domain to an environment.
 func (h *Harness) CreateCustomDomain(req seed.CreateCustomDomainRequest) db.FindCustomDomainByIdRow {
 	return h.seeder.CreateCustomDomain(h.t.Context(), req)
@@ -598,7 +615,7 @@ type CreateTestDeploymentSetupOptions struct {
 // workspace, root key, project, and environment. This is a convenience method for
 // tests that need all these resources together. Pass [CreateTestDeploymentSetupOptions]
 // to customize names, slugs, or skip environment creation. Defaults to project name
-// "test-project", slugs "production", a starter Compute entitlement, and full
+// "test-project", slugs "production", a starter Compute entitlement, and no
 // permissions unless specified.
 func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOptions) DeploymentTestSetup {
 	h.t.Helper()
