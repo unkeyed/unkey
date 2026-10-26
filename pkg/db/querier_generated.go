@@ -4135,6 +4135,12 @@ type Querier interface {
 	//    AND app_id = ?
 	//    AND environment_id = ?
 	UpdateAppBuildSettings(ctx context.Context, db DBTX, arg UpdateAppBuildSettingsParams) error
+	//UpdateAppConnection
+	//
+	//  UPDATE app_connections
+	//  SET name = ?, updated_at = ?
+	//  WHERE id = ? AND workspace_id = ?
+	UpdateAppConnection(ctx context.Context, db DBTX, arg UpdateAppConnectionParams) error
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps
@@ -4199,6 +4205,14 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND workspace_id = ?
 	UpdateAppSourceOciImageReference(ctx context.Context, db DBTX, arg UpdateAppSourceOciImageReferenceParams) error
+	//UpdateConnectionAppTarget
+	//
+	//  UPDATE connection_app_targets
+	//  SET selection_mode = ?,
+	//      target_environment_id = ?,
+	//      target_deployment_id = ?
+	//  WHERE connection_id = ?
+	UpdateConnectionAppTarget(ctx context.Context, db DBTX, arg UpdateConnectionAppTargetParams) error
 	//UpdateCustomDomainsMax
 	//
 	//  UPDATE `limits`
