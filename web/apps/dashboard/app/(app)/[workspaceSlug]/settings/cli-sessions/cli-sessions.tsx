@@ -12,6 +12,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { IconLaptop2Outline18, IconTerminalOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Badge,
   Button,
   EmptyState,
@@ -39,7 +46,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { cn } from "cn";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 
 type SessionState = "active" | "expired" | "revoked";
 
@@ -92,6 +99,7 @@ function CliSessionResults({
   const queryClient = useQueryClient();
   const queryKey = ["cli-sessions", orgId];
   const view = listOf(fromQuery(useQuery({ queryKey, queryFn: listCliSessions })));
+  const [confirming, setConfirming] = useState<CliSession | null>(null);
   const revoke = useMutation({
     mutationFn: revokeCliSession,
     async onSuccess() {
@@ -120,39 +128,53 @@ function CliSessionResults({
             <SessionItem
               session={session}
               owner={isAdmin ? (ownersById.get(session.userId) ?? "unknown") : "hidden"}
-              revoking={revoke.isLoading && revoke.variables === session.id}
               disabled={revoke.isLoading}
-              onRevoke={() => revoke.mutate(session.id)}
+              onRevoke={() => setConfirming(session)}
             />
           </Fragment>
         ))}
       </ItemGroup>
     );
 
-  return match(view)
-    .with({ status: "loading" }, () => <CliSessionsSkeleton />)
-    .with({ status: "failed" }, ({ error, retry }) => (
-      <ItemGroup variant="outline">
-        <LoadError title="Could not load CLI sessions" error={error} frame="none" onRetry={retry} />
-      </ItemGroup>
-    ))
-    .with({ status: "empty" }, () => <CliSessionsEmpty />)
-    .with({ status: "ready" }, ({ rows, footer }) => (
-      <>
-        {renderGroup(
-          "Active",
-          "bg-success-9",
-          rows.filter((session) => sessionState(session) === "active"),
-        )}
-        {renderGroup(
-          "Expired and revoked",
-          "bg-gray-8",
-          rows.filter((session) => sessionState(session) !== "active"),
-        )}
-        <ListPager state={footer} noun="CLI sessions" />
-      </>
-    ))
-    .exhaustive();
+  return (
+    <>
+      {match(view)
+        .with({ status: "loading" }, () => <CliSessionsSkeleton />)
+        .with({ status: "failed" }, ({ error, retry }) => (
+          <ItemGroup variant="outline">
+            <LoadError
+              title="Could not load CLI sessions"
+              error={error}
+              frame="none"
+              onRetry={retry}
+            />
+          </ItemGroup>
+        ))
+        .with({ status: "empty" }, () => <CliSessionsEmpty />)
+        .with({ status: "ready" }, ({ rows, footer }) => (
+          <>
+            {renderGroup(
+              "Active",
+              "bg-success-9",
+              rows.filter((session) => sessionState(session) === "active"),
+            )}
+            {renderGroup(
+              "Expired and revoked",
+              "bg-gray-8",
+              rows.filter((session) => sessionState(session) !== "active"),
+            )}
+            <ListPager state={footer} noun="CLI sessions" />
+          </>
+        ))
+        .exhaustive()}
+      <RevokeSessionDialog
+        session={confirming}
+        revoking={revoke.isLoading}
+        onCancel={() => setConfirming(null)}
+        onConfirm={(session) => revoke.mutate(session.id, { onSuccess: () => setConfirming(null) })}
+      />
+    </>
+  );
 }
 
 function SessionOwner({ owner }: { owner: CliSessionOwner }) {
@@ -169,13 +191,11 @@ function SessionOwner({ owner }: { owner: CliSessionOwner }) {
 function SessionItem({
   session,
   owner,
-  revoking,
   disabled,
   onRevoke,
 }: {
   session: CliSession;
   owner: CliSessionOwner | "unknown" | "hidden";
-  revoking: boolean;
   disabled: boolean;
   onRevoke: () => void;
 }) {
@@ -222,7 +242,6 @@ function SessionItem({
             type="button"
             variant="outline"
             aria-label={`Revoke ${session.deviceName || "unknown device"}`}
-            loading={revoking}
             disabled={disabled}
             onClick={onRevoke}
           >
@@ -231,6 +250,59 @@ function SessionItem({
         )}
       </ItemActions>
     </Item>
+  );
+}
+
+function RevokeSessionDialog({
+  session,
+  revoking,
+  onCancel,
+  onConfirm,
+}: {
+  session: CliSession | null;
+  revoking: boolean;
+  onCancel: () => void;
+  onConfirm: (session: CliSession) => void;
+}) {
+  return (
+    <AlertDialog
+      open={session !== null}
+      onOpenChange={(open) => {
+        if (!open && !revoking) {
+          onCancel();
+        }
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Revoke this CLI session?</AlertDialogTitle>
+          <AlertDialogDescription>
+            The CLI on{" "}
+            <span className="font-medium text-gray-12">
+              {session?.deviceName || "this unknown device"}
+            </span>{" "}
+            loses access right away.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={revoking}>Cancel</AlertDialogCancel>
+          <Button
+            type="button"
+            variant="primary"
+            color="danger"
+            loading={revoking}
+            loadingLabel="Revoking session"
+            onClick={() => {
+              if (session) {
+                onConfirm(session);
+              }
+            }}
+          >
+            Revoke session
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
