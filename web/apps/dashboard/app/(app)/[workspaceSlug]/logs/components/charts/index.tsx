@@ -1,6 +1,5 @@
 "use client";
 import { LogsTimeseriesBarChart } from "@/components/logs/chart";
-import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchTimeseries } from "./hooks/use-fetch-timeseries";
 
@@ -10,7 +9,7 @@ export function LogsChart({
   onMount: (distanceToTop: number) => void;
 }) {
   const { filters, updateFilters } = useFilters();
-  const { timeseries, isLoading, isError, granularity } = useFetchTimeseries();
+  const { timeseries, isLoading, isError, bucketMs, granularity } = useFetchTimeseries();
 
   const handleSelectionChange = ({
     start,
@@ -23,10 +22,9 @@ export function LogsChart({
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
 
-    let adjustedEnd = end;
-    if (start === end && granularity) {
-      adjustedEnd = end + getTimeBufferForGranularity(granularity);
-    }
+    // end is the start of the last selected bar, and endTime is inclusive, so
+    // the window ends on the last millisecond of that bar
+    const adjustedEnd = bucketMs ? end + bucketMs - 1 : end;
 
     updateFilters([
       ...activeFilters,
@@ -54,12 +52,12 @@ export function LogsChart({
           subLabel: "2xx",
           color: "var(--color-gray-4)",
         },
-        warning: {
+        clientError: {
           label: "Warning",
           subLabel: "4xx",
           color: "var(--color-warning-9)",
         },
-        error: {
+        serverError: {
           label: "Error",
           subLabel: "5xx",
           color: "var(--color-error-9)",
@@ -70,6 +68,7 @@ export function LogsChart({
       isLoading={isLoading}
       isError={isError}
       enableSelection={true}
+      granularity={granularity}
     />
   );
 }

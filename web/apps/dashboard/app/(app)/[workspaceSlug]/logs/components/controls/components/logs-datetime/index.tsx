@@ -1,13 +1,32 @@
+import { DEFAULT_OPTIONS } from "@/components/logs/datetime/constants";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
+import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
+import { getTimestampFromRelative } from "@/lib/duration";
+import { DAY_IN_MS } from "@/lib/trpc/routers/utils/constants";
 import { IconCalendarOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "cn";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsDateTime = () => {
   const [title, setTitle] = useState<string | null>(null);
   const { filters, updateFilters } = useFilters();
+  const { data: limits } = useWorkspaceLimits();
+  const retentionDays = limits?.logsRetentionDaysMax.limit ?? null;
+
+  // A preset longer than the log retention would chart mostly empty buckets
+  const options = useMemo(() => {
+    if (retentionDays === null) {
+      return DEFAULT_OPTIONS;
+    }
+    const now = Date.now();
+    return DEFAULT_OPTIONS.filter(
+      (option) =>
+        option.value === undefined ||
+        now - getTimestampFromRelative(option.value, now) <= retentionDays * DAY_IN_MS,
+    );
+  }, [retentionDays]);
 
   useEffect(() => {
     if (!title) {
@@ -31,6 +50,13 @@ export const LogsDateTime = () => {
 
   return (
     <DatetimePopover
+      // The popover keeps its preset list in state, so it remounts once the
+      // retention is known
+      key={retentionDays ?? "unlimited"}
+      customOptions={options}
+      minDate={
+        retentionDays === null ? undefined : new Date(Date.now() - retentionDays * DAY_IN_MS)
+      }
       maxDate={new Date()}
       initialTimeValues={timeValues}
       initialTitle={displayTitle}

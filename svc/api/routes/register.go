@@ -84,6 +84,8 @@ import (
 	v2AnalyticsGetRuntimeLogs "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_runtime_logs"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
+	v2LogsGetApiRequestMetrics "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
+	v2LogsListApiRequests "github.com/unkeyed/unkey/svc/api/routes/v2_logs_list_api_requests"
 	v2PortalCreatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 	v2PortalDeletePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
@@ -241,7 +243,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
 			Auditlogs:       svc.Auditlogs,
-			TestMode:        srv.Flags().TestMode,
 		},
 	)
 
@@ -254,7 +255,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
 			Auditlogs:       svc.Auditlogs,
-			TestMode:        srv.Flags().TestMode,
 		},
 	)
 
@@ -726,6 +726,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -847,6 +848,31 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
+		},
+	)
+
+	// ---------------------------------------------------------------------------
+	// v2/logs
+
+	// v2/logs.listApiRequests
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2LogsListApiRequests.Handler{
+			ClickHouse:  svc.ClickHouse,
+			DB:          svc.Database,
+			LimitsCache: svc.Caches.WorkspaceLimits,
+			Clock:       svc.Clock,
+		},
+	)
+
+	// v2/logs.getApiRequestMetrics
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2LogsGetApiRequestMetrics.Handler{
+			ClickHouse:  svc.ClickHouse,
+			DB:          svc.Database,
+			LimitsCache: svc.Caches.WorkspaceLimits,
+			Clock:       svc.Clock,
 		},
 	)
 
@@ -988,6 +1014,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		}),
 	)
 
@@ -996,6 +1023,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		portalMiddlewares,
 		&v2PortalGetVerifications.Handler{
 			ClickHouse:       svc.ClickHouse,
+			Clock:            svc.Clock,
 			DB:               svc.Database,
 			LimitsCache:      svc.Caches.WorkspaceLimits,
 			MaxPerKeySeries:  v2PortalGetVerifications.DefaultMaxPerKeySeries,

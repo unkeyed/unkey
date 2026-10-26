@@ -46,8 +46,12 @@ type AcmeConfig struct {
 
 	// EmailDomain is the domain used for ACME account emails.
 	// Used for Let's Encrypt account registration and recovery.
-	// Example: "unkey.com" creates "admin@unkey.com" for ACME account.
+	// All certificates share one account, registered as "acme@{EmailDomain}".
 	EmailDomain string `toml:"email_domain" config:"default=unkey.com"`
+
+	// DirectoryURL is the ACME directory. Non-production environments use Let's
+	// Encrypt staging so iterating on issuance cannot exhaust production rate limits.
+	DirectoryURL string `toml:"directory_url" config:"default=https://acme-v02.api.letsencrypt.org/directory"`
 
 	// Route53 configures DNS-01 challenges through AWS Route53 API.
 	// Enables wildcard certificates for domains hosted on Route53.

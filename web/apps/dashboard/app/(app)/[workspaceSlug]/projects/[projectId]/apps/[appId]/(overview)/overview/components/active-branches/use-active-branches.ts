@@ -1,5 +1,5 @@
+import { useInfiniteList } from "@/lib/loadable/list";
 import { trpc } from "@/lib/trpc/client";
-import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../../data-provider";
 
 export const ACTIVE_BRANCHES_PAGE_SIZE = 10;
@@ -15,18 +15,5 @@ export function useActiveBranches() {
     },
   );
 
-  const branches = useMemo(
-    () => (query.data?.pages ?? []).flatMap((page) => page.branches),
-    [query.data],
-  );
-
-  return {
-    branches,
-    isLoading: query.isInitialLoading,
-    isError: query.isError,
-    refetch: query.refetch,
-    hasNextPage: query.hasNextPage ?? false,
-    isFetchingNextPage: query.isFetchingNextPage,
-    fetchNextPage: query.fetchNextPage,
-  };
+  return useInfiniteList(query, (page) => page.branches);
 }

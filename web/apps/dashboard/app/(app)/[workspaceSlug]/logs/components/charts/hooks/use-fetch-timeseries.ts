@@ -1,113 +1,84 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import type { TimeseriesRequestSchema } from "@/lib/schemas/logs.schema";
-import { trpc } from "@/lib/trpc/client";
+import { toApiRequestsFilters } from "@/lib/api-request-logs";
+import { queryKeys } from "@/lib/query-keys";
+import {
+  TIMESERIES_GRANULARITIES,
+  type TimeseriesGranularity,
+} from "@/lib/trpc/routers/utils/granularity";
+import { getUnkeyClient } from "@/lib/unkey-client";
 import { useQueryTime } from "@/providers/query-time-provider";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
 import { useMemo } from "react";
+import { useLogsContext } from "../../../context/logs";
 import { useFilters } from "../../../hooks/use-filters";
+
+const LIVE_REFRESH_INTERVAL_MS = 10_000;
 
 export const useFetchTimeseries = () => {
   const { filters } = useFilters();
-
   const { queryTime: timestamp } = useQueryTime();
-  const queryParams = useMemo(() => {
-    const params: TimeseriesRequestSchema = {
+  const { isLive } = useLogsContext();
+
+  // The aggregates have no request id, so the chart ignores that filter
+  const apiFilters = useMemo(() => {
+    const { requestId: _requestId, ...timeseriesFilters } = toApiRequestsFilters(filters, {
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
-      host: { filters: [] },
-      method: { filters: [] },
-      path: { filters: [] },
-      status: { filters: [] },
-      since: "",
-    };
-
-    filters.forEach((filter) => {
-      switch (filter.field) {
-        case "status": {
-          params.status?.filters.push({
-            operator: "is",
-            value: Number.parseInt(filter.value as string),
-          });
-          break;
-        }
-
-        case "methods": {
-          if (typeof filter.value !== "string") {
-            console.error("Method filter value type has to be 'string'");
-            return;
-          }
-          params.method?.filters.push({
-            operator: "is",
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "paths": {
-          if (typeof filter.value !== "string") {
-            console.error("Path filter value type has to be 'string'");
-            return;
-          }
-          params.path?.filters.push({
-            operator: filter.operator,
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "host": {
-          if (typeof filter.value !== "string") {
-            console.error("Host filter value type has to be 'string'");
-            return;
-          }
-          params.host?.filters?.push({
-            operator: "is",
-            value: filter.value,
-          });
-          break;
-        }
-
-        case "startTime":
-        case "endTime": {
-          if (typeof filter.value !== "number") {
-            console.error(`${filter.field} filter value type has to be 'number'`);
-            return;
-          }
-          params[filter.field] = filter.value;
-          break;
-        }
-        case "since": {
-          if (typeof filter.value !== "string") {
-            console.error("Since filter value type has to be 'string'");
-            return;
-          }
-          params.since = filter.value;
-          break;
-        }
-      }
     });
-
-    return params;
+    return timeseriesFilters;
   }, [filters, timestamp]);
 
-  const { data, isLoading, isError } = trpc.logs.queryTimeseries.useQuery(queryParams, {
-    refetchInterval: queryParams.endTime ? false : 10_000,
-    trpc: {
-      context: {
-        skipBatch: true,
-      },
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKeys.logs.apiRequests.metrics(apiFilters, isLive),
+    queryFn: async ({ signal }) => {
+      // Live mode keeps the start and grows the window to now, like the table
+      const gte = apiFilters.time?.gte;
+      const time = isLive && gte !== undefined ? { gte, lte: Date.now() } : apiFilters.time;
+      const { data } = await getUnkeyClient().logs.getApiRequestMetrics(
+        { filters: { ...apiFilters, time } },
+        { signal },
+      );
+      return data;
     },
+    select: (points) => {
+      // Points have no gaps, so two of them give the bucket width. A single
+      // point spans the whole window
+      const { gte, lte } = apiFilters.time ?? {};
+      const bucketMs =
+        points.length >= 2
+          ? points[1].time - points[0].time
+          : gte !== undefined && lte !== undefined
+            ? lte - gte + 1
+            : undefined;
+      // The widest granularity that fits in a bucket, ordered narrowest first
+      const granularity =
+        Object.keys(TIMESERIES_GRANULARITIES)
+          .filter(isTimeseriesGranularity)
+          .findLast((g) => bucketMs !== undefined && TIMESERIES_GRANULARITIES[g].ms <= bucketMs) ??
+        "perMinute";
+      return {
+        bucketMs,
+        granularity,
+        timeseries: points.map((point) => ({
+          ...point,
+          displayX: formatTimestampForChart(point.time, granularity),
+          originalTimestamp: point.time,
+        })),
+      };
+    },
+    refetchInterval: isLive ? LIVE_REFRESH_INTERVAL_MS : false,
     onError(error) {
-      toast.error(error.message || "Could not load logs timeseries data.");
+      toast.error(
+        (error instanceof Error && error.message) || "Could not load logs timeseries data.",
+      );
     },
   });
 
-  const timeseries = data?.timeseries.map((ts) => ({
-    displayX: formatTimestampForChart(ts.x, data.granularity),
-    originalTimestamp: ts.x,
-    ...ts.y,
-  }));
-
-  return { timeseries, isLoading, isError, granularity: data?.granularity };
+  return { ...data, isLoading, isError };
 };
+
+function isTimeseriesGranularity(value: string): value is TimeseriesGranularity {
+  return value in TIMESERIES_GRANULARITIES;
+}

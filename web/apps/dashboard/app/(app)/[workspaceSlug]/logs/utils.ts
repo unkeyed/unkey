@@ -1,4 +1,4 @@
-import type { Log } from "@unkey/clickhouse/src/logs";
+import type { Log } from "@/lib/api-request-logs";
 
 type LogWithRequestResponse = {
   response_body: string;

@@ -344,10 +344,13 @@ func TestAPIExecutor_DoesNotReplayInterruptedVerification(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 			var requests atomic.Int64
+			executeDone := make(chan struct{})
 			executor := newAPIExecutor(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				requests.Add(1)
 				if cancelRequest {
 					cancel()
+					// An empty 200 response must not race with client cancellation.
+					<-executeDone
 					return
 				}
 				connection, _, err := http.NewResponseController(w).Hijack()
@@ -359,6 +362,7 @@ func TestAPIExecutor_DoesNotReplayInterruptedVerification(t *testing.T) {
 					t.Error(err)
 				}
 			}))
+			t.Cleanup(func() { close(executeDone) })
 			req := httptest.NewRequest(http.MethodGet, "/orders", nil)
 			req.Header.Set("Authorization", "Bearer user_test")
 			sess := &zen.Session{}

@@ -621,6 +621,50 @@ func (ns NullFrontlineRoutesSticky) Value() (driver.Value, error) {
 	return string(ns.FrontlineRoutesSticky), nil
 }
 
+type InstancesStatus string
+
+const (
+	InstancesStatusInactive InstancesStatus = "inactive"
+	InstancesStatusPending  InstancesStatus = "pending"
+	InstancesStatusRunning  InstancesStatus = "running"
+	InstancesStatusFailed   InstancesStatus = "failed"
+)
+
+func (e *InstancesStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = InstancesStatus(s)
+	case string:
+		*e = InstancesStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for InstancesStatus: %T", src)
+	}
+	return nil
+}
+
+type NullInstancesStatus struct {
+	InstancesStatus InstancesStatus
+	Valid           bool // Valid is true if InstancesStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullInstancesStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.InstancesStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.InstancesStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullInstancesStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.InstancesStatus), nil
+}
+
 type KeyMigrationsAlgorithm string
 
 const (
@@ -706,6 +750,50 @@ func (ns NullLogdrainsStream) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.LogdrainsStream), nil
+}
+
+type PortalDomainsVerificationStatus string
+
+const (
+	PortalDomainsVerificationStatusPending   PortalDomainsVerificationStatus = "pending"
+	PortalDomainsVerificationStatusVerifying PortalDomainsVerificationStatus = "verifying"
+	PortalDomainsVerificationStatusVerified  PortalDomainsVerificationStatus = "verified"
+	PortalDomainsVerificationStatusFailed    PortalDomainsVerificationStatus = "failed"
+)
+
+func (e *PortalDomainsVerificationStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PortalDomainsVerificationStatus(s)
+	case string:
+		*e = PortalDomainsVerificationStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PortalDomainsVerificationStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPortalDomainsVerificationStatus struct {
+	PortalDomainsVerificationStatus PortalDomainsVerificationStatus
+	Valid                           bool // Valid is true if PortalDomainsVerificationStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPortalDomainsVerificationStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PortalDomainsVerificationStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PortalDomainsVerificationStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPortalDomainsVerificationStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PortalDomainsVerificationStatus), nil
 }
 
 type UnkeyPrincipalPermissionsPrincipalType string

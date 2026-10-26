@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -19,7 +18,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -45,7 +43,6 @@ type Handler struct {
 	Ratelimit       ratelimit.Service
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
-	TestMode        bool
 	createFlight    sf.Group[db.FindRatelimitNamespace]
 }
 
@@ -158,18 +155,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Limit:       limit,
 		Cost:        cost,
 		Time:        time.Time{},
-	}
-
-	if h.TestMode {
-		header := s.Request().Header.Get("X-Test-Time")
-		if header != "" {
-			i, parseErr := strconv.ParseInt(header, 10, 64)
-			if parseErr != nil {
-				logger.Warn("invalid test time", "header", header)
-			} else {
-				limitReq.Time = time.UnixMilli(i)
-			}
-		}
 	}
 
 	t0 := time.Now()

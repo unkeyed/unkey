@@ -3,7 +3,7 @@ import { LogsDateTime } from "./components/logs-datetime";
 import { LogsSearch } from "./components/logs-search";
 
 type Props = {
-  apiList: ApiOverview[];
+  apiList: readonly ApiOverview[];
   onApiListChange: (apiList: ApiOverview[]) => void;
   onSearch: (value: boolean) => void;
 };

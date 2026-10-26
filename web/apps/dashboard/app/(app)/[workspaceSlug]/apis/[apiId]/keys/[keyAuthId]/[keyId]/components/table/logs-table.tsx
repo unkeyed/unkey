@@ -1,12 +1,13 @@
 "use client";
 import {
+  apiRequestDetailsQuery,
   buildGatewayRequestDetailsQueryParams,
-  buildRequestDetailsQueryParams,
   createKeyDetailsLogsColumns,
   getRowClassName,
   useKeyDetailsLogsQuery,
 } from "@/components/key-details-logs-table";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryClient } from "@tanstack/react-query";
 import type { RowSelectionState } from "@tanstack/react-table";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { IconArrowsOppositeDirectionYOutline18, IconBookBookmarkOutline18 } from "@unkey/icons";
@@ -52,6 +53,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
 
   const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear any pending hover-prefetch timeout on unmount
@@ -70,7 +72,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         setHoveredLogId(log.request_id);
 
         // Debounce the prefetch so rapid mouse movement across rows
-        // doesn't fire N separate queryLogs API calls.
+        // does not fire one request lookup per row.
         if (hoverTimerRef.current) {
           clearTimeout(hoverTimerRef.current);
         }
@@ -83,13 +85,14 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
             );
             return;
           }
-          utils.logs.queryLogs.prefetch(buildRequestDetailsQueryParams(target), {
+          queryClient.prefetchQuery({
+            ...apiRequestDetailsQuery(target),
             staleTime: Number.POSITIVE_INFINITY,
           });
         }, 150);
       }
     },
-    [hoveredLogId, utils.logs.queryLogs, utils.deploy.requestLogs.details],
+    [hoveredLogId, queryClient, utils.deploy.requestLogs.details],
   );
 
   const handleRowMouseLeave = useCallback(() => {

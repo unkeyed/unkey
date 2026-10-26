@@ -1,0 +1,25 @@
+type: object
+description: |
+  Details of the issue. Which fields are set depends on `type`:
+
+  - `crash_loop`: `restartCount`, and `reason` and `exitCode` of the last exit
+    when one was recorded.
+properties:
+  reason:
+    "$ref": "./DeploymentExitReason.yaml"
+  exitCode:
+    type: integer
+    format: int32
+    description: |
+      Exit code of the last exit. Codes above 128 mean the process was killed
+      by signal `exitCode - 128`, for example 137 for SIGKILL.
+    example: 137
+  restartCount:
+    type: integer
+    format: int64
+    minimum: 0
+    description: |
+      How many times the affected instance was restarted. This is not a total
+      across the instances of the deployment.
+    example: 12
+additionalProperties: false

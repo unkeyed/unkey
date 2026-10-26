@@ -1,8 +1,8 @@
 import { queryKeys } from "@/lib/query-keys";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { type PropsWithChildren, createElement } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCreateIdentityMutation } from "./identities-query";
 
 const identityApi = vi.hoisted(() => ({
@@ -18,6 +18,19 @@ vi.mock("@/lib/unkey-client", () => ({
 }));
 
 describe("identity query cache", () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    queryClient.clear();
+  });
+
   it("scopes list and detail keys to the workspace", () => {
     expect(queryKeys.identities.list("ws_1", "alice")).toEqual([
       "identities",
@@ -34,9 +47,6 @@ describe("identity query cache", () => {
   });
 
   it("refetches a list canceled during identity creation", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
     let requestCount = 0;
     identityApi.createIdentity.mockResolvedValueOnce({ data: { identityId: "id_new" } });
 
@@ -73,15 +83,14 @@ describe("identity query cache", () => {
     );
 
     await waitFor(() => expect(result.current.list.isFetching).toBe(true));
-    await result.current.mutation.mutateAsync({ externalId: "new_identity" });
+    await act(async () => {
+      await result.current.mutation.mutateAsync({ externalId: "new_identity" });
+    });
     await waitFor(() => expect(result.current.list.data).toBe("fresh"));
     expect(requestCount).toBe(2);
   });
 
   it("refetches an inactive list after identity creation", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
     const queryKey = queryKeys.identities.list("ws_1", "");
     let response = "stale";
     const queryFn = vi.fn(() => Promise.resolve(response));
@@ -94,7 +103,9 @@ describe("identity query cache", () => {
     }
 
     const { result } = renderHook(() => useCreateIdentityMutation(), { wrapper });
-    await result.current.mutateAsync({ externalId: "new_identity" });
+    await act(async () => {
+      await result.current.mutateAsync({ externalId: "new_identity" });
+    });
 
     expect(queryClient.getQueryData(queryKey)).toBe("fresh");
     expect(queryFn).toHaveBeenCalledTimes(2);

@@ -130,13 +130,15 @@ func TestRateLimitAccuracy(t *testing.T) {
 									// Cap at total requests
 									upperLimit = min(upperLimit, totalRequests)
 
+									interval := time.Second / time.Duration(rps)
+									window := time.Duration(duration) * time.Millisecond
+									// Avoid boundary-aligned traffic, where the sliding-window estimate
+									// still includes the full previous window and can deny paced requests.
+									h.Clock.Set(h.Clock.Now().Truncate(window).Add(window + interval/2))
 									realStart := time.Now()
 									// Run load test
 									start := h.Clock.Now()
 									successCount := 0
-
-									// Calculate interval between requests to achieve desired RPS
-									interval := time.Second / time.Duration(rps)
 
 									t.Logf("sending %d requests", totalRequests)
 									for i := 0; i < totalRequests; i++ {

@@ -77,8 +77,6 @@ import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
 import { logdrain } from "./logdrain";
 import { llmSearch } from "./logs/llm-search";
-import { queryLogs } from "./logs/query-logs";
-import { queryTimeseries } from "./logs/query-timeseries";
 import {
   getInvitationList,
   getOrg,
@@ -226,8 +224,6 @@ export const router = t.router({
     }),
   }),
   logs: t.router({
-    queryLogs,
-    queryTimeseries,
     llmSearch,
   }),
   billing: t.router({

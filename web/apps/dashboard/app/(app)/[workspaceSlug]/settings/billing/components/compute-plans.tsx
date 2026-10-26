@@ -31,7 +31,7 @@ import { cn } from "cn";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
-import { PLAN_BLURBS, firstInvoiceCents } from "./compute-plan-copy";
+import { PLAN_BLURBS, firstInvoiceCents, planUsageCreditLabel } from "./compute-plan-copy";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
 const CHANGE_NOTE =
@@ -233,8 +233,11 @@ function PlanCard({
       <PlanFeatureList
         rows={planFeatures(card.plan)}
         leading={
-          showSignupCredit && card.price.type === "amount" ? (
-            <SignupCreditFeatureRow interval={card.price.interval} />
+          card.price.type === "amount" ? (
+            <>
+              {showSignupCredit ? <SignupCreditFeatureRow interval={card.price.interval} /> : null}
+              <UsageCreditFeatureRow cents={card.price.cents} interval={card.price.interval} />
+            </>
           ) : null
         }
       />
@@ -311,6 +314,15 @@ function SignupCreditFeatureRow({ interval }: { interval: string | null }) {
         <IconCoinsOutline18 className="size-4 shrink-0" />
         {`${formatDollars(COMPUTE_SIGNUP_CREDIT_CENTS)} off your first ${interval === "year" ? "invoice" : "month"}`}
       </span>
+    </li>
+  );
+}
+
+function UsageCreditFeatureRow({ cents, interval }: { cents: number; interval: string | null }) {
+  return (
+    <li className="flex items-center gap-2.5 text-gray-12 text-sm">
+      <IconCoinsOutline18 className="size-4 shrink-0 text-gray-11" />
+      {planUsageCreditLabel(cents, interval)}
     </li>
   );
 }

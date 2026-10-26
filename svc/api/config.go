@@ -402,8 +402,7 @@ type Config struct {
 // tests. All fields are zero in production; setting any of them enables
 // test-specific behavior that MUST NOT be reachable from a TOML config file.
 type TestConfig struct {
-	// Enabled relaxes certain security checks and trusts client-supplied
-	// headers like X-Test-Time that would normally be rejected.
+	// Enabled relaxes certain security checks.
 	Enabled bool
 
 	// Counter overrides the distributed counter backend. Multi-node tests

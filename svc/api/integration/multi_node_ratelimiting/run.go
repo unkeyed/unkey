@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/integration"
@@ -123,12 +122,10 @@ func RunRateLimitTest(
 
 	realStart := time.Now()
 
-	// Use the harness clock when present so API nodes and their background
-	// services observe the same simulated time as the requests.
+	// API nodes decide on the harness clock, so advancing it moves the time
+	// of every request.
 	clk := h.Clock
-	if clk == nil {
-		clk = clock.NewTestClock()
-	}
+	require.NotNil(t, clk, "the harness needs a TestClock")
 	windowStart := (clk.Now().UnixMilli() / duration) * duration
 	clk.Set(time.UnixMilli(windowStart))
 	simulatedStart := clk.Now()
@@ -146,9 +143,6 @@ func RunRateLimitTest(
 	for i := 0; i < totalRequests; i++ {
 		// Advance simulated clock
 		clk.Tick(interval)
-
-		// Set test time header for consistent timing
-		headers.Set("X-Test-Time", fmt.Sprintf("%d", clk.Now().UnixMilli()))
 
 		// Send request to a random node
 		res, callErr := integration.CallRandomNode[handler.Request, handler.Response](
