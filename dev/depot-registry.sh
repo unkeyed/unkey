@@ -13,7 +13,12 @@ if ! identity=$(git config user.email) || [ -z "$identity" ]; then
   echo "Set git config user.email to identify your local Depot registry project." >&2
   exit 1
 fi
-identity_hash=$(printf '%s' "$identity" | shasum -a 256 | cut -c1-16)
+if command -v sha256sum >/dev/null 2>&1; then
+  checksum_cmd=(sha256sum)
+else
+  checksum_cmd=(shasum -a 256)
+fi
+identity_hash=$(printf '%s' "$identity" | "${checksum_cmd[@]}" | cut -c1-16)
 project_name="unkey-local-registry-$identity_hash"
 
 if ! projects=$(depot projects list --output json); then
