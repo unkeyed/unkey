@@ -1,0 +1,63 @@
+post:
+  tags:
+    - connections
+  summary: Update an app connection
+  description: |
+    Change a connection name or target selection for new caller deployments.
+    Existing deployments keep their saved connections. The target app cannot be changed.
+    Requires read and write on the caller environment, read on the target app,
+    and read on the selected target environment or deployment when explicitly selected.
+    Missing and unreadable resources return the same 404 response.
+  operationId: connections.updateConnection
+  x-speakeasy-name-override: updateConnection
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ConnectionsUpdateConnectionRequestBody.yaml"
+  responses:
+    "200":
+      description: Connection updated.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ConnectionsUpdateConnectionResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Write permission required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Connection or target not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "409":
+      description: Duplicate name or pinned deployment no longer running.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
