@@ -10,10 +10,10 @@ import (
 	"database/sql"
 )
 
-const updateAcmeChallengeTryClaiming = `-- name: UpdateAcmeChallengeTryClaiming :execrows
+const updateAcmeChallengeTryClaiming = `-- name: UpdateAcmeChallengeTryClaiming :exec
 UPDATE acme_challenges
 SET status = ?, updated_at = ?
-WHERE domain_id = ? AND status IN ('waiting', 'verified')
+WHERE domain_id = ? AND status = 'waiting'
 `
 
 type UpdateAcmeChallengeTryClaimingParams struct {
@@ -26,11 +26,8 @@ type UpdateAcmeChallengeTryClaimingParams struct {
 //
 //	UPDATE acme_challenges
 //	SET status = ?, updated_at = ?
-//	WHERE domain_id = ? AND status IN ('waiting', 'verified')
-func (q *Queries) UpdateAcmeChallengeTryClaiming(ctx context.Context, arg UpdateAcmeChallengeTryClaimingParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateAcmeChallengeTryClaiming, arg.Status, arg.UpdatedAt, arg.DomainID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+//	WHERE domain_id = ? AND status = 'waiting'
+func (q *Queries) UpdateAcmeChallengeTryClaiming(ctx context.Context, arg UpdateAcmeChallengeTryClaimingParams) error {
+	_, err := q.db.ExecContext(ctx, updateAcmeChallengeTryClaiming, arg.Status, arg.UpdatedAt, arg.DomainID)
+	return err
 }

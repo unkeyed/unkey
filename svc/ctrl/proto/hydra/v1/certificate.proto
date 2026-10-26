@@ -27,8 +27,7 @@ message ProcessChallengeRequest {
 
 message ProcessChallengeResponse {
   string certificate_id = 1;
-  // "success", "failed", "pending", or "skipped" when the domain is gone or the
-  // challenge is not claimable
+  // "success", "failed", "pending", or "skipped" when the domain no longer exists
   string status = 2;
 }
 

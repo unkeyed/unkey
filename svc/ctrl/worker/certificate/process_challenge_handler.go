@@ -58,7 +58,7 @@ type EncryptedCertificate struct {
 //
 // Returns a response with Status "success" and the certificate ID on success, Status
 // "failed" with empty certificate ID on failure, or Status "skipped" when the domain
-// is gone or the challenge is not claimable. System errors return (nil, error).
+// no longer exists. System errors return (nil, error).
 func (s *Service) ProcessChallenge(
 	ctx restate.ObjectContext,
 	req *hydrav1.ProcessChallengeRequest,
@@ -83,10 +83,9 @@ func (s *Service) ProcessChallenge(
 		return nil, err
 	}
 
-	// Step 2: Claim the challenge. Only a waiting or verified row is claimable,
-	// so zero rows means a pending run owns it or it failed
-	claimed, err := restate.Run(ctx, func(stepCtx restate.RunContext) (int64, error) {
-		return s.db.UpdateAcmeChallengeTryClaiming(stepCtx, db.UpdateAcmeChallengeTryClaimingParams{
+	// Step 2: Claim the challenge
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, s.db.UpdateAcmeChallengeTryClaiming(stepCtx, db.UpdateAcmeChallengeTryClaimingParams{
 			DomainID:  dom.ID,
 			Status:    db.AcmeChallengesStatusPending,
 			UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
@@ -94,10 +93,6 @@ func (s *Service) ProcessChallenge(
 	}, restate.WithName("claim challenge"))
 	if err != nil {
 		return nil, err
-	}
-	if claimed == 0 {
-		logger.Info("challenge not claimable, skipping", "domain", req.GetDomain())
-		return &hydrav1.ProcessChallengeResponse{Status: "skipped"}, nil
 	}
 
 	// Compensation: if anything fails after claiming, mark challenge as failed

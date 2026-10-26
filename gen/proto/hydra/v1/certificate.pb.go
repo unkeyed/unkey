@@ -77,8 +77,7 @@ func (x *ProcessChallengeRequest) GetDomain() string {
 type ProcessChallengeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CertificateId string                 `protobuf:"bytes,1,opt,name=certificate_id,json=certificateId,proto3" json:"certificate_id,omitempty"`
-	// "success", "failed", "pending", or "skipped" when the domain is gone or the
-	// challenge is not claimable
+	// "success", "failed", "pending", or "skipped" when the domain no longer exists
 	Status        string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

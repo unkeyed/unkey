@@ -2733,8 +2733,8 @@ type Querier interface {
 	//
 	//  UPDATE acme_challenges
 	//  SET status = ?, updated_at = ?
-	//  WHERE domain_id = ? AND status IN ('waiting', 'verified')
-	UpdateAcmeChallengeTryClaiming(ctx context.Context, arg UpdateAcmeChallengeTryClaimingParams) (int64, error)
+	//  WHERE domain_id = ? AND status = 'waiting'
+	UpdateAcmeChallengeTryClaiming(ctx context.Context, arg UpdateAcmeChallengeTryClaimingParams) error
 	//UpdateAcmeChallengeVerifiedWithExpiry
 	//
 	//  UPDATE acme_challenges
