@@ -48,6 +48,10 @@ docker_prune_settings(disable=True)
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
 has_domain_connect_key = os.path.exists('./.domain-connect-private-key.pem')
 has_depot_credentials = os.path.exists('./.env.depot')
+if has_depot_credentials:
+    watch_file('./.env.depot')
+    watch_file('./depot-registry.sh')
+    depot_registry_repository = str(local(['bash', './depot-registry.sh'], quiet=True, echo_off=True)).strip()
 
 local_resource(
   'namespace',
@@ -594,10 +598,10 @@ if has_depot_credentials:
     project_prefix = "builds-local"
 
     [registry]
-    repository = "registry.depot.dev/72dvmc7lv7"
+    repository = "%s"
     username = "x-token"
     password = "${UNKEY_REGISTRY_PASSWORD}"
-''',
+''' % depot_registry_repository,
     ).replace(
         '''            - name: UNKEY_VAULT_TOKEN
               value: vault-test-token-123
