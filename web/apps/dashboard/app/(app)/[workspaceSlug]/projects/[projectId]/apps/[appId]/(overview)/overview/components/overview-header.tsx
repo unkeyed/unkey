@@ -39,7 +39,7 @@ function NewDeploymentButton() {
   return (
     <CreateDeploymentButton
       renderTrigger={({ onClick }) => (
-        <Button variant="primary" size="md" onClick={onClick}>
+        <Button variant="primary" size="sm" onClick={onClick}>
           <IconPlusOutline18 />
           New deployment
         </Button>
@@ -51,8 +51,8 @@ function NewDeploymentButton() {
 export function ProductionActionsSkeleton() {
   return (
     <>
-      <Skeleton className="h-8 w-36 rounded-md" />
-      <Skeleton className="size-8 rounded-md" />
+      <Skeleton className="h-7 w-36 rounded-md" />
+      <Skeleton className="size-7 rounded-md" />
     </>
   );
 }
@@ -76,7 +76,7 @@ export function ProductionActions() {
       {diagnostic && (
         <Button
           variant="outline"
-          size="md"
+          size="sm"
           render={<Link href={diagnostic.href} />}
           className="border-errorA-4 text-error-11"
         >
@@ -85,7 +85,7 @@ export function ProductionActions() {
         </Button>
       )}
       {!isRolledBack && rollbackTarget && (
-        <Button variant="outline" size="md" onClick={openRollback}>
+        <Button variant="outline" size="sm" onClick={openRollback}>
           <IconArrowDottedRotateAnticlockwiseOutline18 />
           Instant Rollback
         </Button>

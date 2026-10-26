@@ -88,7 +88,7 @@ export function AppsList() {
             </EmptyStateDescription>
           </EmptyStateHeader>
           <EmptyStateActions>
-            <Button variant="primary" size="md" onClick={openCreateApp}>
+            <Button variant="primary" size="sm" onClick={openCreateApp}>
               <IconPlusOutline18 />
               Create app
             </Button>

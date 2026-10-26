@@ -112,7 +112,7 @@ export function CreateIdentityDialog() {
 
   return (
     <>
-      <Button size="md" variant="primary" onClick={() => setOpen(true)}>
+      <Button size="sm" variant="primary" onClick={() => setOpen(true)}>
         <IconPlusOutline18 />
         Create identity
       </Button>

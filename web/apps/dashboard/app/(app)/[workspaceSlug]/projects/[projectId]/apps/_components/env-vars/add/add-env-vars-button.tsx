@@ -18,7 +18,7 @@ export function AddEnvVarsButton() {
 
   return (
     <>
-      <Button size="md" variant="primary" onClick={() => setIsOpen(true)}>
+      <Button size="sm" variant="primary" onClick={() => setIsOpen(true)}>
         <IconPlusOutline18 />
         Add environment variable
       </Button>
