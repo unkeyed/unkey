@@ -12,14 +12,14 @@ type FindRatelimitNamespaceLimitOverride struct {
 }
 
 type FindRatelimitNamespace struct {
-	ID                 string                                         `db:"id"`
-	WorkspaceID        string                                         `db:"workspace_id"`
-	ProjectID          string                                         `db:"project_id"`
-	Name               string                                         `db:"name"`
-	UseGlobalRatelimit bool                                           `db:"use_global_ratelimit"`
-	CreatedAtM         int64                                          `db:"created_at_m"`
-	UpdatedAtM         sql.NullInt64                                  `db:"updated_at_m"`
-	DeletedAtM         sql.NullInt64                                  `db:"deleted_at_m"`
-	DirectOverrides    map[string]FindRatelimitNamespaceLimitOverride `db:"direct_overrides"`
-	WildcardOverrides  []FindRatelimitNamespaceLimitOverride          `db:"wildcard_overrides"`
+	ID                string                                         `db:"id"`
+	WorkspaceID       string                                         `db:"workspace_id"`
+	ProjectID         string                                         `db:"project_id"`
+	Name              string                                         `db:"name"`
+	UseGcra           bool                                           `db:"use_gcra"`
+	CreatedAtM        int64                                          `db:"created_at_m"`
+	UpdatedAtM        sql.NullInt64                                  `db:"updated_at_m"`
+	DeletedAtM        sql.NullInt64                                  `db:"deleted_at_m"`
+	DirectOverrides   map[string]FindRatelimitNamespaceLimitOverride `db:"direct_overrides"`
+	WildcardOverrides []FindRatelimitNamespaceLimitOverride          `db:"wildcard_overrides"`
 }

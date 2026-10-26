@@ -12,7 +12,7 @@ import (
 )
 
 const findManyRatelimitNamespaces = `-- name: FindManyRatelimitNamespaces :many
-SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.use_global_ratelimit, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
+SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.use_gcra, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
        coalesce(
                (select json_arrayagg(
                                json_object(
@@ -36,21 +36,21 @@ type FindManyRatelimitNamespacesParams struct {
 }
 
 type FindManyRatelimitNamespacesRow struct {
-	Pk                 uint64        `db:"pk"`
-	ID                 string        `db:"id"`
-	WorkspaceID        string        `db:"workspace_id"`
-	ProjectID          string        `db:"project_id"`
-	Name               string        `db:"name"`
-	UseGlobalRatelimit bool          `db:"use_global_ratelimit"`
-	CreatedAtM         int64         `db:"created_at_m"`
-	UpdatedAtM         sql.NullInt64 `db:"updated_at_m"`
-	DeletedAtM         sql.NullInt64 `db:"deleted_at_m"`
-	Overrides          interface{}   `db:"overrides"`
+	Pk          uint64        `db:"pk"`
+	ID          string        `db:"id"`
+	WorkspaceID string        `db:"workspace_id"`
+	ProjectID   string        `db:"project_id"`
+	Name        string        `db:"name"`
+	UseGcra     bool          `db:"use_gcra"`
+	CreatedAtM  int64         `db:"created_at_m"`
+	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
+	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
+	Overrides   interface{}   `db:"overrides"`
 }
 
 // FindManyRatelimitNamespaces
 //
-//	SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.use_global_ratelimit, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
+//	SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.use_gcra, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
 //	       coalesce(
 //	               (select json_arrayagg(
 //	                               json_object(
@@ -100,7 +100,7 @@ func (q *Queries) FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg 
 			&i.WorkspaceID,
 			&i.ProjectID,
 			&i.Name,
-			&i.UseGlobalRatelimit,
+			&i.UseGcra,
 			&i.CreatedAtM,
 			&i.UpdatedAtM,
 			&i.DeletedAtM,

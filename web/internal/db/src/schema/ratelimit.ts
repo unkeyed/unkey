@@ -14,7 +14,7 @@ export const ratelimitNamespaces = mysqlTable(
     workspaceId: id("workspace_id").notNull(),
     projectId: id("project_id").notNull(),
     name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
-    useGlobalRatelimit: boolean("use_global_ratelimit").notNull().default(false),
+    useGcra: boolean("use_gcra").notNull().default(false),
 
     ...lifecycleDatesMigration,
   },

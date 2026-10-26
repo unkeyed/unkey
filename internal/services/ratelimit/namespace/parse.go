@@ -9,16 +9,16 @@ import (
 // ParseNamespaceRow converts a raw DB row into a FindRatelimitNamespace with parsed overrides.
 func ParseNamespaceRow(row db.FindRatelimitNamespaceRow) db.FindRatelimitNamespace {
 	result := db.FindRatelimitNamespace{
-		ID:                 row.ID,
-		WorkspaceID:        row.WorkspaceID,
-		ProjectID:          row.ProjectID,
-		Name:               row.Name,
-		UseGlobalRatelimit: row.UseGlobalRatelimit,
-		CreatedAtM:         row.CreatedAtM,
-		UpdatedAtM:         row.UpdatedAtM,
-		DeletedAtM:         row.DeletedAtM,
-		DirectOverrides:    make(map[string]db.FindRatelimitNamespaceLimitOverride),
-		WildcardOverrides:  make([]db.FindRatelimitNamespaceLimitOverride, 0),
+		ID:                row.ID,
+		WorkspaceID:       row.WorkspaceID,
+		ProjectID:         row.ProjectID,
+		Name:              row.Name,
+		UseGcra:           row.UseGcra,
+		CreatedAtM:        row.CreatedAtM,
+		UpdatedAtM:        row.UpdatedAtM,
+		DeletedAtM:        row.DeletedAtM,
+		DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
+		WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
 	}
 
 	overrides, err := db.UnmarshalNullableJSONTo[[]db.FindRatelimitNamespaceLimitOverride](row.Overrides)
@@ -39,16 +39,16 @@ func ParseNamespaceRow(row db.FindRatelimitNamespaceRow) db.FindRatelimitNamespa
 // RowToNamespace converts a FindManyRatelimitNamespacesRow to FindRatelimitNamespace.
 func RowToNamespace(row db.FindManyRatelimitNamespacesRow) db.FindRatelimitNamespace {
 	result := db.FindRatelimitNamespace{
-		ID:                 row.ID,
-		WorkspaceID:        row.WorkspaceID,
-		ProjectID:          row.ProjectID,
-		Name:               row.Name,
-		UseGlobalRatelimit: row.UseGlobalRatelimit,
-		CreatedAtM:         row.CreatedAtM,
-		UpdatedAtM:         row.UpdatedAtM,
-		DeletedAtM:         row.DeletedAtM,
-		DirectOverrides:    make(map[string]db.FindRatelimitNamespaceLimitOverride),
-		WildcardOverrides:  make([]db.FindRatelimitNamespaceLimitOverride, 0),
+		ID:                row.ID,
+		WorkspaceID:       row.WorkspaceID,
+		ProjectID:         row.ProjectID,
+		Name:              row.Name,
+		UseGcra:           row.UseGcra,
+		CreatedAtM:        row.CreatedAtM,
+		UpdatedAtM:        row.UpdatedAtM,
+		DeletedAtM:        row.DeletedAtM,
+		DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
+		WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
 	}
 
 	overrides, err := db.UnmarshalNullableJSONTo[[]db.FindRatelimitNamespaceLimitOverride](row.Overrides)
