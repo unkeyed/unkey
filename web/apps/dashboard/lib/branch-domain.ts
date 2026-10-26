@@ -17,13 +17,26 @@ export function branchDomainPattern(
     return null;
   }
   const label = environmentHostname.slice(0, dot);
-  const tokenMatch = /-([0-9a-f]{6})$/.exec(label);
-  const token = tokenMatch === null ? "" : tokenMatch[0];
-  const withoutToken = token === "" ? label : label.slice(0, -token.length);
   const suffix = `-${environmentSlug}-${workspaceSlug}`;
-  if (!withoutToken.endsWith(suffix) || withoutToken.length === suffix.length) {
-    return null;
+
+  // A workspace slug can itself end in six hex characters, so try the token
+  // form first and fall back to the untokened one instead of guessing.
+  const tokenMatch = /-([0-9a-f]{6})$/.exec(label);
+  const candidates =
+    tokenMatch === null
+      ? [{ label, token: "" }]
+      : [
+          { label: label.slice(0, -tokenMatch[0].length), token: tokenMatch[0] },
+          { label, token: "" },
+        ];
+
+  for (const candidate of candidates) {
+    if (!candidate.label.endsWith(suffix) || candidate.label.length === suffix.length) {
+      continue;
+    }
+    const prefix = candidate.label.slice(0, -suffix.length);
+    return `${prefix}-git-<branch>-${workspaceSlug}${candidate.token}${environmentHostname.slice(dot)}`;
   }
-  const prefix = withoutToken.slice(0, -suffix.length);
-  return `${prefix}-git-<branch>-${workspaceSlug}${token}${environmentHostname.slice(dot)}`;
+
+  return null;
 }
