@@ -82,7 +82,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
 			codes.Data.Permission.NotFound.URN(),
-			"The requested permission does not exist.",
 		)
 	}
 

@@ -53,18 +53,22 @@ func MaxByteSize(subject string, sizeBytes, limitBytes int) error {
 	)
 }
 
+// NotFound constructs the public not-found response without resource identifiers.
+func NotFound(code codes.URN) error {
+	return fault.New("resource not found",
+		fault.Code(code),
+		fault.Public("Resource does not exist."),
+	)
+}
+
 // MaskInsufficientPermissionsAsNotFound replaces an insufficient-permissions
 // error with a not-found error so callers cannot use response differences to
 // find resources. It returns all other errors unchanged.
-func MaskInsufficientPermissionsAsNotFound(err error, code codes.URN, public string) error {
+func MaskInsufficientPermissionsAsNotFound(err error, code codes.URN) error {
 	errCode, ok := fault.GetCode(err)
 	if !ok || errCode != codes.Auth.Authorization.InsufficientPermissions.URN() {
 		return err
 	}
 
-	return fault.New("resource not found",
-		fault.Code(code),
-		fault.Internal("masking insufficient permissions as not found"),
-		fault.Public(public),
-	)
+	return NotFound(code)
 }

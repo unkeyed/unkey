@@ -94,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		permissions.Read,
 	))
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Deployment.NotFound.URN(), "The requested deployment does not exist.")
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Deployment.NotFound.URN())
 	}
 
 	page, err := h.ClickHouse.GetBuildLogs(ctx, clickhouse.GetBuildLogsRequest{

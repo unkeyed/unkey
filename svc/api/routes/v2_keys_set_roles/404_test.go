@@ -91,7 +91,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, "key was not found")
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 
@@ -115,7 +115,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", nonExistentRoleID))
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 
@@ -139,7 +139,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", nonExistentRoleName))
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 
@@ -204,7 +204,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, "key was not found")
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 
@@ -251,7 +251,7 @@ func TestNotFoundErrors(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.NotNil(t, res.Body.Error)
 			require.Equal(t, "Not Found", res.Body.Error.Title)
-			require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", otherRoleID))
+			require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 			require.Equal(t, 404, res.Body.Error.Status)
 		})
 
@@ -273,7 +273,7 @@ func TestNotFoundErrors(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.NotNil(t, res.Body.Error)
 			require.Equal(t, "Not Found", res.Body.Error.Title)
-			require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", otherRoleName))
+			require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 			require.Equal(t, 404, res.Body.Error.Status)
 		})
 	})
@@ -298,7 +298,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", nonExistentRoleID))
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 
@@ -323,7 +323,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, "key was not found")
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 
@@ -348,7 +348,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("Role '%s' was not found", validFormattedRoleID))
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.Equal(t, 404, res.Body.Error.Status)
 	})
 }

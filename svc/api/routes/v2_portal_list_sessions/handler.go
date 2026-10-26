@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		rbac.U(sessions, permissions.Write),
 	))
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Portal.NotFound.URN(), notFoundMessage)
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Portal.NotFound.URN())
 	}
 
 	now := h.Clock.Now().UnixMilli()

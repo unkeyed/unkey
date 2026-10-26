@@ -62,7 +62,7 @@ func TestIdempotentDeletion(t *testing.T) {
 		)
 
 		require.Equal(t, 404, res2.Status)
-		require.Equal(t, "The requested API does not exist or has been deleted.", res2.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res2.Body.Error.Detail)
 
 		// Third deletion attempt - should still return 404
 		res3 := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -73,6 +73,6 @@ func TestIdempotentDeletion(t *testing.T) {
 		)
 
 		require.Equal(t, 404, res3.Status)
-		require.Equal(t, "The requested API does not exist or has been deleted.", res3.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res3.Body.Error.Detail)
 	})
 }

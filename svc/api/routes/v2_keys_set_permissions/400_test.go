@@ -102,7 +102,7 @@ func TestBadRequest(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 
 	t.Run("invalid keyId format - wrong prefix", func(t *testing.T) {
@@ -121,7 +121,7 @@ func TestBadRequest(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 
 	t.Run("permission with empty string id and name", func(t *testing.T) {

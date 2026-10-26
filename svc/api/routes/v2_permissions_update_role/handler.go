@@ -78,7 +78,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return openapi.V2PermissionsUpdateRoleResponseData{}, apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
 				codes.Data.Role.NotFound.URN(),
-				"The requested role does not exist.",
 			)
 		}
 

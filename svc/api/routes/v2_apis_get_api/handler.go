@@ -103,7 +103,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
 			codes.Data.Api.NotFound.URN(),
-			"The requested API does not exist or has been deleted.",
 		)
 	}
 

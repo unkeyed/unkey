@@ -81,7 +81,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return row, apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
 				codes.Data.RatelimitNamespace.NotFound.URN(),
-				"The requested namespace does not exist.",
 			)
 		}
 

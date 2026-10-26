@@ -68,7 +68,7 @@ func TestNotFound(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 
 	t.Run("key from different workspace (isolation)", func(t *testing.T) {
@@ -118,6 +118,6 @@ func TestNotFound(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 }

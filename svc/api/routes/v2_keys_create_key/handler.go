@@ -148,7 +148,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
 			codes.Data.Api.NotFound.URN(),
-			"The specified API was not found.",
 		)
 	}
 
@@ -240,7 +239,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
 				codes.Data.Api.NotFound.URN(),
-				"The specified API was not found.",
 			)
 		}
 

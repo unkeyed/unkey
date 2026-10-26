@@ -48,7 +48,7 @@ func TestUpdateIdentityAuthorization(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 
 	t.Run("wrong permission type", func(t *testing.T) {
@@ -75,7 +75,7 @@ func TestUpdateIdentityAuthorization(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 
 	t.Run("with permission to update identity", func(t *testing.T) {

@@ -42,7 +42,7 @@ func TestProjectNotFound(t *testing.T) {
 	require.NotNil(t, res.Body)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
 	require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
-	require.Equal(t, "The requested project or app does not exist.", res.Body.Error.Detail)
+	require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 }
 
 func TestCrossWorkspaceProjectIsolation(t *testing.T) {

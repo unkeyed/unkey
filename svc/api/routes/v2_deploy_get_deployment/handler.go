@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -72,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		),
 	))
 	if err != nil {
-		return err
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Project.NotFound.URN())
 	}
 
 	// Build response directly from database model

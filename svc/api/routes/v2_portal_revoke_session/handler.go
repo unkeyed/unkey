@@ -155,7 +155,7 @@ func (h *Handler) authorizedPortal(ctx context.Context, principal *authprincipal
 		),
 	))
 	if err != nil {
-		return db.Portal{}, apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Portal.NotFound.URN(), notFoundMessage)
+		return db.Portal{}, apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Portal.NotFound.URN())
 	}
 
 	return found, nil
