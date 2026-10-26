@@ -2,7 +2,9 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
+import { queryKeys } from "@/lib/query-keys";
+import { getUnkeyClient } from "@/lib/unkey-client";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
 import { useDeployment } from "./layout-provider";
@@ -10,9 +12,14 @@ import { useDeployment } from "./layout-provider";
 export function ConnectionPinsNotice() {
   const { deployment } = useDeployment();
   const workspace = useWorkspaceNavigation();
-  const { data, isError, refetch } = trpc.deploy.deployment.listConnectionPins.useQuery({
-    deploymentId: deployment.id,
-    projectId: deployment.projectId,
+  const { data, isError, refetch } = useQuery({
+    queryKey: queryKeys.deployments.connectionPins(deployment.id),
+    queryFn: async () => {
+      const response = await getUnkeyClient().deployments.listConnectionPins({
+        deploymentId: deployment.id,
+      });
+      return response.data;
+    },
   });
 
   if (isError) {

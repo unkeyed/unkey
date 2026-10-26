@@ -13,8 +13,10 @@ import {
   summarizeInstances,
 } from "@/lib/collections/deploy/instance-status";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
-import { trpc } from "@/lib/trpc/client";
+import { queryKeys } from "@/lib/query-keys";
+import { getUnkeyClient } from "@/lib/unkey-client";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
+import { useQuery } from "@tanstack/react-query";
 import {
   IconCodeBranchOutline18,
   IconCodeCommitOutline18,
@@ -66,9 +68,14 @@ export function AppCanvas() {
     canvas;
   const { policies, view, retry, isRetrying } = useProductionPolicies();
   const listed = view.type === "list";
-  const connections = trpc.deploy.deployment.listConnections.useQuery({
-    projectId: deployment.projectId,
-    deploymentId: deployment.id,
+  const connections = useQuery({
+    queryKey: queryKeys.deployments.connections(deployment.id),
+    queryFn: async () => {
+      const response = await getUnkeyClient().deployments.listConnections({
+        deploymentId: deployment.id,
+      });
+      return response.data;
+    },
   });
 
   return (

@@ -1,4 +1,3 @@
-import { connectionHostVariable } from "@/lib/trpc/routers/deploy/app-connection/validation";
 import { IconChevronRightOutline12, IconCubeOutline18 } from "@unkey/icons";
 import { Badge, cn } from "@unkey/ui";
 import type { ReactNode } from "react";
@@ -6,6 +5,7 @@ import {
   type ConnectionTargets,
   type Environment,
   type ListedConnection,
+  connectionHostVariable,
   describeTarget,
   isProduction,
 } from "./connection-rules";

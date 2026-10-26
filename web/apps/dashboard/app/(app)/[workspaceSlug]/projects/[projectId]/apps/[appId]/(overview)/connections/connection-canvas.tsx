@@ -3,10 +3,11 @@
 import { collection } from "@/lib/collections";
 import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
 import { showSettingsBanner } from "@/lib/collections/deploy/pending-redeploy";
-import { trpc } from "@/lib/trpc/client";
-import { mergeDeploymentTargets } from "@/lib/trpc/routers/deploy/app-connection/target-pagination";
-import { connectionHostVariable } from "@/lib/trpc/routers/deploy/app-connection/validation";
+import { queryKeys } from "@/lib/query-keys";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { V2ConnectionsCreateConnectionRequestBody } from "@unkey/api/models/components";
 import {
   IconChevronDownOutline12,
   IconCloudOutline18,
@@ -40,7 +41,12 @@ import { isRedeployableDeploymentStatus } from "../deployments/components/table/
 import { AddConnectionPicker } from "./add-connection-picker";
 import { ConnectionDetails } from "./connection-details";
 import { ConnectionNode, Group } from "./connection-node";
-import { type Environment, isProduction } from "./connection-rules";
+import {
+  type Environment,
+  connectionHostVariable,
+  isProduction,
+  mergeDeploymentTargets,
+} from "./connection-rules";
 import { ConnectionWires } from "./connection-wires";
 import { HowConnectionsWorkPanel } from "./how-connections-work";
 
@@ -89,7 +95,7 @@ export function ConnectionCanvas({
   environments: Environment[];
   onEnvironmentChange: (id: string) => void;
 }) {
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const appQuery = useLiveQuery(
     (q) =>
       q
@@ -126,15 +132,26 @@ export function ConnectionCanvas({
       showSettingsBanner({ deployment, environmentSlug: environment.slug });
     }
   };
-  const connections = trpc.appConnection.list.useQuery({
-    projectId,
-    appId,
-    environmentId: environment.id,
+  const connections = useQuery({
+    queryKey: queryKeys.connections.list(projectId, appId, environment.id),
+    queryFn: async ({ signal }) => {
+      const firstPage = await getUnkeyClient().connections.listConnections(
+        { project: projectId, app: appId, environment: environment.id },
+        { signal },
+      );
+      const pages = await Array.fromAsync(firstPage);
+      return pages.flatMap((page) => page.result.data).sort((a, b) => a.name.localeCompare(b.name));
+    },
   });
-  const retained = trpc.appConnection.retained.useQuery({
-    projectId,
-    appId,
-    environmentId: environment.id,
+  const retained = useQuery({
+    queryKey: queryKeys.connections.retained(projectId, appId, environment.id),
+    queryFn: async ({ signal }) =>
+      (
+        await getUnkeyClient().connections.listRetainedConnections(
+          { project: projectId, app: appId, environment: environment.id },
+          { signal },
+        )
+      ).data,
   });
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -143,26 +160,34 @@ export function ConnectionCanvas({
   const [canvasRoot, setCanvasRoot] = useState<HTMLDivElement | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const selectedConnection = connections.data?.find((connection) => connection.id === selectedId);
-  const targets = trpc.appConnection.targets.useInfiniteQuery(
-    {
+  const targets = useInfiniteQuery({
+    queryKey: queryKeys.connections.targets(
       projectId,
       appId,
-      environmentId: environment.id,
-      targetAppId: selectedConnection?.targetAppId,
-    },
-    {
-      getNextPageParam: (page) => page.nextCursor ?? undefined,
-      keepPreviousData: true,
-    },
-  );
+      environment.id,
+      selectedConnection?.targetAppId,
+    ),
+    queryFn: ({ pageParam, signal }: { pageParam?: string; signal?: AbortSignal }) =>
+      getUnkeyClient().connections.listTargets(
+        {
+          project: projectId,
+          app: appId,
+          environment: environment.id,
+          targetAppId: selectedConnection?.targetAppId,
+          cursor: pageParam,
+        },
+        { signal },
+      ),
+    getNextPageParam: (page) =>
+      page.pagination.hasMore ? (page.pagination.cursor ?? undefined) : undefined,
+    keepPreviousData: true,
+  });
   const refresh = async () => {
-    await Promise.all([
-      utils.appConnection.list.invalidate({ projectId }),
-      utils.appConnection.retained.invalidate({ projectId, appId }),
-      utils.appConnection.targets.invalidate({ projectId, appId }),
-    ]);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.connections.app(projectId, appId) });
   };
-  const create = trpc.appConnection.create.useMutation({
+  const create = useMutation({
+    mutationFn: async (request: V2ConnectionsCreateConnectionRequestBody) =>
+      (await getUnkeyClient().connections.createConnection(request)).data,
     onSuccess: async (result) => {
       setPickerOpen(false);
       setSearch("");
@@ -171,9 +196,11 @@ export function ConnectionCanvas({
       await refresh();
       setSelectedId(result.id);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
-  const remove = trpc.appConnection.delete.useMutation({
+  const remove = useMutation({
+    mutationFn: (connectionId: string) =>
+      getUnkeyClient().connections.deleteConnection({ connectionId }),
     onSuccess: async () => {
       setRemovingId(null);
       setSelectedId(null);
@@ -181,7 +208,7 @@ export function ConnectionCanvas({
       toast.success("Connection removed");
       await refresh();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
   if (connections.isLoading || targets.isLoading || appQuery.isLoading) {
     return (
@@ -209,10 +236,10 @@ export function ConnectionCanvas({
   const app = appQuery.data[0];
   const connected = new Set(connections.data.map((connection) => connection.targetAppId));
   const targetData = {
-    ...targets.data.pages[0],
+    ...targets.data.pages[0].data,
     deployments: mergeDeploymentTargets(
       [],
-      targets.data.pages.flatMap((page) => page.deployments),
+      targets.data.pages.flatMap((page) => page.data.deployments),
     ),
   };
   const others = targetData.apps.filter((target) => !connected.has(target.id));
@@ -349,10 +376,10 @@ export function ConnectionCanvas({
                   pending={create.isLoading}
                   onAdd={(targetAppId, rule) =>
                     create.mutate({
-                      projectId,
-                      appId,
-                      environmentId: environment.id,
-                      targetAppId,
+                      project: projectId,
+                      app: appId,
+                      environment: environment.id,
+                      targetApp: targetAppId,
                       ...rule,
                     })
                   }
@@ -374,7 +401,6 @@ export function ConnectionCanvas({
               <div className="min-w-0 break-words rounded-xl border border-gray-4 bg-background lg:w-80">
                 <ConnectionDetails
                   key={selected.id}
-                  projectId={projectId}
                   appName={app.name}
                   connection={selected}
                   environment={environment}
@@ -445,7 +471,7 @@ export function ConnectionCanvas({
               disabled={remove.isLoading}
               onClick={() => {
                 if (removing) {
-                  remove.mutate({ projectId, id: removing.id });
+                  remove.mutate(removing.id);
                 }
               }}
             >

@@ -1,7 +1,6 @@
 "use client";
 
-import type { Router } from "@/lib/trpc/routers";
-import type { inferRouterOutputs } from "@trpc/server";
+import type { V2DeploymentsListConnectionsResponseData } from "@unkey/api/models/components";
 import { IconLinkOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, Button, Skeleton } from "@unkey/ui";
@@ -14,7 +13,7 @@ export function ConnectionsNode({
   href,
 }: {
   query: {
-    data: inferRouterOutputs<Router>["deploy"]["deployment"]["listConnections"] | undefined;
+    data: V2DeploymentsListConnectionsResponseData | undefined;
     isLoading: boolean;
     isError: boolean;
     isFetching: boolean;

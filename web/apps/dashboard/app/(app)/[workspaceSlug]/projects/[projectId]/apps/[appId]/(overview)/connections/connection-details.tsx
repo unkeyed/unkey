@@ -1,10 +1,8 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
-import {
-  connectionHostVariable,
-  connectionNameSchema,
-} from "@/lib/trpc/routers/deploy/app-connection/validation";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
+import type { V2ConnectionsUpdateConnectionRequestBody } from "@unkey/api/models/components";
 import {
   IconChevronRightOutline18,
   IconCubeOutline18,
@@ -19,6 +17,8 @@ import {
   type Environment,
   type ListedConnection,
   type TargetRule,
+  connectionHostVariable,
+  connectionNameSchema,
   describeTarget,
   isProduction,
   ruleOf,
@@ -39,7 +39,6 @@ function CopyValue({ label, value }: { label: string; value: string }) {
 }
 
 export function ConnectionDetails({
-  projectId,
   appName,
   connection,
   environment,
@@ -51,7 +50,6 @@ export function ConnectionDetails({
   onRemove,
   onSaved,
 }: {
-  projectId: string;
   appName: string;
   connection: ListedConnection;
   environment: Environment;
@@ -75,7 +73,9 @@ export function ConnectionDetails({
       renameInput.current?.focus();
     }
   }, [renaming]);
-  const update = trpc.appConnection.update.useMutation({
+  const update = useMutation({
+    mutationFn: async (request: V2ConnectionsUpdateConnectionRequestBody) =>
+      (await getUnkeyClient().connections.updateConnection(request)).data,
     onSuccess: async (result) => {
       if (result.name !== connection.name) {
         toast.success("Connection renamed", {
@@ -87,7 +87,7 @@ export function ConnectionDetails({
       setRenaming(false);
       await onSaved();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
   const targetName = connection.targetAppName;
   const rule = ruleOf(connection);
@@ -108,8 +108,7 @@ export function ConnectionDetails({
   });
   const save = (next: TargetRule, name?: string) =>
     update.mutate({
-      projectId,
-      id: connection.id,
+      connectionId: connection.id,
       ...next,
       ...(name ? { name } : {}),
     });

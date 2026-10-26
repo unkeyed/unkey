@@ -1,9 +1,12 @@
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import type { Environment as CollectionEnvironment } from "@/lib/collections/deploy/environments";
-import type { target } from "@/lib/trpc/routers/deploy/app-connection/schemas";
-import type { z } from "zod";
+import type { AppConnection } from "@unkey/api/models/components";
+import { z } from "zod";
 
-export type TargetRule = z.infer<typeof target>;
+export type TargetRule =
+  | { targetType: "automatic" }
+  | { targetType: "environment"; targetEnvironmentId: string }
+  | { targetType: "deployment"; targetDeploymentId: string };
 
 export type Connection = {
   id: string;
@@ -11,8 +14,8 @@ export type Connection = {
   environmentId: string;
   targetAppId: string;
   targetType: TargetRule["targetType"];
-  targetEnvironmentId: string | null;
-  targetDeploymentId: string | null;
+  targetEnvironmentId?: string | null;
+  targetDeploymentId?: string | null;
 };
 
 export type Environment = Pick<CollectionEnvironment, "id" | "appId" | "slug" | "kind">;
@@ -28,7 +31,34 @@ export type ConnectionTargets = {
   environments: Environment[];
   deployments: (Deployment & { gitBranch: string | null; image: string | null })[];
 };
-export type ListedConnection = Connection & { name: string; targetAppName: string };
+export type ListedConnection = AppConnection;
+
+export const connectionNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Name is required")
+  .max(63)
+  .regex(
+    /^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/,
+    "Start with a letter and use lowercase letters, numbers, and hyphens",
+  )
+  .refine((value) => value !== "self", "The name self is reserved")
+  .refine((value) => !value.startsWith("unkey"), "Names starting with unkey are reserved");
+
+export function connectionHostVariable(name: string): string {
+  return `${name.replaceAll("-", "_").toUpperCase()}_HOST`;
+}
+
+export function mergeDeploymentTargets<T extends { id: string }>(pins: T[], choices: T[]): T[] {
+  const seen = new Set<string>();
+  return [...pins, ...choices].filter((deployment) => {
+    if (seen.has(deployment.id)) {
+      return false;
+    }
+    seen.add(deployment.id);
+    return true;
+  });
+}
 
 export function isProduction(environment: Pick<Environment, "kind">): boolean {
   return environment.kind === "production";
