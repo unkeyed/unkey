@@ -1,0 +1,56 @@
+post:
+  tags:
+    - connections
+  summary: Delete an app connection
+  description: |
+    Remove a connection default from the caller environment. Existing deployments
+    keep their saved connections and deployment pins until those deployments stop.
+    Requires read and write on the caller environment. Target read access is not required.
+    Missing and unreadable connections return the same 404 response.
+  operationId: connections.deleteConnection
+  x-speakeasy-name-override: deleteConnection
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ConnectionsDeleteConnectionRequestBody.yaml"
+  responses:
+    "200":
+      description: Connection default deleted.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ConnectionsDeleteConnectionResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Write permission required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Connection not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -358,6 +358,8 @@ paths:
     $ref: "./spec/paths/v2/connections/createConnection/index.yaml"
   /v2/connections.updateConnection:
     $ref: "./spec/paths/v2/connections/updateConnection/index.yaml"
+  /v2/connections.deleteConnection:
+    $ref: "./spec/paths/v2/connections/deleteConnection/index.yaml"
 
   # Environment Endpoints
   /v2/environments.getEnvironment:
