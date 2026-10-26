@@ -12,7 +12,7 @@ import (
 
 func (s *Service) ReEncrypt(ctx context.Context, req *connect.Request[vaultv1.ReEncryptRequest]) (_ *connect.Response[vaultv1.ReEncryptResponse], err error) {
 	defer func() { observeOperation("reencrypt", err) }()
-	if err := s.authenticate(req); err != nil {
+	if err := s.authenticate(ctx, req); err != nil {
 		return nil, err
 	}
 	ctx, span := tracing.Start(ctx, "vault.ReEncrypt")

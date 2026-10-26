@@ -8,11 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	"connectrpc.com/connect"
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -23,7 +21,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
-	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/db"
@@ -130,13 +127,7 @@ func Run(ctx context.Context, cfg Config) error {
 		OnFlushError:  nil,
 	})
 	r.Defer(func() error { deliveries.Close(); return nil })
-	vaultClient := vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
-		http.DefaultClient,
-		cfg.Vault.URL,
-		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-			"Authorization": "Bearer " + cfg.Vault.Token,
-		})),
-	))
+	vaultClient := vault.NewConnectVaultServiceClient(newVaultClient(cfg.Vault))
 	serviceClock := clock.New()
 	leasing, err := lease.New(lease.Config{
 		DB:      database,

@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/vault/internal/keyring"
 	"github.com/unkeyed/unkey/svc/vault/internal/metrics"
+	"github.com/unkeyed/unkey/svc/vault/internal/oidc"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"google.golang.org/protobuf/proto"
 )
@@ -28,6 +29,7 @@ type Service struct {
 
 	keyring *keyring.Keyring
 	bearer  string
+	oidc    *oidc.Verifier
 }
 
 var _ vaultv1connect.VaultServiceHandler = (*Service)(nil)
@@ -37,9 +39,21 @@ type Config struct {
 	MasterKey         string
 	PreviousMasterKey *string
 	BearerToken       string
+	OIDC              *oidc.Config
 }
 
 func New(cfg Config) (*Service, error) {
+	if (cfg.BearerToken == "") == (cfg.OIDC == nil) {
+		return nil, fmt.Errorf("must configure exactly one authentication mode")
+	}
+	var verifier *oidc.Verifier
+	if cfg.OIDC != nil {
+		var err error
+		verifier, err = oidc.New(*cfg.OIDC)
+		if err != nil {
+			return nil, fmt.Errorf("configure oidc: %w", err)
+		}
+	}
 
 	encryptionKey, decryptionKeys, err := loadMasterKeys(cfg.MasterKey, cfg.PreviousMasterKey)
 	if err != nil {
@@ -76,6 +90,7 @@ func New(cfg Config) (*Service, error) {
 		encryptionKey: encryptionKey,
 		keyring:       kr,
 		bearer:        cfg.BearerToken,
+		oidc:          verifier,
 	}, nil
 }
 

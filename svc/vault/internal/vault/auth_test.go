@@ -19,7 +19,7 @@ func TestAuthenticate_Success(t *testing.T) {
 	})
 	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-	err := service.authenticate(req)
+	err := service.authenticate(t.Context(), req)
 	require.NoError(t, err)
 }
 
@@ -32,7 +32,7 @@ func TestAuthenticate_MissingHeader(t *testing.T) {
 	})
 	// No Authorization header set
 
-	err := service.authenticate(req)
+	err := service.authenticate(t.Context(), req)
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
@@ -46,7 +46,7 @@ func TestAuthenticate_InvalidScheme(t *testing.T) {
 	})
 	req.Header().Set("Authorization", "Basic "+service.bearer)
 
-	err := service.authenticate(req)
+	err := service.authenticate(t.Context(), req)
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
@@ -60,7 +60,7 @@ func TestAuthenticate_EmptyToken(t *testing.T) {
 	})
 	req.Header().Set("Authorization", "Bearer ")
 
-	err := service.authenticate(req)
+	err := service.authenticate(t.Context(), req)
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
@@ -74,7 +74,7 @@ func TestAuthenticate_InvalidToken(t *testing.T) {
 	})
 	req.Header().Set("Authorization", "Bearer wrong-token")
 
-	err := service.authenticate(req)
+	err := service.authenticate(t.Context(), req)
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }

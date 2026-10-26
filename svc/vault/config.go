@@ -4,7 +4,11 @@ import (
 	"errors"
 
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/svc/vault/internal/oidc"
 )
+
+// OIDCConfig authenticates service callers using an exact subject allowlist.
+type OIDCConfig = oidc.Config
 
 // EncryptionConfig holds the master keys used for encryption and decryption.
 type EncryptionConfig struct {
@@ -73,7 +77,10 @@ type Config struct {
 	Region string `toml:"region"`
 
 	// BearerToken is the authentication token for securing vault operations.
-	BearerToken string `toml:"bearer_token" config:"required,nonempty"`
+	BearerToken string `toml:"bearer_token"`
+
+	// OIDC replaces static bearer authentication when set.
+	OIDC *OIDCConfig `toml:"oidc"`
 
 	// Encryption holds the master keys for encrypting and decrypting data.
 	Encryption EncryptionConfig `toml:"encryption"`
@@ -92,6 +99,14 @@ type Config struct {
 // Validate implements [config.Validator] so that [config.Load] calls it
 // automatically after tag-level validation.
 func (c *Config) Validate() error {
+	if (c.BearerToken == "") == (c.OIDC == nil) {
+		return errors.New("must set exactly one of bearer_token or [oidc]")
+	}
+	if c.OIDC != nil {
+		if err := c.OIDC.Validate(); err != nil {
+			return err
+		}
+	}
 	if c.Storage.S3 == nil && c.Storage.Disk == nil {
 		return errors.New("storage: must set either [storage.s3] or [storage.disk]")
 	}

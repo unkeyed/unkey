@@ -61,6 +61,7 @@ func StartTestVault(t *testing.T) *TestVault {
 		MasterKey:         masterKey,
 		PreviousMasterKey: nil,
 		BearerToken:       token,
+		OIDC:              nil,
 	})
 	require.NoError(t, err)
 
@@ -105,6 +106,7 @@ func StartTestVaultWithMemory(t *testing.T) *TestVault {
 		MasterKey:         masterKey,
 		PreviousMasterKey: nil,
 		BearerToken:       token,
+		OIDC:              nil,
 	})
 	require.NoError(t, err)
 

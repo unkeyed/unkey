@@ -20,7 +20,7 @@ func (s *Service) Encrypt(
 	req *connect.Request[vaultv1.EncryptRequest],
 ) (_ *connect.Response[vaultv1.EncryptResponse], err error) {
 	defer func() { observeOperation("encrypt", err) }()
-	if err := s.authenticate(req); err != nil {
+	if err := s.authenticate(ctx, req); err != nil {
 		return nil, err
 	}
 	res, err := s.encrypt(ctx, req.Msg)

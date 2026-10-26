@@ -15,7 +15,7 @@ func (s *Service) EncryptBulk(
 	req *connect.Request[vaultv1.EncryptBulkRequest],
 ) (_ *connect.Response[vaultv1.EncryptBulkResponse], err error) {
 	defer func() { observeOperation("encrypt_bulk", err) }()
-	if err := s.authenticate(req); err != nil {
+	if err := s.authenticate(ctx, req); err != nil {
 		return nil, err
 	}
 

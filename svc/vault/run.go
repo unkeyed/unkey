@@ -102,6 +102,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MasterKey:         cfg.Encryption.MasterKey,
 		PreviousMasterKey: cfg.Encryption.PreviousMasterKey,
 		BearerToken:       cfg.BearerToken,
+		OIDC:              cfg.OIDC,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create vault service: %w", err)
