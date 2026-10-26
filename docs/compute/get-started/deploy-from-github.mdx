@@ -37,74 +37,70 @@ sources:
 ---
 
 
-You can deploy an app straight from a GitHub repository, and Unkey deploys on every push. Connect the repository and Unkey tracks its default branch on GitHub. A push to that branch creates a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>. A push to any other branch creates a preview deployment. Open the deployment in the dashboard and wait for its status to be `ready`. Then it's live on a `unkey.app` domain.
+Connect a GitHub repository to an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> and Unkey builds and deploys it on every push. By the end of this guide you have a <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>, an app connected to the repository, and a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> live on a `unkey.app` domain.
 
-That's the default, with auto deploy on and no watch paths. If you turn auto deploy off or set watch paths, a push can be recorded as `skipped` instead of built. A pull request from a fork waits in `awaiting_approval` until a <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> member approves it.
-
-An <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> deploys and serves traffic. By the end of this guide you have a project, an app connected to the repository, and a production deployment.
-
-If you'd rather bring an image you built yourself, see [Deploy a container image](/compute/get-started/deploy-an-image).
+To deploy an image you built yourself instead, see [Deploy a container image](/compute/get-started/deploy-an-image).
 
 <Note>
     You need a Compute plan before you can deploy. If you don't have one yet, the dashboard asks you to pick one the first time you try (the dialog is titled **Choose a Compute plan**). Only a workspace admin can do that. See [Compute plans](/compute/get-started/plans) for what each plan includes.
 </Note>
 
 <Steps titleSize="h3">
- 
   <Step title="Create a project">
-    Open **Projects** in the dashboard and choose **Create project**. The dialog asks for a **Project Name** and a **Slug**. The slug is generated from the name, and you can edit it. The slug is the identifier you'll pass to the API and the CLI, it must be unique in your workspace, and `default` is reserved.
+    Open **Projects** in the dashboard and choose **Create project**. Enter a **Project Name**. The **Slug** is generated from it and is what you pass to the API and the CLI. You can edit it, but it must be unique in your workspace, and `default` is reserved.
 
     <Frame>
       <img src="/images/dashboard/compute--get-started-deploy-from-github--create-project.png" alt="Create New Project dialog with a project name and the slug generated from it" />
     </Frame>
 
-    The dashboard then opens the new-app flow.
+    The dashboard then opens the new-app flow. To add an app to a project later, open the project and choose **Create app**.
   </Step>
   <Step title="Pick the repository">
-    On **Deploy a new app**, pick **GitHub repository**. To add an app to a project later, open the project and choose **Create app**.
+    On **Deploy a new app**, pick **GitHub repository**.
 
     <Frame>
       <img src="/images/dashboard/compute--get-started-deploy-from-github--source.png" alt="Deploy a new app card offering GitHub repository or Container image, next to the steps Select a source, Choose your app, and Configure and deploy" />
     </Frame>
 
-    If the workspace hasn't installed the Unkey GitHub App, the row reads **Connect GitHub** instead. It sends you to GitHub to install the app on an organization or personal account and choose repositories, then brings you back to the repository list. The installation belongs to the workspace, so you do it once.
+    If GitHub isn't connected to your workspace yet, choose **Connect GitHub** instead. It sends you to GitHub to install the Unkey GitHub App on an account or organization and choose repositories, then brings you back. The installation belongs to the workspace, so you only do this once.
 
-    Click a repository. The account menu above the list switches between your GitHub accounts and organizations. To import from an account that isn't listed, choose **Add GitHub account** at the bottom of that menu. If a repository is missing from a listed account, choose **Can't find it? Add repositories on GitHub**.
+    Click a repository to create the app, named after the repository (with `-2`, `-3`, and so on if the project already has an app by that name). The account menu above the list switches between GitHub accounts and organizations, and **Add GitHub account** at the bottom adds another. If a repository is missing from a listed account, choose **Can't find it? Add repositories on GitHub**.
 
     <Frame>
       <img src="/images/dashboard/compute--get-started-deploy-from-github--select-repository.png" alt="Import a GitHub repository card with an account filter, a search field, and a list of repositories" />
     </Frame>
-
-    This creates the app, named after the repository. If the project already uses that name, Unkey adds `-2`, `-3`, and so on.
   </Step>
-  <Step title="Check the settings">
-    The branch starts as the repository's default branch. The defaults build and run most repositories without changes:
+  <Step title="Check app configuration">
+    The default configuration is enough to build and run most repositories without changes:
 
+    - **Branch**: the repository's default branch.
     - **Build**: with no Dockerfile set, Unkey detects your language and toolchain and builds the image. See [Build settings](/compute/configure/build-settings).
-    - **Scaling**: each app starts with 0.25 vCPU, 256 MiB of memory, and one instance in each region available to the workspace. See [Runtime settings](/compute/configure/runtime-settings).
+    - **Scaling**: 0.25 vCPU, 256 MiB of memory, and one instance in `us-east-1`. See [Runtime settings](/compute/configure/runtime-settings).
     - **Environment variables**: mark secrets as sensitive to make them write-only. See [Environment variables](/compute/configure/environment-variables).
 
-    Build and scaling settings you save here apply to both <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>. Auto deploy starts on for both. Your container must listen on the port in the `PORT` environment variable. The port is set per environment and is 8080 in each one. To change it for one environment, open **App settings** > **Environments**, select the environment, and click **Configure** on the **Runtime** card.
+    Build and scaling settings you save here apply to both the production and preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>, and auto deploy is enabled for both by default. Your container must listen on the port in the `PORT` environment variable, which is 8080 by default. The port can be changed for each environment individually later by navigating to **App settings** > **Environments**, selecting the environment, and clicking **Configure** on the **Runtime** card.
 
-    Going back keeps your saved settings. Picking a different repository connects it to the same app.
-
-    Leaving before you deploy asks you to discard the app. An app that was never deployed reopens this flow.
+    If you go back and pick a different repository, Unkey connects it to the same app. Leaving before you deploy asks you to discard the app.
   </Step>
   <Step title="Deploy">
-    Choose **Deploy**. The dashboard creates a deployment in the production environment from the head of the selected branch and opens the deployment page. The deployment moves through `pending`, `starting`, `building`, `deploying`, `network` (shown as **Assigning Domains**), and `finalizing` before it reaches `ready`. The build log streams while `building` runs. A first build waits its turn if another deployment in the workspace is running.
-
-    When the status is `ready` the app is live on its automatic domains. With a project `payments`, an app `api`, and a workspace `acme`, the production deployment answers on `payments-api-acme.unkey.app`, with further domains for the environment, the branch, and the exact commit. If the app slug is `default` the domains omit it and start with `payments-`. The deployment detail page lists every domain.
+    Choose **Deploy**. The dashboard deploys the head of the branch to production and opens the deployment page, where the build log streams. The deployment moves through `pending`, `starting`, `building`, `deploying`, `network` (shown as **Assigning Domains**), and `finalizing` to `ready`. If another deployment in the workspace is running, it waits its turn.
 
     <Frame>
       <img src="/images/dashboard/compute--get-started-deploy-from-github--deployment.png" alt="Deployment page for a ready production deployment showing its commit, resources, instances, domains, and network" />
     </Frame>
 
-    If the deployment ends `failed`, the detail page shows the step that failed and an error code. [Deployments](/compute/concepts/deployments) lists the codes and what to change.
+    At `ready` the app is live. For project `payments`, app `api`, and workspace `acme`, production answers on `payments-api-acme.unkey.app` (or `payments-acme.unkey.app` if the app slug is `default`). The deployment page also lists domains for the environment, the branch, and the exact commit.
+
+    If the deployment ends `failed`, the page shows the failed step and an error code. [Deployments](/compute/concepts/deployments) lists the codes and how to fix them.
   </Step>
   <Step title="Push again">
-    From now on GitHub tells Unkey about every push. A push to the app's default branch creates a production deployment, and when it reaches `ready` it becomes the live deployment and the production domains move to it. A push to any other branch creates a preview deployment with its own branch domain, so every branch has a URL you can share. A pull request from a fork is held in `awaiting_approval` until a project member approves it, because it runs code from outside your repository.
+    From now on GitHub tells Unkey about every push.
 
-    Auto deploy and watch paths decide whether a push builds at all. A push that isn't built is recorded as `skipped` with the reason.
+    - A push to the default branch creates a production deployment. When it reaches `ready`, it becomes the live deployment and the production domains move to it.
+    - A push to any other branch creates a preview deployment with its own branch domain, so every branch has a URL you can share.
+    - A pull request from a fork waits in `awaiting_approval` until a project member approves it, because it runs code from outside your repository.
+
+    Your auto deploy settings and watch paths determine which pushes get built, and a push that isn't built is recorded as `skipped` with the reason.
   </Step>
 </Steps>
 
