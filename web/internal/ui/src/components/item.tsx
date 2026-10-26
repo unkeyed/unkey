@@ -18,6 +18,7 @@ const itemVariants = cva(
       variant: {
         default: "bg-transparent border-transparent",
         outline: "",
+        raised: "border-0 bg-raised shadow-raised",
       },
     },
     defaultVariants: {
@@ -58,6 +59,7 @@ const itemGroupVariants = cva("flex w-full flex-col", {
     variant: {
       default: "",
       outline: "rounded-lg border bg-raised",
+      raised: "rounded-lg bg-raised shadow-raised",
     },
   },
   defaultVariants: {

@@ -68,7 +68,7 @@ export function StatsListCard({
     <Link
       href={href}
       aria-label={ariaLabel}
-      className="relative h-full p-5 flex flex-col border hover:border-strong bg-raised shadow-xs rounded-lg w-full gap-5 transition-all duration-300"
+      className="relative h-full p-5 flex flex-col hover:[--raised-ring:var(--border-color-strong)] bg-raised shadow-raised rounded-lg w-full gap-5 transition-all duration-300"
     >
       <div className="flex flex-col w-full gap-2 min-w-0">
         <InfoTooltip content={title} asChild position={{ align: "start", side: "top" }}>

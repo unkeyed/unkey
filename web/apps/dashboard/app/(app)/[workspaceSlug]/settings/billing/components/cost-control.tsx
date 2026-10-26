@@ -59,7 +59,7 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean | undefined }) {
 
   return (
     <>
-      <ItemGroup variant="outline">
+      <ItemGroup variant="raised">
         {suspended ? (
           <div className="px-4 pt-4">
             <AlertBanner variant="warning">
@@ -176,7 +176,7 @@ function AlertRow({
 
 function ApiFixedFee({ apiFeeCents }: { apiFeeCents: number | null }) {
   return (
-    <ItemGroup variant="outline">
+    <ItemGroup variant="raised">
       <ItemHeader>
         <ItemMedia className="bg-infoA-3 text-info-11">
           <IconNodesOutline18 />

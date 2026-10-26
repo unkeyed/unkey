@@ -63,7 +63,7 @@ export function InstancePicker({
             )}
           </span>
           {more > 0 ? (
-            <span className="rounded-md border border-grayA-4 bg-grayA-3 px-1.5 py-0.5 text-xs text-gray-11">
+            <span className="rounded-md border bg-grayA-3 px-1.5 py-0.5 text-xs text-gray-11">
               +{more}
             </span>
           ) : null}

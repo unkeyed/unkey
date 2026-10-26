@@ -44,8 +44,8 @@ const LAYOUT_CLASS: Record<
   Record<"shell" | "body" | "row" | "header" | "title" | "content" | "description", string>
 > = {
   rows: {
-    shell: "@container border rounded-lg overflow-hidden bg-raised",
-    body: "divide-y divide-grayA-4",
+    shell: "@container rounded-lg overflow-hidden bg-raised shadow-raised",
+    body: "divide-y",
     row: "flex flex-col gap-4 px-5 py-5 @2xl:flex-row",
     header: "flex shrink-0 flex-col gap-1 @2xl:w-2/5",
     title: "text-sm font-medium text-gray-12",
@@ -194,7 +194,7 @@ function SettingsGroupBody({ values, children }: { values: Member[]; children: R
     <>
       <div className={useLayoutClass("body")}>{children}</div>
       {values.length > 0 ? (
-        <div className="border-t border-grayA-4 px-5 py-3 flex items-center justify-end gap-3">
+        <div className="border-t px-5 py-3 flex items-center justify-end gap-3">
           {note ? <span className="text-xs text-gray-11">{note}</span> : null}
           <GroupSaveButton save={save} size="sm" />
         </div>
@@ -262,7 +262,7 @@ function SettingsGroupCollapsible({
         </Collapsible.Trigger>
         <Collapsible.Panel
           keepMounted
-          className="h-(--collapsible-panel-height) overflow-hidden border-t border-grayA-4 transition-[height] duration-200 ease-out data-[ending-style]:h-0 data-[starting-style]:h-0 motion-reduce:transition-none"
+          className="h-(--collapsible-panel-height) overflow-hidden border-t transition-[height] duration-200 ease-out data-[ending-style]:h-0 data-[starting-style]:h-0 motion-reduce:transition-none"
         >
           <SettingsGroupBody values={values}>{children}</SettingsGroupBody>
         </Collapsible.Panel>

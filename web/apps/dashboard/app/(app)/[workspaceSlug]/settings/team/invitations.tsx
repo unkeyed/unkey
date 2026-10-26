@@ -72,7 +72,7 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
     .with({ status: "ready" }, ({ rows, footer }) => (
       <Card>
         <CardContent className="p-0">
-          <div className="divide-y divide-grayA-4">
+          <div className="divide-y">
             {rows.map((invitation) => (
               <div key={invitation.id} className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">

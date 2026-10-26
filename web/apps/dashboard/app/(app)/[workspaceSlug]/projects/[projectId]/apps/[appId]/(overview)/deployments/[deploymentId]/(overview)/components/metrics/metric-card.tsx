@@ -102,7 +102,7 @@ export function MetricCard({
   const gradientColor = isError ? "var(--color-error-9)" : config.color;
 
   return (
-    <div className="border bg-grayA-2 w-full rounded-lg flex flex-col">
+    <div className="bg-raised shadow-raised w-full rounded-lg flex flex-col">
       <div className="flex items-center gap-3 w-full px-[14px] pt-[12px] pb-[8px]">
         <div
           className={cn(

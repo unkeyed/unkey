@@ -20,7 +20,7 @@ export function PolicyEnvironmentToggles({
   onToggle: (env: Env, enabled: boolean) => void;
 }) {
   return (
-    <div className="divide-y divide-grayA-4 rounded-lg border">
+    <div className="divide-y rounded-lg border">
       {ENVIRONMENT_KINDS.map((env) => {
         const { slug } = envs[env];
         const environment = { slug, kind: env };

@@ -87,7 +87,7 @@ export function RegionViz({ settings, unavailable, action }: VizProps) {
                     <Badge variant="code">{sizeLabel(values)}</Badge>
                   </span>
                 </span>
-                <span className="grid grid-cols-2 gap-x-3 gap-y-1 whitespace-nowrap border-t border-grayA-4 px-3 py-2 font-mono text-3xs">
+                <span className="grid grid-cols-2 gap-x-3 gap-y-1 whitespace-nowrap border-t px-3 py-2 font-mono text-3xs">
                   {specs.map(([label, Icon, value]) => (
                     <Spec key={label} icon={<Icon />} label={label} value={value} />
                   ))}

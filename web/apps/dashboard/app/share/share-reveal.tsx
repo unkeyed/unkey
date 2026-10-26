@@ -6,7 +6,7 @@ import {
   IconShieldKeyOutline18,
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
-import { Button, toast } from "@unkey/ui";
+import { Button, Card, toast } from "@unkey/ui";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -23,11 +23,7 @@ function parseShareId(hash: string): string | null {
 }
 
 function ShareCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center gap-6 rounded-lg border bg-raised p-8 text-center">
-      {children}
-    </div>
-  );
+  return <Card className="flex flex-col items-center gap-6 p-8 text-center">{children}</Card>;
 }
 
 function CardGlyph({ children }: { children: React.ReactNode }) {

@@ -3,7 +3,7 @@
 import { formatPrice } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Button, InfoTooltip, Skeleton, toast } from "@unkey/ui";
+import { Button, Card, InfoTooltip, Skeleton, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
@@ -50,7 +50,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
 
   if (!hasPaymentMethod) {
     return (
-      <div className="flex w-full items-center justify-between gap-4 rounded-lg border bg-raised px-5 py-4">
+      <Card className="flex items-center justify-between gap-4 px-5 py-4">
         <div>
           <p className="font-medium text-gray-12 text-sm">No payment method</p>
           <p className="text-sm text-gray-10">
@@ -84,7 +84,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
             </span>
           </InfoTooltip>
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -96,7 +96,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
   ].filter((row): row is NonNullable<typeof row> => row !== null);
 
   return (
-    <div className="flex w-full flex-col gap-4 rounded-lg border bg-raised px-5 py-4">
+    <Card className="flex flex-col gap-4 px-5 py-4">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="font-medium text-gray-12 text-sm">Upcoming invoices</p>
@@ -150,6 +150,6 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
       ) : (
         <p className="font-medium text-gray-12 text-sm">—</p>
       )}
-    </div>
+    </Card>
   );
 };

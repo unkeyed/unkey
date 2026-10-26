@@ -4,7 +4,14 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { ProjectApp } from "@/lib/collections/deploy/project-cards";
 import { routes } from "@/lib/navigation/routes";
 import { IconCubeOutline18 } from "@unkey/icons";
-import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip, Skeleton } from "@unkey/ui";
+import {
+  Card,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+  InfoTooltip,
+  Skeleton,
+} from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useWarmAppPage } from "../../[projectId]/apps/[appId]/(overview)/hooks/use-warm-app-page";
@@ -42,7 +49,7 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
   const { width, measureRef } = useMeasuredWidth<HTMLDivElement>();
 
   return (
-    <div className="relative p-5 flex flex-col border hover:border-strong bg-raised shadow-xs rounded-lg w-full h-full min-h-[124px] gap-4 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
+    <Card className="relative p-5 flex flex-col hover:[--raised-ring:var(--border-color-strong)] h-full min-h-[124px] gap-4 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       <Link
         href={projectPath}
         className="absolute inset-0 z-0"
@@ -125,6 +132,6 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
           ) : null}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

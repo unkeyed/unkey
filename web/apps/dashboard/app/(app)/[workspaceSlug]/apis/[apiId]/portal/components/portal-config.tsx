@@ -118,7 +118,7 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <div className="w-full divide-y divide-grayA-4 overflow-hidden rounded-lg border bg-raised">
+      <div className="w-full divide-y overflow-hidden rounded-lg bg-raised shadow-raised">
         <div className="grid gap-x-8 px-6 pt-6 lg:grid-cols-2">
           <div className="flex flex-col pb-6">
             <h2 className="text-sm font-medium text-gray-12">Branding</h2>

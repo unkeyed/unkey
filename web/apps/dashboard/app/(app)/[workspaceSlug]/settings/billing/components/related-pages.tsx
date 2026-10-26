@@ -36,7 +36,7 @@ export function RelatedPages({ workspaceSlug }: { workspaceSlug: string }) {
       {pages.map((page) => (
         <Item
           key={page.title}
-          variant="outline"
+          variant="raised"
           render={
             <Link
               href={page.href}

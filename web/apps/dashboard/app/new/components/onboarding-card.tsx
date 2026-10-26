@@ -1,8 +1,9 @@
+import { Card } from "@unkey/ui";
 import { cn } from "cn";
 import type React from "react";
 
 export function OnboardingCard({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border rounded-lg w-full p-8", className)} {...props} />;
+  return <Card className={cn("p-8", className)} {...props} />;
 }
 
 export function OnboardingCardHeader({

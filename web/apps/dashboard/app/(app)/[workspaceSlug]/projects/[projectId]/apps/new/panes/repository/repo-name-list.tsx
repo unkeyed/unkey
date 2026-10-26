@@ -106,7 +106,7 @@ export function RepoNameList({
           />
         </InputGroup>
       </div>
-      <div className="relative h-72 min-h-0 overflow-hidden rounded-lg border border-grayA-4">
+      <div className="relative h-72 min-h-0 overflow-hidden rounded-lg border">
         {pending ? (
           <CardPending
             message={pending.label}
@@ -124,7 +124,7 @@ export function RepoNameList({
             {matches.length === 0 ? (
               <p className="py-6 text-center text-sm text-gray-10">No repositories match.</p>
             ) : (
-              <ul className="divide-y divide-grayA-4">
+              <ul className="divide-y">
                 {linkedFirst(matches, linkedRepoId).map(({ repo, label }) => (
                   <li key={repo.id}>
                     <button
