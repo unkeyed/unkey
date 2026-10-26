@@ -102,6 +102,18 @@ describe("app-scoped paths", () => {
     );
   });
 
+  it("asks the domains and policies pages to open their add flow", () => {
+    expect(routes.projects.apps.domains({ ...scope, add: true })).toBe(
+      "/acme/projects/proj_123/apps/app_456/domains?add=true",
+    );
+    expect(routes.projects.apps.policies({ ...scope, add: true })).toBe(
+      "/acme/projects/proj_123/apps/app_456/policies?add=true",
+    );
+    expect(routes.projects.apps.policies({ ...scope, add: false })).toBe(
+      "/acme/projects/proj_123/apps/app_456/policies",
+    );
+  });
+
   it("carries an env vars search", () => {
     expect(routes.projects.apps.envVars(scope)).toBe(
       "/acme/projects/proj_123/apps/app_456/env-vars",
