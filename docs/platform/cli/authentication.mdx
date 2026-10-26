@@ -25,7 +25,7 @@ Every CLI command that calls the API needs a credential. Humans sign in once wit
 unkey login
 ```
 
-The command prints a confirmation code and a URL, and opens that URL in your browser. Sign in, check that the code matches the terminal, and narrow the permissions if you want. Allowing the login finishes it. The CLI stores one session per workspace in the system keychain and does not print the tokens. When the keychain is unavailable, it writes `~/.unkey/sessions.json` (mode `0600`) instead. See [unkey login](/platform/cli/login).
+The command prints a confirmation code and a URL, and opens that URL in your browser. Sign in, check that the code matches the terminal, and choose what the CLI can do. Authorizing the login finishes it. The CLI stores one session per workspace in the system keychain and does not print the tokens. When the keychain is unavailable, it writes `~/.unkey/sessions.json` (mode `0600`) instead. See [unkey login](/platform/cli/login).
 
 `unkey auth login` does the same thing.
 
