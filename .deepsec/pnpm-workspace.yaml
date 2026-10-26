@@ -1,0 +1,3 @@
+packages: []
+overrides:
+  undici@8.5.0: 8.12.3

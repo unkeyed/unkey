@@ -36,6 +36,7 @@ export type MenuItem = {
   // Navigation items pass href so they render as links: new tab, middle click
   // and prefetch keep working.
   href?: Route;
+  replace?: boolean;
   className?: string;
   // Pass a function when the disabled or tooltip state depends on a moving
   // value (e.g. wall-clock time) so it is re-evaluated each render instead
@@ -168,7 +169,7 @@ export const TableActionPopover = ({
               );
               const control =
                 item.href && !disabled ? (
-                  <Link href={item.href} {...itemProps}>
+                  <Link href={item.href} replace={item.replace} {...itemProps}>
                     {body}
                   </Link>
                 ) : (

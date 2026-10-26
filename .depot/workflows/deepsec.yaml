@@ -1,0 +1,245 @@
+name: DeepSec
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+concurrency:
+  group: deepsec-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  analyze:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 30
+    continue-on-error: true
+    outputs:
+      scan_result: ${{ steps.scan.outcome }}
+      job_url: ${{ steps.depot.outputs.url }}
+    steps:
+      - name: Record scan job link
+        id: depot
+        run: echo "url=$DEPOT_JOB_URL" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Require trusted scanner configuration
+        run: |
+          if [ ! -f .deepsec/deepsec.config.ts ]; then
+            echo '::error::DeepSec must be merged into the base branch before CI scans can run. PR configuration is not trusted.'
+            exit 1
+          fi
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: review-source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare scanner
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          FILES_MAX: 40
+          PRIORITY_PATTERN: ^(svc/(api|frontline|vault|ctrl)/|internal/services/(keys|portal|ratelimit|usagelimiter)/|pkg/(auth|db|encryption|jwt|paseto|prefixedapikey|rbac|redaction|ssrf|tls|webhook|zen)/|web/apps/dashboard/(lib/(trpc|auth)/|app/(api|auth|proxy)/|proxy[.]ts$|.*/actions[.]ts$)|web/apps/portal/src/(lib|routes)/)
+        run: |
+          mise exec -- pnpm --dir .deepsec install --frozen-lockfile --ignore-scripts
+          merge_base=$(git -C review-source merge-base "$BASE_SHA" "$HEAD_SHA")
+          git -C review-source diff --name-only --diff-filter=ACMR "$merge_base" "$HEAD_SHA" -- \
+            . ':!gen/**' ':!**/node_modules/**' ':!**/dist/**' ':!**/vendor/**' \
+            ':!**/*.generated.*' ':!**/*_generated.*' ':!**/*.pb.go' \
+            ':!**/pnpm-lock.yaml' ':!go.sum' ':!web/apps/agent/gen/**' \
+            ':!*_test.go' ':!**/testdata/**' ':!*.md' ':!*.mdx' \
+            | awk -v priority="$PRIORITY_PATTERN" '
+                { tier = 3 }
+                /[.](go|ts|tsx|js|mjs|sql|proto|c|h)$/ { tier = $0 ~ priority ? 1 : 2 }
+                { print tier "\t" $0 }' \
+            | sort -s -n -k1,1 | cut -f2- > .deepsec/ranked.txt
+          head -n "$FILES_MAX" .deepsec/ranked.txt > .deepsec/files.txt
+          tail -n "+$((FILES_MAX + 1))" .deepsec/ranked.txt > .deepsec/skipped.txt
+      - name: Review changed files
+        id: scan
+        timeout-minutes: 20
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.DEEPSEC_VERCEL_GATEWAY_KEY }}
+          CHUNK_SIZE: 10
+          CHUNK_TIMEOUT: 18m
+        working-directory: .deepsec
+        run: |
+          if [ -z "$AI_GATEWAY_API_KEY" ]; then
+            echo '::error::Set the DEEPSEC_VERCEL_GATEWAY_KEY Depot CI secret to enable reviews.'
+            exit 2
+          fi
+          mkdir chunks
+          if [ -s files.txt ]; then
+            split -l "$CHUNK_SIZE" -d -a 3 files.txt chunks/files-
+          fi
+          # Each chunk gets its own data root so a failed or timed-out chunk
+          # cannot lose findings from the others.
+          pids=()
+          lists=()
+          for list in chunks/files-*; do
+            [ -e "$list" ] || continue
+            mkdir -p "$list.data"
+            cp -R data/unkey "$list.data/"
+            DEEPSEC_DATA_ROOT="$list.data" timeout --kill-after=30s "$CHUNK_TIMEOUT" \
+              mise exec -- node_modules/.bin/deepsec process \
+                --root "$GITHUB_WORKSPACE/review-source" \
+                --project-id unkey \
+                --concurrency 2 \
+                --files-from "$list" \
+                --comment-out "$list.md" \
+                > "$list.log" 2>&1 &
+            pids+=("$!")
+            lists+=("$list")
+          done
+          incomplete=()
+          comments=()
+          for i in "${!pids[@]}"; do
+            list=${lists[$i]}
+            if wait "${pids[$i]}"; then status=0; else status=$?; fi
+            echo "::group::$(basename "$list") (exit $status)"
+            cat "$list.log"
+            echo '::endgroup::'
+            if [ "$status" -eq 0 ]; then
+              continue
+            elif [ "$status" -eq 1 ] && [ -s "$list.md" ]; then
+              comments+=("$list.md")
+            else
+              incomplete+=("$list")
+            fi
+          done
+          reviewed=$(($(wc -l < files.txt)))
+          skipped=$(($(wc -l < skipped.txt)))
+          {
+            if [ "${#incomplete[@]}" -gt 0 ]; then
+              echo '**Incomplete review.** A scan chunk failed or timed out, so these files were not fully reviewed:'
+              echo
+              cat "${incomplete[@]}" | sed 's/.*/- `&`/'
+              echo
+            fi
+            if [ "$skipped" -gt 0 ]; then
+              echo "**Partial review.** This PR changes $((reviewed + skipped)) eligible files. DeepSec reviewed the $reviewed highest-priority files and skipped the rest."
+              echo
+              echo '<details><summary>Skipped files</summary>'
+              echo
+              sed 's/.*/- `&`/' skipped.txt
+              echo
+              echo '</details>'
+              echo
+            fi
+            if [ "${#comments[@]}" -gt 0 ]; then
+              for comment in "${comments[@]}"; do
+                cat "$comment"
+                echo
+              done
+            elif [ "$reviewed" -gt 0 ]; then
+              echo 'No new findings in the files that were reviewed.'
+            else
+              echo 'No eligible files to review.'
+            fi
+            if [ "${#lists[@]}" -gt 0 ]; then
+              echo
+              mise exec -- node -e '
+                const fs = require("node:fs");
+                const path = require("node:path");
+                let usd = 0;
+                const tokens = { input: 0, cached: 0, output: 0 };
+                const models = new Set();
+                for (const root of process.argv.slice(1)) {
+                  const dir = path.join(root, "unkey", "files");
+                  if (!fs.existsSync(dir)) continue;
+                  for (const name of fs.readdirSync(dir, { recursive: true })) {
+                    if (!name.endsWith(".json")) continue;
+                    const record = JSON.parse(fs.readFileSync(path.join(dir, name), "utf8"));
+                    for (const entry of record.analysisHistory ?? []) {
+                      usd += entry.costUsd ?? 0;
+                      tokens.input += entry.usage?.inputTokens ?? 0;
+                      tokens.cached += entry.usage?.cacheReadInputTokens ?? 0;
+                      tokens.output += entry.usage?.outputTokens ?? 0;
+                      if (entry.model) models.add(entry.model);
+                    }
+                  }
+                }
+                const count = (n) => Math.round(n).toLocaleString("en-US");
+                const model = models.size > 0 ? ` with ${[...models].map((m) => `\`${m}\``).join(", ")}` : "";
+                console.log(
+                  `<sub>Estimated model cost: $${usd.toFixed(usd < 1 ? 4 : 2)}${model} · ` +
+                    `${count(tokens.input)} input, ${count(tokens.cached)} cached input, ${count(tokens.output)} output tokens. ` +
+                    "Uses DeepSec price data and excludes batches that failed or were stopped.</sub>",
+                );
+              ' "${lists[@]/%/.data}"
+            fi
+          } > comment.md
+          if [ "${#incomplete[@]}" -gt 0 ] || [ "${#comments[@]}" -gt 0 ]; then
+            exit 1
+          fi
+      - name: Upload findings
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: deepsec-comment
+          path: .deepsec/comment.md
+          if-no-files-found: ignore
+          retention-days: 7
+  comment:
+    needs: analyze
+    if: always() && !cancelled() && needs.analyze.result != 'skipped'
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        continue-on-error: true
+        with:
+          name: deepsec-comment
+          path: report
+      - name: Update PR comment
+        id: publish
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          REVIEW_SHA: ${{ github.event.pull_request.head.sha }}
+          SCAN_RESULT: ${{ needs.analyze.outputs.scan_result }}
+          SCAN_JOB_URL: ${{ needs.analyze.outputs.job_url }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const marker = '<!-- unkey-deepsec -->';
+            const issue_number = context.issue.number;
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo, pull_number: issue_number,
+            });
+            if (pr.head.sha !== process.env.REVIEW_SHA) {
+              core.info('Skipping results for an outdated PR head.');
+              return;
+            }
+            const jobUrl = process.env.SCAN_JOB_URL || process.env.DEPOT_JOB_URL;
+            if (!jobUrl) throw new Error('Depot job URL is missing');
+            let summary;
+            if (fs.existsSync('report/comment.md')) {
+              summary = fs.readFileSync('report/comment.md', 'utf8');
+            } else if (process.env.SCAN_RESULT === 'success') {
+              summary = 'No new findings in the selected changed files, or no eligible files to review.';
+            } else {
+              summary = 'The scan did not complete. Check the CI run for missing credentials, timeouts, or scanner errors. This is not a clean review.';
+            }
+            const body = `${marker}\n## DeepSec security review\n\nAdvisory review of ${process.env.REVIEW_SHA}.\n\n${summary.slice(0, 50000)}\n\n[View logs and report artifacts on Depot](${jobUrl})`;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              ...context.repo, issue_number, per_page: 100,
+            });
+            const previous = comments.find(comment =>
+              comment.user?.login === 'depot-code-access[bot]' && comment.body?.startsWith(marker)
+            );
+            if (previous) {
+              await github.rest.issues.updateComment({
+                ...context.repo, comment_id: previous.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number, body });
+            }

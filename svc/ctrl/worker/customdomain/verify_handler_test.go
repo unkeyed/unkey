@@ -83,6 +83,22 @@ func (staleRowDB) UpdateCustomDomainVerificationStatus(_ context.Context, _ db.U
 	return errReachedStatusUpdate
 }
 
+func TestVerifyDomainRejectsWrongHostnameKey(t *testing.T) {
+	domainID := uid.New(uid.DomainPrefix)
+	svc := New(Config{DB: staleRowDB{row: db.CustomDomain{
+		ID:     domainID,
+		Domain: "claimed.example.com",
+	}}, CnameDomain: "cname.unkey.local"})
+	mockCtx := mocks.NewMockContext(t)
+	mockCtx.EXPECT().Key().Return("unrelated.example.com").Maybe()
+	mockStartedAt(mockCtx, time.Now())
+
+	_, err := svc.VerifyDomain(restate.WithMockContext(mockCtx), &hydrav1.VerifyDomainRequest{DomainId: domainID})
+	require.Error(t, err)
+	require.True(t, restate.IsTerminalError(err), "a row must not verify under another hostname's key")
+	require.ErrorContains(t, err, "domain does not match object key")
+}
+
 // The deadline reads the journaled invocation start, not the row's created_at.
 // This row is two windows old and the invocation is new, so the check must not
 // trip. An implementation that reads created_at fails every retry of a domain

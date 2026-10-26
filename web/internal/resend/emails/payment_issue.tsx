@@ -1,13 +1,6 @@
-import { Button } from "@react-email/button";
-import { Heading } from "@react-email/heading";
-import { Hr } from "@react-email/hr";
-import { Link } from "@react-email/link";
-import { Section } from "@react-email/section";
-import { Text } from "@react-email/text";
-// biome-ignore lint/correctness/noUnusedImports: react-email needs this imported
-import React from "react";
+import { Fragment } from "react";
+import { Emphasis } from "../src/components/emphasis";
 import { Layout } from "../src/components/layout";
-import { Signature } from "../src/components/signature";
 
 export type Props = {
   username: string;
@@ -18,36 +11,23 @@ export type Props = {
 export function PaymentIssue({ username, date, workspaceSlug }: Props) {
   const workspaceURL = `https://app.unkey.com/${workspaceSlug}/settings/billing`;
   return (
-    <Layout>
-      <Heading className="font-sans text-3xl text-semibold text-center">
-        There was an issue with your payment.
-      </Heading>
-      <Text>Hey {username},</Text>
-      <Text>
-        We had trouble processing your payment on {date}. Please update your payment information
-        below to prevent your account from being downgraded.
-      </Text>
-
-      <Section className="text-center py-3">
-        <Button href={workspaceURL} className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3">
-          Update payment information
-        </Button>
-      </Section>
-
-      <Hr />
-      <Text>
-        Need help? Please reach out to{" "}
-        <Link href="mailto:support@unkey.com">support@unkey.com</Link> or just reply to this email.
-      </Text>
-
-      <Signature signedBy="James" />
-    </Layout>
+    <Layout
+      title="Update your payment information"
+      preview={`We couldn't process your payment on ${date}. Update your payment information to prevent a downgrade.`}
+      body={[
+        <Fragment key="payment">
+          {username}, we couldn't process your payment on <Emphasis>{date}</Emphasis>. Update your
+          payment information to prevent your account from being downgraded.
+        </Fragment>,
+      ]}
+      action={{ label: "Update payment information", href: workspaceURL }}
+    />
   );
 }
 
 PaymentIssue.PreviewProps = {
   username: "Mr. Pilkington",
-  date: "Tue Oct 01 2024", // Date().toDateString
+  date: "Tue Oct 01 2024",
   workspaceSlug: "demo-workspace",
 } satisfies Props;
 
