@@ -1,0 +1,13 @@
+type: object
+required:
+  - pins
+  - truncated
+properties:
+  pins:
+    type: array
+    maxItems: 10
+    items:
+      "$ref": "./DeploymentConnectionPin.yaml"
+  truncated:
+    type: boolean
+additionalProperties: false
