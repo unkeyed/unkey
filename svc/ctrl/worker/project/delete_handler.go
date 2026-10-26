@@ -32,7 +32,6 @@ func (s *Service) Delete(
 
 	logger.Info("starting project deletion", "project_id", projectID)
 
-	// Capture project metadata before the row is deleted, for the audit log.
 	project, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Project, error) {
 		row, findErr := s.db.FindProjectById(runCtx, projectID)
 		return row, restateutil.TerminalNotFound(findErr)

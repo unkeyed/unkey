@@ -36,7 +36,6 @@ func (s *Service) Delete(
 
 	logger.Info("starting environment deletion", "environment_id", envID)
 
-	// Capture env metadata before the row is deleted, for the audit log.
 	env, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
 		row, findErr := s.db.FindEnvironmentById(runCtx, envID)
 		return row, restateutil.TerminalNotFound(findErr)

@@ -31,8 +31,6 @@ func (s *Service) Delete(
 
 	logger.Info("starting app deletion", "app_id", appID)
 
-	// Capture the app metadata before the cascade, so the audit log still has a
-	// name and slug to display
 	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
 		row, findErr := s.db.FindAppById(runCtx, appID)
 		return row, restateutil.TerminalNotFound(findErr)
