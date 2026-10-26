@@ -16,7 +16,7 @@ import { match } from "@unkey/match";
 import { ResourceList, ResourceListContent, ResourceListHeader, Skeleton } from "@unkey/ui";
 import Link from "next/link";
 import { useAppId, useProjectData } from "../../data-provider";
-import { useMetricSources } from "../../hooks/use-app-metrics";
+import { PRODUCTION, useMetricSources } from "../../hooks/use-app-metrics";
 import { useBucketClock } from "../../hooks/use-bucket-clock";
 import { GLANCE, GLANCE_METRICS, type GlanceMetric, glanceValue } from "./glance";
 
@@ -24,14 +24,12 @@ const GLANCE_RANGE = "24h";
 
 export function MetricsGlance() {
   const workspace = useWorkspaceNavigation();
-  const { projectId, environments } = useProjectData();
+  const { projectId, environments, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
-  const production = environments.find((e) => e.kind === "production");
   const grid = useBucketClock(GLANCE_RANGE);
-  const scope = production ? { appId, environmentId: production.id, grid } : null;
-  const sources = useMetricSources(scope);
+  const sources = useMetricSources({ appId, environment: PRODUCTION, grid });
 
-  if (!production) {
+  if (!isEnvironmentsLoading && !environments.some((e) => e.kind === "production")) {
     return null;
   }
 

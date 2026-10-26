@@ -27,6 +27,8 @@ export {
 } from "@unkey/clickhouse/src/app-metrics/grid";
 export type { ResourcePoint, TrafficPoint };
 
+export type EnvironmentRef = { id: string } | { kind: "production" };
+
 export type SourceResult<S extends MetricSource> = { grid: Grid; points: SourcePoint<S>[] };
 
 export type Sources = { [S in MetricSource]: Loadable<SourceResult<S>> };

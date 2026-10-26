@@ -10,10 +10,11 @@ import {
 } from "@/lib/metrics/app-metrics";
 import { routes } from "@/lib/navigation/routes";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppId, useProjectData } from "../data-provider";
 import {
   type AppMetricsScope,
+  environmentRefOf,
   useDeployMarkers,
   useMetricInstances,
   useMetricSourceByInstance,
@@ -51,15 +52,19 @@ export function useMetricsPage() {
 
   const environment = resolveEnvironment(environments, query.env, isEnvironmentsLoading);
   const grid = useBucketClock(query.range);
-  const scope: AppMetricsScope | null =
-    environment.kind === "found"
-      ? { appId, environmentId: environment.environment.id, grid }
-      : null;
+  const found = environment.kind === "found" ? environment.environment : null;
+  const environmentId = found?.id ?? null;
+  const environmentRef = useMemo(() => (found ? environmentRefOf(found) : null), [found]);
+  const scope: AppMetricsScope | null = environmentRef
+    ? { appId, environment: environmentRef, grid }
+    : null;
 
-  const environmentId = scope?.environmentId ?? null;
   const sources = useMetricSources(scope);
   const perInstance = needsInstanceSeries(query.tab, query.expand);
-  const instances = useMetricInstances(scope, perInstance);
+  const instances = useMetricInstances(
+    environmentId ? { appId, environmentId } : null,
+    perInstance,
+  );
   const byInstance = useMetricSourceByInstance(scope, {
     enabled: perInstance,
     openInstance: openInstanceOf(openReplica, environmentId, instances),
