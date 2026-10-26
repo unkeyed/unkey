@@ -3,6 +3,7 @@ package deploy_test
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,7 +26,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 )
 
-func TestBranchRouteSurvivesIdenticalLabelsFromAnotherWorkspace(t *testing.T) {
+func TestBranchRouteCollisionFallsBackToAppCode(t *testing.T) {
 	ctx := context.Background()
 	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
@@ -113,109 +114,15 @@ func TestBranchRouteSurvivesIdenticalLabelsFromAnotherWorkspace(t *testing.T) {
 	t.Logf("attacker ws:    %s  deployment %s", attackerWorkspaceID, attacker.ID)
 	t.Logf("attacker host:  %s", attackerRoute.FullyQualifiedDomainName)
 
-	require.NotEqual(t, victimRoute.FullyQualifiedDomainName, attackerRoute.FullyQualifiedDomainName,
-		"two workspaces that build the same bare label must get different hostnames")
+	victimLabel, _, _ := strings.Cut(victimRoute.FullyQualifiedDomainName, ".")
+	require.Equal(t, "shop-web-git-feature-x-"+victimSlug, victimLabel,
+		"the first app keeps the plain hostname")
+	require.True(t, strings.HasPrefix(attackerRoute.FullyQualifiedDomainName, victimLabel+"-"),
+		"the second app gets the same label with its app code: %s", attackerRoute.FullyQualifiedDomainName)
+	require.Equal(t, attacker.ID, attackerRoute.DeploymentID,
+		"the second app's fallback route serves its own deployment")
 	require.Equal(t, victim.EnvironmentID, victimRoute.EnvironmentID,
 		"the victim's branch route must stay in the victim's environment")
 	require.Equal(t, victim.ID, victimRoute.DeploymentID,
 		"the victim's branch route must keep serving the victim deployment")
-}
-
-func TestForeignHostnameFailsTerminally(t *testing.T) {
-	ctx := context.Background()
-	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, database.Close()) })
-	seeder := seed.New(t, database, nil)
-
-	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
-	require.NoError(t, err)
-	workflow, err := deploy.New(deploy.Config{
-		DB:            database,
-		Auditlogs:     auditlogSvc,
-		Flags:         flags.NewNoop(),
-		DefaultDomain: "test.example.com",
-		DashboardURL:  "https://app.unkey.local",
-		Vault:         nil,
-		GitHub:        githubclient.NewNoop(),
-		Build: deploy.BuildConfig{
-			Backend:    deploy.BuildBackendDepot,
-			Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
-			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
-		},
-		K8s:                             nil,
-		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
-		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
-		Clickhouse:                      nil,
-		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
-		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
-		AllowUnauthenticatedDeployments: false,
-		RestateAdmin:                    nil,
-	})
-	require.NoError(t, err)
-
-	cfg := containers.Restate(t,
-		restate.Reflect(RoutingProbe{workflow: workflow, db: database}),
-		hydrav1.NewRoutingServiceServer(routing.New(routing.Config{DB: database, DefaultDomain: "test.example.com"})),
-	)
-
-	workspaceID := uid.New("test_ws")
-	require.NoError(t, database.InsertWorkspace(ctx, db.InsertWorkspaceParams{
-		ID:           workspaceID,
-		OrgID:        uid.New(uid.OrgPrefix),
-		Name:         "KEBAP",
-		Slug:         uid.DNS1035(),
-		CreatedAt:    time.Now().UnixMilli(),
-		K8sNamespace: uid.DNS1035(),
-	}))
-	project := seeder.CreateProject(ctx, seed.CreateProjectRequest{ID: uid.New(uid.ProjectPrefix), WorkspaceID: workspaceID, Name: "KEBAP", Slug: "shop"})
-	app := seeder.CreateApp(ctx, seed.CreateAppRequest{ID: uid.New(uid.AppPrefix), WorkspaceID: workspaceID, ProjectID: project.ID, Name: "KEBAP", Slug: "web"})
-	env := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
-		ID: uid.New(uid.EnvironmentPrefix), WorkspaceID: workspaceID, ProjectID: project.ID, AppID: app.ID,
-		Slug: "preview", Kind: mysqltype.EnvironmentKindPreview,
-	})
-
-	newDeployment := func() db.Deployment {
-		return seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
-			ID: uid.New(uid.DeploymentPrefix), WorkspaceID: workspaceID, ProjectID: project.ID, AppID: app.ID,
-			EnvironmentID: env.ID, Status: mysqltype.DeploymentsStatusReady,
-			GitBranch: sql.NullString{String: "kebap", Valid: true},
-		})
-	}
-	run := func(deploymentID string) error {
-		callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
-		_, err := ingress.Workflow[string, RoutingProbeResult](cfg.IngressClient, "RoutingProbe", deploymentID, "Run").Request(callCtx, deploymentID)
-		return err
-	}
-
-	first := newDeployment()
-	require.NoError(t, run(first.ID))
-	branchRoute, err := database.FindFrontlineRouteByDeploymentIDAndSticky(ctx, db.FindFrontlineRouteByDeploymentIDAndStickyParams{
-		DeploymentID: first.ID,
-		Sticky:       db.FrontlineRoutesStickyBranch,
-	})
-	require.NoError(t, err)
-
-	// Hand that hostname to a different app, the state a code collision leaves.
-	foreignApp := seeder.CreateApp(ctx, seed.CreateAppRequest{ID: uid.New(uid.AppPrefix), WorkspaceID: workspaceID, ProjectID: project.ID, Name: "KEBAP", Slug: "other"})
-	require.NoError(t, database.DeleteFrontlineRoutesByAppId(ctx, app.ID))
-	require.NoError(t, database.InsertFrontlineRoute(ctx, db.InsertFrontlineRouteParams{
-		ID:                       branchRoute.ID,
-		ProjectID:                project.ID,
-		AppID:                    foreignApp.ID,
-		DeploymentID:             first.ID,
-		EnvironmentID:            env.ID,
-		FullyQualifiedDomainName: branchRoute.FullyQualifiedDomainName,
-		Sticky:                   db.FrontlineRoutesStickyBranch,
-		CreatedAt:                time.Now().UnixMilli(),
-		UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
-	}))
-
-	// The ingress client surfaces a terminal failure as 400 with source
-	// "invocation". A retryable one would keep retrying until the call times out.
-	err = run(newDeployment().ID)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "400 Bad Request")
-	require.Contains(t, err.Error(), branchRoute.FullyQualifiedDomainName)
 }

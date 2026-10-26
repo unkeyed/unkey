@@ -8,7 +8,7 @@ describe("branchDomainPattern", () => {
     );
   });
 
-  it("still parses a route created before the code existed", () => {
+  it("parses a hostname without a code", () => {
     expect(branchDomainPattern("shop-preview-acme.unkey.app", "preview", "acme")).toBe(
       "shop-git-<branch>-acme.unkey.app",
     );

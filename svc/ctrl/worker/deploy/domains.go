@@ -19,28 +19,32 @@ type newDomain struct {
 	// remain pinned to their original deployment, while sticky domains automatically
 	// update to point to new deployments matching their criteria.
 	sticky db.FrontlineRoutesSticky
+
+	// fallback is domain with the app code added. It is used only when another
+	// app already owns domain
+	fallback string
 }
 
 // buildDomains generates the list of domains that should be assigned to a deployment.
 //
 // The function creates three or four types of domains:
 //
-// 1. Per-commit domain: `<prefix>-git-<sha>-<workspace>-<code>.<apex>`
+// 1. Per-commit domain: `<prefix>-git-<sha>-<workspace>.<apex>`
 //   - Never reassigned, provides stable URL for specific commit
 //   - For CLI uploads, appends a deployment-ID-derived suffix to prevent collisions
 //
-// 2. Per-branch domain: `<prefix>-git-<branch>-<workspace>-<code>.<apex>`
+// 2. Per-branch domain: `<prefix>-git-<branch>-<workspace>.<apex>`
 //   - Sticky to branch, always points to latest deployment of that branch
 //   - Branch name is sluggified for URL safety
 //
-// 3. Per-environment domain: `<prefix>-<environment>-<workspace>-<code>.<apex>`
+// 3. Per-environment domain: `<prefix>-<environment>-<workspace>.<apex>`
 //   - Sticky to environment, points to latest deployment in that environment
 //   - Can be rolled back to previous deployment
 //
-// 4. Per-live domain (production only): `<prefix>-<workspace>-<code>.<apex>`
+// 4. Per-live domain (production only): `<prefix>-<workspace>.<apex>`
 //   - Sticky to live, points to the active production deployment
 //
-// 5. Per-deployment domain: `<prefix>-<deploymentID>-<workspace>-<code>.<apex>`
+// 5. Per-deployment domain: `<prefix>-<deploymentID>-<workspace>.<apex>`
 //   - Never reassigned, provides a stable deployment-specific URL
 //
 // Where <prefix> is `<project>-<app>` for custom app slugs, or just `<project>`
@@ -56,6 +60,8 @@ type newDomain struct {
 // successive deploys collide on the per-commit domain. Git-driven deploys never
 // repeat a SHA so they don't need it. Callers derive this from the deployment's
 // trigger column.
+//
+// Each domain also carries a fallback with the app code, see [appCode].
 //
 // Every domain goes through [cappedDomain], so no label is longer than
 // [dnsLabelLengthMax]
@@ -96,6 +102,13 @@ func buildDomains(
 	}
 
 	var domains []newDomain
+	add := func(head string, sticky db.FrontlineRoutesSticky) {
+		domains = append(domains, newDomain{
+			domain:   cappedDomain(head, workspaceSlug, "", apex),
+			sticky:   sticky,
+			fallback: cappedDomain(head, workspaceSlug, code, apex),
+		})
+	}
 
 	if gitSha != "" {
 		short := gitSha
@@ -103,45 +116,21 @@ func buildDomains(
 			short = short[:7]
 		}
 		short += disambiguator
-		domains = append(domains,
-			newDomain{
-				domain: cappedDomain(prefix+"-git-"+short, workspaceSlug, code, apex),
-				sticky: db.FrontlineRoutesStickyNone,
-			},
-		)
+		add(prefix+"-git-"+short, db.FrontlineRoutesStickyNone)
 	}
 
 	if branchName != "" {
-		domains = append(
-			domains,
-			newDomain{
-				domain: cappedDomain(prefix+"-git-"+sluggify(branchName), workspaceSlug, code, apex),
-				sticky: db.FrontlineRoutesStickyBranch,
-			},
-		)
+		add(prefix+"-git-"+sluggify(branchName), db.FrontlineRoutesStickyBranch)
 	}
 
-	domains = append(
-		domains,
-		newDomain{
-			domain: cappedDomain(prefix+"-"+environmentSlug, workspaceSlug, code, apex),
-			sticky: db.FrontlineRoutesStickyEnvironment,
-		},
-	)
+	add(prefix+"-"+environmentSlug, db.FrontlineRoutesStickyEnvironment)
 
 	if isProduction {
-		domains = append(domains,
-			newDomain{
-				domain: cappedDomain(prefix, workspaceSlug, code, apex),
-				sticky: db.FrontlineRoutesStickyLive,
-			})
+		add(prefix, db.FrontlineRoutesStickyLive)
 	}
 
 	// deployment-specific domain for stable public access.
-	domains = append(domains, newDomain{
-		domain: cappedDomain(prefix+"-"+sluggify(deploymentID), workspaceSlug, code, apex),
-		sticky: db.FrontlineRoutesStickyDeployment,
-	})
+	add(prefix+"-"+sluggify(deploymentID), db.FrontlineRoutesStickyDeployment)
 
 	return domains
 }
@@ -157,47 +146,40 @@ const dnsLabelLengthMax = 63
 // [cappedDomain] puts in a cut label
 const labelHashLength = 8
 
-// cutPartsLength is what a cut label spends on everything except the head and
-// the workspace slug: the hash, the app code, the three hyphens between them,
-// and one character of head
-const cutPartsLength = labelHashLength + appCodeLength + 4
+// workspaceSlugLengthMax is the longest workspace slug a cut label without an
+// app code keeps. It leaves room for the hash, two hyphens, and one character
+// of head
+const workspaceSlugLengthMax = dnsLabelLengthMax - labelHashLength - 3
 
-// workspaceSlugLengthMax is the longest workspace slug a cut label keeps
-const workspaceSlugLengthMax = dnsLabelLengthMax - cutPartsLength
-
-// cappedDomain returns `<head>-<workspaceSlug>-<appCode>.<apex>`. A label
-// longer than [dnsLabelLengthMax] becomes
-// `<cut head>-<hash of full label>-<workspaceSlug>-<appCode>`.
-// The hash keeps long labels apart and is stable, so a branch keeps its sticky
-// domain across deploys.
-//
-// The app code is what makes a label unique to one app. The head is built from
-// user-controlled text joined by hyphens, so two apps can build the same head:
-// workspace "testing" on branch "main-x" and workspace "x-testing" on branch
-// "main" both produce "git-main-x-testing". A label is also the unique key of a
-// frontline route, so a shared label is a shared route, and the last deploy
-// wins. The code comes from the app id, which no user chooses and no two apps
-// share, so two apps cannot produce the same label.
+// cappedDomain returns `<head>-<workspaceSlug>.<apex>`, or
+// `<head>-<workspaceSlug>-<code>.<apex>` when code is set. A label longer than
+// [dnsLabelLengthMax] becomes `<cut head>-<hash of full label>-<workspaceSlug>`
+// with the code kept at the end. The hash keeps long labels apart and is
+// stable, so a branch keeps its sticky domain across deploys
 func cappedDomain(head, workspaceSlug, code, apex string) string {
-	label := head + "-" + workspaceSlug + "-" + code
+	codePart := ""
+	if code != "" {
+		codePart = "-" + code
+	}
+
+	label := head + "-" + workspaceSlug + codePart
 	if len(label) <= dnsLabelLengthMax {
 		return label + "." + apex
 	}
 
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(label)))[:labelHashLength]
-	tail := "-" + hash + "-" + cutLabel(workspaceSlug, workspaceSlugLengthMax) + "-" + code
+	tail := "-" + hash + "-" + cutLabel(workspaceSlug, workspaceSlugLengthMax-len(codePart)) + codePart
 	return cutLabel(head, dnsLabelLengthMax-len(tail)) + tail + "." + apex
 }
 
-// appCodeLength is the number of characters [appCode] returns. Six
-// characters of a stable hash keep unrelated apps apart with room to spare
-// inside a 63-character label, and leave the readable head long enough to stay
-// recognizable.
+// appCodeLength is the number of characters [appCode] returns
 const appCodeLength = 6
 
-// appCode returns the fixed-length code that makes a domain label unique to one
-// app. The value is stable for the life of the app, so a branch keeps the same
-// sticky domain across deploys.
+// appCode returns a code that is stable for the life of an app and differs
+// between apps. A label is joined from user-chosen slugs, so two apps can build
+// the same one: workspace "testing" on branch "main-x" and workspace
+// "x-testing" on branch "main" both end in "git-main-x-testing". The app that
+// comes second gets the label with this code instead
 func appCode(appID string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte("app:"+appID)))[:appCodeLength]
 }

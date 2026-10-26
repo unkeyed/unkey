@@ -1,12 +1,9 @@
 // Reverses the per-environment and per-branch hostnames built by buildDomains
 // in svc/ctrl/worker/deploy/domains.go. Change both together.
 //
-// Every generated label ends with the app code, six hex characters derived from
-// the app ID. Strip it first, then rebuild the branch label from what is left,
-// so the pattern keeps the same code.
-//
-// A route created before the code existed ends with the workspace slug
-// instead. Those still parse, without a code.
+// A label ends with the app code, six hex characters derived from the app ID,
+// only when another app already owned the plain label. Strip it first, then
+// rebuild the branch label from what is left, so the pattern keeps the code.
 export function branchDomainPattern(
   environmentHostname: string,
   environmentSlug: string,
