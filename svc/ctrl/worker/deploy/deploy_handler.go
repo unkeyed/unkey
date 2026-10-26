@@ -930,6 +930,15 @@ func (w *Workflow) initGitHubStatus(
 	return reporter
 }
 
+// repoConnectionAndEnvHostname is what the "find github repo connection" step
+// journals. The environment hostname lives in that step, not its own Run, so
+// deploys journaled by an older worker still replay. They decode an empty
+// EnvHostname
+type repoConnectionAndEnvHostname struct {
+	db.GithubRepoConnection
+	EnvHostname string
+}
+
 // findRepoConnectionAndEnvHostname returns the GitHub repo connection and the
 // environment hostname the status links to, which is the fallback when another
 // app owns the plain one. A zero InstallationID means no repo is connected
@@ -1007,13 +1016,4 @@ func (w *Workflow) decryptEnvVars(ctx context.Context, encrypted []byte, environ
 	}
 
 	return bulkRes.GetItems(), nil
-}
-
-// repoConnectionAndEnvHostname is what the "find github repo connection" step
-// journals. The environment hostname lives in that step, not its own Run, so
-// deploys journaled by an older worker still replay. They decode an empty
-// EnvHostname
-type repoConnectionAndEnvHostname struct {
-	db.GithubRepoConnection
-	EnvHostname string
 }
