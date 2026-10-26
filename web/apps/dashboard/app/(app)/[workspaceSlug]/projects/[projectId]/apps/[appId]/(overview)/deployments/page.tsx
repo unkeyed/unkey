@@ -27,7 +27,7 @@ export default function Deployments() {
         <PageHeaderActions>
           <CreateDeploymentButton
             renderTrigger={({ onClick }) => (
-              <Button size="md" variant="primary" onClick={onClick}>
+              <Button size="sm" variant="primary" onClick={onClick}>
                 <IconPlusOutline18 />
                 Create deployment
               </Button>

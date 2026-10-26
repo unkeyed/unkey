@@ -45,10 +45,10 @@ export default function PoliciesPage() {
           <PageHeaderTitle>Policies</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <Button size="md" variant="outline" onClick={() => panels.open({ type: "guide" })}>
+          <Button size="sm" variant="outline" onClick={() => panels.open({ type: "guide" })}>
             How policies work
           </Button>
-          <Button size="md" variant="primary" disabled={!canWrite} onClick={openAdd}>
+          <Button size="sm" variant="primary" disabled={!canWrite} onClick={openAdd}>
             <IconPlusOutline18 />
             Add policy
           </Button>
@@ -72,7 +72,7 @@ export default function PoliciesPage() {
                 </EmptyStateDescription>
               </EmptyStateHeader>
               <EmptyStateActions>
-                <Button variant="primary" size="md" disabled={!canWrite} onClick={openAdd}>
+                <Button variant="primary" size="sm" disabled={!canWrite} onClick={openAdd}>
                   <IconPlusOutline18 />
                   Add policy
                 </Button>
