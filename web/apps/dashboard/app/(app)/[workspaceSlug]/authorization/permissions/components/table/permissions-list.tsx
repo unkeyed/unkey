@@ -94,7 +94,7 @@ export const PermissionsList = () => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button variant="outline" size="md">
+                <Button variant="outline" size="sm">
                   <IconBookBookmarkOutline18 />
                   Learn about Permissions
                 </Button>

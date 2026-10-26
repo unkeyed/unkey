@@ -14,7 +14,7 @@ export function CreatePermissionButton() {
 
   return (
     <div className="relative">
-      <Button variant="primary" size="md" onClick={() => setIsOpen(true)}>
+      <Button variant="primary" size="sm" onClick={() => setIsOpen(true)}>
         <IconPlusOutline18 />
         New permission
       </Button>

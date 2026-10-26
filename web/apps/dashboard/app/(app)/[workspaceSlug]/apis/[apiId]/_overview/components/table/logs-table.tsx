@@ -128,7 +128,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                 href="https://www.unkey.com/docs/introduction"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={buttonVariants({ size: "md", variant: "outline" })}
+                className={buttonVariants({ size: "sm", variant: "outline" })}
               >
                 <IconBookBookmarkOutline18 />
                 Documentation

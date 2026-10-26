@@ -1,8 +1,4 @@
-import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
-import { routes } from "@/lib/navigation/routes";
-import type { AppScope, AppSettingsTarget } from "@/lib/navigation/routes/projects";
-import { match } from "@unkey/match";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -12,42 +8,8 @@ import {
 } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
-import { useProjectData } from "../../../data-provider";
-import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
-import type { StepsData } from "./deployment-progress";
+import type { StepsData } from "../use-deployment-status";
 import { LIMITS_DOCS_URL, limitFailure } from "./limit-failure";
-
-type SettingsHint = "build" | "environment";
-
-const HINT_TARGET: Record<
-  SettingsHint,
-  (environmentSlug: string | undefined) => AppSettingsTarget
-> = {
-  build: () => ({ page: "build" }),
-  environment: (environment) => ({ page: "environments", environment }),
-};
-
-const SETTINGS_HINTS: ReadonlyArray<{ pattern: string; hint: SettingsHint }> = [
-  // Dockerfile path / docker context (from build.go extractUserBuildError)
-  { pattern: "check that the file path is correct", hint: "build" },
-  { pattern: "dockerfile appears to be empty", hint: "build" },
-  { pattern: "build target stage was not found", hint: "build" },
-  { pattern: "check the root directory", hint: "build" },
-  // Region configuration (from deploy_handler.go createTopologies)
-  { pattern: "configure at least one region", hint: "environment" },
-  // Git branch (from deploy_handler.go buildImage)
-  { pattern: "git branch could not be resolved", hint: "build" },
-];
-
-function settingsTargetFor(
-  error: string,
-  environmentSlug: string | undefined,
-): AppSettingsTarget | undefined {
-  const lower = error.toLowerCase();
-  const found = SETTINGS_HINTS.find(({ pattern }) => lower.includes(pattern));
-  return found ? HINT_TARGET[found.hint](environmentSlug) : undefined;
-}
 
 type StepKey = keyof NonNullable<StepsData>;
 
@@ -69,93 +31,35 @@ function firstStepError(data: NonNullable<StepsData>): string | undefined {
     .find((error) => error != null);
 }
 
-// Note: user-cancelled deployments are routed to DeploymentCancelled in
-// page.tsx before this banner is rendered, so we don't need special-case
-// handling for the "Cancelled by user" marker here.
 export function FailedDeploymentBanner({
   stepsData,
-  appScope,
   limitsUrl,
-  deployment,
 }: {
   stepsData: StepsData | undefined;
-  appScope: AppScope;
   limitsUrl: Route;
-  deployment: Deployment;
 }) {
-  const [redeployOpen, setRedeployOpen] = useState(false);
-  const errorMessage = (stepsData && firstStepError(stepsData)) ?? "Deployment failed";
-  const { environments } = useProjectData();
-  const settingsTarget = settingsTargetFor(
-    errorMessage,
-    environments.find((e) => e.id === deployment.environmentId)?.slug,
-  );
+  const errorMessage = stepsData ? firstStepError(stepsData) : undefined;
   const billingUpgrades = useBillingUIUpgrades();
-  const limit = billingUpgrades ? limitFailure(errorMessage) : null;
-  const actions = stepsData == null ? "loading" : limit ? "limit" : "generic";
+  const limit = billingUpgrades && errorMessage ? limitFailure(errorMessage) : null;
 
   return (
-    <div className="animate-fade-slide-in">
-      <AlertBanner variant="error">
-        <AlertBannerTitle>Deployment failed</AlertBannerTitle>
-        <AlertBannerDescription className="max-w-200 break-words">
-          {limit ?? errorMessage}
-          {limit && (
-            <>
-              {" "}
-              <Link href={LIMITS_DOCS_URL} target="_blank" rel="noopener noreferrer">
-                Learn more
-              </Link>
-            </>
-          )}
-          {settingsTarget && (
-            <>
-              {" "}
-              <Link href={routes.projects.apps.settings({ ...appScope, ...settingsTarget })}>
-                Go to Settings
-              </Link>
-            </>
-          )}
-        </AlertBannerDescription>
-        <AlertBannerActions>
-          {match(actions)
-            .with("loading", () => null)
-            .with("limit", () => (
-              <>
-                <RedeployButton variant="outline" onClick={() => setRedeployOpen(true)} />
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="px-3"
-                  render={<Link href={limitsUrl} />}
-                >
-                  View limits
-                </Button>
-              </>
-            ))
-            .with("generic", () => <RedeployButton onClick={() => setRedeployOpen(true)} />)
-            .exhaustive()}
-        </AlertBannerActions>
-      </AlertBanner>
-      <RedeployDialog
-        isOpen={redeployOpen}
-        onClose={() => setRedeployOpen(false)}
-        selectedDeployment={deployment}
-      />
-    </div>
-  );
-}
-
-function RedeployButton({
-  onClick,
-  variant = "primary",
-}: {
-  onClick: () => void;
-  variant?: "primary" | "outline";
-}): ReactNode {
-  return (
-    <Button variant={variant} size="sm" onClick={onClick} className="px-3">
-      Redeploy
-    </Button>
+    <AlertBanner variant="error">
+      <AlertBannerTitle>Deployment failed</AlertBannerTitle>
+      {limit && (
+        <>
+          <AlertBannerDescription className="max-w-200 break-words">
+            {limit}{" "}
+            <Link href={LIMITS_DOCS_URL} target="_blank" rel="noopener noreferrer">
+              Learn more
+            </Link>
+          </AlertBannerDescription>
+          <AlertBannerActions>
+            <Button variant="primary" size="sm" className="px-3" render={<Link href={limitsUrl} />}>
+              View limits
+            </Button>
+          </AlertBannerActions>
+        </>
+      )}
+    </AlertBanner>
   );
 }

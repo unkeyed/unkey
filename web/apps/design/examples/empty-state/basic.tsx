@@ -22,10 +22,10 @@ export default function BasicEmptyState() {
         </EmptyStateDescription>
       </EmptyStateHeader>
       <EmptyStateActions>
-        <Button variant="primary" size="md">
+        <Button variant="primary" size="sm">
           Create project
         </Button>
-        <Button variant="outline" size="md">
+        <Button variant="outline" size="sm">
           Read the docs
         </Button>
       </EmptyStateActions>

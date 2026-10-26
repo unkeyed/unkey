@@ -92,7 +92,10 @@ export const requestLogsRequestSchema = z.object({
   startTime: z.int().nullable().default(null),
   endTime: z.int().nullable().default(null),
   since: z.string().nullable().default(null),
-  statusCodes: z.array(z.number().int()).nullable().default(null),
+  // Every HTTP status, including 1xx. The request-log input uses the same
+  // 100–599 bound. ClickHouse binds this as Array(Int32), so a larger integer
+  // fails parameter binding instead of filtering.
+  statusCodes: z.array(z.number().int().min(100).max(599)).nullable().default(null),
   methods: z.array(z.string()).nullable().default(null),
   paths: z.array(pathFilterSchema).nullable().default(null),
   host: z.array(z.string().min(1).max(512)).nullable().default(null),

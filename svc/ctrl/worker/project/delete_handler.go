@@ -7,6 +7,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -31,12 +32,17 @@ func (s *Service) Delete(
 
 	logger.Info("starting project deletion", "project_id", projectID)
 
-	// Capture project metadata before the row is deleted, for the audit log.
 	project, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Project, error) {
-		return s.db.FindProjectById(runCtx, projectID)
+		row, findErr := s.db.FindProjectById(runCtx, projectID)
+		return row, restateutil.TerminalNotFound(findErr)
 	}, restate.WithName("find project"))
 	if err != nil {
-		return nil, fmt.Errorf("find project: %w", err)
+		if !restateutil.IsNotFoundTerminal(err) {
+			return nil, fmt.Errorf("find project: %w", err)
+		}
+		// The row is already gone, so a repeat delete has nothing left to do
+		logger.Info("project already deleted", "project_id", projectID)
+		return &hydrav1.DeleteProjectResponse{}, nil
 	}
 
 	apps, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
@@ -56,12 +62,9 @@ func (s *Service) Delete(
 		})
 	}
 
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteProjectById(runCtx, projectID)
-	}, restate.WithName("delete project")); err != nil {
-		return nil, fmt.Errorf("delete project: %w", err)
-	}
-
+	// Audit before the row delete: once the row is gone a repeat delete returns
+	// early, so an audit still owed by a killed earlier delete would never be
+	// written
 	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
 		Actor:         req.GetActor(),
 		CorrelationID: req.GetCorrelationId(),
@@ -77,6 +80,12 @@ func (s *Service) Delete(
 		}},
 	}); err != nil {
 		return nil, fmt.Errorf("insert audit log: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return s.db.DeleteProjectById(runCtx, projectID)
+	}, restate.WithName("delete project")); err != nil {
+		return nil, fmt.Errorf("delete project: %w", err)
 	}
 
 	logger.Info("project deletion complete", "project_id", projectID)

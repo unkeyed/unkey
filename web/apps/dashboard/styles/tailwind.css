@@ -30,10 +30,53 @@
   --animate-coin-hop: coin-hop 1100ms linear 100ms both;
   --animate-coin-flip: coin-flip 1100ms cubic-bezier(0.3, 0.6, 0.25, 1) 100ms both;
   --animate-dash-flow: dash-flow 800ms linear infinite;
+  --animate-icon-shimmer: icon-shimmer 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  --animate-ring-pulse: ring-pulse 1.6s ease-out 3 both;
+  --animate-tile-settle: tile-settle 200ms ease-out;
+  --animate-wash-success: wash-success 400ms ease-out;
+  --animate-wash-error: wash-error 400ms ease-out;
 
   @keyframes dash-flow {
     to {
       stroke-dashoffset: -12;
+    }
+  }
+
+  @keyframes icon-shimmer {
+    from {
+      mask-position: 150% 0;
+    }
+    to {
+      mask-position: -50% 0;
+    }
+  }
+
+  @keyframes ring-pulse {
+    from {
+      opacity: 0.6;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 0;
+      transform: scale(1.35);
+    }
+  }
+
+  @keyframes tile-settle {
+    from {
+      transform: scale(0.96);
+    }
+  }
+
+  @keyframes wash-success {
+    from {
+      background-color: color-mix(in oklch, var(--color-success-9) 14%, var(--color-gray-2));
+    }
+  }
+
+  @keyframes wash-error {
+    from {
+      background-color: color-mix(in oklch, var(--color-error-9) 22%, var(--color-gray-2));
     }
   }
 

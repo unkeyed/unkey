@@ -192,7 +192,7 @@ export const KeysList = ({
                 href="https://www.unkey.com/docs/introduction"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={buttonVariants({ variant: "outline", size: "md" })}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
               >
                 <IconBookBookmarkOutline18 />
                 Learn about Keys

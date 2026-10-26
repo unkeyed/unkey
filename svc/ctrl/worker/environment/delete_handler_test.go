@@ -185,3 +185,43 @@ func countAudits(t *testing.T, ctx context.Context, database db.Database, worksp
 	}
 	return count
 }
+
+// TestDeleteMissingEnvironmentDoesNotRetry proves a delete of an environment
+// that no longer exists finishes. The lookup error must be terminal: restate.Run
+// retries its closure on any non-terminal error, so returning the raw
+// sql.ErrNoRows leaves the invocation retrying forever.
+func TestDeleteMissingEnvironmentDoesNotRetry(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
+	t.Cleanup(cancel)
+
+	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+	envSvc, err := environment.New(environment.Config{
+		DB:        database,
+		Admin:     restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:1", APIKey: ""}),
+		Auditlogs: auditlogSvc,
+	})
+	require.NoError(t, err)
+
+	restateCfg := containers.Restate(t, hydrav1.NewEnvironmentServiceServer(envSvc))
+	admin := restateadmin.New(restateadmin.Config{BaseURL: restateCfg.AdminURL, APIKey: ""})
+
+	sent, err := hydrav1.NewEnvironmentServiceIngressClient(restateCfg.IngressClient, uid.New(uid.EnvironmentPrefix)).
+		Delete().
+		Send(ctx, &hydrav1.DeleteEnvironmentRequest{
+			Actor:         &ctrlv1.ActorInfo{Id: uid.New("user"), Type: ctrlv1.ActorType_ACTOR_TYPE_USER},
+			CorrelationId: uid.New("corr"),
+		})
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		live, liveErr := admin.FindLiveInvocations(ctx, []string{sent.Id()})
+		require.NoError(t, liveErr)
+		return !live[sent.Id()]
+	}, 20*time.Second, 250*time.Millisecond,
+		"invocation %s is still retrying; a missing environment must be terminal", sent.Id())
+}
