@@ -42,6 +42,7 @@ token_file = %q
 		{"initial", v.Token + "\n", true},
 		{"rotated invalid", uid.New(uid.KeyPrefix), false},
 		{"empty", " \n", false},
+		{"embedded whitespace", v.Token + "\n" + v.Token, false},
 		{"oversize", strings.Repeat("a", 16*1024+1), false},
 		{"recovered", v.Token, true},
 	} {

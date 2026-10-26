@@ -182,9 +182,12 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				CertFile: "",
 				KeyFile:  "",
 			},
-			Vault: sharedconfig.VaultConfig{
-				URL:   testVault.URL,
-				Token: testVault.Token,
+			Vault: api.VaultConfig{
+				VaultConfig: sharedconfig.VaultConfig{
+					URL:   testVault.URL,
+					Token: testVault.Token,
+				},
+				TokenFile: "",
 			},
 			Control: sharedconfig.ControlConfig{
 				URL:   "http://control:7091",

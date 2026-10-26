@@ -325,9 +325,7 @@ func Run(ctx context.Context, cfg Config) error {
 		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
 			&http.Client{},
 			cfg.Vault.URL,
-			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": fmt.Sprintf("Bearer %s", cfg.Vault.Token),
-			})),
+			connect.WithInterceptors(interceptor.NewBearerAuth(cfg.Vault.Token, cfg.Vault.TokenFile)),
 		))
 	}
 

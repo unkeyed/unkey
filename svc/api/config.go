@@ -12,6 +12,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/tls"
 )
 
+// VaultConfig supports either a static token or a rotating token file.
+type VaultConfig struct {
+	config.VaultConfig
+	TokenFile string `toml:"token_file"`
+}
+
 // ClickHouseConfig configures connections to ClickHouse for analytics storage.
 // All fields are optional; when URL is empty, a no-op analytics backend is used.
 type ClickHouseConfig struct {
@@ -358,8 +364,8 @@ type Config struct {
 	// See [config.TLSFiles].
 	TLS config.TLS `toml:"tls"`
 
-	// Vault configures the encryption/decryption service. See [config.VaultConfig].
-	Vault config.VaultConfig `toml:"vault"`
+	// Vault configures the encryption/decryption service. See [VaultConfig].
+	Vault VaultConfig `toml:"vault"`
 
 	// Control configures the deployment management service. See [config.ControlConfig].
 	Control config.ControlConfig `toml:"control"`
@@ -426,6 +432,10 @@ func (c *Config) Validate() error {
 	keyFile := c.TLS.KeyFile
 	if (certFile == "") != (keyFile == "") {
 		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided to enable HTTPS")
+	}
+
+	if c.Vault.URL != "" && (c.Vault.Token == "") == (c.Vault.TokenFile == "") {
+		return fmt.Errorf("must set exactly one of vault.token or vault.token_file")
 	}
 
 	// An API server with no auth entries would reject every request, including
