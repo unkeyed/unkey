@@ -521,7 +521,7 @@ k8s_resource(
   'api',
   objects=['api-config:configmap'],
   port_forwards='7070:7070',
-  resource_deps=['mysql', 'clickhouse', 'redis', 'api-compile', 'github-credentials'],
+  resource_deps=['mysql', 'clickhouse', 'redis', 'api-compile', 'github-credentials', 'workos-credentials'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO

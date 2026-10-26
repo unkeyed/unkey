@@ -142,6 +142,21 @@ type JWTSource struct {
 
 func (JWTSource) principalSource() {}
 
+// CLISessionSource is an Unkey-signed CLI access token.
+//
+// Permissions live on the principal, copied from the token's permissions claim.
+// SessionID and DeviceName are the non-secret session handle and the device
+// label captured when the login started. ExpiresAt is the session row's idle
+// deadline, which never passes the session's absolute maximum. A root key this
+// session mints must not outlive it.
+type CLISessionSource struct {
+	SessionID  string
+	DeviceName string
+	ExpiresAt  time.Time
+}
+
+func (CLISessionSource) principalSource() {}
+
 // PortalSessionSource carries the portal session detail that authenticated the request.
 //
 // This shape is a WIP placeholder for portal auth. It keeps the permissions

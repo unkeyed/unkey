@@ -10,6 +10,10 @@ type authAuthentication struct {
 
 	// KeyNotFound indicates the authentication key was not found.
 	KeyNotFound Code
+
+	// CredentialRejected indicates a presented credential is not accepted.
+	// CLI refresh uses this when the token is unknown, expired, revoked, or already used.
+	CredentialRejected Code
 }
 
 // authAuthorization defines errors related to authorization failures.
@@ -43,9 +47,10 @@ type UnkeyAuthErrors struct {
 // for consistent error handling throughout the application.
 var Auth = UnkeyAuthErrors{
 	Authentication: authAuthentication{
-		Missing:     Code{SystemUnkey, CategoryUnkeyAuthentication, "missing"},
-		Malformed:   Code{SystemUnkey, CategoryUnkeyAuthentication, "malformed"},
-		KeyNotFound: Code{SystemUnkey, CategoryUnkeyAuthentication, "key_not_found"},
+		Missing:            Code{SystemUnkey, CategoryUnkeyAuthentication, "missing"},
+		Malformed:          Code{SystemUnkey, CategoryUnkeyAuthentication, "malformed"},
+		KeyNotFound:        Code{SystemUnkey, CategoryUnkeyAuthentication, "key_not_found"},
+		CredentialRejected: Code{SystemUnkey, CategoryUnkeyAuthentication, "credential_rejected"},
 	},
 
 	Authorization: authAuthorization{
