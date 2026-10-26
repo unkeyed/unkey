@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -24,7 +25,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -637,43 +637,36 @@ func (w *Workflow) ConfigureRouting(
 	for _, domain := range allDomains {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 			return db.TxWithResultRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
-				found, err := db.NewQueries(tx).FindFrontlineRouteByFQDN(txCtx, domain.domain)
-				if err != nil {
+				q := db.NewQueries(tx)
+				for _, hostname := range []string{domain.domain, domain.fallback} {
+					found, err := q.FindFrontlineRouteByFQDN(txCtx, hostname)
 					if db.IsNotFound(err) {
-						err = db.NewQueries(tx).InsertFrontlineRoute(runCtx, db.InsertFrontlineRouteParams{
+						return "", q.InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
 							ID:                       uid.New(uid.FrontlineRoutePrefix),
 							ProjectID:                deployment.ProjectID,
 							AppID:                    deployment.AppID,
 							DeploymentID:             deployment.ID,
 							EnvironmentID:            deployment.EnvironmentID,
-							FullyQualifiedDomainName: domain.domain,
+							FullyQualifiedDomainName: hostname,
 							Sticky:                   domain.sticky,
 							CreatedAt:                time.Now().UnixMilli(),
 							UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
 						})
-						return "", err
-
 					}
-					return "", err
+					if err != nil {
+						return "", err
+					}
+					if found.AppID == deployment.AppID {
+						return found.ID, nil
+					}
 				}
 
-				// A hostname is the unique key of a route, and a label is built
-				// from text a user chooses. The app code keeps two apps apart in
-				// practice, but a route row also records its owner, so a real
-				// collision must fail rather than point another app's route at
-				// this deployment.
-				//
-				// Terminal, because retrying cannot resolve it: the row already
-				// belongs to someone else and no amount of waiting changes that.
-				if found.AppID != deployment.AppID {
-					return "", gatefault.Terminal(fault.New(
-						"hostname belongs to another app",
-						fault.Internal(fmt.Sprintf("hostname %q belongs to app %q, not %q", domain.domain, found.AppID, deployment.AppID)),
-						fault.Public(fmt.Sprintf("The hostname %s is already in use by another app.", domain.domain)),
-					))
-				}
-
-				return found.ID, nil
+				logger.Warn("skipping hostname owned by another app",
+					"hostname", domain.domain,
+					"fallback", domain.fallback,
+					"app_id", deployment.AppID,
+				)
+				return "", nil
 			})
 		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if getFrontlineRouteErr != nil {
@@ -873,17 +866,41 @@ func (w *Workflow) initGitHubStatus(
 		connected: false,
 	}
 
-	repoConn, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
+	env := environmentDomain(
+		deployment.WorkspaceSlug,
+		deployment.ProjectSlug,
+		deployment.AppSlug,
+		deployment.EnvironmentSlug,
+		w.defaultDomain,
+		deployment.AppID,
+	)
+
+	// The environment hostname rides on this step instead of its own Run, so a
+	// deploy journaled before it existed still replays. Such a deploy decodes
+	// an empty EnvHostname.
+	type repoLookup struct {
+		db.GithubRepoConnection
+		EnvHostname string
+	}
+	repoConn, err := restate.Run(ctx, func(runCtx restate.RunContext) (repoLookup, error) {
 		found, findErr := w.db.FindGithubRepoConnectionByAppId(runCtx, deployment.AppID)
 		if findErr != nil {
 			if db.IsNotFound(findErr) {
 				// No connection — return zero value, not an error.
 				// Returning an error here would cause Restate to retry forever.
-				return db.GithubRepoConnection{}, nil //nolint:exhaustruct
+				return repoLookup{}, nil //nolint:exhaustruct
 			}
-			return db.GithubRepoConnection{}, findErr //nolint:exhaustruct
+			return repoLookup{}, findErr //nolint:exhaustruct
 		}
-		return found, nil
+
+		route, findErr := w.db.FindFrontlineRouteByFQDN(runCtx, env.domain)
+		if findErr != nil && !db.IsNotFound(findErr) {
+			return repoLookup{}, findErr //nolint:exhaustruct
+		}
+		if findErr == nil && route.AppID != deployment.AppID {
+			return repoLookup{GithubRepoConnection: found, EnvHostname: env.fallback}, nil
+		}
+		return repoLookup{GithubRepoConnection: found, EnvHostname: env.domain}, nil
 	}, restate.WithName("find github repo connection"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		logger.Warn(
@@ -907,14 +924,7 @@ func (w *Workflow) initGitHubStatus(
 	reporter.connected = true
 
 	envLabel := formatEnvironmentLabel(deployment.ProjectSlug, deployment.AppSlug, deployment.EnvironmentSlug)
-	envURL := "https://" + environmentDomain(
-		deployment.WorkspaceSlug,
-		deployment.ProjectSlug,
-		deployment.AppSlug,
-		deployment.EnvironmentSlug,
-		w.defaultDomain,
-		deployment.AppID,
-	)
+	envURL := "https://" + cmp.Or(repoConn.EnvHostname, env.domain)
 	logURL := w.deploymentURL(deployment.WorkspaceSlug, deployment.ProjectID, deployment.AppID, deployment.ID)
 
 	var existingGHDeploymentID int64
@@ -961,11 +971,17 @@ func formatEnvironmentLabel(projectSlug, appSlug, envSlug string) string {
 }
 
 // environmentDomain returns the hostname that always follows an environment's
-// current deployment. Callers that need a link to a running app, such as the
-// GitHub deployment status, must use this instead of formatting the pattern by
-// hand, so one naming rule serves every caller.
-func environmentDomain(workspaceSlug, projectSlug, appSlug, environmentSlug, apex, appID string) string {
-	return cappedDomain(domainPrefix(projectSlug, appSlug)+"-"+environmentSlug, workspaceSlug, appCode(appID), apex)
+// current deployment, and its fallback for when another app owns it. Callers
+// that need a link to a running app, such as the GitHub deployment status, must
+// use this instead of formatting the pattern by hand, so one naming rule serves
+// every caller.
+func environmentDomain(workspaceSlug, projectSlug, appSlug, environmentSlug, apex, appID string) newDomain {
+	head := domainPrefix(projectSlug, appSlug) + "-" + environmentSlug
+	return newDomain{
+		domain:   cappedDomain(head, workspaceSlug, "", apex),
+		sticky:   db.FrontlineRoutesStickyEnvironment,
+		fallback: cappedDomain(head, workspaceSlug, appCode(appID), apex),
+	}
 }
 
 // domainPrefix builds the domain prefix like "project" or "project-app"

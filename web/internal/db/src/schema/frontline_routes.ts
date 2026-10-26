@@ -21,20 +21,17 @@ export const frontlineRoutes = mysqlTable(
       .notNull()
       .unique(),
     // sticky determines whether a fullyQualifiedDomainName should get reassigned to the latest deployment
-    // Every label ends with a six-character code derived from the app ID, which
-    // is what keeps two workspaces from generating the same hostname.
-    //
     // - branch: the fullyQualifiedDomainName always points to the latest deployment on the branch
-    //     <projectslug>-<appslug>-git-<branchname>-<workspaceslug>-<code>.unkey.app
+    //     <projectslug>-<appslug>-git-<branchname>-<workspaceslug>.unkey.app
     //
     // - environment: the fullyQualifiedDomainName is sticky to the environment it was created on
-    //     <projectslug>-<appslug>-<environmentslug>-<workspaceslug>-<code>.unkey.app
+    //     <projectslug>-<appslug>-<environmentslug>-<workspaceslug>.unkey.app
     //
     // - live: the fullyQualifiedDomainName is sticky to the live deployment it was created on
-    //     <projectslug>-<appslug>-<workspaceslug>-<code>.unkey.app
+    //     api.unkey.com
     //
     // - deployment: per-deployment stable URL, never reassigned
-    //     <projectslug>-<appslug>-<id>-<workspaceslug>-<code>.unkey.app
+    //     <projectslug>-<appslug>-<id>-<workspaceslug>.unkey.app
     sticky: mysqlEnum("sticky", ["none", "branch", "environment", "live", "deployment"])
       .notNull()
       .default("none"),

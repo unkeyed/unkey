@@ -15,7 +15,7 @@ We don't offer private networking yet. To call one app from another, call its pu
 Use the other app's hostname, and treat the call as an external one:
 
 ```ts
-const res = await fetch("https://billing-acme-a1b2c3.unkey.app/invoices", {
+const res = await fetch("https://billing-acme.unkey.app/invoices", {
   headers: { Authorization: `Bearer ${process.env.BILLING_API_KEY}` },
 });
 ```
