@@ -7,7 +7,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 var (
@@ -24,14 +24,26 @@ var (
 	//
 	// Example usage:
 	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID").Inc()
-	KeyVerificationsTotal = promauto.NewCounterVec(
+	KeyVerificationsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "key",
 			Name:      "verifications_total",
 			Help:      "Total number of Key verifications processed.",
 		},
-		[]string{"type", "code"},
+		vec.Values("type", "key", "root_key"),
+		vec.Values("code",
+			"VALID",
+			"NOT_FOUND",
+			"DISABLED",
+			"EXPIRED",
+			"FORBIDDEN",
+			"INSUFFICIENT_PERMISSIONS",
+			"RATE_LIMITED",
+			"USAGE_EXCEEDED",
+			"WORKSPACE_DISABLED",
+			"WORKSPACE_NOT_FOUND",
+		),
 	)
 
 	// KeyVerificationErrorsTotal tracks the number of errors in key verifications.
@@ -41,13 +53,13 @@ var (
 	//
 	// Example usage:
 	//   metrics.KeyVerificationErrorsTotal.WithLabelValues("root_key").Inc()
-	KeyVerificationErrorsTotal = promauto.NewCounterVec(
+	KeyVerificationErrorsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "key",
 			Name:      "verification_errors_total",
 			Help:      "Total number of key verification errors",
 		},
-		[]string{"type"},
+		vec.Values("type", "key", "root_key"),
 	)
 )

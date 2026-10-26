@@ -7,7 +7,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 var (
@@ -21,14 +21,15 @@ var (
 	//
 	// Example usage:
 	//   metrics.BufferInserts.WithLabelValues(b.String(), "buffered").Inc()
-	BufferState = promauto.NewCounterVec(
+	BufferState = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "buffer",
 			Name:      "state_total",
 			Help:      "Number of buffer inserts by name and state",
 		},
-		[]string{"name", "state"},
+		vec.Dynamic("name"),
+		vec.Values("state", "buffered", "dropped", "closed"),
 	)
 
 	// BufferSize is a gauge to track the fill percentage of buffers and whether or not they
@@ -36,13 +37,14 @@ var (
 	//
 	// Example usage:
 	// 	 metrics.BufferSize.WithLabelValues(b.String(), "true").Set(float64(capacity)/float64(maxCapacity))
-	BufferSize = promauto.NewGaugeVec(
+	BufferSize = vec.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "buffer",
 			Name:      "size_percentage",
 			Help:      "Percentage of buffered fill capacity between 0.0 and 1.0",
 		},
-		[]string{"name", "drop"},
+		vec.Dynamic("name"),
+		vec.Values("drop", "true", "false"),
 	)
 )

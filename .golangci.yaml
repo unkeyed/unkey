@@ -5,11 +5,16 @@ linters:
     - errcheck
     - exhaustive
     - exhaustruct
+    - forbidigo
     - govet
     - ineffassign
     - reassign
     - unused
   settings:
+    forbidigo:
+      forbid:
+        - pattern: ^promauto\.New(Counter|Gauge|Histogram|Summary)Vec$
+          msg: use pkg/prometheus/vec so known label values export at 0 from startup
     errcheck:
       check-type-assertions: false
     exhaustive:
@@ -93,6 +98,9 @@ linters:
       - legacy
       - std-error-handling
     rules:
+      - linters:
+          - forbidigo
+        path: pkg/prometheus/vec/
       - linters:
           - exhaustruct
         path: _test\.go

@@ -3,6 +3,7 @@ package metrics
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 // RequestsTotal is the unified per-request outcome counter. One row per
@@ -21,14 +22,16 @@ import (
 // `code != ""` is the success/error split — there is no separate outcome
 // label, the URN carries that bit. region and environment are external labels
 // on the per-region Prometheus and are NOT carried as metric labels.
-var RequestsTotal = promauto.NewCounterVec(
+var RequestsTotal = vec.NewCounter(
 	prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "frontline",
 		Name:      "requests_total",
 		Help:      "Total requests by status class, attribution domain, and fault code (URN).",
 	},
-	[]string{"status_class", "fault_domain", "code"},
+	vec.Values("status_class", "2xx", "3xx", "4xx", "5xx"),
+	vec.Dynamic("fault_domain"),
+	vec.Dynamic("code"),
 )
 
 // InflightRequests is the per-pod count of in-flight requests. Incremented

@@ -4,6 +4,7 @@ package metrics
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 var (
@@ -11,13 +12,16 @@ var (
 	//
 	// Labels:
 	//   - "status": "running", "paused_by_user", or "paused_by_failure"
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
-	Drains = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
+	Drains = vec.NewGauge(prometheus.GaugeOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "drains",
 		Help:      "Number of configured logdrains by status and stream.",
-	}, []string{"status", "stream"})
+	},
+		vec.Values("status", "running", "paused_by_user", "paused_by_failure"),
+		vec.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+	)
 
 	// WorkQueueDepth tracks items waiting in the work queue.
 	//
@@ -53,71 +57,88 @@ var (
 	//
 	// Labels:
 	//   - "result": "success" or "error"
-	PollsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	PollsTotal = vec.NewCounter(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "polls_total",
 		Help:      "Total number of logdrain polls.",
-	}, []string{"result"})
+	},
+		vec.Values("result", "success", "error"),
+	)
 
 	// DeliveriesTotal counts delivery attempt outcomes.
 	//
 	// Labels:
-	//   - "kind": "http" or "axiom"
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
+	//   - "kind": "http", "axiom", or "unknown"
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
 	//   - "outcome": "success" or "error"
-	DeliveriesTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	DeliveriesTotal = vec.NewCounter(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "deliveries_total",
 		Help:      "Total number of logdrain delivery attempts.",
-	}, []string{"kind", "stream", "outcome"})
+	},
+		vec.Values("kind", "http", "axiom", "unknown"),
+		vec.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+		vec.Values("outcome", "success", "error"),
+	)
 
 	// EventsDeliveredTotal counts events in successful, committed deliveries.
 	//
 	// Labels:
-	//   - "kind": "http" or "axiom"
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
-	EventsDeliveredTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	//   - "kind": "http", "axiom", or "unknown"
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
+	EventsDeliveredTotal = vec.NewCounter(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "events_delivered_total",
 		Help:      "Total number of events in successful committed deliveries.",
-	}, []string{"kind", "stream"})
+	},
+		vec.Values("kind", "http", "axiom", "unknown"),
+		vec.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+	)
 
 	// DeliveryDurationSeconds measures delivery attempt latency.
 	//
 	// Labels:
-	//   - "kind": "http" or "axiom"
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
+	//   - "kind": "http", "axiom", or "unknown"
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
 	//   - "outcome": "success" or "error"
-	DeliveryDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	DeliveryDurationSeconds = vec.NewHistogram(prometheus.HistogramOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "delivery_duration_seconds",
 		Help:      "Duration of logdrain delivery attempts in seconds.",
 		Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
-	}, []string{"kind", "stream", "outcome"})
+	},
+		vec.Dynamic("kind"),
+		vec.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+		vec.Values("outcome", "success", "error"),
+	)
 
 	// DrainFailuresTotal counts failures recorded by the engine.
 	//
 	// Labels:
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
-	DrainFailuresTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
+	DrainFailuresTotal = vec.NewCounter(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "drain_failures_total",
 		Help:      "Total number of logdrain failures.",
-	}, []string{"stream"})
+	},
+		vec.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+	)
 
 	// DrainsPausedTotal counts drains paused after reaching the failure threshold.
 	//
 	// Labels:
-	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
-	DrainsPausedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", or "ratelimits"
+	DrainsPausedTotal = vec.NewCounter(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "drains_paused_total",
 		Help:      "Total number of logdrains paused by the engine.",
-	}, []string{"stream"})
+	},
+		vec.Values("stream", "audit_logs", "key_verifications", "gateway_requests", "runtime_logs", "ratelimits"),
+	)
 )
