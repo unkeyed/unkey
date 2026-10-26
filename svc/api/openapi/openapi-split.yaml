@@ -366,6 +366,8 @@ paths:
     $ref: "./spec/paths/v2/connections/deleteConnection/index.yaml"
   /v2/connections.listRetainedConnections:
     $ref: "./spec/paths/v2/connections/listRetainedConnections/index.yaml"
+  /v2/connections.listTargets:
+    $ref: "./spec/paths/v2/connections/listTargets/index.yaml"
 
   # Environment Endpoints
   /v2/environments.getEnvironment:

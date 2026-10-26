@@ -2718,6 +2718,66 @@ type Querier interface {
 	//  FROM app_build_settings
 	//  WHERE app_id = ?
 	ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppBuildSetting, error)
+	//ListAppConnectionPinnedDeploymentIDs
+	//
+	//  SELECT t.target_deployment_id
+	//  FROM app_connections b
+	//  INNER JOIN connection_app_targets t ON t.connection_id = b.id
+	//  INNER JOIN apps a ON a.id = b.resource_id
+	//  WHERE b.workspace_id = ? AND b.project_id = ?
+	//      AND b.app_id = ? AND b.environment_id = ?
+	//      AND b.resource_type = 'app' AND b.resource_id <> b.app_id
+	//      AND a.workspace_id = ? AND a.project_id = ?
+	//      AND t.selection_mode = 'deployment' AND t.target_deployment_id IS NOT NULL
+	//  ORDER BY b.name ASC
+	//  LIMIT 500
+	ListAppConnectionPinnedDeploymentIDs(ctx context.Context, db DBTX, arg ListAppConnectionPinnedDeploymentIDsParams) ([]sql.NullString, error)
+	//ListAppConnectionPinnedDeployments
+	//
+	//  SELECT id, app_id, environment_id, status, git_branch, image_resolved, created_at
+	//  FROM deployments
+	//  WHERE workspace_id = ? AND project_id = ?
+	//      AND id IN (/*SLICE:ids*/?) AND first_ready_at IS NOT NULL
+	ListAppConnectionPinnedDeployments(ctx context.Context, db DBTX, arg ListAppConnectionPinnedDeploymentsParams) ([]ListAppConnectionPinnedDeploymentsRow, error)
+	//ListAppConnectionTargetApps
+	//
+	//  SELECT id, name, slug FROM apps
+	//  WHERE workspace_id = ? AND project_id = ?
+	//      AND id <> ?
+	//  ORDER BY name ASC
+	//  LIMIT 100
+	ListAppConnectionTargetApps(ctx context.Context, db DBTX, arg ListAppConnectionTargetAppsParams) ([]ListAppConnectionTargetAppsRow, error)
+	//ListAppConnectionTargetDeployments
+	//
+	//  SELECT d.id, d.app_id, d.environment_id, d.status, d.git_branch, d.image_resolved, d.created_at
+	//  FROM deployments d
+	//  WHERE d.workspace_id = ? AND d.project_id = ?
+	//      AND d.app_id = ? AND d.first_ready_at IS NOT NULL
+	//      AND d.status IN ('ready', 'stopped')
+	//      AND (
+	//          ? = '' OR (
+	//              d.created_at <= (
+	//                  SELECT c.created_at FROM deployments c
+	//                  WHERE c.id = ? AND c.workspace_id = ?
+	//                      AND c.project_id = ? AND c.app_id = ?
+	//              )
+	//              AND (d.created_at, d.id) <= (
+	//                  SELECT c.created_at, c.id FROM deployments c
+	//                  WHERE c.id = ? AND c.workspace_id = ?
+	//                      AND c.project_id = ? AND c.app_id = ?
+	//              )
+	//          )
+	//      )
+	//  ORDER BY d.created_at DESC, d.id DESC
+	//  LIMIT ?
+	ListAppConnectionTargetDeployments(ctx context.Context, db DBTX, arg ListAppConnectionTargetDeploymentsParams) ([]ListAppConnectionTargetDeploymentsRow, error)
+	//ListAppConnectionTargetEnvironments
+	//
+	//  SELECT id, app_id, slug, kind FROM environments
+	//  WHERE workspace_id = ? AND project_id = ?
+	//  ORDER BY slug ASC
+	//  LIMIT 500
+	ListAppConnectionTargetEnvironments(ctx context.Context, db DBTX, arg ListAppConnectionTargetEnvironmentsParams) ([]ListAppConnectionTargetEnvironmentsRow, error)
 	//ListAppConnections
 	//
 	//  SELECT c.id, c.app_id, c.environment_id, c.resource_id AS target_app_id,

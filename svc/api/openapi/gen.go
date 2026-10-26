@@ -48,6 +48,24 @@ func (e BuildLogOutput) Valid() bool {
 	}
 }
 
+// Defines values for ConnectionTargetEnvironmentKind.
+const (
+	ConnectionTargetEnvironmentKindPreview    ConnectionTargetEnvironmentKind = "preview"
+	ConnectionTargetEnvironmentKindProduction ConnectionTargetEnvironmentKind = "production"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionTargetEnvironmentKind enum.
+func (e ConnectionTargetEnvironmentKind) Valid() bool {
+	switch e {
+	case ConnectionTargetEnvironmentKindPreview:
+		return true
+	case ConnectionTargetEnvironmentKindProduction:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ConnectionTargetType.
 const (
 	ConnectionTargetTypeAutomatic   ConnectionTargetType = "automatic"
@@ -356,16 +374,16 @@ func (e EnvironmentHealthcheckMethod) Valid() bool {
 
 // Defines values for EnvironmentKind.
 const (
-	Preview    EnvironmentKind = "preview"
-	Production EnvironmentKind = "production"
+	EnvironmentKindPreview    EnvironmentKind = "preview"
+	EnvironmentKindProduction EnvironmentKind = "production"
 )
 
 // Valid indicates whether the value is a known member of the EnvironmentKind enum.
 func (e EnvironmentKind) Valid() bool {
 	switch e {
-	case Preview:
+	case EnvironmentKindPreview:
 		return true
-	case Production:
+	case EnvironmentKindProduction:
 		return true
 	default:
 		return false
@@ -1106,6 +1124,41 @@ type ConflictErrorResponse struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// ConnectionTargetApp defines model for ConnectionTargetApp.
+type ConnectionTargetApp struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+// ConnectionTargetDeployment defines model for ConnectionTargetDeployment.
+type ConnectionTargetDeployment struct {
+	AppId         string                    `json:"appId"`
+	EnvironmentId string                    `json:"environmentId"`
+	GitBranch     nullable.Nullable[string] `json:"gitBranch"`
+	Id            string                    `json:"id"`
+	Image         nullable.Nullable[string] `json:"image"`
+
+	// Status Current lifecycle status of the deployment. Poll until it reaches a
+	// terminal state: ready (serving), failed, skipped, superseded, stopped,
+	// or cancelled.
+	//
+	//
+	// Example: ready
+	Status DeploymentStatus `json:"status"`
+}
+
+// ConnectionTargetEnvironment defines model for ConnectionTargetEnvironment.
+type ConnectionTargetEnvironment struct {
+	AppId string                          `json:"appId"`
+	Id    string                          `json:"id"`
+	Kind  ConnectionTargetEnvironmentKind `json:"kind"`
+	Slug  string                          `json:"slug"`
+}
+
+// ConnectionTargetEnvironmentKind defines model for ConnectionTargetEnvironment.Kind.
+type ConnectionTargetEnvironmentKind string
 
 // ConnectionTargetType Automatic environment selection, an explicit target environment, or a pinned deployment.
 type ConnectionTargetType string
@@ -4122,6 +4175,54 @@ type V2ConnectionsListRetainedConnectionsResponseBody struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2ConnectionsListTargetsRequestBody defines model for V2ConnectionsListTargetsRequestBody.
+type V2ConnectionsListTargetsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	App ResourceIdentifier `json:"app"`
+
+	// Cursor Cursor returned by the previous page for the same target app. Requires targetAppId and read access to the cursor deployment.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Project ResourceIdentifier `json:"project"`
+
+	// TargetAppId Target app ID whose deployment choices should be included.
+	TargetAppId *string `json:"targetAppId,omitempty"`
+}
+
+// V2ConnectionsListTargetsResponseBody defines model for V2ConnectionsListTargetsResponseBody.
+type V2ConnectionsListTargetsResponseBody struct {
+	Data V2ConnectionsListTargetsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2ConnectionsListTargetsResponseData defines model for V2ConnectionsListTargetsResponseData.
+type V2ConnectionsListTargetsResponseData struct {
+	Apps         []ConnectionTargetApp         `json:"apps"`
+	Deployments  []ConnectionTargetDeployment  `json:"deployments"`
+	Environments []ConnectionTargetEnvironment `json:"environments"`
 }
 
 // V2ConnectionsUpdateConnectionRequestBody defines model for V2ConnectionsUpdateConnectionRequestBody.
@@ -8839,6 +8940,9 @@ type ConnectionsListConnectionsJSONRequestBody = V2ConnectionsListConnectionsReq
 
 // ConnectionsListRetainedConnectionsJSONRequestBody defines body for ConnectionsListRetainedConnections for application/json ContentType.
 type ConnectionsListRetainedConnectionsJSONRequestBody = V2ConnectionsListRetainedConnectionsRequestBody
+
+// ConnectionsListTargetsJSONRequestBody defines body for ConnectionsListTargets for application/json ContentType.
+type ConnectionsListTargetsJSONRequestBody = V2ConnectionsListTargetsRequestBody
 
 // ConnectionsUpdateConnectionJSONRequestBody defines body for ConnectionsUpdateConnection for application/json ContentType.
 type ConnectionsUpdateConnectionJSONRequestBody = V2ConnectionsUpdateConnectionRequestBody

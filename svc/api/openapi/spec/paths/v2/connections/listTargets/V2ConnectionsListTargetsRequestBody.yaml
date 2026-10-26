@@ -1,0 +1,20 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  targetAppId:
+    type: string
+    minLength: 1
+    description: Target app ID whose deployment choices should be included.
+  cursor:
+    type: string
+    description: Cursor returned by the previous page for the same target app. Requires targetAppId and read access to the cursor deployment.
+additionalProperties: false

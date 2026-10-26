@@ -972,6 +972,41 @@ components:
                     items:
                         "$ref": "#/components/schemas/RetainedAppConnection"
             additionalProperties: false
+        V2ConnectionsListTargetsRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                targetAppId:
+                    type: string
+                    minLength: 1
+                    description: Target app ID whose deployment choices should be included.
+                cursor:
+                    type: string
+                    description: Cursor returned by the previous page for the same target app. Requires targetAppId and read access to the cursor deployment.
+            additionalProperties: false
+        V2ConnectionsListTargetsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2ConnectionsListTargetsResponseData"
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
         V2ConnectionsUpdateConnectionRequestBody:
             type: object
             required:
@@ -5965,6 +6000,125 @@ components:
                     minimum: 1
                     description: Number of deployments with a saved copy of the removed connection.
             additionalProperties: false
+        V2ConnectionsListTargetsResponseData:
+            type: object
+            required:
+                - apps
+                - environments
+                - deployments
+            properties:
+                apps:
+                    type: array
+                    maxItems: 100
+                    items:
+                        "$ref": "#/components/schemas/ConnectionTargetApp"
+                environments:
+                    type: array
+                    maxItems: 500
+                    items:
+                        "$ref": "#/components/schemas/ConnectionTargetEnvironment"
+                deployments:
+                    type: array
+                    maxItems: 600
+                    items:
+                        "$ref": "#/components/schemas/ConnectionTargetDeployment"
+            additionalProperties: false
+        ConnectionTargetApp:
+            type: object
+            required:
+                - id
+                - name
+                - slug
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                slug:
+                    type: string
+            additionalProperties: false
+        ConnectionTargetEnvironment:
+            type: object
+            required:
+                - id
+                - appId
+                - slug
+                - kind
+            properties:
+                id:
+                    type: string
+                appId:
+                    type: string
+                slug:
+                    type: string
+                kind:
+                    type: string
+                    enum:
+                        - production
+                        - preview
+            additionalProperties: false
+        ConnectionTargetDeployment:
+            type: object
+            required:
+                - id
+                - appId
+                - environmentId
+                - status
+                - gitBranch
+                - image
+            properties:
+                id:
+                    type: string
+                appId:
+                    type: string
+                environmentId:
+                    type: string
+                status:
+                    "$ref": "#/components/schemas/DeploymentStatus"
+                gitBranch:
+                    type:
+                        - string
+                        - "null"
+                image:
+                    type:
+                        - string
+                        - "null"
+            additionalProperties: false
+        DeploymentStatus:
+            type: string
+            enum:
+                - pending
+                - starting
+                - building
+                - deploying
+                - network
+                - finalizing
+                - ready
+                - failed
+                - skipped
+                - awaiting_approval
+                - stopped
+                - superseded
+                - cancelled
+            x-enum-varnames:
+                - DeploymentStatusPending
+                - DeploymentStatusStarting
+                - DeploymentStatusBuilding
+                - DeploymentStatusDeploying
+                - DeploymentStatusNetwork
+                - DeploymentStatusFinalizing
+                - DeploymentStatusReady
+                - DeploymentStatusFailed
+                - DeploymentStatusSkipped
+                - DeploymentStatusAwaitingApproval
+                - DeploymentStatusStopped
+                - DeploymentStatusSuperseded
+                - DeploymentStatusCancelled
+            description: |
+                Current lifecycle status of the deployment. Poll until it reaches a
+                terminal state: ready (serving), failed, skipped, superseded, stopped,
+                or cancelled.
+            example: ready
         V2ConnectionsUpdateConnectionResponseData:
             type: object
             required:
@@ -6247,41 +6401,6 @@ components:
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
-        DeploymentStatus:
-            type: string
-            enum:
-                - pending
-                - starting
-                - building
-                - deploying
-                - network
-                - finalizing
-                - ready
-                - failed
-                - skipped
-                - awaiting_approval
-                - stopped
-                - superseded
-                - cancelled
-            x-enum-varnames:
-                - DeploymentStatusPending
-                - DeploymentStatusStarting
-                - DeploymentStatusBuilding
-                - DeploymentStatusDeploying
-                - DeploymentStatusNetwork
-                - DeploymentStatusFinalizing
-                - DeploymentStatusReady
-                - DeploymentStatusFailed
-                - DeploymentStatusSkipped
-                - DeploymentStatusAwaitingApproval
-                - DeploymentStatusStopped
-                - DeploymentStatusSuperseded
-                - DeploymentStatusCancelled
-            description: |
-                Current lifecycle status of the deployment. Poll until it reaches a
-                terminal state: ready (serving), failed, skipped, superseded, stopped,
-                or cancelled.
-            example: ready
         DeploymentGit:
             type: object
             required:
@@ -12064,6 +12183,73 @@ paths:
             tags:
                 - connections
             x-speakeasy-name-override: listRetainedConnections
+    /v2/connections.listTargets:
+        post:
+            description: |
+                List readable apps, environments, and deployments for one caller environment.
+                Requires read access to that environment and, when supplied, the target app.
+                Missing and unreadable resources return the same 404 response.
+
+                App and environment candidates are capped at 100 and 500 before permission
+                filtering. Deployments are paginated for the selected target app, newest
+                first with descending ID as the tie-breaker. Choices must have reached ready
+                and currently be ready or stopped. Stopped choices cannot be newly pinned.
+
+                Previously ready deployments pinned by this caller environment are included
+                before choices on every page, regardless of their current status or selected
+                target app. Duplicate deployment IDs appear once. Pagination covers choices
+                only. Without a target app, only pinned deployments are returned. Saved
+                target IDs are capped at 500 candidates before permission filtering.
+            operationId: connections.listTargets
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2ConnectionsListTargetsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2ConnectionsListTargetsResponseBody'
+                    description: Available connection targets and deployment pagination.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication required.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Environment, target app, or cursor deployment not found.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: Database unavailable or authorized deployment scan limit reached.
+            security:
+                - bearer: []
+            summary: List available connection targets
+            tags:
+                - connections
+            x-speakeasy-name-override: listTargets
     /v2/connections.updateConnection:
         post:
             description: |
