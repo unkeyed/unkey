@@ -8,8 +8,21 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
+
+// writeLifecycle are the permissions to write every environment and every
+// deployment, which together cover promote, rollback, stop, and start.
+func writeLifecycle(workspaceID string) []string {
+	return []string{
+		rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Write).Value,
+		rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value,
+	}
+}
 
 func TestAvailableActions(t *testing.T) {
 	const (
@@ -56,14 +69,74 @@ func TestAvailableActions(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			workspaceID := uid.New(uid.WorkspacePrefix)
 			got := availableActions(Input{
-				Deployment: db.ListDeploymentsRow{ID: self, Status: tc.status, DesiredState: tc.desiredState},
+				WorkspaceID: workspaceID,
+				Permissions: writeLifecycle(workspaceID),
+				Deployment:  db.ListDeploymentsRow{ID: self, Status: tc.status, DesiredState: tc.desiredState, ProjectID: uid.New(uid.ProjectPrefix), AppID: uid.New(uid.AppPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix)},
 				State: db.ListDeploymentEnvAndAppStateRow{
 					EnvironmentSlug:        tc.envSlug,
 					EnvironmentKind:        tc.envKind,
 					AppCurrentDeploymentID: sql.NullString{Valid: tc.current != "", String: tc.current},
 					AppIsRolledBack:        tc.rolledBack,
 				},
+			})
+			require.Equal(t, tc.want, got)
+		})
+	}
+}
+
+// TestAvailableActionsFollowPermissions pins that each action is offered only
+// with the permission its handler checks: write on the environment for promote
+// and rollback, write on the deployment for stop and start.
+func TestAvailableActionsFollowPermissions(t *testing.T) {
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	environment := urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*")
+	writeEnvironment := rbac.U(environment, permissions.Write).Value
+	writeDeployment := rbac.U(environment.Deployment("*"), permissions.Write).Value
+	readDeployment := rbac.U(environment.Deployment("*"), permissions.Read).Value
+
+	production := db.ListDeploymentEnvAndAppStateRow{
+		EnvironmentSlug:        "production",
+		EnvironmentKind:        mysqltype.EnvironmentKindProduction,
+		AppCurrentDeploymentID: sql.NullString{Valid: true, String: uid.New(uid.DeploymentPrefix)},
+	}
+	preview := db.ListDeploymentEnvAndAppStateRow{
+		EnvironmentSlug: "preview",
+		EnvironmentKind: mysqltype.EnvironmentKindPreview,
+	}
+
+	cases := []struct {
+		name        string
+		permissions []string
+		state       db.ListDeploymentEnvAndAppStateRow
+		want        []openapi.DeploymentAction
+	}{
+		{"environment write offers promote and rollback", []string{writeEnvironment}, production,
+			[]openapi.DeploymentAction{openapi.DeploymentActionPromote, openapi.DeploymentActionRollback}},
+		{"environment write does not offer stop", []string{writeEnvironment}, preview,
+			[]openapi.DeploymentAction{}},
+		{"deployment write offers stop", []string{writeDeployment}, preview,
+			[]openapi.DeploymentAction{openapi.DeploymentActionStop}},
+		{"deployment write does not offer promote", []string{writeDeployment}, production,
+			[]openapi.DeploymentAction{}},
+		{"read offers nothing", []string{readDeployment}, preview,
+			[]openapi.DeploymentAction{}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := availableActions(Input{
+				WorkspaceID: workspaceID,
+				Permissions: tc.permissions,
+				Deployment: db.ListDeploymentsRow{
+					ID:            uid.New(uid.DeploymentPrefix),
+					Status:        mysqltype.DeploymentsStatusReady,
+					DesiredState:  mysqltype.DeploymentsDesiredStateRunning,
+					ProjectID:     uid.New(uid.ProjectPrefix),
+					AppID:         uid.New(uid.AppPrefix),
+					EnvironmentID: uid.New(uid.EnvironmentPrefix),
+				},
+				State: tc.state,
 			})
 			require.Equal(t, tc.want, got)
 		})

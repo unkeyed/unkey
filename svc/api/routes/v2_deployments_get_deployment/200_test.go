@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
@@ -79,6 +80,59 @@ func TestGetDeployment(t *testing.T) {
 	for _, leaked := range []string{"k8s_name", "k8sName", "workspace_id", "workspaceId", "sentinel", "encrypted", "build_id", "buildId", "invocation", "github_deployment", "githubDeployment", "\"pk\""} {
 		require.False(t, strings.Contains(res.RawBody, leaked), "response leaked internal field %q: %s", leaked, res.RawBody)
 	}
+}
+
+// TestGetDeploymentAvailableActionsFollowPermissions pins that a key which may
+// only read is offered no lifecycle action, since each handler would answer 404
+// to it. A key with write on the environment sees promote and rollback.
+func TestGetDeploymentAvailableActionsFollowPermissions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+
+	live := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        mysqltype.DeploymentsStatusReady,
+	})
+	require.NoError(t, db.Query.UpdateAppDeployments(t.Context(), h.DB.RW(), db.UpdateAppDeploymentsParams{
+		CurrentDeploymentID: sql.NullString{String: live.ID, Valid: true},
+		IsRolledBack:        false,
+		UpdatedAt:           sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		AppID:               setup.App.ID,
+	}))
+
+	other := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        mysqltype.DeploymentsStatusReady,
+	})
+
+	t.Run("read only key is offered nothing", func(t *testing.T) {
+		key := h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route,
+			authHeaders(key), handler.Request{DeploymentId: other.ID})
+		require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+		require.Empty(t, res.Body.Data.AvailableActions,
+			"a read-only key cannot call any lifecycle action")
+	})
+
+	t.Run("a key with write on the environment is offered promote and rollback", func(t *testing.T) {
+		key := h.CreateRootKey(setup.Workspace.ID,
+			readDeployments(setup.Workspace.ID), writeEnvironments(setup.Workspace.ID))
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route,
+			authHeaders(key), handler.Request{DeploymentId: other.ID})
+		require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+		require.Equal(t, []openapi.DeploymentAction{openapi.DeploymentActionPromote, openapi.DeploymentActionRollback}, res.Body.Data.AvailableActions)
+	})
 }
 
 // TestGetDeploymentFailure exercises the steps -> failure wiring end to end
