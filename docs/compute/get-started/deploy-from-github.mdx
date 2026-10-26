@@ -62,7 +62,7 @@ To deploy an image you built yourself instead, see [Deploy a container image](/c
       <img src="/images/dashboard/compute--get-started-deploy-from-github--source.png" alt="Deploy a new app card offering GitHub repository or Container image, next to the steps Select a source, Choose your app, and Configure and deploy" />
     </Frame>
 
-    If the workspace hasn't installed the Unkey GitHub App yet, the row reads **Connect GitHub**. It sends you to GitHub to install the app on an account or organization and choose repositories, then brings you back. The installation belongs to the workspace, so you only do this once.
+    If GitHub isn't connected to your workspace yet, choose **Connect GitHub** instead. It sends you to GitHub to install the Unkey GitHub App on an account or organization and choose repositories, then brings you back. The installation belongs to the workspace, so you only do this once.
 
     Click a repository to create the app, named after the repository (with `-2`, `-3`, and so on if the project already has an app by that name). The account menu above the list switches between GitHub accounts and organizations, and **Add GitHub account** at the bottom adds another. If a repository is missing from a listed account, choose **Can't find it? Add repositories on GitHub**.
 
@@ -75,7 +75,7 @@ To deploy an image you built yourself instead, see [Deploy a container image](/c
 
     - **Branch**: the repository's default branch.
     - **Build**: with no Dockerfile set, Unkey detects your language and toolchain and builds the image. See [Build settings](/compute/configure/build-settings).
-    - **Scaling**: 0.25 vCPU, 256 MiB of memory, and one instance in each region available to the workspace. See [Runtime settings](/compute/configure/runtime-settings).
+    - **Scaling**: 0.25 vCPU, 256 MiB of memory, and one instance in `us-east-1`. See [Runtime settings](/compute/configure/runtime-settings).
     - **Environment variables**: mark secrets as sensitive to make them write-only. See [Environment variables](/compute/configure/environment-variables).
 
     Build and scaling settings you save here apply to both the production and preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>, and auto deploy is enabled for both by default. Your container must listen on the port in the `PORT` environment variable, which is 8080 by default. The port can be changed for each environment individually later by navigating to **App settings** > **Environments**, selecting the environment, and clicking **Configure** on the **Runtime** card.
