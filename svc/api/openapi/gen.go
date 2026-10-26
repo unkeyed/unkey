@@ -2997,6 +2997,14 @@ type Replicas struct {
 // Example: proj_1234abcd
 type ResourceIdentifier = string
 
+// RetainedAppConnection defines model for RetainedAppConnection.
+type RetainedAppConnection struct {
+	// Deployments Number of deployments with a saved copy of the removed connection.
+	Deployments   int64  `json:"deployments"`
+	Id            string `json:"id"`
+	TargetAppName string `json:"targetAppName"`
+}
+
 // Role defines model for Role.
 type Role struct {
 	// Description Optional detailed explanation of what this role encompasses and what access it provides.
@@ -3999,6 +4007,38 @@ type V2ConnectionsListConnectionsResponseBody struct {
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination Pagination `json:"pagination"`
+}
+
+// V2ConnectionsListRetainedConnectionsRequestBody defines model for V2ConnectionsListRetainedConnectionsRequestBody.
+type V2ConnectionsListRetainedConnectionsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2ConnectionsListRetainedConnectionsResponseBody defines model for V2ConnectionsListRetainedConnectionsResponseBody.
+type V2ConnectionsListRetainedConnectionsResponseBody struct {
+	Data []RetainedAppConnection `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2ConnectionsUpdateConnectionRequestBody defines model for V2ConnectionsUpdateConnectionRequestBody.
@@ -8675,6 +8715,9 @@ type ConnectionsDeleteConnectionJSONRequestBody = V2ConnectionsDeleteConnectionR
 
 // ConnectionsListConnectionsJSONRequestBody defines body for ConnectionsListConnections for application/json ContentType.
 type ConnectionsListConnectionsJSONRequestBody = V2ConnectionsListConnectionsRequestBody
+
+// ConnectionsListRetainedConnectionsJSONRequestBody defines body for ConnectionsListRetainedConnections for application/json ContentType.
+type ConnectionsListRetainedConnectionsJSONRequestBody = V2ConnectionsListRetainedConnectionsRequestBody
 
 // ConnectionsUpdateConnectionJSONRequestBody defines body for ConnectionsUpdateConnection for application/json ContentType.
 type ConnectionsUpdateConnectionJSONRequestBody = V2ConnectionsUpdateConnectionRequestBody
