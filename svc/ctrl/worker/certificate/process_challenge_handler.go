@@ -74,6 +74,20 @@ func (s *Service) ProcessChallenge(
 		return nil, err
 	}
 
+	// Requests are queued per domain, so a renewal listed before another
+	// workspace took the hostname over runs after the takeover. Issuing it
+	// would encrypt the key under, and attribute the certificate to, a
+	// workspace that no longer owns the hostname
+	if dom.WorkspaceID != req.GetWorkspaceId() || dom.VerificationStatus != db.CustomDomainsVerificationStatusVerified {
+		logger.Warn("skipping certificate for workspace that does not own the domain",
+			"domain", req.GetDomain(),
+			"workspace_id", req.GetWorkspaceId(),
+			"owner_workspace_id", dom.WorkspaceID,
+			"owner_verification_status", dom.VerificationStatus,
+		)
+		return nil, restate.ToTerminalError(fmt.Errorf("workspace %s does not own domain %s", req.GetWorkspaceId(), req.GetDomain()))
+	}
+
 	// Step 2: Claim the challenge
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, s.db.UpdateAcmeChallengeTryClaiming(stepCtx, db.UpdateAcmeChallengeTryClaimingParams{
