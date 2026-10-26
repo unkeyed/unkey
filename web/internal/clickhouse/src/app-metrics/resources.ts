@@ -191,7 +191,7 @@ const APP_QUERY = `
 // WITH FILL over no rows at all emits one series with an empty instance, which
 // the outer filter drops.
 const INSTANCE_QUERY = `
-  SELECT *
+  SELECT instance, t, cpu, memory, disk, ingress, egress, instances
   FROM (
     SELECT
       instance,
