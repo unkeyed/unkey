@@ -1,0 +1,14 @@
+---
+title: "connection_conflict"
+description: "The connection duplicates an existing default, or its pinned deployment is not running."
+---
+
+<Danger>`err:unkey:data:connection_conflict`</Danger>
+
+The connection request returns HTTP 409 without changing connection defaults.
+
+- If the target app is already connected in this environment, edit the existing connection.
+- If the name is already in use, choose another name.
+- If the pinned deployment is not ready and running, choose a ready deployment or use automatic selection.
+
+Existing deployments keep their saved connections.
