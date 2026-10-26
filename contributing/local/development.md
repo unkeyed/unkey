@@ -146,7 +146,23 @@ without weakening lockfile or provenance checks. pnpm 11.28.5 publishes no
 Intel macOS standalone binary; this pin supports Apple Silicon Macs, not Intel
 Macs. Don't regenerate a lock entry pointing to `source-maps.tgz`.
 
-Local deployments use in-cluster BuildKit Jobs by default and don't require Depot credentials. To test the Depot backend, copy `dev/.env.depot.example` to `dev/.env.depot` and set both values to your Depot token before starting the environment.
+Local deployments use in-cluster BuildKit Jobs by default and don't require
+Depot credentials. To test the Depot backend, copy `dev/.env.depot.example` to
+`dev/.env.depot` and set `UNKEY_REGISTRY_PASSWORD` to an organization API token
+from **Depot Organization Settings > API Tokens**. Project and pull tokens
+don't have the permissions needed for this setup.
+
+Tilt creates or reuses a personal Depot registry project in the token's
+organization. Its name is `unkey-local-registry-<hash>`, where the hash comes
+from `git config user.email`. Configure your Git email before starting Tilt.
+No registry project ID is needed in your configuration. The worker and Krane
+use the same token to build, push, and pull images. Customer builds still run
+in separate Depot projects created by the worker.
+
+Changing the organization token selects a registry in that organization; it
+doesn't migrate existing images or stored customer build-project IDs. After
+switching organizations, clear the affected local `projects.depot_project_id`
+values and create new deployments instead of retrying old workflows.
 
 You get:
 
