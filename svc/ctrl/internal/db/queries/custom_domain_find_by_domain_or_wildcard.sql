@@ -4,5 +4,7 @@ WHERE domain IN (?, ?)
 ORDER BY
     CASE WHEN domain = ? THEN 0 ELSE 1 END,
     (verification_status = 'verified') DESC,
-    created_at DESC
+    updated_at DESC,
+    created_at DESC,
+    pk DESC
 LIMIT 1;
