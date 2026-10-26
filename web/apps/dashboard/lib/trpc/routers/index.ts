@@ -44,6 +44,7 @@ import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
 import { listDeploymentConnectionPins } from "./deploy/deployment/list-connection-pins";
+import { listDeploymentConnections } from "./deploy/deployment/list-connections";
 import { listDeploymentDetails } from "./deploy/deployment/list-details";
 import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
@@ -315,6 +316,7 @@ export const router = t.router({
       listActiveBranches,
       listDetails: listDeploymentDetails,
       listConnectionPins: listDeploymentConnectionPins,
+      listConnections: listDeploymentConnections,
       runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       getOpenApiDiff: getOpenApiDiff,

@@ -1,11 +1,12 @@
 import { initTRPC } from "@trpc/server";
-import { asc, schema } from "@unkey/db";
+import { asc, eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { expect, it, vi } from "vitest";
 import {
   connectionTestDatabase,
   deploymentSeed,
 } from "../../../../../../../internal/db/src/testing";
+import { listDeploymentConnections } from "../deployment/list-connections";
 import { createAppConnection } from "./create";
 import { deleteAppConnection } from "./delete";
 import { listAppConnections } from "./list";
@@ -138,8 +139,47 @@ it.skipIf(!databaseUrl)(
       remove: deleteAppConnection,
       list: listAppConnections,
       retained: listRetainedAppConnections,
+      saved: listDeploymentConnections,
     });
     const caller = router.createCaller({ workspace: { id: workspaceId } });
+    const savedPin = {
+      connections: [
+        {
+          id: binding,
+          targetAppName: "API",
+          targetType: "deployment",
+          targetEnvironmentId: null,
+          targetEnvironmentSlug: null,
+          targetDeploymentId: apiPinned,
+        },
+      ],
+      truncated: false,
+    };
+    expect(await caller.saved({ projectId, deploymentId: one })).toEqual(savedPin);
+    expect(await caller.saved({ projectId, deploymentId: two })).toEqual({
+      connections: [
+        {
+          id: binding,
+          targetAppName: "API",
+          targetType: "environment",
+          targetEnvironmentId: apiPreview,
+          targetEnvironmentSlug: "preview",
+          targetDeploymentId: null,
+        },
+      ],
+      truncated: false,
+    });
+    for (const input of [
+      { projectId: newId("project"), deploymentId: one },
+      { projectId, deploymentId: newId("test") },
+    ]) {
+      expect(await caller.saved(input)).toEqual({ connections: [], truncated: false });
+    }
+    expect(
+      await router
+        .createCaller({ workspace: { id: newId("workspace") } })
+        .saved({ projectId, deploymentId: one }),
+    ).toEqual({ connections: [], truncated: false });
     const input = { projectId, id: binding };
     const scope = { projectId, appId: web, environmentId: prod };
     const updated = {
@@ -188,6 +228,7 @@ it.skipIf(!databaseUrl)(
     expect(await caller.retained(scope)).toEqual([
       { id: binding, targetAppName: "API", deployments: 2 },
     ]);
+    expect(await caller.saved({ projectId, deploymentId: one })).toEqual(savedPin);
     expect(await caller.retained({ ...scope, environmentId: newId("environment") })).toEqual([]);
     await expect(
       router.createCaller({ workspace: { id: newId("workspace") } }).retained(scope),
@@ -242,5 +283,57 @@ it.skipIf(!databaseUrl)(
         targetEnvironmentId: apiPreview,
       }),
     ]);
+    expect(await caller.saved({ projectId, deploymentId: one })).toEqual(savedPin);
+
+    const extra = Array.from({ length: 5 }, (_, i) => ({
+      ...rule,
+      deploymentId: one,
+      connectionId: newId("connection"),
+      name: `extra-${i}`,
+      createdAt: i + 3,
+    }));
+    await database.insert(schema.deploymentConnections).values(extra.slice(0, 4));
+    await database.insert(schema.deploymentConnectionAppTargets).values(
+      extra.map(({ connectionId, deploymentId }) => ({
+        connectionId,
+        deploymentId,
+        selectionMode: "automatic" as const,
+      })),
+    );
+    const connections = [
+      ...savedPin.connections,
+      ...extra.slice(0, 4).map(({ connectionId }) => ({
+        id: connectionId,
+        targetAppName: "API",
+        targetType: "automatic",
+        targetEnvironmentId: null,
+        targetEnvironmentSlug: null,
+        targetDeploymentId: null,
+      })),
+    ];
+    expect(await caller.saved({ projectId, deploymentId: one })).toEqual({
+      connections,
+      truncated: false,
+    });
+    await database.insert(schema.deploymentConnections).values(extra[4]);
+    expect(await caller.saved({ projectId, deploymentId: one })).toEqual({
+      connections,
+      truncated: true,
+    });
+    await database.delete(schema.environments).where(eq(schema.environments.id, apiPreview));
+    await database.delete(schema.apps).where(eq(schema.apps.id, api));
+    expect(await caller.saved({ projectId, deploymentId: two })).toEqual({
+      connections: [
+        {
+          id: binding,
+          targetAppName: null,
+          targetType: "environment",
+          targetEnvironmentId: apiPreview,
+          targetEnvironmentSlug: null,
+          targetDeploymentId: null,
+        },
+      ],
+      truncated: false,
+    });
   },
 );

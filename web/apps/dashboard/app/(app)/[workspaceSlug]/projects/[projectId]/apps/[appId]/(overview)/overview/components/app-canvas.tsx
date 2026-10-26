@@ -13,6 +13,7 @@ import {
   summarizeInstances,
 } from "@/lib/collections/deploy/instance-status";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
+import { trpc } from "@/lib/trpc/client";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import {
   IconCodeBranchOutline18,
@@ -53,16 +54,22 @@ import {
   Rows,
   StatusBadge,
 } from "./canvas/nodes";
+import { ConnectionsNode } from "./connections-node";
 import { useProductionCard } from "./production-card-context";
 import { type DeploymentDisplayStatus, STATUS_META } from "./status";
 
 const NODE_ROW_LIMIT = 5;
 
 export function AppCanvas() {
-  const { canvas } = useProductionCard();
-  const { domains, domainsHref, addDomainHref, policiesHref, addPolicyHref } = canvas;
+  const { canvas, deployment } = useProductionCard();
+  const { domains, domainsHref, addDomainHref, policiesHref, addPolicyHref, connectionsHref } =
+    canvas;
   const { policies, view, retry, isRetrying } = useProductionPolicies();
   const listed = view.type === "list";
+  const connections = trpc.deploy.deployment.listConnections.useQuery({
+    projectId: deployment.projectId,
+    deploymentId: deployment.id,
+  });
 
   return (
     <Canvas label="App canvas">
@@ -76,11 +83,8 @@ export function AppCanvas() {
       <Group icon={<IconCubeOutline18 />} label="App">
         <AppNode />
       </Group>
-      <HFlow empty={!listed} />
-      <Group
-        icon={<IconGridOutline18 />}
-        label={listed ? `Services · ${policies.length}` : "Services"}
-      >
+      <HFlow empty={!listed && !connections.data?.connections.length} />
+      <Group icon={<IconGridOutline18 />} label="Services">
         {match(view.type)
           .with("loading", () => <PoliciesLoadingNode />)
           .with("error", () => <PoliciesErrorNode onRetry={retry} retrying={isRetrying} />)
@@ -94,6 +98,7 @@ export function AppCanvas() {
           ))
           .with("list", () => <PoliciesNode policies={policies} href={policiesHref} />)
           .exhaustive()}
+        <ConnectionsNode query={connections} href={connectionsHref} />
       </Group>
     </Canvas>
   );
