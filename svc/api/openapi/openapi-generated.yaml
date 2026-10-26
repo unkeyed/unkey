@@ -895,6 +895,33 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2ConnectionsListRetainedConnectionsRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2ConnectionsListRetainedConnectionsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/RetainedAppConnection"
+            additionalProperties: false
         V2ConnectionsUpdateConnectionRequestBody:
             type: object
             required:
@@ -5830,6 +5857,23 @@ components:
                 targetDeploymentId:
                     type: string
                     description: Present only for a pinned deployment target.
+            additionalProperties: false
+        RetainedAppConnection:
+            type: object
+            required:
+                - id
+                - targetAppName
+                - deployments
+            properties:
+                id:
+                    type: string
+                targetAppName:
+                    type: string
+                deployments:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                    description: Number of deployments with a saved copy of the removed connection.
             additionalProperties: false
         V2ConnectionsUpdateConnectionResponseData:
             type: object
@@ -11810,6 +11854,57 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+    /v2/connections.listRetainedConnections:
+        post:
+            description: |
+                List removed connection defaults still saved in deployments of the caller environment.
+                Returns up to 500 connections, ordered by connection ID. Includes saved connections
+                in stopped or failed deployments. Requires read access to the caller environment.
+                Missing and unreadable environments return the same 404 response.
+            operationId: connections.listRetainedConnections
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2ConnectionsListRetainedConnectionsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2ConnectionsListRetainedConnectionsResponseBody'
+                    description: Removed defaults retained in deployment snapshots.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication required.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Environment not found.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: List retained app connections
+            tags:
+                - connections
+            x-speakeasy-name-override: listRetainedConnections
     /v2/connections.updateConnection:
         post:
             description: |
