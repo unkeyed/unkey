@@ -1,0 +1,65 @@
+post:
+  tags:
+    - connections
+  summary: List app connections
+  description: |
+    List the current connection defaults for one caller environment, ordered by ID.
+    These defaults apply to new deployments. Existing deployments retain their saved connections.
+
+    Requires `read` on `unkey:v1:<workspace>:projects/<project>/apps/<app>/environments/<environment>`.
+    An unavailable or unreadable environment returns the same 404 response.
+  operationId: connections.listConnections
+  x-speakeasy-name-override: listConnections
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ConnectionsListConnectionsRequestBody.yaml"
+  responses:
+    "200":
+      description: Current connection defaults.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ConnectionsListConnectionsResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Environment not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Rate limit exceeded.
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"
