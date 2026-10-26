@@ -104,6 +104,8 @@ tags:
     description: API management operations
   - name: apps
     description: App management operations
+  - name: connections
+    description: Private app connection operations
   - name: deploy
     description: Deployment operations
   - name: deployments
