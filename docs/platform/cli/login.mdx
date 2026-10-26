@@ -13,7 +13,7 @@ sources:
   - svc/api/internal/clidevice/service.go
 ---
 
-`unkey login` starts a device login. You confirm the code in the dashboard, narrow the permissions if you want, and the CLI stores a session. Humans use `unkey login`. CI uses a root key.
+`unkey login` starts a device login. You confirm the code in the dashboard, choose what the CLI can do, and the CLI stores a session. Humans use `unkey login`. CI uses a root key.
 
 `unkey auth login` runs the same command.
 
@@ -23,9 +23,9 @@ sources:
 unkey login
 ```
 
-The command prints a confirmation code and a URL, then opens that URL in your browser. Sign in, check that the code matches the terminal, and select the permissions this key should have. Click **Allow**. The CLI finishes from that approval.
+The command prints a confirmation code and a URL, then opens that URL in your browser. Sign in, check that the code matches the terminal, and choose what the CLI can do. Click **Authorize CLI**. The CLI finishes from that approval.
 
-The approval page shows the device name, the IP address and client that started the login, and when it started. Only allow a login you started yourself. Anyone who gets you to approve their code receives a CLI session, so deny any code that someone sent you.
+Only authorize a login you started yourself. Anyone who gets you to approve their code receives a CLI session, so deny any code that someone sent you.
 
 The CLI keeps polling until the login finishes. On success it stores one session for that workspace and prints where it was saved. It does not print the tokens. `unkey logout` revokes the session. `unkey workspace switch` changes the active workspace.
 
