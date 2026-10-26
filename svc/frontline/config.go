@@ -79,6 +79,13 @@ type Config struct {
 	// metadata between Frontline regions. Every region must use the same key.
 	FrontlineMetaSigningKey string `toml:"frontline_meta_signing_key" config:"required,nonempty"`
 
+	// TrustedProxyCIDRs lists the networks whose direct connections may supply
+	// X-Forwarded-For. Forwarding headers from every other peer are ignored, so
+	// the client IP is the TCP peer unless a proxy or CDN terminates traffic in
+	// front of Frontline. IP firewall and rate-limit policies match on that
+	// address, which is why an unset list silently breaks them behind a proxy.
+	TrustedProxyCIDRs []string `toml:"trusted_proxy_cidrs"`
+
 	// Control configures the upstream control plane. See [config.ControlConfig].
 	Control config.ControlConfig `toml:"control"`
 
