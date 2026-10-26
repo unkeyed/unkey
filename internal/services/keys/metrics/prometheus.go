@@ -7,7 +7,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID").Inc()
-	KeyVerificationsTotal = lazy.NewCounterVec(
+	KeyVerificationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "key",
@@ -41,7 +41,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.KeyVerificationErrorsTotal.WithLabelValues("root_key").Inc()
-	KeyVerificationErrorsTotal = lazy.NewCounterVec(
+	KeyVerificationErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "key",

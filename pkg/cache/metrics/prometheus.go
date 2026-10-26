@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
@@ -12,7 +12,7 @@ var (
 	// Example usage:
 	//   metrics.CacheHits.WithLabelValues("user_profile").Inc()
 	//   metrics.CacheHits.WithLabelValues("user_profile")
-	CacheReads = lazy.NewCounterVec(
+	CacheReads = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -29,7 +29,7 @@ var (
 	// Example usage:
 	//   metrics.CacheDeleted.WithLabelValues("user_profile", "ttl").Inc()
 	//   metrics.CacheDeleted.WithLabelValues("user_profile", "capacity").Set(float64(evictionCount))
-	CacheDeleted = lazy.NewCounterVec(
+	CacheDeleted = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -44,7 +44,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.CacheSize.WithLabelValues("user_profile").Set(float64(cacheSize))
-	CacheSize = lazy.NewGaugeVec(
+	CacheSize = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -59,7 +59,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.CacheCapacity.WithLabelValues("user_profile").Set(float64(cacheCapacity))
-	CacheCapacity = lazy.NewGaugeVec(
+	CacheCapacity = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -74,7 +74,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.CacheRevalidations.WithLabelValues("user_profile").Inc()
-	CacheRevalidations = lazy.NewCounterVec(
+	CacheRevalidations = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -84,7 +84,7 @@ var (
 		[]string{"resource"},
 	)
 
-	CacheRevalidationEnqueues = lazy.NewCounterVec(
+	CacheRevalidationEnqueues = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -94,7 +94,7 @@ var (
 		[]string{"resource", "outcome"},
 	)
 
-	CacheRevalidationQueueDepth = lazy.NewHistogramVec(
+	CacheRevalidationQueueDepth = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -105,7 +105,7 @@ var (
 		[]string{"resource"},
 	)
 
-	CacheRevalidationQueueWait = lazy.NewHistogramVec(
+	CacheRevalidationQueueWait = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -135,7 +135,7 @@ var (
 	// wait for an origin read. Anything slower than 0.84s falls into +Inf.
 	// Durations below about 100ns are not reliable, because reading the clock
 	// and observing the histogram cost about that much.
-	CacheOperationDuration = lazy.NewHistogramVec(
+	CacheOperationDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -146,7 +146,7 @@ var (
 		[]string{"resource", "operation", "status"},
 	)
 
-	CacheRevalidationDuration = lazy.NewHistogramVec(
+	CacheRevalidationDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -162,7 +162,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.CacheRevalidationsErrorsTotal.WithLabelValues("user_profile").Inc()
-	CacheRevalidationsErrorsTotal = lazy.NewCounterVec(
+	CacheRevalidationsErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",

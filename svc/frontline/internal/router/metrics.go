@@ -2,7 +2,7 @@ package router
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // Decision label values for routingDecisionsTotal. Match the
@@ -21,7 +21,7 @@ const (
 // Routing failures are not counted here — they show up in the unified
 // requests_total counter via the URN-coded fault that the router returns
 // to the middleware.
-var routingDecisionsTotal = lazy.NewCounterVec(
+var routingDecisionsTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "frontline",
@@ -39,7 +39,7 @@ var routingDecisionsTotal = lazy.NewCounterVec(
 // Distribution is bimodal: cache hits land sub-ms, DB fallbacks tens of
 // ms. The bucket set spans both regimes so quantile alerts can target
 // whichever is the operational concern.
-var routingDecisionSeconds = lazy.NewHistogram(
+var routingDecisionSeconds = promauto.NewHistogram(
 	prometheus.HistogramOpts{
 		Namespace: "unkey",
 		Subsystem: "frontline",

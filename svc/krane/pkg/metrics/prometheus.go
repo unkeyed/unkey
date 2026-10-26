@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
@@ -13,7 +13,7 @@ var (
 	//   - "resource_type": "deployment" or "cilium_network_policy"
 	//   - "operation": "apply" or "delete"
 	//   - "result": "success" or "error"
-	ReconcileOperationsTotal = lazy.NewCounterVec(
+	ReconcileOperationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -28,7 +28,7 @@ var (
 	//
 	// Labels:
 	//   - "resource_type": "deployment" or "cilium_network_policy"
-	ResyncCorrectionsTotal = lazy.NewCounterVec(
+	ResyncCorrectionsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -41,7 +41,7 @@ var (
 	// WatcherFullSyncsTotal counts how often the watcher performs a full sync
 	// via SyncDesiredState. Under normal operation this fires once per
 	// fullSyncInterval (10 minutes) plus once on startup.
-	WatcherFullSyncsTotal = lazy.NewCounter(
+	WatcherFullSyncsTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -54,7 +54,7 @@ var (
 	//
 	// Labels:
 	//   - "status": "success" or "error"
-	StreamConnectionsTotal = lazy.NewCounterVec(
+	StreamConnectionsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -65,7 +65,7 @@ var (
 	)
 
 	// StreamEventsReceivedTotal counts events received on the incremental stream.
-	StreamEventsReceivedTotal = lazy.NewCounter(
+	StreamEventsReceivedTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -80,7 +80,7 @@ var (
 	//   - "state": "rolling" (holds a slot), "stalled" (exceeded its
 	//     progress deadline, paused until a new template or a retry), or
 	//     "waiting" (template changed, no slot yet)
-	RolloutGateWorkloads = lazy.NewGaugeVec(
+	RolloutGateWorkloads = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -92,7 +92,7 @@ var (
 
 	// LastSuccessfulCheckpointUnixSeconds records when Krane last saved a token
 	// after applying all earlier events.
-	LastSuccessfulCheckpointUnixSeconds = lazy.NewGauge(
+	LastSuccessfulCheckpointUnixSeconds = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -107,7 +107,7 @@ var (
 	//   - "source": "stream" or "full_sync"
 	//   - "resource_type": "deployment" or "cilium_network_policy"
 	//   - "status": "success" or "error"
-	DispatchTotal = lazy.NewCounterVec(
+	DispatchTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -120,7 +120,7 @@ var (
 	// StreamErrorsTotal counts incremental streams that connected and then
 	// ended with an error. Failed connection attempts are counted on
 	// [StreamConnectionsTotal] instead.
-	StreamErrorsTotal = lazy.NewCounter(
+	StreamErrorsTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -135,7 +135,7 @@ var (
 	// Labels:
 	//   - "stage": "open" (the stream could not be opened) or "receive" (the
 	//     stream ended with an error partway through)
-	FullSyncErrorsTotal = lazy.NewCounterVec(
+	FullSyncErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -146,7 +146,7 @@ var (
 	)
 
 	// FullSyncEventsReceivedTotal counts events received during a full sync.
-	FullSyncEventsReceivedTotal = lazy.NewCounter(
+	FullSyncEventsReceivedTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -156,7 +156,7 @@ var (
 	)
 
 	// FullSyncDurationSeconds tracks how long the krane-side full sync takes.
-	FullSyncDurationSeconds = lazy.NewHistogram(
+	FullSyncDurationSeconds = promauto.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -174,7 +174,7 @@ var (
 	//   - "event_type": k8s watch event type ("added", "modified", "deleted")
 	//   - "outcome": "reported", "deduped", "skipped_no_rs", "skipped_rs_gone",
 	//                "skipped_no_deployment", "error"
-	PodWatchEventsTotal = lazy.NewCounterVec(
+	PodWatchEventsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -198,7 +198,7 @@ var (
 	//   - "component": "deployment"
 	//   - "source": "watch" (real-time) — kept as a label for future
 	//               resync-sourced samples.
-	PodWatchDeliveryLagSeconds = lazy.NewHistogramVec(
+	PodWatchDeliveryLagSeconds = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -217,7 +217,7 @@ var (
 	// Labels:
 	//   - "component": "deployment"
 	//   - "reason": "channel_closed", "error"
-	PodWatchReconnectsTotal = lazy.NewCounterVec(
+	PodWatchReconnectsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -233,7 +233,7 @@ var (
 	// Labels:
 	//   - "component": "deployment"
 	//   - "result": "success", "error"
-	ReportStatusDurationSeconds = lazy.NewHistogramVec(
+	ReportStatusDurationSeconds = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -249,7 +249,7 @@ var (
 	//
 	// Labels:
 	//   - "component": "deployment"
-	ReportDedupedTotal = lazy.NewCounterVec(
+	ReportDedupedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -266,7 +266,7 @@ var (
 	//   - "kind": "running", "terminated" or "waiting"
 	//   - "reason": kubelet-supplied reason ("OOMKilled", "Error",
 	//     "ContainerCannotRun", "CrashLoopBackOff", ...)
-	InstanceEventsEmittedTotal = lazy.NewCounterVec(
+	InstanceEventsEmittedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -283,7 +283,7 @@ var (
 	//
 	// Labels:
 	//   - "kind": "running", "terminated" or "waiting"
-	InstanceEventsDedupDroppedTotal = lazy.NewCounterVec(
+	InstanceEventsDedupDroppedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -295,7 +295,7 @@ var (
 
 	// Leader is 1 on the replica that holds the krane leader lease and 0 on
 	// every other replica.
-	Leader = lazy.NewGauge(
+	Leader = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -307,7 +307,7 @@ var (
 	// InstanceEventsReportFailuresTotal counts ReportInstanceEvents RPC
 	// transport failures. Should track the existing krane→ctrl RPC
 	// failure rate; a divergence means something specific to this RPC.
-	InstanceEventsReportFailuresTotal = lazy.NewCounter(
+	InstanceEventsReportFailuresTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -317,21 +317,11 @@ var (
 	)
 )
 
-// Init registers every krane metric and creates the label combinations krane
-// is known to emit, so each series is exported at 0 from startup. Call it after
-// lazy.SetRegistry. instance_events_emitted_total and pod_watch_events_total
-// are left lazy: the first has kubelet-supplied reasons, the second has too
+// init creates the label combinations krane is known to emit, so each series is
+// exported at 0 from startup. instance_events_emitted_total and pod_watch_events_total
+// are left unprimed: the first has kubelet-supplied reasons, the second has too
 // many combinations for nothing that alerts on it.
-func Init() {
-	WatcherFullSyncsTotal.Register()
-	StreamEventsReceivedTotal.Register()
-	StreamErrorsTotal.Register()
-	FullSyncEventsReceivedTotal.Register()
-	FullSyncDurationSeconds.Register()
-	InstanceEventsReportFailuresTotal.Register()
-	LastSuccessfulCheckpointUnixSeconds.Register()
-	Leader.Register()
-
+func init() {
 	for _, result := range []string{"success", "error"} {
 		StreamConnectionsTotal.WithLabelValues(result)
 		ReportStatusDurationSeconds.WithLabelValues("deployment", result)

@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // RequestsTotal is the unified per-request outcome counter. One row per
@@ -21,7 +21,7 @@ import (
 // `code != ""` is the success/error split — there is no separate outcome
 // label, the URN carries that bit. region and environment are external labels
 // on the per-region Prometheus and are NOT carried as metric labels.
-var RequestsTotal = lazy.NewCounterVec(
+var RequestsTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "frontline",
@@ -38,7 +38,7 @@ var RequestsTotal = lazy.NewCounterVec(
 // Saturation signal: if the gauge climbs while traffic is steady, an
 // upstream got slow or frontline stalled. Pair with goroutine count for
 // triage — a leak shows up in both.
-var InflightRequests = lazy.NewGauge(
+var InflightRequests = promauto.NewGauge(
 	prometheus.GaugeOpts{
 		Namespace: "unkey",
 		Subsystem: "frontline",

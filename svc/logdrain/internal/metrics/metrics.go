@@ -3,7 +3,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
@@ -12,7 +12,7 @@ var (
 	// Labels:
 	//   - "status": "running", "paused_by_user", or "paused_by_failure"
 	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
-	Drains = lazy.NewGaugeVec(prometheus.GaugeOpts{
+	Drains = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "drains",
@@ -22,7 +22,7 @@ var (
 	// WorkQueueDepth tracks items waiting in the work queue.
 	//
 	// Labels: none.
-	WorkQueueDepth = lazy.NewGauge(prometheus.GaugeOpts{
+	WorkQueueDepth = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "work_queue_depth",
@@ -32,7 +32,7 @@ var (
 	// WorkQueueCapacity tracks the maximum number of queued items.
 	//
 	// Labels: none.
-	WorkQueueCapacity = lazy.NewGauge(prometheus.GaugeOpts{
+	WorkQueueCapacity = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "work_queue_capacity",
@@ -42,7 +42,7 @@ var (
 	// InflightDrains tracks drains claimed by the in-flight set, whether queued or processing.
 	//
 	// Labels: none.
-	InflightDrains = lazy.NewGauge(prometheus.GaugeOpts{
+	InflightDrains = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "inflight_drains",
@@ -53,7 +53,7 @@ var (
 	//
 	// Labels:
 	//   - "result": "success" or "error"
-	PollsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+	PollsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "polls_total",
@@ -66,7 +66,7 @@ var (
 	//   - "kind": "http" or "axiom"
 	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
 	//   - "outcome": "success" or "error"
-	DeliveriesTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+	DeliveriesTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "deliveries_total",
@@ -78,7 +78,7 @@ var (
 	// Labels:
 	//   - "kind": "http" or "axiom"
 	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
-	EventsDeliveredTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+	EventsDeliveredTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "events_delivered_total",
@@ -91,7 +91,7 @@ var (
 	//   - "kind": "http" or "axiom"
 	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
 	//   - "outcome": "success" or "error"
-	DeliveryDurationSeconds = lazy.NewHistogramVec(prometheus.HistogramOpts{
+	DeliveryDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "delivery_duration_seconds",
@@ -103,7 +103,7 @@ var (
 	//
 	// Labels:
 	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
-	DrainFailuresTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+	DrainFailuresTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "drain_failures_total",
@@ -114,7 +114,7 @@ var (
 	//
 	// Labels:
 	//   - "stream": "audit_logs", "key_verifications", "gateway_requests", or "runtime_logs"
-	DrainsPausedTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+	DrainsPausedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
 		Name:      "drains_paused_total",

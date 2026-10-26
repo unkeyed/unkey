@@ -3,11 +3,11 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // OperationsTotal counts completed encryption RPCs, including bulk calls once per RPC.
-var OperationsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+var OperationsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 	Namespace: "unkey",
 	Subsystem: "vault",
 	Name:      "operations_total",
@@ -15,7 +15,7 @@ var OperationsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 }, []string{"operation", "outcome"})
 
 // S3OperationsTotal counts completed storage operations after SDK retries.
-var S3OperationsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+var S3OperationsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 	Namespace: "unkey",
 	Subsystem: "vault",
 	Name:      "s3_operations_total",

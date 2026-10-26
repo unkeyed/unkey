@@ -2,7 +2,7 @@ package webhook
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // The transport metrics live here, next to the code that emits them, because
@@ -26,7 +26,7 @@ var (
 	//     "verification_failed" (signature rejected),
 	//     "too_large" (body exceeded the size limit),
 	//     "bad_request" (a handler rejected the payload via ErrBadRequest).
-	eventsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
+	eventsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "webhook",
 		Name:      "events_total",
@@ -41,7 +41,7 @@ var (
 	// Labels:
 	//   - "provider": the webhook source, e.g. "stripe"
 	//   - "event": the provider's event type
-	handlerDuration = lazy.NewHistogramVec(prometheus.HistogramOpts{
+	handlerDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "unkey",
 		Subsystem: "webhook",
 		Name:      "handler_duration_seconds",

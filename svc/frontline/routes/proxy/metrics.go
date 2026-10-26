@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // Outcome labels for localRequestRetriesTotal.
@@ -31,7 +31,7 @@ const (
 // already lives in proxy.upstreamDialsTotal{outcome="error"}; this metric
 // answers the higher-level question "did the client get a response from
 // the local region?".
-var localRequestRetriesTotal = lazy.NewCounterVec(
+var localRequestRetriesTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "frontline",
@@ -49,7 +49,7 @@ var localRequestRetriesTotal = lazy.NewCounterVec(
 //
 // to_region is the peer region selected by the router as standby (e.g.
 // "us-west-2.aws"). The "from" side is implicit in the scrape labels.
-var regionFallbacksTotal = lazy.NewCounterVec(
+var regionFallbacksTotal = promauto.NewCounterVec(
 	prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "frontline",

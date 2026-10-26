@@ -2,13 +2,13 @@ package policies
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
-	engineEvaluationsTotal = lazy.NewCounterVec(
+	engineEvaluationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -18,7 +18,7 @@ var (
 		[]string{"policy_type", "result"},
 	)
 
-	engineEvaluationDuration = lazy.NewHistogramVec(
+	engineEvaluationDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -33,7 +33,7 @@ var (
 	// labeled by the specific policy id and the action applied. The MVP only
 	// emits action="deny", but the label is kept so added actions (log,
 	// challenge, ...) don't require a breaking metric change.
-	firewallMatchesTotal = lazy.NewCounterVec(
+	firewallMatchesTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
