@@ -22,9 +22,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Empty request - domain is the virtual object key (ctx.Key())
+// The normalized domain name is the virtual object key.
 type VerifyDomainRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	DomainId      string                 `protobuf:"bytes,1,opt,name=domain_id,json=domainId,proto3" json:"domain_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -57,6 +58,13 @@ func (x *VerifyDomainRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use VerifyDomainRequest.ProtoReflect.Descriptor instead.
 func (*VerifyDomainRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_custom_domain_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *VerifyDomainRequest) GetDomainId() string {
+	if x != nil {
+		return x.DomainId
+	}
+	return ""
 }
 
 // Empty response - success means verified, errors are returned to Restate
@@ -96,9 +104,10 @@ func (*VerifyDomainResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_custom_domain_proto_rawDescGZIP(), []int{1}
 }
 
-// Empty request - domain is the virtual object key (ctx.Key())
+// The normalized domain name is the virtual object key.
 type RetryVerificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	DomainId      string                 `protobuf:"bytes,1,opt,name=domain_id,json=domainId,proto3" json:"domain_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -131,6 +140,13 @@ func (x *RetryVerificationRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RetryVerificationRequest.ProtoReflect.Descriptor instead.
 func (*RetryVerificationRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_custom_domain_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RetryVerificationRequest) GetDomainId() string {
+	if x != nil {
+		return x.DomainId
+	}
+	return ""
 }
 
 // Empty response - just triggers a new verification workflow
@@ -174,10 +190,12 @@ var File_hydra_v1_custom_domain_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_custom_domain_proto_rawDesc = "" +
 	"\n" +
-	"\x1chydra/v1/custom_domain.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\x15\n" +
-	"\x13VerifyDomainRequest\"\x16\n" +
-	"\x14VerifyDomainResponse\"\x1a\n" +
-	"\x18RetryVerificationRequest\"\x1b\n" +
+	"\x1chydra/v1/custom_domain.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"2\n" +
+	"\x13VerifyDomainRequest\x12\x1b\n" +
+	"\tdomain_id\x18\x01 \x01(\tR\bdomainId\"\x16\n" +
+	"\x14VerifyDomainResponse\"7\n" +
+	"\x18RetryVerificationRequest\x12\x1b\n" +
+	"\tdomain_id\x18\x01 \x01(\tR\bdomainId\"\x1b\n" +
 	"\x19RetryVerificationResponse2\xcc\x01\n" +
 	"\x13CustomDomainService\x12O\n" +
 	"\fVerifyDomain\x12\x1d.hydra.v1.VerifyDomainRequest\x1a\x1e.hydra.v1.VerifyDomainResponse\"\x00\x12^\n" +

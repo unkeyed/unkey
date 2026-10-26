@@ -10,11 +10,14 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
+	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -24,11 +27,83 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 )
 
 const testBearer = "test-token"
 
 var errInjectedAuditInsert = errors.New("injected audit insert failure")
+
+// Competing workspace claims and retries must wait on the same virtual object,
+// while an unrelated domain can verify independently.
+func TestCustomDomainVerificationSerializesWorkspaceClaims(t *testing.T) {
+	f := newFixture(t, 2)
+	other := f.newWorkspace(t, 1)
+	entered := make(chan string, 4)
+	release := make(chan struct{})
+	worker := workercustomdomain.New(workercustomdomain.Config{
+		DB:          &heldVerificationDB{entered: entered, release: release},
+		CnameDomain: "cname.unkey.local",
+	})
+	cfg := containers.Restate(t, hydrav1.NewCustomDomainServiceServer(worker))
+	t.Cleanup(func() { close(release) })
+	svc := f.newServiceWithRestate(t, cfg.IngressURL)
+
+	first, err := svc.AddCustomDomain(t.Context(), f.request(strings.ToUpper(f.domain)))
+	require.NoError(t, err)
+	select {
+	case id := <-entered:
+		require.Equal(t, first.Msg.GetDomainId(), id)
+	case <-time.After(10 * time.Second):
+		t.Fatal("first verification did not start")
+	}
+
+	second, err := svc.AddCustomDomain(t.Context(), f.requestIn(other, f.domain))
+	require.NoError(t, err)
+
+	unrelated, err := svc.AddCustomDomain(t.Context(), f.request(randomDomain()))
+	require.NoError(t, err)
+	select {
+	case id := <-entered:
+		require.Equal(t, unrelated.Msg.GetDomainId(), id, "a competing claim must wait for the first verification")
+	case <-time.After(10 * time.Second):
+		t.Fatal("unrelated verification did not start")
+	}
+
+	_, err = svc.RetryVerification(t.Context(), f.retryRequest(f.domain, f.projectID))
+	require.NoError(t, err)
+	require.Never(t, func() bool { return len(entered) > 0 }, time.Second, 20*time.Millisecond,
+		"neither a competing claim nor a retry may bypass an active verification")
+
+	release <- struct{}{}
+	select {
+	case id := <-entered:
+		require.Equal(t, second.Msg.GetDomainId(), id)
+	case <-time.After(10 * time.Second):
+		t.Fatal("competing verification did not start after the first finished")
+	}
+}
+
+type heldVerificationDB struct {
+	db.Database
+	entered chan<- string
+	release <-chan struct{}
+	started atomic.Bool
+}
+
+func (d *heldVerificationDB) FindCustomDomainById(ctx context.Context, id string) (db.CustomDomain, error) {
+	first := d.started.CompareAndSwap(false, true)
+	d.entered <- id
+	if !first {
+		return db.CustomDomain{}, restate.ToTerminalError(errors.New("verification probe complete"))
+	}
+	select {
+	case <-d.release:
+		return db.CustomDomain{}, restate.ToTerminalError(errors.New("verification probe complete"))
+	case <-ctx.Done():
+		return db.CustomDomain{}, ctx.Err()
+	}
+}
 
 // A domain in the database always has a matching outbox row, which is only observable
 // once the insert commits.
