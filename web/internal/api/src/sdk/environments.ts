@@ -10,7 +10,9 @@ import { environmentsSetEnvironmentVariables } from "../funcs/environmentsSetEnv
 import { environmentsUpdateSettings } from "../funcs/environmentsUpdateSettings.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
+import * as operations from "../models/operations/index.js";
 import { unwrapAsync } from "../types/fp.js";
+import { PageIterator, unwrapResultIterator } from "../types/operations.js";
 
 export class Environments extends ClientSDK {
   /**
@@ -61,8 +63,13 @@ export class Environments extends ClientSDK {
   async listEnvironmentVariables(
     request: components.V2EnvironmentsListEnvironmentVariablesRequestBody,
     options?: RequestOptions,
-  ): Promise<components.V2EnvironmentsListEnvironmentVariablesResponseBody> {
-    return unwrapAsync(environmentsListEnvironmentVariables(
+  ): Promise<
+    PageIterator<
+      operations.EnvironmentsListEnvironmentVariablesResponse,
+      { cursor: string }
+    >
+  > {
+    return unwrapResultIterator(environmentsListEnvironmentVariables(
       this,
       request,
       options,

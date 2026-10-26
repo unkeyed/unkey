@@ -9,7 +9,9 @@ import { domainsListDomains } from "../funcs/domainsListDomains.js";
 import { domainsVerifyDomain } from "../funcs/domainsVerifyDomain.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
+import * as operations from "../models/operations/index.js";
 import { unwrapAsync } from "../types/fp.js";
+import { PageIterator, unwrapResultIterator } from "../types/operations.js";
 
 export class Domains extends ClientSDK {
   /**
@@ -146,8 +148,10 @@ export class Domains extends ClientSDK {
   async listDomains(
     request: components.V2DomainsListDomainsRequestBody,
     options?: RequestOptions,
-  ): Promise<components.V2DomainsListDomainsResponseBody> {
-    return unwrapAsync(domainsListDomains(
+  ): Promise<
+    PageIterator<operations.DomainsListDomainsResponse, { cursor: string }>
+  > {
+    return unwrapResultIterator(domainsListDomains(
       this,
       request,
       options,

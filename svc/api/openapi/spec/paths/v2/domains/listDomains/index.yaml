@@ -288,3 +288,11 @@ post:
                   detail: The domain scan limit was reached. Narrow the project, app, environment, or search filters and retry.
                   status: 503
                   type: service-unavailable
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

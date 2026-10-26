@@ -2,6 +2,7 @@ import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
   IconBracketsCurlyOutline18,
+  IconChartActivityOutline18,
   IconCubeOutline18,
   IconEarthOutline18,
   IconFingerprintOutline18,
@@ -160,9 +161,17 @@ export function buildAppLinks(
   projectId: string,
   appId: string,
   segments: string[],
+  { metrics }: { metrics: boolean },
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
+  const metricsLink: ResolvedNavLink = {
+    key: "metrics",
+    label: "Metrics",
+    href: routes.projects.apps.metrics(scope),
+    icon: IconChartActivityOutline18,
+    isActive: page === "metrics",
+  };
   return [
     {
       key: "overview",
@@ -171,6 +180,7 @@ export function buildAppLinks(
       icon: IconCubeOutline18,
       isActive: page === "overview",
     },
+    ...(metrics ? [metricsLink] : []),
     {
       key: "deployments",
       label: "Deployments",

@@ -31,7 +31,7 @@ export function LoadError({
         </EmptyStateDescription>
       </EmptyStateHeader>
       <EmptyStateActions>
-        <Button variant="primary" size="md" onClick={onRetry}>
+        <Button variant="primary" size="sm" onClick={onRetry}>
           Retry
         </Button>
       </EmptyStateActions>

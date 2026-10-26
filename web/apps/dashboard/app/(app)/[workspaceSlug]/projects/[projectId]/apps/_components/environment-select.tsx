@@ -17,7 +17,7 @@ type EnvironmentSelectProps = {
   disabled?: boolean;
 } & Pick<
   ComponentProps<typeof SelectTrigger>,
-  "id" | "className" | "wrapperClassName" | "leftIcon" | "variant"
+  "id" | "className" | "wrapperClassName" | "leftIcon" | "variant" | "size"
 >;
 
 export function EnvironmentSelect({
