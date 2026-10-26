@@ -17,8 +17,8 @@ import (
 
 // TestProcessChallengeMissingDomainDoesNotRetry proves a challenge for a domain
 // that no longer exists finishes. A domain deleted between the renewal sweep and
-// this invocation would otherwise retry its lookup until the 24-hour window
-// expired, because restate.Run retries a non-terminal error indefinitely.
+// this invocation would otherwise keep retrying its lookup, because restate.Run
+// retries a non-terminal error.
 func TestProcessChallengeMissingDomainDoesNotRetry(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	t.Cleanup(cancel)

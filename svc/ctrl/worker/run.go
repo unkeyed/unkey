@@ -562,14 +562,14 @@ func Run(ctx context.Context, cfg Config) error {
 		DNSProvider:  dnsProvider,
 		HTTPProvider: httpProvider,
 		Heartbeat:    certHeartbeat,
-	}),
-		restate.WithInactivityTimeout(15*time.Minute),
+	}), restate.WithInactivityTimeout(15*time.Minute)).
 		// RenewExpiringCertificates runs on the fixed "global" key, so one
 		// invocation that never finishes blocks every later renewal. Bound it
 		// and kill on exhaustion: a renewal run is idempotent and the next tick
-		// retries from a clean slate, while a paused run parks certificates
-		// that need renewing.
-		restate.WithInvocationRetryPolicy(
+		// retries from a clean slate. ProcessChallenge keeps the server default,
+		// which pauses: a kill skips its compensation and leaves the challenge
+		// pending, which no sweep picks up again.
+		ConfigureHandler("RenewExpiringCertificates", restate.WithInvocationRetryPolicy(
 			restate.WithInitialRetryInterval(time.Second),
 			restate.WithRetryIntervalFactor(2.0),
 			restate.WithMaxRetryInterval(time.Minute),

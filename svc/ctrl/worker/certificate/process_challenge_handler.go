@@ -56,8 +56,9 @@ type EncryptedCertificate struct {
 // retries before failing. For transient errors, Restate's standard retry with exponential
 // backoff applies (30s initial, 2x factor, 5m max, 5 attempts).
 //
-// Returns a response with Status "success" and the certificate ID on success, or Status
-// "failed" with empty certificate ID on failure. System errors return (nil, error).
+// Returns a response with Status "success" and the certificate ID on success, Status
+// "failed" with empty certificate ID on failure, or Status "skipped" when the domain
+// is gone or the challenge is not claimable. System errors return (nil, error).
 func (s *Service) ProcessChallenge(
 	ctx restate.ObjectContext,
 	req *hydrav1.ProcessChallengeRequest,
@@ -70,7 +71,7 @@ func (s *Service) ProcessChallenge(
 	// Step 1: Resolve domain
 	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.CustomDomain, error) {
 		row, findErr := s.db.FindCustomDomainByDomain(stepCtx, req.GetDomain())
-		return row, restateutil.TerminalNotFound(findErr, db.IsNotFound)
+		return row, restateutil.TerminalNotFound(findErr)
 	}, restate.WithName("resolve domain"))
 	if err != nil {
 		// The domain was deleted while this challenge was queued, so there is
@@ -82,9 +83,8 @@ func (s *Service) ProcessChallenge(
 		return nil, err
 	}
 
-	// Step 2: Claim the challenge. The update only matches a row still in
-	// waiting, so zero rows means another run already claimed it, or it is
-	// already verified and has nothing to reissue
+	// Step 2: Claim the challenge. Only a waiting or verified row is claimable,
+	// so zero rows means a pending run owns it or it failed
 	claimed, err := restate.Run(ctx, func(stepCtx restate.RunContext) (int64, error) {
 		return s.db.UpdateAcmeChallengeTryClaiming(stepCtx, db.UpdateAcmeChallengeTryClaimingParams{
 			DomainID:  dom.ID,
@@ -96,7 +96,7 @@ func (s *Service) ProcessChallenge(
 		return nil, err
 	}
 	if claimed == 0 {
-		logger.Info("challenge already claimed or not waiting, skipping", "domain", req.GetDomain())
+		logger.Info("challenge not claimable, skipping", "domain", req.GetDomain())
 		return &hydrav1.ProcessChallengeResponse{Status: "skipped"}, nil
 	}
 

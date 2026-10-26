@@ -31,17 +31,17 @@ func (s *Service) Delete(
 
 	logger.Info("starting app deletion", "app_id", appID)
 
-	// Capture the app's metadata before the cascade deletes the row, so the
-	// audit log written at the end still has a name/slug to display.
+	// Capture the app metadata before the cascade, so the audit log still has a
+	// name and slug to display
 	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
 		row, findErr := s.db.FindAppById(runCtx, appID)
-		return row, restateutil.TerminalNotFound(findErr, db.IsNotFound)
+		return row, restateutil.TerminalNotFound(findErr)
 	}, restate.WithName("find app"))
 	if err != nil {
 		if !restateutil.IsNotFoundTerminal(err) {
 			return nil, fmt.Errorf("find app: %w", err)
 		}
-		// Another delete already removed the row, so the postcondition holds
+		// The row is already gone, so a repeat delete has nothing left to do
 		logger.Info("app already deleted", "app_id", appID)
 		return &hydrav1.DeleteAppResponse{}, nil
 	}
@@ -91,10 +91,9 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete OCI source: %w", err)
 	}
 
-	// The audit entry goes before the row delete. A retried invocation whose
-	// audit step failed would find no row and stop, leaving the delete
-	// unaudited. Written first, a failed audit keeps the row in place so the
-	// retry can try again.
+	// Audit before the row delete: once the row is gone a repeat delete returns
+	// early, so an audit still owed by a killed earlier delete would never be
+	// written
 	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
 		Actor:         req.GetActor(),
 		CorrelationID: req.GetCorrelationId(),
