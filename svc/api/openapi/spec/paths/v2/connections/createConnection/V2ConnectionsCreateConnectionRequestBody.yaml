@@ -1,0 +1,34 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - targetApp
+  - targetType
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  targetApp:
+    type: string
+    minLength: 1
+    description: Target app ID in the same project.
+  name:
+    type: string
+    minLength: 1
+    maxLength: 63
+    description: DNS label starting with a letter. Lowercase letters, digits, and hyphens only. The name self and the prefix unkey are reserved. Defaults to a unique name derived from the target app slug.
+  targetType:
+    "$ref": "../../../../common/ConnectionTargetType.yaml"
+  targetEnvironmentId:
+    type: string
+    minLength: 1
+    description: Required for environment selection. Must belong to the target app. Ignored for other modes.
+  targetDeploymentId:
+    type: string
+    minLength: 1
+    description: Required for deployment selection. Must be a ready, running deployment of the target app. Ignored for other modes.
+additionalProperties: false
