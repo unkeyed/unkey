@@ -129,6 +129,12 @@ type Querier interface {
 	//
 	//  DELETE FROM app_build_settings WHERE environment_id = ?
 	DeleteAppBuildSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteAppConnection
+	//
+	//  DELETE c, t FROM app_connections c
+	//  LEFT JOIN connection_app_targets t ON t.connection_id = c.id
+	//  WHERE c.id = ? AND c.workspace_id = ?
+	DeleteAppConnection(ctx context.Context, db DBTX, arg DeleteAppConnectionParams) error
 	// Deletes an environment's variables whose key is in the provided set.
 	//
 	//  DELETE FROM app_environment_variables
