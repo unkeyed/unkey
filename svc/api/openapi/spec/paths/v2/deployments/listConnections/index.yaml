@@ -1,0 +1,52 @@
+post:
+  tags:
+    - deployments
+  summary: List saved deployment connections
+  description: |
+    Return up to five connections saved in this deployment, ordered by saved name and ID.
+    These snapshots are separate from the caller environment's current defaults.
+    Removed target apps and environments retain their saved IDs with null labels.
+    Requires read access to the deployment. Missing and unreadable deployments
+    return the same 404 response. Stopped deployments and soft-deleted parents
+    remain readable while their deployment records exist.
+  operationId: deployments.listConnections
+  x-speakeasy-name-override: listConnections
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsListConnectionsRequestBody.yaml"
+  responses:
+    "200":
+      description: Saved deployment connections and truncation status.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsListConnectionsResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Deployment not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -33,6 +33,7 @@ import (
 	v2DeploymentsCreateDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
 	v2DeploymentsGetDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_get_deployment"
 	v2DeploymentsListBuildLogs "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_build_logs"
+	v2DeploymentsListConnections "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_connections"
 	v2DeploymentsListDeployments "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_deployments"
 	v2DeploymentsPromoteDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_promote_deployment"
 	v2DeploymentsRollbackDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_rollback_deployment"
@@ -466,6 +467,11 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2DeploymentsGetDeployment.Handler{
 			DB: svc.Database,
 		},
+	)
+
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DeploymentsListConnections.Handler{DB: svc.Database},
 	)
 
 	// v2/deployments.listBuildLogs
