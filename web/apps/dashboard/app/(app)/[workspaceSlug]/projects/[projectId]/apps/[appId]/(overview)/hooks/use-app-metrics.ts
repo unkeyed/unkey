@@ -2,12 +2,13 @@
 
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { type Loadable, type QueryResult, fromQuery } from "@/lib/loadable/loadable";
-import type {
-  Grid,
-  InstanceRow,
-  InstanceSeries,
-  SourceResult,
-  Sources,
+import {
+  type Grid,
+  type InstanceRow,
+  type InstanceSeries,
+  type SourceResult,
+  type Sources,
+  clampedRetryMs,
 } from "@/lib/metrics/app-metrics";
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useRef, useState } from "react";
@@ -42,22 +43,17 @@ function useHeldAcrossTicks<T>(scope: AppMetricsScope | null, query: QueryResult
 
 const CLOCK_DRIVEN = { staleTime: Number.POSITIVE_INFINITY, refetchOnWindowFocus: false };
 
-const CLAMPED_RETRY_MS = 2_000;
-
-// The server clamps endMs to its own clock, so a tick that lands just before the
-// server reaches the boundary gets the previous bucket back; ask again shortly.
-// A gap wider than one bucket is clock skew, which retrying cannot close.
 function gridDriven<T extends { grid: Grid }>(scope: AppMetricsScope | null, enabled = true) {
   return {
     ...CLOCK_DRIVEN,
     enabled: enabled && scope !== null,
-    refetchInterval: (data: T | undefined) => {
-      if (!data || !scope) {
-        return false;
-      }
-      const behindMs = scope.grid.endMs - data.grid.endMs;
-      return behindMs > 0 && behindMs <= scope.grid.bucketMs ? CLAMPED_RETRY_MS : false;
-    },
+    refetchInterval: (
+      data: T | undefined,
+      { state }: { state: { dataUpdateCount: number; errorUpdateCount: number } },
+    ) =>
+      data && scope
+        ? clampedRetryMs(scope.grid, data.grid, state.dataUpdateCount + state.errorUpdateCount)
+        : false,
   };
 }
 

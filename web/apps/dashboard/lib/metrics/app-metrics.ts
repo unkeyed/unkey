@@ -74,3 +74,15 @@ export type InstanceRow = {
   deployment: { id: string; source: DeploySource | null };
   replica: ReplicaTarget;
 };
+
+const CLAMPED_RETRY_MS = 2_000;
+const MAX_CLAMPED_RETRIES = 2;
+
+// The server clamps endMs to its own clock, so a browser clock a few seconds ahead
+// gets the previous bucket back. Retries cover small skew; a larger skew keeps the
+// previous bucket until the next tick instead of polling every 2s.
+export function clampedRetryMs(asked: Grid, served: Grid, fetchCount: number): number | false {
+  const behindMs = asked.endMs - served.endMs;
+  const clamped = behindMs > 0 && behindMs <= asked.bucketMs;
+  return clamped && fetchCount <= MAX_CLAMPED_RETRIES ? CLAMPED_RETRY_MS : false;
+}
