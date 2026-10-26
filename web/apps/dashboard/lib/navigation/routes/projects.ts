@@ -95,10 +95,11 @@ export const projectRoutes = {
       return buildRoute("/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings", params);
     },
 
-    domains(scope: AppScope): Route {
+    domains({ add, ...scope }: AppScope & { add?: boolean }): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/domains",
         appParams(scope),
+        { add: add || undefined },
       );
     },
 
@@ -110,10 +111,11 @@ export const projectRoutes = {
       );
     },
 
-    policies(scope: AppScope): Route {
+    policies({ add, ...scope }: AppScope & { add?: boolean }): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/policies",
         appParams(scope),
+        { add: add || undefined },
       );
     },
 
