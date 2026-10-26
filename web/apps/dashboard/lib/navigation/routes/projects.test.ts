@@ -36,6 +36,12 @@ describe("routes.projects.logs", () => {
       "/acme/projects/proj_123/logs?appId=is:app_456",
     );
   });
+
+  it("scopes logs to one instance of a deployment", () => {
+    expect(
+      routes.projects.logs({ workspaceSlug: ws, projectId, deploymentId, instanceId: "ins_1" }),
+    ).toBe("/acme/projects/proj_123/logs?deploymentId=is:d_789&instanceId=is:ins_1");
+  });
 });
 
 describe("routes.projects.requests", () => {

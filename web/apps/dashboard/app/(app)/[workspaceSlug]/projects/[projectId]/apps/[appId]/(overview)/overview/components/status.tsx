@@ -4,20 +4,20 @@ import {
   isDeploymentInFlight,
 } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { summarizeInstances } from "@/lib/collections/deploy/instance-status";
 
 export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
 
-export function deriveProductionStatus(deployment: Deployment): DeploymentDisplayStatus {
+export function deriveProductionStatus(
+  deployment: Pick<Deployment, "status" | "instances" | "targetRegions" | "desiredState">,
+): DeploymentDisplayStatus {
   if (deployment.status === "stopped") {
     return "stopped";
   }
   if (deployment.status === "failed") {
     return "failed";
   }
-  const crashing =
-    deployment.lastExit?.statusReason === "CrashLoopBackOff" ||
-    (deployment.instances ?? []).some((i) => i.status === "failed");
-  if (crashing) {
+  if (summarizeInstances(deployment)?.state === "unhealthy") {
     return "crashing";
   }
   if (isDeploymentInFlight(deployment.status) || deployment.status === "awaiting_approval") {

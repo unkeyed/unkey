@@ -1,0 +1,135 @@
+"use client";
+
+import type { Deployment } from "@/lib/collections/deploy/deployments";
+import {
+  IconBanOutline18,
+  IconCloudUploadOutline18,
+  IconEarthOutline18,
+  IconHammer2Outline18,
+  IconLayerFrontOutline18,
+  IconSparkle3Outline18,
+} from "@unkey/icons";
+import { match } from "@unkey/match";
+import { Button, SettingCardGroup } from "@unkey/ui";
+import { useState } from "react";
+import { DeploymentStep } from "../../(deployment-progress)/deployment-step";
+import { RedeployDialog } from "../../../components/table/components/actions/redeploy-dialog";
+import type { StepsData } from "./deployment-progress";
+
+const STEP_ORDER: Array<{
+  key: keyof NonNullable<StepsData>;
+  icon: React.ReactNode;
+  title: string;
+}> = [
+  {
+    key: "queued",
+    icon: <IconLayerFrontOutline18 className="size-[18px]" />,
+    title: "Deployment Queued",
+  },
+  {
+    key: "building",
+    icon: <IconHammer2Outline18 className="size-[18px]" />,
+    title: "Building Image",
+  },
+  {
+    key: "deploying",
+    icon: <IconCloudUploadOutline18 className="size-[18px]" />,
+    title: "Deploying Containers",
+  },
+  {
+    key: "network",
+    icon: <IconEarthOutline18 className="size-[18px]" />,
+    title: "Assigning Domains",
+  },
+  {
+    key: "finalizing",
+    icon: <IconSparkle3Outline18 className="size-[18px]" />,
+    title: "Deployment Finalizing",
+  },
+];
+
+type StopReason = "cancelled" | "superseded";
+
+type DeploymentCancelledProps = {
+  deployment: Deployment;
+  stepsData?: StepsData;
+  reason: StopReason;
+};
+
+export function DeploymentCancelled({ deployment, stepsData, reason }: DeploymentCancelledProps) {
+  const [redeployOpen, setRedeployOpen] = useState(false);
+  const copy = match(reason)
+    .with("cancelled", () => ({
+      step: "Cancelled",
+      title: "Deployment cancelled",
+      description: "You aborted this deployment. Redeploy to try again.",
+    }))
+    .with("superseded", () => ({
+      step: "Superseded",
+      title: "Deployment superseded",
+      description: match(deployment.source)
+        .with("git", () => "A newer commit on this branch replaced this deployment.")
+        .with("oci", () => "A newer deployment replaced this image deployment.")
+        .with("unknown", () => "A newer deployment replaced this deployment.")
+        .exhaustive(),
+    }))
+    .exhaustive();
+
+  // Find the first step that has an error and isn't completed -- that's
+  // the step that was actively running when the deployment was stopped.
+  const stoppedKey = STEP_ORDER.find(
+    ({ key }) => stepsData?.[key]?.error && !stepsData?.[key]?.completed,
+  )?.key;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <SettingCardGroup>
+        {STEP_ORDER.map(({ key, icon, title }) => {
+          const step = stepsData?.[key];
+          const isStoppedHere = key === stoppedKey;
+
+          // Every step in the cancelled view shows the same description so
+          // the page reads as a single intent: this deployment was stopped.
+          // Steps that finished before the cancel keep their duration so
+          // you can still see how far it got.
+          return (
+            <DeploymentStep
+              key={key}
+              icon={icon}
+              title={title}
+              description={copy.step}
+              duration={step?.duration ?? undefined}
+              status="skipped"
+              statusIcon={
+                isStoppedHere ? <IconBanOutline18 className="size-3.5 text-gray-9" /> : undefined
+              }
+            />
+          );
+        })}
+      </SettingCardGroup>
+
+      <div className="border bg-grayA-2 rounded-lg p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium text-gray-12">{copy.title}</span>
+            <span className="text-xs text-gray-11">{copy.description}</span>
+          </div>
+        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setRedeployOpen(true)}
+          className="px-3 shrink-0"
+        >
+          Redeploy
+        </Button>
+      </div>
+
+      <RedeployDialog
+        isOpen={redeployOpen}
+        onClose={() => setRedeployOpen(false)}
+        selectedDeployment={deployment}
+      />
+    </div>
+  );
+}
