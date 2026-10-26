@@ -23,8 +23,15 @@ import * as errors from "../models/errors/index.js";
 import { ResponseValidationError } from "../models/errors/responsevalidationerror.js";
 import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import { UnkeyError } from "../models/errors/unkeyerror.js";
+import * as operations from "../models/operations/index.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
+import {
+  createPageIterator,
+  haltIterator,
+  PageIterator,
+  Paginator,
+} from "../types/operations.js";
 
 /**
  * List environment variables
@@ -53,39 +60,9 @@ export function environmentsListEnvironmentVariables(
   request: components.V2EnvironmentsListEnvironmentVariablesRequestBody,
   options?: RequestOptions,
 ): APIPromise<
-  Result<
-    components.V2EnvironmentsListEnvironmentVariablesResponseBody,
-    | errors.BadRequestErrorResponse
-    | errors.UnauthorizedErrorResponse
-    | errors.ForbiddenErrorResponse
-    | errors.NotFoundErrorResponse
-    | errors.TooManyRequestsErrorResponse
-    | errors.InternalServerErrorResponse
-    | UnkeyError
-    | ResponseValidationError
-    | ConnectionError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | InvalidRequestError
-    | UnexpectedClientError
-    | SDKValidationError
-  >
-> {
-  return new APIPromise($do(
-    client,
-    request,
-    options,
-  ));
-}
-
-async function $do(
-  client: UnkeyCore,
-  request: components.V2EnvironmentsListEnvironmentVariablesRequestBody,
-  options?: RequestOptions,
-): Promise<
-  [
+  PageIterator<
     Result<
-      components.V2EnvironmentsListEnvironmentVariablesResponseBody,
+      operations.EnvironmentsListEnvironmentVariablesResponse,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
@@ -101,6 +78,42 @@ async function $do(
       | UnexpectedClientError
       | SDKValidationError
     >,
+    { cursor: string }
+  >
+> {
+  return new APIPromise($do(
+    client,
+    request,
+    options,
+  ));
+}
+
+async function $do(
+  client: UnkeyCore,
+  request: components.V2EnvironmentsListEnvironmentVariablesRequestBody,
+  options?: RequestOptions,
+): Promise<
+  [
+    PageIterator<
+      Result<
+        operations.EnvironmentsListEnvironmentVariablesResponse,
+        | errors.BadRequestErrorResponse
+        | errors.UnauthorizedErrorResponse
+        | errors.ForbiddenErrorResponse
+        | errors.NotFoundErrorResponse
+        | errors.TooManyRequestsErrorResponse
+        | errors.InternalServerErrorResponse
+        | UnkeyError
+        | ResponseValidationError
+        | ConnectionError
+        | RequestAbortedError
+        | RequestTimeoutError
+        | InvalidRequestError
+        | UnexpectedClientError
+        | SDKValidationError
+      >,
+      { cursor: string }
+    >,
     APICall,
   ]
 > {
@@ -114,7 +127,7 @@ async function $do(
     "Input validation failed",
   );
   if (!parsed.ok) {
-    return [parsed, { status: "invalid" }];
+    return [haltIterator(parsed), { status: "invalid" }];
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
@@ -166,7 +179,7 @@ async function $do(
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || -1,
   }, options);
   if (!requestRes.ok) {
-    return [requestRes, { status: "invalid" }];
+    return [haltIterator(requestRes), { status: "invalid" }];
   }
   const req = requestRes.value;
 
@@ -178,7 +191,7 @@ async function $do(
     retryCodes: context.retryCodes,
   });
   if (!doResult.ok) {
-    return [doResult, { status: "request-error", request: req }];
+    return [haltIterator(doResult), { status: "request-error", request: req }];
   }
   const response = doResult.value;
 
@@ -186,8 +199,8 @@ async function $do(
     HttpMeta: { Response: response, Request: req },
   };
 
-  const [result] = await M.match<
-    components.V2EnvironmentsListEnvironmentVariablesResponseBody,
+  const [result, raw] = await M.match<
+    operations.EnvironmentsListEnvironmentVariablesResponse,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
@@ -205,8 +218,8 @@ async function $do(
   >(
     M.json(
       200,
-      components
-        .V2EnvironmentsListEnvironmentVariablesResponseBody$inboundSchema,
+      operations.EnvironmentsListEnvironmentVariablesResponse$inboundSchema,
+      { key: "Result" },
     ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
@@ -220,8 +233,63 @@ async function $do(
     M.fail("5XX"),
   )(response, req, { extraFields: responseFields });
   if (!result.ok) {
-    return [result, { status: "complete", request: req, response }];
+    return [haltIterator(result), {
+      status: "complete",
+      request: req,
+      response,
+    }];
   }
 
-  return [result, { status: "complete", request: req, response }];
+  const nextFunc = (
+    responseData: unknown,
+  ): {
+    next: Paginator<
+      Result<
+        operations.EnvironmentsListEnvironmentVariablesResponse,
+        | errors.BadRequestErrorResponse
+        | errors.UnauthorizedErrorResponse
+        | errors.ForbiddenErrorResponse
+        | errors.NotFoundErrorResponse
+        | errors.TooManyRequestsErrorResponse
+        | errors.InternalServerErrorResponse
+        | UnkeyError
+        | ResponseValidationError
+        | ConnectionError
+        | RequestAbortedError
+        | RequestTimeoutError
+        | InvalidRequestError
+        | UnexpectedClientError
+        | SDKValidationError
+      >
+    >;
+    "~next"?: { cursor: string };
+  } => {
+    const nextCursor =
+      (responseData as { pagination: { cursor?: unknown } }).pagination.cursor;
+    if (typeof nextCursor !== "string") {
+      return { next: () => null };
+    }
+    if (nextCursor.trim() === "") {
+      return { next: () => null };
+    }
+
+    const nextVal = () =>
+      environmentsListEnvironmentVariables(
+        client,
+        {
+          ...request,
+          cursor: nextCursor,
+        },
+        options,
+      );
+
+    return { next: nextVal, "~next": { cursor: nextCursor } };
+  };
+
+  const page = { ...result, ...nextFunc(raw) };
+  return [{ ...page, ...createPageIterator(page, (v) => !v.ok) }, {
+    status: "complete",
+    request: req,
+    response,
+  }];
 }

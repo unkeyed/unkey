@@ -45,13 +45,18 @@ const input = {
 };
 
 function existingKeys(byEnvironment: Record<string, string[]>) {
-  listEnvironmentVariables.mockImplementation(async ({ environment }) => ({
-    data: (byEnvironment[environment] ?? []).map((key) => ({
-      key,
-      kind: "recoverable",
-      createdAt: 0,
-    })),
-  }));
+  listEnvironmentVariables.mockImplementation(async ({ environment }) => [
+    {
+      result: {
+        pagination: { hasMore: false },
+        data: (byEnvironment[environment] ?? []).map((key) => ({
+          key,
+          kind: "recoverable",
+          createdAt: 0,
+        })),
+      },
+    },
+  ]);
 }
 
 describe("addVariables", () => {

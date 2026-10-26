@@ -147,19 +147,17 @@ async function listAllVariables(
   environmentId: string,
 ): Promise<EnvironmentVariable[]> {
   const all: EnvironmentVariable[] = [];
-  let cursor: string | undefined;
-
-  do {
-    const page = await getUnkeyClient().environments.listEnvironmentVariables({
-      project: projectId,
-      app: appId,
-      environment: environmentId,
-      cursor,
-    });
-    all.push(...page.data);
-    cursor = page.pagination?.hasMore ? page.pagination.cursor : undefined;
-  } while (cursor);
-
+  const pages = await getUnkeyClient().environments.listEnvironmentVariables({
+    project: projectId,
+    app: appId,
+    environment: environmentId,
+  });
+  for await (const { result } of pages) {
+    all.push(...result.data);
+    if (!result.pagination.hasMore) {
+      break;
+    }
+  }
   return all;
 }
 

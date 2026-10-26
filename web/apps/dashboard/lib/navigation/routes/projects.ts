@@ -34,11 +34,13 @@ export const projectRoutes = {
   logs({
     appId,
     deploymentId,
+    instanceId,
     ...scope
-  }: ProjectScope & { appId?: string; deploymentId?: string }): Route {
+  }: ProjectScope & { appId?: string; deploymentId?: string; instanceId?: string }): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/logs", projectParams(scope), {
       appId: appId ? isFilter(appId) : undefined,
       deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
+      instanceId: instanceId ? isFilter(instanceId) : undefined,
     });
   },
 
@@ -111,6 +113,13 @@ export const projectRoutes = {
     policies(scope: AppScope): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/policies",
+        appParams(scope),
+      );
+    },
+
+    metrics(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/metrics",
         appParams(scope),
       );
     },

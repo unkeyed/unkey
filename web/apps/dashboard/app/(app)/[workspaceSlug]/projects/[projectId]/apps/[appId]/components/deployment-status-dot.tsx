@@ -14,11 +14,27 @@ function isBuilding(status: DeploymentStatus): boolean {
   return statusGroupOf(status) === "building";
 }
 
-export function StatusDot({ colorClass, pulse = false }: { colorClass: string; pulse?: boolean }) {
+type DotSize = "sm" | "md";
+
+const DOT_SIZE: Record<DotSize, { dot: string; spinner: number }> = {
+  sm: { dot: "size-1.5", spinner: 10 },
+  md: { dot: "size-2", spinner: 12 },
+};
+
+export function StatusDot({
+  colorClass,
+  pulse = false,
+  size = "md",
+}: {
+  colorClass: string;
+  pulse?: boolean;
+  size?: DotSize;
+}) {
   return (
     <span
       className={cn(
-        "size-2 shrink-0 rounded-full",
+        "shrink-0 rounded-full",
+        DOT_SIZE[size].dot,
         colorClass,
         pulse && "motion-safe:animate-pulse",
       )}
@@ -26,15 +42,29 @@ export function StatusDot({ colorClass, pulse = false }: { colorClass: string; p
   );
 }
 
-export function DeploymentStatusDot({ status }: { status: DeploymentStatus }) {
-  return <StatusDot colorClass={deploymentStatusColor(status)} pulse={isBuilding(status)} />;
+export function DeploymentStatusDot({
+  status,
+  size,
+}: {
+  status: DeploymentStatus;
+  size?: DotSize;
+}) {
+  return (
+    <StatusDot colorClass={deploymentStatusColor(status)} pulse={isBuilding(status)} size={size} />
+  );
 }
 
-export function DeploymentStatusIndicator({ status }: { status: DeploymentStatus }) {
+export function DeploymentStatusIndicator({
+  status,
+  size = "md",
+}: {
+  status: DeploymentStatus;
+  size?: DotSize;
+}) {
   if (isBuilding(status)) {
-    return <Loading size={12} className="shrink-0 text-gray-12" />;
+    return <Loading size={DOT_SIZE[size].spinner} className="shrink-0 text-gray-12" />;
   }
-  return <DeploymentStatusDot status={status} />;
+  return <DeploymentStatusDot status={status} size={size} />;
 }
 
 export function StatusLabel({ className, children }: PropsWithChildren<{ className?: string }>) {
