@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/retry"
@@ -57,6 +58,22 @@ func TxWithResultRetry[T any](ctx context.Context, db *Replica, fn func(context.
 	).DoWithResultContext(ctx, func() (T, error) {
 		return TxWithResult(ctx, db, fn)
 	})
+}
+
+// TxRetryWithOptions is [TxRetry] with transaction options, such as an isolation
+// level. Every attempt begins a new transaction with the same options.
+func TxRetryWithOptions(ctx context.Context, db *Replica, opts *sql.TxOptions, fn func(context.Context, DBTX) error) error {
+	_, err := retry.New(
+		retry.Attempts(DefaultAttempts),
+		retry.Backoff(backoffStrategy),
+		retry.ShouldRetry(shouldRetryError),
+	).DoWithResultContext(ctx, func() (any, error) {
+		return txWithOptions(ctx, db, opts, func(ctx context.Context, tx DBTX) (any, error) {
+			return nil, fn(ctx, tx)
+		})
+	})
+
+	return err
 }
 
 // TxRetry executes a transaction with automatic retry on transient errors like deadlocks.

@@ -13,9 +13,14 @@ import (
 // It begins a transaction on db, executes fn with the transaction context,
 // and commits on success or rolls back on failure.
 func TxWithResult[T any](ctx context.Context, db *Replica, fn func(context.Context, DBTX) (T, error)) (T, error) {
+	return txWithOptions(ctx, db, nil, fn)
+}
+
+// txWithOptions is [TxWithResult] with transaction options.
+func txWithOptions[T any](ctx context.Context, db *Replica, opts *sql.TxOptions, fn func(context.Context, DBTX) (T, error)) (T, error) {
 	var t T
 
-	tx, err := db.Begin(ctx)
+	tx, err := db.BeginTx(ctx, opts)
 	if err != nil {
 		return t, fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

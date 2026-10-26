@@ -84,14 +84,18 @@ type Counter struct {
 	compactDelayMs int64
 
 	// clock is injected so tests can drive the peer cache, the circuit breakers,
-	// eviction and rotation.
+	// eviction, rotation and compaction.
 	clock clock.Clock
 
-	// done closes when Close starts. It stops eviction and rotation.
+	// done closes when Close starts. It stops eviction, rotation and compaction.
 	done chan struct{}
 
 	// closeOnce makes Close idempotent.
 	closeOnce sync.Once
+
+	// compactMu lets one compaction pass at a time run in this Counter. Passes of
+	// different Counters run side by side, and skip each other's locked rows.
+	compactMu sync.Mutex
 
 	// shardSeed seeds the hash that assigns each name to a shard.
 	shardSeed maphash.Seed
@@ -178,6 +182,7 @@ func newCounter(config Config, delay time.Duration) (*Counter, error) {
 		clock:               config.Clock,
 		done:                make(chan struct{}),
 		closeOnce:           sync.Once{},
+		compactMu:           sync.Mutex{},
 		shardSeed:           maphash.MakeSeed(),
 		shards:              shards,
 		buffer:              nil,
@@ -197,6 +202,7 @@ func newCounter(config Config, delay time.Duration) (*Counter, error) {
 	})
 	counter.runRotation()
 	counter.runEviction()
+	counter.runCompaction()
 	return counter, nil
 }
 
@@ -537,13 +543,13 @@ func (c *Counter) localTotal(name string, current int64) (int64, error) {
 	return shard.localTotal(name, current)
 }
 
-// Close stops eviction and rotation, drains queued snapshots, then persists the
-// entries of the current and the previous writer id, including snapshots that
-// were dropped earlier. Older writer ids are not written again, because
-// compaction may have merged their rows. Persisting is best-effort and bounded by
-// one deadline: a failed batch is logged and Close still returns. Stop calling
-// Add before Close: an Add during or after Close changes memory but is never
-// persisted. Close is safe to call more than once.
+// Close stops eviction, rotation and compaction, drains queued snapshots, then
+// persists the entries of the current and the previous writer id, including
+// snapshots that were dropped earlier. Older writer ids are not written again,
+// because compaction may have merged their rows. Persisting is best-effort and
+// bounded by one deadline: a failed batch is logged and Close still returns. Stop
+// calling Add before Close: an Add during or after Close changes memory but is
+// never persisted. Close is safe to call more than once.
 func (c *Counter) Close() {
 	c.closeOnce.Do(func() {
 		close(c.done)

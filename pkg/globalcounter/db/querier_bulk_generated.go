@@ -6,6 +6,7 @@ import "context"
 
 // BulkQuerier contains bulk insert methods.
 type BulkQuerier interface {
+	InsertCompactedRows(ctx context.Context, db DBTX, args []InsertCompactedRowParams) error
 	Persist(ctx context.Context, db DBTX, args []PersistParams) error
 }
 
