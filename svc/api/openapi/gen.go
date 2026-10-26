@@ -1176,6 +1176,20 @@ type Deployment struct {
 // Example: promote
 type DeploymentAction string
 
+// DeploymentConnectionSummary defines model for DeploymentConnectionSummary.
+type DeploymentConnectionSummary struct {
+	Id string `json:"id"`
+
+	// TargetAppName Current target app name, or null if the app no longer exists.
+	TargetAppName         nullable.Nullable[string] `json:"targetAppName"`
+	TargetDeploymentId    nullable.Nullable[string] `json:"targetDeploymentId"`
+	TargetEnvironmentId   nullable.Nullable[string] `json:"targetEnvironmentId"`
+	TargetEnvironmentSlug nullable.Nullable[string] `json:"targetEnvironmentSlug"`
+
+	// TargetType Automatic environment selection, an explicit target environment, or a pinned deployment.
+	TargetType ConnectionTargetType `json:"targetType"`
+}
+
 // DeploymentDocker defines model for DeploymentDocker.
 type DeploymentDocker struct {
 	// Image The OCI image reference requested for this deployment.
@@ -4378,6 +4392,25 @@ type V2DeploymentsListBuildLogsResponseBody struct {
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination Pagination `json:"pagination"`
+}
+
+// V2DeploymentsListConnectionsRequestBody defines model for V2DeploymentsListConnectionsRequestBody.
+type V2DeploymentsListConnectionsRequestBody struct {
+	DeploymentId string `json:"deploymentId"`
+}
+
+// V2DeploymentsListConnectionsResponseBody defines model for V2DeploymentsListConnectionsResponseBody.
+type V2DeploymentsListConnectionsResponseBody struct {
+	Data V2DeploymentsListConnectionsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsListConnectionsResponseData defines model for V2DeploymentsListConnectionsResponseData.
+type V2DeploymentsListConnectionsResponseData struct {
+	Connections []DeploymentConnectionSummary `json:"connections"`
+	Truncated   bool                          `json:"truncated"`
 }
 
 // V2DeploymentsListDeploymentsRequestBody Filter deployments within a workspace. All filters are optional; with none
@@ -8748,6 +8781,9 @@ type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequest
 
 // DeploymentsListBuildLogsJSONRequestBody defines body for DeploymentsListBuildLogs for application/json ContentType.
 type DeploymentsListBuildLogsJSONRequestBody = V2DeploymentsListBuildLogsRequestBody
+
+// DeploymentsListConnectionsJSONRequestBody defines body for DeploymentsListConnections for application/json ContentType.
+type DeploymentsListConnectionsJSONRequestBody = V2DeploymentsListConnectionsRequestBody
 
 // DeploymentsListDeploymentsJSONRequestBody defines body for DeploymentsListDeployments for application/json ContentType.
 type DeploymentsListDeploymentsJSONRequestBody = V2DeploymentsListDeploymentsRequestBody
