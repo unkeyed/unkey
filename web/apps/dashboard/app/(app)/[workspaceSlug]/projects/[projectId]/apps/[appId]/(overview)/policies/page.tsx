@@ -1,5 +1,6 @@
 "use client";
 import { LoadError } from "@/components/load-error";
+import { useConsumeSearchFlag } from "@/hooks/use-consume-search-flag";
 import { IconCircleInfoOutline18, IconPlusOutline18, IconShieldGlobeOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -18,6 +19,7 @@ import {
   PageHeaderTitle,
   ResourceListContent,
 } from "@unkey/ui";
+import { useCallback } from "react";
 import { useAppId, useProjectData } from "../data-provider";
 import { HowPoliciesWorkPanel } from "./components/how-policies-work";
 import { PoliciesList } from "./components/list";
@@ -36,7 +38,8 @@ export default function PoliciesPage() {
   const { envs, merged, canWrite } = data;
   const actions = usePolicyActions({ envs, projectId, appId });
   const panels = usePolicyPanels();
-  const openAdd = () => panels.open({ type: "add" });
+  const openAdd = useCallback(() => panels.open({ type: "add" }), [panels.open]);
+  useConsumeSearchFlag("add", data.view.type !== "loading", canWrite ? openAdd : null);
 
   return (
     <PageContainer>
@@ -45,10 +48,10 @@ export default function PoliciesPage() {
           <PageHeaderTitle>Policies</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <Button size="md" variant="outline" onClick={() => panels.open({ type: "guide" })}>
+          <Button size="sm" variant="outline" onClick={() => panels.open({ type: "guide" })}>
             How policies work
           </Button>
-          <Button size="md" variant="primary" disabled={!canWrite} onClick={openAdd}>
+          <Button size="sm" variant="primary" disabled={!canWrite} onClick={openAdd}>
             <IconPlusOutline18 />
             Add policy
           </Button>
@@ -72,7 +75,7 @@ export default function PoliciesPage() {
                 </EmptyStateDescription>
               </EmptyStateHeader>
               <EmptyStateActions>
-                <Button variant="primary" size="md" disabled={!canWrite} onClick={openAdd}>
+                <Button variant="primary" size="sm" disabled={!canWrite} onClick={openAdd}>
                   <IconPlusOutline18 />
                   Add policy
                 </Button>

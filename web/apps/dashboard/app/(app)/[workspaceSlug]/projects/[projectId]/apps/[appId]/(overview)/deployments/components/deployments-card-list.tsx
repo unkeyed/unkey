@@ -121,7 +121,7 @@ function DeploymentsCardListResults({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button variant="outline" size="md">
+                <Button variant="outline" size="sm">
                   <IconBookBookmarkOutline18 />
                   Learn about Deployments
                 </Button>
@@ -185,7 +185,7 @@ function NoMatchingDeployments({ onClear }: { onClear: () => void }) {
         </EmptyStateDescription>
       </EmptyStateHeader>
       <EmptyStateActions>
-        <Button size="md" variant="outline" onClick={onClear}>
+        <Button size="sm" variant="outline" onClick={onClear}>
           Clear filters
         </Button>
       </EmptyStateActions>
