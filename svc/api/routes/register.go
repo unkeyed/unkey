@@ -113,6 +113,7 @@ import (
 	v2AppsUpdateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
 	v2ConnectionsCreateConnection "github.com/unkeyed/unkey/svc/api/routes/v2_connections_create_connection"
 	v2ConnectionsListConnections "github.com/unkeyed/unkey/svc/api/routes/v2_connections_list_connections"
+	v2ConnectionsUpdateConnection "github.com/unkeyed/unkey/svc/api/routes/v2_connections_update_connection"
 	v2DomainsCreateDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_create_domain"
 	v2DomainsDeleteDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_delete_domain"
 	v2DomainsGetDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_get_domain"
@@ -1168,6 +1169,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2ConnectionsCreateConnection.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
+		},
+	)
+
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2ConnectionsUpdateConnection.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 			Clock:     svc.Clock,
