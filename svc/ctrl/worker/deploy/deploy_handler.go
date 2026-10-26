@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -656,13 +657,20 @@ func (w *Workflow) ConfigureRouting(
 					return "", err
 				}
 
-				// A hostname is the unique key of a route, and labels are built
-				// from text a user chooses. The app token makes a shared label
-				// practically impossible, but a route row also records its
-				// owner, so a collision must fail here rather than silently
-				// point another app's route at this deployment.
+				// A hostname is the unique key of a route, and a label is built
+				// from text a user chooses. The app code keeps two apps apart in
+				// practice, but a route row also records its owner, so a real
+				// collision must fail rather than point another app's route at
+				// this deployment.
+				//
+				// Terminal, because retrying cannot resolve it: the row already
+				// belongs to someone else and no amount of waiting changes that.
 				if found.AppID != deployment.AppID {
-					return "", fmt.Errorf("hostname %q is already owned by app %q", domain.domain, found.AppID)
+					return "", gatefault.Terminal(fault.New(
+						"hostname belongs to another app",
+						fault.Internal(fmt.Sprintf("hostname %q belongs to app %q, not %q", domain.domain, found.AppID, deployment.AppID)),
+						fault.Public(fmt.Sprintf("The hostname %s is already in use by another app.", domain.domain)),
+					))
 				}
 
 				return found.ID, nil
