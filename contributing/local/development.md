@@ -102,7 +102,7 @@ Minikube waits for the API server and kubelet before starting Tilt. Tilt install
 Cilium through Helm, then checks the Cilium agent, policy CRDs, node readiness,
 and CoreDNS before applying network policies. Node readiness cannot gate Helm
 installation because the node needs Cilium to become ready. Hubble readiness
-does not block application startup. Orbs use bridge networking and wait for
+does not block application startup. Reduced orbs use bridge networking and wait for
 node readiness during Minikube startup instead.
 
 Minikube 1.39.0 requires `--force` when CNI installation is disabled with the
@@ -126,7 +126,8 @@ version lookup during startup. Tilt manages actual Helm releases for Cilium
 `dev/k8s/cilium/values.yaml` and `dev/k8s/topolvm/values.yaml`. Helm adopts the
 previously applied local resources without deleting volumes. TopoLVM's chart
 also owns the `topolvm-ssd` StorageClass. Orbs keep the matching
-CiliumNetworkPolicy CRD without policy enforcement or a Cilium release.
+CiliumNetworkPolicy CRD without policy enforcement or a Cilium release when
+using the reduced profile. Metal orbs run the full Cilium release.
 
 Inspect the installed releases with:
 
@@ -153,6 +154,35 @@ You get:
 - Tilt UI at `http://localhost:10350`
 - Various services port-forwarded
 - Dashboard at `http://localhost:3000`
+
+## Full-stack metal orbs
+
+`mise run dev-orb` selects `dev/cluster.orb.metal.yaml` on worker images that
+provide `/opt/orb-worker/docker-start.sh`. Other orbs keep the reduced
+`dev/cluster.orb.yaml` profile. To select the metal profile explicitly:
+
+```bash
+mise run dev-orb-metal
+```
+
+The metal profile requires Linux with eBPF JIT, device mapper, loop devices,
+privileged Docker containers, and the worker image's gVisor binaries. It runs
+Cilium, Heimdall, and TopoLVM, with gVisor enabled in Krane. Tilt's `--orb-metal`
+flag applies IPv4 listeners, the host build architecture, and Heimdall's
+unconfined AppArmor profile only to this development environment. Tilt permits
+two concurrent updates. The existing `--orb` flag still selects the reduced
+stack and cannot be combined with `--orb-metal`.
+
+The repository owns the startup and resume scripts in `dev/orb/` and the Helm
+helper in `tools/helm-resource/`. The helper installs actual Helm releases and
+returns their live objects to Tilt without changing the user's kubeconfig.
+No project pre-setup patch is required. Remove the old patch hook when adopting
+this checkout; old worker images still contain it.
+
+Depot snapshots retain the checkout and host caches, but not the Docker disk,
+cluster databases, or TopoLVM data. Resume clears the disposable `unkey` profile
+on that disk before the Amp `dev` service rebuilds it. Reserve that profile for
+this project. This does not change normal local cluster reuse or cleanup.
 
 ## Local HTTPS with Frontline (optional)
 
