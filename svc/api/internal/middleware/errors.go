@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
-	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -117,7 +116,6 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsIdentityNotFound,
 				codes.UnkeyDataErrorsAuditLogNotFound,
 				codes.UnkeyDataErrorsPortalNotFound:
-				err = apierrors.NotFound(urn)
 				return s.ProblemJSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

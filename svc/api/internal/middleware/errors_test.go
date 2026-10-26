@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger/loggertest"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -119,9 +118,7 @@ func TestErrorMiddleware_NotFound_DoesNotLog(t *testing.T) {
 	before := h.Snapshot()
 
 	sess, rec := newSession(t, http.MethodGet, "/v2/keys.getKey")
-	keyID := uid.New(uid.KeyPrefix)
-	notFound := fault.Wrap(
-		fault.New("denied", fault.Public("Missing permission for "+keyID)),
+	notFound := fault.New("missing",
 		fault.Code(codes.Data.Key.NotFound.URN()),
 		fault.Public("The requested key does not exist."),
 	)
@@ -139,7 +136,7 @@ func TestErrorMiddleware_NotFound_DoesNotLog(t *testing.T) {
 		Status: http.StatusNotFound,
 		Title:  "Not Found",
 		Type:   "https://unkey.com/docs/errors/unkey/data/key_not_found",
-		Detail: "Resource does not exist.",
+		Detail: "The requested key does not exist.",
 	}, response.Error)
 
 	for _, r := range h.Since(before) {
