@@ -385,14 +385,11 @@ func (w *Workflow) resolveOrBuildImage(
 		return fault.Wrap(err, fault.Public("Deployment could not be started."))
 	}
 
-	resolvedImage := requestedImage.Name()
-	if !imageref.IsDigest(requestedImage) {
-		resolvedImage, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			return w.imageResolver.Resolve(runCtx, requestedImage.Name())
-		}, restate.WithName("resolve OCI image digest"), restate.WithMaxRetryAttempts(runMaxAttempts))
-		if err != nil {
-			return fault.Wrap(err, fault.Public("The OCI image could not be resolved."))
-		}
+	resolvedImage, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+		return w.imageResolver.Resolve(runCtx, requestedImage.Name())
+	}, restate.WithName("resolve OCI image digest"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return fault.Wrap(err, fault.Public("The OCI image could not be resolved."))
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
