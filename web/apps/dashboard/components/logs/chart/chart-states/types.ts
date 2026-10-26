@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 /**
  * Shared types for chart loading and error states
  *
@@ -62,9 +64,10 @@ export type ChartLoadingProps = {
  */
 export type ChartEmptyProps = {
   variant?: ChartStateVariant;
-  message?: string;
+  message?: ReactNode;
   labels?: TimeseriesChartLabels;
   height?: number;
   className?: string;
   color?: string;
+  wave?: "rising" | "gentle";
 };

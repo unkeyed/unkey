@@ -29,9 +29,11 @@ import type { ChartEmptyProps } from "./types";
  *   }}
  * />
  */
-const WAVE_LINE =
-  "M0,70 C30,55 60,80 90,60 C120,40 150,75 180,55 C210,35 240,65 270,50 C300,35 330,60 360,45 C390,30 420,55 450,40 C480,25 510,50 540,35 C570,20 600,45 630,30 C660,15 690,40 720,25";
-const WAVE_AREA = `${WAVE_LINE} L720,100 L0,100 Z`;
+const WAVE_LINES = {
+  rising:
+    "M0,70 C30,55 60,80 90,60 C120,40 150,75 180,55 C210,35 240,65 270,50 C300,35 330,60 360,45 C390,30 420,55 450,40 C480,25 510,50 540,35 C570,20 600,45 630,30 C660,15 690,40 720,25",
+  gentle: "M0,62 C90,50 180,72 270,58 C360,46 450,68 540,54 C600,48 660,58 720,50",
+} as const;
 
 export const ChartEmpty = ({
   variant = "simple",
@@ -40,10 +42,12 @@ export const ChartEmpty = ({
   height = 50,
   className,
   color,
+  wave = "rising",
 }: ChartEmptyProps) => {
   const id = useId().replace(/:/g, "");
 
   if (variant === "wave") {
+    const waveLine = WAVE_LINES[wave];
     const waveColor = color || "var(--color-gray-8)";
     return (
       <div className={cn("w-full relative", className)} style={{ height }}>
@@ -58,9 +62,9 @@ export const ChartEmpty = ({
               <stop offset="100%" stopColor={waveColor} stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <path d={WAVE_AREA} fill={`url(#empty-wave-${id})`} />
+          <path d={`${waveLine} L720,100 L0,100 Z`} fill={`url(#empty-wave-${id})`} />
           <path
-            d={WAVE_LINE}
+            d={waveLine}
             fill="none"
             stroke={waveColor}
             strokeWidth="1.5"
