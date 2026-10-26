@@ -55,6 +55,8 @@ export async function loadMetricsScope(
   return { ...environment, grid };
 }
 
+const MAX_MARKER_DEPLOYMENTS = 100;
+
 export type MarkerDeployment = Awaited<ReturnType<typeof loadMarkerDeployments>>[number];
 
 export function loadMarkerDeployments(scope: MetricsScope) {
@@ -73,24 +75,29 @@ export function loadMarkerDeployments(scope: MetricsScope) {
     .orderBy(desc(d.firstReadyAt), desc(d.id))
     .limit(1);
 
-  return db
-    .select({
-      id: d.id,
-      firstReadyAt: d.firstReadyAt,
-      gitCommitSha: d.gitCommitSha,
-      gitCommitMessage: d.gitCommitMessage,
-      gitCommitAuthorHandle: d.gitCommitAuthorHandle,
-      gitCommitAuthorAvatarUrl: d.gitCommitAuthorAvatarUrl,
-      imageRequested: d.imageRequested,
-    })
-    .from(d)
-    .where(
-      and(
-        inEnvironment,
-        lt(d.firstReadyAt, endMs),
-        or(gte(d.firstReadyAt, startMs), eq(d.id, sql`(${servingAtStart})`)),
-      ),
-    );
+  return (
+    db
+      .select({
+        id: d.id,
+        firstReadyAt: d.firstReadyAt,
+        gitCommitSha: d.gitCommitSha,
+        gitCommitMessage: d.gitCommitMessage,
+        gitCommitAuthorHandle: d.gitCommitAuthorHandle,
+        gitCommitAuthorAvatarUrl: d.gitCommitAuthorAvatarUrl,
+        imageRequested: d.imageRequested,
+      })
+      .from(d)
+      .where(
+        and(
+          inEnvironment,
+          lt(d.firstReadyAt, endMs),
+          or(gte(d.firstReadyAt, startMs), eq(d.id, sql`(${servingAtStart})`)),
+        ),
+      )
+      // Newest first, so a busy range drops its oldest deploys rather than the latest
+      .orderBy(desc(d.firstReadyAt), desc(d.id))
+      .limit(MAX_MARKER_DEPLOYMENTS)
+  );
 }
 
 export function orThrow<T>(result: { val?: T; err?: Error }): T {
