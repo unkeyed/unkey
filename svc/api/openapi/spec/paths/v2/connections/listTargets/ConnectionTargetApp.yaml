@@ -1,0 +1,10 @@
+type: object
+required: [id, name, slug]
+properties:
+  id:
+    type: string
+  name:
+    type: string
+  slug:
+    type: string
+additionalProperties: false

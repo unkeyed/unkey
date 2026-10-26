@@ -1,0 +1,66 @@
+post:
+  tags:
+    - connections
+  summary: List available connection targets
+  description: |
+    List readable apps, environments, and deployments for one caller environment.
+    Requires read access to that environment and, when supplied, the target app.
+    Missing and unreadable resources return the same 404 response.
+
+    App and environment candidates are capped at 100 and 500 before permission
+    filtering. Deployments are paginated for the selected target app, newest
+    first with descending ID as the tie-breaker. Choices must have reached ready
+    and currently be ready or stopped. Stopped choices cannot be newly pinned.
+
+    Previously ready deployments pinned by this caller environment are included
+    before choices on every page, regardless of their current status or selected
+    target app. Duplicate deployment IDs appear once. Pagination covers choices
+    only. Without a target app, only pinned deployments are returned. Saved
+    target IDs are capped at 500 candidates before permission filtering.
+  operationId: connections.listTargets
+  x-speakeasy-name-override: listTargets
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ConnectionsListTargetsRequestBody.yaml"
+  responses:
+    "200":
+      description: Available connection targets and deployment pagination.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ConnectionsListTargetsResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Environment, target app, or cursor deployment not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+    "503":
+      description: Database unavailable or authorized deployment scan limit reached.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ServiceUnavailableErrorResponse.yaml"

@@ -1,0 +1,16 @@
+type: object
+required: [id, appId, environmentId, status, gitBranch, image]
+properties:
+  id:
+    type: string
+  appId:
+    type: string
+  environmentId:
+    type: string
+  status:
+    "$ref": "../../../../common/DeploymentStatus.yaml"
+  gitBranch:
+    type: [string, "null"]
+  image:
+    type: [string, "null"]
+additionalProperties: false

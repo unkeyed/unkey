@@ -1,0 +1,13 @@
+type: object
+required: [id, appId, slug, kind]
+properties:
+  id:
+    type: string
+  appId:
+    type: string
+  slug:
+    type: string
+  kind:
+    type: string
+    enum: [production, preview]
+additionalProperties: false

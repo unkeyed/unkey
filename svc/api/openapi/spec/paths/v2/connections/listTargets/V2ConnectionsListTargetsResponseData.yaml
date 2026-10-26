@@ -1,0 +1,22 @@
+type: object
+required:
+  - apps
+  - environments
+  - deployments
+properties:
+  apps:
+    type: array
+    maxItems: 100
+    items:
+      "$ref": "./ConnectionTargetApp.yaml"
+  environments:
+    type: array
+    maxItems: 500
+    items:
+      "$ref": "./ConnectionTargetEnvironment.yaml"
+  deployments:
+    type: array
+    maxItems: 600
+    items:
+      "$ref": "./ConnectionTargetDeployment.yaml"
+additionalProperties: false

@@ -165,3 +165,13 @@ actions:
   - target: $["components"]["schemas"]["DeploymentConnectionSummary"]["properties"]["targetDeploymentId"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["ConnectionTargetDeployment"]["properties"]["gitBranch"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["ConnectionTargetDeployment"]["properties"]["gitBranch"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["ConnectionTargetDeployment"]["properties"]["image"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["ConnectionTargetDeployment"]["properties"]["image"]
+    update:
+      nullable: true
