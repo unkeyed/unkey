@@ -1131,6 +1131,22 @@ type ConflictErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
+// ConnectionTargetDeployment defines model for ConnectionTargetDeployment.
+type ConnectionTargetDeployment struct {
+	EnvironmentId string                    `json:"environmentId"`
+	GitBranch     nullable.Nullable[string] `json:"gitBranch"`
+	Id            string                    `json:"id"`
+	Image         nullable.Nullable[string] `json:"image"`
+
+	// Status Current lifecycle status of the deployment. Poll until it reaches a
+	// terminal state: ready (serving), failed, skipped, superseded, stopped,
+	// or cancelled.
+	//
+	//
+	// Example: ready
+	Status DeploymentStatus `json:"status"`
+}
+
 // ConnectionTargetType Automatic environment selection, an explicit target environment, or a pinned deployment.
 type ConnectionTargetType string
 
@@ -4142,6 +4158,54 @@ type V2ConnectionsListRetainedConnectionsResponseBody struct {
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination Pagination `json:"pagination"`
+}
+
+// V2ConnectionsListTargetsRequestBody defines model for V2ConnectionsListTargetsRequestBody.
+type V2ConnectionsListTargetsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	App ResourceIdentifier `json:"app"`
+
+	// Cursor Cursor from the previous page for the same target app.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Environment ResourceIdentifier `json:"environment"`
+	Limit       *int               `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Project ResourceIdentifier `json:"project"`
+
+	// TargetAppId Target app ID in the same project.
+	TargetAppId string `json:"targetAppId"`
+}
+
+// V2ConnectionsListTargetsResponseBody defines model for V2ConnectionsListTargetsResponseBody.
+type V2ConnectionsListTargetsResponseBody struct {
+	Data V2ConnectionsListTargetsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2ConnectionsListTargetsResponseData defines model for V2ConnectionsListTargetsResponseData.
+type V2ConnectionsListTargetsResponseData struct {
+	Deployments []ConnectionTargetDeployment `json:"deployments"`
+	Pinned      *ConnectionTargetDeployment  `json:"pinned,omitempty"`
 }
 
 // V2ConnectionsUpdateConnectionRequestBody defines model for V2ConnectionsUpdateConnectionRequestBody.
@@ -8860,6 +8924,9 @@ type ConnectionsListConnectionsJSONRequestBody = V2ConnectionsListConnectionsReq
 
 // ConnectionsListRetainedConnectionsJSONRequestBody defines body for ConnectionsListRetainedConnections for application/json ContentType.
 type ConnectionsListRetainedConnectionsJSONRequestBody = V2ConnectionsListRetainedConnectionsRequestBody
+
+// ConnectionsListTargetsJSONRequestBody defines body for ConnectionsListTargets for application/json ContentType.
+type ConnectionsListTargetsJSONRequestBody = V2ConnectionsListTargetsRequestBody
 
 // ConnectionsUpdateConnectionJSONRequestBody defines body for ConnectionsUpdateConnection for application/json ContentType.
 type ConnectionsUpdateConnectionJSONRequestBody = V2ConnectionsUpdateConnectionRequestBody

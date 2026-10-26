@@ -1,0 +1,68 @@
+post:
+  tags:
+    - connections
+  summary: List connection target deployments
+  description: |
+    List the deployments of a target app that a connection in the caller
+    environment can pin: ready and running deployments, newest first.
+    The first page also returns the deployment the caller environment's
+    existing connection to the target app pins, whatever its status.
+
+    Requires read access to the caller environment and the target app.
+    Missing and unreadable resources return the same 404 response.
+    Deployments the caller cannot read are omitted.
+  operationId: connections.listTargets
+  x-speakeasy-name-override: listTargets
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ConnectionsListTargetsRequestBody.yaml"
+  responses:
+    "200":
+      description: Deployments available as connection targets.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ConnectionsListTargetsResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Environment or target app not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+    "503":
+      description: Database unavailable or authorized scan limit reached.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ServiceUnavailableErrorResponse.yaml"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

@@ -424,6 +424,18 @@ type Querier interface {
 	//    AND p.slug = ?
 	//    AND a.slug = ?
 	FindAppByWorkspaceAndSlugs(ctx context.Context, db DBTX, arg FindAppByWorkspaceAndSlugsParams) (FindAppByWorkspaceAndSlugsRow, error)
+	//FindAppConnectionPinnedDeployment
+	//
+	//  SELECT d.id, d.environment_id, d.status, d.git_branch, d.image_resolved
+	//  FROM app_connections c
+	//  INNER JOIN connection_app_targets t ON t.connection_id = c.id
+	//  INNER JOIN deployments d ON d.id = t.target_deployment_id
+	//  WHERE c.workspace_id = ? AND c.app_id = ?
+	//      AND c.environment_id = ?
+	//      AND c.resource_type = 'app' AND c.resource_id = ?
+	//      AND t.selection_mode = 'deployment'
+	//      AND d.workspace_id = ? AND d.app_id = ?
+	FindAppConnectionPinnedDeployment(ctx context.Context, db DBTX, arg FindAppConnectionPinnedDeploymentParams) (FindAppConnectionPinnedDeploymentRow, error)
 	//FindAppEnvVarsByAppAndEnv
 	//
 	//  SELECT `key`, value
@@ -2707,6 +2719,30 @@ type Querier interface {
 	//  FROM app_build_settings
 	//  WHERE app_id = ?
 	ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppBuildSetting, error)
+	// The plain created_at bound lets the index seek; MySQL cannot range-scan the
+	// row comparison.
+	//
+	//  SELECT d.id, d.environment_id, d.status, d.git_branch, d.image_resolved
+	//  FROM deployments d
+	//  WHERE d.workspace_id = ? AND d.app_id = ?
+	//      AND d.status = 'ready' AND d.desired_state = 'running' AND d.first_ready_at IS NOT NULL
+	//      AND (
+	//          ? = '' OR (
+	//              d.created_at <= (
+	//                  SELECT c.created_at FROM deployments c
+	//                  WHERE c.id = ? AND c.workspace_id = ?
+	//                      AND c.app_id = ?
+	//              )
+	//              AND (d.created_at, d.pk) <= (
+	//                  SELECT c.created_at, c.pk FROM deployments c
+	//                  WHERE c.id = ? AND c.workspace_id = ?
+	//                      AND c.app_id = ?
+	//              )
+	//          )
+	//      )
+	//  ORDER BY d.created_at DESC, d.pk DESC
+	//  LIMIT ?
+	ListAppConnectionTargetDeployments(ctx context.Context, db DBTX, arg ListAppConnectionTargetDeploymentsParams) ([]ListAppConnectionTargetDeploymentsRow, error)
 	//ListAppConnections
 	//
 	//  SELECT c.id, c.app_id, c.environment_id, c.resource_id AS target_app_id,

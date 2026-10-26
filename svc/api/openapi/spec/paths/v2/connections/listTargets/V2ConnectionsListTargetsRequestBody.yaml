@@ -1,0 +1,26 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - targetAppId
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  targetAppId:
+    type: string
+    minLength: 1
+    description: Target app ID in the same project.
+  limit:
+    type: integer
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: Cursor from the previous page for the same target app.
+additionalProperties: false

@@ -1,0 +1,12 @@
+type: object
+required:
+  - deployments
+properties:
+  deployments:
+    type: array
+    items:
+      "$ref": "./ConnectionTargetDeployment.yaml"
+  pinned:
+    "$ref": "./ConnectionTargetDeployment.yaml"
+    description: Deployment the caller environment's connection to the target app pins, in any status. Returned on the first page only.
+additionalProperties: false

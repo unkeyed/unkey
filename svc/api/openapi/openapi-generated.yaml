@@ -996,6 +996,47 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2ConnectionsListTargetsRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+                - targetAppId
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                targetAppId:
+                    type: string
+                    minLength: 1
+                    description: Target app ID in the same project.
+                limit:
+                    type: integer
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    description: Cursor from the previous page for the same target app.
+            additionalProperties: false
+        V2ConnectionsListTargetsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2ConnectionsListTargetsResponseData"
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
         V2ConnectionsUpdateConnectionRequestBody:
             type: object
             required:
@@ -5985,6 +6026,78 @@ components:
                     minimum: 1
                     description: Number of deployments with a saved copy of the removed connection.
             additionalProperties: false
+        V2ConnectionsListTargetsResponseData:
+            type: object
+            required:
+                - deployments
+            properties:
+                deployments:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/ConnectionTargetDeployment"
+                pinned:
+                    "$ref": "#/components/schemas/ConnectionTargetDeployment"
+                    description: Deployment the caller environment's connection to the target app pins, in any status. Returned on the first page only.
+            additionalProperties: false
+        ConnectionTargetDeployment:
+            type: object
+            required:
+                - id
+                - environmentId
+                - status
+                - gitBranch
+                - image
+            properties:
+                id:
+                    type: string
+                environmentId:
+                    type: string
+                status:
+                    "$ref": "#/components/schemas/DeploymentStatus"
+                gitBranch:
+                    type:
+                        - string
+                        - "null"
+                image:
+                    type:
+                        - string
+                        - "null"
+            additionalProperties: false
+        DeploymentStatus:
+            type: string
+            enum:
+                - pending
+                - starting
+                - building
+                - deploying
+                - network
+                - finalizing
+                - ready
+                - failed
+                - skipped
+                - awaiting_approval
+                - stopped
+                - superseded
+                - cancelled
+            x-enum-varnames:
+                - DeploymentStatusPending
+                - DeploymentStatusStarting
+                - DeploymentStatusBuilding
+                - DeploymentStatusDeploying
+                - DeploymentStatusNetwork
+                - DeploymentStatusFinalizing
+                - DeploymentStatusReady
+                - DeploymentStatusFailed
+                - DeploymentStatusSkipped
+                - DeploymentStatusAwaitingApproval
+                - DeploymentStatusStopped
+                - DeploymentStatusSuperseded
+                - DeploymentStatusCancelled
+            description: |
+                Current lifecycle status of the deployment. Poll until it reaches a
+                terminal state: ready (serving), failed, skipped, superseded, stopped,
+                or cancelled.
+            example: ready
         V2ConnectionsUpdateConnectionResponseData:
             type: object
             required:
@@ -6267,41 +6380,6 @@ components:
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
-        DeploymentStatus:
-            type: string
-            enum:
-                - pending
-                - starting
-                - building
-                - deploying
-                - network
-                - finalizing
-                - ready
-                - failed
-                - skipped
-                - awaiting_approval
-                - stopped
-                - superseded
-                - cancelled
-            x-enum-varnames:
-                - DeploymentStatusPending
-                - DeploymentStatusStarting
-                - DeploymentStatusBuilding
-                - DeploymentStatusDeploying
-                - DeploymentStatusNetwork
-                - DeploymentStatusFinalizing
-                - DeploymentStatusReady
-                - DeploymentStatusFailed
-                - DeploymentStatusSkipped
-                - DeploymentStatusAwaitingApproval
-                - DeploymentStatusStopped
-                - DeploymentStatusSuperseded
-                - DeploymentStatusCancelled
-            description: |
-                Current lifecycle status of the deployment. Poll until it reaches a
-                terminal state: ready (serving), failed, skipped, superseded, stopped,
-                or cancelled.
-            example: ready
         DeploymentGit:
             type: object
             required:
@@ -12038,6 +12116,75 @@ paths:
             tags:
                 - connections
             x-speakeasy-name-override: listRetainedConnections
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
+    /v2/connections.listTargets:
+        post:
+            description: |
+                List the deployments of a target app that a connection in the caller
+                environment can pin: ready and running deployments, newest first.
+                The first page also returns the deployment the caller environment's
+                existing connection to the target app pins, whatever its status.
+
+                Requires read access to the caller environment and the target app.
+                Missing and unreadable resources return the same 404 response.
+                Deployments the caller cannot read are omitted.
+            operationId: connections.listTargets
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2ConnectionsListTargetsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2ConnectionsListTargetsResponseBody'
+                    description: Deployments available as connection targets.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication required.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Environment or target app not found.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: Database unavailable or authorized scan limit reached.
+            security:
+                - bearer: []
+            summary: List connection target deployments
+            tags:
+                - connections
+            x-speakeasy-name-override: listTargets
             x-speakeasy-pagination:
                 inputs:
                     - in: requestBody
