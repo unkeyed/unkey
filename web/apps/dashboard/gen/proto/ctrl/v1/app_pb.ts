@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/app.proto.
  */
 export const file_ctrl_v1_app: GenFile = /*@__PURE__*/
-  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSLLAQoQQ3JlYXRlQXBwUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHNsdWcYBCABKAkSIQoFYWN0b3IYBSABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbxIhCgNnaXQYBiABKAsyEi5jdHJsLnYxLkdpdFNvdXJjZUgAEiEKA29jaRgHIAEoCzISLmN0cmwudjEuT2NpU291cmNlSABCCAoGc291cmNlIh8KEUNyZWF0ZUFwcFJlc3BvbnNlEgoKAmlkGAEgASgJIgsKCUdpdFNvdXJjZSIkCglPY2lTb3VyY2USFwoPaW1hZ2VfcmVmZXJlbmNlGAEgASgJIn8KG1VwZGF0ZU9jaUltYWdlU291cmNlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDgoGYXBwX2lkGAIgASgJEhcKD2ltYWdlX3JlZmVyZW5jZRgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIjcKHFVwZGF0ZU9jaUltYWdlU291cmNlUmVzcG9uc2USFwoPaW1hZ2VfcmVmZXJlbmNlGAEgASgJIkUKEERlbGV0ZUFwcFJlcXVlc3QSDgoGYXBwX2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iEwoRRGVsZXRlQXBwUmVzcG9uc2Uy/wEKCkFwcFNlcnZpY2USRAoJQ3JlYXRlQXBwEhkuY3RybC52MS5DcmVhdGVBcHBSZXF1ZXN0GhouY3RybC52MS5DcmVhdGVBcHBSZXNwb25zZSIAEmUKFFVwZGF0ZU9jaUltYWdlU291cmNlEiQuY3RybC52MS5VcGRhdGVPY2lJbWFnZVNvdXJjZVJlcXVlc3QaJS5jdHJsLnYxLlVwZGF0ZU9jaUltYWdlU291cmNlUmVzcG9uc2UiABJECglEZWxldGVBcHASGS5jdHJsLnYxLkRlbGV0ZUFwcFJlcXVlc3QaGi5jdHJsLnYxLkRlbGV0ZUFwcFJlc3BvbnNlIgBChwEKC2NvbS5jdHJsLnYxQghBcHBQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw", [file_ctrl_v1_actor]);
+  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSLLAQoQQ3JlYXRlQXBwUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHNsdWcYBCABKAkSIQoFYWN0b3IYBSABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbxIhCgNnaXQYBiABKAsyEi5jdHJsLnYxLkdpdFNvdXJjZUgAEiEKA29jaRgHIAEoCzISLmN0cmwudjEuT2NpU291cmNlSABCCAoGc291cmNlIh8KEUNyZWF0ZUFwcFJlc3BvbnNlEgoKAmlkGAEgASgJIgsKCUdpdFNvdXJjZSIkCglPY2lTb3VyY2USFwoPaW1hZ2VfcmVmZXJlbmNlGAEgASgJIkUKEERlbGV0ZUFwcFJlcXVlc3QSDgoGYXBwX2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iEwoRRGVsZXRlQXBwUmVzcG9uc2UymAEKCkFwcFNlcnZpY2USRAoJQ3JlYXRlQXBwEhkuY3RybC52MS5DcmVhdGVBcHBSZXF1ZXN0GhouY3RybC52MS5DcmVhdGVBcHBSZXNwb25zZSIAEkQKCURlbGV0ZUFwcBIZLmN0cmwudjEuRGVsZXRlQXBwUmVxdWVzdBoaLmN0cmwudjEuRGVsZXRlQXBwUmVzcG9uc2UiAEKHAQoLY29tLmN0cmwudjFCCEFwcFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.CreateAppRequest
@@ -118,55 +118,6 @@ export const OciSourceSchema: GenMessage<OciSource> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_app, 3);
 
 /**
- * @generated from message ctrl.v1.UpdateOciImageSourceRequest
- */
-export type UpdateOciImageSourceRequest = Message<"ctrl.v1.UpdateOciImageSourceRequest"> & {
-  /**
-   * @generated from field: string workspace_id = 1;
-   */
-  workspaceId: string;
-
-  /**
-   * @generated from field: string app_id = 2;
-   */
-  appId: string;
-
-  /**
-   * @generated from field: string image_reference = 3;
-   */
-  imageReference: string;
-
-  /**
-   * @generated from field: ctrl.v1.ActorInfo actor = 4;
-   */
-  actor?: ActorInfo;
-};
-
-/**
- * Describes the message ctrl.v1.UpdateOciImageSourceRequest.
- * Use `create(UpdateOciImageSourceRequestSchema)` to create a new message.
- */
-export const UpdateOciImageSourceRequestSchema: GenMessage<UpdateOciImageSourceRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_app, 4);
-
-/**
- * @generated from message ctrl.v1.UpdateOciImageSourceResponse
- */
-export type UpdateOciImageSourceResponse = Message<"ctrl.v1.UpdateOciImageSourceResponse"> & {
-  /**
-   * @generated from field: string image_reference = 1;
-   */
-  imageReference: string;
-};
-
-/**
- * Describes the message ctrl.v1.UpdateOciImageSourceResponse.
- * Use `create(UpdateOciImageSourceResponseSchema)` to create a new message.
- */
-export const UpdateOciImageSourceResponseSchema: GenMessage<UpdateOciImageSourceResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_app, 5);
-
-/**
  * @generated from message ctrl.v1.DeleteAppRequest
  */
 export type DeleteAppRequest = Message<"ctrl.v1.DeleteAppRequest"> & {
@@ -186,7 +137,7 @@ export type DeleteAppRequest = Message<"ctrl.v1.DeleteAppRequest"> & {
  * Use `create(DeleteAppRequestSchema)` to create a new message.
  */
 export const DeleteAppRequestSchema: GenMessage<DeleteAppRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_app, 6);
+  messageDesc(file_ctrl_v1_app, 4);
 
 /**
  * @generated from message ctrl.v1.DeleteAppResponse
@@ -199,7 +150,7 @@ export type DeleteAppResponse = Message<"ctrl.v1.DeleteAppResponse"> & {
  * Use `create(DeleteAppResponseSchema)` to create a new message.
  */
 export const DeleteAppResponseSchema: GenMessage<DeleteAppResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_app, 7);
+  messageDesc(file_ctrl_v1_app, 5);
 
 /**
  * @generated from service ctrl.v1.AppService
@@ -214,16 +165,6 @@ export const AppService: GenService<{
     methodKind: "unary";
     input: typeof CreateAppRequestSchema;
     output: typeof CreateAppResponseSchema;
-  },
-  /**
-   * Change the default image reference for an OCI-sourced app.
-   *
-   * @generated from rpc ctrl.v1.AppService.UpdateOciImageSource
-   */
-  updateOciImageSource: {
-    methodKind: "unary";
-    input: typeof UpdateOciImageSourceRequestSchema;
-    output: typeof UpdateOciImageSourceResponseSchema;
   },
   /**
    * Delete an app and all associated resources
