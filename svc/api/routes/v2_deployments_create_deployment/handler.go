@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"cmp"
 	"context"
 	"net/http"
 	"strings"
@@ -50,23 +51,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
+	// Resolve first, authorize, and report the miss only after the caller passes:
+	// a key that cannot create here must see the same 403 whether or not the
+	// slugs exist, or it can enumerate them
+	scope, scopeErr := db.Query.ResolveDeploymentScope(ctx, h.DB.RO(), db.ResolveDeploymentScopeParams{
 		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
 	})
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New(
-				"environment not found",
-				fault.Code(codes.Data.Environment.NotFound.URN()),
-				fault.Internal("project, app, or environment did not resolve"),
-				fault.Public("The requested project, app, or environment does not exist."),
-			)
-		}
-		return fault.Wrap(err, fault.Internal("failed to resolve environment"))
+	if scopeErr != nil && !db.IsNotFound(scopeErr) {
+		return fault.Wrap(scopeErr, fault.Internal("failed to resolve environment"))
 	}
+	notFound := scopeErr != nil || !scope.AppID.Valid || !scope.EnvironmentID.Valid
+
+	// Only a level that did not resolve is widened, so a caller whose grant names
+	// the project still gets a 403 for a missing app rather than a wildcard check
+	grantProjectID := cmp.Or(scope.ProjectID, "*")
+	grantAppID := cmp.Or(scope.AppID.String, "*")
+	grantEnvironmentID := cmp.Or(scope.EnvironmentID.String, "*")
 
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
@@ -76,17 +79,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
-			ResourceID:   environment.ID,
+			ResourceID:   scope.EnvironmentID.String,
 			Action:       rbac.CreateDeployment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(grantProjectID).App(grantAppID).Environment(grantEnvironmentID).Deployment("*"),
 			permissions.Write,
 		),
 	))
 	if err != nil {
 		return err
 	}
+	if notFound {
+		return fault.New(
+			"environment not found",
+			fault.Code(codes.Data.Environment.NotFound.URN()),
+			fault.Internal("project, app, or environment did not resolve"),
+			fault.Public("The requested project, app, or environment does not exist."),
+		)
+	}
+
+	environment := scope.EnvironmentID.String
 
 	actorInfo, err := ctrlclient.Actor(s)
 	if err != nil {
@@ -94,9 +107,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	createReq := &hydrav1.DeployCreateRequest{
-		ProjectId:     environment.ProjectID,
-		AppId:         environment.AppID,
-		EnvironmentId: environment.ID,
+		ProjectId:     scope.ProjectID,
+		AppId:         scope.AppID.String,
+		EnvironmentId: environment,
 		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
 		Trigger:       &hydrav1.Trigger{Source: deployment.TriggerFromClient(s), Actor: actorInfo, Reason: ""},
 	}
@@ -130,7 +143,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 	case req.Deployment != nil:
-		if err := deployment.RequireSourceInEnvironment(ctx, h.DB, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId); err != nil {
+		if err := deployment.RequireSourceInEnvironment(ctx, h.DB, principal.AuthorizedWorkspaceID, scope.AppID.String, environment, req.Deployment.DeploymentId); err != nil {
 			return err
 		}
 		createReq.Source = &hydrav1.DeployCreateRequest_ExistingDeployment{

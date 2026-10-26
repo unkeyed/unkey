@@ -19,8 +19,19 @@ func TestInsufficientPermissions(t *testing.T) {
 		Permissions: []string{"environment.*.read_deployment"},
 	})
 
-	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+	t.Run("existing environment", func(t *testing.T) {
+		req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
-	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	})
+
+	// A key that cannot create here must get the same 403 whether or not the
+	// slugs exist, or it can enumerate them
+	t.Run("unknown environment", func(t *testing.T) {
+		req := imageRequest(t, setup.Project.Slug, setup.App.Slug, "does-not-exist", "nginx:latest")
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	})
 }

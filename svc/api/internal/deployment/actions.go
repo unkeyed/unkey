@@ -2,13 +2,17 @@ package deployment
 
 import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // availableActions returns the lifecycle operations that would succeed on a
-// deployment in this state. It encodes the same preconditions the
-// promote/rollback/stop/start handlers enforce, so a caller can pick a legal
-// action instead of discovering the rules through 412s.
+// deployment in this state for the caller described by in. It encodes the same
+// preconditions and the same grants the promote/rollback/stop/start handlers
+// enforce, so a caller can pick a legal action instead of discovering the rules
+// through 412s or a 404.
 //
 // promote and rollback are gated separately because the handlers differ: both
 // need the app to already have a live deployment, but rollback rejects the
@@ -17,6 +21,15 @@ import (
 func availableActions(in Input) []openapi.DeploymentAction {
 	d := in.Deployment
 	actions := []openapi.DeploymentAction{}
+
+	// Every lifecycle handler checks write on the environment and nothing else,
+	// so a caller without it can call none of them.
+	if rbac.Check(rbac.U(
+		urn.New().Workspace(in.WorkspaceID).Project(d.ProjectID).App(d.AppID).Environment(d.EnvironmentID),
+		permissions.Write,
+	), in.Grants) != nil {
+		return actions
+	}
 
 	// An empty kind means the environment could not be resolved; without it the
 	// lifecycle gate is unknowable, so offer nothing rather than guess.

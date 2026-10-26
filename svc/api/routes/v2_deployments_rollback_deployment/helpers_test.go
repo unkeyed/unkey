@@ -10,6 +10,9 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_rollback_deployment"
 )
@@ -39,4 +42,19 @@ func setCurrentDeployment(t *testing.T, h *testutil.Harness, appID, deploymentID
 		AppID:               appID,
 	})
 	require.NoError(t, err)
+}
+
+// writeDeploymentEnv grants write on every environment and every deployment in
+// it, which together are the grants the lifecycle handlers check.
+func writeDeploymentEnv(workspaceID string) []string {
+	return []string{
+		rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Write).Value,
+		rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value,
+	}
+}
+
+// readDeploymentEnv grants read at every level and no write, so every lifecycle
+// handler refuses the caller.
+func readDeploymentEnv(workspaceID string) string {
+	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Read).Value
 }

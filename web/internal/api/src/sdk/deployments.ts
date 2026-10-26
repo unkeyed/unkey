@@ -245,9 +245,8 @@ export class Deployments extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have one of the following permissions:
-   * - `environment.*.promote_deployment` (to promote deployments in any environment)
-   * - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
+   * Your root key must have write permission on the environment:
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
    */
   async promoteDeployment(
     request: components.V2DeploymentsPromoteDeploymentRequestBody,
@@ -281,9 +280,8 @@ export class Deployments extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have one of the following permissions:
-   * - `environment.*.rollback_deployment` (to roll back deployments in any environment)
-   * - `environment.<environment_id>.rollback_deployment` (to roll back deployments in a specific environment)
+   * Your root key must have write permission on the environment:
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
    */
   async rollbackDeployment(
     request: components.V2DeploymentsRollbackDeploymentRequestBody,
@@ -313,9 +311,8 @@ export class Deployments extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have one of the following permissions:
-   * - `environment.*.start_deployment` (to start deployments in any environment)
-   * - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
+   * Your root key must have write permission on the environment:
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
    */
   async startDeployment(
     request: components.V2DeploymentsStartDeploymentRequestBody,
@@ -345,9 +342,8 @@ export class Deployments extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have one of the following permissions:
-   * - `environment.*.stop_deployment` (to stop deployments in any environment)
-   * - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
+   * Your root key must have write permission on the environment:
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
    */
   async stopDeployment(
     request: components.V2DeploymentsStopDeploymentRequestBody,

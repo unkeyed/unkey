@@ -8,8 +8,20 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
+
+// allActions grants write on every environment, which is the grant each
+// lifecycle handler checks, plus write on every deployment in them.
+func allActions(workspaceID string) []string {
+	return []string{
+		rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Write).Value,
+		rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value,
+	}
+}
 
 func TestAvailableActions(t *testing.T) {
 	const (
@@ -57,7 +69,9 @@ func TestAvailableActions(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := availableActions(Input{
-				Deployment: db.ListDeploymentsRow{ID: self, Status: tc.status, DesiredState: tc.desiredState},
+				WorkspaceID: "ws_test",
+				Grants:      allActions("ws_test"),
+				Deployment:  db.ListDeploymentsRow{ID: self, Status: tc.status, DesiredState: tc.desiredState, ProjectID: "proj_1", AppID: "app_1", EnvironmentID: "env_1"},
 				State: db.ListDeploymentEnvAndAppStateRow{
 					EnvironmentSlug:        tc.envSlug,
 					EnvironmentKind:        tc.envKind,
