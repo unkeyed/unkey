@@ -16,7 +16,6 @@ ORDER BY
     CASE WHEN domain = ? THEN 0 ELSE 1 END,
     (verification_status = 'verified') DESC,
     updated_at DESC,
-    created_at DESC,
     pk DESC
 LIMIT 1
 `
@@ -35,7 +34,6 @@ type FindCustomDomainByDomainOrWildcardParams struct {
 //	    CASE WHEN domain = ? THEN 0 ELSE 1 END,
 //	    (verification_status = 'verified') DESC,
 //	    updated_at DESC,
-//	    created_at DESC,
 //	    pk DESC
 //	LIMIT 1
 func (q *Queries) FindCustomDomainByDomainOrWildcard(ctx context.Context, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error) {

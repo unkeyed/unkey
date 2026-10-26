@@ -54,7 +54,7 @@ func TestFindCustomDomainByDomainPrefersVerified(t *testing.T) {
 
 	now := time.Now().UnixMilli()
 
-	t.Run("unverified squatter inserted first does not win", func(t *testing.T) {
+	t.Run("unverified row inserted first does not win", func(t *testing.T) {
 		domain := uid.New(uid.TestPrefix) + ".example.com"
 		insert(domain, now-1000)
 		owner := insert(domain, now)
@@ -69,8 +69,8 @@ func TestFindCustomDomainByDomainPrefersVerified(t *testing.T) {
 		domain := uid.New(uid.TestPrefix) + ".example.com"
 		owner := insert(domain, now-2000)
 		setStatus(owner, CustomDomainsVerificationStatusVerified, now-1000)
-		squatter := insert(domain, now-500)
-		setStatus(squatter, CustomDomainsVerificationStatusVerifying, now)
+		unverified := insert(domain, now-500)
+		setStatus(unverified, CustomDomainsVerificationStatusVerifying, now)
 
 		got, err := database.FindCustomDomainByDomain(ctx, domain)
 		require.NoError(t, err)
