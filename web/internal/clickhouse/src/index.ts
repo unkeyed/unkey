@@ -6,6 +6,7 @@ import {
   getDeployMeterUsage,
   getDeployUsageTimeseries,
 } from "./deploy_billing";
+import { getEnvironmentRequests } from "./frontline/legacy/environment-requests";
 export {
   type ActiveKeysUsage,
   activeKeysUsage,
@@ -108,7 +109,6 @@ import {
   getRequestDetails,
   getRequestLogs,
 } from "./frontline";
-import { getEnvironmentRequests } from "./frontline/environment-requests";
 import { getRuntimeLogs } from "./runtime-logs";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";

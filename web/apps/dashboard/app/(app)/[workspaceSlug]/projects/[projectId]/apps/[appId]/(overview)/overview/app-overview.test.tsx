@@ -1,5 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DeploymentRow } from "../deployments/components/deployment-row";
 import { Overview } from "./app-overview";
@@ -51,14 +51,8 @@ vi.mock("../hooks/use-app-current-deployment", () => ({
 vi.mock("./components/active-branches", () => ({
   ActiveBranches: () => <h2>Active Branches</h2>,
 }));
-vi.mock("./components/app-production-card", () => ({
-  AppProductionCard: () => <div>Production</div>,
-}));
-vi.mock("./components/overview-page-title", () => ({
-  OverviewPageTitle: () => "Container app",
-}));
-vi.mock("../navigations/create-deployment-button", () => ({
-  CreateDeploymentButton: () => <button type="button">Create deployment</button>,
+vi.mock("./components/production-overview", () => ({
+  ProductionOverview: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 vi.mock("../deployments/components/deployment-row", () => ({
   DeploymentRow: ({ deployment, href }: ComponentProps<typeof DeploymentRow>) => (

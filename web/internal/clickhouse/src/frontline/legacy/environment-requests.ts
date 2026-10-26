@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { Querier } from "../client";
-import { assertOrderedTimeRange } from "../util";
+import type { Querier } from "../../client";
+import { assertOrderedTimeRange } from "../../util";
 
 // Environment-scoped Frontline request metrics: per-bucket request and error
 // counts for a single app and environment, read from the pre-aggregated

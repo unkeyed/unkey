@@ -1,4 +1,7 @@
-import { INTERVAL_MS, type Interval } from "@unkey/clickhouse/src/frontline/environment-requests";
+import {
+  INTERVAL_MS,
+  type Interval,
+} from "@unkey/clickhouse/src/frontline/legacy/environment-requests";
 
 const minuteMs = 60_000;
 const hourMs = 60 * minuteMs;

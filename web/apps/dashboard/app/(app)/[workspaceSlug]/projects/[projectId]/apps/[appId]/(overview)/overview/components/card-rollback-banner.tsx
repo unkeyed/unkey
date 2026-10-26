@@ -15,7 +15,13 @@ export function ProductionCardRollbackBanner() {
           — new production deploys are paused until you undo.
         </span>
       </div>
-      <Button variant="outline" size="sm" onClick={openUndo} className="shrink-0 bg-gray-1">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={openUndo}
+        className="shrink-0 bg-gray-1 [&_svg]:size-3"
+      >
+        <IconArrowDottedRotateAnticlockwiseOutline12 />
         Undo Rollback
       </Button>
     </div>
