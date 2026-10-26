@@ -2760,14 +2760,6 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	UpdateAppDeployments(ctx context.Context, arg UpdateAppDeploymentsParams) error
-	//UpdateAppSourceOciImageReference
-	//
-	//  UPDATE app_source_oci
-	//  SET image_reference = ?,
-	//      updated_at = ?
-	//  WHERE app_id = ?
-	//    AND workspace_id = ?
-	UpdateAppSourceOciImageReference(ctx context.Context, arg UpdateAppSourceOciImageReferenceParams) error
 	//UpdateClickhouseWorkspaceSettingsLimits
 	//
 	//  UPDATE `clickhouse_workspace_settings`
