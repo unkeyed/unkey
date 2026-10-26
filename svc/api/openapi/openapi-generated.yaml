@@ -6822,13 +6822,15 @@ components:
                     maxLength: 256
                 present:
                     type: boolean
-                    description: Matches when the field is present if true, or absent if false, regardless of value.
+                    description: |-
+                        Matches when the field is present if true, or absent if false, regardless of value.
+                        Defaults to true when neither `present` nor `value` is supplied.
                 value:
                     "$ref": "#/components/schemas/StringMatch"
             additionalProperties: false
             description: |-
-                Matches a named request field (header or query parameter). Exactly one of
-                `present` or `value` must be set.
+                Matches a named request field (header or query parameter). Set `present` or
+                `value`, not both. If neither is supplied, the field must be present.
         RemoteIpMatch:
             type: object
             properties:
@@ -11451,6 +11453,14 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: listBuildLogs
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
             x-unkey-idempotency: idempotent
     /v2/deployments.listDeployments:
         post:
@@ -13038,6 +13048,14 @@ paths:
             tags:
                 - domains
             x-speakeasy-name-override: listDomains
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
             x-unkey-idempotency: idempotent
     /v2/domains.verifyDomain:
         post:
@@ -13455,6 +13473,14 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: listEnvironmentVariables
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v2/environments.listEnvironments:
         post:
             description: |
@@ -18010,6 +18036,14 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: listSessions
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v2/portal.rerollKey:
         post:
             description: |

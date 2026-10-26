@@ -54,7 +54,7 @@ export function DomainsPage() {
     add,
   } = useDomainsPage();
   const addButton = (
-    <Button variant="primary" size="md" disabled={!add.defaultEnvironment} onClick={add.openAdd}>
+    <Button variant="primary" size="sm" disabled={!add.defaultEnvironment} onClick={add.openAdd}>
       <IconPlusOutline18 />
       Add domain
     </Button>
@@ -98,7 +98,7 @@ export function DomainsPage() {
                     </EmptyStateDescription>
                   </EmptyStateHeader>
                   <EmptyStateActions>
-                    <Button size="md" variant="outline" onClick={clearSearch}>
+                    <Button size="sm" variant="outline" onClick={clearSearch}>
                       Clear search
                     </Button>
                   </EmptyStateActions>

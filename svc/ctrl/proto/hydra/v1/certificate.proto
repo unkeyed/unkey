@@ -27,7 +27,8 @@ message ProcessChallengeRequest {
 
 message ProcessChallengeResponse {
   string certificate_id = 1;
-  string status = 2; // "success", "failed", "pending"
+  // "success", "failed", "pending", or "skipped" when the domain no longer exists
+  string status = 2;
 }
 
 message RenewExpiringCertificatesRequest {

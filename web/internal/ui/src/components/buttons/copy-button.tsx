@@ -1,8 +1,8 @@
 "use client";
 import { IconCheckOutline18, IconCloneOutline18 } from "@unkey/icons";
-import * as React from "react";
+import type * as React from "react";
+import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard";
 import { cn } from "../../lib/utils";
-import { toast } from "../toaster";
 import { Button, type ButtonProps } from "./button";
 
 type CopyButtonProps = ButtonProps & {
@@ -21,10 +21,6 @@ type CopyButtonProps = ButtonProps & {
   ref?: React.Ref<HTMLButtonElement>;
 };
 
-async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unknown>) {
-  await navigator.clipboard.writeText(value);
-}
-
 export function CopyButton({
   value,
   src,
@@ -35,17 +31,7 @@ export function CopyButton({
   ref,
   ...props
 }: CopyButtonProps) {
-  const [copied, setCopied] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!copied) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCopied(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [copied]);
+  const { copied, copy } = useCopyToClipboard(value, toastMessage);
 
   return (
     <Button
@@ -59,20 +45,7 @@ export function CopyButton({
       onClick={async (e) => {
         if (!e.defaultPrevented) {
           e.stopPropagation(); // Prevent triggering parent button click
-          try {
-            await copyToClipboardWithMeta(value, {
-              component: src,
-            });
-            toast.success("Copied to clipboard", {
-              description: toastMessage,
-            });
-            setCopied(true);
-          } catch (e) {
-            toast.error("Failed to copy to clipboard", {
-              description: e instanceof Error ? e.message : "Unknown error",
-            });
-          }
-          // Call the onClick prop if provided
+          await copy();
           onClick?.(e);
         }
       }}

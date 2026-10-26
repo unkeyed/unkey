@@ -2,7 +2,8 @@
 
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { deleteRootKey, rootKeysV2QueryKeys } from "@/lib/root-keys-api";
+import { rootKeysV2QueryKeys } from "@/lib/root-keys-api";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button, Dialog, DialogContent, DialogTitle, FormCheckbox, toast } from "@unkey/ui";
 import { useState } from "react";
@@ -17,7 +18,7 @@ export function DeleteRootKey({ rootKeyDetails, isOpen, onClose, onDeleted }: De
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: async ({ keyIds }: { keyIds: string[] }) => {
-      await Promise.all(keyIds.map((keyId) => deleteRootKey({ keyId })));
+      await Promise.all(keyIds.map((keyId) => getUnkeyClient().rootKeys.deleteKey({ keyId })));
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({
@@ -32,7 +33,7 @@ export function DeleteRootKey({ rootKeyDetails, isOpen, onClose, onDeleted }: De
     },
     onError: (error) => {
       toast.error("Failed to revoke Root Key", {
-        description: error instanceof Error ? error.message : "Please try again later.",
+        description: getErrorMessage(error, "Please try again later."),
       });
     },
   });

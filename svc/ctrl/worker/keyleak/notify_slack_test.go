@@ -132,6 +132,7 @@ func TestNotifySlackFormatsLeakAndWorkspaceMembers(t *testing.T) {
 				require.NotEmpty(t, message.Blocks)
 				require.Equal(t, "header", message.Blocks[0].Type)
 				var text strings.Builder
+				var contextElements []slack.Text
 				text.WriteString(message.Text)
 				for _, block := range message.Blocks {
 					if block.Text != nil {
@@ -150,11 +151,16 @@ func TestNotifySlackFormatsLeakAndWorkspaceMembers(t *testing.T) {
 						text.WriteString(element.Text)
 						require.LessOrEqual(t, len([]rune(element.Text)), 3000)
 					}
+					if block.Type == "context" {
+						contextElements = append(contextElements, block.Elements...)
+					}
 				}
 				require.Contains(t, text.String(), "R&amp;D &lt;!here&gt; @channel")
 				require.NotContains(t, text.String(), "<!here>")
-				require.Contains(t, text.String(), leak.KeyId)
-				require.Contains(t, text.String(), leak.OrgId)
+				require.Contains(t, text.String(), "`"+leak.KeyId+"`")
+				require.Contains(t, contextElements, slack.Text{
+					Type: "mrkdwn", Text: "Organization ID: `" + leak.OrgId + "`", Verbatim: true,
+				})
 				require.Contains(t, text.String(), leak.Date)
 				require.Contains(t, text.String(), "Rotate or revoke this key.")
 				for _, want := range test.want {

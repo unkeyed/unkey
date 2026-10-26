@@ -7,6 +7,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -30,13 +31,17 @@ func (s *Service) Delete(
 
 	logger.Info("starting app deletion", "app_id", appID)
 
-	// Capture the app's metadata before the cascade deletes the row, so the
-	// audit log written at the end still has a name/slug to display.
 	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
-		return s.db.FindAppById(runCtx, appID)
+		row, findErr := s.db.FindAppById(runCtx, appID)
+		return row, restateutil.TerminalNotFound(findErr)
 	}, restate.WithName("find app"))
 	if err != nil {
-		return nil, fmt.Errorf("find app: %w", err)
+		if !restateutil.IsNotFoundTerminal(err) {
+			return nil, fmt.Errorf("find app: %w", err)
+		}
+		// The row is already gone, so a repeat delete has nothing left to do
+		logger.Info("app already deleted", "app_id", appID)
+		return &hydrav1.DeleteAppResponse{}, nil
 	}
 
 	envIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
@@ -84,12 +89,9 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete OCI source: %w", err)
 	}
 
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteAppById(runCtx, appID)
-	}, restate.WithName("delete app")); err != nil {
-		return nil, fmt.Errorf("delete app: %w", err)
-	}
-
+	// Audit before the row delete: once the row is gone a repeat delete returns
+	// early, so an audit still owed by a killed earlier delete would never be
+	// written
 	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
 		Actor:         req.GetActor(),
 		CorrelationID: req.GetCorrelationId(),
@@ -105,6 +107,12 @@ func (s *Service) Delete(
 		}},
 	}); err != nil {
 		return nil, fmt.Errorf("insert audit log: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return s.db.DeleteAppById(runCtx, appID)
+	}, restate.WithName("delete app")); err != nil {
+		return nil, fmt.Errorf("delete app: %w", err)
 	}
 
 	logger.Info("app deletion complete", "app_id", appID)

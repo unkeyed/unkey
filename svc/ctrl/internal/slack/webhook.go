@@ -90,6 +90,15 @@ func NewContextBlock(text string) Block {
 	}
 }
 
+func NewMarkdownContextBlock(text string) Block {
+	return Block{
+		Type:     "context",
+		Text:     nil,
+		Fields:   nil,
+		Elements: []Text{{Type: "mrkdwn", Text: text, Emoji: false, Verbatim: true}},
+	}
+}
+
 // Client sends messages to Slack webhooks.
 type Client struct {
 	httpClient *http.Client

@@ -54,6 +54,7 @@ export * from "./components/toaster";
 export * from "./components/visually-hidden";
 export * from "./components/slide-panel";
 export * from "./components/slider";
+export * from "./hooks/use-copy-to-clipboard";
 export * from "./hooks/use-mobile";
 export * from "./hooks/use-relative-time";
 export * from "./components/data-table";

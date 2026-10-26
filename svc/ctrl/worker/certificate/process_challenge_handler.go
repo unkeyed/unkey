@@ -13,6 +13,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
@@ -55,8 +56,9 @@ type EncryptedCertificate struct {
 // retries before failing. For transient errors, Restate's standard retry with exponential
 // backoff applies (30s initial, 2x factor, 5m max, 5 attempts).
 //
-// Returns a response with Status "success" and the certificate ID on success, or Status
-// "failed" with empty certificate ID on failure. System errors return (nil, error).
+// Returns a response with Status "success" and the certificate ID on success, Status
+// "failed" with empty certificate ID on failure, or Status "skipped" when the domain
+// no longer exists. System errors return (nil, error).
 func (s *Service) ProcessChallenge(
 	ctx restate.ObjectContext,
 	req *hydrav1.ProcessChallengeRequest,
@@ -68,9 +70,16 @@ func (s *Service) ProcessChallenge(
 
 	// Step 1: Resolve domain
 	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.CustomDomain, error) {
-		return s.db.FindCustomDomainByDomain(stepCtx, req.GetDomain())
+		row, findErr := s.db.FindCustomDomainByDomain(stepCtx, req.GetDomain())
+		return row, restateutil.TerminalNotFound(findErr)
 	}, restate.WithName("resolve domain"))
 	if err != nil {
+		// The domain was deleted while this challenge was queued, so there is
+		// nothing left to certify
+		if restateutil.IsNotFoundTerminal(err) {
+			logger.Info("domain no longer exists, skipping certificate challenge", "domain", req.GetDomain())
+			return &hydrav1.ProcessChallengeResponse{Status: "skipped"}, nil
+		}
 		return nil, err
 	}
 

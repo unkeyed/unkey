@@ -1,7 +1,6 @@
 "use client";
 
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   IconBoltOutline18,
@@ -14,7 +13,12 @@ import { Loading, formatTimestamp } from "@unkey/ui";
 import { cn } from "cn";
 import { type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useDeployment } from "../../layout-provider";
-import { BUILD_LOG_ENTRIES_SHOWN_MAX, useBuildLogs } from "../../use-build-logs";
+import {
+  BUILD_LOG_ENTRIES_SHOWN_MAX,
+  BUILD_NOT_DONE_STATUSES,
+  type BuildLogsQuery,
+  panelOpening,
+} from "../../use-build-logs";
 import { useDeploymentStatus } from "../../use-deployment-status";
 import { type BuildLogLine, type Tone, toBuildLogLines, toBuildLogText } from "./build-log-lines";
 import { BuildLogsHeader } from "./build-logs-header";
@@ -33,30 +37,22 @@ const LINE_HEIGHT_ESTIMATE_PX = 22;
 const TAIL_FOLLOW_SLACK_PX = 2 * LINE_HEIGHT_ESTIMATE_PX;
 // About three pages of listBuildLogs
 const LINES_AHEAD_MIN = 300;
-const BUILD_NOT_DONE_STATUSES: ReadonlySet<DeploymentStatus> = new Set([
-  "pending",
-  "starting",
-  "building",
-]);
-
-type Props = {
-  fixedHeight?: number;
-  focusErrorTick?: number;
-  isOpen?: boolean;
-};
 
 export function DeploymentBuildLogs({
-  fixedHeight = 500,
-  focusErrorTick = 0,
-  isOpen = true,
-}: Props) {
+  logs,
+  onReadsToEndChange,
+}: {
+  logs: BuildLogsQuery;
+  onReadsToEndChange: (readsToEnd: boolean) => void;
+}) {
   const { deployment } = useDeployment();
   const { derivedStatus } = useDeploymentStatus(deployment);
   const isFailed = derivedStatus === "failed";
   const isBuilding = BUILD_NOT_DONE_STATUSES.has(derivedStatus);
-  const [followsTail, setFollowsTail] = useState(isBuilding);
+  const opening = panelOpening(derivedStatus);
+  const [followsTail, setFollowsTail] = useState(opening.followsTail);
   const [pendingJump, setPendingJump] = useState<PendingJump | null>(
-    isFailed ? "last-error" : null,
+    opening.jumpsToLastError ? "last-error" : null,
   );
   const [jumpCursor, setJumpCursor] = useState<JumpCursor | null>(null);
   const [query, setQuery] = useState("");
@@ -65,10 +61,12 @@ export function DeploymentBuildLogs({
   // Rows near a jump target are not measured yet, so the jump repeats as they
   // are, until the viewer scrolls
   const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
-  const logHeight = `min(${fixedHeight}px, 60dvh)`;
+  const logHeight = "min(500px, 60dvh)";
   const readsToEnd = isFailed || followsTail || pendingJump !== null || query.trim() !== "";
+  useEffect(() => {
+    onReadsToEndChange(readsToEnd);
+  }, [onReadsToEndChange, readsToEnd]);
 
-  const logs = useBuildLogs(deployment, { readsToEnd, isOpen });
   const entries = logs.data?.entries;
   const hasMore = logs.data?.hasMore === true;
   const isCaughtUp = logs.data !== undefined && !logs.data.hasMore;
@@ -181,12 +179,6 @@ export function DeploymentBuildLogs({
     }
   }, [jumpTargetIndex, totalSize, virtualizer]);
 
-  useEffect(() => {
-    if (focusErrorTick > 0) {
-      setPendingJump("last-error");
-    }
-  }, [focusErrorTick]);
-
   // A new query renumbers the lines, so old jump targets point at other lines
   const changeQuery = (nextQuery: string) => {
     setQuery(nextQuery);
@@ -198,12 +190,10 @@ export function DeploymentBuildLogs({
     searchRef.current?.focus();
     searchRef.current?.select();
   };
-  // A folded card keeps the logs mounted, so native find stays in charge until
-  // the logs are on screen
   const [isMac] = useState(
     () => typeof navigator !== "undefined" && navigator.userAgent.includes("Mac"),
   );
-  const searchShortcutDisabled = !isOpen || !entries || entries.length === 0;
+  const searchShortcutDisabled = !entries || entries.length === 0;
   useKeyboardShortcut("meta+f", focusSearch, {
     ignoreInputs: false,
     disabled: searchShortcutDisabled || !isMac,

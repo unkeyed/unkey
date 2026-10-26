@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
+	verifykey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 )
 
 func TestRerollKeySuccess(t *testing.T) {
@@ -30,6 +31,7 @@ func TestRerollKeySuccess(t *testing.T) {
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -71,6 +73,43 @@ func TestRerollKeySuccess(t *testing.T) {
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
+
+	t.Run("immediate expiration rejects a previously verified key", func(t *testing.T) {
+		verifyRoute := &verifykey.Handler{
+			DB:               h.DB,
+			Keys:             h.Keys,
+			DirectAuditLogs:  h.DirectAuditLogs,
+			KeyVerifications: h.KeyVerifications,
+		}
+		h.Register(verifyRoute)
+		verifyRootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
+		verifyHeaders := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", verifyRootKey)},
+		}
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+		})
+		verified := testutil.CallRoute[verifykey.Request, verifykey.Response](h, verifyRoute, verifyHeaders, verifykey.Request{Key: key.Key})
+		require.Equal(t, http.StatusOK, verified.Status, "response: %s", verified.RawBody)
+		require.True(t, verified.Body.Data.Valid)
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			KeyId:      key.KeyID,
+			Expiration: nullable.NewNullableWithValue(int64(0)),
+		})
+		require.Equal(t, http.StatusOK, res.Status, "response: %s", res.RawBody)
+
+		verified = testutil.CallRoute[verifykey.Request, verifykey.Response](h, verifyRoute, verifyHeaders, verifykey.Request{Key: key.Key})
+		require.Equal(t, http.StatusOK, verified.Status, "response: %s", verified.RawBody)
+		require.False(t, verified.Body.Data.Valid)
+		require.Equal(t, "EXPIRED", string(verified.Body.Data.Code))
+
+		verified = testutil.CallRoute[verifykey.Request, verifykey.Response](h, verifyRoute, verifyHeaders, verifykey.Request{Key: res.Body.Data.Key})
+		require.Equal(t, http.StatusOK, verified.Status, "response: %s", verified.RawBody)
+		require.True(t, verified.Body.Data.Valid)
+	})
 
 	t.Run("successfully rerolled key with all options", func(t *testing.T) {
 		t.Parallel()
@@ -351,6 +390,7 @@ func TestRerollKeyWithURNPermission(t *testing.T) {
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
