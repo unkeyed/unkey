@@ -26,10 +26,7 @@ if ! projects=$(depot projects list --output json); then
   exit 1
 fi
 project_id=$(jq -er --arg name "$project_name" '
-  [.[] | select(.name == $name)] |
-  if length > 1 then error("Multiple Depot projects match this developer; remove the duplicate before continuing")
-  elif length == 1 then .[0].id
-  else "" end
+  first(.[] | select(.name == $name) | .id) // ""
 ' <<< "$projects")
 
 if [ -z "$project_id" ]; then
