@@ -26,7 +26,7 @@ remove_stale_bridge_rules
 for binary in runsc containerd-shim-runsc-v1 gvisor-bin; do
   docker cp "/usr/local/bin/$binary" "unkey:/usr/local/bin/$binary"
 done
-docker cp /etc/containerd/runsc.toml unkey:/etc/containerd/runsc.toml
+docker cp dev/orb/runsc.toml unkey:/etc/containerd/runsc.toml
 docker cp dev/orb/runtime.sh unkey:/root/orb-runtime.sh
 docker exec unkey bash /root/orb-runtime.sh
 kubectl --context unkey apply -f dev/orb/runtimeclass.yaml
