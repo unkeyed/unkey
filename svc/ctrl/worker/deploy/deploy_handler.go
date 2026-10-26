@@ -635,12 +635,12 @@ func (w *Workflow) ConfigureRouting(
 	branchRouteIDs := make([]string, 0)
 
 	for _, domain := range allDomains {
-		frontlineRouteID, getFrontlineRouteErr := w.findOrInsertFrontlineRoute(ctx, deployment, domain)
-		if getFrontlineRouteErr != nil {
-			return nil, false, fault.Wrap(getFrontlineRouteErr, fault.Public("Route records could not be created."))
+		reassignID, err := w.findOrInsertFrontlineRoute(ctx, deployment, domain)
+		if err != nil {
+			return nil, false, fault.Wrap(err, fault.Public("Route records could not be created."))
 		}
-		if frontlineRouteID != "" && domain.sticky == db.FrontlineRoutesStickyBranch {
-			branchRouteIDs = append(branchRouteIDs, frontlineRouteID)
+		if reassignID != "" && domain.sticky == db.FrontlineRoutesStickyBranch {
+			branchRouteIDs = append(branchRouteIDs, reassignID)
 		}
 	}
 
@@ -715,9 +715,11 @@ func (w *Workflow) ConfigureRouting(
 	return nil, false, nil
 }
 
-// findOrInsertFrontlineRoute returns the ID of this app's existing route for
-// domain or its fallback. It returns an empty ID when it inserted the route,
-// which then already points at this deployment, or when other apps own both
+// findOrInsertFrontlineRoute finds this app's route for domain, or for its
+// fallback when another app owns domain, and returns its ID to reassign. It
+// returns an empty ID when there is nothing to reassign: a new route is
+// inserted already pointing at this deployment, and a hostname other apps own
+// is skipped
 func (w *Workflow) findOrInsertFrontlineRoute(ctx restate.Context, deployment db.FindDeploymentForDeployRow, domain newDomain) (string, error) {
 	return restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 		return db.TxWithResultRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
@@ -936,11 +938,11 @@ func (w *Workflow) findRepoConnectionAndEnvHostname(ctx restate.Context, deploym
 	envHostname := cappedDomain(envHead, deployment.WorkspaceSlug, "", w.defaultDomain)
 	envFallback := cappedDomain(envHead, deployment.WorkspaceSlug, appCode(deployment.AppID), w.defaultDomain)
 
-	target, err := restate.Run(ctx, func(runCtx restate.RunContext) (repoConnectionAndEnvHostname, error) {
+	result, err := restate.Run(ctx, func(runCtx restate.RunContext) (repoConnectionAndEnvHostname, error) {
 		found, findErr := w.db.FindGithubRepoConnectionByAppId(runCtx, deployment.AppID)
 		if findErr != nil {
 			if db.IsNotFound(findErr) {
-				// No connection — return zero value, not an error.
+				// No connection: return zero value, not an error.
 				// Returning an error here would cause Restate to retry forever.
 				return repoConnectionAndEnvHostname{}, nil //nolint:exhaustruct
 			}
@@ -957,8 +959,8 @@ func (w *Workflow) findRepoConnectionAndEnvHostname(ctx restate.Context, deploym
 		return repoConnectionAndEnvHostname{GithubRepoConnection: found, EnvHostname: envHostname}, nil
 	}, restate.WithName("find github repo connection"), restate.WithMaxRetryAttempts(runMaxAttempts))
 
-	target.EnvHostname = cmp.Or(target.EnvHostname, envHostname)
-	return target, err
+	result.EnvHostname = cmp.Or(result.EnvHostname, envHostname)
+	return result, err
 }
 
 func (w *Workflow) deploymentURL(workspaceSlug, projectID, appID, deploymentID string) string {
@@ -1007,9 +1009,10 @@ func (w *Workflow) decryptEnvVars(ctx context.Context, encrypted []byte, environ
 	return bulkRes.GetItems(), nil
 }
 
-// repoConnectionAndEnvHostname is what the "find github repo connection" step journals.
-// The environment hostname lives in that step, not its own Run, so deploys
-// journaled by an older worker still replay. They decode an empty EnvHostname
+// repoConnectionAndEnvHostname is what the "find github repo connection" step
+// journals. The environment hostname lives in that step, not its own Run, so
+// deploys journaled by an older worker still replay. They decode an empty
+// EnvHostname
 type repoConnectionAndEnvHostname struct {
 	db.GithubRepoConnection
 	EnvHostname string
