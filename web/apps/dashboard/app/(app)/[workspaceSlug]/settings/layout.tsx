@@ -22,6 +22,7 @@ const ITEMS = [
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
   { segment: "usage", label: "Usage", getHref: routes.settings.usage },
   { segment: "limits", label: "Limits", getHref: routes.settings.limits },
+  { segment: "cli-sessions", label: "CLI sessions", getHref: routes.settings.cliSessions },
 ] as const;
 
 const BILLING_UPGRADE_SEGMENTS: ReadonlySet<string> = new Set(["usage", "limits"]);
@@ -54,9 +55,6 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
               {item.label}
             </SecondaryNavItem>
           ))}
-          <SecondaryNavItem active={false} render={<Link href={routes.cli.sessions()} />}>
-            CLI sessions
-          </SecondaryNavItem>
         </SecondaryNavGroup>
       </SecondaryNav>
       <div className="flex-1 min-w-0">{children}</div>
