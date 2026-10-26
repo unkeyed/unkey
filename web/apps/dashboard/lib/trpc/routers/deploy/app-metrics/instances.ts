@@ -15,10 +15,7 @@ export const appMetricsInstances = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(environmentScopeInput)
   .query(async ({ ctx, input }): Promise<InstanceRow[]> => {
-    const scope = await loadEnvironmentScope(ctx.workspace.id, {
-      appId: input.appId,
-      environment: { id: input.environmentId },
-    });
+    const scope = await loadEnvironmentScope(ctx.workspace.id, input);
     const [instances, routing] = await Promise.all([
       db.query.instances.findMany({
         where: liveInstancesOf(scope),

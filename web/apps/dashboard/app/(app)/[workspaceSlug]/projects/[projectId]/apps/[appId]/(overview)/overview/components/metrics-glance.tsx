@@ -3,6 +3,7 @@
 import { AreaTimeseriesChart } from "@/components/charts/area-timeseries";
 import { NoDataPlaceholder } from "@/components/charts/no-data-placeholder";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { PRODUCTION } from "@/lib/metrics/app-metrics";
 import {
   type ChartState,
   METRIC_VIEWS,
@@ -16,7 +17,7 @@ import { match } from "@unkey/match";
 import { ResourceList, ResourceListContent, ResourceListHeader, Skeleton } from "@unkey/ui";
 import Link from "next/link";
 import { useAppId, useProjectData } from "../../data-provider";
-import { PRODUCTION, useMetricSources } from "../../hooks/use-app-metrics";
+import { useMetricSources } from "../../hooks/use-app-metrics";
 import { useBucketClock } from "../../hooks/use-bucket-clock";
 import { GLANCE, GLANCE_METRICS, type GlanceMetric, glanceValue } from "./glance";
 
@@ -27,9 +28,10 @@ export function MetricsGlance() {
   const { projectId, environments, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
   const grid = useBucketClock(GLANCE_RANGE);
-  const sources = useMetricSources({ appId, environment: PRODUCTION, grid });
+  const noProduction = !isEnvironmentsLoading && !environments.some((e) => e.kind === "production");
+  const sources = useMetricSources(noProduction ? null : { appId, environment: PRODUCTION, grid });
 
-  if (!isEnvironmentsLoading && !environments.some((e) => e.kind === "production")) {
+  if (noProduction) {
     return null;
   }
 

@@ -7,14 +7,14 @@ import {
   type MetricId,
   RANGE_PRESETS,
   type RangePreset,
+  environmentRefOf,
 } from "@/lib/metrics/app-metrics";
 import { routes } from "@/lib/navigation/routes";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useAppId, useProjectData } from "../data-provider";
 import {
   type AppMetricsScope,
-  environmentRefOf,
   useDeployMarkers,
   useMetricInstances,
   useMetricSourceByInstance,
@@ -54,17 +54,13 @@ export function useMetricsPage() {
   const grid = useBucketClock(query.range);
   const found = environment.kind === "found" ? environment.environment : null;
   const environmentId = found?.id ?? null;
-  const environmentRef = useMemo(() => (found ? environmentRefOf(found) : null), [found]);
-  const scope: AppMetricsScope | null = environmentRef
-    ? { appId, environment: environmentRef, grid }
+  const scope: AppMetricsScope | null = found
+    ? { appId, environment: environmentRefOf(found), grid }
     : null;
 
   const sources = useMetricSources(scope);
   const perInstance = needsInstanceSeries(query.tab, query.expand);
-  const instances = useMetricInstances(
-    environmentId ? { appId, environmentId } : null,
-    perInstance,
-  );
+  const instances = useMetricInstances(scope, perInstance);
   const byInstance = useMetricSourceByInstance(scope, {
     enabled: perInstance,
     openInstance: openInstanceOf(openReplica, environmentId, instances),

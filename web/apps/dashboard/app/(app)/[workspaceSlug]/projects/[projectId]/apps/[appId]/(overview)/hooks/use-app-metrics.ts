@@ -1,6 +1,5 @@
 "use client";
 
-import type { Environment } from "@/lib/collections/deploy/environments";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { type Loadable, type QueryResult, fromQuery } from "@/lib/loadable/loadable";
 import {
@@ -11,19 +10,12 @@ import {
   type SourceResult,
   type Sources,
   clampedRetryMs,
+  environmentKeyOf,
 } from "@/lib/metrics/app-metrics";
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useRef, useState } from "react";
 
 export type AppMetricsScope = { appId: string; environment: EnvironmentRef; grid: Grid };
-
-export const PRODUCTION: EnvironmentRef = { kind: "production" };
-
-// Production is addressed by kind, so the overview glance can query before the
-// environment list loads and still share its cache with the metrics page.
-export function environmentRefOf(environment: Pick<Environment, "id" | "kind">): EnvironmentRef {
-  return environment.kind === "production" ? PRODUCTION : { id: environment.id };
-}
 
 function inputOf(scope: AppMetricsScope | null) {
   return {
@@ -35,7 +27,7 @@ function inputOf(scope: AppMetricsScope | null) {
 }
 
 function viewKeyOf(scope: AppMetricsScope | null): string | null {
-  return scope && `${scope.appId}:${JSON.stringify(scope.environment)}:${scope.grid.range}`;
+  return scope && `${scope.appId}:${environmentKeyOf(scope.environment)}:${scope.grid.range}`;
 }
 
 // Holds the last result while only endMs or the open pod moved, so charts do not
@@ -51,10 +43,10 @@ function useHeldAcrossTicks<T>(scope: AppMetricsScope | null, query: QueryResult
   return fromQuery({ ...query, data });
 }
 
-// Unbatched so a fast source never waits on a slow one.
 const CLOCK_DRIVEN = {
   staleTime: Number.POSITIVE_INFINITY,
   refetchOnWindowFocus: false,
+  // Unbatched so a fast source never waits on a slow one
   trpc: { context: { skipBatch: true } },
 };
 
@@ -112,14 +104,15 @@ export function useMetricSourceByInstance(
   const utils = trpc.useUtils();
   const appId = scope?.appId;
   const environment = scope?.environment;
-  const seen = useRef<{ environment: EnvironmentRef; podSet: string } | null>(null);
+  const seen = useRef<{ environmentKey: string; podSet: string } | null>(null);
   useEffect(() => {
     if (podSet === null || !appId || !environment) {
       return;
     }
+    const environmentKey = environmentKeyOf(environment);
     const previous = seen.current;
-    seen.current = { environment, podSet };
-    if (previous?.environment === environment && previous.podSet !== podSet) {
+    seen.current = { environmentKey, podSet };
+    if (previous?.environmentKey === environmentKey && previous.podSet !== podSet) {
       utils.deploy.appMetrics.sourceByInstance.invalidate({ appId, environment });
     }
   }, [podSet, appId, environment, utils]);
@@ -127,12 +120,12 @@ export function useMetricSourceByInstance(
 }
 
 export function useMetricInstances(
-  environment: { appId: string; environmentId: string } | null,
+  scope: AppMetricsScope | null,
   enabled: boolean,
 ): Loadable<InstanceRow[]> {
-  const active = enabled && environment !== null;
+  const active = enabled && scope !== null;
   const query = trpc.deploy.appMetrics.instances.useQuery(
-    { appId: environment?.appId ?? "", environmentId: environment?.environmentId ?? "" },
+    { appId: scope?.appId ?? "", environment: scope?.environment ?? { id: "" } },
     { enabled: active, refetchOnWindowFocus: false },
   );
   useCollectionPolling(query.refetch, { intervalMs: INSTANCES_POLL_MS, enabled: active });
