@@ -21839,6 +21839,8 @@ tags:
       name: apis
     - description: App management operations
       name: apps
+    - description: Private app connection operations
+      name: connections
     - description: Deployment operations
       name: deploy
     - description: Deployment operations

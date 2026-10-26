@@ -1,0 +1,38 @@
+type: object
+required:
+  - id
+  - appId
+  - environmentId
+  - name
+  - targetAppId
+  - targetAppName
+  - targetAppSlug
+  - targetType
+properties:
+  id:
+    type: string
+    description: Connection ID.
+  appId:
+    type: string
+    description: Caller app ID.
+  environmentId:
+    type: string
+    description: Caller environment ID.
+  name:
+    type: string
+    description: Name used for the connection's injected HOST variable.
+  targetAppId:
+    type: string
+  targetAppName:
+    type: string
+  targetAppSlug:
+    type: string
+  targetType:
+    "$ref": "./ConnectionTargetType.yaml"
+  targetEnvironmentId:
+    type: string
+    description: Present only for an environment target.
+  targetDeploymentId:
+    type: string
+    description: Present only for a pinned deployment target.
+additionalProperties: false
