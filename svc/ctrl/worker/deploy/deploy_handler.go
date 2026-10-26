@@ -635,40 +635,7 @@ func (w *Workflow) ConfigureRouting(
 	branchRouteIDs := make([]string, 0)
 
 	for _, domain := range allDomains {
-		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			return db.TxWithResultRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
-				q := db.NewQueries(tx)
-				for _, hostname := range []string{domain.domain, domain.fallback} {
-					found, err := q.FindFrontlineRouteByFQDN(txCtx, hostname)
-					if db.IsNotFound(err) {
-						return "", q.InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
-							ID:                       uid.New(uid.FrontlineRoutePrefix),
-							ProjectID:                deployment.ProjectID,
-							AppID:                    deployment.AppID,
-							DeploymentID:             deployment.ID,
-							EnvironmentID:            deployment.EnvironmentID,
-							FullyQualifiedDomainName: hostname,
-							Sticky:                   domain.sticky,
-							CreatedAt:                time.Now().UnixMilli(),
-							UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
-						})
-					}
-					if err != nil {
-						return "", err
-					}
-					if found.AppID == deployment.AppID {
-						return found.ID, nil
-					}
-				}
-
-				logger.Warn("skipping hostname, it and its fallback are owned by other apps",
-					"hostname", domain.domain,
-					"fallback", domain.fallback,
-					"app_id", deployment.AppID,
-				)
-				return "", nil
-			})
-		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)), restate.WithMaxRetryAttempts(runMaxAttempts))
+		frontlineRouteID, getFrontlineRouteErr := w.findOrInsertFrontlineRoute(ctx, deployment, domain)
 		if getFrontlineRouteErr != nil {
 			return nil, false, fault.Wrap(getFrontlineRouteErr, fault.Public("Route records could not be created."))
 		}
@@ -746,6 +713,46 @@ func (w *Workflow) ConfigureRouting(
 	}
 
 	return nil, false, nil
+}
+
+// findOrInsertFrontlineRoute returns the ID of this app's existing route for
+// domain or its fallback. It returns an empty ID when it inserted the route,
+// which then already points at this deployment, or when other apps own both
+func (w *Workflow) findOrInsertFrontlineRoute(ctx restate.Context, deployment db.FindDeploymentForDeployRow, domain newDomain) (string, error) {
+	return restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+		return db.TxWithResultRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
+			q := db.NewQueries(tx)
+			for _, hostname := range []string{domain.domain, domain.fallback} {
+				found, err := q.FindFrontlineRouteByFQDN(txCtx, hostname)
+				if db.IsNotFound(err) {
+					return "", q.InsertFrontlineRoute(txCtx, db.InsertFrontlineRouteParams{
+						ID:                       uid.New(uid.FrontlineRoutePrefix),
+						ProjectID:                deployment.ProjectID,
+						AppID:                    deployment.AppID,
+						DeploymentID:             deployment.ID,
+						EnvironmentID:            deployment.EnvironmentID,
+						FullyQualifiedDomainName: hostname,
+						Sticky:                   domain.sticky,
+						CreatedAt:                time.Now().UnixMilli(),
+						UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
+					})
+				}
+				if err != nil {
+					return "", err
+				}
+				if found.AppID == deployment.AppID {
+					return found.ID, nil
+				}
+			}
+
+			logger.Warn("skipping hostname, it and its fallback are owned by other apps",
+				"hostname", domain.domain,
+				"fallback", domain.fallback,
+				"app_id", deployment.AppID,
+			)
+			return "", nil
+		})
+	}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)), restate.WithMaxRetryAttempts(runMaxAttempts))
 }
 
 func (w *Workflow) spinDownPreviousDeployments(
@@ -866,7 +873,7 @@ func (w *Workflow) initGitHubStatus(
 		connected: false,
 	}
 
-	statusTarget, err := w.findGitHubStatusTarget(ctx, deployment)
+	repoConn, err := w.findRepoConnectionAndEnvHostname(ctx, deployment)
 	if err != nil {
 		logger.Warn(
 			"failed to look up github repo connection, skipping deployment status reporting",
@@ -877,7 +884,7 @@ func (w *Workflow) initGitHubStatus(
 		return reporter
 	}
 
-	if statusTarget.InstallationID == 0 {
+	if repoConn.InstallationID == 0 {
 		logger.Info(
 			"no github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,
@@ -889,7 +896,7 @@ func (w *Workflow) initGitHubStatus(
 	reporter.connected = true
 
 	envLabel := formatEnvironmentLabel(deployment.ProjectSlug, deployment.AppSlug, deployment.EnvironmentSlug)
-	envURL := "https://" + statusTarget.EnvHostname
+	envURL := "https://" + repoConn.EnvHostname
 	logURL := w.deploymentURL(deployment.WorkspaceSlug, deployment.ProjectID, deployment.AppID, deployment.ID)
 
 	var existingGHDeploymentID int64
@@ -903,8 +910,8 @@ func (w *Workflow) initGitHubStatus(
 	}
 
 	reporter.client.Init().Send(&hydrav1.GitHubStatusInitRequest{
-		InstallationId:             statusTarget.InstallationID,
-		Repo:                       statusTarget.RepositoryFullName,
+		InstallationId:             repoConn.InstallationID,
+		Repo:                       repoConn.RepositoryFullName,
 		CommitSha:                  deployment.GitCommitSha.String,
 		Branch:                     deployment.GitBranch.String,
 		EnvironmentLabel:           envLabel,
@@ -921,34 +928,33 @@ func (w *Workflow) initGitHubStatus(
 	return reporter
 }
 
-// findGitHubStatusTarget reads the repo connection a deployment reports to and
-// the environment hostname its report links to. The hostname is this app's
-// fallback when another app owns the plain one. A zero InstallationID means no
-// repo is connected
-func (w *Workflow) findGitHubStatusTarget(ctx restate.Context, deployment db.FindDeploymentForDeployRow) (githubStatusTarget, error) {
+// findRepoConnectionAndEnvHostname returns the GitHub repo connection and the
+// environment hostname the status links to, which is the fallback when another
+// app owns the plain one. A zero InstallationID means no repo is connected
+func (w *Workflow) findRepoConnectionAndEnvHostname(ctx restate.Context, deployment db.FindDeploymentForDeployRow) (repoConnectionAndEnvHostname, error) {
 	envHead := formatDomainPrefix(deployment.ProjectSlug, deployment.AppSlug) + "-" + deployment.EnvironmentSlug
 	envHostname := cappedDomain(envHead, deployment.WorkspaceSlug, "", w.defaultDomain)
 	envFallback := cappedDomain(envHead, deployment.WorkspaceSlug, appCode(deployment.AppID), w.defaultDomain)
 
-	target, err := restate.Run(ctx, func(runCtx restate.RunContext) (githubStatusTarget, error) {
+	target, err := restate.Run(ctx, func(runCtx restate.RunContext) (repoConnectionAndEnvHostname, error) {
 		found, findErr := w.db.FindGithubRepoConnectionByAppId(runCtx, deployment.AppID)
 		if findErr != nil {
 			if db.IsNotFound(findErr) {
 				// No connection — return zero value, not an error.
 				// Returning an error here would cause Restate to retry forever.
-				return githubStatusTarget{}, nil //nolint:exhaustruct
+				return repoConnectionAndEnvHostname{}, nil //nolint:exhaustruct
 			}
-			return githubStatusTarget{}, findErr //nolint:exhaustruct
+			return repoConnectionAndEnvHostname{}, findErr //nolint:exhaustruct
 		}
 
 		route, findErr := w.db.FindFrontlineRouteByFQDN(runCtx, envHostname)
 		if findErr != nil && !db.IsNotFound(findErr) {
-			return githubStatusTarget{}, findErr //nolint:exhaustruct
+			return repoConnectionAndEnvHostname{}, findErr //nolint:exhaustruct
 		}
 		if findErr == nil && route.AppID != deployment.AppID {
-			return githubStatusTarget{GithubRepoConnection: found, EnvHostname: envFallback}, nil
+			return repoConnectionAndEnvHostname{GithubRepoConnection: found, EnvHostname: envFallback}, nil
 		}
-		return githubStatusTarget{GithubRepoConnection: found, EnvHostname: envHostname}, nil
+		return repoConnectionAndEnvHostname{GithubRepoConnection: found, EnvHostname: envHostname}, nil
 	}, restate.WithName("find github repo connection"), restate.WithMaxRetryAttempts(runMaxAttempts))
 
 	target.EnvHostname = cmp.Or(target.EnvHostname, envHostname)
@@ -1001,10 +1007,10 @@ func (w *Workflow) decryptEnvVars(ctx context.Context, encrypted []byte, environ
 	return bulkRes.GetItems(), nil
 }
 
-// githubStatusTarget is what the "find github repo connection" step journals.
+// repoConnectionAndEnvHostname is what the "find github repo connection" step journals.
 // The environment hostname lives in that step, not its own Run, so deploys
 // journaled by an older worker still replay. They decode an empty EnvHostname
-type githubStatusTarget struct {
+type repoConnectionAndEnvHostname struct {
 	db.GithubRepoConnection
 	EnvHostname string
 }
