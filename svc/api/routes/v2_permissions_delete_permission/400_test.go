@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -11,82 +10,34 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_permission"
 )
 
-func TestValidationErrors(t *testing.T) {
+func TestDeletePermissionRequiresNonemptyPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
-
 	route := &handler.Handler{
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 	}
-
 	h.Register(route)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "rbac.*.delete_permission")
 
-	// Create a workspace
-	workspace := h.Resources().UserWorkspace
-
-	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.delete_permission")
-
-	// Set up request headers
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	type request struct {
+		Permission *string `json:"permission,omitempty"`
 	}
-
-	// Test case for missing required permissionId
-	t.Run("missing permissionId", func(t *testing.T) {
-		req := handler.Request{
-			// PermissionId is missing
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
-	})
-
-	// Test case for empty permissionId
-	t.Run("empty permissionId", func(t *testing.T) {
-		req := handler.Request{
-			Permission: "", // Empty string is invalid
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
-	})
-
-	// Test case for malformed JSON body
-	t.Run("malformed JSON body", func(t *testing.T) {
-		req := map[string]interface{}{
-			"invalid": "json structure",
-		}
-
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
-	})
+	for _, tc := range []struct {
+		name string
+		body request
+	}{
+		{name: "missing", body: request{}},
+		{name: "empty", body: request{Permission: new("")}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res := testutil.CallRoute[request, openapi.BadRequestErrorResponse](
+				h, route, testutil.Bearer(rootKey), tc.body,
+			)
+			require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
+			require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+			require.Contains(t, res.Body.Error.Detail, "validate schema")
+			require.NotEmpty(t, res.Body.Error.Errors)
+			require.Empty(t, h.FindAuditLogs(t.Context(), t))
+		})
+	}
 }
