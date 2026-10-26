@@ -1,0 +1,26 @@
+type: object
+required:
+  - connectionId
+  - connectionName
+  - callerAppId
+  - callerAppName
+  - callerDeploymentId
+  - callerStatus
+  - provenance
+properties:
+  connectionId:
+    type: string
+  connectionName:
+    type: string
+  callerAppId:
+    type: string
+  callerAppName:
+    type: string
+  callerDeploymentId:
+    type: string
+  callerStatus:
+    "$ref": "../../../../common/DeploymentStatus.yaml"
+  provenance:
+    type: string
+    enum: [deployment_snapshot]
+additionalProperties: false

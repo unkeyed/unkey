@@ -1,0 +1,8 @@
+oneOf:
+  - "$ref": "./CurrentConnectionPin.yaml"
+  - "$ref": "./SnapshotConnectionPin.yaml"
+discriminator:
+  propertyName: provenance
+  mapping:
+    current_rule: "./CurrentConnectionPin.yaml"
+    deployment_snapshot: "./SnapshotConnectionPin.yaml"

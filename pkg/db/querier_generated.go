@@ -1993,6 +1993,7 @@ type Querier interface {
 	//      port,
 	//      shutdown_signal,
 	//      upstream_protocol,
+	//      capabilities,
 	//      healthcheck,
 	//      pr_number,
 	//      fork_repository_full_name,
@@ -2003,6 +2004,7 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2877,6 +2879,21 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
+	//ListCurrentDeploymentConnectionPins
+	//
+	//  SELECT b.id AS connection_id, b.name AS connection_name,
+	//      b.app_id AS caller_app_id, a.name AS caller_app_name
+	//  FROM app_connections b
+	//  INNER JOIN connection_app_targets t ON t.connection_id = b.id
+	//  INNER JOIN apps a ON a.id = b.app_id
+	//      AND a.workspace_id = ? AND a.project_id = ?
+	//  WHERE b.workspace_id = ? AND b.project_id = ?
+	//      AND b.resource_type = 'app' AND b.resource_id = ?
+	//      AND t.selection_mode = 'deployment' AND t.target_deployment_id = ?
+	//      AND CONCAT(b.id, '/') COLLATE utf8mb4_0900_bin >= ?
+	//  ORDER BY b.id COLLATE utf8mb4_0900_bin ASC
+	//  LIMIT ?
+	ListCurrentDeploymentConnectionPins(ctx context.Context, db DBTX, arg ListCurrentDeploymentConnectionPinsParams) ([]ListCurrentDeploymentConnectionPinsRow, error)
 	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
 	//
 	//  SELECT domain
@@ -3650,6 +3667,30 @@ type Querier interface {
 	//      AND c.deployment_id = ?
 	//  ORDER BY c.name
 	ListSavedAppConnections(ctx context.Context, db DBTX, arg ListSavedAppConnectionsParams) ([]ListSavedAppConnectionsRow, error)
+	//ListSnapshotDeploymentConnectionPins
+	//
+	//  SELECT b.connection_id, b.name AS connection_name, b.app_id AS caller_app_id,
+	//      a.name AS caller_app_name, d.id AS caller_deployment_id, d.status AS caller_status
+	//  FROM deployment_connections b
+	//  INNER JOIN deployment_connection_app_targets t
+	//      ON t.deployment_id = b.deployment_id AND t.connection_id = b.connection_id
+	//  INNER JOIN deployments d ON d.id = b.deployment_id
+	//      AND d.workspace_id = b.workspace_id AND d.project_id = b.project_id
+	//      AND d.app_id = b.app_id AND d.environment_id = b.environment_id
+	//  INNER JOIN environments e ON e.id = b.environment_id AND e.app_id = b.app_id
+	//      AND e.workspace_id = ?
+	//  INNER JOIN apps a ON a.id = d.app_id
+	//      AND a.workspace_id = ? AND a.project_id = ?
+	//  WHERE b.workspace_id = ? AND b.project_id = ?
+	//      AND b.resource_type = 'app' AND b.resource_id = ?
+	//      AND t.selection_mode = 'deployment' AND t.target_deployment_id = ?
+	//      AND d.desired_state = 'running'
+	//      AND d.status IN ('pending', 'starting', 'building', 'deploying', 'network', 'finalizing', 'ready')
+	//      AND JSON_CONTAINS(d.capabilities, 'true', '$.private_networking')
+	//      AND CONCAT(b.connection_id, '/', d.id) COLLATE utf8mb4_0900_bin >= ?
+	//  ORDER BY b.connection_id COLLATE utf8mb4_0900_bin ASC, d.id COLLATE utf8mb4_0900_bin ASC
+	//  LIMIT ?
+	ListSnapshotDeploymentConnectionPins(ctx context.Context, db DBTX, arg ListSnapshotDeploymentConnectionPinsParams) ([]ListSnapshotDeploymentConnectionPinsRow, error)
 	// ListUnkeyPermissionRowsByPrincipal loads permission identities before a
 	// replacement so removed assignments retain their audit target IDs.
 	//
