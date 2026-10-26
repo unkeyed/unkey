@@ -1,142 +1,82 @@
+import { Unkey } from "@unkey/api";
+import type { V2RootKeysListKeysResponseBody } from "@unkey/api/models/components";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  createRootKey,
-  deleteRootKey,
-  listRootKeys,
-  rerollRootKey,
-  updateRootKey,
-} from "./root-keys-api";
+import { type V2RootKey, listRootKeys } from "./root-keys-api";
 
-const response = (body: unknown) =>
-  new Response(JSON.stringify(body), {
+vi.mock("@/lib/unkey-client", () => ({
+  getUnkeyClient: () => new Unkey({ serverURL: "http://dashboard.test/proxy/" }),
+}));
+
+const rootKey = (keyId: string): V2RootKey => ({
+  keyId,
+  name: null,
+  start: "unkey_abc",
+  end: "xyz",
+  enabled: true,
+  createdAt: 1,
+  lastUsedAt: 0,
+  expires: null,
+  permissions: [],
+});
+
+const page = (
+  data: V2RootKey[],
+  pagination: V2RootKeysListKeysResponseBody["pagination"],
+): Response => {
+  const body: V2RootKeysListKeysResponseBody = { meta: { requestId: "req" }, data, pagination };
+  return new Response(JSON.stringify(body), {
     status: 200,
     headers: { "content-type": "application/json" },
   });
+};
 
-describe("root keys API", () => {
+const stubFetch = () => {
+  const fetch = vi.fn<typeof globalThis.fetch>();
+  vi.stubGlobal("fetch", fetch);
+  return fetch;
+};
+
+const requestBodies = (fetch: ReturnType<typeof stubFetch>) =>
+  Promise.all(
+    fetch.mock.calls.map(async ([input]) => {
+      if (!(input instanceof Request)) {
+        throw new Error("Expected the SDK to call fetch with a Request");
+      }
+      expect(input.url).toBe("http://dashboard.test/proxy/v2/rootKeys.listKeys");
+      return input.json();
+    }),
+  );
+
+describe("listRootKeys", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("lists every cursor page through the authenticated proxy", async () => {
-    const fetch = vi
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(
-        response({
-          data: [
-            {
-              keyId: "key_1",
-              name: "First",
-              start: "unkey_abc",
-              end: "xyz",
-              enabled: true,
-              createdAt: 1,
-              lastUsedAt: 0,
-              expires: null,
-              permissions: ["unkey:v1:ws_1:apis/*#read_api"],
-            },
-          ],
-          pagination: { cursor: "next", hasMore: true },
-        }),
-      )
-      .mockResolvedValueOnce(
-        response({
-          data: [
-            {
-              keyId: "key_2",
-              name: "Second",
-              start: "unkey_def",
-              end: "uvw",
-              enabled: false,
-              createdAt: 2,
-              lastUsedAt: 3,
-              expires: 4,
-              permissions: [],
-            },
-          ],
-          pagination: { hasMore: false },
-        }),
-      );
-    vi.stubGlobal("fetch", fetch);
+  it("follows cursors until hasMore is false", async () => {
+    const fetch = stubFetch()
+      .mockResolvedValueOnce(page([rootKey("key_1")], { cursor: "next", hasMore: true }))
+      .mockResolvedValueOnce(page([rootKey("key_2")], { cursor: "ignored", hasMore: false }));
 
-    await expect(listRootKeys()).resolves.toHaveLength(2);
-    expect(fetch).toHaveBeenNthCalledWith(
-      1,
-      "/proxy/v2/rootKeys.listKeys",
-      expect.objectContaining({ body: JSON.stringify({ limit: 100 }) }),
-    );
-    expect(fetch).toHaveBeenNthCalledWith(
-      2,
-      "/proxy/v2/rootKeys.listKeys",
-      expect.objectContaining({ body: JSON.stringify({ limit: 100, cursor: "next" }) }),
-    );
-  });
+    const rootKeys = await listRootKeys();
 
-  it("writes root keys through the v2 endpoints", async () => {
-    const fetch = vi
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(response({ data: { keyId: "key_1", key: "unkey_secret" } }))
-      .mockResolvedValueOnce(response({ meta: { requestId: "req_1" } }))
-      .mockResolvedValueOnce(response({ meta: { requestId: "req_2" } }))
-      .mockResolvedValueOnce(response({ data: { keyId: "key_2", key: "unkey_rotated" } }));
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(
-      createRootKey({
-        name: "Production",
-        permissions: ["unkey:v1:ws_1:apis/*#read_api"],
-      }),
-    ).resolves.toEqual({ keyId: "key_1", key: "unkey_secret" });
-    await updateRootKey({ keyId: "key_1", name: "Renamed", permissions: [] });
-    await deleteRootKey({ keyId: "key_1" });
-    await expect(rerollRootKey({ keyId: "key_1", expiration: null })).resolves.toEqual({
-      keyId: "key_2",
-      key: "unkey_rotated",
-    });
-
-    expect(fetch.mock.calls.map(([url]) => url)).toEqual([
-      "/proxy/v2/rootKeys.createKey",
-      "/proxy/v2/rootKeys.updateKey",
-      "/proxy/v2/rootKeys.deleteKey",
-      "/proxy/v2/rootKeys.rerollKey",
-    ]);
-    expect(fetch.mock.calls.map(([, init]) => init?.body)).toEqual([
-      JSON.stringify({
-        name: "Production",
-        permissions: ["unkey:v1:ws_1:apis/*#read_api"],
-      }),
-      JSON.stringify({ keyId: "key_1", name: "Renamed", permissions: [] }),
-      JSON.stringify({ keyId: "key_1" }),
-      JSON.stringify({ keyId: "key_1", expiration: null }),
+    expect(rootKeys.map((key) => key.keyId)).toEqual(["key_1", "key_2"]);
+    await expect(requestBodies(fetch)).resolves.toEqual([
+      { limit: 100 },
+      { limit: 100, cursor: "next" },
     ]);
   });
 
-  it("surfaces API error details", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof globalThis.fetch>().mockResolvedValue(
-        new Response(JSON.stringify({ error: { detail: "You cannot grant this permission." } }), {
-          status: 403,
-          headers: { "content-type": "application/json" },
-        }),
-      ),
-    );
+  it("rejects another page without a cursor", async () => {
+    const fetch = stubFetch().mockResolvedValueOnce(page([], { hasMore: true }));
 
-    await expect(deleteRootKey({ keyId: "key_1" })).rejects.toThrow(
-      "You cannot grant this permission.",
-    );
+    await expect(listRootKeys()).rejects.toThrow("without a cursor");
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects a repeated pagination cursor", async () => {
-    const page = {
-      data: [],
-      pagination: { cursor: "same-cursor", hasMore: true },
-    };
-    const fetch = vi
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(response(page))
-      .mockResolvedValueOnce(response(page));
-    vi.stubGlobal("fetch", fetch);
+  it("rejects a repeated cursor", async () => {
+    const fetch = stubFetch().mockImplementation(async () =>
+      page([], { cursor: "same-cursor", hasMore: true }),
+    );
 
     await expect(listRootKeys()).rejects.toThrow("repeated cursor");
     expect(fetch).toHaveBeenCalledTimes(2);

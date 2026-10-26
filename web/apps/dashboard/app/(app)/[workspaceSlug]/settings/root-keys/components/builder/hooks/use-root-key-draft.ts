@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { listRootKeys, rootKeysV2QueryKeys } from "@/lib/root-keys-api";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
 import { useEffect, useMemo } from "react";
@@ -39,8 +40,7 @@ export function useRootKeyDraft(
     retry: false,
     select: (rootKeys) => rootKeys.find((rootKey) => rootKey.keyId === keyId) ?? null,
   });
-  const message =
-    error instanceof Error ? error.message : error ? "Failed to load the Root Key." : null;
+  const message = error === null ? null : getErrorMessage(error, "Failed to load the Root Key.");
 
   useEffect(() => {
     if (message === null) {
