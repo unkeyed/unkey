@@ -1,0 +1,65 @@
+post:
+  tags:
+    - connections
+  summary: Create an app connection
+  description: |
+    Create a connection default for new deployments in the caller environment.
+    Existing deployments keep their saved connections. Redeploy the caller to apply this default.
+
+    Requires read and write on the caller environment, read on the target app,
+    and read on the selected target environment or deployment when explicitly selected.
+    Missing and unreadable resources return the same 404 response.
+    The target app and connection name must each be unique within the caller environment.
+  operationId: connections.createConnection
+  x-speakeasy-name-override: createConnection
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ConnectionsCreateConnectionRequestBody.yaml"
+  responses:
+    "201":
+      description: Connection created.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ConnectionsCreateConnectionResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Write permission required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Caller or target not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "409":
+      description: Duplicate connection or pinned deployment no longer running.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
