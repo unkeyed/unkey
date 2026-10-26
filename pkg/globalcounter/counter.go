@@ -69,7 +69,7 @@ const (
 // local snapshots asynchronously. It is safe for concurrent use.
 type Counter struct {
 	// database holds the counters table. Reads of peers use its replica and
-	// persists use its primary.
+	// persists and eviction use its primary.
 	database Database
 
 	// processID is the random part of this Counter's writer ids. It is new per
@@ -83,11 +83,11 @@ type Counter struct {
 	// can shorten it. See compactionDelay.
 	compactDelayMs int64
 
-	// clock is injected so tests can drive the peer cache, the circuit breakers
-	// and rotation.
+	// clock is injected so tests can drive the peer cache, the circuit breakers,
+	// eviction and rotation.
 	clock clock.Clock
 
-	// done closes when Close starts. It stops rotation.
+	// done closes when Close starts. It stops eviction and rotation.
 	done chan struct{}
 
 	// closeOnce makes Close idempotent.
@@ -116,14 +116,14 @@ type Counter struct {
 	// does not also stop reads.
 	circuitBreakerRead circuitbreaker.CircuitBreaker[int64]
 
-	// circuitBreakerWrite stops a failing primary from holding every batch for
-	// the whole persistTimeout.
+	// circuitBreakerWrite stops a failing primary from holding every batch and
+	// every eviction delete for the whole deadline.
 	circuitBreakerWrite circuitbreaker.CircuitBreaker[int64]
 }
 
 // Database provides the connections the Counter uses. [mysql.MySQL] satisfies it.
 type Database interface {
-	// RW returns the primary, used for persisting.
+	// RW returns the primary, used for persisting and eviction.
 	RW() *mysql.Replica
 
 	// RO returns the replica, used to read the other writers' rows. It may be the
@@ -136,7 +136,7 @@ type Config struct {
 	// DB provides the primary and replica connections. Required.
 	DB Database
 
-	// Clock drives caching, circuit breakers and rotation. Required.
+	// Clock drives caching, circuit breakers and eviction. Required.
 	Clock clock.Clock
 }
 
@@ -196,11 +196,16 @@ func newCounter(config Config, delay time.Duration) (*Counter, error) {
 		Flush:         counter.flush,
 	})
 	counter.runRotation()
+	counter.runEviction()
 	return counter, nil
 }
 
 // AddParams changes this writer's contribution. Negative Delta values deduct;
-// zero DeleteAfter means the counter is never deleted.
+// zero DeleteAfter means the counter is never deleted. Eviction keeps an entry
+// for a minute after DeleteAfter and after its latest change. A change after
+// that starts this writer's count again from zero, and a change that races with
+// the eviction pass itself can lose its row. Do not change a counter after its
+// DeleteAfter.
 type AddParams struct {
 	Name        string
 	Delta       int64
@@ -216,8 +221,9 @@ func (c *Counter) Add(params AddParams) error {
 	// The sequence is read under the lock, so an Add that waits for the lock
 	// across rotations writes to a sequence that is still in memory.
 	key := entryKey{name: params.Name, sequence: c.sequence.Load()}
+	now := c.clock.Now()
 	old, existed := shard.entries[key]
-	updated, err := old.apply(params.Delta, params.DeleteAfter)
+	updated, err := old.apply(params.Delta, params.DeleteAfter, now)
 	if err == nil {
 		shard.entries[key] = updated
 	}
@@ -266,7 +272,7 @@ func (c *Counter) ConditionalAdd(ctx context.Context, params ConditionalAddParam
 			return 0, err
 		}
 		key := entryKey{name: params.Name, sequence: current}
-		total, delta, updated, existed, rotated, err := c.addDecided(params, key, peers)
+		total, delta, updated, existed, rotated, err := c.addDecided(params, key, peers, c.clock.Now())
 		if rotated {
 			continue
 		}
@@ -294,13 +300,13 @@ func (c *Counter) ConditionalAdd(ctx context.Context, params ConditionalAddParam
 // reports rotated: the peer total was read for another pair of writer ids, and a
 // concurrent call may have changed the entry of the new sequence, which the local
 // total of key's sequence leaves out.
-func (c *Counter) addDecided(params ConditionalAddParams, key entryKey, peers int64) (total, delta int64, updated entry, existed, rotated bool, err error) {
+func (c *Counter) addDecided(params ConditionalAddParams, key entryKey, peers int64, now time.Time) (total, delta int64, updated entry, existed, rotated bool, err error) {
 	shard := c.shard(params.Name)
 	shard.mu.Lock()
 	defer shard.mu.Unlock()
 
 	if c.sequence.Load() != key.sequence {
-		return 0, 0, entry{count: 0, revision: 0, deleteAfter: time.Time{}}, false, true, nil
+		return 0, 0, entry{count: 0, revision: 0, acked: 0, deleteAfter: time.Time{}, touchedAt: time.Time{}}, false, true, nil
 	}
 	var local int64
 	if local, err = shard.localTotal(params.Name, key.sequence); err != nil {
@@ -321,7 +327,7 @@ func (c *Counter) addDecided(params ConditionalAddParams, key entryKey, peers in
 	if _, err = addToTotal(local, delta); err != nil {
 		return 0, 0, entry{}, existed, false, err
 	}
-	if updated, err = old.apply(delta, params.DeleteAfter); err != nil {
+	if updated, err = old.apply(delta, params.DeleteAfter, now); err != nil {
 		return 0, 0, entry{}, existed, false, err
 	}
 	shard.entries[key] = updated
@@ -392,7 +398,7 @@ func (c *Counter) ConditionalAddMany(ctx context.Context, params ConditionalAddM
 		}
 		var rotated bool
 		var err error
-		decisions, aborted, rotated, err = c.decideMany(params.Checks, current, peers)
+		decisions, aborted, rotated, err = c.decideMany(params.Checks, current, peers, c.clock.Now())
 		if rotated {
 			continue
 		}
@@ -448,7 +454,7 @@ type manyDecision struct {
 // ascending shard order so concurrent calls cannot deadlock, for the whole call.
 // If a rotation changed the sequence since current was read, it changes nothing
 // and reports rotated, for the reason given at [Counter.addDecided].
-func (c *Counter) decideMany(checks []ConditionalAddCheck, current int64, peers []int64) (decisions []manyDecision, aborted, rotated bool, err error) {
+func (c *Counter) decideMany(checks []ConditionalAddCheck, current int64, peers []int64, now time.Time) (decisions []manyDecision, aborted, rotated bool, err error) {
 	owners := make([]int, len(checks))
 	var locked []int
 	for i, check := range checks {
@@ -495,7 +501,7 @@ func (c *Counter) decideMany(checks []ConditionalAddCheck, current int64, peers 
 		if _, addErr := addToTotal(local, delta); addErr != nil {
 			return nil, false, false, addErr
 		}
-		updated, applyErr := old.apply(delta, check.DeleteAfter)
+		updated, applyErr := old.apply(delta, check.DeleteAfter, now)
 		if applyErr != nil {
 			return nil, false, false, applyErr
 		}
@@ -531,13 +537,13 @@ func (c *Counter) localTotal(name string, current int64) (int64, error) {
 	return shard.localTotal(name, current)
 }
 
-// Close stops rotation, drains queued snapshots, then persists the entries of the
-// current and the previous writer id, including snapshots that were dropped
-// earlier. Older writer ids are not written again, because compaction may have
-// merged their rows. Persisting is best-effort and bounded by one deadline: a
-// failed batch is logged and Close still returns. Stop calling Add before Close:
-// an Add during or after Close changes memory but is never persisted. Close is
-// safe to call more than once.
+// Close stops eviction and rotation, drains queued snapshots, then persists the
+// entries of the current and the previous writer id, including snapshots that
+// were dropped earlier. Older writer ids are not written again, because
+// compaction may have merged their rows. Persisting is best-effort and bounded by
+// one deadline: a failed batch is logged and Close still returns. Stop calling
+// Add before Close: an Add during or after Close changes memory but is never
+// persisted. Close is safe to call more than once.
 func (c *Counter) Close() {
 	c.closeOnce.Do(func() {
 		close(c.done)

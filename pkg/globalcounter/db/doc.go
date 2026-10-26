@@ -1,6 +1,7 @@
 // Package db contains generated persistence queries for versioned counter
-// snapshots. Callers supply primary connections for Persist and DeleteExpired,
-// and a regional replica for Read. Connections remain owned by the caller.
+// snapshots. Callers supply primary connections for Persist, DeleteExpired and
+// DeleteWriterCounters, and a regional replica for Read. Connections remain
+// owned by the caller.
 //
 // Names identify counters globally; callers include any namespace or tenant
 // scope in the name.

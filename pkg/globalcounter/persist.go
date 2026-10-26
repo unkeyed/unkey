@@ -24,17 +24,22 @@ type snapshot struct {
 
 // flush is the batch callback. Only the newest snapshot of each row is written:
 // it carries the full count, and MySQL would reject the older ones anyway.
+// Snapshots are acknowledged only after MySQL accepted them, because the
+// eviction pass queues unacknowledged ones again.
 func (c *Counter) flush(ctx context.Context, snapshots []snapshot) {
 	snapshots = newestPerRow(snapshots)
-	c.persist(ctx, array.Map(snapshots, func(s snapshot) db.PersistParams { return s.row }))
+	if c.persist(ctx, array.Map(snapshots, func(s snapshot) db.PersistParams { return s.row })) == nil {
+		c.acknowledge(snapshots)
+	}
 }
 
-// persist writes rows to the primary. It retries only within one deadline, to
-// ride out transient errors; a batch that still fails is dropped, not kept for
-// later. Keeping it would grow memory for as long as the database is down, and
-// is not needed: every row is a full snapshot, so the next snapshot of the same
-// entry repairs what was lost.
-func (c *Counter) persist(ctx context.Context, rows []db.PersistParams) {
+// persist writes rows to the primary and returns the error of a failed batch.
+// It retries only within one deadline, to ride out transient errors; a batch that
+// still fails is dropped, not kept for later. Keeping it would grow memory for as
+// long as the database is down, and is not needed: every row is a full snapshot,
+// so the next snapshot of the entry repairs the gap, and the eviction pass queues
+// the previous sequence again, since that one gets no new Adds.
+func (c *Counter) persist(ctx context.Context, rows []db.PersistParams) error {
 	start := time.Now()
 	defer func() { metrics.PersistDurationSeconds.Observe(time.Since(start).Seconds()) }()
 	ctx, cancel := context.WithTimeout(ctx, persistTimeout)
@@ -49,9 +54,25 @@ func (c *Counter) persist(ctx context.Context, rows []db.PersistParams) {
 	if err != nil {
 		metrics.PersistRowsTotal.WithLabelValues("dropped").Add(float64(len(rows)))
 		logger.Error("dropping counter snapshots after persist failed", "error", err.Error(), "batch_size", len(rows))
-		return
+		return err
 	}
 	metrics.PersistRowsTotal.WithLabelValues("persisted").Add(float64(len(rows)))
+	return nil
+}
+
+// acknowledge records that MySQL accepted the snapshots, so the eviction pass
+// does not queue them again. An entry that was forgotten in the meantime stays
+// forgotten.
+func (c *Counter) acknowledge(snapshots []snapshot) {
+	for _, snap := range snapshots {
+		shard := c.shard(snap.key.name)
+		shard.mu.Lock()
+		if e, ok := shard.entries[snap.key]; ok && e.acked < snap.row.Revision {
+			e.acked = snap.row.Revision
+			shard.entries[snap.key] = e
+		}
+		shard.mu.Unlock()
+	}
 }
 
 // newestPerRow keeps the newest snapshot of each row, identified by name and

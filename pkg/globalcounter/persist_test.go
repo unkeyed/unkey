@@ -126,11 +126,13 @@ func TestCounter_DropsTimedOutSnapshotsWithoutBlockingLaterWrites(t *testing.T) 
 		})
 		require.NoError(t, err)
 		globalcounter.Cleanup(t, writer)
+		awaitStartupPasses(t, writePool)
 		conn, err := writePool.Conn(t.Context())
 		require.NoError(t, err)
 		release := sync.OnceFunc(func() { require.NoError(t, conn.Close()) })
 		t.Cleanup(release)
 
+		// The startup passes may have waited for the connection too, so count from here.
 		waited := writePool.Stats().WaitDuration
 		require.NoError(t, writer.Add(globalcounter.AddParams{Name: droppedName, Delta: 7}))
 		// The occupied pool records completed waits only after the write times out.
@@ -176,6 +178,7 @@ func TestCounter_OpenWriteCircuitDropsSnapshotsWithoutBlockingReads(t *testing.T
 		})
 		require.NoError(t, err)
 		globalcounter.Cleanup(t, writer)
+		awaitStartupPasses(t, writePool)
 		conn, err := writePool.Conn(t.Context())
 		require.NoError(t, err)
 		release := sync.OnceFunc(func() { require.NoError(t, conn.Close()) })

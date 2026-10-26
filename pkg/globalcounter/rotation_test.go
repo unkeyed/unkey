@@ -1,6 +1,8 @@
 package globalcounter_test
 
 import (
+	"database/sql"
+	"sync"
 	"testing"
 	"time"
 
@@ -9,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/globalcounter"
 	"github.com/unkeyed/unkey/pkg/globalcounter/db"
 	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -110,13 +113,90 @@ func TestCounter_Rotation(t *testing.T) {
 		// stored row counts instead, so nothing is lost or counted twice. The peer
 		// cache key changed with the rotation, so this read does not serve the old
 		// sum.
+		entries := memoryEntries(t)
 		globalcounter.RotateOnce(counter)
 		require.Equal(t, int64(15), get(t, counter, name))
+		globalcounter.EvictOnce(t.Context(), counter)
+		require.Equal(t, -1.0, memoryEntries(t)-entries, "eviction forgets the entry of the writer id that left memory")
 		require.Equal(t, int64(15), get(t, counter, name))
 
 		require.NoError(t, counter.Add(globalcounter.AddParams{Name: name, Delta: -2}))
 		require.Equal(t, int64(13), get(t, counter, name))
 		awaitStored(t, name, 13)
 		require.Equal(t, int64(13), observed(), "another writer reads the same total")
+	})
+
+	// A writer whose database writes time out drops its snapshots, as a database
+	// outage does. The helper returns it with the snapshot of name dropped, and a
+	// function that lets writes through again.
+	droppedWriter := func(t *testing.T, name string, deleteAfter time.Duration) (*globalcounter.Counter, *clock.TestClock, func()) {
+		t.Helper()
+		writePool, err := sql.Open("mysql", config.DSN)
+		require.NoError(t, err)
+		writePool.SetMaxOpenConns(1)
+		t.Cleanup(func() { require.NoError(t, writePool.Close()) })
+		testClock := clock.NewTestClock()
+		writer, err := globalcounter.New(globalcounter.Config{
+			DB:    mysql.NewFromReplicas(database.RO(), mysql.NewReplicaFromDB(writePool, "rw", sqlcomment.Static{})),
+			Clock: testClock,
+		})
+		require.NoError(t, err)
+		globalcounter.Cleanup(t, writer)
+		awaitStartupPasses(t, writePool)
+		conn, err := writePool.Conn(t.Context())
+		require.NoError(t, err)
+		release := sync.OnceFunc(func() { require.NoError(t, conn.Close()) })
+		t.Cleanup(release)
+
+		waited := writePool.Stats().WaitDuration
+		params := globalcounter.AddParams{Name: name, Delta: 7}
+		if deleteAfter != 0 {
+			params.DeleteAfter = testClock.Now().Add(deleteAfter)
+		}
+		require.NoError(t, writer.Add(params))
+		require.Eventually(t, func() bool { return writePool.Stats().WaitDuration > waited }, 10*time.Second, 10*time.Millisecond)
+		return writer, testClock, release
+	}
+
+	t.Run("a dropped snapshot of the previous writer id is queued again and persisted", func(t *testing.T) {
+		name := uid.New(uid.RatelimitNamespacePrefix)
+		writer, _, release := droppedWriter(t, name, 0)
+		require.Zero(t, stored(t, name), "the write timed out and was dropped")
+
+		globalcounter.RotateOnce(writer)
+		release()
+		globalcounter.EvictOnce(t.Context(), writer)
+
+		awaitStored(t, name, 7)
+		require.Equal(t, int64(7), get(t, writer, name))
+	})
+
+	t.Run("an entry forgotten before MySQL acknowledged it is counted as abandoned", func(t *testing.T) {
+		name := uid.New(uid.RatelimitNamespacePrefix)
+		writer, _, release := droppedWriter(t, name, 0)
+		abandoned := persistedRows(t, "abandoned")
+
+		globalcounter.RotateOnce(writer)
+		globalcounter.RotateOnce(writer)
+		release()
+		globalcounter.EvictOnce(t.Context(), writer)
+
+		require.Equal(t, 1.0, persistedRows(t, "abandoned")-abandoned)
+		require.Zero(t, get(t, writer, name), "the lost snapshot is gone from the total")
+		require.Zero(t, stored(t, name))
+	})
+
+	t.Run("an entry that the same pass forgets is not queued again", func(t *testing.T) {
+		name := uid.New(uid.RatelimitNamespacePrefix)
+		writer, testClock, release := droppedWriter(t, name, -2*time.Hour)
+		globalcounter.RotateOnce(writer)
+		release()
+		testClock.Tick(2 * time.Minute)
+
+		globalcounter.EvictOnce(t.Context(), writer)
+
+		// A snapshot that the pass queued would be written within the batch interval.
+		time.Sleep(2 * time.Second)
+		require.Zero(t, stored(t, name), "its row is deleted by this pass and its entry forgotten, so nothing may publish it")
 	})
 }
