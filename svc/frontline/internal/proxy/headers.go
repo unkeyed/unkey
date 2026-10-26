@@ -19,5 +19,5 @@ const (
 func IsUnkeyHeader(name string) bool {
 	name = strings.ToLower(name)
 	return strings.HasPrefix(name, "x-unkey") || strings.HasPrefix(name, "x_unkey") ||
-		strings.HasPrefix(name, "unkey-") || strings.HasPrefix(name, "unkey_")
+		strings.HasPrefix(name, "unkey")
 }
