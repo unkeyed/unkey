@@ -23,6 +23,15 @@ ORB_METAL = cfg.get('orb-metal', False)
 if ORB and ORB_METAL:
     fail('Choose --orb or --orb-metal, not both.')
 helm_resource = metal_helm_resource if ORB_METAL else standard_helm_resource
+cilium_values = ['k8s/cilium/values.yaml']
+if ORB_METAL:
+    cilium_values.append('k8s/orb-metal/cilium.yaml')
+
+def profile_manifest(name):
+    if ORB_METAL:
+        return kustomize('k8s/orb-metal/' + name, flags=['--load-restrictor=LoadRestrictionsNone'])
+    return read_file('k8s/manifests/' + name + '.yaml')
+
 selected_resources = cfg.get('resources', [])
 if selected_resources and not ORB and 'cilium-ready' not in selected_resources:
     selected_resources = selected_resources + ['cilium-ready']
@@ -126,10 +135,9 @@ else:
       flags=[
         '--repo', 'https://helm.cilium.io',
         '--version', '1.20.2',
-        '--values', 'k8s/cilium/values.yaml',
         '--take-ownership',
-      ] + (['--set', 'hubble.ui.rollOutPods=true', '--set', 'hubble.ui.frontend.server.ipv6.enabled=false'] if ORB_METAL else []),
-      deps=['k8s/cilium/values.yaml'],
+      ] + ['--values=' + path for path in cilium_values],
+      deps=cilium_values,
       pod_readiness='ignore',
       labels=['setup'],
     )
@@ -392,21 +400,11 @@ helm_resource(
 )
 
 # S3 (Garage) service
-if ORB_METAL:
-    k8s_yaml(blob(str(read_file('k8s/manifests/s3.yaml')).replace('[::]', '0.0.0.0')))
-else:
-    k8s_yaml('k8s/manifests/s3.yaml')
+k8s_yaml(profile_manifest('s3'))
 k8s_resource('s3', objects=['s3-config:configmap', 's3-pvc:persistentvolumeclaim'], port_forwards=['3902:3902', '3903:3903'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])
 
 # Restate service
-restate_resources = read_yaml_stream('k8s/manifests/restate.yaml')
-if ORB_METAL:
-    for resource in restate_resources:
-        if resource.get('kind') == 'StatefulSet':
-            for container in resource['spec']['template']['spec']['containers']:
-                if container['name'] == 'restate':
-                    container['env'].append({'name': 'RESTATE_BIND_IP', 'value': '0.0.0.0'})
-k8s_yaml(encode_yaml_stream(restate_resources))
+k8s_yaml(profile_manifest('restate'))
 k8s_resource('restate', objects=['restate-pvc:persistentvolumeclaim'], port_forwards=['8080:8080', '9070:9070'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])
 
 # Observability (Prometheus + OTEL Collector w/ Grafana)
@@ -667,11 +665,7 @@ k8s_resource(
 
 # ─── Krane ─────────────────────────────────────────────────────────────────
 go_service_image('unkey/krane:dev', 'krane')
-krane_resources = read_yaml_stream('k8s/manifests/krane.yaml')
-if ORB_METAL:
-    for resource in krane_resources:
-        if resource.get('kind') == 'ConfigMap' and resource['metadata']['name'] == 'krane-config':
-            resource['data']['unkey.toml'] = resource['data']['unkey.toml'].replace('disable_gvisor = true', 'disable_gvisor = false')
+krane_resources = decode_yaml_stream(profile_manifest('krane'))
 if has_depot_credentials:
     for resource in krane_resources:
         metadata = resource.get('metadata', {})
@@ -712,14 +706,7 @@ k8s_resource(
 # ─── Heimdall (resource metering agent) ────────────────────────────────────
 if not ORB:
     go_service_image('unkey/heimdall:dev', 'heimdall')
-    heimdall_resources = read_yaml_stream('k8s/manifests/heimdall.yaml')
-    if ORB_METAL:
-        for resource in heimdall_resources:
-            if resource.get('kind') == 'DaemonSet':
-                for container in resource['spec']['template']['spec']['containers']:
-                    if container['name'] == 'heimdall':
-                        container['securityContext']['appArmorProfile'] = {'type': 'Unconfined'}
-    k8s_yaml(encode_yaml_stream(heimdall_resources))
+    k8s_yaml(profile_manifest('heimdall'))
     k8s_resource(
       'heimdall',
       objects=['heimdall-config:configmap'],
