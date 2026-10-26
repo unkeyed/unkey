@@ -1,0 +1,23 @@
+type: object
+required:
+  - id
+  - targetAppName
+  - targetType
+  - targetEnvironmentId
+  - targetEnvironmentSlug
+  - targetDeploymentId
+properties:
+  id:
+    type: string
+  targetAppName:
+    type: [string, "null"]
+    description: Current target app name, or null if the app no longer exists.
+  targetType:
+    "$ref": "../../../../common/ConnectionTargetType.yaml"
+  targetEnvironmentId:
+    type: [string, "null"]
+  targetEnvironmentSlug:
+    type: [string, "null"]
+  targetDeploymentId:
+    type: [string, "null"]
+additionalProperties: false
