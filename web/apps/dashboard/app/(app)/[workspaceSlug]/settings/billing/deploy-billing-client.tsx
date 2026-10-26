@@ -38,7 +38,7 @@ function Shell({ children }: { children: ReactNode }) {
         <PageHeaderActions>
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             render={
               <Link
                 href="https://cal.com/james-r-perkins/sales"
@@ -49,7 +49,7 @@ function Shell({ children }: { children: ReactNode }) {
           >
             Schedule a call
           </Button>
-          <Button variant="primary" size="md" render={<Link href="mailto:support@unkey.com" />}>
+          <Button variant="primary" size="sm" render={<Link href="mailto:support@unkey.com" />}>
             Contact us
           </Button>
         </PageHeaderActions>

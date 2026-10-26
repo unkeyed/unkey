@@ -57,7 +57,7 @@ func slackMessage(req *hydrav1.KeyLeakNotification, members string) slack.Payloa
 			slack.NewMarkdownBlock(members),
 			slack.NewMarkdownBlock("*Source*\n" + source),
 			slack.NewContextBlock(fmt.Sprintf("Reported %s · GitHub %s", slackText(req.GetDate()), slackText(req.GetSource()))),
-			slack.NewContextBlock("Organization ID: " + slackText(req.GetOrgId())),
+			slack.NewMarkdownContextBlock("Organization ID: `" + slackText(req.GetOrgId()) + "`"),
 		},
 	}
 }

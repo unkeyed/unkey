@@ -1,9 +1,12 @@
+import { getAppResources, getAppResourcesByInstance } from "./app-metrics/resources";
+import { getAppTraffic } from "./app-metrics/traffic";
 import { getAuditLogs } from "./audit-logs";
 import {
   getActiveKeysUsage,
   getDeployMeterUsage,
   getDeployUsageTimeseries,
 } from "./deploy_billing";
+import { getEnvironmentRequests } from "./frontline/legacy/environment-requests";
 export {
   type ActiveKeysUsage,
   activeKeysUsage,
@@ -106,7 +109,6 @@ import {
   getRequestDetails,
   getRequestLogs,
 } from "./frontline";
-import { getEnvironmentRequests } from "./frontline/environment-requests";
 import { getRuntimeLogs } from "./runtime-logs";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
@@ -355,6 +357,13 @@ export class ClickHouse {
   public get environment() {
     return {
       requests: getEnvironmentRequests(this.querier),
+    };
+  }
+  public get appMetrics() {
+    return {
+      traffic: getAppTraffic(this.querier),
+      resources: getAppResources(this.querier),
+      resourcesByInstance: getAppResourcesByInstance(this.querier),
     };
   }
   public get frontline() {

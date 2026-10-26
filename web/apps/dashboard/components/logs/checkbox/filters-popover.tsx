@@ -47,6 +47,19 @@ type FilterSearchItemBase = {
   icon?: React.ReactNode;
 };
 
+export function matchesFilterSearch(
+  item: Pick<FilterSearchItemBase, "label" | "description" | "path" | "keywords">,
+  query: string,
+): boolean {
+  const normalized = query.trim().toLocaleLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  return [item.label, item.description, ...item.path, ...(item.keywords ?? [])]
+    .filter((value): value is string => value !== undefined)
+    .some((value) => value.toLocaleLowerCase().includes(normalized));
+}
+
 export type FilterSearchItem = FilterSearchItemBase &
   (
     | {
@@ -167,18 +180,11 @@ export const FiltersPopover = <TFilter extends FilterValue>({
   );
 
   const matchingSearchItems = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase();
-    if (!query) {
+    if (!search.trim()) {
       return [];
     }
 
-    return searchableItems
-      .filter((item) =>
-        [item.label, item.description, ...item.path, ...(item.keywords ?? [])]
-          .filter((value): value is string => value !== undefined)
-          .some((value) => value.toLocaleLowerCase().includes(query)),
-      )
-      .slice(0, 50);
+    return searchableItems.filter((item) => matchesFilterSearch(item, search)).slice(0, 50);
   }, [search, searchableItems]);
 
   // Handle local state if external state isn't provided

@@ -42,7 +42,7 @@ export function EmptyProjects() {
         <EmptyStateActions className="flex-col sm:flex-row justify-center gap-3 w-full">
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             onClick={() => (gated ? setIsPlanOpen(true) : setIsDialogOpen(true))}
             className="w-full max-w-[200px] sm:w-auto sm:max-w-none"
           >
@@ -55,7 +55,7 @@ export function EmptyProjects() {
             rel="noopener noreferrer"
             className="w-full max-w-[200px] sm:w-auto sm:max-w-none"
           >
-            <Button variant="outline" size="md" className="w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               <IconBookBookmarkOutline18 />
               Read the docs
             </Button>

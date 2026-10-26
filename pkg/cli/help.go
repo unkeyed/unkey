@@ -389,39 +389,8 @@ func (c *Command) getEnvVar(flag Flag) string {
 
 // getDefaultValue extracts and formats the default value from a flag
 func (c *Command) getDefaultValue(flag Flag) string {
-	if baseFlag, ok := baseFlagOf(flag); ok && (baseFlag.defaultValue != "" || baseFlag.hasEnvValue) {
+	if baseFlag, ok := baseFlagOf(flag); ok {
 		return baseFlag.defaultValue
-	}
-
-	switch f := flag.(type) {
-	case *StringFlag:
-		if val := f.Value(); val != "" {
-			return fmt.Sprintf(`"%s"`, val)
-		}
-	case *BoolFlag:
-		if f.HasValue() {
-			return fmt.Sprintf("%t", f.Value())
-		}
-	case *IntFlag:
-		if f.HasValue() {
-			return fmt.Sprintf("%d", f.Value())
-		}
-	case *FloatFlag:
-		if f.HasValue() {
-			return fmt.Sprintf("%.2f", f.Value())
-		}
-	case *StringSliceFlag:
-		if val := f.Value(); len(val) > 0 {
-			return fmt.Sprintf(`["%s"]`, strings.Join(val, `", "`))
-		}
-	case *DurationFlag:
-		if f.HasValue() {
-			return f.Value().String()
-		}
-	case *EnumFlag:
-		if val := f.Value(); val != "" {
-			return fmt.Sprintf(`"%s"`, val)
-		}
 	}
 	return ""
 }

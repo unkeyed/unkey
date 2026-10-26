@@ -6,7 +6,6 @@
 package quotacheck
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -24,9 +23,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
-	"golang.org/x/text/number"
 )
 
 // stateKeyNotifiedWorkspaces tracks per-workspace last-notified
@@ -229,7 +225,7 @@ func (h *Handler) Handle(
 
 			if h.slackWebhookURL != "" {
 				_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-					return restate.Void{}, sendSlackNotification(rc, h.slackWebhookURL, e)
+					return restate.Void{}, slack.NewClient().Send(rc, h.slackWebhookURL, quotaSlackMessage(e, h.billingBaseURL))
 				}, restate.WithName("notify "+ws.ID))
 				if notifyErr != nil {
 					return nil, fmt.Errorf("failed to send notification: %w", notifyErr)
@@ -280,36 +276,4 @@ func shouldEnforceFreeTier(ws db.GetWorkspacesForQuotaCheckByIDsRow) bool {
 
 func isCurrentPeriod(p billingperiod.Period, now time.Time) bool {
 	return p == billingperiod.From(now)
-}
-
-func sendSlackNotification(ctx context.Context, webhookURL string, e exceededWorkspace) error {
-	printer := message.NewPrinter(language.English)
-
-	title := fmt.Sprintf("Quota Exceeded: %s", e.Workspace.Name)
-	if e.IsFollowUp {
-		title = fmt.Sprintf("Quota Still Exceeded (Weekly Reminder): %s", e.Workspace.Name)
-	}
-
-	payload := slack.Payload{
-		Text: title,
-		Blocks: []slack.Block{
-			slack.NewHeaderBlock(title),
-			slack.NewSectionBlock(
-				slack.NewMarkdownField(fmt.Sprintf("*Workspace ID:*\n`%s`", e.Workspace.ID)),
-				slack.NewMarkdownField(fmt.Sprintf("*Workspace Name:*\n%s", e.Workspace.Name)),
-				slack.NewMarkdownField(fmt.Sprintf("*Organisation ID:*\n`%s`", e.Workspace.OrgID)),
-				slack.NewMarkdownField(fmt.Sprintf("*Stripe ID:*\n`%s`", e.Workspace.StripeCustomerID.String)),
-			),
-			slack.NewSectionBlock(
-				slack.NewMarkdownField(fmt.Sprintf("*Tier:*\n%s", e.Workspace.Tier.String)),
-				slack.NewMarkdownField("*Quota:*\nRequestsPerMonth"),
-			),
-			slack.NewSectionBlock(
-				slack.NewMarkdownField(fmt.Sprintf("*Limit:*\n%s", printer.Sprint(number.Decimal(e.Workspace.RequestsPerMonth.Int64)))),
-				slack.NewMarkdownField(fmt.Sprintf("*Used:*\n%s", printer.Sprint(number.Decimal(e.Used)))),
-			),
-		},
-	}
-
-	return slack.NewClient().Send(ctx, webhookURL, payload)
 }

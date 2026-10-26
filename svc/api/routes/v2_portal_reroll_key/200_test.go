@@ -28,6 +28,7 @@ func newHandler(h *testutil.Harness) *handler.Handler {
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	})
 }
 
