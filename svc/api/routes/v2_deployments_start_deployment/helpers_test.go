@@ -5,6 +5,9 @@ import (
 	"net/http"
 
 	restateingress "github.com/restatedev/sdk-go/ingress"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_start_deployment"
 )
@@ -26,4 +29,16 @@ func authHeaders(rootKey string) http.Header {
 		"Content-Type":  {"application/json"},
 		"Authorization": {"Bearer " + rootKey},
 	}
+}
+
+// writeDeployments is the permission to write every deployment, which this
+// handler checks.
+func writeDeployments(workspaceID string) string {
+	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value
+}
+
+// readDeployments is the permission to read but not write every deployment,
+// so the handler refuses the caller.
+func readDeployments(workspaceID string) string {
+	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Read).Value
 }

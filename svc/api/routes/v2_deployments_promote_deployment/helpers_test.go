@@ -11,6 +11,9 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_promote_deployment"
 )
@@ -57,4 +60,16 @@ func setCurrentDeploymentState(t *testing.T, h *testutil.Harness, appID, deploym
 		AppID:               appID,
 	})
 	require.NoError(t, err)
+}
+
+// writeEnvironments is the permission to write every environment, which this
+// handler checks.
+func writeEnvironments(workspaceID string) string {
+	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Write).Value
+}
+
+// readEnvironments is the permission to read but not write every environment,
+// so the handler refuses the caller.
+func readEnvironments(workspaceID string) string {
+	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Read).Value
 }

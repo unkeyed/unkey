@@ -21,9 +21,8 @@ func TestStopDeploymentNotRunning(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.stop_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, writeDeployments(setup.Workspace.ID))
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -48,9 +47,8 @@ func TestStopDeploymentAlreadyStopping(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.stop_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, writeDeployments(setup.Workspace.ID))
 
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
@@ -88,9 +86,8 @@ func TestStopDeploymentProduction(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.stop_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, writeDeployments(setup.Workspace.ID))
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),

@@ -18,9 +18,8 @@ func TestRollbackDeploymentNotFound(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, writeEnvironments(setup.Workspace.ID))
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
 		DeploymentId: uid.New(uid.DeploymentPrefix),
@@ -35,9 +34,8 @@ func TestRollbackDeploymentInsufficientPermissionsMasked(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readEnvironments(setup.Workspace.ID))
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -121,9 +119,8 @@ func TestRollbackDeploymentInAnotherWorkspace(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
-	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
-	})
+	caller := h.CreateTestDeploymentSetup()
+	caller.RootKey = h.CreateRootKey(caller.Workspace.ID, writeEnvironments(caller.Workspace.ID))
 	other := h.CreateTestDeploymentSetup()
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
