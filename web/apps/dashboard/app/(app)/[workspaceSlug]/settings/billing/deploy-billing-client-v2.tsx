@@ -38,13 +38,13 @@ function Shell({ children }: { children: ReactNode }) {
         <PageHeaderActions>
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             render={<Link href={SALES_CALL_URL} target="_blank" rel="noopener noreferrer" />}
           >
             <IconPhoneOutline18 className="size-4" />
             Schedule a call
           </Button>
-          <Button variant="outline" size="md" render={<Link href={SUPPORT_MAILTO} />}>
+          <Button variant="outline" size="sm" render={<Link href={SUPPORT_MAILTO} />}>
             Contact us
           </Button>
         </PageHeaderActions>

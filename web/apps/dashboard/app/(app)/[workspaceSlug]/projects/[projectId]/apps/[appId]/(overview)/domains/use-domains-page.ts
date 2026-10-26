@@ -1,8 +1,9 @@
 import { useResourceSearch } from "@/components/resource-search-input";
+import { useConsumeSearchFlag } from "@/hooks/use-consume-search-flag";
 import { collection } from "@/lib/collections";
 import { useCollectionLoad } from "@/lib/collections/use-collection-load";
 import { match } from "@unkey/match";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useProjectData } from "../data-provider";
 import { domainsView } from "./model";
 import type { AddDomainOutcome } from "./use-add-domain";
@@ -11,14 +12,27 @@ const PAGE_SIZE = 25;
 const SEARCH_KEY = "search";
 
 export function useDomainsPage() {
-  const { environments, domains, customDomains, isDomainsLoading, isCustomDomainsLoading } =
-    useProjectData();
+  const {
+    environments,
+    domains,
+    customDomains,
+    isDomainsLoading,
+    isCustomDomainsLoading,
+    isEnvironmentsLoading,
+  } = useProjectData();
   const load = useCollectionLoad(collection.domains.utils, collection.customDomains.utils);
   const [search, setSearch] = useResourceSearch(SEARCH_KEY);
   const { limit, loadMore } = usePageLimitPerSearch(search);
   const [addOpen, setAddOpen] = useState(false);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+
+  const defaultEnvironment =
+    environments.find((e) => e.kind === "production") ?? environments.at(0);
+  const openAdd = useCallback(() => {
+    setLimitMessage(null);
+    setAddOpen(true);
+  }, []);
 
   const view = domainsView({
     isLoading: isDomainsLoading || isCustomDomainsLoading,
@@ -29,6 +43,11 @@ export function useDomainsPage() {
     search,
     limit,
   });
+  useConsumeSearchFlag(
+    "add",
+    view.state !== "loading" && !isEnvironmentsLoading,
+    defaultEnvironment ? openAdd : null,
+  );
 
   const toggle = (hostname: string) =>
     setExpanded((prev) => {
@@ -51,11 +70,8 @@ export function useDomainsPage() {
     limitMessage,
     add: {
       open: addOpen,
-      defaultEnvironment: environments.find((e) => e.kind === "production") ?? environments.at(0),
-      openAdd: () => {
-        setLimitMessage(null);
-        setAddOpen(true);
-      },
+      defaultEnvironment,
+      openAdd,
       onSettled: (outcome: AddDomainOutcome) => {
         setAddOpen(false);
         match(outcome)

@@ -174,7 +174,7 @@ function IdentitiesEmpty({ search }: { search: string }) {
         {!search && (
           <EmptyStateActions>
             <Button
-              size="md"
+              size="sm"
               variant="outline"
               render={
                 <Link

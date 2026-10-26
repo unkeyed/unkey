@@ -11,11 +11,13 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -38,6 +40,7 @@ type Handler struct {
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 	Vault     vault.VaultServiceClient
+	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
 }
 
 // Method returns the HTTP method this route responds to
@@ -389,6 +392,10 @@ func (h *Handler) RerollKey(
 	})
 	if err != nil {
 		return err
+	}
+
+	if !req.Expiration.IsNull() {
+		h.KeyCache.Remove(ctx, keyData.Key.Hash)
 	}
 
 	return s.JSON(http.StatusOK, Response{

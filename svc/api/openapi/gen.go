@@ -1923,12 +1923,13 @@ type ExactFilter struct {
 // Exact matches take up to 25 values, so one call can look up a page of requests by ID.
 type ExactValues = []string
 
-// FieldMatch Matches a named request field (header or query parameter). Exactly one of
-// `present` or `value` must be set.
+// FieldMatch Matches a named request field (header or query parameter). Set `present` or
+// `value`, not both. If neither is supplied, the field must be present.
 type FieldMatch struct {
 	Name string `json:"name"`
 
 	// Present Matches when the field is present if true, or absent if false, regardless of value.
+	// Defaults to true when neither `present` nor `value` is supplied.
 	Present *bool `json:"present,omitempty"`
 
 	// Value String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
@@ -2287,8 +2288,8 @@ type LoggingPolicy struct {
 //
 // Example: {"path":{"path":{"prefix":"/api/"}}}
 type MatchExpr struct {
-	// Header Matches a named request field (header or query parameter). Exactly one of
-	// `present` or `value` must be set.
+	// Header Matches a named request field (header or query parameter). Set `present` or
+	// `value`, not both. If neither is supplied, the field must be present.
 	Header *FieldMatch `json:"header,omitempty"`
 
 	// Method Matches when the request method is one of the listed methods.
@@ -2297,8 +2298,8 @@ type MatchExpr struct {
 	// Path Matches on the request path.
 	Path *PathMatch `json:"path,omitempty"`
 
-	// QueryParam Matches a named request field (header or query parameter). Exactly one of
-	// `present` or `value` must be set.
+	// QueryParam Matches a named request field (header or query parameter). Set `present` or
+	// `value`, not both. If neither is supplied, the field must be present.
 	QueryParam *FieldMatch `json:"queryParam,omitempty"`
 
 	// RemoteIp Matches the remote IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
