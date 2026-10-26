@@ -78,6 +78,33 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.False(t, got.AutoDeploy)
 	})
 
+	// An OCI app has no build-settings row, and the dashboard sends build
+	// defaults for every app it creates. They must land somewhere.
+	t.Run("build settings for a pair with no build-settings row", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		err := db.Query.DeleteAppBuildSettingsByEnvironmentId(ctx, h.DB.RW(), env.environmentID)
+		require.NoError(t, err)
+
+		call(t, handler.Request{
+			Project:       env.projectID,
+			App:           env.appID,
+			Environment:   env.environmentID,
+			Dockerfile:    nullable.NewNullableWithValue("Dockerfile.prod"),
+			RootDirectory: new("app"),
+			BuildCommand:  nullable.NewNullableWithValue("make build"),
+			AutoDeploy:    new(false),
+		})
+
+		got, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.Equal(t, "Dockerfile.prod", got.Dockerfile.String)
+		require.Equal(t, "app", got.DockerContext)
+		require.Equal(t, "make build", got.BuildCommand.String)
+		require.False(t, got.AutoDeploy)
+	})
+
 	t.Run("build command set then clear", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		call(t, handler.Request{

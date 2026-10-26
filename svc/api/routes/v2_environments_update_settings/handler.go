@@ -298,11 +298,42 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		params.AutoDeploy = *req.AutoDeploy
 	}
 
-	if err := db.Query.UpdateAppBuildSettings(ctx, tx, params); err != nil {
+	updated, err := db.Query.UpdateAppBuildSettings(ctx, tx, params)
+	if err != nil {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("unable to update build settings"),
+			fault.Public("We're unable to update the environment settings."),
+		)
+	}
+	if updated > 0 {
+		return nil
+	}
+
+	// An OCI app is created without a build-settings row, and the dashboard
+	// sends a default set for every app it creates. Without the insert the
+	// update matches nothing and the 200 hides the discarded settings
+	autoDeploy := true
+	if params.AutoDeploySpecified == 1 {
+		autoDeploy = params.AutoDeploy
+	}
+	if err := db.Query.UpsertAppBuildSettings(ctx, tx, db.UpsertAppBuildSettingsParams{
+		WorkspaceID:   workspaceID,
+		AppID:         appID,
+		EnvironmentID: environmentID,
+		Dockerfile:    params.Dockerfile,
+		DockerContext: params.DockerContext,
+		BuildCommand:  params.BuildCommand,
+		WatchPaths:    params.WatchPaths,
+		AutoDeploy:    autoDeploy,
+		CreatedAt:     now,
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+	}); err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("unable to create build settings"),
 			fault.Public("We're unable to update the environment settings."),
 		)
 	}

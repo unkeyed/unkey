@@ -3685,7 +3685,7 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND app_id = ?
 	//    AND environment_id = ?
-	UpdateAppBuildSettings(ctx context.Context, db DBTX, arg UpdateAppBuildSettingsParams) error
+	UpdateAppBuildSettings(ctx context.Context, db DBTX, arg UpdateAppBuildSettingsParams) (int64, error)
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps

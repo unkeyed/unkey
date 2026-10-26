@@ -1,4 +1,4 @@
--- name: UpdateAppBuildSettings :exec
+-- name: UpdateAppBuildSettings :execrows
 -- Updates only the columns whose *_specified flag is 1, preserving all others.
 -- columns cannot overwrite each other. dockerfile is clearable (narg -> NULL).
 UPDATE app_build_settings t

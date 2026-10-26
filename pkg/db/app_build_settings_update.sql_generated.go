@@ -12,7 +12,7 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
-const updateAppBuildSettings = `-- name: UpdateAppBuildSettings :exec
+const updateAppBuildSettings = `-- name: UpdateAppBuildSettings :execrows
 UPDATE app_build_settings t
 SET
     dockerfile = CASE
@@ -87,8 +87,8 @@ type UpdateAppBuildSettingsParams struct {
 //	WHERE workspace_id = ?
 //	  AND app_id = ?
 //	  AND environment_id = ?
-func (q *Queries) UpdateAppBuildSettings(ctx context.Context, db DBTX, arg UpdateAppBuildSettingsParams) error {
-	_, err := db.ExecContext(ctx, updateAppBuildSettings,
+func (q *Queries) UpdateAppBuildSettings(ctx context.Context, db DBTX, arg UpdateAppBuildSettingsParams) (int64, error) {
+	result, err := db.ExecContext(ctx, updateAppBuildSettings,
 		arg.DockerfileSpecified,
 		arg.Dockerfile,
 		arg.DockerContextSpecified,
@@ -104,5 +104,8 @@ func (q *Queries) UpdateAppBuildSettings(ctx context.Context, db DBTX, arg Updat
 		arg.AppID,
 		arg.EnvironmentID,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
