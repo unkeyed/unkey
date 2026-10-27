@@ -160,6 +160,11 @@ export const FiltersPopover = <TFilter extends FilterValue>({
   const [lastFocusedIndex, setLastFocusedIndex] = useState<number | null>(null);
   const [focusedSearchIndex, setFocusedSearchIndex] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  // The popover mounts before it is positioned, so a plain autoFocus scrolls
+  // the document to the unpositioned input.
+  const focusSearchOnMount = useCallback((input: HTMLInputElement | null) => {
+    input?.focus({ preventScroll: true });
+  }, []);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const searchableItems = useMemo<FilterSearchItem[]>(
@@ -361,7 +366,7 @@ export const FiltersPopover = <TFilter extends FilterValue>({
                 <IconMagnifierOutline18 className="size-3.5 text-gray-9" />
               </InputGroupAddon>
               <InputGroupInput
-                autoFocus
+                ref={focusSearchOnMount}
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);

@@ -12,7 +12,7 @@ export const KeysClient = ({
   apiId: string;
 }) => {
   return (
-    <div className="flex flex-col md:flex-1 md:min-h-0">
+    <div className="flex flex-col md:flex-1">
       <KeysListControls keyspaceId={keyspaceId} />
       <KeysListControlCloud />
       <KeysList apiId={apiId} keyspaceId={keyspaceId} />

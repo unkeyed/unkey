@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 import type { FilterValue } from "../../../validation/filter.types";
 import { KeyboardButton } from "../../buttons/keyboard-button";
+import { StickySlot } from "../../page/sticky-slot";
 import { ControlPill } from "./control-pill";
 import { defaultFormatValue } from "./utils";
 
@@ -121,7 +122,8 @@ export const ControlCloud = <TFilter extends FilterValue>({
   }
 
   return (
-    <div
+    <StickySlot
+      slot="filters"
       className="px-3 py-2 w-full flex items-center min-h-10 border-b gap-2 text-xs flex-wrap group"
       onKeyDown={handleKeyDown}
       onBlur={(e) => {
@@ -169,6 +171,6 @@ export const ControlCloud = <TFilter extends FilterValue>({
           </div>
         </button>
       </div>
-    </div>
+    </StickySlot>
   );
 };

@@ -7,12 +7,11 @@ import { LogHeader } from "./components/log-header";
 import { LogSection } from "./components/log-section";
 
 type Props = {
-  distanceToTop: number;
   selectedLog: AuditLog | null;
   setSelectedLog: (log: AuditLog | null) => void;
 };
 
-export const AuditLogDetails = ({ distanceToTop, selectedLog, setSelectedLog }: Props) => {
+export const AuditLogDetails = ({ selectedLog, setSelectedLog }: Props) => {
   const handleClose = () => {
     setSelectedLog(null);
   };
@@ -31,7 +30,7 @@ export const AuditLogDetails = ({ distanceToTop, selectedLog, setSelectedLog }: 
   ].filter(Boolean);
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={selectedLog} onClose={handleClose}>
+    <LogDetails log={selectedLog} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose}>
         <LogHeader log={selectedLog} onClose={handleClose} />
       </LogDetails.Header>

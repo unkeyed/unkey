@@ -1,6 +1,5 @@
 // Main component
 export { DataTable } from "./data-table";
-export type { DataTableRef } from "./data-table";
 
 // Types
 export type {
@@ -22,6 +21,7 @@ export type { StatusStyle } from "./constants";
 // Hooks
 export { useDataTable } from "./hooks/use-data-table";
 export { useRealtimeData } from "./hooks/use-realtime-data";
+export { usePinnedTableHeader } from "./hooks/use-pinned-table-header";
 
 // Cell components
 export { CheckboxCell, CheckboxHeaderCell, RowActionSkeleton } from "./components/cells";

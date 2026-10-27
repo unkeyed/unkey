@@ -1,5 +1,6 @@
 import { createOutcomeChartConfig } from "@/components/charts/chart-colors";
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
+import { OverviewChartFrame } from "@/components/logs/overview-charts/overview-chart-frame";
 import {
   type TimeseriesGranularity,
   getTimeBufferForGranularity,
@@ -9,10 +10,8 @@ import { useFetchIdentityTimeseries } from "./bar-chart/hooks/use-fetch-timeseri
 
 export const IdentityDetailsLogsChart = ({
   identityId,
-  onMount,
 }: {
   identityId: string;
-  onMount: (distanceToTop: number) => void;
 }) => {
   const { filters, updateFilters } = useFilters();
 
@@ -76,13 +75,12 @@ export const IdentityDetailsLogsChart = ({
   };
 
   return (
-    <div className="w-full md:h-[320px]">
+    <OverviewChartFrame>
       <OverviewBarChart
         data={verificationTimeseries}
         isLoading={verificationIsLoading}
         isError={verificationIsError}
         enableSelection
-        onMount={onMount}
         onSelectionChange={handleSelectionChange}
         config={createOutcomeChartConfig()}
         granularity={mappedGranularity}
@@ -95,6 +93,6 @@ export const IdentityDetailsLogsChart = ({
         }}
         tooltipItems={[{ label: "Invalid", dataKey: "error" }]}
       />
-    </div>
+    </OverviewChartFrame>
   );
 };

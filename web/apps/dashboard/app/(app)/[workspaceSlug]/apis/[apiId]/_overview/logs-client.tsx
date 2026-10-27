@@ -2,7 +2,7 @@
 
 import { KeysOverviewLogDetails } from "@/components/api-requests-table/components/log-details";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { KeysOverviewLogsCharts } from "./components/charts";
 import { KeysOverviewLogsControlCloud } from "./components/control-cloud";
 import { KeysOverviewLogsControls } from "./components/controls";
@@ -10,30 +10,14 @@ import { KeysOverviewLogsTable } from "./components/table/logs-table";
 
 export const LogsClient = ({ apiId }: { apiId: string }) => {
   const [selectedLog, setSelectedLog] = useState<KeysOverviewLog | null>(null);
-  const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
-
-  const handleDistanceToTop = useCallback((distanceToTop: number) => {
-    setTableDistanceToTop(distanceToTop);
-  }, []);
-
-  const handleSelectedLog = useCallback((log: KeysOverviewLog | null) => {
-    setSelectedLog(log);
-  }, []);
 
   return (
-    <div className="flex flex-col md:flex-1 md:min-h-0">
+    <div className="flex flex-col md:flex-1">
       <KeysOverviewLogsControls apiId={apiId} />
       <KeysOverviewLogsControlCloud />
-      <div className="flex flex-col md:flex-1 md:min-h-0">
-        <KeysOverviewLogsCharts apiId={apiId} onMount={handleDistanceToTop} />
-        <KeysOverviewLogsTable apiId={apiId} setSelectedLog={handleSelectedLog} log={selectedLog} />
-      </div>
-      <KeysOverviewLogDetails
-        apiId={apiId}
-        distanceToTop={tableDistanceToTop}
-        setSelectedLog={handleSelectedLog}
-        log={selectedLog}
-      />
+      <KeysOverviewLogsCharts apiId={apiId} />
+      <KeysOverviewLogsTable apiId={apiId} setSelectedLog={setSelectedLog} log={selectedLog} />
+      <KeysOverviewLogDetails apiId={apiId} setSelectedLog={setSelectedLog} log={selectedLog} />
     </div>
   );
 };

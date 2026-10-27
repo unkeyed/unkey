@@ -1,7 +1,6 @@
 "use client";
 
 import { LoadingState } from "@/components/loading-state";
-import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { useLiveQuery } from "@tanstack/react-db";
 import { notFound, useParams } from "next/navigation";
@@ -47,7 +46,7 @@ export const DeploymentLayoutProvider = ({
   if (!resolved) {
     if (deploymentQuery.isLoading) {
       return (
-        <div className="flex flex-col" style={{ height: `calc(100dvh - ${TOP_NAV_HEIGHT}px)` }}>
+        <div className="flex min-h-(--app-body-h) flex-col">
           <LoadingState message="Loading deployment..." />
         </div>
       );
