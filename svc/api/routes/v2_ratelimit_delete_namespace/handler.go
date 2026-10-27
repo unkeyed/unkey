@@ -57,12 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Search:      req.Namespace,
 		})
 		if db.IsNotFound(err) {
-			return row, fault.New(
-				"namespace not found",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"),
-				fault.Public("The requested namespace does not exist."),
-			)
+			return row, apierrors.NotFound(codes.Data.RatelimitNamespace.NotFound.URN())
 		}
 		if err != nil {
 			return row, fault.Wrap(
@@ -81,7 +76,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return row, apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
 				codes.Data.RatelimitNamespace.NotFound.URN(),
-				"The requested namespace does not exist.",
 			)
 		}
 

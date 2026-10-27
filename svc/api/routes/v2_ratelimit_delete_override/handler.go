@@ -79,11 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	override, ok := ns.DirectOverrides[req.Identifier]
 	if !ok {
-		return fault.New("override not found",
-			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-			fault.Internal("override not found"),
-			fault.Public("This override does not exist."),
-		)
+		return apierrors.NotFound(codes.Data.RatelimitOverride.NotFound.URN())
 	}
 
 	err = principal.Authorize(rbac.Or(
@@ -106,7 +102,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
 			codes.Data.RatelimitOverride.NotFound.URN(),
-			"This override does not exist.",
 		)
 	}
 

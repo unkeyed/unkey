@@ -40,7 +40,7 @@ func TestGetKeyNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "We could not find the requested key")
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 }
 
@@ -111,7 +111,7 @@ func TestWhoamiDeniedDoesNotLeakKeyExistenceOrIDs(t *testing.T) {
 				Key: uid.New(uid.KeyPrefix),
 			})
 			require.Equal(t, http.StatusNotFound, missing.Status)
-			require.Equal(t, "We could not find the requested key.", missing.Body.Error.Detail)
+			require.Equal(t, "Resource does not exist.", missing.Body.Error.Detail)
 
 			denied := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
 				Key: key.Key,
