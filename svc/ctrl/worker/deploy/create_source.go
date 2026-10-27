@@ -153,9 +153,12 @@ func (w *Workflow) ownedImageSource(
 	commit gitCommit,
 	normalize func(string) (string, error),
 ) (resolvedSource, error) {
-	resolved := imageSource(image, commit, normalize)
-	if resolved.Rejection != nil || w.registryConfig.Repository == "" {
-		return resolved, nil
+	if w.registryConfig.Repository == "" {
+		return imageSource(image, commit, normalize), nil
+	}
+	normalized := imageSource(image, commit, normalize)
+	if normalized.Rejection != nil {
+		return normalized, nil
 	}
 
 	refused := newRejectedSource(rejectf(
@@ -166,12 +169,12 @@ func (w *Workflow) ownedImageSource(
 	if err != nil {
 		return resolvedSource{}, fmt.Errorf("invalid build registry repository: %w", err)
 	}
-	reference, err := name.ParseReference(resolved.Source.Image, name.WeakValidation)
+	reference, err := name.ParseReference(normalized.Source.Image, name.WeakValidation)
 	if err != nil {
 		return refused, nil
 	}
 	if !sameRepository(reference.Context(), buildRepository) {
-		return resolved, nil
+		return normalized, nil
 	}
 
 	owned := false
@@ -181,7 +184,7 @@ func (w *Workflow) ownedImageSource(
 	case name.Digest:
 		owned, err = w.db.DeploymentProjectOwnsImage(ctx, db.DeploymentProjectOwnsImageParams{
 			ProjectID:     projectID,
-			ImageResolved: sql.NullString{String: resolved.Source.Image, Valid: true},
+			ImageResolved: sql.NullString{String: normalized.Source.Image, Valid: true},
 		})
 		if err != nil {
 			return resolvedSource{}, fmt.Errorf("failed to check image ownership: %w", err)
@@ -190,7 +193,7 @@ func (w *Workflow) ownedImageSource(
 	if !owned {
 		return refused, nil
 	}
-	return resolved, nil
+	return normalized, nil
 }
 
 // resolveGitSource resolves the app's repository connection and fills in the
