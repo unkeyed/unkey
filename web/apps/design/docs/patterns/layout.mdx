@@ -27,6 +27,40 @@ In the dashboard, pass a Next.js link with `render={<Link href={listHref} />}` s
 
 ## Full width
 
-For full width pages like logs, requests, use the full width prop to let your page span the entire width of the viewport. On desktop the page also fills the height of the content area, so a `DataTable` inside it takes the remaining height and scrolls within itself. Every wrapper between the page and the table needs `flex flex-col md:flex-1 md:min-h-0` to pass that height down.
+For full width pages like logs, requests, use the full width prop to let your page span the entire width of the viewport. Every page scrolls with the document, full width pages included. A `DataTable` grows with its rows.
 
 <Component path="layout/full-width" />
+
+### Pinned chrome
+
+On a full width page, the page chrome pins under the top nav while the rows scroll. These slots pin, from top to bottom:
+
+1. `PageHeader`
+2. `ControlsContainer` (the filter and time controls)
+3. `ControlCloud` (the active filter chips, only when filters are set)
+4. The compact 50px logs chart
+5. The table column header
+
+A slot that is not on the page takes no space. The chips appear and go away, and the slots below move with them.
+
+The header, controls, chips and chart pin when the window is at least `48rem` wide and `40rem` tall. Below that size they scroll with the page. The column header pins from `md` up at any height, but only while the table fits its box. A table wider than its box scrolls sideways instead, and its column header then scrolls with the page.
+
+Pinning applies only inside a full width page. On other pages, and in dialogs and sheets, the same components render as normal blocks.
+
+The overview charts (API, ratelimit, key and identity overviews) also use the `chart` slot, so the whole chart stays in view while rows scroll under it.
+
+To pin a new piece of chrome, wrap it in `StickySlot` with its slot name:
+
+```tsx
+<StickySlot slot="chart" className="w-full">
+  ...
+</StickySlot>
+```
+
+Pass `render` to pin an element other than a `div`, and `enabled={false}` to take the slot out of the stack:
+
+```tsx
+<StickySlot slot="columns" enabled={headerPinned} render={<thead />} />
+```
+
+The slot order is fixed in `sticky-stack.ts`. Render slots in that order, with no other content between them. In development, a slot that is out of place at scroll position 0 logs a warning. The check does not run after the page scrolls, so it can miss some order errors.
