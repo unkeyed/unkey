@@ -163,7 +163,7 @@ function RegionsDiagram({ regions }: { regions: RegionGroup[] }) {
         className="mx-auto flex flex-col motion-safe:animate-upgrade-rise"
         style={{ minWidth: rowWidth(layout.minW), maxWidth: rowWidth(layout.maxW) }}
       >
-        <FanIn className="mx-auto h-33 w-full max-w-120" />
+        <FanIn className="mx-auto aspect-[4/1] w-full max-w-120" />
         <EdgeNode />
         <FanOut targets={n} className={cn("h-13", layout.fanOut)} />
         <div
