@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestIsValidName(t *testing.T) {
@@ -41,21 +43,21 @@ func TestIsValidName(t *testing.T) {
 }
 
 func TestHostVariable(t *testing.T) {
+	caller := uid.New(uid.DeploymentPrefix)
+	namespace := uid.DNS1035()
 	for _, tt := range []struct {
-		name      string
-		wantKey   string
-		wantValue string
+		name    string
+		wantKey string
 	}{
-		{name: "responder", wantKey: "RESPONDER_HOST", wantValue: "responder.unkey.internal"},
-		{name: "event-store", wantKey: "EVENT_STORE_HOST", wantValue: "event-store.unkey.internal"},
-		{name: "db2", wantKey: "DB2_HOST", wantValue: "db2.unkey.internal"},
-		{name: "a--b", wantKey: "A__B_HOST", wantValue: "a--b.unkey.internal"},
+		{name: "responder", wantKey: "RESPONDER_HOST"},
+		{name: "event-store", wantKey: "EVENT_STORE_HOST"},
+		{name: "db2", wantKey: "DB2_HOST"},
+		{name: "a--b", wantKey: "A__B_HOST"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			key, value := HostVariable(tt.name)
+			key, value := HostVariable(caller, tt.name, namespace)
 			require.Equal(t, tt.wantKey, key)
-			require.Equal(t, tt.wantValue, value)
-			require.NotContains(t, value, ":", "hostname must not carry a port or scheme")
+			require.Equal(t, privatenetwork.ConnectionServiceName(caller, tt.name)+"."+namespace+".unkey.internal", value)
 		})
 	}
 }
