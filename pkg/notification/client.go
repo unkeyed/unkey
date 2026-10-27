@@ -8,13 +8,24 @@ import (
 	"github.com/restatedev/sdk-go/ingress"
 )
 
+// ServiceName is the Restate virtual object service for event enqueueing.
 const ServiceName = "notification.v1.NotificationService"
+
+// DeliveryServiceName is the Restate virtual object service for individual deliveries.
 const DeliveryServiceName = "notification.v1.DeliveryService"
 
+// Notifier acknowledges durable enqueue, not provider acceptance or delivery.
+// Notify returns the stable notification ID on success.
+type Notifier interface {
+	Notify(context.Context, Event) (string, error)
+}
+
+// Client enqueues events through Restate ingress. Construct it with NewClient.
 type Client struct {
 	ingress *ingress.Client
 }
 
+// NewClient requires a non-nil ingress client and returns nil on error.
 func NewClient(client *ingress.Client) (*Client, error) {
 	if client == nil {
 		return nil, errors.New("notification ingress is required")
@@ -22,6 +33,8 @@ func NewClient(client *ingress.Client) (*Client, error) {
 	return &Client{ingress: client}, nil
 }
 
+// Notify validates and enqueues an event, returning its stable ID or an empty string on error.
+// Success acknowledges enqueueing, not provider acceptance or delivery.
 func (c *Client) Notify(ctx context.Context, event Event) (string, error) {
 	event, err := event.Normalize()
 	if err != nil {

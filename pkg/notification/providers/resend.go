@@ -39,6 +39,8 @@ type resendErrorResponse struct {
 	Name string `json:"name"`
 }
 
+// NewResend requires an API key and sender address, returning nil on invalid configuration.
+// DeliveryID is used as the idempotency key with a 24-hour retention window.
 func NewResend(apiKey, from string) (notification.Provider, error) {
 	if apiKey == "" || strings.TrimSpace(apiKey) != apiKey || strings.ContainsAny(apiKey, "\r\n") {
 		return nil, errors.New("invalid Resend API key")

@@ -15,22 +15,26 @@ type Integration interface {
 	Dispatch(restate.Context, notification.Event) error
 }
 
+// DispatcherConfig selects integrations and optionally enables subscription delivery.
 type DispatcherConfig struct {
 	Definitions     []notification.Definition
 	Integrations    []Integration
 	DeliveryEnabled bool
 }
 
+// Dispatcher validates events before enqueueing subscription delivery and calling integrations.
 type Dispatcher struct {
 	definitions     map[string]notification.Definition
 	integrations    []Integration
 	deliveryEnabled bool
 }
 
+// NewDispatcher rejects duplicate event types and integration names.
 func NewDispatcher(cfg DispatcherConfig) (*Dispatcher, error) {
 	d := &Dispatcher{
-		definitions:  make(map[string]notification.Definition),
-		integrations: append([]Integration(nil), cfg.Integrations...), deliveryEnabled: cfg.DeliveryEnabled,
+		definitions:     make(map[string]notification.Definition),
+		integrations:    append([]Integration(nil), cfg.Integrations...),
+		deliveryEnabled: cfg.DeliveryEnabled,
 	}
 	for _, definition := range cfg.Definitions {
 		if definition == nil || definition.Type() == "" || d.definitions[definition.Type()] != nil {
@@ -48,6 +52,8 @@ func NewDispatcher(cfg DispatcherConfig) (*Dispatcher, error) {
 	return d, nil
 }
 
+// Dispatch journals subscription enqueue before integrations, which run in configured order.
+// Call it from a Restate handler, outside Run closures. A result is not a delivery receipt.
 func (d *Dispatcher) Dispatch(ctx restate.Context, event notification.Event) (string, error) {
 	event, err := event.Normalize()
 	if err != nil {

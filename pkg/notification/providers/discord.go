@@ -33,6 +33,8 @@ type discordResponse struct {
 	ID string `json:"id"`
 }
 
+// NewDiscord sends to Discord webhooks supplied in Target.URL with mentions disabled.
+// Discord provides no idempotency window for these sends.
 func NewDiscord() notification.Provider { return &discord{client: newHTTPClient()} }
 
 func (p *discord) Name() string { return "discord" }

@@ -535,7 +535,7 @@ func TestNotificationIntegration(t *testing.T) {
 		provider.failure = &notification.SendError{Kind: notification.Retryable, Code: "rate_limit"}
 		addAlice(t, event)
 		ref := planOne(t, svc, event)
-		for range maxAttempts {
+		for range attemptsMax {
 			result, err := svc.attempt(t.Context(), ref)
 			require.NoError(t, err)
 			clk.Tick(result.RetryAfter)

@@ -1,16 +1,12 @@
 package githubstatus
 
 import (
-	"database/sql"
-	"errors"
-	"fmt"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/notification"
 	"github.com/unkeyed/unkey/pkg/notification/deployment"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 const deploymentServiceName = "notification.v1.GitHubDeploymentService"
@@ -23,36 +19,18 @@ const (
 	skipped  outcome = "skipped"
 )
 
+// ReportResult records independent GitHub outcomes: accepted, unknown, or skipped.
+// Unknown means an operation failed without proving that GitHub rejected the write.
 type ReportResult struct {
 	Commit     outcome `json:"commit"`
 	Deployment outcome `json:"deployment"`
 	Comment    outcome `json:"comment"`
 }
 
-type reportRecord struct {
-	Fingerprint string       `json:"fingerprint"`
-	Result      ReportResult `json:"result"`
-}
-
-type reportContext struct {
-	InstallationID     int64  `json:"installationId"`
-	RepositoryID       int64  `json:"repositoryId"`
-	Repository         string `json:"repository"`
-	DeploymentOrder    uint64 `json:"deploymentOrder"`
-	GitHubDeploymentID int64  `json:"githubDeploymentId"`
-	PullRequest        int    `json:"pullRequest"`
-	CommitSHA          string `json:"commitSha"`
-	Branch             string `json:"branch"`
-	Production         bool   `json:"production"`
-}
-
-type creationResult struct {
-	ID     int64   `json:"id"`
-	Status outcome `json:"status"`
-}
-
+// Name identifies this integration to the notification dispatcher.
 func (s *Service) Name() string { return "github" }
 
+// Accepts selects the registered deployment event types.
 func (s *Service) Accepts(eventType string) bool {
 	for _, definition := range deployment.Definitions() {
 		if definition.Type() == eventType {
@@ -62,6 +40,7 @@ func (s *Service) Accepts(eventType string) bool {
 	return false
 }
 
+// Dispatch waits for reporting, but individual unknown GitHub outcomes are not errors.
 func (s *Service) Dispatch(ctx restate.Context, event notification.Event) error {
 	payload, err := deployment.Decode(event)
 	if err != nil {
@@ -71,6 +50,7 @@ func (s *Service) Dispatch(ctx restate.Context, event notification.Event) error 
 	return err
 }
 
+// DeploymentDefinition binds the private, deployment-keyed notification object.
 func (s *Service) DeploymentDefinition() restate.ServiceDefinition {
 	return restate.NewObject(deploymentServiceName).
 		Handler("Report", restate.NewObjectHandler(s.ReportDeployment, restate.WithIngressPrivate(true), restate.WithInvocationRetryPolicy(
@@ -79,219 +59,10 @@ func (s *Service) DeploymentDefinition() restate.ServiceDefinition {
 		)))
 }
 
-func (s *Service) ReportDeployment(ctx restate.ObjectContext, event notification.Event) (ReportResult, error) {
-	result := ReportResult{Commit: skipped, Deployment: skipped, Comment: skipped}
-	fingerprint, err := event.Fingerprint()
-	if err != nil {
-		return result, restate.ToTerminalError(err)
-	}
-	payload, err := deployment.Decode(event)
-	if err != nil || restate.Key(ctx) != payload.DeploymentID {
-		return result, restate.ToTerminalError(errors.New("invalid GitHub deployment report"))
-	}
-	previous, err := restate.Get[*reportRecord](ctx, "event:"+event.ID())
-	if err != nil {
-		return result, err
-	}
-	if previous != nil {
-		if previous.Fingerprint != fingerprint {
-			return result, restate.ToTerminalError(errors.New("deployment event identity reused"))
-		}
-		return previous.Result, nil
-	}
-	last, err := restate.Get[deployment.Change](ctx, "last_change")
-	if err != nil {
-		return result, err
-	}
-	if last.Terminal() || last.Revision() >= payload.Change.Revision() {
-		return result, nil
-	}
-	target, err := restate.Run(ctx, func(runCtx restate.RunContext) (reportContext, error) {
-		return s.resolveReport(runCtx, event, payload)
-	}, restate.WithName("resolve GitHub connection"))
-	if err != nil || target.InstallationID == 0 {
-		return result, err
-	}
-	original, err := restate.Get[*reportContext](ctx, "target")
-	if err != nil {
-		return result, err
-	}
-	if original != nil && (original.InstallationID != target.InstallationID || original.RepositoryID != target.RepositoryID) {
-		return result, nil
-	}
-	if original == nil {
-		restate.Set(ctx, "target", target)
-	}
-
-	if target.CommitSHA != "" {
-		result.Commit, err = restate.Run(ctx, func(restate.RunContext) (outcome, error) {
-			err := s.github.CreateCommitStatus(target.InstallationID, target.Repository, target.CommitSHA,
-				gitHubCommitState(gitHubState(payload.Change)), payload.LogURL, payload.Change.Description(),
-				"Unkey / "+environmentLabel(payload))
-			return operationOutcome(err, event.ID(), "commit_status"), nil
-		}, restate.WithName("report GitHub commit status"))
-		if err != nil {
-			return result, err
-		}
-	}
-	created, err := s.ensureDeployment(ctx, target, event, payload)
-	if err != nil {
-		return result, err
-	}
-	result.Deployment = created.Status
-	if created.ID > 0 {
-		result.Deployment, err = restate.Run(ctx, func(restate.RunContext) (outcome, error) {
-			err := s.github.CreateDeploymentStatus(target.InstallationID, target.Repository, created.ID,
-				gitHubState(payload.Change), payload.EnvironmentURL, payload.LogURL, payload.Change.Description())
-			return operationOutcome(err, event.ID(), "deployment_status"), nil
-		}, restate.WithName("report GitHub deployment status"))
-		if err != nil {
-			return result, err
-		}
-	}
-	result.Comment, err = s.reportComment(ctx, target, event)
-	if err != nil {
-		return result, err
-	}
-	restate.Set(ctx, "event:"+event.ID(), reportRecord{Fingerprint: fingerprint, Result: result})
-	restate.Set(ctx, "last_change", payload.Change)
-	return result, nil
-}
-
-func (s *Service) resolveReport(ctx restate.RunContext, event notification.Event, payload deployment.Payload) (reportContext, error) {
-	var target reportContext
-	row, err := s.db.FindDeploymentById(ctx, payload.DeploymentID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return target, restate.ToTerminalError(errors.New("deployment not found"))
-		}
-		return target, err
-	}
-	if row.WorkspaceID != event.WorkspaceID || row.ProjectID != event.Resource.ProjectID ||
-		row.AppID != event.Resource.AppID || row.EnvironmentID != event.Resource.EnvironmentID {
-		return target, restate.ToTerminalError(errors.New("deployment notification scope mismatch"))
-	}
-	connection, err := s.db.FindGithubRepoConnectionByAppId(ctx, row.AppID)
-	if db.IsNotFound(err) {
-		return target, nil
-	}
-	if err != nil {
-		return target, err
-	}
-	if connection.WorkspaceID != row.WorkspaceID || connection.ProjectID != row.ProjectID {
-		return target, restate.ToTerminalError(errors.New("GitHub connection scope mismatch"))
-	}
-	environment, err := s.db.FindDeploymentForDeploy(ctx, row.ID)
-	if err != nil {
-		return target, err
-	}
-	return reportContext{
-		InstallationID: connection.InstallationID, RepositoryID: connection.RepositoryID, Repository: connection.RepositoryFullName,
-		DeploymentOrder: row.Pk, GitHubDeploymentID: row.GithubDeploymentID.Int64,
-		PullRequest: int(row.PrNumber.Int64), CommitSHA: row.GitCommitSha.String, Branch: row.GitBranch.String,
-		Production: environment.EnvironmentKind.IsProduction(),
-	}, nil
-}
-
-func (s *Service) ensureDeployment(ctx restate.ObjectContext, target reportContext, event notification.Event, payload deployment.Payload) (creationResult, error) {
-	previous, err := restate.Get[*creationResult](ctx, "creation")
-	if err != nil {
-		return creationResult{}, err
-	}
-	if previous != nil {
-		return *previous, nil
-	}
-	created, err := restate.Run(ctx, func(restate.RunContext) (creationResult, error) {
-		if target.GitHubDeploymentID > 0 {
-			return creationResult{ID: target.GitHubDeploymentID, Status: accepted}, nil
-		}
-		if target.CommitSHA == "" {
-			return creationResult{ID: 0, Status: skipped}, nil
-		}
-		id, err := s.github.CreateDeployment(target.InstallationID, target.Repository, target.CommitSHA, environmentLabel(payload), "Deploying...", target.Production)
-		if err == nil && id <= 0 {
-			err = errors.New("invalid GitHub deployment id")
-		}
-		return creationResult{ID: id, Status: operationOutcome(err, event.ID(), "create_deployment")}, nil
-	}, restate.WithName("create GitHub deployment"))
-	if err != nil {
-		return created, err
-	}
-	restate.Set(ctx, "creation", created)
-	if created.ID > 0 {
-		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return s.db.UpdateDeploymentGithubDeploymentId(runCtx, db.UpdateDeploymentGithubDeploymentIdParams{
-				ID: payload.DeploymentID, GithubDeploymentID: sql.NullInt64{Int64: created.ID, Valid: true},
-				UpdatedAt: sql.NullInt64{Int64: event.OccurredAt, Valid: true},
-			})
-		}, restate.WithName("persist GitHub deployment id"))
-	}
-	return created, err
-}
-
-func (s *Service) reportComment(ctx restate.ObjectContext, target reportContext, event notification.Event) (outcome, error) {
-	prNumber := target.PullRequest
-	if prNumber == 0 && target.Branch != "" {
-		var err error
-		prNumber, err = restate.Run(ctx, func(restate.RunContext) (int, error) {
-			return s.github.FindPullRequestForBranch(target.InstallationID, target.Repository, target.Branch)
-		}, restate.WithName("find deployment PR"), restate.WithMaxRetryDuration(5*time.Second))
-		if err != nil {
-			return operationOutcome(err, event.ID(), "find_pull_request"), nil
-		}
-	}
-	if prNumber == 0 {
-		return skipped, nil
-	}
-	target.PullRequest = prNumber
-	return restate.Object[outcome](ctx, commentServiceName, commentKey(target), "Update").Request(commentRequest{Target: target, Event: event})
-}
-
-func gitHubState(change deployment.Change) string {
-	switch change {
-	case deployment.Preparing:
-		return "pending"
-	case deployment.Live:
-		return "success"
-	case deployment.CompletedWithoutPromotion:
-		return "inactive"
-	case deployment.BuildFailed, deployment.RegionsFailed, deployment.RoutingFailed, deployment.FinalizationFailed:
-		return "failure"
-	case deployment.LoadFailed, deployment.Cancelled, deployment.Superseded:
-		return "error"
-	case deployment.RegionsStarted, deployment.RoutingStarted:
-		return "in_progress"
-	}
-	return "error"
-}
-
-func gitHubCommitState(state string) string {
-	switch state {
-	case "success", "inactive":
-		return "success"
-	case "failure", "error":
-		return state
-	default:
-		return "pending"
-	}
-}
-
-func environmentLabel(payload deployment.Payload) string {
-	label := payload.Project
-	if payload.App != "default" {
-		label += "/" + payload.App
-	}
-	return label + " - " + payload.Environment
-}
-
 func operationOutcome(err error, eventID, operation string) outcome {
 	if err != nil {
 		logger.Error("GitHub notification outcome unknown", "notification_id", eventID, "operation", operation, "error", err)
 		return unknown
 	}
 	return accepted
-}
-
-func commentKey(target reportContext) string {
-	return fmt.Sprintf("%d:%d:%d", target.InstallationID, target.RepositoryID, target.PullRequest)
 }

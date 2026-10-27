@@ -37,11 +37,11 @@ func validateURL(raw string) (*url.URL, error) {
 	if err := ssrf.ValidateEndpoint(raw); err != nil {
 		return nil, errors.New("invalid webhook URL")
 	}
-	u, err := url.Parse(raw)
-	if err != nil || u.Fragment != "" {
+	endpoint, err := url.Parse(raw)
+	if err != nil || endpoint.Fragment != "" {
 		return nil, errors.New("invalid webhook URL")
 	}
-	return u, nil
+	return endpoint, nil
 }
 
 func send(client *http.Client, req *http.Request) ([]byte, int, http.Header, error) {

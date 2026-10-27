@@ -42,6 +42,8 @@ type webhookPayload struct {
 	Content    notification.Content `json:"content"`
 }
 
+// NewWebhook signs JSON requests using Target.SigningSecret and sends to Target.URL.
+// Recipients must deduplicate DeliveryID; no idempotency window is guaranteed.
 func NewWebhook() notification.Provider { return &webhook{client: newHTTPClient()} }
 
 func (p *webhook) Name() string { return "webhook" }

@@ -3,7 +3,6 @@ package notification
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -19,6 +18,8 @@ import (
 // AudienceResolver returns user IDs from the supplied, verified workspace membership.
 type AudienceResolver func(context.Context, string, []workos.Member) ([]string, error)
 
+// Config selects event definitions, channel providers, and workspace audience resolvers.
+// Directory is required only for email targets. Defaults maps each channel to a provider name.
 type Config struct {
 	DB          db.Database
 	Vault       vault.VaultServiceClient
@@ -30,6 +31,7 @@ type Config struct {
 	Clock       clock.Clock
 }
 
+// Service freezes notification routes and runs independently retried deliveries.
 type Service struct {
 	db          db.Database
 	vault       vault.VaultServiceClient
@@ -41,6 +43,7 @@ type Service struct {
 	clock       clock.Clock
 }
 
+// New rejects duplicate definitions and providers and mismatched channel defaults.
 func New(cfg Config) (*Service, error) {
 	if err := assert.All(assert.NotNil(cfg.DB), assert.NotNil(cfg.Vault), assert.NotNil(cfg.Clock)); err != nil {
 		return nil, err
@@ -88,58 +91,16 @@ func New(cfg Config) (*Service, error) {
 	return s, nil
 }
 
-type deliveryRef struct {
-	WorkspaceID string `json:"workspaceId"`
-	ID          string `json:"id"`
-}
-
+// Definition binds notification planning to an object keyed by event identity.
 func (s *Service) Definition() restate.ServiceDefinition {
 	return restate.NewObject(notification.ServiceName).
 		Handler("Notify", restate.NewObjectHandler(s.Notify, retryPolicy()))
 }
 
+// DeliveryDefinition binds private delivery attempts to an object keyed by delivery ID.
 func (s *Service) DeliveryDefinition() restate.ServiceDefinition {
 	return restate.NewObject(notification.DeliveryServiceName).
 		Handler("Deliver", restate.NewObjectHandler(s.Deliver, restate.WithIngressPrivate(true), retryPolicy()))
-}
-
-func (s *Service) Notify(ctx restate.ObjectContext, event notification.Event) (string, error) {
-	if err := event.Validate(); err != nil {
-		return "", invalid(err.Error())
-	}
-	if restate.Key(ctx) != event.ID() {
-		return "", invalid("notification key does not match event")
-	}
-	deliveries, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]deliveryRef, error) {
-		return s.plan(runCtx, event)
-	}, restate.WithName("freeze notification routing"))
-	if err != nil {
-		return "", err
-	}
-	for _, delivery := range deliveries {
-		restate.Object[string](ctx, notification.DeliveryServiceName, delivery.ID, "Deliver").Send(delivery, restate.WithIdempotencyKey(delivery.ID))
-	}
-	return event.ID(), nil
-}
-
-func (s *Service) Deliver(ctx restate.ObjectContext, ref deliveryRef) (string, error) {
-	if restate.Key(ctx) != ref.ID || ref.WorkspaceID == "" {
-		return "", invalid("invalid delivery key")
-	}
-	for {
-		result, err := restate.Run(ctx, func(runCtx restate.RunContext) (attemptResult, error) {
-			return s.attempt(runCtx, ref)
-		}, restate.WithName("attempt notification delivery"))
-		if err != nil {
-			return "", err
-		}
-		if result.RetryAfter <= 0 {
-			return string(result.Status), nil
-		}
-		if err := restate.Sleep(ctx, result.RetryAfter); err != nil {
-			return "", err
-		}
-	}
 }
 
 func retryPolicy() restate.HandlerOption {
@@ -149,8 +110,4 @@ func retryPolicy() restate.HandlerOption {
 		restate.WithMaxRetryAttempts(20),
 		restate.PauseOnMaxAttempts(),
 	)
-}
-
-func invalid(reason string) error {
-	return restate.ToTerminalError(fmt.Errorf("notification: %s", reason), restate.WithErrorCode(400))
 }

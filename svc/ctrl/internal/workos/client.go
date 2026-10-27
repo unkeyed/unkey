@@ -34,6 +34,10 @@ func New(apiKey string) Client {
 	if apiKey == "" {
 		return NewNoop()
 	}
+	return newClient(apiKey)
+}
+
+func newClient(apiKey string) *client {
 	return &client{
 		apiKey:  apiKey,
 		baseURL: baseURL,

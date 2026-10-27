@@ -24,6 +24,8 @@ type slackPayload struct {
 
 var slackPath = regexp.MustCompile(`^/services/[A-Za-z0-9]+/[A-Za-z0-9]+/[A-Za-z0-9]+$`)
 
+// NewSlack sends to Slack incoming webhooks supplied in Target.URL.
+// Slack provides no idempotency window for these sends.
 func NewSlack() notification.Provider { return &slack{client: newHTTPClient()} }
 
 func (p *slack) Name() string { return "slack" }
