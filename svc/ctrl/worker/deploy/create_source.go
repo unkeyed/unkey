@@ -170,7 +170,10 @@ func (w *Workflow) ownedImageSource(
 	}
 	reference, err := name.ParseReference(normalized.Source.Image, name.WeakValidation)
 	if err != nil {
-		return newRejectedSource(rejectf(hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, "%s", err.Error())), nil
+		return newRejectedSource(rejectf(
+			hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
+			"%q is not a valid image reference", normalized.Source.Image,
+		)), nil
 	}
 	if !sameRepository(reference.Context(), buildRepository) {
 		return normalized, nil
