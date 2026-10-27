@@ -17,12 +17,14 @@ func (s *Service) disableBatch(ctx context.Context, req *hydrav1.KeyLeakBatchReq
 		hashes = append(hashes, key.GetHash())
 		byHash[key.GetHash()] = key
 	}
+
 	return db.TxRetry(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
 		queries := db.NewQueries(tx)
 		legacy, err := queries.FindEnabledKeysByHashesForUpdate(ctx, hashes)
 		if err != nil {
 			return err
 		}
+
 		roots, err := queries.FindEnabledRootKeysByHashesForUpdate(ctx, hashes)
 		if err != nil {
 			return err
@@ -35,11 +37,13 @@ func (s *Service) disableBatch(ctx context.Context, req *hydrav1.KeyLeakBatchReq
 			if key.ForWorkspaceID.Valid {
 				workspaceID = key.ForWorkspaceID.String
 			}
+
 			if byHash[key.Hash].GetWorkspaceId() == workspaceID {
 				legacyIDs = append(legacyIDs, key.ID)
 				changed[key.Hash] = true
 			}
 		}
+
 		rootIDs := make([]string, 0, len(roots))
 		for _, key := range roots {
 			if byHash[key.Hash].GetWorkspaceId() == key.WorkspaceID {
@@ -47,6 +51,7 @@ func (s *Service) disableBatch(ctx context.Context, req *hydrav1.KeyLeakBatchReq
 				changed[key.Hash] = true
 			}
 		}
+
 		if len(changed) == 0 {
 			return nil
 		}
@@ -56,19 +61,23 @@ func (s *Service) disableBatch(ctx context.Context, req *hydrav1.KeyLeakBatchReq
 		}); err != nil {
 			return err
 		}
+
 		if err := queries.DisableLeakedRootKeys(ctx, rootIDs); err != nil {
 			return err
 		}
+
 		logs := make([]auditlog.AuditLog, 0, len(changed))
 		for _, key := range req.GetKeys() {
 			if !changed[key.GetHash()] {
 				continue
 			}
+
 			delete(changed, key.GetHash())
 			event := auditlog.KeyLeakedEvent
 			if key.GetRootKey() {
 				event = auditlog.RootKeyLeakedEvent
 			}
+
 			logs = append(logs, auditlog.AuditLog{
 				WorkspaceID: key.GetWorkspaceId(), Event: event,
 				Display:       "Automatically disabled leaked key after GitHub secret scanning detected exposure",
@@ -85,6 +94,7 @@ func (s *Service) disableBatch(ctx context.Context, req *hydrav1.KeyLeakBatchReq
 				}},
 			})
 		}
+
 		return s.auditlogs.Insert(ctx, tx, logs)
 	})
 }

@@ -19,5 +19,6 @@ func (s *Service) NotifyBatch(ctx restate.Context, req *hydrav1.KeyLeakBatchRequ
 	for _, key := range req.GetKeys() {
 		client.Notify().Send(key.GetNotification(), restate.WithIdempotencyKey(req.GetReportId()+":"+key.GetHash()))
 	}
+
 	return &hydrav1.KeyLeakResponse{}, nil
 }

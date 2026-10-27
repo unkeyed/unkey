@@ -32,6 +32,7 @@ type Config struct {
 
 func New(cfg Config) http.Handler {
 	h := &handler{restate: cfg.Restate, db: cfg.Database}
+
 	return webhook.New("github_secret_scanning", cfg.Verifier,
 		webhook.WithMaxBodySize(bodyBytesMax),
 		webhook.WithTimeout(10*time.Second),
@@ -66,6 +67,7 @@ func (h *handler) report(ctx context.Context, event webhook.Event, tokens []repo
 		if _, found := byHash[digest]; found {
 			continue
 		}
+
 		byHash[digest] = token
 		hashes = append(hashes, digest)
 	}
@@ -86,6 +88,7 @@ func (h *handler) report(ctx context.Context, event webhook.Event, tokens []repo
 		if !found {
 			continue
 		}
+
 		delete(byHash, key.Hash)
 		matches = append(matches, &hydrav1.KeyLeakMatch{
 			Hash: key.Hash, WorkspaceId: key.WorkspaceID, RootKey: key.KeyType == "rootKey",
@@ -96,12 +99,14 @@ func (h *handler) report(ctx context.Context, event webhook.Event, tokens []repo
 		})
 	}
 	slices.SortFunc(matches, func(a, b *hydrav1.KeyLeakMatch) int { return strings.Compare(a.GetHash(), b.GetHash()) })
+
 	client := hydrav1.NewKeyLeakServiceIngressClient(h.restate)
 	for batch := range slices.Chunk(matches, 100) {
 		hashes := make([]string, 0, len(batch))
 		for _, key := range batch {
 			hashes = append(hashes, key.GetHash())
 		}
+
 		_, err := client.NotifyBatch().Send(ctx, &hydrav1.KeyLeakBatchRequest{ReportId: reportID, Keys: batch},
 			restate.WithIdempotencyKey(reportID+":"+hash.Sha256(strings.Join(hashes, ","))))
 		if err != nil {
