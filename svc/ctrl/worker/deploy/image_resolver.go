@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"github.com/google/go-containerregistry/pkg/authn"
-	"github.com/google/go-containerregistry/pkg/name"
+	imagename "github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 type ociImageResolver struct {
-	internalRepository *name.Repository
+	internalRepository *imagename.Repository
 	internalAuth       authn.Authenticator
 	publicTransport    http.RoundTripper
 	internalTransport  http.RoundTripper
@@ -32,7 +32,7 @@ func NewImageResolver(config RegistryConfig) (ImageResolver, error) {
 		return resolver, nil
 	}
 
-	repository, err := name.NewRepository(config.Repository, name.WeakValidation)
+	repository, err := imagename.NewRepository(config.Repository, imagename.WeakValidation)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("invalid internal registry repository"))
 	}
@@ -51,7 +51,7 @@ func NewImageResolver(config RegistryConfig) (ImageResolver, error) {
 }
 
 func (r *ociImageResolver) Resolve(ctx context.Context, imageReference string) (string, error) {
-	reference, err := name.ParseReference(imageReference, name.WeakValidation)
+	reference, err := imagename.ParseReference(imageReference, imagename.WeakValidation)
 	if err != nil {
 		return "", fault.Wrap(err, fault.Internal("invalid OCI image reference"))
 	}

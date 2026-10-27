@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/google/go-containerregistry/pkg/name"
+	imagename "github.com/google/go-containerregistry/pkg/name"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -164,11 +164,11 @@ func (w *Workflow) ownedImageSource(
 		return normalized, nil
 	}
 
-	buildRepository, err := name.NewRepository(w.registryConfig.Repository, name.WeakValidation)
+	buildRepository, err := imagename.NewRepository(w.registryConfig.Repository, imagename.WeakValidation)
 	if err != nil {
 		return resolvedSource{}, fmt.Errorf("invalid build registry repository: %w", err)
 	}
-	reference, err := name.ParseReference(normalized.Source.Image, name.WeakValidation)
+	reference, err := imagename.ParseReference(normalized.Source.Image, imagename.WeakValidation)
 	if err != nil {
 		return newRejectedSource(rejectf(
 			hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
@@ -181,9 +181,9 @@ func (w *Workflow) ownedImageSource(
 
 	owned := false
 	switch ref := reference.(type) {
-	case name.Tag:
+	case imagename.Tag:
 		owned = strings.HasPrefix(ref.TagStr(), projectID+"-")
-	case name.Digest:
+	case imagename.Digest:
 		owned, err = w.db.DeploymentProjectOwnsImage(ctx, db.DeploymentProjectOwnsImageParams{
 			ProjectID:     projectID,
 			ImageResolved: sql.NullString{String: normalized.Source.Image, Valid: true},

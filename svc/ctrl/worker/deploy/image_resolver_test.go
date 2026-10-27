@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/authn"
-	"github.com/google/go-containerregistry/pkg/name"
+	imagename "github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
@@ -29,7 +29,7 @@ func TestPublicImageResolverPinsImageIndex(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	transport := server.Client().Transport
-	tag, err := name.NewTag(server.Listener.Addr().String() + "/acme/api:stable")
+	tag, err := imagename.NewTag(server.Listener.Addr().String() + "/acme/api:stable")
 	require.NoError(t, err)
 
 	index := mutate.AppendManifests(empty.Index, mutate.IndexAddendum{Add: empty.Image})
@@ -52,7 +52,7 @@ func TestImageResolverKeepsPersistedDigestStableAfterTagMoves(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	transport := server.Client().Transport
-	tag, err := name.NewTag(server.Listener.Addr().String() + "/acme/api:stable")
+	tag, err := imagename.NewTag(server.Listener.Addr().String() + "/acme/api:stable")
 	require.NoError(t, err)
 	options := []remote.Option{remote.WithTransport(transport)}
 
@@ -113,10 +113,10 @@ func TestImageResolverScopesInternalRegistryCredentialsToConfiguredRepository(t 
 		remote.WithTransport(server.Client().Transport),
 		remote.WithAuth(authenticator),
 	}
-	internalTag, err := name.NewTag(host + "/unkey/builds:v1")
+	internalTag, err := imagename.NewTag(host + "/unkey/builds:v1")
 	require.NoError(t, err)
 	require.NoError(t, remote.Write(internalTag, empty.Image, remoteOptions...))
-	otherTag, err := name.NewTag(host + "/customer/app:v1")
+	otherTag, err := imagename.NewTag(host + "/customer/app:v1")
 	require.NoError(t, err)
 	require.NoError(t, remote.Write(otherTag, empty.Image, remoteOptions...))
 
