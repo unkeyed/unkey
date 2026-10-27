@@ -92,9 +92,9 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
 	})
 
-	// Test case for wrong workspace
 	t.Run("wrong workspace", func(t *testing.T) {
-		rootKey := h.CreateRootKey(uid.New(uid.WorkspacePrefix), "api.*.delete_api")
+		workspaceOther := h.CreateWorkspace()
+		rootKey := h.CreateRootKey(workspaceOther.ID, "api.*.delete_api")
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -112,11 +112,11 @@ func TestAuthorizationErrors(t *testing.T) {
 			req,
 		)
 
-		// Note: We mask wrong workspace errors as 404 not found
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "The provided root key is invalid. The requested workspace does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/api_not_found", res.Body.Error.Type)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 }
 

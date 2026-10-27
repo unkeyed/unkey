@@ -81,13 +81,9 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 		})
 	}
 
-	// Test with a valid key but from wrong workspace
 	t.Run("key from wrong workspace", func(t *testing.T) {
-		// Create another workspace
-		otherWorkspaceID := "ws_other"
-
-		// Create key for other workspace with sufficient permissions
-		rootKey := h.CreateRootKey(otherWorkspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#read", otherWorkspaceID))
+		workspaceOther := h.CreateWorkspace()
+		rootKey := h.CreateRootKey(workspaceOther.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#read", workspaceOther.ID))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -103,7 +99,7 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 		)
 
 		require.Equal(t, 404, res.Status, "expected 404, received: %#v", res)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/workspace_not_found", res.Body.Error.Type)
-		require.Equal(t, "The provided root key is invalid. The requested workspace does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/api_not_found", res.Body.Error.Type)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 }
