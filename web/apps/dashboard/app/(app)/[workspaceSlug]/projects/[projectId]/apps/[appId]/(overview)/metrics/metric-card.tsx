@@ -26,14 +26,14 @@ type CardProps = {
 export function MetricCard({ card, markers, height, syncId, onExpand }: CardProps) {
   const view = METRIC_VIEWS[card.metric];
   return (
-    <Card className="flex flex-col gap-1.5 px-4 pt-3 pb-3">
+    <Card className="group/card flex flex-col gap-1.5 px-4 pt-3 pb-3">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-medium text-gray-12">{view.title}</h3>
         {EXPANDABLE[card.state.status] && (
           <Button
             variant="ghost"
             size="icon"
-            className="-mr-1.5"
+            className="-mr-1.5 opacity-0 transition-opacity group-hover/card:opacity-100 focus-visible:opacity-100"
             aria-label={`Expand ${view.title}`}
             onClick={onExpand}
           >
@@ -49,6 +49,8 @@ export function MetricCard({ card, markers, height, syncId, onExpand }: CardProp
         markers={markers}
         height={height}
         syncId={syncId}
+        connectNulls={view.gaps === "bridge"}
+        legendClassName="-mx-4 -mb-3"
       />
     </Card>
   );

@@ -33,6 +33,8 @@ export function InstancesLayout({
   onClearInstance,
 }: Props) {
   const [page, setPage] = useState(0);
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const focusKey = hoveredKey ?? view.selected?.key ?? null;
   const all = view.rows;
   const pages = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
   const current = Math.min(page, pages - 1);
@@ -47,6 +49,7 @@ export function InstancesLayout({
             card={card}
             legend={view.legend}
             selected={view.selected}
+            focusKey={focusKey}
             markers={markers}
             syncId={syncId}
             onClearInstance={onClearInstance}
@@ -57,6 +60,7 @@ export function InstancesLayout({
         rows={rows}
         logsHref={logsHref}
         onOpen={onOpen}
+        onHover={setHoveredKey}
         footer={
           <div className="flex items-center gap-3 border-t border-grayA-4 px-4 py-2.5 text-xs text-gray-10">
             <span>

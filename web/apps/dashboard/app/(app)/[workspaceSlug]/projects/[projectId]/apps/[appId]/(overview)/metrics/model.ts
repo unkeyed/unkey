@@ -73,13 +73,11 @@ export function needsInstanceSeries(tab: MetricsTab, expanded: MetricId | null):
 
 export type MetricCardModel = { metric: MetricId; state: ChartState };
 
-export type LegendReadout = { atMs: number; values: Record<string, number | null> };
-
 export function legendReadout(
   chart: ReadonlyArray<AreaChartPoint>,
   keys: ReadonlyArray<string>,
   hoveredMs: number | null,
-): LegendReadout | null {
+): Record<string, number | null> | null {
   const hovered =
     hoveredMs === null ? undefined : chart.find((p) => p.originalTimestamp === hoveredMs);
   const reported = chart.some((p) => keys.some((key) => p[key] !== undefined));
@@ -87,10 +85,7 @@ export function legendReadout(
   if (!point) {
     return null;
   }
-  return {
-    atMs: point.originalTimestamp,
-    values: Object.fromEntries(keys.map((key) => [key, point[key] ?? null])),
-  };
+  return Object.fromEntries(keys.map((key) => [key, point[key] ?? null]));
 }
 
 export type PanelStats = { latest: number; average: number; peak: number; low: number };

@@ -252,17 +252,11 @@ describe("legendReadout", () => {
   ];
 
   it("reads the hovered bucket", () => {
-    expect(legendReadout(chart, ["p50", "p95"], 0)).toEqual({
-      atMs: 0,
-      values: { p50: 10, p95: 40 },
-    });
+    expect(legendReadout(chart, ["p50", "p95"], 0)).toEqual({ p50: 10, p95: 40 });
   });
 
-  it("reads the newest bucket when nothing is hovered, so every card shows the same time", () => {
-    expect(legendReadout(chart, ["p50", "p95"], null)).toEqual({
-      atMs: 120_000,
-      values: { p50: null, p95: null },
-    });
+  it("reads the newest bucket when nothing is hovered", () => {
+    expect(legendReadout(chart, ["p50", "p95"], null)).toEqual({ p50: null, p95: null });
   });
 
   it("returns null when no bucket reported", () => {

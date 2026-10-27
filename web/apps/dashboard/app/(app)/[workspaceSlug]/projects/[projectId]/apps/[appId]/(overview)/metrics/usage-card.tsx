@@ -2,7 +2,9 @@
 
 import type { ChartMarkers } from "@/components/charts/chart-markers";
 import { METRIC_VIEWS } from "@/lib/metrics/views";
+import { IconCircleInfoOutline18 } from "@unkey/icons";
 import { Card, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import type { ReactNode } from "react";
 import { DeployIdentity } from "./deploy-identity";
 import {
   type DeployRef,
@@ -12,7 +14,7 @@ import {
   type UsageCard,
   type UsageLegend,
 } from "./instances-model";
-import { SeriesChart } from "./series-chart";
+import { LegendCell, SeriesChart } from "./series-chart";
 
 const USAGE_HEIGHT = 180;
 
@@ -25,6 +27,7 @@ export function UsageCardView({
   card,
   legend,
   selected,
+  focusKey,
   markers,
   syncId,
   onClearInstance,
@@ -33,6 +36,7 @@ export function UsageCardView({
   card: UsageCard;
   legend: UsageLegend;
   selected: InstanceView | null;
+  focusKey: string | null;
   markers: ChartMarkers;
   syncId: string;
 }) {
@@ -55,7 +59,8 @@ export function UsageCardView({
           height={USAGE_HEIGHT}
           syncId={syncId}
           legend={<Legend legend={legend} selected={selected} onClear={onClearInstance} />}
-          focusKey={selected?.key ?? null}
+          legendClassName="-mx-4 -mb-3"
+          focusKey={focusKey}
           unavailableCopy="Usage is unavailable right now"
         />
       </div>
@@ -72,71 +77,64 @@ function Legend({
   selected: InstanceView | null;
   onClear: () => void;
 }) {
-  return (
-    <div className="flex min-h-4 flex-wrap items-center gap-x-3.5 gap-y-1 text-xs">
-      {DEPLOY_KEYS.map(
-        ({ tone, label }) =>
-          legend[tone].length > 0 && (
-            <DeployKey key={tone} color={LINE_COLOR[tone]} label={label} deploys={legend[tone]} />
-          ),
-      )}
-      {legend.unhealthy && (
-        <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full" style={{ backgroundColor: LINE_COLOR.unhealthy }} />
-          <span className="text-gray-11">Unhealthy</span>
-        </span>
-      )}
-      {selected && (
-        <span className="ml-auto text-2xs text-gray-9">
-          Showing <span className="font-mono text-gray-12">{selected.key}</span> ·{" "}
-          <button
-            type="button"
-            onClick={onClear}
-            className="rounded-sm underline outline-none hover:text-gray-12 focus-visible:ring-1 focus-visible:ring-grayA-12"
-          >
-            clear
-          </button>
-        </span>
-      )}
-    </div>
+  const showing = selected && (
+    <span className="text-2xs text-gray-9">
+      Showing <span className="font-mono text-gray-12">{selected.key}</span> ·{" "}
+      <button
+        type="button"
+        onClick={onClear}
+        className="rounded-sm underline outline-none hover:text-gray-12 focus-visible:ring-1 focus-visible:ring-grayA-12"
+      >
+        clear
+      </button>
+    </span>
   );
+  const keys: { key: string; color: string; label: ReactNode }[] = [
+    ...DEPLOY_KEYS.filter(({ tone }) => legend[tone].length > 0).map(({ tone, label }) => ({
+      key: tone,
+      color: LINE_COLOR[tone],
+      label: <DeployKey label={label} deploys={legend[tone]} />,
+    })),
+    ...(legend.unhealthy
+      ? [{ key: "unhealthy", color: LINE_COLOR.unhealthy, label: "Unhealthy" }]
+      : []),
+  ];
+  return keys.map(({ key, color, label }, i) => (
+    <LegendCell key={key} color={color} label={label}>
+      {i === keys.length - 1 && showing}
+    </LegendCell>
+  ));
 }
 
-function DeployKey({
-  color,
-  label,
-  deploys,
-}: { color: string; label: string; deploys: DeployRef[] }) {
+function DeployKey({ label, deploys }: { label: string; deploys: DeployRef[] }) {
   return (
-    <Popover>
-      <PopoverTrigger
-        openOnHover
-        delay={0}
-        closeDelay={100}
-        className="flex cursor-default items-center gap-1.5 rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-grayA-12"
-      >
-        <span className="size-2 rounded-full" style={{ backgroundColor: color }} />
-        <span className="text-gray-11 underline decoration-grayA-6 decoration-dotted underline-offset-4">
-          {label}
-        </span>
-      </PopoverTrigger>
-      <PopoverContent
-        side="bottom"
-        align="start"
-        className="flex w-64 flex-col gap-2.5 px-3 py-2 text-2xs"
-      >
-        {deploys.map((deploy) => (
-          <DeployIdentity
-            key={deploy.id}
-            source={deploy.source}
-            deploymentId={deploy.id}
-            aside={
-              deploy.source && <span className="shrink-0 font-mono text-gray-10">{deploy.id}</span>
-            }
-            className="min-w-0 gap-1"
-          />
-        ))}
-      </PopoverContent>
-    </Popover>
+    <span className="flex items-center gap-1.5">
+      {label}
+      <Popover>
+        <PopoverTrigger
+          openOnHover
+          delay={0}
+          closeDelay={100}
+          aria-label={`${label} deployments`}
+          className="-m-1 inline-flex cursor-default items-center rounded-sm p-1 text-gray-9 outline-none hover:text-gray-11 focus-visible:ring-1 focus-visible:ring-grayA-12"
+        >
+          <IconCircleInfoOutline18 className="size-3.5" aria-hidden="true" />
+        </PopoverTrigger>
+        <PopoverContent
+          side="bottom"
+          align="start"
+          className="flex w-64 flex-col gap-2.5 px-3 py-2 text-2xs"
+        >
+          {deploys.map((deploy) => (
+            <DeployIdentity
+              key={deploy.id}
+              source={deploy.source}
+              deploymentId={deploy.id}
+              className="min-w-0 gap-1"
+            />
+          ))}
+        </PopoverContent>
+      </Popover>
+    </span>
   );
 }
