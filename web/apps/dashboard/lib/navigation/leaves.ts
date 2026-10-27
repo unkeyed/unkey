@@ -180,7 +180,6 @@ export function buildAppLinks(
       icon: IconCubeOutline18,
       isActive: page === "overview",
     },
-    ...(metrics ? [metricsLink] : []),
     {
       key: "deployments",
       label: "Deployments",
@@ -188,6 +187,7 @@ export function buildAppLinks(
       icon: IconSquareBulletListOutline18,
       isActive: page === "deployments",
     },
+    ...(metrics ? [metricsLink] : []),
     {
       key: "env-vars",
       label: "Environment variables",
