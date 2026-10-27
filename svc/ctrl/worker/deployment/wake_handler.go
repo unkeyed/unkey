@@ -38,7 +38,7 @@ func (v *VirtualObject) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.W
 		return nil, gatefault.Terminal(err)
 	}
 
-	if err := v.setDesiredState(ctx, deploymentID, hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING); err != nil {
+	if _, err := v.setDesiredState(ctx, deploymentID, hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING, false); err != nil {
 		return nil, err
 	}
 
