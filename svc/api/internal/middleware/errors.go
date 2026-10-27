@@ -187,7 +187,8 @@ func WithErrorHandling() zen.Middleware {
 
 			// Too Many Requests - Rate limiting
 			case codes.UserErrorsTooManyRequestsQueryQuotaExceeded,
-				codes.UserErrorsTooManyRequestsWorkspaceRateLimited:
+				codes.UserErrorsTooManyRequestsWorkspaceRateLimited,
+				codes.UserErrorsTooManyRequestsIPRateLimited:
 				return s.ProblemJSON(http.StatusTooManyRequests, openapi.TooManyRequestsErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -261,6 +262,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Unauthorized errors
 			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound,
+				codes.UnkeyAuthErrorsAuthenticationCredentialRejected,
 				codes.UnkeyPortalErrorsSessionSessionNotFound:
 				return s.ProblemJSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
 					Meta: openapi.Meta{

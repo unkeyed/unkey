@@ -1,6 +1,8 @@
 "use client";
 
+import { plural } from "@/lib/fmt";
 import { Button, HoverCard, HoverCardContent, HoverCardTrigger } from "@unkey/ui";
+import { cn } from "cn";
 import { type ReactNode, useState } from "react";
 import { ReferenceArea, ReferenceLine } from "recharts";
 
@@ -15,16 +17,44 @@ export type ChartMarkers = {
 
 type Domain = [number, number];
 
-type PlacedMarker = { id: string; atMs: number; leftPct: number };
+type PlacedMarker = {
+  key: string;
+  ids: string[];
+  atMs: number;
+  x: number;
+  leftPct: number;
+  late: boolean;
+};
 
+// Markers past the domain end share one edge marker so they do not stack.
 export function placeMarkers(items: ChartMarker[], [start, end]: Domain): PlacedMarker[] {
   const width = end - start;
   if (width <= 0) {
     return [];
   }
-  return items
-    .filter((m) => m.atMs >= start && m.atMs <= end)
-    .map((m) => ({ id: m.id, atMs: m.atMs, leftPct: ((m.atMs - start) / width) * 100 }));
+  const inside = items.filter((m) => m.atMs >= start && m.atMs <= end);
+  const late = items.filter((m) => m.atMs > end);
+  const placed = inside.map((m) => ({
+    key: m.id,
+    ids: [m.id],
+    atMs: m.atMs,
+    x: m.atMs,
+    leftPct: ((m.atMs - start) / width) * 100,
+    late: false,
+  }));
+  return late.length > 0
+    ? [
+        ...placed,
+        {
+          key: "late",
+          ids: late.map((m) => m.id),
+          atMs: Math.max(...late.map((m) => m.atMs)),
+          x: end,
+          leftPct: 100,
+          late: true,
+        },
+      ]
+    : placed;
 }
 
 export function activeMarkerSpan(
@@ -63,15 +93,15 @@ export function ChartMarkerOverlay({
       style={{ left: insetLeft, right: insetRight, height: bandHeight }}
     >
       {placeMarkers(markers.items, domain).map((m) => {
-        const isActive = activeId === m.id;
+        const isActive = activeId !== null && m.ids.includes(activeId);
         return (
           <HoverCard
-            key={m.id}
-            open={isActive && ownerId === m.id}
+            key={m.key}
+            open={isActive && ownerId === m.key}
             onOpenChange={(open) => {
               if (open) {
-                setOwnerId(m.id);
-                onActiveChange(m.id);
+                setOwnerId(m.key);
+                onActiveChange(m.ids.at(-1) ?? null);
                 return;
               }
               setOwnerId(null);
@@ -84,19 +114,32 @@ export function ChartMarkerOverlay({
               delay={0}
               closeDelay={100}
               render={<Button variant="ghost" size="icon" />}
-              aria-label={`Marker at ${new Date(m.atMs).toLocaleString()}`}
+              aria-label={
+                m.late
+                  ? `${plural(m.ids.length, "marker")} after the last data point`
+                  : `Marker at ${new Date(m.atMs).toLocaleString()}`
+              }
               data-active={isActive || undefined}
               className="pointer-events-auto absolute bottom-0 -translate-x-1/2 translate-y-1/2 rounded-full p-0"
               style={{ left: `${m.leftPct}%` }}
             >
-              <span className="size-2 rounded-full border border-gray-9 bg-background transition-[scale,background-color,border-color] duration-150 ease-out group-hover:scale-125 group-hover:border-gray-12 group-data-active:scale-125 group-data-active:border-gray-12 group-data-active:bg-gray-12 motion-reduce:transition-none" />
+              <span
+                className={cn(
+                  "size-2 rounded-full border border-gray-9 bg-background transition-[scale,background-color,border-color] duration-150 ease-out group-hover:scale-125 group-hover:border-gray-12 group-data-active:scale-125 group-data-active:border-gray-12 group-data-active:bg-gray-12 motion-reduce:transition-none",
+                  m.late && "border-dashed",
+                )}
+              />
             </HoverCardTrigger>
             <HoverCardContent
               side="top"
               sideOffset={6}
               className="w-72 p-3 motion-reduce:transition-none"
             >
-              {renderPopover(m.id)}
+              <div className="flex max-h-80 flex-col gap-3 divide-y divide-grayA-4 overflow-y-auto [&>*:not(:first-child)]:pt-3">
+                {m.ids.map((id) => (
+                  <div key={id}>{renderPopover(id)}</div>
+                ))}
+              </div>
             </HoverCardContent>
           </HoverCard>
         );
@@ -105,7 +148,15 @@ export function ChartMarkerOverlay({
   );
 }
 
-export function MarkerLayer({ markers, span }: { markers: ChartMarkers; span: Domain | null }) {
+export function MarkerLayer({
+  markers,
+  domain,
+  span,
+}: {
+  markers: ChartMarkers;
+  domain: Domain;
+  span: Domain | null;
+}) {
   return (
     <>
       {span && (
@@ -118,11 +169,15 @@ export function MarkerLayer({ markers, span }: { markers: ChartMarkers; span: Do
           className="animate-in fade-in-0 duration-150 motion-reduce:animate-none"
         />
       )}
-      {markers.items.map((m) => (
+      {placeMarkers(markers.items, domain).map((m) => (
         <ReferenceLine
-          key={m.id}
-          x={m.atMs}
-          stroke={m.id === markers.activeId ? "var(--color-gray-10)" : "var(--color-gray-8)"}
+          key={m.key}
+          x={m.x}
+          stroke={
+            markers.activeId !== null && m.ids.includes(markers.activeId)
+              ? "var(--color-gray-10)"
+              : "var(--color-gray-8)"
+          }
           strokeDasharray="2 3"
           ifOverflow="hidden"
         />

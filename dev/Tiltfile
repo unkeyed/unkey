@@ -6,7 +6,8 @@ watch_file('../.mise/mise.lock')
 
 load('ext://namespace', 'namespace_create')
 load('ext://secret', 'secret_create_generic')
-load('ext://helm_resource', 'helm_resource')
+load('ext://helm_resource', standard_helm_resource='helm_resource')
+load('./helm.Tiltfile', metal_helm_resource='helm_resource')
 
 allow_k8s_contexts('unkey')
 if k8s_context() != 'unkey':
@@ -14,9 +15,23 @@ if k8s_context() != 'unkey':
 
 config.define_string('topolvm_backing_size')
 config.define_bool('orb')
+config.define_bool('orb-metal')
 config.define_string_list('resources', args=True)
 cfg = config.parse()
 ORB = cfg.get('orb', False)
+ORB_METAL = cfg.get('orb-metal', False)
+if ORB and ORB_METAL:
+    fail('Choose --orb or --orb-metal, not both.')
+helm_resource = metal_helm_resource if ORB_METAL else standard_helm_resource
+cilium_values = ['k8s/cilium/values.yaml']
+if ORB_METAL:
+    cilium_values.append('k8s/orb-metal/cilium.yaml')
+
+def profile_manifest(name):
+    if ORB_METAL:
+        return kustomize('k8s/orb-metal/' + name, flags=['--load-restrictor=LoadRestrictionsNone'])
+    return read_file('k8s/manifests/' + name + '.yaml')
+
 selected_resources = cfg.get('resources', [])
 if selected_resources and not ORB and 'cilium-ready' not in selected_resources:
     selected_resources = selected_resources + ['cilium-ready']
@@ -25,7 +40,7 @@ config.set_enabled_resources(selected_resources)
 # 20 GiB on a fresh cluster costs ~0 bytes. Bump if your test workloads fill more.
 TOPOLVM_BACKING_SIZE = cfg.get('topolvm_backing_size', '20G')
 
-update_settings(max_parallel_updates=16)
+update_settings(max_parallel_updates=2 if ORB_METAL else 16)
 
 docker_prune_settings(disable=True)
 
@@ -33,6 +48,10 @@ docker_prune_settings(disable=True)
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
 has_domain_connect_key = os.path.exists('./.domain-connect-private-key.pem')
 has_depot_credentials = os.path.exists('./.env.depot')
+if has_depot_credentials:
+    watch_file('./.env.depot')
+    watch_file('./depot-registry.sh')
+    depot_registry_repository = str(local(['bash', './depot-registry.sh'], quiet=True, echo_off=True)).strip()
 
 local_resource(
   'namespace',
@@ -120,10 +139,9 @@ else:
       flags=[
         '--repo', 'https://helm.cilium.io',
         '--version', '1.20.2',
-        '--values', 'k8s/cilium/values.yaml',
         '--take-ownership',
-      ],
-      deps=['k8s/cilium/values.yaml'],
+      ] + ['--values=' + path for path in cilium_values],
+      deps=cilium_values,
       pod_readiness='ignore',
       labels=['setup'],
     )
@@ -386,11 +404,11 @@ helm_resource(
 )
 
 # S3 (Garage) service
-k8s_yaml('k8s/manifests/s3.yaml')
+k8s_yaml(profile_manifest('s3'))
 k8s_resource('s3', objects=['s3-config:configmap', 's3-pvc:persistentvolumeclaim'], port_forwards=['3902:3902', '3903:3903'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])
 
 # Restate service
-k8s_yaml('k8s/manifests/restate.yaml')
+k8s_yaml(profile_manifest('restate'))
 k8s_resource('restate', objects=['restate-pvc:persistentvolumeclaim'], port_forwards=['8080:8080', '9070:9070'], resource_deps=['namespace', 'storage-provisioner'], labels=['database'])
 
 # Observability (Prometheus + OTEL Collector w/ Grafana)
@@ -521,7 +539,7 @@ k8s_resource(
   'api',
   objects=['api-config:configmap'],
   port_forwards='7070:7070',
-  resource_deps=['mysql', 'clickhouse', 'redis', 'api-compile', 'github-credentials'],
+  resource_deps=['mysql', 'clickhouse', 'redis', 'api-compile', 'github-credentials', 'workos-credentials'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -580,10 +598,10 @@ if has_depot_credentials:
     project_prefix = "builds-local"
 
     [registry]
-    repository = "registry.depot.dev/72dvmc7lv7"
+    repository = "%s"
     username = "x-token"
     password = "${UNKEY_REGISTRY_PASSWORD}"
-''',
+''' % depot_registry_repository,
     ).replace(
         '''            - name: UNKEY_VAULT_TOKEN
               value: vault-test-token-123
@@ -597,7 +615,7 @@ if has_depot_credentials:
                   key: UNKEY_REGISTRY_PASSWORD
 ''',
     )
-if ORB:
+if ORB or ORB_METAL:
     goarch = str(local('go env GOARCH', quiet=True, echo_off=True)).strip()
     ctrl_worker_manifest = ctrl_worker_manifest.replace(
         'build_platform = "linux/arm64"',
@@ -651,7 +669,7 @@ k8s_resource(
 
 # ─── Krane ─────────────────────────────────────────────────────────────────
 go_service_image('unkey/krane:dev', 'krane')
-krane_resources = read_yaml_stream('k8s/manifests/krane.yaml')
+krane_resources = decode_yaml_stream(profile_manifest('krane'))
 if has_depot_credentials:
     for resource in krane_resources:
         metadata = resource.get('metadata', {})
@@ -692,7 +710,7 @@ k8s_resource(
 # ─── Heimdall (resource metering agent) ────────────────────────────────────
 if not ORB:
     go_service_image('unkey/heimdall:dev', 'heimdall')
-    k8s_yaml('k8s/manifests/heimdall.yaml')
+    k8s_yaml(profile_manifest('heimdall'))
     k8s_resource(
       'heimdall',
       objects=['heimdall-config:configmap'],

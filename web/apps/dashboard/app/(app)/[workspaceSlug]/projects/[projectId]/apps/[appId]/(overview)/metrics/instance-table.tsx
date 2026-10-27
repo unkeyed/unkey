@@ -34,11 +34,13 @@ export function InstanceTable({
   rows,
   logsHref,
   onOpen,
+  onHover,
   footer,
 }: {
   rows: InstanceTableRow[];
   logsHref: (row: InstanceRow) => Route;
   onOpen: (row: InstanceRow) => void;
+  onHover: (key: string | null) => void;
   footer?: ReactNode;
 }) {
   return (
@@ -59,6 +61,10 @@ export function InstanceTable({
               <ResourceListRow
                 label={`Open ${instance.key}, ${instanceSrLabel(instance)}`}
                 onActivate={() => onOpen(instance)}
+                onPointerEnter={() => onHover(instance.key)}
+                onPointerLeave={() => onHover(null)}
+                onFocus={() => onHover(instance.key)}
+                onBlur={() => onHover(null)}
                 className={cn(COLUMNS, "h-12 text-sm")}
               >
                 <span className={cn("truncate text-xs", TONE_TEXT[tone].name)}>{instance.key}</span>

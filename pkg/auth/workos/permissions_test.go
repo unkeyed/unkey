@@ -13,7 +13,7 @@ import (
 func TestPermissionsForRoles(t *testing.T) {
 	t.Parallel()
 
-	permissions := permissionsForRoles("ws_123", []string{
+	permissions := PermissionsForRoles("ws_123", []string{
 		"admin",
 		"unknown",
 		"",
@@ -27,7 +27,7 @@ func TestPermissionsForRoles(t *testing.T) {
 func TestPermissionsForRolesSupportsMultipleRoles(t *testing.T) {
 	t.Parallel()
 
-	permissions := permissionsForRoles("ws_123", []string{"admin", "developer", "developer"})
+	permissions := PermissionsForRoles("ws_123", []string{"admin", "developer", "developer"})
 
 	require.Equal(t, "unkey:v1:ws_123:**#*", permissions[0])
 	require.Contains(t, permissions, "unkey:v1:ws_123:projects/*#read")
@@ -107,7 +107,7 @@ func TestRolePoliciesDefineDashboardRoles(t *testing.T) {
 func TestDeveloperPermissionsGolden(t *testing.T) {
 	t.Parallel()
 
-	permissions := permissionsForRoles("ws_123", []string{"developer"})
+	permissions := PermissionsForRoles("ws_123", []string{"developer"})
 	got := strings.Join(permissions, "\n") + "\n"
 
 	want, err := os.ReadFile("testdata/permissions.golden")
@@ -123,7 +123,7 @@ func TestViewerPermissionsGolden(t *testing.T) {
 		require.Equal(t, "read", string(permission.action))
 	}
 
-	permissions := permissionsForRoles("ws_123", []string{"viewer"})
+	permissions := PermissionsForRoles("ws_123", []string{"viewer"})
 	got := strings.Join(permissions, "\n") + "\n"
 
 	want, err := os.ReadFile("testdata/viewer_permissions.golden")
@@ -138,8 +138,8 @@ func TestLegacyBasicMemberMatchesDeveloper(t *testing.T) {
 
 	require.Equal(
 		t,
-		permissionsForRoles("ws_123", []string{"developer"}),
-		permissionsForRoles("ws_123", []string{"basic_member"}),
+		PermissionsForRoles("ws_123", []string{"developer"}),
+		PermissionsForRoles("ws_123", []string{"basic_member"}),
 	)
 }
 
@@ -182,13 +182,13 @@ func TestPortalPermissionsPerRole(t *testing.T) {
 	}
 
 	for _, role := range []string{"developer", "basic_member"} {
-		permissions := permissionsForRoles("ws_123", []string{role})
+		permissions := PermissionsForRoles("ws_123", []string{role})
 		for _, permission := range manage {
 			require.Contains(t, permissions, permission, "role %q", role)
 		}
 	}
 
-	viewer := permissionsForRoles("ws_123", []string{"viewer"})
+	viewer := PermissionsForRoles("ws_123", []string{"viewer"})
 	require.Contains(t, viewer, "unkey:v1:ws_123:projects/*/portals/*#read")
 	require.NotContains(t, viewer, "unkey:v1:ws_123:projects/*/portals/*#write")
 	require.NotContains(t, viewer, "unkey:v1:ws_123:projects/*/portals/*#delete")
