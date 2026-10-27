@@ -26,6 +26,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/restatedev/sdk-go/ingress"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -88,6 +89,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 	t.Cleanup(releaseMembers)
 	sender := &recordingSender{delivered: make(chan email.Email, 10), failedRecipient: "first@example.com"}
 	service := worker.New(worker.Config{
+		DB: database, Auditlogs: auditlogSvc,
 		Members: gatedMembers{orgID: workspace.OrgID, ready: membersReady},
 		Email:   sender, SlackWebhookURL: slackServer.URL,
 	})
@@ -95,7 +97,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
 		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
 	verifier, sign := newSigningFixture(t)
-	handler := New(runtime.IngressClient, database, auditlogSvc, verifier)
+	handler := New(Config{Restate: runtime.IngressClient, Database: database, Verifier: verifier})
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 	tokens := []reportedToken{
@@ -120,9 +122,11 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 	require.Empty(t, responseBody)
 	cancel()
 
-	disabled, err := database.FindKeyByID(ctx, root.KeyID)
-	require.NoError(t, err)
-	require.False(t, disabled.Enabled, "disable the leaked key before recipient lookup completes")
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		disabled, err := database.FindKeyByID(ctx, root.KeyID)
+		require.NoError(c, err)
+		require.False(c, disabled.Enabled, "disable the leaked key before recipient lookup completes")
+	}, 20*time.Second, 50*time.Millisecond)
 
 	select {
 	case message := <-slackMessages:
@@ -197,7 +201,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		}
 	})
 
-	t.Run("retry after partial enqueue", func(t *testing.T) {
+	t.Run("retry after lost batch acknowledgment", func(t *testing.T) {
 		second := seeder.CreateKey(ctx, seed.CreateKeyRequest{
 			WorkspaceID: seeder.Resources.RootWorkspace.ID, KeySpaceID: seeder.Resources.RootKeySpace.ID,
 			ForWorkspaceID: &workspace.ID,
@@ -215,29 +219,32 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		idempotencyKeys := make(chan string, 6)
 		interrupted := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			idempotencyKeys <- r.Header.Get("Idempotency-Key")
-			if attempts.Add(1) == 2 {
+			if attempts.Add(1) == 1 {
+				accepted := httptest.NewRecorder()
+				proxy.ServeHTTP(accepted, r)
+				if accepted.Code != http.StatusAccepted && accepted.Code != http.StatusOK {
+					t.Errorf("enqueue failed: %d", accepted.Code)
+				}
 				w.WriteHeader(http.StatusServiceUnavailable)
 				return
 			}
 			proxy.ServeHTTP(w, r)
 		}))
 		t.Cleanup(interrupted.Close)
-		handler := New(ingress.NewClient(interrupted.URL), database, auditlogSvc, verifier)
+		handler := New(Config{Restate: ingress.NewClient(interrupted.URL), Database: database, Verifier: verifier})
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, sign(body))
 		require.Equal(t, http.StatusServiceUnavailable, res.Code)
-		require.Len(t, idempotencyKeys, 2)
-		firstKeys := []string{<-idempotencyKeys, <-idempotencyKeys}
-		require.NotEmpty(t, firstKeys[0])
-		require.NotEmpty(t, firstKeys[1])
-		require.NotEqual(t, firstKeys[0], firstKeys[1], "each matching key needs its own notification")
+		require.Len(t, idempotencyKeys, 1)
+		firstKey := <-idempotencyKeys
+		require.NotEmpty(t, firstKey)
 
 		for range 2 {
 			res := httptest.NewRecorder()
 			handler.ServeHTTP(res, sign(body))
 			require.Equal(t, http.StatusOK, res.Code, res.Body.String())
-			require.Len(t, idempotencyKeys, 2)
-			require.ElementsMatch(t, firstKeys, []string{<-idempotencyKeys, <-idempotencyKeys})
+			require.Len(t, idempotencyKeys, 1)
+			require.Equal(t, firstKey, <-idempotencyKeys)
 		}
 		var deliveries []string
 		for range 4 {
@@ -268,7 +275,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}))
 		t.Cleanup(unavailable.Close)
-		handler := New(ingress.NewClient(unavailable.URL), database, auditlogSvc, verifier)
+		handler := New(Config{Restate: ingress.NewClient(unavailable.URL), Database: database, Verifier: verifier})
 		var reports []reportedToken
 		var keyIDs []string
 		for range 2 {
@@ -287,8 +294,8 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		for _, keyID := range keyIDs {
 			key, err := database.FindKeyByID(ctx, keyID)
 			require.NoError(t, err)
-			require.False(t, key.Enabled, "queue failure must not leave later keys in the batch enabled")
-			require.Len(t, leakEvents(t, database, workspace.ID, keyID), 1)
+			require.True(t, key.Enabled, "the webhook must not write before Restate accepts the batch")
+			require.Empty(t, leakEvents(t, database, workspace.ID, keyID))
 		}
 
 		body, err = json.Marshal([]reportedToken{tokens[1], tokens[2]})
@@ -300,7 +307,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 	})
 
 	t.Run("database unavailable", func(t *testing.T) {
-		handler := New(nil, &unavailableDatabase{}, nil, verifier)
+		handler := New(Config{Database: &unavailableDatabase{}, Verifier: verifier})
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, sign(body))
 		require.Equal(t, http.StatusServiceUnavailable, res.Code, "lookup failure must not enqueue or acknowledge the report")
@@ -322,11 +329,12 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 	close(membersReady)
 	sender := &recordingSender{delivered: make(chan email.Email, 20)}
 	service := worker.New(worker.Config{
+		DB: database, Auditlogs: auditlogSvc,
 		Members: gatedMembers{orgID: workspace.OrgID, ready: membersReady}, Email: sender,
 	})
 	runtime := containers.Restate(t, service.Definition())
 	verifier, sign := newSigningFixture(t)
-	handler := New(runtime.IngressClient, database, auditlogSvc, verifier)
+	handler := New(Config{Restate: runtime.IngressClient, Database: database, Verifier: verifier})
 	slackCtx, cancelSlack := context.WithTimeout(ctx, 5*time.Second)
 	t.Cleanup(cancelSlack)
 	_, err = hydrav1.NewKeyLeakServiceIngressClient(runtime.IngressClient).NotifySlack().Request(slackCtx,
@@ -383,7 +391,7 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 			require.NoError(t, err)
 			res := httptest.NewRecorder()
 			if !test.matched {
-				New(nil, database, auditlogSvc, verifier).ServeHTTP(res, sign(body))
+				New(Config{Database: database, Verifier: verifier}).ServeHTTP(res, sign(body))
 				require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 				require.Empty(t, res.Body.Bytes())
 				require.Empty(t, leakEvents(t, database, workspace.ID, keyID))
@@ -392,6 +400,18 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 			handler.ServeHTTP(res, sign(body))
 			require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 			require.Empty(t, res.Body.Bytes())
+			recipients := make([]string, 0, 2)
+			for range 2 {
+				select {
+				case message := <-sender.delivered:
+					require.Equal(t, report.URL, message.Variables["URL"])
+					recipients = append(recipients, message.To...)
+				case <-time.After(20 * time.Second):
+					t.Fatal("customer email must not depend on Slack configuration")
+				}
+			}
+			require.ElementsMatch(t, []string{"first@example.com", "second@example.com"}, recipients)
+
 			if test.legacy || test.customer {
 				key, err := database.FindKeyByID(ctx, keyID)
 				require.NoError(t, err)
@@ -412,6 +432,7 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 			require.Equal(t, wantEvent, logs[0].Event, "classify the key from storage, not the reported type")
 			require.Equal(t, "system", logs[0].Actor.Type)
 			require.Equal(t, "github_secret_scanning", logs[0].Actor.ID)
+			require.Equal(t, map[string]any{"source": "github"}, logs[0].Actor.Meta)
 			require.Contains(t, logs[0].Description, "Automatically disabled leaked key")
 			require.Len(t, logs[0].Targets, 1)
 			require.Equal(t, map[string]any{"source": report.Source, "url": report.URL, "enabled": false}, logs[0].Targets[0].Meta)
@@ -419,97 +440,9 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 			require.NoError(t, err)
 			require.NotContains(t, string(encoded), token)
 			require.Empty(t, leakEvents(t, database, seeder.Resources.RootWorkspace.ID, keyID), "root-key audits belong to the customer workspace")
-
-			recipients := make([]string, 0, 2)
-			for range 2 {
-				select {
-				case message := <-sender.delivered:
-					require.Equal(t, report.URL, message.Variables["URL"])
-					recipients = append(recipients, message.To...)
-				case <-time.After(20 * time.Second):
-					t.Fatal("customer email must not depend on Slack configuration")
-				}
-			}
-			require.ElementsMatch(t, []string{"first@example.com", "second@example.com"}, recipients)
 		})
 	}
 	require.Empty(t, sender.delivered)
-}
-
-func TestKeyLeakDisableAndAuditAreAtomicUnderConcurrentRetries(t *testing.T) {
-	ctx := t.Context()
-	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, database.Close()) })
-	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
-	require.NoError(t, err)
-	seeder := seed.New(t, database, nil)
-	seeder.Seed(ctx)
-	workspace := seeder.Resources.UserWorkspace
-	root := seeder.CreateKey(ctx, seed.CreateKeyRequest{
-		WorkspaceID: seeder.Resources.RootWorkspace.ID, KeySpaceID: seeder.Resources.RootKeySpace.ID,
-		ForWorkspaceID: &workspace.ID,
-	})
-	control := seeder.CreateKey(ctx, seed.CreateKeyRequest{
-		WorkspaceID: seeder.Resources.RootWorkspace.ID, KeySpaceID: seeder.Resources.RootKeySpace.ID,
-		ForWorkspaceID: &workspace.ID,
-	})
-	require.NoError(t, keydb.Query.InsertUnkeyRootKey(ctx, database.RW(), keydb.InsertUnkeyRootKeyParams{
-		ID: root.KeyID, WorkspaceID: workspace.ID, Hash: hash.Sha256(root.Key),
-		Prefix: "test", Start: root.Key[:8], End: root.Key[len(root.Key)-4:], Enabled: true,
-		CreatedAt: time.Now().UnixMilli(),
-	}))
-	body, err := json.Marshal([]reportedToken{{Token: root.Key, Type: "unkey_root_key", Source: "content"}})
-	require.NoError(t, err)
-	verifier, sign := newSigningFixture(t)
-
-	request := sign(body)
-	request.Header.Set("Github-Public-Key-Signature", "forged")
-	response := httptest.NewRecorder()
-	New(nil, database, auditlogSvc, verifier).ServeHTTP(response, request)
-	require.Equal(t, http.StatusUnauthorized, response.Code)
-
-	response = httptest.NewRecorder()
-	New(nil, database, unavailableAuditlogs{}, verifier).ServeHTTP(response, sign(body))
-	require.Equal(t, http.StatusServiceUnavailable, response.Code)
-	legacy, err := database.FindKeyByID(ctx, root.KeyID)
-	require.NoError(t, err)
-	require.True(t, legacy.Enabled, "audit failure must roll back the legacy key update")
-	rootStored, err := keydb.Query.FindUnkeyRootKeyByID(ctx, database.RW(), root.KeyID)
-	require.NoError(t, err)
-	require.True(t, rootStored.Enabled, "audit failure must roll back the new-store update")
-	require.Empty(t, leakEvents(t, database, workspace.ID, root.KeyID))
-
-	queue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}))
-	t.Cleanup(queue.Close)
-	handler := New(ingress.NewClient(queue.URL), database, auditlogSvc, verifier)
-	requests := []*http.Request{sign(body), sign(body), sign(body), sign(body)}
-	statuses := make(chan int, len(requests))
-	var workers sync.WaitGroup
-	for _, request := range requests {
-		workers.Go(func() {
-			response := httptest.NewRecorder()
-			handler.ServeHTTP(response, request)
-			statuses <- response.Code
-		})
-	}
-	workers.Wait()
-	for range requests {
-		require.Equal(t, http.StatusServiceUnavailable, <-statuses)
-	}
-	legacy, err = database.FindKeyByID(ctx, root.KeyID)
-	require.NoError(t, err)
-	require.False(t, legacy.Enabled)
-	rootStored, err = keydb.Query.FindUnkeyRootKeyByID(ctx, database.RW(), root.KeyID)
-	require.NoError(t, err)
-	require.False(t, rootStored.Enabled)
-	require.Len(t, leakEvents(t, database, workspace.ID, root.KeyID), 1, "concurrent reports must create one disable audit")
-	controlStored, err := database.FindKeyByID(ctx, control.KeyID)
-	require.NoError(t, err)
-	require.True(t, controlStored.Enabled, "other keys in the same workspace must stay enabled")
-	require.Empty(t, leakEvents(t, database, workspace.ID, control.KeyID))
 }
 
 func TestKeyLeakNoopProvidersStillDeliverSlack(t *testing.T) {
@@ -590,8 +523,6 @@ func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
 	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
-	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
-	require.NoError(t, err)
 	seeder := seed.New(t, database, nil)
 	seeder.Seed(ctx)
 	workspace := seeder.Resources.UserWorkspace
@@ -619,7 +550,7 @@ func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	verifier, sign := newSigningFixture(t)
-	handler := New(ingress.NewClient(server.URL), database, auditlogSvc, verifier)
+	handler := New(Config{Restate: ingress.NewClient(server.URL), Database: database, Verifier: verifier})
 	var idempotencyKey string
 	for range 2 {
 		res := httptest.NewRecorder()
@@ -627,8 +558,13 @@ func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
 		require.Equal(t, http.StatusServiceUnavailable, res.Code)
 		request := <-submitted
 		require.NotContains(t, string(request.body), token.Token)
-		var notification hydrav1.KeyLeakNotification
-		require.NoError(t, protojson.Unmarshal(request.body, &notification))
+		var batch hydrav1.KeyLeakBatchRequest
+		require.NoError(t, protojson.Unmarshal(request.body, &batch))
+		require.Len(t, batch.GetKeys(), 1)
+		require.Equal(t, hash.Sha256(root.Key), batch.GetKeys()[0].GetHash())
+		require.Equal(t, workspace.ID, batch.GetKeys()[0].GetWorkspaceId())
+		require.True(t, batch.GetKeys()[0].GetRootKey())
+		notification := batch.GetKeys()[0].GetNotification()
 		require.Equal(t, root.KeyID, notification.GetKeyId())
 		require.Equal(t, workspace.OrgID, notification.GetOrgId())
 		require.Equal(t, workspace.Name, notification.GetWorkspaceName())
@@ -646,9 +582,76 @@ func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
 	}
 }
 
+func TestKeyLeakRetriesPartiallyQueuedBatches(t *testing.T) {
+	ctx := t.Context()
+	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+	seeder := seed.New(t, database, nil)
+	seeder.Seed(ctx)
+	workspace := seeder.Resources.UserWorkspace
+	var reports []reportedToken
+	var keyIDs []string
+	for range 101 {
+		key := seeder.CreateKey(ctx, seed.CreateKeyRequest{
+			WorkspaceID: seeder.Resources.RootWorkspace.ID, KeySpaceID: seeder.Resources.RootKeySpace.ID,
+			ForWorkspaceID: &workspace.ID,
+		})
+		reports = append(reports, reportedToken{Token: key.Key, Type: "unkey_root_key", Source: "commit"})
+		keyIDs = append(keyIDs, key.KeyID)
+	}
+	service := worker.New(worker.Config{
+		DB: database, Auditlogs: auditlogSvc, Members: workos.New("", ""), Email: email.NewNoop(),
+	})
+	runtime := containers.Restate(t, service.Definition())
+	target, err := url.Parse(runtime.IngressURL)
+	require.NoError(t, err)
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	var attempts atomic.Int32
+	idempotencyKeys := make(chan string, 4)
+	interrupted := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		idempotencyKeys <- r.Header.Get("Idempotency-Key")
+		if attempts.Add(1) == 2 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		proxy.ServeHTTP(w, r)
+	}))
+	t.Cleanup(interrupted.Close)
+	verifier, sign := newSigningFixture(t)
+	handler := New(Config{Restate: ingress.NewClient(interrupted.URL), Database: database, Verifier: verifier})
+	body, err := json.Marshal(reports)
+	require.NoError(t, err)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, sign(body))
+	require.Equal(t, http.StatusServiceUnavailable, response.Code)
+	require.Len(t, idempotencyKeys, 2)
+	firstKeys := []string{<-idempotencyKeys, <-idempotencyKeys}
+	require.NotEqual(t, firstKeys[0], firstKeys[1])
+
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, sign(body))
+	require.Equal(t, http.StatusOK, response.Code)
+	require.Len(t, idempotencyKeys, 2)
+	require.Equal(t, firstKeys, []string{<-idempotencyKeys, <-idempotencyKeys})
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		rows, err := database.ListClickhouseOutboxByWorkspace(ctx, workspace.ID)
+		require.NoError(c, err)
+		require.Len(c, rows, 101)
+	}, 20*time.Second, 50*time.Millisecond)
+	for _, keyID := range keyIDs {
+		key, err := database.FindKeyByID(ctx, keyID)
+		require.NoError(t, err)
+		require.False(t, key.Enabled)
+		require.Len(t, leakEvents(t, database, workspace.ID, keyID), 1)
+	}
+}
+
 func TestKeyLeakRejectsInvalidReports(t *testing.T) {
 	verifier, sign := newSigningFixture(t)
-	handler := New(nil, nil, nil, verifier)
+	handler := New(Config{Verifier: verifier})
 	for _, test := range []struct {
 		name string
 		body any
@@ -714,12 +717,6 @@ type unavailableDatabase struct {
 
 func (d *unavailableDatabase) FindLeakedKeysByHashes(context.Context, db.FindLeakedKeysByHashesParams) ([]db.FindLeakedKeysByHashesRow, error) {
 	return nil, errors.New("database unavailable")
-}
-
-type unavailableAuditlogs struct{}
-
-func (unavailableAuditlogs) Insert(context.Context, db.DBTX, []auditlog.AuditLog) error {
-	return errors.New("audit outbox unavailable")
 }
 
 type gatedMembers struct {

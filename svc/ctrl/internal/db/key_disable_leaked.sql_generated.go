@@ -8,35 +8,41 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
 )
 
-const disableLeakedKey = `-- name: DisableLeakedKey :execrows
+const disableLeakedKeys = `-- name: DisableLeakedKeys :exec
 UPDATE ` + "`" + `keys` + "`" + `
 SET enabled = FALSE, updated_at_m = ?
-WHERE hash = ?
-  AND COALESCE(for_workspace_id, workspace_id) = ?
+WHERE id IN (/*SLICE:ids*/?)
   AND enabled = TRUE
   AND deleted_at_m IS NULL
 `
 
-type DisableLeakedKeyParams struct {
-	Now         sql.NullInt64  `db:"now"`
-	Hash        string         `db:"hash"`
-	WorkspaceID sql.NullString `db:"workspace_id"`
+type DisableLeakedKeysParams struct {
+	Now sql.NullInt64 `db:"now"`
+	Ids []string      `db:"ids"`
 }
 
-// DisableLeakedKey
+// DisableLeakedKeys
 //
 //	UPDATE `keys`
 //	SET enabled = FALSE, updated_at_m = ?
-//	WHERE hash = ?
-//	  AND COALESCE(for_workspace_id, workspace_id) = ?
+//	WHERE id IN (/*SLICE:ids*/?)
 //	  AND enabled = TRUE
 //	  AND deleted_at_m IS NULL
-func (q *Queries) DisableLeakedKey(ctx context.Context, arg DisableLeakedKeyParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, disableLeakedKey, arg.Now, arg.Hash, arg.WorkspaceID)
-	if err != nil {
-		return 0, err
+func (q *Queries) DisableLeakedKeys(ctx context.Context, arg DisableLeakedKeysParams) error {
+	query := disableLeakedKeys
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.Now)
+	if len(arg.Ids) > 0 {
+		for _, v := range arg.Ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
 	}
-	return result.RowsAffected()
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
+	return err
 }

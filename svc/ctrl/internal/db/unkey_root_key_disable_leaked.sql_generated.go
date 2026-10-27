@@ -7,34 +7,35 @@ package db
 
 import (
 	"context"
+	"strings"
 )
 
-const disableLeakedRootKey = `-- name: DisableLeakedRootKey :execrows
+const disableLeakedRootKeys = `-- name: DisableLeakedRootKeys :exec
 UPDATE unkey_root_keys
 SET enabled = FALSE
-WHERE hash = ?
-  AND workspace_id = ?
+WHERE id IN (/*SLICE:ids*/?)
   AND enabled = TRUE
   AND deleted_at IS NULL
 `
 
-type DisableLeakedRootKeyParams struct {
-	Hash        string `db:"hash"`
-	WorkspaceID string `db:"workspace_id"`
-}
-
-// DisableLeakedRootKey
+// DisableLeakedRootKeys
 //
 //	UPDATE unkey_root_keys
 //	SET enabled = FALSE
-//	WHERE hash = ?
-//	  AND workspace_id = ?
+//	WHERE id IN (/*SLICE:ids*/?)
 //	  AND enabled = TRUE
 //	  AND deleted_at IS NULL
-func (q *Queries) DisableLeakedRootKey(ctx context.Context, arg DisableLeakedRootKeyParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, disableLeakedRootKey, arg.Hash, arg.WorkspaceID)
-	if err != nil {
-		return 0, err
+func (q *Queries) DisableLeakedRootKeys(ctx context.Context, ids []string) error {
+	query := disableLeakedRootKeys
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
 	}
-	return result.RowsAffected()
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
+	return err
 }

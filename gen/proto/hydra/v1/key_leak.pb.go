@@ -23,6 +23,126 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type KeyLeakBatchRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReportId      string                 `protobuf:"bytes,1,opt,name=report_id,json=reportId,proto3" json:"report_id,omitempty"`
+	Keys          []*KeyLeakMatch        `protobuf:"bytes,2,rep,name=keys,proto3" json:"keys,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeyLeakBatchRequest) Reset() {
+	*x = KeyLeakBatchRequest{}
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeyLeakBatchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeyLeakBatchRequest) ProtoMessage() {}
+
+func (x *KeyLeakBatchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeyLeakBatchRequest.ProtoReflect.Descriptor instead.
+func (*KeyLeakBatchRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *KeyLeakBatchRequest) GetReportId() string {
+	if x != nil {
+		return x.ReportId
+	}
+	return ""
+}
+
+func (x *KeyLeakBatchRequest) GetKeys() []*KeyLeakMatch {
+	if x != nil {
+		return x.Keys
+	}
+	return nil
+}
+
+type KeyLeakMatch struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Hash          string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	WorkspaceId   string                 `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	Notification  *KeyLeakNotification   `protobuf:"bytes,3,opt,name=notification,proto3" json:"notification,omitempty"`
+	RootKey       bool                   `protobuf:"varint,4,opt,name=root_key,json=rootKey,proto3" json:"root_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeyLeakMatch) Reset() {
+	*x = KeyLeakMatch{}
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeyLeakMatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeyLeakMatch) ProtoMessage() {}
+
+func (x *KeyLeakMatch) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeyLeakMatch.ProtoReflect.Descriptor instead.
+func (*KeyLeakMatch) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *KeyLeakMatch) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+func (x *KeyLeakMatch) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *KeyLeakMatch) GetNotification() *KeyLeakNotification {
+	if x != nil {
+		return x.Notification
+	}
+	return nil
+}
+
+func (x *KeyLeakMatch) GetRootKey() bool {
+	if x != nil {
+		return x.RootKey
+	}
+	return false
+}
+
 type KeyLeakNotification struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	KeyId         string                 `protobuf:"bytes,1,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
@@ -38,7 +158,7 @@ type KeyLeakNotification struct {
 
 func (x *KeyLeakNotification) Reset() {
 	*x = KeyLeakNotification{}
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[0]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -50,7 +170,7 @@ func (x *KeyLeakNotification) String() string {
 func (*KeyLeakNotification) ProtoMessage() {}
 
 func (x *KeyLeakNotification) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[0]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -63,7 +183,7 @@ func (x *KeyLeakNotification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyLeakNotification.ProtoReflect.Descriptor instead.
 func (*KeyLeakNotification) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{0}
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *KeyLeakNotification) GetKeyId() string {
@@ -125,7 +245,7 @@ type KeyLeakEmailRequest struct {
 
 func (x *KeyLeakEmailRequest) Reset() {
 	*x = KeyLeakEmailRequest{}
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[1]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -137,7 +257,7 @@ func (x *KeyLeakEmailRequest) String() string {
 func (*KeyLeakEmailRequest) ProtoMessage() {}
 
 func (x *KeyLeakEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[1]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -150,7 +270,7 @@ func (x *KeyLeakEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyLeakEmailRequest.ProtoReflect.Descriptor instead.
 func (*KeyLeakEmailRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{1}
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *KeyLeakEmailRequest) GetLeak() *KeyLeakNotification {
@@ -175,7 +295,7 @@ type KeyLeakResponse struct {
 
 func (x *KeyLeakResponse) Reset() {
 	*x = KeyLeakResponse{}
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[2]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -187,7 +307,7 @@ func (x *KeyLeakResponse) String() string {
 func (*KeyLeakResponse) ProtoMessage() {}
 
 func (x *KeyLeakResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_key_leak_proto_msgTypes[2]
+	mi := &file_hydra_v1_key_leak_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -200,14 +320,23 @@ func (x *KeyLeakResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyLeakResponse.ProtoReflect.Descriptor instead.
 func (*KeyLeakResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{2}
+	return file_hydra_v1_key_leak_proto_rawDescGZIP(), []int{4}
 }
 
 var File_hydra_v1_key_leak_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_key_leak_proto_rawDesc = "" +
 	"\n" +
-	"\x17hydra/v1/key_leak.proto\x12\bhydra.v1\x1a\x1bbuf/validate/validate.proto\x1a\x18dev/restate/sdk/go.proto\"\xc5\x01\n" +
+	"\x17hydra/v1/key_leak.proto\x12\bhydra.v1\x1a\x1bbuf/validate/validate.proto\x1a\x18dev/restate/sdk/go.proto\"s\n" +
+	"\x13KeyLeakBatchRequest\x12$\n" +
+	"\treport_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\breportId\x126\n" +
+	"\x04keys\x18\x02 \x03(\v2\x16.hydra.v1.KeyLeakMatchB\n" +
+	"\xbaH\a\x92\x01\x04\b\x01\x10dR\x04keys\"\xbe\x01\n" +
+	"\fKeyLeakMatch\x12\x1c\n" +
+	"\x04hash\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x98\x01,R\x04hash\x12*\n" +
+	"\fworkspace_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vworkspaceId\x12I\n" +
+	"\fnotification\x18\x03 \x01(\v2\x1d.hydra.v1.KeyLeakNotificationB\x06\xbaH\x03\xc8\x01\x01R\fnotification\x12\x19\n" +
+	"\broot_key\x18\x04 \x01(\bR\arootKey\"\xc5\x01\n" +
 	"\x13KeyLeakNotification\x12\x15\n" +
 	"\x06key_id\x18\x01 \x01(\tR\x05keyId\x12\x1e\n" +
 	"\x06org_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\x12%\n" +
@@ -219,8 +348,9 @@ const file_hydra_v1_key_leak_proto_rawDesc = "" +
 	"\x13KeyLeakEmailRequest\x129\n" +
 	"\x04leak\x18\x01 \x01(\v2\x1d.hydra.v1.KeyLeakNotificationB\x06\xbaH\x03\xc8\x01\x01R\x04leak\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\"\x11\n" +
-	"\x0fKeyLeakResponse2\xf2\x01\n" +
-	"\x0eKeyLeakService\x12D\n" +
+	"\x0fKeyLeakResponse2\xbd\x02\n" +
+	"\x0eKeyLeakService\x12I\n" +
+	"\vNotifyBatch\x12\x1d.hydra.v1.KeyLeakBatchRequest\x1a\x19.hydra.v1.KeyLeakResponse\"\x00\x12D\n" +
 	"\x06Notify\x12\x1d.hydra.v1.KeyLeakNotification\x1a\x19.hydra.v1.KeyLeakResponse\"\x00\x12I\n" +
 	"\vNotifyEmail\x12\x1d.hydra.v1.KeyLeakEmailRequest\x1a\x19.hydra.v1.KeyLeakResponse\"\x00\x12I\n" +
 	"\vNotifySlack\x12\x1d.hydra.v1.KeyLeakNotification\x1a\x19.hydra.v1.KeyLeakResponse\"\x00\x1a\x04\x98\x80\x01\x00B\x92\x01\n" +
@@ -238,25 +368,31 @@ func file_hydra_v1_key_leak_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_key_leak_proto_rawDescData
 }
 
-var file_hydra_v1_key_leak_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_hydra_v1_key_leak_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_hydra_v1_key_leak_proto_goTypes = []any{
-	(*KeyLeakNotification)(nil), // 0: hydra.v1.KeyLeakNotification
-	(*KeyLeakEmailRequest)(nil), // 1: hydra.v1.KeyLeakEmailRequest
-	(*KeyLeakResponse)(nil),     // 2: hydra.v1.KeyLeakResponse
+	(*KeyLeakBatchRequest)(nil), // 0: hydra.v1.KeyLeakBatchRequest
+	(*KeyLeakMatch)(nil),        // 1: hydra.v1.KeyLeakMatch
+	(*KeyLeakNotification)(nil), // 2: hydra.v1.KeyLeakNotification
+	(*KeyLeakEmailRequest)(nil), // 3: hydra.v1.KeyLeakEmailRequest
+	(*KeyLeakResponse)(nil),     // 4: hydra.v1.KeyLeakResponse
 }
 var file_hydra_v1_key_leak_proto_depIdxs = []int32{
-	0, // 0: hydra.v1.KeyLeakEmailRequest.leak:type_name -> hydra.v1.KeyLeakNotification
-	0, // 1: hydra.v1.KeyLeakService.Notify:input_type -> hydra.v1.KeyLeakNotification
-	1, // 2: hydra.v1.KeyLeakService.NotifyEmail:input_type -> hydra.v1.KeyLeakEmailRequest
-	0, // 3: hydra.v1.KeyLeakService.NotifySlack:input_type -> hydra.v1.KeyLeakNotification
-	2, // 4: hydra.v1.KeyLeakService.Notify:output_type -> hydra.v1.KeyLeakResponse
-	2, // 5: hydra.v1.KeyLeakService.NotifyEmail:output_type -> hydra.v1.KeyLeakResponse
-	2, // 6: hydra.v1.KeyLeakService.NotifySlack:output_type -> hydra.v1.KeyLeakResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	1, // 0: hydra.v1.KeyLeakBatchRequest.keys:type_name -> hydra.v1.KeyLeakMatch
+	2, // 1: hydra.v1.KeyLeakMatch.notification:type_name -> hydra.v1.KeyLeakNotification
+	2, // 2: hydra.v1.KeyLeakEmailRequest.leak:type_name -> hydra.v1.KeyLeakNotification
+	0, // 3: hydra.v1.KeyLeakService.NotifyBatch:input_type -> hydra.v1.KeyLeakBatchRequest
+	2, // 4: hydra.v1.KeyLeakService.Notify:input_type -> hydra.v1.KeyLeakNotification
+	3, // 5: hydra.v1.KeyLeakService.NotifyEmail:input_type -> hydra.v1.KeyLeakEmailRequest
+	2, // 6: hydra.v1.KeyLeakService.NotifySlack:input_type -> hydra.v1.KeyLeakNotification
+	4, // 7: hydra.v1.KeyLeakService.NotifyBatch:output_type -> hydra.v1.KeyLeakResponse
+	4, // 8: hydra.v1.KeyLeakService.Notify:output_type -> hydra.v1.KeyLeakResponse
+	4, // 9: hydra.v1.KeyLeakService.NotifyEmail:output_type -> hydra.v1.KeyLeakResponse
+	4, // 10: hydra.v1.KeyLeakService.NotifySlack:output_type -> hydra.v1.KeyLeakResponse
+	7, // [7:11] is the sub-list for method output_type
+	3, // [3:7] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_key_leak_proto_init() }
@@ -270,7 +406,7 @@ func file_hydra_v1_key_leak_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_key_leak_proto_rawDesc), len(file_hydra_v1_key_leak_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
