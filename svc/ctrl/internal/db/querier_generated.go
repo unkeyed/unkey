@@ -511,6 +511,24 @@ type Querier interface {
 	//        AND image_resolved = ?
 	//  ) AS owns_image
 	DeploymentProjectOwnsImage(ctx context.Context, arg DeploymentProjectOwnsImageParams) (bool, error)
+	//DisableLeakedKey
+	//
+	//  UPDATE `keys`
+	//  SET enabled = FALSE, updated_at_m = ?
+	//  WHERE hash = ?
+	//    AND COALESCE(for_workspace_id, workspace_id) = ?
+	//    AND enabled = TRUE
+	//    AND deleted_at_m IS NULL
+	DisableLeakedKey(ctx context.Context, arg DisableLeakedKeyParams) (int64, error)
+	//DisableLeakedRootKey
+	//
+	//  UPDATE unkey_root_keys
+	//  SET enabled = FALSE
+	//  WHERE hash = ?
+	//    AND workspace_id = ?
+	//    AND enabled = TRUE
+	//    AND deleted_at IS NULL
+	DisableLeakedRootKey(ctx context.Context, arg DisableLeakedRootKeyParams) (int64, error)
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -1054,14 +1072,15 @@ type Querier interface {
 	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
 	//FindLeakedKeysByHashes
 	//
-	//  SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+	//  SELECT k.id, k.hash, w.id AS workspace_id, w.org_id, w.name AS workspace_name, 'rootKey' AS key_type
 	//  FROM unkey_root_keys k
 	//  JOIN workspaces w ON w.id = k.workspace_id
 	//  WHERE k.hash IN (/*SLICE:hashes*/?)
 	//    AND k.deleted_at IS NULL
 	//    AND w.deleted_at_m IS NULL
 	//  UNION ALL
-	//  SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+	//  SELECT k.id, k.hash, w.id AS workspace_id, w.org_id, w.name AS workspace_name,
+	//         IF(k.for_workspace_id IS NULL, 'key', 'rootKey') AS key_type
 	//  FROM `keys` k
 	//  JOIN workspaces w ON w.id = COALESCE(k.for_workspace_id, k.workspace_id)
 	//  WHERE k.hash IN (/*SLICE:hashes*/?)

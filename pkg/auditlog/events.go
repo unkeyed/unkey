@@ -22,12 +22,14 @@ const (
 	KeyUpdateEvent AuditLogEvent = "key.update"
 	KeyDeleteEvent AuditLogEvent = "key.delete"
 	KeyVerifyEvent AuditLogEvent = "key.verify"
+	KeyLeakedEvent AuditLogEvent = "key.leaked"
 
 	// Root key events
 	RootKeyCreateEvent AuditLogEvent = "rootKey.create"
 	RootKeyRerollEvent AuditLogEvent = "rootKey.reroll"
 	RootKeyUpdateEvent AuditLogEvent = "rootKey.update"
 	RootKeyDeleteEvent AuditLogEvent = "rootKey.delete"
+	RootKeyLeakedEvent AuditLogEvent = "rootKey.leaked"
 
 	// Ratelimit namespace events
 	RatelimitNamespaceCreateEvent AuditLogEvent = "ratelimitNamespace.create"

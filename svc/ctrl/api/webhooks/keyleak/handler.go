@@ -12,18 +12,20 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/webhook"
 	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 const bodyBytesMax = 4 << 20
 
 type handler struct {
-	restate *ingress.Client
-	db      db.Database
+	restate   *ingress.Client
+	db        db.Database
+	auditlogs auditlogs.AuditLogService
 }
 
-func New(client *ingress.Client, database db.Database, verifier webhook.Verifier) http.Handler {
-	h := &handler{restate: client, db: database}
+func New(client *ingress.Client, database db.Database, auditlogs auditlogs.AuditLogService, verifier webhook.Verifier) http.Handler {
+	h := &handler{restate: client, db: database, auditlogs: auditlogs}
 
 	return webhook.New("github_secret_scanning", verifier,
 		webhook.WithMaxBodySize(bodyBytesMax),
@@ -69,6 +71,12 @@ func (h *handler) report(ctx context.Context, event webhook.Event, tokens []repo
 	}
 	if len(keys) == 0 {
 		return nil
+	}
+
+	for _, key := range keys {
+		if err := h.disable(ctx, key, byHash[key.Hash]); err != nil {
+			return fmt.Errorf("%w: disable leaked key: %w", webhook.ErrUnavailable, err)
+		}
 	}
 
 	reportID := hash.Sha256(string(event.Payload))
