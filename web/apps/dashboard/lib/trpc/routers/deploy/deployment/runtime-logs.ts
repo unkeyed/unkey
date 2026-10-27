@@ -1,13 +1,10 @@
 import { clickhouse } from "@/lib/clickhouse";
+import { toInstanceKey } from "@/lib/collections/deploy/instance-status";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import {
-  resolveK8sNamesToInstanceIds,
-  toInstanceKey,
-  uniqueK8sRegionEntries,
-} from "../runtime-logs/utils";
+import { resolveK8sNamesToInstanceIds, uniqueK8sRegionEntries } from "../runtime-logs/utils";
 
 export const getDeploymentRuntimeLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))

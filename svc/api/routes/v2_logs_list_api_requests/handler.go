@@ -3,23 +3,17 @@ package handler
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
-	ch "github.com/ClickHouse/clickhouse-go/v2"
-
-	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -88,24 +82,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	limits, hit, err := h.LimitsCache.SWR(ctx, principal.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
-		return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
-	}, caches.DefaultFindFirstOp)
-	if db.IsNotFound(err) || hit == cache.Null {
-		return domaingate.LimitsNotConfigured(principal.AuthorizedWorkspaceID)
-	}
+	retentionStart, err := requestlogs.RetentionStart(ctx, h.LimitsCache, h.DB, h.Clock, principal.AuthorizedWorkspaceID)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("failed to load workspace limits"),
-			fault.Public("Failed to load the log retention of the workspace. Try again."),
-		)
-	}
-
-	var retentionStart int64
-	if limits.LogsRetentionDaysMax > 0 {
-		retention := time.Duration(limits.LogsRetentionDaysMax) * 24 * time.Hour
-		retentionStart = h.Clock.Now().Add(-retention).UnixMilli()
+		return err
 	}
 
 	filters := ptr.SafeDeref(req.Filters)
@@ -123,26 +102,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 	})
 	if err != nil {
-		// A fresh fault, because the read limit's own public message tells the
-		// caller to simplify a query they did not write
-		if readLimitCode, isReadLimit := fault.GetCode(err); isReadLimit {
-			return fault.New("api request listing exceeds a read limit",
-				fault.Code(readLimitCode),
-				fault.Internal(err.Error()),
-				fault.Public("The query exceeds a read limit. Send a lower `limit`, a narrower `filters.time` window, or more filters, then try again."),
-			)
-		}
-		if _, isException := errors.AsType[*ch.Exception](err); isException {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("clickhouse rejected the api request listing"),
-				fault.Public("An internal error occurred."),
-			)
-		}
-		return fault.Wrap(err,
-			fault.Code(codes.Data.Analytics.ConnectionFailed.URN()),
-			fault.Internal("failed to list api requests"),
-			fault.Public("The log store is not available. Try again."),
+		return requestlogs.ReadError(err, "failed to list api requests",
+			"The query exceeds a read limit. Send a lower `limit`, a narrower `filters.time` window, or more filters, then try again.",
 		)
 	}
 

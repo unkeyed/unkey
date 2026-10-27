@@ -37,7 +37,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			cli.String("search", "Filter roles by ID, name, or description.", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

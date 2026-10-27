@@ -38,7 +38,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/del
 			cli.String("api-id", "The API ID to delete.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

@@ -1,6 +1,7 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
+import { lastExitOf } from "@/lib/collections/deploy/last-exit";
 import { ne } from "@/lib/db";
-import { deployments } from "@unkey/db/src/schema";
+import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 
 // A skipped row records a push the platform declined to build at all (watch
 // paths didn't match, auto-deploy off). Nothing was ever deployed, so the
@@ -16,6 +17,7 @@ export function mapInstanceRow(row: {
   regionName: string;
   regionPlatform: string;
   status: InstanceStatus;
+  containerStatus: ContainerStatus | null;
 }) {
   return {
     id: row.id,
@@ -25,5 +27,6 @@ export function mapInstanceRow(row: {
       platform: row.regionPlatform,
     },
     status: row.status,
+    lastExit: lastExitOf(row.containerStatus),
   };
 }

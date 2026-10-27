@@ -347,7 +347,6 @@ func Run(ctx context.Context, cfg Config) error {
 			ReadTimeout:        -1,
 			WriteTimeout:       -1,
 			IdleTimeout:        0,
-			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			StreamRequestBody:  true,
@@ -387,7 +386,6 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.HttpPort > 0 {
 		httpSrv, httpErr := zen.New(zen.Config{
 			TLS:                nil,
-			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			StreamRequestBody:  false,
@@ -495,22 +493,24 @@ func buildEngine(
 	r.Defer(usageLimiter.Close)
 
 	keyCache, err := cache.New(cache.Config[string, keysdb.CachedKeyData]{
-		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
-		MaxSize:  100_000,
-		Resource: "frontline_key_cache",
-		Clock:    clk,
+		Fresh:     10 * time.Second,
+		Stale:     10 * time.Minute,
+		MaxSize:   100_000,
+		Resource:  "frontline_key_cache",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key cache: %w", err)
 	}
 	r.Defer(func() error { keyCache.Close(); return nil })
 	rootKeyCache, err := cache.New(cache.Config[string, keysdb.CachedRootKeyData]{
-		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
-		MaxSize:  100_000,
-		Resource: "frontline_root_key_cache",
-		Clock:    clk,
+		Fresh:     10 * time.Second,
+		Stale:     10 * time.Minute,
+		MaxSize:   100_000,
+		Resource:  "frontline_root_key_cache",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create root key cache: %w", err)

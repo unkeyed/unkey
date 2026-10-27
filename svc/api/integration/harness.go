@@ -211,6 +211,12 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				AppID:         0,
 				PrivateKeyPEM: "test-private-key-pem",
 			},
+			CLIAuth: api.CLIAuthConfig{
+				WorkOSAPIKey:     "",
+				WorkOSAPIBaseURL: "",
+				DashboardBaseURL: "",
+				SigningSecrets:   nil,
+			},
 		}
 
 		// Start API server in goroutine

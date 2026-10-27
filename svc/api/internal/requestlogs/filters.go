@@ -1,6 +1,7 @@
 // Package requestlogs holds the steps that every endpoint reading the Unkey
-// API request logs shares, such as turning the OpenAPI filters into the
-// filters of the logs store.
+// API request logs shares: the retention bound, the OpenAPI filters as
+// filters of the logs store, and the mapping of ClickHouse errors to API
+// errors.
 package requestlogs
 
 import (

@@ -100,10 +100,12 @@ const nextConfig = {
   ...(uploadSentrySourceMaps ? {} : { productionBrowserSourceMaps: false }),
 
   poweredByHeader: false,
-  webpack: (config) => {
-    config.cache = Object.freeze({
-      type: "memory",
-    });
+  webpack: (config, { dev }) => {
+    if (!dev) {
+      config.cache = Object.freeze({
+        type: "memory",
+      });
+    }
     return config;
   },
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/id"],

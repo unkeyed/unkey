@@ -1,5 +1,12 @@
 import { projectsCatalogue } from "./catalogue.deploy";
-import { flagsRows, githubRows, limitsRows, rootKeyRows, usageRows } from "./catalogue.rows";
+import {
+  flagsRows,
+  githubRows,
+  limitsRows,
+  requestLogRows,
+  rootKeyRows,
+  usageRows,
+} from "./catalogue.rows";
 import {
   ACTIONS,
   type ActionGrant,
@@ -42,5 +49,6 @@ export const workspaceCatalogue: ScopeCatalogue = {
     { id: "limits", label: "Limits", rows: limitsRows() },
     { id: "usage", label: "Usage", rows: usageRows() },
     { id: "flags", label: "Flags", rows: flagsRows() },
+    { id: "logs", label: "Logs", rows: requestLogRows() },
   ],
 };

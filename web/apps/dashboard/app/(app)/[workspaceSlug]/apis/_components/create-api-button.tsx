@@ -70,7 +70,7 @@ export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
 
   return (
     <>
-      <Button size="md" variant="primary" onClick={() => setIsOpen(true)}>
+      <Button size="sm" variant="primary" onClick={() => setIsOpen(true)}>
         <IconPlusOutline18 />
         Create keyspace
       </Button>

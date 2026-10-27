@@ -7,6 +7,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 )
 
 // EnsureWorkspaceCanDeploy refuses a workspace with no Compute plan or one
@@ -49,12 +50,7 @@ func FindDeployment(ctx context.Context, database db.Database, workspaceID, depl
 	}
 
 	if db.IsNotFound(err) || dep.WorkspaceID != workspaceID {
-		return db.FindDeploymentWithEnvironmentRow{}, fault.New(
-			"deployment not found",
-			fault.Code(codes.Data.Deployment.NotFound.URN()),
-			fault.Internal("deployment not found or belongs to another workspace"),
-			fault.Public("The requested deployment does not exist."),
-		)
+		return db.FindDeploymentWithEnvironmentRow{}, apierrors.NotFound(codes.Data.Deployment.NotFound.URN())
 	}
 
 	return dep, nil

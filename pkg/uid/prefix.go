@@ -31,6 +31,7 @@ const (
 	PortalAccessTokenPrefix  Prefix = "pat"
 	PortalSessionPrefix      Prefix = "ps"
 	PortalPrefix             Prefix = "prt"
+	PortalDomainPrefix       Prefix = "pdom"
 
 	// Control plane prefixes
 	OpenApiSpecPrefix         Prefix = "oas"
@@ -46,4 +47,9 @@ const (
 	PolicyPrefix              Prefix = "pol"
 
 	AutoscalingPolicyPrefix Prefix = "asp"
+
+	// CLI device login. The authorization id is the poll secret. The session id
+	// is the non-secret handle shown in the dashboard.
+	DeviceAuthorizationPrefix Prefix = "daz"
+	CLISessionPrefix          Prefix = "clis"
 )

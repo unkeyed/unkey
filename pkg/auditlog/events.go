@@ -76,6 +76,9 @@ const (
 	PortalSessionCreateEvent   AuditLogEvent = "portal.session.create"
 	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
 	PortalSessionRevokeEvent   AuditLogEvent = "portal.session.revoke"
+	PortalDomainCreateEvent    AuditLogEvent = "portal.domain.create"
+	PortalDomainDeleteEvent    AuditLogEvent = "portal.domain.delete"
+	PortalDomainVerifyEvent    AuditLogEvent = "portal.domain.verify"
 
 	// Deployment events
 	DeploymentCreateEvent    AuditLogEvent = "deployment.create"
@@ -107,4 +110,9 @@ const (
 	DomainCreateEvent AuditLogEvent = "domain.create"
 	DomainDeleteEvent AuditLogEvent = "domain.delete"
 	DomainVerifyEvent AuditLogEvent = "domain.verify"
+
+	// CLI session events
+	CLISessionCreateEvent  AuditLogEvent = "cli_session.create"
+	CLISessionRefreshEvent AuditLogEvent = "cli_session.refresh"
+	CLISessionRevokeEvent  AuditLogEvent = "cli_session.revoke"
 )

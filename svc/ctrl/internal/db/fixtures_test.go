@@ -1,15 +1,39 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
+
+func TestBeginRollbackTx_CleansUpAfterContextCancellation(t *testing.T) {
+	database := openTestDatabase(t)
+	database.SetMaxOpenConns(1)
+	workspaceID := uid.New(uid.WorkspacePrefix)
+
+	t.Run("automatic rollback finishes before cleanup", func(t *testing.T) {
+		q := NewQueries(beginRollbackTx(t, database))
+		insertTestWorkspace(t, q, workspaceID, uid.DNS1035())
+		t.Cleanup(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			// Acquiring the only connection waits for the canceled transaction's rollback.
+			conn, err := database.Conn(ctx)
+			require.NoError(t, err)
+			require.NoError(t, conn.Close())
+		})
+	})
+
+	_, err := NewQueries(database).FindWorkspaceByID(t.Context(), workspaceID)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+}
 
 func openTestDatabase(t *testing.T) *sql.DB {
 	t.Helper()
@@ -23,7 +47,11 @@ func beginRollbackTx(t *testing.T, database *sql.DB) *sql.Tx {
 	t.Helper()
 	tx, err := database.BeginTx(t.Context(), nil)
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, tx.Rollback()) })
+	t.Cleanup(func() {
+		if err := tx.Rollback(); err != sql.ErrTxDone {
+			require.NoError(t, err)
+		}
+	})
 	return tx
 }
 

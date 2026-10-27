@@ -81,11 +81,12 @@ func (h *Harness) ClusterService(clusterKey *ctrlv1.ClusterKey, bearer string) *
 	h.t.Helper()
 
 	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
-		Fresh:    time.Minute,
-		Stale:    time.Minute,
-		MaxSize:  10,
-		Resource: "test_topology",
-		Clock:    clock.New(),
+		Fresh:     time.Minute,
+		Stale:     time.Minute,
+		MaxSize:   10,
+		Resource:  "test_topology",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	require.NoError(h.t, err)
 

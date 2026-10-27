@@ -172,8 +172,13 @@ export class Deployments extends ClientSDK {
   async listBuildLogs(
     request: components.V2DeploymentsListBuildLogsRequestBody,
     options?: RequestOptions,
-  ): Promise<components.V2DeploymentsListBuildLogsResponseBody> {
-    return unwrapAsync(deploymentsListBuildLogs(
+  ): Promise<
+    PageIterator<
+      operations.DeploymentsListBuildLogsResponse,
+      { cursor: string }
+    >
+  > {
+    return unwrapResultIterator(deploymentsListBuildLogs(
       this,
       request,
       options,

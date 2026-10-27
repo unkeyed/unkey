@@ -503,11 +503,12 @@ func Run(ctx context.Context, cfg Config) error {
 		clk = clock.New()
 	}
 	domainCache, domainCacheErr := cache.New(cache.Config[string, db.CustomDomain]{
-		Fresh:    5 * time.Minute,
-		Stale:    10 * time.Minute,
-		MaxSize:  10000,
-		Resource: "domains",
-		Clock:    clk,
+		Fresh:     5 * time.Minute,
+		Stale:     10 * time.Minute,
+		MaxSize:   10000,
+		Resource:  "domains",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if domainCacheErr != nil {
 		return fmt.Errorf("failed to create domain cache: %w", domainCacheErr)
@@ -557,6 +558,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:           database,
 		Vault:        vaultClient,
 		EmailDomain:  cfg.Acme.EmailDomain,
+		DirectoryURL: cfg.Acme.DirectoryURL,
 		DNSProvider:  dnsProvider,
 		HTTPProvider: httpProvider,
 		Heartbeat:    certHeartbeat,

@@ -1,0 +1,7 @@
+binary_name = "runsc"
+
+[runsc_config]
+platform = "systrap"
+directfs = "true"
+file-access = "exclusive"
+systemd-cgroup = "true"

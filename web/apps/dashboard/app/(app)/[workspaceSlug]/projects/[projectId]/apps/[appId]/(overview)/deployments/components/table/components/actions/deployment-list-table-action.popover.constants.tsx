@@ -3,6 +3,8 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, DeploymentSummary, Environment } from "@/lib/collections";
+import { hasBuildLogs } from "@/lib/collections/deploy/deployments";
+import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
@@ -45,6 +47,7 @@ export const DeploymentListTableActions = ({
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
+  const appV2 = useFlag("appV2");
 
   const currentDeploymentId = currentDeployment?.id ?? null;
   const hasCurrentDeployment = currentDeployment !== undefined;
@@ -156,27 +159,33 @@ export const DeploymentListTableActions = ({
           );
         },
       },
-      {
-        id: "build-steps",
-        label: "Go to build logs",
-        icon: <IconHammer2Outline18 className="size-3.5" />,
-        onClick: () => {
-          router.push(
-            routes.projects.apps.deployment({
-              workspaceSlug: workspace.slug,
-              projectId: selectedDeployment.projectId,
-              appId: selectedDeployment.appId,
-              deploymentId: selectedDeployment.id,
-              build: true,
-            }),
-          );
-        },
-      },
+      ...(appV2 && !hasBuildLogs(selectedDeployment)
+        ? []
+        : [
+            {
+              id: "build-steps",
+              label: "Go to build logs",
+              icon: <IconHammer2Outline18 className="size-3.5" />,
+              onClick: () => {
+                router.push(
+                  routes.projects.apps.deployment({
+                    workspaceSlug: workspace.slug,
+                    projectId: selectedDeployment.projectId,
+                    appId: selectedDeployment.appId,
+                    deploymentId: selectedDeployment.id,
+                    build: true,
+                  }),
+                );
+              },
+            },
+          ]),
     ];
   }, [
     selectedDeployment.id,
     selectedDeployment.status,
     selectedDeployment.desiredState,
+    selectedDeployment.source,
+    appV2,
     currentDeploymentId,
     isRolledBack,
     environment?.slug,
