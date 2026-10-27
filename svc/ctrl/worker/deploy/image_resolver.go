@@ -11,7 +11,7 @@ import (
 )
 
 type ociImageResolver struct {
-	internalRepository name.Repository
+	internalRepository *name.Repository
 	internalAuth       authn.Authenticator
 	publicTransport    http.RoundTripper
 	internalTransport  http.RoundTripper
@@ -22,7 +22,7 @@ type ociImageResolver struct {
 // build-registry credentials for historical Unkey-built images.
 func NewImageResolver(config RegistryConfig) (ImageResolver, error) {
 	resolver := &ociImageResolver{
-		internalRepository: name.Repository{Registry: name.Registry{}},
+		internalRepository: nil,
 		internalAuth:       authn.Anonymous,
 		publicTransport:    newRegistryTransport(""),
 		internalTransport:  nil,
@@ -36,7 +36,7 @@ func NewImageResolver(config RegistryConfig) (ImageResolver, error) {
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("invalid internal registry repository"))
 	}
-	resolver.internalRepository = repository
+	resolver.internalRepository = &repository
 	resolver.internalTransport = newRegistryTransport(repository.RegistryStr())
 	if config.Username != "" || config.Password != "" {
 		resolver.internalAuth = authn.FromConfig(authn.AuthConfig{
@@ -58,7 +58,7 @@ func (r *ociImageResolver) Resolve(ctx context.Context, imageReference string) (
 
 	authenticator := authn.Anonymous
 	transport := r.publicTransport
-	if r.internalRepository.Name() != "" && sameRepository(reference.Context(), r.internalRepository) {
+	if r.internalRepository != nil && sameRepository(reference.Context(), *r.internalRepository) {
 		authenticator = r.internalAuth
 		transport = r.internalTransport
 	}

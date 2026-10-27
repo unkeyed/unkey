@@ -38,7 +38,7 @@ func TestPublicImageResolverPinsImageIndex(t *testing.T) {
 	require.NoError(t, err)
 
 	resolver := &ociImageResolver{
-		internalRepository: name.Repository{Registry: name.Registry{}},
+		internalRepository: nil,
 		internalAuth:       authn.Anonymous,
 		options:            []remote.Option{remote.WithTransport(transport)},
 	}
@@ -61,7 +61,7 @@ func TestImageResolverKeepsPersistedDigestStableAfterTagMoves(t *testing.T) {
 	require.NoError(t, remote.Write(tag, firstImage, options...))
 
 	resolver := &ociImageResolver{
-		internalRepository: name.Repository{Registry: name.Registry{}},
+		internalRepository: nil,
 		internalAuth:       authn.Anonymous,
 		options:            options,
 	}

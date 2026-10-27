@@ -177,18 +177,21 @@ func (w *Workflow) buildImage(ctx restate.Context, req *hydrav1.DeployRequest, d
 		)
 	}
 	// The push wrote a tag, and a tag can be re-pointed. Storing the digest the
-	// tag names now pins what this row ran, and lets a redeploy accept it as an
-	// image this project owns without parsing the tag.
-	resolvedImage, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+	// tag names pins what this row ran and lets a redeploy recognise the image
+	// as this project's. A registry hiccup falls back to the tag the build just
+	// pushed, which is still this project's, rather than failing a good build.
+	resolvedImage, _ := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 		digest, resolveErr := w.imageResolver.Resolve(runCtx, build.ImageName)
 		if resolveErr != nil {
+			logger.Warn("could not resolve the built image digest, recording the tag",
+				"deployment_id", deployment.ID,
+				"image", build.ImageName,
+				"error", resolveErr,
+			)
 			return build.ImageName, nil
 		}
 		return digest, nil
 	}, restate.WithName("resolve built image digest"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return fault.Wrap(err, fault.Public("Unable to record the built image."))
-	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentBuildID(runCtx, db.UpdateDeploymentBuildIDParams{
