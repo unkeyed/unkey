@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+#MISE description="Trial a pinned Rask build with cold and warm Go test results"
+set -euo pipefail
+
+results="${1:?usage: test-rask-trial <results-directory> <binary-directory> <none|1/2|2/2> [packages...]}"
+binary_dir="$(realpath "${2:?binary directory required}")"
+shard="${3:?shard required}"
+shift 3
+if [ "$#" -eq 0 ]; then
+  set -- ./...
+fi
+shard_args=()
+case "$shard" in
+  none) ;;
+  1/2|2/2) shard_args=(--shard "$shard") ;;
+  *) echo "Expected none, 1/2, or 2/2" >&2; exit 1 ;;
+esac
+test -x "$binary_dir/rask"
+revision="$(cat "$binary_dir/revision.txt")"
+[[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+binary_sha256="$(sha256sum "$binary_dir/rask" | cut -d' ' -f1)"
+mkdir -p "$(dirname "$results")"
+mkdir "$results"
+
+for name in "${!RASK_@}"; do
+  unset "$name"
+done
+unset UNKEY_ROOT_KEY UNKEY_API_BASE_URL UNKEY_TEST_KEEP_RESTATE GOFLAGS GOCACHEPROG
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/unkey-rask-trial.XXXXXX")"
+export RASK_CACHE_DIR="$scratch/cache"
+export RASK_CONFIG="$scratch/no-config.json"
+export UNKEY_TEST_CONTAINER_SCOPE="$scratch"
+export GOMAXPROCS="$(nproc)"
+export NO_COLOR=1
+export PATH="$binary_dir:$PATH"
+test "$(command -v rask)" = "$binary_dir/rask"
+
+go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' "$@" \
+  | LC_ALL=C sort > "$results/candidates.txt"
+test -s "$results/candidates.txt"
+
+for phase in cold warm; do
+  started="$(date +%s%N)"
+  status=0
+  .mise/tasks/test --concurrency 7 "${shard_args[@]}" "$@" 2>&1 | tee "$scratch/$phase.log" || status=$?
+  finished="$(date +%s%N)"
+  jq -n --argjson started "$started" --argjson finished "$finished" --argjson status "$status" \
+    --argjson cpuCount "$GOMAXPROCS" --arg shard "$shard" --arg revision "$revision" \
+    --arg binarySha256 "$binary_sha256" --arg sourceRevision "$(git rev-parse HEAD)" \
+    --arg goVersion "$(go version)" --arg summary "$(sed -n '/^Finished /p' "$scratch/$phase.log")" \
+    '{elapsedSeconds: (($finished - $started) / 1000000000), exitCode: $status,
+      cpuCount: $cpuCount, concurrency: 7, shard: $shard, raskRevision: $revision,
+      binarySha256: $binarySha256, sourceRevision: $sourceRevision, goVersion: $goVersion,
+      summary: $summary}' > "$results/$phase.json"
+  if [ "$status" -ne 0 ]; then
+    exit "$status"
+  fi
+  find "$RASK_CACHE_DIR" -type f -name '*.json' -exec cat {} + \
+    | jq -s 'sort_by(.ImportPath)' > "$results/$phase-packages.json"
+done

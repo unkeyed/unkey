@@ -1,0 +1,100 @@
+name: Rask Test Sharding Trial
+on:
+  push:
+    branches: [trial/rask-sharding]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rask-test-trial-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  RASK_REVISION: 8b44e056dfbbe50cf95caead293432a4111512e5
+jobs:
+  build:
+    name: Build pinned Rask PR
+    runs-on: depot-ubuntu-24.04-8
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          repository: Flo4604/rask
+          ref: ${{ env.RASK_REVISION }}
+          path: .cache/rask-source
+          persist-credentials: false
+      - name: Build trial binary
+        run: |
+          test "$(git -C .cache/rask-source rev-parse HEAD)" = "$RASK_REVISION"
+          mkdir -p bin/rask-pr
+          mise exec -- go -C .cache/rask-source build -trimpath -o "$PWD/bin/rask-pr/rask" .
+          printf '%s\n' "$RASK_REVISION" > bin/rask-pr/revision.txt
+          mise exec -- go version -m bin/rask-pr/rask
+      - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: rask-pr
+          path: bin/rask-pr/
+          if-no-files-found: error
+          retention-days: 7
+  test:
+    name: Go ${{ matrix.name }}
+    needs: build
+    runs-on: depot-ubuntu-24.04-8
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: baseline
+            shard: none
+          - name: shard-1
+            shard: 1/2
+          - name: shard-2
+            shard: 2/2
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: rask-pr
+          path: bin/rask-pr
+      - name: Run cold and warm Go tests
+        run: |
+          chmod +x bin/rask-pr/rask
+          mise run test-rask-trial "test-results/${{ matrix.name }}" bin/rask-pr '${{ matrix.shard }}'
+      - name: Upload trial results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: results-${{ matrix.name }}
+          path: test-results/${{ matrix.name }}/
+          if-no-files-found: error
+          retention-days: 7
+  compare:
+    name: Verify Go coverage and cache reuse
+    needs: test
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          pattern: results-*
+          path: test-results
+      - name: Verify assignments and outcomes
+        run: mise run verify-rask-trial test-results

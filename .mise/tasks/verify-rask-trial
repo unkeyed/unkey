@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+#MISE description="Verify native Rask shard coverage, outcomes, and cache hits"
+set -euo pipefail
+
+node --input-type=module - "${1:?usage: verify-rask-trial <artifacts-directory>}" <<'JS'
+import assert from "node:assert/strict";
+import { appendFileSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const root = process.argv[2];
+const unique = (values, label) => {
+  assert.equal(new Set(values).size, values.length, `${label}: duplicate packages`);
+  return [...values].sort();
+};
+const outcomes = (packages) => packages.map(({ ImportPath, Passed, Ignored }) =>
+  JSON.stringify([ImportPath, Passed, Ignored])).sort();
+
+function readRun(name, shard) {
+  const directory = join(root, `results-${name}`);
+  const readJSON = (file) => JSON.parse(readFileSync(join(directory, file), "utf8"));
+  const candidates = unique(readFileSync(join(directory, "candidates.txt"), "utf8")
+    .trim().split("\n").filter(Boolean), `${name} candidates`);
+  assert.ok(candidates.length > 0, `${name}: no candidates`);
+  const assigned = shard === "none" ? candidates : candidates.filter((_, index) =>
+    index % 2 === Number(shard[0]) - 1);
+  const phases = {};
+  for (const phase of ["cold", "warm"]) {
+    const run = readJSON(`${phase}.json`);
+    const packages = readJSON(`${phase}-packages.json`);
+    assert.equal(run.exitCode, 0, `${name} ${phase}: test command failed`);
+    assert.equal(run.shard, shard, `${name}: wrong shard`);
+    assert.ok(Number.isFinite(run.elapsedSeconds) && run.elapsedSeconds > 0, `${name}: invalid duration`);
+    assert.ok(Number.isInteger(run.cpuCount) && run.cpuCount > 0, `${name}: invalid CPU count`);
+    assert.equal(run.concurrency, 7, `${name}: unexpected worker count`);
+    assert.match(run.binarySha256, /^[0-9a-f]{64}$/);
+    assert.match(run.raskRevision, /^[0-9a-f]{40}$/);
+    assert.match(run.sourceRevision, /^[0-9a-f]{40}$/);
+    assert.ok(run.goVersion.startsWith("go version "), `${name}: missing Go version`);
+    assert.deepEqual(unique(packages.map((entry) => entry.ImportPath), name), assigned,
+      `${name} ${phase}: missing or unexpected packages`);
+    for (const entry of packages) {
+      assert.ok(Number.isInteger(entry.Passed) && entry.Passed >= 0, `${name}: invalid pass count`);
+      assert.ok(Number.isInteger(entry.Ignored) && entry.Ignored >= 0, `${name}: invalid skip count`);
+      assert.ok(Number.isFinite(entry.ElapsedSeconds) && entry.ElapsedSeconds >= 0, `${name}: invalid package duration`);
+      assert.ok(Number.isFinite(Date.parse(entry.CreatedAt)), `${name}: missing cache creation time`);
+    }
+    const summary = run.summary.match(/^Finished (\d+) suites?, (\d+) tests?: (\d+) passed; (\d+) failed; (\d+) ignored in [^,\n]+(?:, (\d+) cached)?$/);
+    assert.ok(summary, `${name} ${phase}: missing successful Rask summary`);
+    const passed = packages.reduce((sum, entry) => sum + entry.Passed, 0);
+    const ignored = packages.reduce((sum, entry) => sum + entry.Ignored, 0);
+    assert.deepEqual(summary.slice(1, 6).map(Number), [assigned.length, passed + ignored, passed, 0, ignored],
+      `${name} ${phase}: summary and package results disagree`);
+    assert.equal(Number(summary[6] ?? 0), phase === "cold" ? 0 : assigned.length,
+      `${name} ${phase}: unexpected cache hits`);
+    phases[phase] = { run, packages };
+  }
+  const { elapsedSeconds: elapsedCold, summary: summaryCold, ...metadataCold } = phases.cold.run;
+  const { elapsedSeconds: elapsedWarm, summary: summaryWarm, ...metadataWarm } = phases.warm.run;
+  assert.deepEqual(metadataWarm, metadataCold, `${name}: run configuration changed`);
+  assert.deepEqual(phases.warm.packages, phases.cold.packages, `${name}: warm run changed cached results`);
+  return { candidates, assigned, ...phases };
+}
+
+const baseline = readRun("baseline", "none");
+const shards = [readRun("shard-1", "1/2"), readRun("shard-2", "2/2")];
+assert.ok(baseline.cold.packages.some((entry) => entry.Passed > 0), "no passing tests executed");
+for (const shard of shards) {
+  assert.deepEqual(shard.candidates, baseline.candidates, "candidate lists differ");
+  for (const key of ["cpuCount", "concurrency", "raskRevision", "binarySha256", "sourceRevision", "goVersion"]) {
+    assert.equal(shard.cold.run[key], baseline.cold.run[key], `${key} differs between jobs`);
+  }
+}
+assert.deepEqual(unique(shards.flatMap((shard) => shard.assigned), "combined shards"), baseline.assigned);
+assert.deepEqual(outcomes(shards.flatMap((shard) => shard.cold.packages)), outcomes(baseline.cold.packages),
+  "per-package pass/skip totals differ between baseline and shards");
+
+const seconds = (value) => `${value.toFixed(2)}s`;
+const summary = [
+  "## Native Rask sharding trial",
+  "",
+  `Verified ${baseline.assigned.length} packages exactly once across two shards, with matching per-package pass/skip totals. Cold runs had zero cache hits; every package hit the local cache on its warm rerun.`,
+  "",
+  `Rask revision: ${baseline.cold.run.raskRevision}. Unkey revision: ${baseline.cold.run.sourceRevision}.`,
+  "",
+  "| Result cache | One runner | Two runners (slowest shard) | Two runners (aggregate) |",
+  "| --- | --- | --- | --- |",
+  ...["cold", "warm"].map((phase) => {
+    const durations = shards.map((shard) => shard[phase].run.elapsedSeconds);
+    return `| ${phase} | ${seconds(baseline[phase].run.elapsedSeconds)} | ${seconds(Math.max(...durations))} | ${seconds(durations.reduce((sum, value) => sum + value, 0))} |`;
+  }),
+  "",
+  `One sample per configuration, ${baseline.cold.run.cpuCount} CPUs and 7 suite workers per runner. Splitting doubles allocated runner capacity. This compares the same PR build with and without sharding, not released Rask.`,
+  "",
+  "Timings include discovery, compilation, test execution, container startup and cleanup. Tool setup, binary build and artifact transfer are excluded. Warm runs reuse test results, not execute the tests again. Remote caching and timing-based balancing are disabled.",
+  "",
+  "CI selects the default ./... Go suite, without extra build tags. External API smoke credentials are removed. Frontend tests are not included.",
+  "",
+].join("\n");
+console.log(summary);
+if (process.env.GITHUB_STEP_SUMMARY) {
+  appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+}
+JS
