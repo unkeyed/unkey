@@ -14,8 +14,6 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import { EmailTab } from "../../settings/notifications/email-tab";
-import { PreviewNotice } from "../../settings/notifications/notification-ui";
-import { NotificationPreviewProvider } from "../../settings/notifications/preview-context";
 import { AccountUnavailable } from "../account-unavailable";
 
 export function PersonalNotifications() {
@@ -38,13 +36,10 @@ export function PersonalNotifications() {
         </PageHeaderContent>
       </PageHeader>
       <PageBody className="max-w-[920px] gap-6">
-        <PreviewNotice />
         {user?.impersonator ? (
           <AccountUnavailable reason="impersonation" />
         ) : (
-          <NotificationPreviewProvider>
-            <EmailTab />
-          </NotificationPreviewProvider>
+          <EmailTab key={`${workspace.id}:${user?.id}`} />
         )}
       </PageBody>
     </PageContainer>

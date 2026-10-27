@@ -1,7 +1,10 @@
 "use client";
 
+import { useNotificationRecipients } from "@/lib/notifications/use-notifications";
+import { getErrorMessage } from "@/lib/unkey-client";
 import {
   Badge,
+  Button,
   FormSelect,
   SlidePanel,
   SlidePanelCloseButton,
@@ -11,21 +14,8 @@ import {
   SlidePanelTitle,
 } from "@unkey/ui";
 import { useState } from "react";
-import { type RouteReason, resolveRecipients, wasDeduplicated } from "./notification-model";
-import { NOTIFICATION_TYPES, findNotificationType } from "./notification-types";
+import { useNotifications } from "./notification-context";
 import { ChannelIcon, useResourceNames } from "./notification-ui";
-import { useNotificationPreview } from "./preview-context";
-import { isSampleMember } from "./preview-store";
-
-const ANY = "any";
-
-function Reasons({ reasons }: { reasons: ReadonlyArray<RouteReason> }) {
-  return (
-    <span className="text-xs text-gray-9">
-      {reasons.map((reason) => `${reason.ruleName} (${reason.via.join(", ")})`).join(" · ")}
-    </span>
-  );
-}
 
 export function RoutingPanel({
   isOpen,
@@ -36,35 +26,27 @@ export function RoutingPanel({
   onClose: () => void;
   initialType?: string;
 }) {
-  const preview = useNotificationPreview();
+  const { types, destinations, currentUserId } = useNotifications();
   const resources = useResourceNames();
-  const [notificationType, setNotificationType] = useState(
-    initialType ?? NOTIFICATION_TYPES[0].type,
-  );
-  const [projectId, setProjectId] = useState(ANY);
-  const [appId, setAppId] = useState(ANY);
-  const [environmentId, setEnvironmentId] = useState(ANY);
-
-  const definition = findNotificationType(notificationType);
+  const [notificationType, setNotificationType] = useState(initialType ?? types[0]?.type ?? "");
+  const [projectId, setProjectId] = useState("");
+  const [appId, setAppId] = useState("");
+  const [environmentId, setEnvironmentId] = useState("");
   const project = resources.projects.find((candidate) => candidate.id === projectId);
-  const scoped = definition?.resourceScoped ?? false;
-  const resolved = resolveRecipients(preview, {
-    notificationType,
-    resource: scoped
-      ? {
-          projectId: projectId === ANY ? undefined : projectId,
-          appId: appId === ANY ? undefined : appId,
-          environmentId: environmentId === ANY ? undefined : environmentId,
-        }
-      : {},
-  });
-  const matchedRules = new Set(
-    [...resolved.email, ...resolved.destinations].flatMap((recipient) =>
-      recipient.reasons.map((reason) => reason.ruleId),
-    ),
-  ).size;
-  const sentEmails = resolved.email.filter((recipient) => recipient.status === "send").length;
-  const sentPosts = resolved.destinations.filter((recipient) => recipient.status === "send").length;
+  const app = project?.apps.find((candidate) => candidate.id === appId);
+  const environment = resources.environments.find(
+    (candidate) => candidate.id === environmentId && candidate.appId === appId,
+  );
+  const complete = Boolean(
+    types.some((type) => type.type === notificationType) && project && app && environment,
+  );
+  const recipients = useNotificationRecipients(
+    isOpen && complete && !resources.isError
+      ? { notificationType, projectId, appId, environmentId }
+      : null,
+  );
+  const eligible = recipients.data?.filter((recipient) => !recipient.reason) ?? [];
+  const emailCount = eligible.filter((recipient) => recipient.channel === "email").length;
 
   return (
     <SlidePanel isOpen={isOpen} onClose={onClose} widthClassName="w-160">
@@ -72,7 +54,7 @@ export function RoutingPanel({
         <div className="flex flex-col gap-1">
           <SlidePanelTitle>Preview recipients</SlidePanelTitle>
           <SlidePanelDescription className="text-xs text-gray-9">
-            See who would hear about an event. Nothing is sent.
+            Check saved routes for a specific environment. Nothing is sent.
           </SlidePanelDescription>
         </div>
         <SlidePanelCloseButton />
@@ -84,124 +66,134 @@ export function RoutingPanel({
               label="Event"
               value={notificationType}
               onValueChange={setNotificationType}
-              options={NOTIFICATION_TYPES.map((type) => ({
+              options={types.map((type) => ({
                 value: type.type,
                 label: `${type.label} (${type.type})`,
               }))}
             />
-            {scoped ? (
-              <div className="grid grid-cols-3 gap-3">
-                <FormSelect
-                  label="Project"
-                  value={projectId}
-                  onValueChange={(next) => {
-                    setProjectId(next);
-                    setAppId(ANY);
-                    setEnvironmentId(ANY);
-                  }}
-                  options={[
-                    { value: ANY, label: "Any project" },
-                    ...resources.projects.map((p) => ({ value: p.id, label: p.name })),
-                  ]}
-                />
-                <FormSelect
-                  label="App"
-                  value={appId}
-                  disabled={!project}
-                  onValueChange={(next) => {
-                    setAppId(next);
-                    setEnvironmentId(ANY);
-                  }}
-                  options={[
-                    { value: ANY, label: "Any app" },
-                    ...(project?.apps ?? []).map((app) => ({ value: app.id, label: app.name })),
-                  ]}
-                />
-                <FormSelect
-                  label="Environment"
-                  value={environmentId}
-                  disabled={appId === ANY}
-                  onValueChange={setEnvironmentId}
-                  options={[
-                    { value: ANY, label: "Any environment" },
-                    ...resources.environments
-                      .filter((env) => env.appId === appId)
-                      .map((env) => ({ value: env.id, label: env.slug })),
-                  ]}
-                />
-              </div>
-            ) : null}
+            <div className="grid grid-cols-3 gap-3">
+              <FormSelect
+                label="Project"
+                placeholder="Choose project"
+                value={projectId}
+                disabled={resources.isLoading || resources.isError}
+                onValueChange={(next) => {
+                  setProjectId(next);
+                  setAppId("");
+                  setEnvironmentId("");
+                }}
+                options={resources.projects.map((item) => ({ value: item.id, label: item.name }))}
+              />
+              <FormSelect
+                label="App"
+                placeholder="Choose app"
+                value={appId}
+                disabled={!project || resources.isLoading || resources.isError}
+                onValueChange={(next) => {
+                  setAppId(next);
+                  setEnvironmentId("");
+                }}
+                options={(project?.apps ?? []).map((item) => ({
+                  value: item.id,
+                  label: item.name,
+                }))}
+              />
+              <FormSelect
+                label="Environment"
+                placeholder="Choose environment"
+                value={environmentId}
+                disabled={!app || resources.isLoading || resources.isError}
+                onValueChange={setEnvironmentId}
+                options={resources.environments
+                  .filter((item) => item.appId === appId)
+                  .map((item) => ({ value: item.id, label: item.slug }))}
+              />
+            </div>
           </div>
-
-          <output aria-live="polite" className="text-sm text-gray-12">
-            {matchedRules === 0
-              ? "No rule matches. Nobody would be notified."
-              : `${matchedRules} ${matchedRules === 1 ? "rule matches" : "rules match"}. ${sentEmails} ${sentEmails === 1 ? "person gets" : "people get"} one email each, ${sentPosts} ${sentPosts === 1 ? "destination gets" : "destinations get"} one post each.`}
-          </output>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs font-medium uppercase tracking-wide text-gray-9">
-              Email ({resolved.email.length})
-            </h3>
-            {resolved.email.length === 0 ? (
-              <p className="text-xs text-gray-9">No email recipients.</p>
-            ) : (
-              <ul className="divide-y divide-grayA-4 rounded-lg border bg-raised">
-                {resolved.email.map((recipient) => (
-                  <li key={recipient.member.userId} className="flex items-start gap-3 px-4 py-3">
-                    <ChannelIcon channel="email" className="mt-0.5 size-4 text-gray-11" />
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="flex items-center gap-2 text-sm text-gray-12">
-                        {recipient.member.name}
-                        {recipient.member.userId === preview.currentUserId ? (
-                          <span className="text-xs text-gray-9">(you)</span>
-                        ) : null}
-                        {isSampleMember(recipient.member.userId) ? (
-                          <Badge size="sm">Sample</Badge>
-                        ) : null}
-                      </span>
-                      <span className="text-xs text-gray-10">{recipient.member.email}</span>
-                      <Reasons reasons={recipient.reasons} />
-                    </div>
-                    {recipient.status === "opted_out" ? (
-                      <Badge variant="secondary">Turned off email</Badge>
-                    ) : wasDeduplicated(recipient.reasons) ? (
-                      <Badge variant="primary">Deduplicated</Badge>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs font-medium uppercase tracking-wide text-gray-9">
-              Destinations ({resolved.destinations.length})
-            </h3>
-            {resolved.destinations.length === 0 ? (
-              <p className="text-xs text-gray-9">No destinations.</p>
-            ) : (
-              <ul className="divide-y divide-grayA-4 rounded-lg border bg-raised">
-                {resolved.destinations.map((recipient) => (
-                  <li key={recipient.destination.id} className="flex items-start gap-3 px-4 py-3">
-                    <ChannelIcon
-                      channel={recipient.destination.config.channel}
-                      className="mt-0.5 size-4 text-gray-11"
-                    />
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-sm text-gray-12">{recipient.destination.name}</span>
-                      <Reasons reasons={recipient.reasons} />
-                    </div>
-                    {recipient.status === "paused" ? (
-                      <Badge variant="secondary">Paused</Badge>
-                    ) : wasDeduplicated(recipient.reasons) ? (
-                      <Badge variant="primary">Deduplicated</Badge>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {resources.isError ? (
+            <p role="alert" className="text-xs text-error-11">
+              Couldn't load resources. Refresh to try again.
+            </p>
+          ) : resources.isLoading ? (
+            <output className="text-xs text-gray-11">Loading resources…</output>
+          ) : complete ? (
+            recipients.isError ? (
+              <div className="space-y-2">
+                <p role="alert" className="text-xs text-error-11">
+                  {getErrorMessage(recipients.error, "Couldn't preview recipients.")}
+                </p>
+                <Button variant="outline" size="sm" onClick={() => recipients.refetch()}>
+                  Retry
+                </Button>
+              </div>
+            ) : recipients.isFetching ? (
+              <output className="text-sm text-gray-11">Checking recipients…</output>
+            ) : recipients.data ? (
+              <>
+                <output aria-live="polite" className="text-sm text-gray-12">
+                  {eligible.length === 0
+                    ? "No eligible recipients for this event."
+                    : `${emailCount} email ${emailCount === 1 ? "recipient" : "recipients"} and ${eligible.length - emailCount} shared ${eligible.length - emailCount === 1 ? "destination" : "destinations"} eligible.`}
+                </output>
+                {(["Email", "Destinations"] as const).map((section) => {
+                  const items = recipients.data.filter(
+                    (recipient) => (recipient.channel === "email") === (section === "Email"),
+                  );
+                  return (
+                    <section key={section} className="flex flex-col gap-2">
+                      <h3 className="text-xs font-medium uppercase tracking-wide text-gray-9">
+                        {section} ({items.length})
+                      </h3>
+                      {items.length === 0 ? (
+                        <p className="text-xs text-gray-9">None.</p>
+                      ) : (
+                        <ul className="divide-y divide-grayA-4 rounded-lg border bg-raised">
+                          {items.map((recipient) => {
+                            const destination = destinations.find(
+                              (item) => item.id === recipient.destinationId,
+                            );
+                            return (
+                              <li key={recipient.key} className="flex items-start gap-3 px-4 py-3">
+                                <ChannelIcon
+                                  channel={
+                                    recipient.channel === "email"
+                                      ? "email"
+                                      : (destination?.channel ?? "webhook")
+                                  }
+                                  className="mt-0.5 size-4 text-gray-11"
+                                />
+                                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                  <span className="text-sm text-gray-12">
+                                    {recipient.email ??
+                                      destination?.name ??
+                                      recipient.destinationId ??
+                                      recipient.key}
+                                    {recipient.userId === currentUserId ? (
+                                      <span className="ml-1 text-xs text-gray-9">(you)</span>
+                                    ) : null}
+                                  </span>
+                                  {recipient.reason ? (
+                                    <span className="text-xs text-gray-10">{recipient.reason}</span>
+                                  ) : null}
+                                </div>
+                                <Badge variant={recipient.reason ? "secondary" : "primary"}>
+                                  {recipient.reason ? "Ineligible" : "Eligible"}
+                                </Badge>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </section>
+                  );
+                })}
+              </>
+            ) : null
+          ) : (
+            <p className="text-sm text-gray-11">
+              Choose a project, app, and environment to preview recipients.
+            </p>
+          )}
         </div>
       </SlidePanelContent>
     </SlidePanel>

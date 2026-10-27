@@ -2,6 +2,13 @@
 
 import { Switch } from "@/components/ui/switch";
 import {
+  useNotificationCatalog,
+  useNotificationPreferences,
+  useNotificationSession,
+} from "@/lib/notifications/use-notifications";
+import { getErrorMessage } from "@/lib/unkey-client";
+import {
+  Button,
   SettingsGroup,
   SettingsGroupContent,
   SettingsGroupTitle,
@@ -13,19 +20,46 @@ import {
   SettingsRowTitle,
   toast,
 } from "@unkey/ui";
-import { emailRoutesForMember, isEmailEnabled } from "./notification-model";
-import { NOTIFICATION_CATEGORIES, NOTIFICATION_TYPES } from "./notification-types";
-import { useResourceNames } from "./notification-ui";
-import { useNotificationPreview } from "./preview-context";
+import { NOTIFICATION_CATEGORIES, supportedNotificationTypes } from "./notification-types";
 
 export function EmailTab() {
-  const preview = useNotificationPreview();
-  const { scopeLabel } = useResourceNames();
-  const me = preview.members.find((member) => member.userId === preview.currentUserId);
+  const session = useNotificationSession();
+  const catalog = useNotificationCatalog();
+  const { query, mutation } = useNotificationPreferences();
+  const me = session.user;
 
+  if (session.isLoading) {
+    return <output className="text-sm text-gray-11">Loading email preferences…</output>;
+  }
   if (!me) {
     return <p className="text-sm text-gray-11">Sign in to manage your email preferences.</p>;
   }
+  if (me.impersonator) {
+    return (
+      <p className="text-sm text-gray-11">Email preferences are unavailable while impersonating.</p>
+    );
+  }
+  if (!query.data || !catalog.data) {
+    const error = query.error ?? catalog.error;
+    return (
+      <div className="space-y-3 text-sm text-gray-11">
+        <p role={error ? "alert" : "status"}>
+          {error
+            ? getErrorMessage(error, "Couldn't load email preferences.")
+            : "Loading email preferences…"}
+        </p>
+        {error ? (
+          <Button
+            variant="outline"
+            onClick={() => Promise.all([query.refetch(), catalog.refetch()])}
+          >
+            Retry
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
+  const types = supportedNotificationTypes(catalog.data.eventTypes);
 
   return (
     <div className="flex flex-col gap-6">
@@ -44,69 +78,56 @@ export function EmailTab() {
           <SettingsGroup key={category}>
             <SettingsGroupTitle>{label}</SettingsGroupTitle>
             <SettingsGroupContent>
-              {NOTIFICATION_TYPES.filter((type) => type.category === category).map((type) => {
-                const routes = emailRoutesForMember(preview, me.userId, type.type);
-                const enabled = isEmailEnabled(preview.preferences, me.userId, type.type);
-                const switchId = `email-${type.type}`;
-                const descriptionId = `${switchId}-description`;
-                const statusId = `${switchId}-status`;
-                return (
-                  <SettingsRow key={type.type}>
-                    <SettingsRowHeader className="min-w-0">
-                      <SettingsRowTitle>
-                        <label htmlFor={switchId}>{type.label}</label>
-                      </SettingsRowTitle>
-                      <SettingsRowDescription id={descriptionId}>
-                        {type.description}
-                      </SettingsRowDescription>
-                    </SettingsRowHeader>
-                    <SettingsRowContent className="flex items-start justify-between gap-4">
-                      <div
-                        id={statusId}
-                        className="min-w-0 flex-1 space-y-2 break-words text-xs leading-5 text-gray-11"
-                      >
-                        <p className="font-medium text-gray-12">
-                          {enabled
-                            ? routes.length > 0
-                              ? "Email on for matching events"
-                              : "Inactive"
-                            : "Email off"}
-                        </p>
-                        {routes.length > 0 ? (
-                          <ul className="space-y-2">
-                            {routes.map(({ rule, via }) => (
-                              <li key={rule.id}>
-                                <p>{rule.name}</p>
-                                <p>
-                                  {via} ·{" "}
-                                  {type.resourceScoped ? scopeLabel(rule.scope) : "Workspace-wide"}
-                                </p>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p>No enabled rules include you.</p>
-                        )}
-                      </div>
-                      <Switch
-                        id={switchId}
-                        aria-describedby={`${descriptionId} ${statusId} email-preferences-description`}
-                        checked={enabled}
-                        onCheckedChange={(next) => {
-                          preview.actions.setEmailPreference({
-                            userId: me.userId,
-                            notificationType: type.type,
-                            enabled: next,
-                          });
-                          toast.success(
-                            `${type.label} email preference ${next ? "on" : "off"} (preview)`,
-                          );
-                        }}
-                      />
-                    </SettingsRowContent>
-                  </SettingsRow>
-                );
-              })}
+              {types
+                .filter((type) => type.category === category)
+                .map((type) => {
+                  const preference = query.data.find(
+                    (entry) => entry.notificationType === type.type,
+                  );
+                  const enabled = preference?.enabled ?? true;
+                  const switchId = `email-${type.type}`;
+                  const descriptionId = `${switchId}-description`;
+                  const statusId = `${switchId}-status`;
+                  return (
+                    <SettingsRow key={type.type}>
+                      <SettingsRowHeader className="min-w-0">
+                        <SettingsRowTitle>
+                          <label htmlFor={switchId}>{type.label}</label>
+                        </SettingsRowTitle>
+                        <SettingsRowDescription id={descriptionId}>
+                          {type.description}
+                        </SettingsRowDescription>
+                      </SettingsRowHeader>
+                      <SettingsRowContent className="flex items-start justify-between gap-4">
+                        <div
+                          id={statusId}
+                          className="min-w-0 flex-1 space-y-2 break-words text-xs leading-5 text-gray-11"
+                        >
+                          <p className="font-medium text-gray-12">
+                            {enabled ? "Email allowed for matching rules" : "Email off"}
+                          </p>
+                        </div>
+                        <Switch
+                          id={switchId}
+                          aria-describedby={`${descriptionId} ${statusId} email-preferences-description`}
+                          checked={enabled}
+                          disabled={mutation.isLoading || !preference}
+                          onCheckedChange={(next) => {
+                            mutation.mutate(
+                              { preferences: [{ notificationType: type.type, enabled: next }] },
+                              {
+                                onSuccess: () =>
+                                  toast.success(
+                                    `${type.label} email ${next ? "enabled" : "disabled"}`,
+                                  ),
+                              },
+                            );
+                          }}
+                        />
+                      </SettingsRowContent>
+                    </SettingsRow>
+                  );
+                })}
             </SettingsGroupContent>
           </SettingsGroup>
         ))}

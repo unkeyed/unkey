@@ -1,6 +1,7 @@
 "use client";
 
 import { Switch } from "@/components/ui/switch";
+import { notificationError } from "@/lib/notifications/use-notifications";
 import { IconPlusOutline12 } from "@unkey/icons";
 import {
   Badge,
@@ -18,23 +19,25 @@ import {
   SettingsGroupTitle,
   toast,
 } from "@unkey/ui";
+import { useState } from "react";
 import type { DestinationEditorTarget } from "./destination-panel";
+import { useNotifications } from "./notification-context";
 import { rulesUsingDestination } from "./notification-model";
 import { ChannelMedia, channelTitle } from "./notification-ui";
-import { useNotificationPreview } from "./preview-context";
 
 export function ConnectedChannels({
   onEditDestination,
 }: {
   onEditDestination: (target: DestinationEditorTarget) => void;
 }) {
-  const preview = useNotificationPreview();
+  const notifications = useNotifications();
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const addButton = (
     <Button
       type="button"
       variant="outline"
       size="sm"
-      disabled={!preview.canManage}
+      disabled={!notifications.canManage}
       onClick={() => onEditDestination({ mode: "create" })}
     >
       <IconPlusOutline12 />
@@ -54,7 +57,7 @@ export function ConnectedChannels({
         <div className="shrink-0">{addButton}</div>
       </ResourceListHeader>
 
-      {preview.destinations.length === 0 ? (
+      {notifications.destinations.length === 0 ? (
         <EmptyState>
           <EmptyStateHeader>
             <EmptyStateTitle>No connected channels</EmptyStateTitle>
@@ -67,8 +70,8 @@ export function ConnectedChannels({
       ) : (
         <ResourceListContent>
           <ResourceListBody>
-            {preview.destinations.map((destination) => {
-              const usedBy = rulesUsingDestination(preview.rules, destination.id).length;
+            {notifications.destinations.map((destination) => {
+              const usedBy = rulesUsingDestination(notifications.rules, destination.id).length;
               return (
                 <ResourceListItem
                   key={destination.id}
@@ -76,12 +79,12 @@ export function ConnectedChannels({
                 >
                   <button
                     type="button"
-                    disabled={!preview.canManage}
+                    disabled={!notifications.canManage || pendingId !== null}
                     onClick={() => onEditDestination({ mode: "edit", destination })}
                     aria-label={`Edit ${destination.name}`}
                     className="group flex min-w-0 flex-1 items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7 enabled:cursor-pointer"
                   >
-                    <ChannelMedia channel={destination.config.channel} />
+                    <ChannelMedia channel={destination.channel} />
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="flex items-center gap-2">
                         <span className="truncate group-hover:underline text-sm font-medium text-gray-12">
@@ -90,8 +93,8 @@ export function ConnectedChannels({
                         {destination.enabled ? null : <Badge variant="secondary">Paused</Badge>}
                       </span>
                       <span className="truncate text-xs text-gray-9">
-                        {channelTitle(destination.config.channel)} ·{" "}
-                        <span className="font-mono">{destination.config.urlHint}</span>
+                        {channelTitle(destination.channel)} ·{" "}
+                        <span className="font-mono">{destination.urlHint}</span>
                       </span>
                     </span>
                     <span className="hidden shrink-0 text-xs text-gray-11 sm:block">
@@ -103,15 +106,24 @@ export function ConnectedChannels({
                   <Switch
                     size="sm"
                     aria-label={`Deliver to ${destination.name}`}
-                    disabled={!preview.canManage}
+                    disabled={!notifications.canManage || pendingId !== null}
+                    aria-busy={pendingId === destination.id}
                     checked={destination.enabled}
-                    onCheckedChange={(enabled) => {
-                      preview.actions.setDestinationEnabled(destination.id, enabled);
-                      toast.success(
-                        enabled
-                          ? `${destination.name} resumed in preview`
-                          : `${destination.name} paused in preview`,
-                      );
+                    onCheckedChange={async (enabled) => {
+                      setPendingId(destination.id);
+                      try {
+                        await notifications.actions.updateDestination({
+                          destinationId: destination.id,
+                          enabled,
+                        });
+                        toast.success(
+                          enabled ? `${destination.name} resumed` : `${destination.name} paused`,
+                        );
+                      } catch (error) {
+                        notificationError(error, "Couldn't update destination");
+                      } finally {
+                        setPendingId(null);
+                      }
                     }}
                   />
                 </ResourceListItem>
@@ -120,9 +132,6 @@ export function ConnectedChannels({
           </ResourceListBody>
         </ResourceListContent>
       )}
-      <p className="text-xs text-gray-11">
-        Sample connections only. Delivery and connection tests are not available in this preview.
-      </p>
     </SettingsGroup>
   );
 }

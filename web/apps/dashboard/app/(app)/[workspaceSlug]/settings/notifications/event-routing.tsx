@@ -1,6 +1,7 @@
 "use client";
 
 import { Switch } from "@/components/ui/switch";
+import { notificationError } from "@/lib/notifications/use-notifications";
 import { Collapsible } from "@base-ui/react/collapsible";
 import { IconChevronDownOutline12, IconPlusOutline12 } from "@unkey/icons";
 import {
@@ -18,20 +19,14 @@ import {
 } from "@unkey/ui";
 import { parseAsString, useQueryStates } from "nuqs";
 import { useState } from "react";
-import {
-  type ResourceScope,
-  type Rule,
-  rulesCoveringResource,
-  typeHasSendableRecipients,
-} from "./notification-model";
+import { useNotifications } from "./notification-context";
+import { type ResourceScope, type Rule, rulesCoveringResource } from "./notification-model";
 import {
   NOTIFICATION_CATEGORIES,
-  NOTIFICATION_TYPES,
   type NotificationTypeDefinition,
   findNotificationType,
 } from "./notification-types";
 import { TargetChips, useResourceNames } from "./notification-ui";
-import { useNotificationPreview } from "./preview-context";
 import type { RuleEditorTarget } from "./rule-panel";
 
 function RuleRow({
@@ -45,7 +40,8 @@ function RuleRow({
   onEdit: (target: RuleEditorTarget) => void;
   broader?: boolean;
 }) {
-  const preview = useNotificationPreview();
+  const notifications = useNotifications();
+  const [pending, setPending] = useState(false);
   const { scopeLabel } = useResourceNames();
   return (
     <ResourceListItem
@@ -56,7 +52,7 @@ function RuleRow({
     >
       <button
         type="button"
-        disabled={!canManage}
+        disabled={!canManage || pending}
         onClick={() => onEdit({ mode: "edit", rule })}
         aria-label={`Edit ${rule.name}`}
         className="group flex min-w-0 flex-1 flex-col gap-2 rounded-md text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-5 enabled:cursor-pointer"
@@ -77,20 +73,26 @@ function RuleRow({
         </span>
         <TargetChips
           targets={rule.targets}
-          destinations={preview.destinations}
-          members={preview.members}
+          destinations={notifications.destinations}
+          members={notifications.members}
         />
       </button>
       <Switch
         size="sm"
         aria-label={`${rule.name} active`}
-        disabled={!canManage}
+        disabled={!canManage || pending}
+        aria-busy={pending}
         checked={rule.enabled}
-        onCheckedChange={(enabled) => {
-          preview.actions.setRuleEnabled(rule.id, enabled);
-          toast.success(
-            enabled ? `${rule.name} resumed in preview` : `${rule.name} paused in preview`,
-          );
+        onCheckedChange={async (enabled) => {
+          setPending(true);
+          try {
+            await notifications.actions.updateRule({ ...rule, enabled });
+            toast.success(enabled ? `${rule.name} resumed` : `${rule.name} paused`);
+          } catch (error) {
+            notificationError(error, "Couldn't update rule");
+          } finally {
+            setPending(false);
+          }
         }}
       />
     </ResourceListItem>
@@ -110,10 +112,9 @@ function EventRow({
   scope: ResourceScope;
   onEdit: (target: RuleEditorTarget) => void;
 }) {
-  const preview = useNotificationPreview();
+  const notifications = useNotifications();
   const { scopeLabel } = useResourceNames();
   const ruleOnly = rules.length === 1 ? rules[0] : undefined;
-  const hasRecipients = typeHasSendableRecipients({ ...preview, rules }, type.type);
   const addRoute = () => onEdit({ mode: "create", notificationType: type.type, scope });
 
   return (
@@ -141,8 +142,8 @@ function EventRow({
               </span>
               <TargetChips
                 targets={ruleOnly.targets}
-                destinations={preview.destinations}
-                members={preview.members}
+                destinations={notifications.destinations}
+                members={notifications.members}
               />
             </>
           ) : (
@@ -150,9 +151,6 @@ function EventRow({
               {rules.length > 0 ? `${rules.length} routes` : "No recipients"}
             </span>
           )}
-          {!hasRecipients && rules.length > 0 ? (
-            <span className="text-xs text-gray-11">No active recipients</span>
-          ) : null}
         </div>
         {rules.length > 1 ? (
           <Collapsible.Trigger render={<Button variant="outline" size="sm" />}>
@@ -162,7 +160,7 @@ function EventRow({
           <Button
             variant="outline"
             size="sm"
-            disabled={!preview.canManage}
+            disabled={!notifications.canManage}
             aria-label={`${ruleOnly ? "Edit" : "Configure"} ${type.label}`}
             onClick={() => (ruleOnly ? onEdit({ mode: "edit", rule: ruleOnly }) : addRoute())}
           >
@@ -176,14 +174,14 @@ function EventRow({
             <RuleRow
               key={rule.id}
               rule={rule}
-              canManage={preview.canManage}
+              canManage={notifications.canManage}
               onEdit={onEdit}
               broader={inherited.includes(rule)}
             />
           ))}
         </ResourceListBody>
         <div className="px-4 py-3">
-          <Button variant="ghost" size="sm" disabled={!preview.canManage} onClick={addRoute}>
+          <Button variant="ghost" size="sm" disabled={!notifications.canManage} onClick={addRoute}>
             <IconPlusOutline12 /> Add route
           </Button>
         </div>
@@ -193,7 +191,7 @@ function EventRow({
 }
 
 export function EventRouting({ onEditRule }: { onEditRule: (target: RuleEditorTarget) => void }) {
-  const preview = useNotificationPreview();
+  const notifications = useNotifications();
   const resources = useResourceNames();
   const [scope, setScope] = useQueryStates({
     projectId: parseAsString,
@@ -204,14 +202,16 @@ export function EventRouting({ onEditRule }: { onEditRule: (target: RuleEditorTa
   const project = resources.projects.find((candidate) => candidate.id === scope.projectId);
   const covering = scope.projectId
     ? rulesCoveringResource(
-        preview.rules.filter((rule) => findNotificationType(rule.notificationType)?.resourceScoped),
+        notifications.rules.filter(
+          (rule) => findNotificationType(rule.notificationType)?.resourceScoped,
+        ),
         {
           projectId: scope.projectId,
           appId: scope.appId ?? undefined,
           environmentId: scope.environmentId ?? undefined,
         },
       )
-    : { scoped: preview.rules, inherited: [] };
+    : { scoped: notifications.rules, inherited: [] };
   const rules = [...covering.scoped, ...covering.inherited];
   const ruleScope: ResourceScope = {
     projectId: scope.projectId,
@@ -232,9 +232,17 @@ export function EventRouting({ onEditRule }: { onEditRule: (target: RuleEditorTa
           </Collapsible.Trigger>
         </div>
         <Collapsible.Panel>
+          {resources.isError ? (
+            <p role="alert" className="text-xs text-error-11">
+              Couldn't load resources. Refresh to try again.
+            </p>
+          ) : resources.isLoading ? (
+            <output className="text-xs text-gray-11">Loading resources…</output>
+          ) : null}
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <FormSelect
               label="Project"
+              disabled={resources.isLoading || resources.isError}
               value={scope.projectId ?? "all"}
               onValueChange={(value) =>
                 setScope({
@@ -254,7 +262,7 @@ export function EventRouting({ onEditRule }: { onEditRule: (target: RuleEditorTa
             <FormSelect
               label="App"
               value={scope.appId ?? "all"}
-              disabled={!project}
+              disabled={!project || resources.isLoading || resources.isError}
               onValueChange={(value) =>
                 setScope({ appId: value === "all" ? null : value, environmentId: null })
               }
@@ -266,7 +274,7 @@ export function EventRouting({ onEditRule }: { onEditRule: (target: RuleEditorTa
             <FormSelect
               label="Environment"
               value={scope.environmentId ?? "all"}
-              disabled={!scope.appId}
+              disabled={!scope.appId || resources.isLoading || resources.isError}
               onValueChange={(value) => setScope({ environmentId: value === "all" ? null : value })}
               options={[
                 { value: "all", label: "All environments" },
@@ -283,13 +291,13 @@ export function EventRouting({ onEditRule }: { onEditRule: (target: RuleEditorTa
           Broader rules also apply here. Editing one changes it for every resource it covers.
         </p>
       ) : null}
-      {preview.canManage ? null : (
+      {notifications.canManage ? null : (
         <p className="text-xs text-gray-11">Only workspace admins can change rules.</p>
       )}
       {NOTIFICATION_CATEGORIES.filter(
         ({ category }) => !scope.projectId || category === "deployments",
       ).map(({ category, label }) => {
-        const types = NOTIFICATION_TYPES.filter((type) => type.category === category);
+        const types = notifications.types.filter((type) => type.category === category);
         return (
           <SettingsGroup key={category}>
             <SettingsGroupTitle>{label}</SettingsGroupTitle>

@@ -8,7 +8,7 @@ import {
   IconLink4Outline18,
   IconUserOutline18,
 } from "@unkey/icons";
-import { Badge, ItemMedia, cn } from "@unkey/ui";
+import { ItemMedia, cn } from "@unkey/ui";
 import { useCallback } from "react";
 import {
   type Destination,
@@ -75,23 +75,6 @@ export function ChannelMedia({ channel }: { channel: DestinationChannel | "email
   );
 }
 
-export function PreviewBadge() {
-  return (
-    <Badge variant="warning" size="sm">
-      Preview
-    </Badge>
-  );
-}
-
-export function PreviewNotice() {
-  return (
-    <p className="text-xs leading-5 text-gray-11">
-      <span className="font-medium text-gray-12">Preview</span> · Sample data. Changes stay in this
-      tab; nothing is sent.
-    </p>
-  );
-}
-
 function TargetChip({
   icon,
   label,
@@ -129,7 +112,7 @@ export function TargetChips({
   return (
     <span className="flex flex-wrap items-center gap-1">
       {targets.map((target) => {
-        if (target.kind === "audience") {
+        if (target.type === "audience") {
           return (
             <TargetChip
               key={`audience-${target.audience}`}
@@ -138,13 +121,13 @@ export function TargetChips({
             />
           );
         }
-        if (target.kind === "member") {
+        if (target.type === "user") {
           const member = members.find((candidate) => candidate.userId === target.userId);
           return (
             <TargetChip
               key={`member-${target.userId}`}
               icon="member"
-              label={member?.name ?? "Former member"}
+              label={member?.email ?? "Former member"}
               muted={!member}
             />
           );
@@ -153,7 +136,7 @@ export function TargetChips({
         return destination ? (
           <TargetChip
             key={`destination-${target.destinationId}`}
-            icon={destination.config.channel}
+            icon={destination.channel}
             label={destination.enabled ? destination.name : `${destination.name} (paused)`}
             muted={!destination.enabled}
           />
@@ -191,7 +174,10 @@ export function useResourceNames() {
   return {
     projects: projects.data ?? [],
     environments: environments.data ?? [],
-    isLoading: projects.isLoading,
+    isLoading:
+      projects.isLoading ||
+      Boolean(projects.data?.some((project) => project.apps.length > 0) && environments.isLoading),
+    isError: projects.isError || environments.isError,
     scopeLabel,
   };
 }

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { type DestinationEditorTarget, DestinationPanel } from "./destination-panel";
+import { useNotifications } from "./notification-context";
 import { useResourceNames } from "./notification-ui";
-import { useNotificationPreview } from "./preview-context";
 import { type RuleEditorTarget, RulePanel } from "./rule-panel";
 
 type EditorState<Target> = { session: number; isOpen: boolean; target: Target };
@@ -19,7 +19,7 @@ function useEditorState<Target>() {
 }
 
 export function useRuleEditor() {
-  const preview = useNotificationPreview();
+  const notifications = useNotifications();
   const resources = useResourceNames();
   const editor = useEditorState<RuleEditorTarget>();
 
@@ -29,10 +29,10 @@ export function useRuleEditor() {
       target={editor.state.target}
       isOpen={editor.state.isOpen}
       onClose={editor.close}
-      members={preview.members}
-      destinations={preview.destinations}
+      members={notifications.members}
+      destinations={notifications.destinations}
       resources={resources}
-      currentUserId={preview.currentUserId}
+      currentUserId={notifications.currentUserId}
     />
   ) : null;
 
@@ -40,7 +40,7 @@ export function useRuleEditor() {
 }
 
 export function useDestinationEditor() {
-  const preview = useNotificationPreview();
+  const notifications = useNotifications();
   const editor = useEditorState<DestinationEditorTarget>();
 
   const element = editor.state ? (
@@ -49,7 +49,7 @@ export function useDestinationEditor() {
       target={editor.state.target}
       isOpen={editor.state.isOpen}
       onClose={editor.close}
-      rules={preview.rules}
+      rules={notifications.rules}
     />
   ) : null;
 

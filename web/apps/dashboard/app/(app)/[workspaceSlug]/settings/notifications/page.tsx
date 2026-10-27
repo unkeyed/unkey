@@ -18,27 +18,24 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
   SettingsGroups,
-  toast,
 } from "@unkey/ui";
 import Link from "next/link";
 import { useState } from "react";
 import { ConnectedChannels } from "./connected-channels";
 import { useDestinationEditor, useRuleEditor } from "./editors";
 import { EventRouting } from "./event-routing";
-import { PreviewNotice } from "./notification-ui";
-import { NotificationPreviewProvider, useNotificationPreview } from "./preview-context";
+import { NotificationProvider } from "./notification-context";
 import { RoutingPanel } from "./routing-panel";
 
 export default function NotificationsPage() {
   return (
-    <NotificationPreviewProvider>
+    <NotificationProvider>
       <NotificationsPageContent />
-    </NotificationPreviewProvider>
+    </NotificationProvider>
   );
 }
 
 function NotificationsPageContent() {
-  const { actions, canManage } = useNotificationPreview();
   const workspace = useWorkspaceNavigation();
   const ruleEditor = useRuleEditor();
   const destinationEditor = useDestinationEditor();
@@ -72,21 +69,11 @@ function NotificationsPageContent() {
                 <DropdownMenuItem onClick={() => setIsRoutingOpen(true)}>
                   Preview recipients
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled={!canManage}
-                  onClick={() => {
-                    actions.reset();
-                    toast.success("Sample data restored");
-                  }}
-                >
-                  Reset sample data
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </PageHeaderActions>
         </PageHeader>
         <SettingsGroups className="gap-8">
-          <PreviewNotice />
           <EventRouting onEditRule={ruleEditor.open} />
           <ConnectedChannels onEditDestination={destinationEditor.open} />
         </SettingsGroups>

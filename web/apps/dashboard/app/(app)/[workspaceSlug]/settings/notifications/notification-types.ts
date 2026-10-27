@@ -1,4 +1,4 @@
-export type NotificationCategory = "deployments" | "billing";
+export type NotificationCategory = "deployments";
 
 export type NotificationTypeDefinition = {
   type: string;
@@ -11,10 +11,7 @@ export type NotificationTypeDefinition = {
 export const NOTIFICATION_CATEGORIES: ReadonlyArray<{
   category: NotificationCategory;
   label: string;
-}> = [
-  { category: "deployments", label: "Deployments" },
-  { category: "billing", label: "Billing" },
-];
+}> = [{ category: "deployments", label: "Deployments" }];
 
 export const NOTIFICATION_TYPES: ReadonlyArray<NotificationTypeDefinition> = [
   {
@@ -25,34 +22,54 @@ export const NOTIFICATION_TYPES: ReadonlyArray<NotificationTypeDefinition> = [
     resourceScoped: true,
   },
   {
-    type: "deployment.rolled_back",
+    type: "deployment.preparing",
     category: "deployments",
-    label: "Deployment rolled back",
-    description: "Traffic moved back to an earlier deployment.",
+    label: "Deployment preparing",
+    description: "A deployment is preparing its build or image.",
     resourceScoped: true,
   },
   {
     type: "deployment.succeeded",
     category: "deployments",
     label: "Deployment succeeded",
-    description: "A deployment is live and serving traffic.",
+    description: "A deployment completed, with or without changing live traffic.",
     resourceScoped: true,
   },
   {
-    type: "billing.payment_failed",
-    category: "billing",
-    label: "Payment failed",
-    description: "Unkey could not charge the payment method on file.",
-    resourceScoped: false,
+    type: "deployment.started",
+    category: "deployments",
+    label: "Deployment started",
+    description: "A deployment is starting in its regions.",
+    resourceScoped: true,
   },
   {
-    type: "billing.paused",
-    category: "billing",
-    label: "Workspace paused",
-    description: "Deployments stopped because of an unpaid invoice or a spend limit.",
-    resourceScoped: false,
+    type: "deployment.routing",
+    category: "deployments",
+    label: "Deployment routing",
+    description: "Routing is being configured for a deployment.",
+    resourceScoped: true,
+  },
+  {
+    type: "deployment.cancelled",
+    category: "deployments",
+    label: "Deployment cancelled",
+    description: "A deployment stopped before completion.",
+    resourceScoped: true,
+  },
+  {
+    type: "deployment.superseded",
+    category: "deployments",
+    label: "Deployment superseded",
+    description: "A newer deployment replaced this deployment.",
+    resourceScoped: true,
   },
 ];
+
+export function supportedNotificationTypes(
+  eventTypes: ReadonlyArray<string>,
+): NotificationTypeDefinition[] {
+  return NOTIFICATION_TYPES.filter((definition) => eventTypes.includes(definition.type));
+}
 
 export function findNotificationType(type: string): NotificationTypeDefinition | undefined {
   return NOTIFICATION_TYPES.find((definition) => definition.type === type);
