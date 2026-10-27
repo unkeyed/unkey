@@ -38,6 +38,7 @@ const resources: SourceResult<"resources"> = {
 
 const byInstance: InstanceSeries = {
   grid,
+  history: { instances: [], truncated: false },
   instances: [
     { instance: "pod-a", points: [resource(0, 100, 1024), resource(60_000, null, null)] },
     { instance: "pod-b", points: [resource(0, 150, 1024), resource(60_000, 350, 4096)] },
@@ -210,6 +211,7 @@ describe("metricsPageModel", () => {
       card: { metric: "requests", state: { status: "loading" } },
       stats: null,
       byInstance: null,
+      historyTruncated: false,
       deploys: [{ marker: deployedInRange, effects: [] }],
     });
     expect(readyModel(metricsPageModel(base)).panel).toBeNull();
