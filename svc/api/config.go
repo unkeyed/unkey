@@ -53,6 +53,13 @@ type GitHubConfig struct {
 	PrivateKeyPEM string `toml:"private_key_pem"`
 }
 
+type CLIAuthConfig struct {
+	WorkOSAPIKey     string   `toml:"workos_api_key"`
+	WorkOSAPIBaseURL string   `toml:"workos_api_base_url" config:"default=https://api.workos.com"`
+	DashboardBaseURL string   `toml:"dashboard_base_url" config:"default=https://app.unkey.com"`
+	SigningSecrets   []string `toml:"signing_secrets"`
+}
+
 // RestateConfig configures the Restate ingress used to submit durable
 // workflows.
 type RestateConfig struct {
@@ -379,6 +386,8 @@ type Config struct {
 	// When unset, github.installApp reports the feature as unconfigured.
 	GitHub GitHubConfig `toml:"github"`
 
+	CLIAuth CLIAuthConfig `toml:"cli_auth"`
+
 	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.
 	Pprof *config.PprofConfig `toml:"pprof"`
@@ -498,6 +507,20 @@ func (c *Config) Validate() error {
 	}
 	if c.Restate.APIKey != strings.TrimSpace(c.Restate.APIKey) {
 		return fmt.Errorf("restate.api_key must not have surrounding whitespace")
+	}
+	return c.CLIAuth.validate()
+}
+
+func (c CLIAuthConfig) validate() error {
+	for i, secret := range c.SigningSecrets {
+		if strings.TrimSpace(secret) == "" {
+			return fmt.Errorf("cli_auth.signing_secrets[%d] must not be blank", i)
+		}
+	}
+	hasWorkOSAPIKey := strings.TrimSpace(c.WorkOSAPIKey) != ""
+	hasSigningSecrets := len(c.SigningSecrets) > 0
+	if hasWorkOSAPIKey != hasSigningSecrets {
+		return fmt.Errorf("cli_auth requires both workos_api_key and signing_secrets, or neither")
 	}
 	return nil
 }

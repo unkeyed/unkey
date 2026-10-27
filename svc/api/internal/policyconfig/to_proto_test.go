@@ -69,12 +69,11 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 			wantErr: "policies[0].match[0].path.path.regex is not a valid regular expression",
 		},
 		{
-			name: "header match with neither present nor value",
+			name: "header match defaults to present",
 			policies: []openapi.Policy{{
 				Name: "m", Enabled: true, Firewall: firewall,
 				Match: &[]openapi.MatchExpr{{Header: &openapi.FieldMatch{Name: "x-kebap"}}},
 			}},
-			wantErr: "policies[0].match[0].header must set exactly one of present or value",
 		},
 		{
 			name: "header match with both present and value",
@@ -90,6 +89,20 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "m", Enabled: true, Firewall: firewall,
 				Match: &[]openapi.MatchExpr{{QueryParam: &openapi.FieldMatch{Name: "token", Present: &present}}},
 			}},
+		},
+		{
+			name: "query param match with both absent and value",
+			policies: []openapi.Policy{{
+				Name:     "m",
+				Enabled:  true,
+				Firewall: firewall,
+				Match: &[]openapi.MatchExpr{{QueryParam: &openapi.FieldMatch{
+					Name:    "token",
+					Present: new(false),
+					Value:   &openapi.StringMatch{Exact: new("v")},
+				}}},
+			}},
+			wantErr: "policies[0].match[0].queryParam must set exactly one of present or value",
 		},
 		{
 			name: "remote ip match with neither in nor notIn",
@@ -290,6 +303,49 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 			}
 			require.Error(t, err)
 			require.Contains(t, fault.UserFacingMessage(err), tc.wantErr)
+		})
+	}
+}
+
+func TestFieldMatchDefaults(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		present *bool
+		value   *openapi.StringMatch
+		want    *bool
+	}{
+		{name: "omitted presence", want: new(true)},
+		{name: "explicit presence", present: new(true), want: new(true)},
+		{name: "explicit absence", present: new(false), want: new(false)},
+		{name: "value only", value: &openapi.StringMatch{Exact: new("")}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			field := openapi.FieldMatch{
+				Name:    "x-kebap",
+				Present: tc.present,
+				Value:   tc.value,
+			}
+			policy, err := PolicyToProto("policies[0]", openapi.Policy{
+				Name:     "field matching",
+				Enabled:  true,
+				Firewall: &openapi.FirewallPolicy{Action: "ACTION_DENY"},
+				Match: &[]openapi.MatchExpr{
+					{Header: &field},
+					{QueryParam: &field},
+				},
+			})
+			require.NoError(t, err)
+			back, err := PolicyFromProto(policy)
+			require.NoError(t, err)
+			require.NotNil(t, back.Match)
+			require.Len(t, *back.Match, 2)
+			want := &openapi.FieldMatch{
+				Name:    "x-kebap",
+				Present: tc.want,
+				Value:   tc.value,
+			}
+			require.Equal(t, want, (*back.Match)[0].Header)
+			require.Equal(t, want, (*back.Match)[1].QueryParam)
 		})
 	}
 }

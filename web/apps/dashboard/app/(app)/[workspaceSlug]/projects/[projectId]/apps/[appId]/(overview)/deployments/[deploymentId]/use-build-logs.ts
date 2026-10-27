@@ -1,14 +1,22 @@
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { queryKeys } from "@/lib/query-keys";
 import { trpc } from "@/lib/trpc/client";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { BuildLogEntry } from "@unkey/api/models/components";
+import { useState } from "react";
 
 // Rendering every entry of a noisy build is slow, and the end of a build is
 // where a failure shows, so only the newest entries are kept
 export const BUILD_LOG_ENTRIES_SHOWN_MAX = 5000;
+
+export const BUILD_NOT_DONE_STATUSES: ReadonlySet<DeploymentStatus> = new Set([
+  "pending",
+  "starting",
+  "building",
+]);
 
 const IN_FLIGHT_POLL_MS = 1_000;
 // A quiet step, such as a long compile, prints nothing for a while, so each
@@ -27,6 +35,8 @@ const SETTLED_POLL_WINDOW_MS = 30_000;
 // ctrl writes one of these when a build step finishes
 const BUILD_STEP_FINISHED = /^(DONE \d|CACHED$|ERROR: )/;
 
+export type BuildLogsQuery = ReturnType<typeof useBuildLogs>;
+
 type BuildLogs = {
   entries: BuildLogEntry[];
   entriesTotal: number;
@@ -40,7 +50,7 @@ type BuildLogs = {
 // slow pages show progress without a render per page
 export function useBuildLogs(
   deployment: Deployment,
-  { readsToEnd, isOpen }: { readsToEnd: boolean; isOpen: boolean },
+  { readsToEnd, enabled }: { readsToEnd: boolean; enabled: boolean },
 ) {
   const queryClient = useQueryClient();
   const trpcUtils = trpc.useUtils();
@@ -48,6 +58,7 @@ export function useBuildLogs(
 
   return useQuery({
     queryKey,
+    enabled,
     queryFn: async (): Promise<BuildLogs> => {
       let logs: BuildLogs = queryClient.getQueryData<BuildLogs>(queryKey) ?? {
         entries: [],
@@ -61,12 +72,12 @@ export function useBuildLogs(
       const pollStartedAt = Date.now();
       let hasFinishedStep = false;
       let publishedAt = Date.now();
-      do {
-        const page = await getUnkeyClient().deployments.listBuildLogs({
-          deploymentId: deployment.id,
-          cursor: logs.cursor,
-          limit: BUILD_LOGS_PAGE_ENTRIES_MAX,
-        });
+      const pages = await getUnkeyClient().deployments.listBuildLogs({
+        deploymentId: deployment.id,
+        cursor: logs.cursor,
+        limit: BUILD_LOGS_PAGE_ENTRIES_MAX,
+      });
+      for await (const { result: page } of pages) {
         logs = {
           entries: [...logs.entries, ...page.data].slice(-BUILD_LOG_ENTRIES_SHOWN_MAX),
           entriesTotal: logs.entriesTotal + page.data.length,
@@ -80,7 +91,10 @@ export function useBuildLogs(
           queryClient.setQueryData(queryKey, logs);
           publishedAt = Date.now();
         }
-      } while (readsToEnd && logs.hasMore);
+        if (!readsToEnd || !logs.hasMore) {
+          break;
+        }
+      }
       const isInFlight = isDeploymentInFlight(deployment.status);
       if (hasFinishedStep && isInFlight) {
         void trpcUtils.deploy.deployment.steps.invalidate({ deploymentId: deployment.id });
@@ -96,7 +110,7 @@ export function useBuildLogs(
       };
     },
     refetchInterval: (data, query) => {
-      if (!isOpen || (data?.hasMore && query.state.status !== "error")) {
+      if (!enabled || (!readsToEnd && data?.hasMore && query.state.status !== "error")) {
         return false;
       }
       return pollInterval(deployment, data);
@@ -116,4 +130,32 @@ function pollInterval(deployment: Deployment, logs: BuildLogs | undefined): numb
 
 function settledAt(deployment: Deployment): number {
   return deployment.updatedAt ?? deployment.createdAt;
+}
+
+// A panel opens following the tail of a running build and on the last error
+// of a failed one; either way its first read goes to the end
+export function panelOpening(status: DeploymentStatus) {
+  return {
+    followsTail: BUILD_NOT_DONE_STATUSES.has(status),
+    jumpsToLastError: status === "failed",
+  };
+}
+
+export function useBuildLogsPanel(
+  deployment: Deployment,
+  {
+    status,
+    enabled,
+    alwaysReadsToEnd = false,
+  }: { status: DeploymentStatus; enabled: boolean; alwaysReadsToEnd?: boolean },
+) {
+  const [panelReadsToEnd, setPanelReadsToEnd] = useState(() => {
+    const opening = panelOpening(status);
+    return opening.followsTail || opening.jumpsToLastError;
+  });
+  const logs = useBuildLogs(deployment, {
+    readsToEnd: alwaysReadsToEnd || panelReadsToEnd,
+    enabled,
+  });
+  return { logs, panelProps: { logs, onReadsToEndChange: setPanelReadsToEnd } };
 }

@@ -79,10 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("api not found",
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api not found"), fault.Public("The specified API was not found."),
-			)
+			return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -92,17 +89,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if api.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api belongs to different workspace"), fault.Public("The specified API was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api is deleted"), fault.Public("The specified API was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	keySpace, keySpaceErr := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
@@ -114,10 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if keySpaceErr == nil && keySpace.DeletedAtM.Valid {
-		return fault.New("keyspace not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("keyspace is deleted"), fault.Public("The specified API was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	keySpaceProjectID := api.ProjectID
@@ -148,7 +136,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
 			codes.Data.Api.NotFound.URN(),
-			"The specified API was not found.",
 		)
 	}
 
@@ -240,7 +227,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
 				codes.Data.Api.NotFound.URN(),
-				"The specified API was not found.",
 			)
 		}
 

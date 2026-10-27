@@ -2,8 +2,10 @@
 
 import { SecretKeyDialog } from "@/components/secret-key-dialog";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { createRootKey, rootKeysV2QueryKeys } from "@/lib/root-keys-api";
+import { rootKeysV2QueryKeys } from "@/lib/root-keys-api";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { V2RootKeysCreateKeyRequestBody } from "@unkey/api/models/components";
 import {
   Button,
   SlidePanel,
@@ -34,13 +36,16 @@ export function BuilderAside({ isOpen, onClose }: BuilderAsideProps) {
   const [secretRevealed, setSecretRevealed] = useState(false);
 
   const createKey = useMutation({
-    mutationFn: createRootKey,
+    mutationFn: async (request: V2RootKeysCreateKeyRequestBody) => {
+      const response = await getUnkeyClient().rootKeys.createKey(request);
+      return response.data;
+    },
     onSuccess(data) {
       void queryClient.invalidateQueries({ queryKey: rootKeysV2QueryKeys.workspace(workspace.id) });
       setSecret(data.key);
     },
     onError(error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create the Root Key.");
+      toast.error(getErrorMessage(error, "Failed to create the Root Key."));
     },
   });
 

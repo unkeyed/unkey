@@ -164,7 +164,7 @@ func TestVerifyDomainCtrlNotFoundIsMasked(t *testing.T) {
 		Domain: seeded.domain,
 	})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Equal(t, "The requested domain does not exist.", res.Body.Error.Detail,
+	require.Equal(t, "Resource does not exist.", res.Body.Error.Detail,
 		"ctrl's internal wording must not leak, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/domain_not_found", res.Body.Error.Type)
 	require.Len(t, ctrlClient.RetryVerificationCalls, 1)

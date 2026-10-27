@@ -150,7 +150,7 @@ func TestCreateAppRollsBackWhenAuditInsertFails(t *testing.T) {
 	require.Empty(t, outboxRows)
 }
 
-func TestCreateAndUpdateOciAppSource(t *testing.T) {
+func TestCreateOciAppSource(t *testing.T) {
 	ctx := context.Background()
 	mysqlCfg := containers.MySQL(t)
 	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
@@ -215,21 +215,6 @@ func TestCreateAndUpdateOciAppSource(t *testing.T) {
 	buildSettings, err := pkgdb.Query.ListAppBuildSettingsByApp(ctx, database.RO(), appID)
 	require.NoError(t, err)
 	require.Empty(t, buildSettings)
-
-	updateReq := connect.NewRequest(&ctrlv1.UpdateOciImageSourceRequest{
-		WorkspaceId:    workspaceID,
-		AppId:          appID,
-		ImageReference: "nginx:1.28",
-		Actor:          actor,
-	})
-	updateReq.Header().Set("Authorization", "Bearer "+bearer)
-	updateRes, err := svc.UpdateOciImageSource(ctx, updateReq)
-	require.NoError(t, err)
-	require.Equal(t, "index.docker.io/library/nginx:1.28", updateRes.Msg.GetImageReference())
-
-	updatedSource, err := database.FindAppSourceOciByAppId(ctx, appID)
-	require.NoError(t, err)
-	require.Equal(t, "index.docker.io/library/nginx:1.28", updatedSource.ImageReference)
 }
 
 func TestCreateAppDuplicateSlugReturnsAlreadyExists(t *testing.T) {

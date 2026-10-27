@@ -21,7 +21,7 @@ export function CreateProjectButton({ defaultOpen, workspaceSlug }: Props) {
   return (
     <>
       <Button
-        size="md"
+        size="sm"
         variant="primary"
         loading={isLoading}
         onClick={() => (gated ? setIsPlanOpen(true) : setIsOpen(true))}

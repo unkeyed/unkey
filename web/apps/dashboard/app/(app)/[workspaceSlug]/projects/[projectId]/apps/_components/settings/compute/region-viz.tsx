@@ -1,18 +1,12 @@
 "use client";
 
+import { EdgeNode, Spec, sizeSpecs } from "@/components/compute-diagram";
 import { FanOut } from "@/components/fan-out";
-import { Logomark } from "@/components/logomark";
 import { RegionFlag } from "@/components/region-flag";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { sizeLabel } from "@/lib/compute/sizing";
 import { regionInfo } from "@/lib/regions";
-import { formatCpu, formatMemory, formatStorage } from "@/lib/utils/deployment-formatters";
-import {
-  IconHardDriveOutline18,
-  IconLayers3Outline18,
-  IconMicrochipOutline18,
-  IconRamOutline18,
-} from "@unkey/icons";
+import { IconLayers3Outline18 } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { formatReplicas, readCompute } from "./draft";
@@ -29,11 +23,7 @@ type VizProps = {
 export function RegionViz({ settings, unavailable, action }: VizProps) {
   const values = readCompute(settings);
   const n = Math.max(settings.regions.length, 1);
-  const size = [
-    ["CPU", IconMicrochipOutline18, formatCpu(values.cpuMillicores)],
-    ["RAM", IconRamOutline18, formatMemory(values.memoryMib)],
-    ["Disk", IconHardDriveOutline18, formatStorage(values.storageMib)],
-  ] as const;
+  const size = sizeSpecs(values);
   return (
     <div className="relative flex aspect-[350/128] w-full flex-col justify-center bg-grayA-2 px-6 py-5">
       {action ? <div className="absolute top-3 right-3">{action}</div> : null}
@@ -43,13 +33,7 @@ export function RegionViz({ settings, unavailable, action }: VizProps) {
       >
         {settings.regions.length > 1 ? (
           <>
-            <div className="mx-auto flex items-center gap-2 rounded-lg bg-raised px-3 py-2 shadow-sm ring-1 ring-grayA-5">
-              <Logomark className="size-6 rounded-md bg-grayA-3" />
-              <span className="flex flex-col">
-                <span className="text-xs font-medium text-gray-12">Unkey edge</span>
-                <span className="text-2xs text-gray-10">Routes to the nearest region</span>
-              </span>
-            </div>
+            <EdgeNode />
             <FanOut targets={settings.regions.length} className="h-10 w-full" />
           </>
         ) : null}
@@ -61,13 +45,13 @@ export function RegionViz({ settings, unavailable, action }: VizProps) {
             const region = regionInfo(name);
             const blocked = unavailable.has(name);
             const specs = [
-              [
-                "Instances",
-                IconLayers3Outline18,
-                formatReplicas({ min: replicasMin, max: replicasMax }),
-              ],
+              {
+                label: "Instances",
+                Icon: IconLayers3Outline18,
+                value: formatReplicas({ min: replicasMin, max: replicasMax }),
+              },
               ...size,
-            ] as const;
+            ];
             return (
               <div
                 key={name}
@@ -88,7 +72,7 @@ export function RegionViz({ settings, unavailable, action }: VizProps) {
                   </span>
                 </span>
                 <span className="grid grid-cols-2 gap-x-3 gap-y-1 whitespace-nowrap border-t border-grayA-4 px-3 py-2 font-mono text-3xs">
-                  {specs.map(([label, Icon, value]) => (
+                  {specs.map(({ label, Icon, value }) => (
                     <Spec key={label} icon={<Icon />} label={label} value={value} />
                   ))}
                 </span>
@@ -98,17 +82,5 @@ export function RegionViz({ settings, unavailable, action }: VizProps) {
         </div>
       </div>
     </div>
-  );
-}
-
-function Spec({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return (
-    <span className="flex min-w-0 items-center gap-1">
-      <span className="shrink-0 text-gray-10 [&_svg]:size-3" aria-hidden="true">
-        {icon}
-      </span>
-      <span className="sr-only">{label}</span>
-      <span className="truncate text-gray-12">{value}</span>
-    </span>
   );
 }

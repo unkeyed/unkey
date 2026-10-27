@@ -31,7 +31,7 @@ export function usePortalSessions(portalId: string, search: string) {
         },
         { signal },
       );
-      return toSessionPage(response);
+      return toSessionPage(response.result);
     },
     getNextPageParam: (lastPage) => lastPage.cursor,
     keepPreviousData: true,

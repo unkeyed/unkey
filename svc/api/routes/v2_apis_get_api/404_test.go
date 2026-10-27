@@ -49,7 +49,7 @@ func TestGetApiNotFound(t *testing.T) {
 
 		require.Equal(t, 404, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/api_not_found", res.Body.Error.Type)
-		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 
 	// Test with API from different workspace
@@ -70,7 +70,7 @@ func TestGetApiNotFound(t *testing.T) {
 
 		require.Equal(t, 404, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/api_not_found", res.Body.Error.Type)
-		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 
 	// Test with soft-deleted API
@@ -107,7 +107,7 @@ func TestGetApiNotFound(t *testing.T) {
 
 		require.Equal(t, 404, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/api_not_found", res.Body.Error.Type)
-		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 
 	// Test with empty API ID
