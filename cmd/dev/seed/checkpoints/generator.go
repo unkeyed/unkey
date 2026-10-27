@@ -120,6 +120,7 @@ func (g generator) generate(buf bufferer) int {
 					DiskUsedBytes:              g.diskBytes,
 					NetworkEgressPublicBytes:   egressBytes,
 					NetworkEgressPrivateBytes:  0,
+					NetworkEgressAppBytes:      0,
 					NetworkIngressPublicBytes:  0,
 					NetworkIngressPrivateBytes: 0,
 					Region:                     g.region,

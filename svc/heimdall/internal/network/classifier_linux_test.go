@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"net/netip"
 	"os"
 	"syscall"
 	"testing"
@@ -167,6 +168,40 @@ func readCounters(t *testing.T, m *ebpf.Map) bpfCounters {
 }
 
 // --- Cases ----------------------------------------------------------------
+
+func TestClassifierAppEgress(t *testing.T) {
+	objs := loadTestObjects(t)
+	reader := &linuxReader{appPeers: objs.AppPeers, peers: make(map[netip.Addr]struct{})}
+	local := netip.MustParseAddr("10.71.0.8")
+	remote := netip.MustParseAddr("10.72.0.9")
+	v6 := netip.MustParseAddr("fd00::9")
+	require.NoError(t, reader.SetAppPeers(map[netip.Addr]struct{}{local: {}, remote: {}, v6: {}}))
+
+	for _, frame := range [][]byte{
+		buildIPv4Frame(t, net.IPv4(10, 71, 0, 4), net.IP(local.AsSlice()), 101),
+		buildIPv4Frame(t, net.IPv4(10, 71, 0, 4), net.IP(remote.AsSlice()), 307),
+		buildIPv6Frame(t, net.ParseIP("fd00::4"), net.IP(v6.AsSlice()), 419),
+		buildIPv4Frame(t, net.IPv4(10, 71, 0, 4), net.IPv4(10, 96, 0, 10), 503),
+		buildIPv4Frame(t, net.IPv4(10, 71, 0, 4), net.IPv4(10, 71, 0, 2), 601),
+		buildIPv4Frame(t, net.IPv4(10, 71, 0, 4), net.IPv4(1, 1, 1, 1), 701),
+	} {
+		runProg(t, objs.CountEgress, frame)
+	}
+	runProg(t, objs.CountIngress, buildIPv4Frame(t, net.IP(remote.AsSlice()), net.IP(local.AsSlice()), 809))
+	var appBytes uint64
+	require.NoError(t, objs.AppEgress.Lookup(uint64(0), &appBytes))
+	require.EqualValues(t, 827, appBytes)
+	counters := readCounters(t, objs.PodCounters)
+	require.EqualValues(t, 1931, counters.EgressPrivate)
+	require.EqualValues(t, 701, counters.EgressPublic)
+	require.EqualValues(t, 809, counters.IngressPrivate)
+
+	require.NoError(t, reader.SetAppPeers(map[netip.Addr]struct{}{remote: {}}))
+	runProg(t, objs.CountEgress, buildIPv4Frame(t, net.IPv4(10, 71, 0, 4), net.IP(local.AsSlice()), 907))
+	runProg(t, objs.CountEgress, buildIPv4Frame(t, net.IPv4(10, 71, 0, 4), net.IP(remote.AsSlice()), 1009))
+	require.NoError(t, objs.AppEgress.Lookup(uint64(0), &appBytes))
+	require.EqualValues(t, 1836, appBytes)
+}
 
 func TestClassifier_V4_PublicEgress(t *testing.T) {
 	objs := loadTestObjects(t)

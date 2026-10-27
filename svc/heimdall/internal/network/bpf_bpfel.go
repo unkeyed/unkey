@@ -13,6 +13,11 @@ import (
 	"github.com/cilium/ebpf"
 )
 
+type bpfAppAddress struct {
+	_     structs.HostLayout
+	Bytes [16]uint8
+}
+
 type bpfCounters struct {
 	_              structs.HostLayout
 	EgressPublic   uint64
@@ -71,6 +76,8 @@ type bpfProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfMapSpecs struct {
+	AppEgress   *ebpf.MapSpec `ebpf:"app_egress"`
+	AppPeers    *ebpf.MapSpec `ebpf:"app_peers"`
 	PodCounters *ebpf.MapSpec `ebpf:"pod_counters"`
 }
 
@@ -101,11 +108,15 @@ func (o *bpfObjects) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfMaps struct {
+	AppEgress   *ebpf.Map `ebpf:"app_egress"`
+	AppPeers    *ebpf.Map `ebpf:"app_peers"`
 	PodCounters *ebpf.Map `ebpf:"pod_counters"`
 }
 
 func (m *bpfMaps) Close() error {
 	return _BpfClose(
+		m.AppEgress,
+		m.AppPeers,
 		m.PodCounters,
 	)
 }

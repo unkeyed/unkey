@@ -54,6 +54,8 @@ type InstanceMeterUsage struct {
 	// EgressBytes is public network egress, from the counter delta summed
 	// over consecutive in-gap sample pairs.
 	EgressBytes int64 `ch:"egress_bytes"`
+	// AppEgressBytes includes cross-region app traffic and is not included in EgressBytes.
+	AppEgressBytes int64 `ch:"app_egress_bytes"`
 }
 
 // GetInstanceMeterUsage computes billable usage for the four deploy meters
@@ -107,7 +109,8 @@ func (c *Client) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeter
 		sum(cpu_usec_delta) / 1e6 AS cpu_seconds,
 		sum(memory_byte_ms) / 1000 / 3600 / pow(1024, 3) AS memory_gib_hours,
 		sum(disk_byte_ms) / 1000 / 3600 / pow(1024, 3) AS disk_gib_hours,
-		toInt64(sum(egress_bytes_delta)) AS egress_bytes
+		toInt64(sum(egress_bytes_delta)) AS egress_bytes,
+		toInt64(sum(app_egress_bytes_delta)) AS app_egress_bytes
 	FROM (
 		SELECT
 			workspace_id,
@@ -123,6 +126,14 @@ func (c *Client) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeter
 				greatest(0, leadInFrame(network_egress_public_bytes) OVER w - network_egress_public_bytes),
 				0
 			) AS egress_bytes_delta,
+			if(
+				ifNull(attributes.network_attached::Nullable(Bool), false)
+				AND ifNull(attributes.network_app_attached::Nullable(Bool), false)
+				AND leadInFrame(ifNull(attributes.network_attached::Nullable(Bool), false)) OVER w
+				AND leadInFrame(ifNull(attributes.network_app_attached::Nullable(Bool), false)) OVER w,
+				greatest(0, leadInFrame(network_egress_app_bytes) OVER w - network_egress_app_bytes),
+				0
+			) AS app_egress_bytes_delta,
 			toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
 			toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
 		FROM instance_checkpoints_v1 FINAL

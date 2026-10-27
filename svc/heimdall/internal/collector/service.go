@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -33,6 +34,7 @@ const (
 type Config struct {
 	CH         *batch.BatchProcessor[schema.InstanceCheckpoint]
 	PodLister  corelisters.PodLister
+	AppPeers   *network.AppPeers
 	CgroupRoot string
 	// CgroupDriver controls pod-cgroup path shape. Must match kubelet's
 	// cgroupDriver. Detect via Preflight and pass the result through.
@@ -67,18 +69,20 @@ type Config struct {
 // checkpoints to ClickHouse on a fixed cadence. Billing math is deferred
 // to query time — collector output is raw counter values only.
 type Collector struct {
-	ch          *batch.BatchProcessor[schema.InstanceCheckpoint]
-	podLister   corelisters.PodLister
-	cgroup      *cgroupReader
-	network     network.Reader
-	collectors  CollectorSet
-	kubeletRoot string
-	nodeName    string
-	region      string
-	platform    string
-	criSocket   string
-	clk         clock.Clock
-	mu          sync.Mutex
+	ch            *batch.BatchProcessor[schema.InstanceCheckpoint]
+	podLister     corelisters.PodLister
+	appPeers      *network.AppPeers
+	cgroup        *cgroupReader
+	network       network.Reader
+	appPeersReady atomic.Bool
+	collectors    CollectorSet
+	kubeletRoot   string
+	nodeName      string
+	region        string
+	platform      string
+	criSocket     string
+	clk           clock.Clock
+	mu            sync.Mutex
 }
 
 func New(cfg Config) *Collector {
@@ -93,18 +97,20 @@ func New(cfg Config) *Collector {
 	}
 
 	return &Collector{
-		ch:          cfg.CH,
-		podLister:   cfg.PodLister,
-		cgroup:      &cgroupReader{root: root, driver: cfg.CgroupDriver},
-		network:     cfg.Network,
-		collectors:  cfg.Collectors,
-		kubeletRoot: cfg.KubeletRoot,
-		nodeName:    cfg.NodeName,
-		region:      cfg.Region,
-		platform:    cfg.Platform,
-		criSocket:   cfg.CRISocket,
-		clk:         clk,
-		mu:          sync.Mutex{},
+		ch:            cfg.CH,
+		podLister:     cfg.PodLister,
+		appPeers:      cfg.AppPeers,
+		cgroup:        &cgroupReader{root: root, driver: cfg.CgroupDriver},
+		network:       cfg.Network,
+		appPeersReady: atomic.Bool{},
+		collectors:    cfg.Collectors,
+		kubeletRoot:   cfg.KubeletRoot,
+		nodeName:      cfg.NodeName,
+		region:        cfg.Region,
+		platform:      cfg.Platform,
+		criSocket:     cfg.CRISocket,
+		clk:           clk,
+		mu:            sync.Mutex{},
 	}
 }
 
@@ -299,6 +305,7 @@ func (c *Collector) emitLifecycleCheckpoint(podUID, kind string) {
 		DiskUsedBytes:              diskUsed,
 		NetworkEgressPublicBytes:   net.EgressPublicBytes,
 		NetworkEgressPrivateBytes:  net.EgressPrivateBytes,
+		NetworkEgressAppBytes:      net.EgressAppBytes,
 		NetworkIngressPublicBytes:  net.IngressPublicBytes,
 		NetworkIngressPrivateBytes: net.IngressPrivateBytes,
 		Region:                     c.region,
@@ -310,6 +317,7 @@ func (c *Collector) emitLifecycleCheckpoint(podUID, kind string) {
 			EBPFProgramVersion: buildinfo.Revision,
 			EBPFPinDir:         network.PinDir(),
 			NetworkAttached:    netAttached,
+			NetworkAppAttached: netAttached && c.appPeersReady.Load(),
 			Collectors:         c.enabledCollectorNames(),
 		}.Marshal(),
 	})

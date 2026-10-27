@@ -75,10 +75,11 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		var samples []schema.InstanceCheckpoint
 		for i := 0; i < 5; i++ {
 			samples = append(samples, container.sample(ws, resource, base+int64(i)*sampleGap, sampleValues{
-				cpuUsec:     int64(i) * 1_000_000, // 1 CPU-second per step
-				egressBytes: int64(i) * 1000,
-				memoryBytes: gib,     // 1 GiB
-				diskBytes:   2 * gib, // 2 GiB
+				cpuUsec:        int64(i) * 1_000_000,
+				egressBytes:    int64(i) * 1000,
+				appEgressBytes: int64(i) * 370,
+				memoryBytes:    gib,
+				diskBytes:      2 * gib,
 			}))
 		}
 		insertCheckpoints(t, ctx, conn, samples)
@@ -95,6 +96,7 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		require.InDelta(t, 4.0, u.CPUSeconds, 1e-9)
 		// 4 deltas of 1000 bytes.
 		require.Equal(t, int64(4000), u.EgressBytes)
+		require.Equal(t, int64(1480), u.AppEgressBytes)
 		// 4 pairs * 15000ms * 1 GiB.
 		require.InDelta(t, gibHours(float64(gib)*float64(4*sampleGap)), u.MemoryGiBHours, 1e-9)
 		// Same intervals, 2 GiB allocated.
@@ -114,10 +116,11 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		var samples []schema.InstanceCheckpoint
 		for i, off := range offsets {
 			samples = append(samples, container.sample(ws, resource, base+off, sampleValues{
-				cpuUsec:     int64(i) * 1_000_000,
-				egressBytes: int64(i) * 1000,
-				memoryBytes: gib,
-				diskBytes:   gib,
+				cpuUsec:        int64(i) * 1_000_000,
+				egressBytes:    int64(i) * 1000,
+				appEgressBytes: int64(i) * 230,
+				memoryBytes:    gib,
+				diskBytes:      gib,
 			}))
 		}
 		insertCheckpoints(t, ctx, conn, samples)
@@ -134,6 +137,7 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		// across the 5-min gap is dropped.
 		require.InDelta(t, 3.0, u.CPUSeconds, 1e-9)
 		require.Equal(t, int64(3000), u.EgressBytes)
+		require.Equal(t, int64(690), u.AppEgressBytes)
 		// Memory integrates only the 3 kept 15s intervals.
 		require.InDelta(t, gibHours(float64(gib)*float64(3*sampleGap)), u.MemoryGiBHours, 1e-9)
 	})
@@ -147,23 +151,25 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		var samples []schema.InstanceCheckpoint
 		for i := 0; i < 3; i++ {
 			samples = append(samples, c0.sample(ws, resource, base+int64(i)*sampleGap, sampleValues{
-				cpuUsec:     int64(i) * 1_000_000,
-				egressBytes: int64(i) * 500,
-				memoryBytes: gib,
-				diskBytes:   gib,
+				cpuUsec:        int64(i) * 1_000_000,
+				egressBytes:    int64(i) * 500,
+				appEgressBytes: int64(i) * 170,
+				memoryBytes:    gib,
+				diskBytes:      gib,
 			}))
 		}
-		// Restart 1: fresh cgroup, counter resets to 0 and climbs again. A
-		// naive global max-min across the boundary would go negative or
-		// double-count; per-container_uid integration must not.
+
 		c1 := newContainerWithRestart(1)
+		c1.podUID = c0.podUID
+		c1.instanceID = c0.instanceID
 		restartBase := base + 3*sampleGap
 		for i := 0; i < 3; i++ {
 			samples = append(samples, c1.sample(ws, resource, restartBase+int64(i)*sampleGap, sampleValues{
-				cpuUsec:     int64(i) * 1_000_000,
-				egressBytes: int64(i) * 500,
-				memoryBytes: gib,
-				diskBytes:   gib,
+				cpuUsec:        int64(i) * 1_000_000,
+				egressBytes:    int64(i) * 500,
+				appEgressBytes: 5000 + int64(i)*310,
+				memoryBytes:    gib,
+				diskBytes:      gib,
 			}))
 		}
 		insertCheckpoints(t, ctx, conn, samples)
@@ -179,6 +185,7 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		// Each life: 2 deltas of 1e6 = 2 CPU-seconds. Two lives = 4.
 		require.InDelta(t, 4.0, u.CPUSeconds, 1e-9)
 		require.Equal(t, int64(2000), u.EgressBytes)
+		require.Equal(t, int64(960), u.AppEgressBytes)
 	})
 
 	t.Run("never re-bills the cumulative egress counter after a heimdall restart", func(t *testing.T) {
@@ -194,7 +201,7 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		samples := []schema.InstanceCheckpoint{
 			// Measured, counter at its accumulated value.
 			c.sample(ws, resource, base, sampleValues{
-				egressBytes: accumulated, memoryBytes: gib, diskBytes: gib,
+				egressBytes: accumulated, appEgressBytes: 7 * gib, memoryBytes: gib, diskBytes: gib,
 			}),
 			// heimdall restarts. The pod is not in the new process's attach table,
 			// so the counters are not read and the row is written with zero. This
@@ -205,7 +212,7 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 			// Re-attached. The kernel counter never reset, so it reads back at its
 			// real value plus whatever flowed in between (1 MiB here).
 			c.sample(ws, resource, base+2*sampleGap, sampleValues{
-				egressBytes: accumulated + 1024*1024, memoryBytes: gib, diskBytes: gib,
+				egressBytes: accumulated + 1024*1024, appEgressBytes: 7*gib + 930, memoryBytes: gib, diskBytes: gib,
 			}),
 		}
 		insertCheckpoints(t, ctx, conn, samples)
@@ -224,12 +231,50 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		// what `greatest(0, lead - cur)` produced from the (0, accumulated) pair.
 		require.Equal(t, int64(0), u.EgressBytes,
 			"an unmeasured zero must not be diffed against a measured counter")
+		require.Zero(t, u.AppEgressBytes)
 		// The non-network meters are unaffected: they are integrated over time
 		// and their liveness comes from the cgroup read, not the eBPF attach.
 		require.Greater(t, u.MemoryGiBHours, 0.0)
 	})
 
-	t.Run("empty workspace id aggregates across workspaces", func(t *testing.T) {
+	t.Run("legacy and unsynchronized checkpoints never re-bill retained app counters", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+		var samples []schema.InstanceCheckpoint
+		for i, checkpoint := range []struct {
+			values      sampleValues
+			appAttached bool
+		}{
+			{values: sampleValues{egressBytes: 100, appEgressBytes: 7 * gib}, appAttached: true},
+			{values: sampleValues{egressBytes: 300, appEgressBytes: 7*gib + 70}, appAttached: true},
+			{values: sampleValues{egressBytes: 600}},
+			{values: sampleValues{egressBytes: 1000, appEgressBytes: 7*gib + 1000}, appAttached: true},
+			{values: sampleValues{egressBytes: 1300, appEgressBytes: 7*gib + 1500}},
+			{values: sampleValues{egressBytes: 1700, appEgressBytes: 7*gib + 2000}, appAttached: true},
+			{values: sampleValues{egressBytes: 2200, appEgressBytes: 7*gib + 2300}, appAttached: true},
+		} {
+			sample := c.sample(ws, resource, base+int64(i)*sampleGap, checkpoint.values)
+			sample.Attributes = schema.InstanceCheckpointAttributes{
+				NetworkAttached:    true,
+				NetworkAppAttached: checkpoint.appAttached,
+			}.Marshal()
+			samples = append(samples, sample)
+		}
+		insertCheckpoints(t, ctx, conn, samples)
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       windowStart,
+			End:         windowEnd,
+		})
+		require.NoError(t, err)
+		u := findUsage(t, rows, resource)
+		require.Equal(t, int64(2100), u.EgressBytes)
+		require.Equal(t, int64(370), u.AppEgressBytes)
+	})
+
+	t.Run("empty workspace id never pairs a shared container uid across workspaces", func(t *testing.T) {
 		// Two distinct workspaces, queried with an empty filter, both appear.
 		wsA := uid.New(uid.WorkspacePrefix)
 		wsB := uid.New(uid.WorkspacePrefix)
@@ -238,13 +283,15 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 
 		var samples []schema.InstanceCheckpoint
 		ca := newContainer()
-		cb := newContainer()
+		cb := ca
 		for i := 0; i < 2; i++ {
 			samples = append(samples, ca.sample(wsA, resA, base+int64(i)*sampleGap, sampleValues{
 				cpuUsec: int64(i) * 2_000_000, memoryBytes: gib, diskBytes: gib,
+				egressBytes: int64(i) * 500, appEgressBytes: int64(i) * 75,
 			}))
 			samples = append(samples, cb.sample(wsB, resB, base+int64(i)*sampleGap, sampleValues{
 				cpuUsec: int64(i) * 7_000_000, memoryBytes: gib, diskBytes: gib,
+				egressBytes: 5000 + int64(i)*1100, appEgressBytes: 8000 + int64(i)*2300,
 			}))
 		}
 		insertCheckpoints(t, ctx, conn, samples)
@@ -257,6 +304,10 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 
 		require.InDelta(t, 2.0, findUsage(t, rows, resA).CPUSeconds, 1e-9)
 		require.InDelta(t, 7.0, findUsage(t, rows, resB).CPUSeconds, 1e-9)
+		require.Equal(t, int64(500), findUsage(t, rows, resA).EgressBytes)
+		require.Equal(t, int64(75), findUsage(t, rows, resA).AppEgressBytes)
+		require.Equal(t, int64(1100), findUsage(t, rows, resB).EgressBytes)
+		require.Equal(t, int64(2300), findUsage(t, rows, resB).AppEgressBytes)
 	})
 
 	t.Run("FINAL deduplicates replacements inserted in separate parts", func(t *testing.T) {
@@ -266,20 +317,20 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 
 		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
 			c.sample(ws, resource, base, sampleValues{
-				cpuUsec: 0, egressBytes: 0, memoryBytes: gib, diskBytes: gib,
+				cpuUsec: 0, egressBytes: 0, appEgressBytes: 100, memoryBytes: gib, diskBytes: gib,
 			}),
 			c.sample(ws, resource, base+sampleGap, sampleValues{
-				cpuUsec: 1_000_000, egressBytes: 1000, memoryBytes: gib, diskBytes: gib,
+				cpuUsec: 1_000_000, egressBytes: 1000, appEgressBytes: 2000, memoryBytes: gib, diskBytes: gib,
 			}),
 			c.sample(ws, resource, base+2*sampleGap, sampleValues{
-				cpuUsec: 3_000_000, egressBytes: 3000, memoryBytes: gib, diskBytes: gib,
+				cpuUsec: 3_000_000, egressBytes: 3000, appEgressBytes: 900, memoryBytes: gib, diskBytes: gib,
 			}),
 		})
 		// Same replacement key as the middle checkpoint, inserted in a later
 		// part with corrected counters. FINAL must retain only this version.
 		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
 			c.sample(ws, resource, base+sampleGap, sampleValues{
-				cpuUsec: 2_000_000, egressBytes: 2000, memoryBytes: gib, diskBytes: gib,
+				cpuUsec: 2_000_000, egressBytes: 2000, appEgressBytes: 500, memoryBytes: gib, diskBytes: gib,
 			}),
 		})
 
@@ -293,6 +344,118 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		u := findUsage(t, rows, resource)
 		require.InDelta(t, 3.0, u.CPUSeconds, 1e-9)
 		require.Equal(t, int64(3000), u.EgressBytes)
+		require.Equal(t, int64(800), u.AppEgressBytes)
+	})
+
+	t.Run("clamps app and public counter resets independently", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+		values := []sampleValues{
+			{egressBytes: 100, appEgressBytes: 1000},
+			{egressBytes: 400, appEgressBytes: 1300},
+			{egressBytes: 800, appEgressBytes: 20},
+			{egressBytes: 10, appEgressBytes: 70},
+			{egressBytes: 30, appEgressBytes: 90},
+		}
+		var samples []schema.InstanceCheckpoint
+		for i, value := range values {
+			samples = append(samples, c.sample(ws, resource, base+int64(i)*sampleGap, value))
+		}
+		insertCheckpoints(t, ctx, conn, samples)
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       windowStart,
+			End:         windowEnd,
+		})
+		require.NoError(t, err)
+		u := findUsage(t, rows, resource)
+		require.Equal(t, int64(720), u.EgressBytes)
+		require.Equal(t, int64(370), u.AppEgressBytes)
+	})
+
+	t.Run("drops zero length pairs at lifecycle timestamp collisions", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+		start := c.sample(ws, resource, base, sampleValues{egressBytes: 30, appEgressBytes: 900})
+		start.EventKind = "start"
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, base, sampleValues{egressBytes: 10, appEgressBytes: 100}),
+			start,
+			c.sample(ws, resource, base+sampleGap, sampleValues{egressBytes: 80, appEgressBytes: 1000}),
+		})
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       windowStart,
+			End:         windowEnd,
+		})
+		require.NoError(t, err)
+		u := findUsage(t, rows, resource)
+		require.Equal(t, int64(50), u.EgressBytes)
+		require.Equal(t, int64(100), u.AppEgressBytes)
+	})
+
+	t.Run("includes app egress from every region without adding it to public egress", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		var samples []schema.InstanceCheckpoint
+		for _, region := range []struct {
+			name        string
+			publicBytes int64
+			appBytes    int64
+		}{
+			{name: "us-east-1", publicBytes: 300, appBytes: 1700},
+			{name: "eu-central-1", publicBytes: 450, appBytes: 280},
+		} {
+			c := newContainer()
+			for i := int64(0); i < 2; i++ {
+				sample := c.sample(ws, resource, base+i*sampleGap, sampleValues{
+					egressBytes: i * region.publicBytes, appEgressBytes: i * region.appBytes,
+				})
+				sample.Region = region.name
+				samples = append(samples, sample)
+			}
+		}
+		insertCheckpoints(t, ctx, conn, samples)
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       windowStart,
+			End:         windowEnd,
+		})
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+		require.Equal(t, int64(750), rows[0].EgressBytes)
+		require.Equal(t, int64(1980), rows[0].AppEgressBytes)
+	})
+
+	t.Run("legacy inserts omitting the app column default to zero", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+		query := strings.Replace(clickhouse.InsertQuery[schema.InstanceCheckpoint](), "`network_egress_app_bytes`, ", "", 1)
+		batch, err := conn.PrepareBatch(ctx, query)
+		require.NoError(t, err)
+		for i := int64(0); i < 2; i++ {
+			sample := c.sample(ws, resource, base+i*sampleGap, sampleValues{
+				egressBytes: i * 510, appEgressBytes: i * 970,
+			})
+			require.NoError(t, batch.AppendStruct(&sample))
+		}
+		require.NoError(t, batch.Send())
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       windowStart,
+			End:         windowEnd,
+		})
+		require.NoError(t, err)
+		u := findUsage(t, rows, resource)
+		require.Equal(t, int64(510), u.EgressBytes)
+		require.Zero(t, u.AppEgressBytes)
 	})
 
 	t.Run("integrates a checkpoint pair across daily partitions", func(t *testing.T) {
@@ -406,10 +569,11 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 // sampleValues holds the per-checkpoint metric values a test wants to set; the
 // rest of the row is boilerplate filled in by container.sample.
 type sampleValues struct {
-	cpuUsec     int64
-	egressBytes int64
-	memoryBytes int64
-	diskBytes   int64
+	cpuUsec        int64
+	egressBytes    int64
+	appEgressBytes int64
+	memoryBytes    int64
+	diskBytes      int64
 }
 
 // container builds checkpoints for one container lifecycle, holding the stable
@@ -437,7 +601,7 @@ func (c *container) sample(ws, resource string, ts int64, v sampleValues) schema
 	// Marshalled through the production type rather than a hand-written literal,
 	// so a renamed json tag breaks this test instead of silently making every
 	// row look unmeasured to the billing query.
-	s.Attributes = schema.InstanceCheckpointAttributes{NetworkAttached: true}.Marshal()
+	s.Attributes = schema.InstanceCheckpointAttributes{NetworkAttached: true, NetworkAppAttached: true}.Marshal()
 	return s
 }
 
@@ -469,6 +633,7 @@ func (c *container) rawSample(ws, resource string, ts int64, v sampleValues) sch
 		MemoryBytes:              v.memoryBytes,
 		DiskAllocatedBytes:       v.diskBytes,
 		NetworkEgressPublicBytes: v.egressBytes,
+		NetworkEgressAppBytes:    v.appEgressBytes,
 		Region:                   "local",
 		Platform:                 "local",
 		Attributes:               "{}",

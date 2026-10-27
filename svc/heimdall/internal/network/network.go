@@ -2,6 +2,7 @@ package network
 
 import (
 	"errors"
+	"net/netip"
 
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -44,13 +45,12 @@ var (
 	ErrNotAttached = errors.New("pod not attached in this process")
 )
 
-// Counters is the per-pod byte snapshot returned by Read. All four are
-// monotonic accumulators (the tc program increments via
-// __sync_fetch_and_add) so billing math is the same `max(counter) -
-// min(counter)` shape as cpu_usage_usec.
+// Counters holds cumulative byte totals for one pod. App egress is a subset
+// of private egress, not an additional transfer.
 type Counters struct {
 	EgressPublicBytes   int64
 	EgressPrivateBytes  int64
+	EgressAppBytes      int64
 	IngressPublicBytes  int64
 	IngressPrivateBytes int64
 }
@@ -62,6 +62,7 @@ type Counters struct {
 var zeroCounters = Counters{
 	EgressPublicBytes:   0,
 	EgressPrivateBytes:  0,
+	EgressAppBytes:      0,
 	IngressPublicBytes:  0,
 	IngressPrivateBytes: 0,
 }
@@ -73,6 +74,10 @@ var zeroCounters = Counters{
 //
 // All methods are safe for concurrent use.
 type Reader interface {
+	// SetAppPeers replaces workload destinations, including remote-region pods.
+	// Addresses absent from this set never contribute to app-egress counters.
+	SetAppPeers(addresses map[netip.Addr]struct{}) error
+
 	// Attach requests that the two tc programs be hooked onto the pod-side
 	// eth0 inside the pod's net namespace. Non-blocking: the actual work
 	// (containerd sandbox lookup + setns into the pod netns + two

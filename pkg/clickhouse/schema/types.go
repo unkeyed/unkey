@@ -205,6 +205,7 @@ type InstanceCheckpoint struct {
 	// to distinguish "no traffic" from "not measured".
 	NetworkEgressPublicBytes   int64  `ch:"network_egress_public_bytes" json:"network_egress_public_bytes"`
 	NetworkEgressPrivateBytes  int64  `ch:"network_egress_private_bytes" json:"network_egress_private_bytes"`
+	NetworkEgressAppBytes      int64  `ch:"network_egress_app_bytes" json:"network_egress_app_bytes"`
 	NetworkIngressPublicBytes  int64  `ch:"network_ingress_public_bytes" json:"network_ingress_public_bytes"`
 	NetworkIngressPrivateBytes int64  `ch:"network_ingress_private_bytes" json:"network_ingress_private_bytes"`
 	Region                     string `ch:"region" json:"region"`
@@ -253,6 +254,9 @@ type InstanceCheckpointAttributes struct {
 	// tell "real zero traffic" apart from "we couldn't read it" without
 	// running a separate Prometheus correlation.
 	NetworkAttached bool `json:"network_attached,omitempty"`
+	// NetworkAppAttached requires synchronized app peers and network attachment.
+	// Missing on legacy writers, whose zero app counter must not form a delta.
+	NetworkAppAttached bool `json:"network_app_attached,omitempty"`
 	// Collectors is the list of metric kinds this heimdall agent had
 	// enabled when the row was written (subset of cpu / memory / disk /
 	// network). Disabled kinds write zero into the corresponding numeric
