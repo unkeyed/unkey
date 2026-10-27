@@ -80,6 +80,7 @@ export function deploymentsListBuildLogs(
       operations.DeploymentsListBuildLogsResponse,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
+      | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
@@ -113,6 +114,7 @@ async function $do(
         operations.DeploymentsListBuildLogsResponse,
         | errors.BadRequestErrorResponse
         | errors.UnauthorizedErrorResponse
+        | errors.ForbiddenErrorResponse
         | errors.NotFoundErrorResponse
         | errors.TooManyRequestsErrorResponse
         | errors.InternalServerErrorResponse
@@ -215,6 +217,7 @@ async function $do(
     operations.DeploymentsListBuildLogsResponse,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -232,6 +235,7 @@ async function $do(
     }),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
+    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema),
     M.jsonErr(500, errors.InternalServerErrorResponse$inboundSchema),
@@ -254,6 +258,7 @@ async function $do(
         operations.DeploymentsListBuildLogsResponse,
         | errors.BadRequestErrorResponse
         | errors.UnauthorizedErrorResponse
+        | errors.ForbiddenErrorResponse
         | errors.NotFoundErrorResponse
         | errors.TooManyRequestsErrorResponse
         | errors.InternalServerErrorResponse

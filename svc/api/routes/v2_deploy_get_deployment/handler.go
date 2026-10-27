@@ -58,14 +58,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return apierrors.NotFound(codes.Data.Project.NotFound.URN())
 	}
 
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(deployment.ProjectID).App(deployment.AppID).Environment(deployment.EnvironmentID).Deployment(deployment.ID),
 			permissions.Read,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Project.NotFound.URN())
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Project.NotFound.URN(), "Resource does not exist.")
 	}
 
 	// Build response directly from database model

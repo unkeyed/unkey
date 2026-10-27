@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -67,21 +68,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// foreign portal is already absent above -- and Authorize is an in-memory
 	// check over already-loaded permissions, so it adds no query and no timing
 	// signature.
-	err = principal.Authorize(rbac.U(
+	permissionQuery := rbac.U(
 		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID),
 		permissions.Read,
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		// A fresh chain, not a wrap: UserFacingMessage concatenates every public
-		// message in the chain, so wrapping would append the rendered RBAC query --
-		// which names the resolved portal id -- to the response. A caller may have
-		// addressed the portal by slug or by mapping and never seen that id. The
-		// internal message carries the denial across so logs still distinguish it
-		// from a genuinely absent portal.
-		return fault.New("portal not found",
-			fault.Code(codes.Data.Portal.NotFound.URN()),
-			fault.Internal(fmt.Sprintf("read denied for portal %s: %s", found.ID, fault.InternalMessage(err))),
-			fault.Public(notFoundMessage),
+		// message in the chain, so wrapping would append the rendered RBAC query,
+		// which names the resolved portal id, to the response. A caller may have
+		// addressed the portal by slug or by mapping and never seen that id.
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			codes.Data.Portal.NotFound.URN(),
+			notFoundMessage,
 		)
 	}
 

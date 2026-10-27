@@ -63,6 +63,7 @@ func TestRevokeSessionWithoutPermission(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request(stored.ID, "user_1"))
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 			require.NotContains(t, res.RawBody, stored.ID, "a denial must not disclose the portal id")
+			require.NotContains(t, res.RawBody, "create_portal_session", "a denial must not echo the required permission")
 		})
 	}
 

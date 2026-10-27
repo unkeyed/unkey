@@ -67,14 +67,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.U(
+		permissionQuery := rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(permission.ProjectID).RBAC().Permission(permission.ID),
 			permissions.Write,
-		))
+		)
+		err = principal.Authorize(permissionQuery)
 		if err != nil {
 			return openapi.Permission{}, apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
+				principal.Permissions,
+				permissionQuery,
 				codes.Data.Permission.NotFound.URN(),
+				"Resource does not exist.",
 			)
 		}
 

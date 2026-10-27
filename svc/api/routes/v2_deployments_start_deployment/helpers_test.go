@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 
 	restateingress "github.com/restatedev/sdk-go/ingress"
@@ -13,6 +14,11 @@ func newRoute(h *testutil.Harness, restate *restateingress.Client) *handler.Hand
 		DB:      h.DB,
 		Restate: restate,
 	}
+}
+
+func deploymentRead(setup testutil.DeploymentTestSetup) string {
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/*#read",
+		setup.Workspace.ID, setup.Project.ID, setup.App.ID, setup.Environment.ID)
 }
 
 func authHeaders(rootKey string) http.Header {

@@ -28,7 +28,7 @@ Recoverable keys need the keyspace's **Store encrypted keys** setting. It's off 
 
 Creating a recoverable key needs `api.*.encrypt_key` or `api.<api_id>.encrypt_key` in addition to the create permission. Reading one back needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key` in addition to the read permission. Grant these only to root keys that need them. See [Root key permissions](/platform/root-keys/permissions).
 
-A missing encrypt permission doesn't look like a permission problem. `keys.createKey` returns HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), "The specified API was not found." If you see this for an API ID you know is correct, check the root key's `encrypt_key` permission first.
+A missing encrypt permission may not look like a permission problem. If the root key can't read the keyspace, `keys.createKey` returns HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), "The specified API was not found." If you see this for an API ID you know is correct, check the root key's `encrypt_key` permission first. A key that can read the keyspace gets HTTP 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) naming the missing permission instead.
 
 ## Create a recoverable key
 

@@ -34,7 +34,7 @@ A role you referenced doesn't exist in your workspace. You get HTTP 404, and `de
 
 - You attached a role to a key before creating it. The request stops at the first missing role.
 - The name has a typo. Names aren't case-sensitive, so `Admin` finds `admin`.
-- Your root key doesn't have permission. `permissions.getRole` and `permissions.deleteRole` return this 404 instead of a 403.
+- Your root key can't read the role. `permissions.getRole` and `permissions.deleteRole` return this 404 instead of a 403. A key that can read the role but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 
 ## How to fix
 

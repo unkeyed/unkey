@@ -68,7 +68,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
 			ResourceID:   "*",
@@ -83,10 +83,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID).Domain(row.ID),
 			permissions.Delete,
 		),
-	)); err != nil {
+	)
+	if err = principal.Authorize(permissionQuery); err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Domain.NotFound.URN(),
+			"Resource does not exist.",
 		)
 	}
 

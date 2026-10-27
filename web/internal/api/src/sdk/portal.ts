@@ -80,8 +80,10 @@ export class Portal extends ClientSDK {
    * returns 403 for the whole request rather than minting a reduced session, so a
    * missing grant is visible instead of surfacing later as a broken portal.
    *
-   * Missing the portal permission itself returns **404**, not 403: a caller who
-   * cannot mint for a portal is not told whether it exists.
+   * Missing the portal permission itself returns **404** when your root key
+   * cannot read the portal or its sessions, so a caller who cannot see a portal
+   * is not told whether it exists. A root key that can read the portal but lacks
+   * the permission gets **403**.
    *
    * Your root key must also be associated with a workspace that has an enabled portal.
    */
@@ -117,7 +119,8 @@ export class Portal extends ClientSDK {
    * - `portal.*.delete_portal` (to delete any portal in the workspace)
    * - `portal.<portal_id>.delete_portal` (to delete a specific portal)
    *
-   * Without the permission this returns **404**, not 403.
+   * A root key that cannot read the portal gets **404**. One that can read it
+   * but lacks the permission gets **403**.
    */
   async deletePortal(
     request: components.V2PortalDeletePortalRequestBody,
@@ -330,7 +333,8 @@ export class Portal extends ClientSDK {
    * which dashboard roles carry. Unlike `portal.createSession`, a dashboard
    * session can call this, not just a root key.
    *
-   * Without the permission this returns **404**, not 403.
+   * A root key that cannot read the portal's sessions gets **404**. One that can
+   * read them but lacks the permission gets **403**.
    */
   async revokeSession(
     request: components.V2PortalRevokeSessionRequestBody,
@@ -367,7 +371,8 @@ export class Portal extends ClientSDK {
    * - `portal.*.update_portal` (to update any portal in the workspace)
    * - `portal.<portal_id>.update_portal` (to update a specific portal)
    *
-   * Without the permission this returns **404**, not 403.
+   * A root key that cannot read the portal gets **404**. One that can read it
+   * but lacks the permission gets **403**.
    */
   async updatePortal(
     request: components.V2PortalUpdatePortalRequestBody,

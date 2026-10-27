@@ -10,9 +10,10 @@
   may share a line only when the entire struct literal fits neatly on one line.
 - A caller without read access must not distinguish a missing resource from
   an unreadable one. Match the not-found status, error type, title, and detail.
-  When masking authorization failures, construct a fresh fault rather than
-  wrapping the original: public messages in the fault chain can leak IDs.
-  Use `MaskInsufficientPermissionsAsNotFound` in
+  A caller who can read the resource gets 403 insufficient-permissions instead,
+  naming the missing permission. When masking authorization failures, construct
+  a fresh fault rather than wrapping the original: public messages in the fault
+  chain can leak IDs. Use `MaskInsufficientPermissionsAsNotFound` in
   [internal/errors/errors.go](internal/errors/errors.go). The regression pattern
   is [403_existence_leak_test.go](routes/v2_apis_list_keys/403_existence_leak_test.go).
 - The public schema source is [openapi/openapi-split.yaml](openapi/openapi-split.yaml)

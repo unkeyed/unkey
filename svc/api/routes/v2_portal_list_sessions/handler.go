@@ -70,12 +70,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Reading a portal's configuration is not enough to see who is signed in to
 	// it. Anyone who may mint or revoke its sessions may also list them.
 	sessions := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID).Session("*")
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.U(sessions, permissions.Read),
 		rbac.U(sessions, permissions.Write),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Portal.NotFound.URN())
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Portal.NotFound.URN(), "Resource does not exist.")
 	}
 
 	now := h.Clock.Now().UnixMilli()

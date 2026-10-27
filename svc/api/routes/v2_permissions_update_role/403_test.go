@@ -3,6 +3,7 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -52,6 +53,16 @@ func TestUpdateRoleAuthorization(t *testing.T) {
 				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 				require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 				require.Equal(t, name, findRole(t, h, role).Name)
+				return
+			}
+
+			if strings.HasPrefix(tc.name, "urn read") {
+				res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+				require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+				require.Contains(t, res.Body.Error.Detail, "#write")
+				require.Contains(t, res.Body.Error.Detail, "Log in again")
+				require.Contains(t, res.Body.Error.Detail, "grant it")
+				require.NotEqual(t, name, findRole(t, h, role).Name)
 				return
 			}
 

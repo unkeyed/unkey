@@ -20,7 +20,7 @@ By default, keys are read from a replica, which may not reflect recent changes. 
 
 The root key needs two permissions: `api.*.read_key` or `api.<api_id>.read_key`, **and** `api.*.read_api` or `api.<api_id>.read_api`. Adding `decrypt: true` additionally needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key`. See [Root key permissions](/platform/root-keys/permissions).
 
-A missing permission isn't a 403. You get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), "The requested API does not exist or has been deleted." If you see this for an ID you know is correct, check both permissions on the root key.
+A missing read permission isn't a 403. You get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), "The requested API does not exist or has been deleted." If you see this for an ID you know is correct, check both permissions on the root key. A key that can read the keys but not decrypt them gets a 403 for `decrypt: true` that names the missing permission.
 
 ## Request
 

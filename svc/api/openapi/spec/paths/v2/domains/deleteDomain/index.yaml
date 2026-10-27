@@ -95,9 +95,9 @@ post:
                   type: unauthorized
     "403":
       description: |
-        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-        `environment.*.delete_domain` receives a 404 instead, so permissions cannot be used to
-        discover which domains exist.
+        Forbidden - The root key or its workspace is disabled, or the root key can read the domain but
+        lacks `environment.*.delete_domain`. A root key that cannot read the domain receives a 404
+        instead, so permissions cannot be used to discover which domains exist.
       content:
         application/json:
           schema:
@@ -116,7 +116,7 @@ post:
     "404":
       description: |
         Not Found - The domain does not exist in your workspace, it was already deleted, or your
-        root key may not delete it.
+        root key cannot read it.
       content:
         application/json:
           schema:
