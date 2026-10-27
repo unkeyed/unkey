@@ -3891,6 +3891,59 @@ type V2CliStartDeviceLoginResponseData struct {
 	VerificationUriComplete string `json:"verificationUriComplete"`
 }
 
+// V2ConnectionsCreateConnectionRequestBody defines model for V2ConnectionsCreateConnectionRequestBody.
+type V2ConnectionsCreateConnectionRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Name DNS label starting with a letter. Lowercase letters, digits, and hyphens only. The name self and the prefix unkey are reserved. Defaults to a unique name derived from the target app slug.
+	Name *string `json:"name,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Project ResourceIdentifier `json:"project"`
+
+	// TargetApp Target app ID in the same project.
+	TargetApp string `json:"targetApp"`
+
+	// TargetDeploymentId Required for deployment selection. Must be a ready, running deployment of the target app. Ignored for other modes.
+	TargetDeploymentId *string `json:"targetDeploymentId,omitempty"`
+
+	// TargetEnvironmentId Required for environment selection. Must belong to the target app. Ignored for other modes.
+	TargetEnvironmentId *string `json:"targetEnvironmentId,omitempty"`
+
+	// TargetType Automatic environment selection, an explicit target environment, or a pinned deployment.
+	TargetType ConnectionTargetType `json:"targetType"`
+}
+
+// V2ConnectionsCreateConnectionResponseBody defines model for V2ConnectionsCreateConnectionResponseBody.
+type V2ConnectionsCreateConnectionResponseBody struct {
+	Data V2ConnectionsCreateConnectionResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2ConnectionsCreateConnectionResponseData defines model for V2ConnectionsCreateConnectionResponseData.
+type V2ConnectionsCreateConnectionResponseData struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // V2ConnectionsListConnectionsRequestBody defines model for V2ConnectionsListConnectionsRequestBody.
 type V2ConnectionsListConnectionsRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -8564,6 +8617,9 @@ type CliRevokeSessionJSONRequestBody = V2CliRevokeSessionRequestBody
 
 // CliStartDeviceLoginJSONRequestBody defines body for CliStartDeviceLogin for application/json ContentType.
 type CliStartDeviceLoginJSONRequestBody = V2CliStartDeviceLoginRequestBody
+
+// ConnectionsCreateConnectionJSONRequestBody defines body for ConnectionsCreateConnection for application/json ContentType.
+type ConnectionsCreateConnectionJSONRequestBody = V2ConnectionsCreateConnectionRequestBody
 
 // ConnectionsListConnectionsJSONRequestBody defines body for ConnectionsListConnections for application/json ContentType.
 type ConnectionsListConnectionsJSONRequestBody = V2ConnectionsListConnectionsRequestBody
