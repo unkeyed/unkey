@@ -254,7 +254,11 @@ function tableRows(instances: InstanceView[], usage: UsagePoints | null): Instan
     );
 }
 
-export type LogsTarget = { deploymentId: string; instanceId: string | null };
+export type LogsTarget = {
+  deploymentId: string;
+  instanceId: string | null;
+  window?: { startMs: number; endMs: number };
+};
 
 export type DeployRef = { id: string; source: DeploySource | null };
 

@@ -96,6 +96,8 @@ export function useMetricsPage() {
       projectId,
       deploymentId: target.deploymentId,
       instanceId: target.instanceId ?? undefined,
+      startTime: target.window?.startMs,
+      endTime: target.window?.endMs,
     });
 
   return {

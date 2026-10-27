@@ -9,7 +9,7 @@ import { Button, useElapsed } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { type CrashEpisode, EVENT_KIND } from "./events-model";
+import { type CrashEpisode, EVENT_KIND, logsWindow } from "./events-model";
 import type { LogsTarget } from "./instances-model";
 
 export function EpisodeDetail({
@@ -64,7 +64,11 @@ export function EpisodeDetail({
         className="mt-2 w-full"
         render={
           <Link
-            href={logsHref({ deploymentId: episode.deploymentId, instanceId: episode.instanceId })}
+            href={logsHref({
+              deploymentId: episode.deploymentId,
+              instanceId: episode.instanceId,
+              window: logsWindow(episode),
+            })}
           />
         }
       >

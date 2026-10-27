@@ -133,14 +133,33 @@ function episodeOf(
   };
 }
 
+// Kubernetes restarts a crashed container within seconds; a pod that stops and never
+// comes back was shut down (a rollout or scale-down sends SIGTERM, exit 143), not crashed.
+const RESTART_GRACE_MS = 2 * 60_000;
+
+function withoutShutdowns(events: InstanceEvent[], gridEndMs: number): InstanceEvent[] {
+  const sorted = events.toSorted((a, b) => a.atMs - b.atMs);
+  return sorted.filter(
+    (e, i) =>
+      e.kind !== "crashed" || i < sorted.length - 1 || gridEndMs - e.atMs <= RESTART_GRACE_MS,
+  );
+}
+
 export function crashEpisodes(
   events: ReadonlyArray<InstanceEvent>,
   gridEndMs: number,
 ): CrashEpisode[] {
   const relevant = events.filter((e) => isProblem(e) || e.kind === "started");
   return [...Map.groupBy(relevant, (e) => toInstanceKey(e.instance, e.region)).values()]
-    .flatMap((events) => instanceEpisodes(events, gridEndMs))
+    .flatMap((events) => instanceEpisodes(withoutShutdowns(events, gridEndMs), gridEndMs))
     .sort((a, b) => a.startMs - b.startMs || a.instance.localeCompare(b.instance));
+}
+
+const LOGS_LEAD_MS = 15 * 60_000;
+const LOGS_TAIL_MS = 5 * 60_000;
+
+export function logsWindow(episode: CrashEpisode): { startMs: number; endMs: number } {
+  return { startMs: episode.startMs - LOGS_LEAD_MS, endMs: episode.endMs + LOGS_TAIL_MS };
 }
 
 export function episodeLabel(episode: CrashEpisode): string {
