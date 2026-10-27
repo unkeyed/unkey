@@ -395,6 +395,12 @@ func Run(ctx context.Context, cfg Config) error {
 		return workspace.ID, nil
 	})
 
+	jwksCache, err := authjwt.NewJWKSCache(clk)
+	if err != nil {
+		return fmt.Errorf("unable to create JWKS cache: %w", err)
+	}
+	r.Defer(func() error { jwksCache.Close(); return nil })
+
 	// Portal sessions authenticate on a dedicated auth service used only by the
 	// portal routes, so protected routes never accept a portal-session cookie.
 	authResolvers := []auth.Resolver{}
@@ -412,7 +418,7 @@ func Run(ctx context.Context, cfg Config) error {
 			if len(jwtSecrets) > 0 {
 				jwtResolver, jwtErr = authjwt.NewResolver(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, jwtSecrets...)
 			} else {
-				jwtResolver, jwtErr = authjwt.NewResolverWithJWKSURL(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, authConfig.JWKSURL)
+				jwtResolver, jwtErr = authjwt.NewResolverWithJWKSURL(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, authConfig.JWKSURL, jwksCache, clk)
 			}
 			if jwtErr != nil {
 				return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)

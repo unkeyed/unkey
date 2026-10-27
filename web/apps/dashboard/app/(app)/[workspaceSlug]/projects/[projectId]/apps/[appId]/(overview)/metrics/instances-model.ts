@@ -160,17 +160,8 @@ function linesChart(usage: Usage, read: Reader, lines: ReadonlyArray<Line>): Ins
   return { series, chart: chartStateOf(usage.grid, chartOf(drawn, read)) };
 }
 
-function instanceLines(
-  instances: InstanceView[],
-  usage: Usage,
-  read: Reader,
-  selectedKey: string | null,
-): InstanceChart {
-  const ordered = instances.toSorted(
-    (a, b) =>
-      Number(a.key === selectedKey) - Number(b.key === selectedKey) ||
-      DRAW_ORDER[a.tone] - DRAW_ORDER[b.tone],
-  );
+function instanceLines(instances: InstanceView[], usage: Usage, read: Reader): InstanceChart {
+  const ordered = instances.toSorted((a, b) => DRAW_ORDER[a.tone] - DRAW_ORDER[b.tone]);
   return linesChart(
     usage,
     read,
@@ -192,7 +183,7 @@ export function instanceChart(
     usage.status === "ready"
       ? views.filter((i) => usage.byKey.get(i.key)?.some((p) => p[metric] !== null))
       : views;
-  return instanceLines(withData, usage, absolute(metric), null);
+  return instanceLines(withData, usage, absolute(metric));
 }
 
 export type UsageCell = { percent: number | null; hot: boolean };
@@ -217,14 +208,9 @@ function allocationOf(instances: InstanceView[], metric: InstanceMetric): string
     : "of each instance's limit";
 }
 
-function usageCard(
-  instances: InstanceView[],
-  usage: Usage,
-  metric: InstanceMetric,
-  selectedKey: string | null,
-): UsageCard {
+function usageCard(instances: InstanceView[], usage: Usage, metric: InstanceMetric): UsageCard {
   return {
-    ...instanceLines(instances, usage, shareOfOwnAllocation(instances, metric), selectedKey),
+    ...instanceLines(instances, usage, shareOfOwnAllocation(instances, metric)),
     metric,
     scale: SHARE_SCALE,
     allocation: allocationOf(instances, metric),
@@ -326,9 +312,7 @@ export function instancesTabView(input: {
     region,
     selected,
     legend: legendOf(inScope),
-    usage: INSTANCE_METRICS.map((metric) =>
-      usageCard(inScope, usage, metric, selected?.key ?? null),
-    ),
+    usage: INSTANCE_METRICS.map((metric) => usageCard(inScope, usage, metric)),
     rows: tableRows(inScope, usage.status === "ready" ? usage : null),
   };
 }

@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: krane-config
+  namespace: unkey
+  labels:
+    app: krane
+    component: krane
+data:
+  unkey.toml: |
+    storage_class_name = "topolvm-ssd"
+
+    disable_gvisor = false
+
+    [cluster]
+    cell_id = "local"
+    region = "local"
+    platform = "dev"
+
+    [control]
+    url = "http://ctrl-api:7091"
+    token = "your-local-dev-key"
+
+    [vault]
+    url = "http://vault:8060"
+    token = "vault-test-token-123"
+
+    # Tilt adds registry configuration when dev/.env.depot exists. Without
+    # that section, Krane skips pull-secret creation for the local registry.

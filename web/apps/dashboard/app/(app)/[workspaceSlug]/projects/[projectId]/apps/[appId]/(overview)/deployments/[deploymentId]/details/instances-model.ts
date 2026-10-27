@@ -33,7 +33,8 @@ export type RegionGroup = {
 
 export type InstancesView =
   | { kind: "diagram"; regions: RegionGroup[] }
-  | { kind: "empty"; message: string };
+  | { kind: "empty"; message: string }
+  | { kind: "none" };
 
 export type InstancesInput = Pick<
   Deployment,
@@ -54,6 +55,9 @@ export function resolveInstancesView(input: InstancesInput): InstancesView {
   if (input.instances.length === 0) {
     if (input.stage === "started" && input.desiredState === "running") {
       return { kind: "diagram", regions: skeletonRegions(input) };
+    }
+    if (input.stage === "error") {
+      return { kind: "none" };
     }
     return { kind: "empty", message: instancesText(null, input.desiredState) };
   }
