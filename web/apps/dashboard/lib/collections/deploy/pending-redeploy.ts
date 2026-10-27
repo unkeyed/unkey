@@ -1,5 +1,6 @@
 import type { V2EnvironmentsUpdateSettingsRequestBody } from "@unkey/api/models/components";
 import { useSyncExternalStore } from "react";
+import type { Deployment } from "./deployments";
 
 export const NEXT_DEPLOY = "Changes apply to the next deployment";
 
@@ -17,6 +18,7 @@ export function appliesOnNextDeploy(body: V2EnvironmentsUpdateSettingsRequestBod
 const saveStore = {
   savedCount: 0,
   dismissedAtCount: 0,
+  target: null as SettingsBannerTarget | null,
   listeners: new Set<() => void>(),
   notify() {
     for (const cb of this.listeners) {
@@ -37,10 +39,27 @@ const saveStore = {
 
 export function trackSave<T>(promise: Promise<T>): Promise<T> {
   return promise.then((result) => {
-    saveStore.savedCount++;
-    saveStore.notify();
+    showSettingsBanner();
     return result;
   });
+}
+
+type SettingsBannerTarget = {
+  deployment: Pick<Deployment, "id" | "projectId" | "appId" | "environmentId">;
+  environmentSlug: string;
+};
+
+export function showSettingsBanner(target: SettingsBannerTarget | null = null): void {
+  saveStore.target = target;
+  saveStore.savedCount++;
+  saveStore.notify();
+}
+
+export function useSettingsBannerTarget(): SettingsBannerTarget | null {
+  return useSyncExternalStore(
+    (cb) => saveStore.subscribe(cb),
+    () => saveStore.target,
+  );
 }
 
 export function useSettingsBannerVisible(): boolean {
@@ -50,6 +69,8 @@ export function useSettingsBannerVisible(): boolean {
   );
 }
 
-export function dismissSettingsBanner(): void {
-  saveStore.dismiss();
+export function dismissSettingsBanner(target = saveStore.target): void {
+  if (target === saveStore.target) {
+    saveStore.dismiss();
+  }
 }
