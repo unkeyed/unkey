@@ -1,0 +1,36 @@
+type: object
+additionalProperties: false
+required: [ruleId, name, notificationType, enabled, targets]
+description: Full replacement of a rule. Omitted scope IDs remove those scope bounds.
+properties:
+  ruleId:
+    type: string
+    minLength: 1
+  name:
+    type: string
+    minLength: 1
+    maxLength: 128
+  notificationType:
+    type: string
+    minLength: 1
+    description: Supported event type from notifications.getCatalog. Unsupported types are rejected at runtime.
+  projectId:
+    type: string
+    minLength: 1
+    description: Omit all scope IDs for a workspace-wide rule.
+  appId:
+    type: string
+    minLength: 1
+    description: Requires projectId and must belong to that project.
+  environmentId:
+    type: string
+    minLength: 1
+    description: Requires appId and must belong to that app.
+  enabled:
+    type: boolean
+  targets:
+    type: array
+    minItems: 1
+    maxItems: 100
+    items:
+      $ref: ../../../../common/NotificationTarget.yaml

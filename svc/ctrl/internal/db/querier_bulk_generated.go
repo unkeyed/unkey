@@ -37,6 +37,9 @@ type BulkQuerier interface {
 	InsertIdentityRatelimits(ctx context.Context, args []InsertIdentityRatelimitParams) error
 	InsertFrontlineRoutes(ctx context.Context, args []InsertFrontlineRouteParams) error
 	InsertNotifications(ctx context.Context, args []InsertNotificationParams) error
+	InsertNotificationDestinations(ctx context.Context, args []InsertNotificationDestinationParams) error
+	InsertNotificationRules(ctx context.Context, args []InsertNotificationRuleParams) error
+	InsertNotificationRuleTargets(ctx context.Context, args []InsertNotificationRuleTargetParams) error
 	UpsertInstance(ctx context.Context, args []UpsertInstanceParams) error
 	InsertKeyEncryptions(ctx context.Context, args []InsertKeyEncryptionParams) error
 	InsertKeys(ctx context.Context, args []InsertKeyParams) error
@@ -46,6 +49,7 @@ type BulkQuerier interface {
 	InsertKeySpaces(ctx context.Context, args []InsertKeySpaceParams) error
 	UpsertLimit(ctx context.Context, args []UpsertLimitParams) error
 	InsertNotificationDeliveries(ctx context.Context, args []InsertNotificationDeliveryParams) error
+	UpsertNotificationPreference(ctx context.Context, args []UpsertNotificationPreferenceParams) error
 	UpsertOpenApiSpec(ctx context.Context, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, args []InsertPermissionParams) error
 	InsertPortalDomains(ctx context.Context, args []InsertPortalDomainParams) error

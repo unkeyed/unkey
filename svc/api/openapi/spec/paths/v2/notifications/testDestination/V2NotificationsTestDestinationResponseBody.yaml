@@ -1,0 +1,36 @@
+type: object
+additionalProperties: false
+required: [meta, data]
+properties:
+  meta:
+    $ref: ../../../../common/Meta.yaml
+  data:
+    type: object
+    additionalProperties: false
+    required: [deliveryId, status]
+    properties:
+      deliveryId:
+        type: string
+      status:
+        type: string
+        enum: [
+          pending,
+          sending,
+          accepted,
+          delivered,
+          failed,
+          suppressed,
+          unknown,
+        ]
+        x-enum-varnames:
+          - NotificationDeliveryPending
+          - NotificationDeliverySending
+          - NotificationDeliveryAccepted
+          - NotificationDeliveryDelivered
+          - NotificationDeliveryFailed
+          - NotificationDeliverySuppressed
+          - NotificationDeliveryUnknown
+        description: Accepted indicates provider acceptance, not delivery to an inbox.
+      reason:
+        type: string
+        description: Non-secret delivery outcome detail, when available.

@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required: [type, audience]
+properties:
+  type:
+    type: string
+    enum: [audience]
+  audience:
+    type: string
+    enum: [workspace_admins]

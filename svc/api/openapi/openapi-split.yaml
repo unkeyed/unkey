@@ -134,8 +134,45 @@ tags:
     description: Workspace limits and usage operations
   - name: cli
     description: CLI device login
+  - name: notifications
+    description: Notification destinations, rules and personal preferences
 
 paths:
+  /v2/notifications.getCatalog:
+    $ref: "./spec/paths/v2/notifications/getCatalog/index.yaml"
+  /v2/notifications.listMembers:
+    $ref: "./spec/paths/v2/notifications/listMembers/index.yaml"
+  /v2/notifications.listDestinations:
+    $ref: "./spec/paths/v2/notifications/listDestinations/index.yaml"
+  /v2/notifications.getDestination:
+    $ref: "./spec/paths/v2/notifications/getDestination/index.yaml"
+  /v2/notifications.createDestination:
+    $ref: "./spec/paths/v2/notifications/createDestination/index.yaml"
+  /v2/notifications.updateDestination:
+    $ref: "./spec/paths/v2/notifications/updateDestination/index.yaml"
+  /v2/notifications.deleteDestination:
+    $ref: "./spec/paths/v2/notifications/deleteDestination/index.yaml"
+  /v2/notifications.rotateSigningSecret:
+    $ref: "./spec/paths/v2/notifications/rotateSigningSecret/index.yaml"
+  /v2/notifications.listRules:
+    $ref: "./spec/paths/v2/notifications/listRules/index.yaml"
+  /v2/notifications.getRule:
+    $ref: "./spec/paths/v2/notifications/getRule/index.yaml"
+  /v2/notifications.createRule:
+    $ref: "./spec/paths/v2/notifications/createRule/index.yaml"
+  /v2/notifications.updateRule:
+    $ref: "./spec/paths/v2/notifications/updateRule/index.yaml"
+  /v2/notifications.deleteRule:
+    $ref: "./spec/paths/v2/notifications/deleteRule/index.yaml"
+  /v2/notifications.getPreferences:
+    $ref: "./spec/paths/v2/notifications/getPreferences/index.yaml"
+  /v2/notifications.updatePreferences:
+    $ref: "./spec/paths/v2/notifications/updatePreferences/index.yaml"
+  /v2/notifications.previewRecipients:
+    $ref: "./spec/paths/v2/notifications/previewRecipients/index.yaml"
+  /v2/notifications.testDestination:
+    $ref: "./spec/paths/v2/notifications/testDestination/index.yaml"
+
   # Health Endpoints
   /v2/liveness:
     $ref: "./spec/paths/v2/liveness/index.yaml"

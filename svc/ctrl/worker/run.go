@@ -284,7 +284,12 @@ func Run(ctx context.Context, cfg Config) error {
 		if err != nil {
 			return fmt.Errorf("configure notifications: %w", err)
 		}
-		restateSrv.Bind(notificationSvc.Definition()).Bind(notificationSvc.DeliveryDefinition())
+		restateSrv.Bind(notificationSvc.Definition()).Bind(notificationSvc.DeliveryDefinition()).
+			Bind(hydrav1.NewNotificationTestServiceServer(notificationSvc).
+				ConfigureHandler("TestDestination", restate.WithInvocationRetryPolicy(
+					restate.WithMaxRetryAttempts(8),
+					restate.KillOnMaxAttempts(),
+				)))
 	}
 	if clickhouseClient == nil {
 		logger.Info("LegacyBillingWorkflow disabled: real ClickHouse client not configured")

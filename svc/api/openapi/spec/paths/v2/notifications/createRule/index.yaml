@@ -1,0 +1,59 @@
+post:
+  tags: [notifications]
+  summary: Create notification rule
+  description: Creates a workspace-wide or hierarchy-bounded rule. Requires unkey:v1:{workspaceId}:notifications#write. Event types are validated against the runtime deployment catalog. Targets and scope IDs must belong to the authenticated workspace. Repeating an idempotency key returns the existing rule without replacing it; use a fresh key for a different intended resource.
+  operationId: notifications.createRule
+  x-speakeasy-name-override: createRule
+  x-unkey-idempotency: conditionally-idempotent
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ./V2NotificationsCreateRuleRequestBody.yaml }
+  responses:
+    "200":
+      description: Created or previously created rule.
+      content:
+        application/json:
+          schema: { $ref: ../../../../common/NotificationRuleResponse.yaml }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: Insufficient notification permissions,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "404": {
+      description: Referenced resource not found,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/NotFoundErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

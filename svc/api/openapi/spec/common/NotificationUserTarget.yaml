@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required: [type, userId]
+properties:
+  type:
+    type: string
+    enum: [user]
+  userId:
+    type: string
+    minLength: 1

@@ -1,0 +1,52 @@
+post:
+  tags: [notifications]
+  summary: Update personal notification preferences
+  description: Atomically updates the authenticated user's preferences and returns every supported effective preference. Requires a dashboard JWT with workspace roles or a CLI user session. Root keys and portal sessions are rejected, even with wildcard permissions. No request field can select another user or workspace.
+  operationId: notifications.updatePreferences
+  x-speakeasy-name-override: updatePreferences
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ./V2NotificationsUpdatePreferencesRequestBody.yaml }
+  responses:
+    "200":
+      description: Authenticated user's effective preferences after the atomic update.
+      content:
+        application/json:
+          schema: {
+            $ref: ../../../../common/NotificationPreferencesResponse.yaml,
+          }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: A workspace user session is required,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

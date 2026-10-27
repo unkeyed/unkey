@@ -137,6 +137,24 @@ import (
 	v2WorkspaceGetUsage "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_get_usage"
 	v2WorkspaceUpdateFlag "github.com/unkeyed/unkey/svc/api/routes/v2_workspace_update_flag"
 
+	v2NotificationsCreateDestination "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_create_destination"
+	v2NotificationsCreateRule "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_create_rule"
+	v2NotificationsDeleteDestination "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_delete_destination"
+	v2NotificationsDeleteRule "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_delete_rule"
+	v2NotificationsGetCatalog "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_get_catalog"
+	v2NotificationsGetDestination "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_get_destination"
+	v2NotificationsGetPreferences "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_get_preferences"
+	v2NotificationsGetRule "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_get_rule"
+	v2NotificationsListDestinations "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_list_destinations"
+	v2NotificationsListMembers "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_list_members"
+	v2NotificationsListRules "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_list_rules"
+	v2NotificationsPreviewRecipients "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_preview_recipients"
+	v2NotificationsRotateSigningSecret "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_rotate_signing_secret"
+	v2NotificationsTestDestination "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_test_destination"
+	v2NotificationsUpdateDestination "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_update_destination"
+	v2NotificationsUpdatePreferences "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_update_preferences"
+	v2NotificationsUpdateRule "github.com/unkeyed/unkey/svc/api/routes/v2_notifications_update_rule"
+
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -237,6 +255,24 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Prefix:   "/debug",
 		})
 	}
+
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsGetCatalog.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsListMembers.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsListDestinations.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsGetDestination.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsCreateDestination.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsUpdateDestination.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsDeleteDestination.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsRotateSigningSecret.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsTestDestination.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsListRules.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsGetRule.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsCreateRule.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsUpdateRule.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsDeleteRule.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsGetPreferences.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsUpdatePreferences.Handler{Notifications: svc.Notifications})
+	srv.RegisterRoute(protectedMiddlewares, &v2NotificationsPreviewRecipients.Handler{Notifications: svc.Notifications})
 
 	// ---------------------------------------------------------------------------
 	// v2/ratelimit

@@ -2,6 +2,7 @@ package routes
 
 import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
+	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
@@ -99,6 +100,8 @@ type Services struct {
 	// CtrlCustomDomainClient communicates with the control plane for custom
 	// domain operations (create starts a durable DNS verification workflow).
 	CtrlCustomDomainClient ctrl.CustomDomainServiceClient
+
+	Notifications ctrlv1connect.NotificationServiceClient
 
 	// Restate submits durable workflows through the Restate ingress.
 	Restate *restateingress.Client

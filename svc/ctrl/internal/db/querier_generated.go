@@ -450,6 +450,18 @@ type Querier interface {
 	//  DELETE FROM `limits`
 	//  WHERE workspace_id = ?
 	DeleteLimitsByWorkspaceId(ctx context.Context, workspaceID string) error
+	//DeleteNotificationDestination
+	//
+	//  DELETE FROM notification_destinations WHERE workspace_id = ? AND id = ?
+	DeleteNotificationDestination(ctx context.Context, arg DeleteNotificationDestinationParams) error
+	//DeleteNotificationRule
+	//
+	//  DELETE FROM notification_subscriptions WHERE workspace_id = ? AND id = ?
+	DeleteNotificationRule(ctx context.Context, arg DeleteNotificationRuleParams) error
+	//DeleteNotificationRuleTargets
+	//
+	//  DELETE FROM notification_subscription_targets WHERE workspace_id = ? AND subscription_id = ?
+	DeleteNotificationRuleTargets(ctx context.Context, arg DeleteNotificationRuleTargetsParams) error
 	//DeleteOpenApiSpecsByEnvironmentId
 	//
 	//  DELETE oas FROM openapi_specs oas
@@ -1078,6 +1090,16 @@ type Querier interface {
 	//         provider, provider_message_id, status, reason, attempt_count, first_attempt_at, next_attempt_at, created_at, updated_at
 	//  FROM notification_deliveries WHERE workspace_id = ? AND id = ?
 	FindNotificationDelivery(ctx context.Context, arg FindNotificationDeliveryParams) (NotificationDelivery, error)
+	//FindNotificationDestination
+	//
+	//  SELECT pk, id, workspace_id, name, channel, config, enabled, created_at, updated_at
+	//  FROM notification_destinations WHERE workspace_id = ? AND id = ?
+	FindNotificationDestination(ctx context.Context, arg FindNotificationDestinationParams) (NotificationDestination, error)
+	//FindNotificationRule
+	//
+	//  SELECT pk, id, workspace_id, name, notification_type, project_id, app_id, environment_id, enabled, created_at, updated_at
+	//  FROM notification_subscriptions WHERE workspace_id = ? AND id = ?
+	FindNotificationRule(ctx context.Context, arg FindNotificationRuleParams) (NotificationSubscription, error)
 	//FindOldestEnvironmentDeletion
 	//
 	//  SELECT CAST(COALESCE(MIN(deleted_at), 0) AS SIGNED) AS started_at
@@ -1883,6 +1905,21 @@ type Querier interface {
 	//  INSERT INTO notification_deliveries (id, workspace_id, notification_id, channel, target_key, encrypted_target_snapshot, provider, status, reason, created_at)
 	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertNotificationDelivery(ctx context.Context, arg InsertNotificationDeliveryParams) error
+	//InsertNotificationDestination
+	//
+	//  INSERT INTO notification_destinations (id, workspace_id, name, channel, config, enabled, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?)
+	InsertNotificationDestination(ctx context.Context, arg InsertNotificationDestinationParams) error
+	//InsertNotificationRule
+	//
+	//  INSERT INTO notification_subscriptions (id, workspace_id, name, notification_type, project_id, app_id, environment_id, enabled, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertNotificationRule(ctx context.Context, arg InsertNotificationRuleParams) error
+	//InsertNotificationRuleTarget
+	//
+	//  INSERT INTO notification_subscription_targets (id, workspace_id, subscription_id, channel, audience, user_id, destination_id, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	InsertNotificationRuleTarget(ctx context.Context, arg InsertNotificationRuleTargetParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (
@@ -2215,12 +2252,33 @@ type Querier interface {
 	//  WHERE workspace_id = ? AND notification_id = ?
 	//  ORDER BY id LIMIT 1001
 	ListNotificationDeliveries(ctx context.Context, arg ListNotificationDeliveriesParams) ([]NotificationDelivery, error)
+	//ListNotificationDestinations
+	//
+	//  SELECT pk, id, workspace_id, name, channel, config, enabled, created_at, updated_at
+	//  FROM notification_destinations
+	//  WHERE workspace_id = ? AND id > ?
+	//  ORDER BY id LIMIT ?
+	ListNotificationDestinations(ctx context.Context, arg ListNotificationDestinationsParams) ([]NotificationDestination, error)
 	//ListNotificationPreferences
 	//
 	//  SELECT user_id, enabled FROM notification_preferences
 	//  WHERE workspace_id = ? AND notification_type = ? AND channel = 'email'
 	//  ORDER BY user_id LIMIT 10001
 	ListNotificationPreferences(ctx context.Context, arg ListNotificationPreferencesParams) ([]ListNotificationPreferencesRow, error)
+	//ListNotificationRuleTargets
+	//
+	//  SELECT pk, id, workspace_id, subscription_id, channel, audience, user_id, destination_id, created_at, updated_at
+	//  FROM notification_subscription_targets
+	//  WHERE workspace_id = ? AND subscription_id = ?
+	//  ORDER BY id LIMIT 101
+	ListNotificationRuleTargets(ctx context.Context, arg ListNotificationRuleTargetsParams) ([]NotificationSubscriptionTarget, error)
+	//ListNotificationRules
+	//
+	//  SELECT pk, id, workspace_id, name, notification_type, project_id, app_id, environment_id, enabled, created_at, updated_at
+	//  FROM notification_subscriptions
+	//  WHERE workspace_id = ? AND id > ?
+	//  ORDER BY id LIMIT ?
+	ListNotificationRules(ctx context.Context, arg ListNotificationRulesParams) ([]NotificationSubscription, error)
 	//ListNotificationTargets
 	//
 	//  SELECT t.channel, t.audience, t.user_id, t.destination_id,
@@ -2237,6 +2295,12 @@ type Querier interface {
 	//  ORDER BY t.id
 	//  LIMIT 1001
 	ListNotificationTargets(ctx context.Context, arg ListNotificationTargetsParams) ([]ListNotificationTargetsRow, error)
+	//ListNotificationUserPreferences
+	//
+	//  SELECT notification_type, enabled FROM notification_preferences
+	//  WHERE workspace_id = ? AND user_id = ? AND channel = 'email'
+	//  ORDER BY notification_type LIMIT 101
+	ListNotificationUserPreferences(ctx context.Context, arg ListNotificationUserPreferencesParams) ([]ListNotificationUserPreferencesRow, error)
 	// Only deployments still in the queue can be replaced by a newer commit. Once a
 	// deployment transitions to `building`, which happens when Restate lets its
 	// Build run, it is committed: we don't cancel work that's already running.
@@ -2475,6 +2539,12 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  FOR UPDATE
 	LockLimitsByWorkspaceID(ctx context.Context, workspaceID string) (LockLimitsByWorkspaceIDRow, error)
+	//LockNotificationWorkspace
+	//
+	//  SELECT id FROM workspaces
+	//  WHERE id = ? AND enabled = TRUE AND deleted_at_m IS NULL
+	//  FOR UPDATE
+	LockNotificationWorkspace(ctx context.Context, workspaceID string) (string, error)
 	//MarkAppDeleted
 	//
 	//  UPDATE apps SET deleted_at = COALESCE(deleted_at, ?)
@@ -2519,6 +2589,10 @@ type Querier interface {
 	//    WHERE workspace_id = ? AND id = ? AND channel = ? AND enabled = TRUE
 	//  ) AS enabled
 	NotificationDestinationEnabled(ctx context.Context, arg NotificationDestinationEnabledParams) (bool, error)
+	//NotificationDestinationReferenced
+	//
+	//  SELECT EXISTS (SELECT 1 FROM notification_subscription_targets WHERE workspace_id = ? AND destination_id = ?) AS referenced
+	NotificationDestinationReferenced(ctx context.Context, arg NotificationDestinationReferencedParams) (bool, error)
 	//NotificationEmailEnabled
 	//
 	//  SELECT NOT EXISTS (
@@ -2527,6 +2601,16 @@ type Querier interface {
 	//      AND notification_type = ? AND channel = 'email' AND enabled = FALSE
 	//  ) AS enabled
 	NotificationEmailEnabled(ctx context.Context, arg NotificationEmailEnabledParams) (bool, error)
+	//NotificationManagementScopeValid
+	//
+	//  SELECT EXISTS (
+	//    SELECT 1 FROM workspaces w
+	//    WHERE w.id = ? AND w.enabled = TRUE AND w.deleted_at_m IS NULL
+	//      AND (? = '' OR EXISTS (SELECT 1 FROM projects p WHERE p.id = ? AND p.workspace_id = w.id AND p.deleted_at IS NULL))
+	//      AND (? = '' OR EXISTS (SELECT 1 FROM apps a WHERE a.id = ? AND a.project_id = ? AND a.workspace_id = w.id AND a.deleted_at IS NULL))
+	//      AND (? = '' OR EXISTS (SELECT 1 FROM environments e WHERE e.id = ? AND e.project_id = ? AND e.app_id = ? AND e.workspace_id = w.id AND e.deleted_at IS NULL))
+	//  ) AS valid
+	NotificationManagementScopeValid(ctx context.Context, arg NotificationManagementScopeValidParams) (bool, error)
 	//NotificationResourceBelongsToWorkspace
 	//
 	//  SELECT EXISTS (
@@ -3017,6 +3101,17 @@ type Querier interface {
 	//    AND status = ? AND attempt_count = ?
 	//    AND status IN ('pending', 'sending')
 	UpdateNotificationDelivery(ctx context.Context, arg UpdateNotificationDeliveryParams) (int64, error)
+	//UpdateNotificationDestination
+	//
+	//  UPDATE notification_destinations SET name = ?, config = ?, enabled = ?, updated_at = ?
+	//  WHERE workspace_id = ? AND id = ?
+	UpdateNotificationDestination(ctx context.Context, arg UpdateNotificationDestinationParams) error
+	//UpdateNotificationRule
+	//
+	//  UPDATE notification_subscriptions
+	//  SET name = ?, notification_type = ?, project_id = ?, app_id = ?, environment_id = ?, enabled = ?, updated_at = ?
+	//  WHERE workspace_id = ? AND id = ?
+	UpdateNotificationRule(ctx context.Context, arg UpdateNotificationRuleParams) error
 	// Records one DNS check so callers can bound retries and show when the domain
 	// was last checked.
 	//
@@ -3292,6 +3387,12 @@ type Querier interface {
 	//      custom_domains_max = VALUES(custom_domains_max),
 	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
 	UpsertLimit(ctx context.Context, arg UpsertLimitParams) error
+	//UpsertNotificationPreference
+	//
+	//  INSERT INTO notification_preferences (id, workspace_id, user_id, notification_type, channel, enabled, created_at)
+	//  VALUES (?, ?, ?, ?, 'email', ?, ?)
+	//  ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), updated_at = VALUES(created_at)
+	UpsertNotificationPreference(ctx context.Context, arg UpsertNotificationPreferenceParams) error
 	//UpsertOpenApiSpec
 	//
 	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_id, content, created_at, updated_at)

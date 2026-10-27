@@ -98,6 +98,7 @@ func WithErrorHandling() zen.Middleware {
 			// Not Found errors
 			case codes.UnkeyDataErrorsKeyNotFound,
 				codes.UnkeyDataErrorsFlagNotFound,
+				codes.UnkeyDataErrorsNotificationNotFound,
 				codes.UnkeyDataErrorsWorkspaceNotFound,
 				codes.UnkeyDataErrorsApiNotFound,
 				codes.UnkeyDataErrorsAppNotFound,

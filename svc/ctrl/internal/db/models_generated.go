@@ -1473,6 +1473,45 @@ type NotificationDelivery struct {
 	UpdatedAt               sql.NullInt64                 `db:"updated_at"`
 }
 
+type NotificationDestination struct {
+	Pk          uint64                          `db:"pk"`
+	ID          string                          `db:"id"`
+	WorkspaceID string                          `db:"workspace_id"`
+	Name        string                          `db:"name"`
+	Channel     NotificationDestinationsChannel `db:"channel"`
+	Config      []byte                          `db:"config"`
+	Enabled     bool                            `db:"enabled"`
+	CreatedAt   int64                           `db:"created_at"`
+	UpdatedAt   sql.NullInt64                   `db:"updated_at"`
+}
+
+type NotificationSubscription struct {
+	Pk               uint64         `db:"pk"`
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	Name             string         `db:"name"`
+	NotificationType string         `db:"notification_type"`
+	ProjectID        sql.NullString `db:"project_id"`
+	AppID            sql.NullString `db:"app_id"`
+	EnvironmentID    sql.NullString `db:"environment_id"`
+	Enabled          bool           `db:"enabled"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+}
+
+type NotificationSubscriptionTarget struct {
+	Pk             uint64                                 `db:"pk"`
+	ID             string                                 `db:"id"`
+	WorkspaceID    string                                 `db:"workspace_id"`
+	SubscriptionID string                                 `db:"subscription_id"`
+	Channel        NotificationSubscriptionTargetsChannel `db:"channel"`
+	Audience       sql.NullInt32                          `db:"audience"`
+	UserID         sql.NullString                         `db:"user_id"`
+	DestinationID  sql.NullString                         `db:"destination_id"`
+	CreatedAt      int64                                  `db:"created_at"`
+	UpdatedAt      sql.NullInt64                          `db:"updated_at"`
+}
+
 type OpenapiSpec struct {
 	Pk           uint64         `db:"pk"`
 	ID           string         `db:"id"`

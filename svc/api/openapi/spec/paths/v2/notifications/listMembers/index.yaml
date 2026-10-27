@@ -1,0 +1,54 @@
+post:
+  tags: [notifications]
+  summary: List notification members
+  description: Lists workspace members eligible for notification targeting. Requires unkey:v1:{workspaceId}:notifications#read. Shared notification management is restricted to workspace admins by default.
+  operationId: notifications.listMembers
+  x-speakeasy-name-override: listMembers
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ../../../../common/NotificationListRequest.yaml }
+  responses:
+    "200":
+      description: Workspace members.
+      content:
+        application/json:
+          schema: { $ref: ./V2NotificationsListMembersResponseBody.yaml }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: Insufficient notification permissions,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }
+  x-speakeasy-pagination:
+    type: cursor
+    inputs: [{ name: cursor, in: requestBody, type: cursor }]
+    outputs: { nextCursor: "$.pagination.nextCursor" }

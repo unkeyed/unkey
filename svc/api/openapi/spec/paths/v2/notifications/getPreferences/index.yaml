@@ -1,0 +1,47 @@
+post:
+  tags: [notifications]
+  summary: Get personal notification preferences
+  description: Returns effective supported preferences for the authenticated user, defaulting to enabled. Requires a dashboard JWT with workspace roles or a CLI user session. Root keys and portal sessions are rejected, even with wildcard permissions. No request field can select another user or workspace.
+  operationId: notifications.getPreferences
+  x-speakeasy-name-override: getPreferences
+  security: [{ bearer: [] }]
+  responses:
+    "200":
+      description: Authenticated user's effective preferences.
+      content:
+        application/json:
+          schema: {
+            $ref: ../../../../common/NotificationPreferencesResponse.yaml,
+          }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: A workspace user session is required,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

@@ -1,0 +1,9 @@
+type: object
+additionalProperties: false
+required: [hasMore]
+properties:
+  nextCursor:
+    type: string
+    description: Opaque cursor to pass to the next request. Omitted after the last page.
+  hasMore:
+    type: boolean

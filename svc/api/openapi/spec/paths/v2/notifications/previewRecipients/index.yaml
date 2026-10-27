@@ -1,0 +1,58 @@
+post:
+  tags: [notifications]
+  summary: Preview notification recipients
+  description: Resolves recipients for a supported event type in a concrete project, app and environment without sending. Requires unkey:v1:{workspaceId}:notifications#read. All three scope IDs are required and must form a hierarchy in the authenticated workspace. An empty or omitted reason means the recipient is eligible.
+  operationId: notifications.previewRecipients
+  x-speakeasy-name-override: previewRecipients
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ./V2NotificationsPreviewRecipientsRequestBody.yaml }
+  responses:
+    "200":
+      description: Resolved recipients and eligibility.
+      content:
+        application/json:
+          schema: { $ref: ./V2NotificationsPreviewRecipientsResponseBody.yaml }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: Insufficient notification permissions,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "404": {
+      description: Scope not found,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/NotFoundErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

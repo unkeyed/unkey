@@ -1,0 +1,11 @@
+type: object
+additionalProperties: false
+required: [notificationType, enabled]
+properties:
+  notificationType:
+    type: string
+    minLength: 1
+    description: Supported event type returned by notifications.getCatalog.
+  enabled:
+    type: boolean
+    description: Whether the authenticated user receives this event type. Defaults to true when no preference is stored.

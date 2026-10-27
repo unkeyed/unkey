@@ -1,0 +1,33 @@
+type: object
+additionalProperties: false
+required: [destinationId]
+properties:
+  destinationId:
+    type: string
+    minLength: 1
+  name:
+    type: string
+    minLength: 1
+    maxLength: 128
+  enabled:
+    type: boolean
+  url:
+    type: string
+    minLength: 1
+    maxLength: 8192
+    writeOnly: true
+    x-unkey-redact: true
+    description: Replacement HTTPS URL. The destination channel cannot be changed.
+  headers:
+    type: array
+    maxItems: 16
+    description: Replacement headers. An empty array removes all headers; omitting this property preserves them.
+    items:
+      $ref: ../../../../common/NotificationHeader.yaml
+  signingSecret:
+    type: string
+    minLength: 32
+    maxLength: 512
+    writeOnly: true
+    x-unkey-redact: true
+    description: Replacement write-only webhook signing secret, at most 512 UTF-8 bytes. Retrying the same value is safe.

@@ -17,7 +17,9 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/restatedev/sdk-go/ingress"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	notificationv1 "github.com/unkeyed/unkey/gen/proto/notification/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -35,6 +37,7 @@ import (
 type testDirectory struct {
 	enabled          bool
 	audienceTooLarge bool
+	members          []workos.Member
 }
 
 type testPayload struct {
@@ -45,17 +48,16 @@ func (d *testDirectory) Members(context.Context, string) ([]workos.Member, error
 	if d.audienceTooLarge {
 		return nil, workos.ErrDirectoryLimit
 	}
-	return []workos.Member{{UserID: "alice", Email: "alice@example.com", Admin: true}, {UserID: "bob", Email: "bob@example.com"}}, nil
+	return d.members, nil
 }
 
 func (d *testDirectory) LookupMembers(_ context.Context, _ string, userIDs []string) ([]workos.Member, error) {
 	var members []workos.Member
 	for _, userID := range userIDs {
-		switch userID {
-		case "alice":
-			members = append(members, workos.Member{UserID: "alice", Email: "alice@example.com", Admin: true})
-		case "bob":
-			members = append(members, workos.Member{UserID: "bob", Email: "bob@example.com"})
+		for _, member := range d.members {
+			if member.UserID == userID {
+				members = append(members, member)
+			}
 		}
 	}
 	return members, nil
@@ -133,44 +135,88 @@ func (d *blockedClaimDB) StartNotificationDeliveryAttempt(ctx context.Context, a
 	return d.Database.StartNotificationDeliveryAttempt(ctx, arg)
 }
 
+type delayedClaimDB struct {
+	db.Database
+	clock *clock.TestClock
+	delay time.Duration
+}
+
+func (d *delayedClaimDB) StartNotificationDeliveryAttempt(ctx context.Context, arg db.StartNotificationDeliveryAttemptParams) (int64, error) {
+	claimed, err := d.Database.StartNotificationDeliveryAttempt(ctx, arg)
+	d.clock.Tick(d.delay)
+	return claimed, err
+}
+
 func TestNotificationIntegration(t *testing.T) {
 	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	crypto := vault.NewConnectVaultServiceClient(vaulttestutil.StartTestVaultWithMemory(t).Client)
+	aliceID := uid.New(uid.TestPrefix)
+	bobID := uid.New(uid.TestPrefix)
+	members := []workos.Member{
+		{UserID: aliceID, Email: "alice@example.com", Admin: true},
+		{UserID: bobID, Email: "bob@example.com"},
+	}
 	newService := func(t *testing.T) (*Service, notification.Event, *testProvider, *clock.TestClock) {
 		t.Helper()
 		clk := clock.NewTestClock(time.Now())
-		workspaceID := uid.New("ws")
+		workspaceID := uid.New(uid.WorkspacePrefix)
 		require.NoError(t, database.InsertWorkspace(t.Context(), db.InsertWorkspaceParams{
-			ID: workspaceID, OrgID: uid.New("org"), Name: "Notifications", Slug: uid.New("slug"), CreatedAt: clk.Now().UnixMilli(), K8sNamespace: uid.DNS1035(),
+			ID:           workspaceID,
+			OrgID:        uid.New(uid.OrgPrefix),
+			Name:         "Notifications",
+			Slug:         uid.New(uid.TestPrefix),
+			CreatedAt:    clk.Now().UnixMilli(),
+			K8sNamespace: uid.DNS1035(),
 		}))
 		provider := &testProvider{channel: notification.Email}
 		svc, err := New(Config{
-			DB: database, Vault: crypto, Clock: clk, Directory: &testDirectory{enabled: true},
-			Providers: []notification.Provider{provider}, Defaults: map[notification.Channel]string{notification.Email: "test"},
+			DB:        database,
+			Vault:     crypto,
+			Clock:     clk,
+			Directory: &testDirectory{enabled: true, members: members},
+			Providers: []notification.Provider{provider},
+			Defaults:  map[notification.Channel]string{notification.Email: "test"},
 			Audiences: map[notificationv1.Audience]AudienceResolver{notificationv1.Audience_AUDIENCE_WORKSPACE_ADMINS: WorkspaceAdmins},
 			Definitions: []notification.Definition{notification.JSONDefinition[testPayload]{
-				Name: "test.event", SchemaVersion: 1,
+				Name:          "test.event",
+				SchemaVersion: 1,
 				RenderPayload: func(p testPayload) (notification.Content, error) {
 					return notification.Content{Subject: "Test event", Text: p.Text}, nil
 				},
 			}},
 		})
 		require.NoError(t, err)
-		return svc, notification.Event{WorkspaceID: workspaceID, SourceEventID: "occurrence-1", Type: "test.event", SchemaVersion: 1, Payload: json.RawMessage(`{"text":"Original content"}`), OccurredAt: clk.Now().UnixMilli()}, provider, clk
+		payload, err := json.Marshal(testPayload{Text: "Original content"})
+		require.NoError(t, err)
+		return svc, notification.Event{WorkspaceID: workspaceID, SourceEventID: uid.New(uid.TestPrefix), Type: "test.event", SchemaVersion: 1, Payload: payload, OccurredAt: clk.Now().UnixMilli()}, provider, clk
 	}
 	addTarget := func(t *testing.T, event notification.Event, userID string, audience sql.NullInt32, project sql.NullString) {
 		t.Helper()
-		subID := uid.New("sub")
-		_, err := database.RW().ExecContext(t.Context(), `INSERT INTO notification_subscriptions (id, workspace_id, name, notification_type, project_id, enabled, created_at) VALUES (?, ?, 'rule', ?, ?, TRUE, 1)`, subID, event.WorkspaceID, event.Type, project)
-		require.NoError(t, err)
-		_, err = database.RW().ExecContext(t.Context(), `INSERT INTO notification_subscription_targets (id, workspace_id, subscription_id, channel, user_id, audience, created_at) VALUES (?, ?, ?, 'email', ?, ?, 1)`, uid.New("target"), event.WorkspaceID, subID, nullable(userID), audience)
-		require.NoError(t, err)
+		ruleID := uid.New(uid.TestPrefix)
+		require.NoError(t, database.InsertNotificationRule(t.Context(), db.InsertNotificationRuleParams{
+			ID:               ruleID,
+			WorkspaceID:      event.WorkspaceID,
+			Name:             "rule",
+			NotificationType: event.Type,
+			ProjectID:        project,
+			Enabled:          true,
+			CreatedAt:        event.OccurredAt,
+		}))
+		require.NoError(t, database.InsertNotificationRuleTarget(t.Context(), db.InsertNotificationRuleTargetParams{
+			ID:             uid.New(uid.TestPrefix),
+			WorkspaceID:    event.WorkspaceID,
+			SubscriptionID: ruleID,
+			Channel:        db.NotificationSubscriptionTargetsChannelEmail,
+			UserID:         nullable(userID),
+			Audience:       audience,
+			CreatedAt:      event.OccurredAt,
+		}))
 	}
 	addAlice := func(t *testing.T, event notification.Event) {
 		t.Helper()
-		addTarget(t, event, "alice", sql.NullInt32{}, sql.NullString{})
+		addTarget(t, event, aliceID, sql.NullInt32{}, sql.NullString{})
 	}
 	planOne := func(t *testing.T, svc *Service, event notification.Event) deliveryRef {
 		t.Helper()
@@ -178,6 +224,110 @@ func TestNotificationIntegration(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, refs, 1)
 		return refs[0]
+	}
+
+	t.Run("destination test retries preserve one frozen delivery", func(t *testing.T) {
+		svc, event, provider, clk := newService(t)
+		provider.channel = notification.Slack
+		svc.defaults = map[notification.Channel]string{notification.Slack: provider.Name()}
+		url := "https://hooks.slack.com/services/" + uid.New(uid.TestPrefix)
+		encrypted, err := crypto.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: event.WorkspaceID, Data: url})
+		require.NoError(t, err)
+		config, err := proto.Marshal(&notificationv1.DestinationConfig{Destination: &notificationv1.DestinationConfig_Slack{
+			Slack: &notificationv1.SlackConfig{EncryptedWebhookUrl: encrypted.GetEncrypted()},
+		}})
+		require.NoError(t, err)
+		destinationID := uid.New(uid.TestPrefix)
+		require.NoError(t, database.InsertNotificationDestination(t.Context(), db.InsertNotificationDestinationParams{
+			ID:          destinationID,
+			WorkspaceID: event.WorkspaceID,
+			Name:        "Test destination",
+			Channel:     db.NotificationDestinationsChannelSlack,
+			Config:      config,
+			Enabled:     true,
+			CreatedAt:   clk.Now().UnixMilli(),
+		}))
+		runtime := containers.Restate(t, svc.DeliveryDefinition(), hydrav1.NewNotificationTestServiceServer(svc))
+		request := &hydrav1.TestNotificationDestinationRequest{
+			WorkspaceId:    event.WorkspaceID,
+			DestinationId:  destinationID,
+			IdempotencyKey: uid.New(uid.TestPrefix),
+		}
+		client := hydrav1.NewNotificationTestServiceIngressClient(runtime.IngressClient, notification.DestinationTestID(request.WorkspaceId, request.DestinationId, request.IdempotencyKey))
+		first, err := client.TestDestination().Request(t.Context(), request)
+		require.NoError(t, err)
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			result, err := client.TestDestination().Request(t.Context(), request)
+			require.NoError(collect, err)
+			require.Equal(collect, first.GetDeliveryId(), result.GetDeliveryId())
+			require.Equal(collect, string(db.NotificationDeliveriesStatusAccepted), result.GetStatus())
+		}, 10*time.Second, 50*time.Millisecond)
+		provider.mu.Lock()
+		requests := append([]notification.Request(nil), provider.requests...)
+		provider.mu.Unlock()
+		require.Len(t, requests, 1)
+		require.Equal(t, url, requests[0].Target.URL)
+		stored, err := database.FindNotificationDelivery(t.Context(), db.FindNotificationDeliveryParams{WorkspaceID: event.WorkspaceID, ID: first.GetDeliveryId()})
+		require.NoError(t, err)
+		require.NotContains(t, stored.EncryptedTargetSnapshot, url)
+		for _, tc := range []struct {
+			name string
+			key  string
+		}{
+			{name: "padded", key: " " + uid.New(uid.TestPrefix) + " "},
+			{name: "NUL", key: uid.New(uid.TestPrefix) + "\x00"},
+			{name: "over 128 bytes", key: strings.Repeat("a", 129)},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				invalid := &hydrav1.TestNotificationDestinationRequest{
+					WorkspaceId:    event.WorkspaceID,
+					DestinationId:  destinationID,
+					IdempotencyKey: tc.key,
+				}
+				invalidClient := hydrav1.NewNotificationTestServiceIngressClient(runtime.IngressClient, notification.DestinationTestID(invalid.WorkspaceId, invalid.DestinationId, invalid.IdempotencyKey))
+				_, err := invalidClient.TestDestination().Request(t.Context(), invalid)
+				require.ErrorContains(t, err, "invalid destination test request")
+			})
+		}
+		provider.mu.Lock()
+		requestCount := len(provider.requests)
+		provider.mu.Unlock()
+		require.Equal(t, 1, requestCount)
+		_, foreign, _, _ := newService(t)
+		request.WorkspaceId = foreign.WorkspaceID
+		foreignClient := hydrav1.NewNotificationTestServiceIngressClient(runtime.IngressClient, notification.DestinationTestID(request.WorkspaceId, request.DestinationId, request.IdempotencyKey))
+		_, err = foreignClient.TestDestination().Request(t.Context(), request)
+		require.Error(t, err)
+	})
+
+	for _, uncertain := range []bool{false, true} {
+		t.Run(fmt.Sprintf("claim crosses send deadline uncertain=%t", uncertain), func(t *testing.T) {
+			svc, event, provider, clk := newService(t)
+			provider.window = 24 * time.Hour
+			if !uncertain {
+				event.ExpiresAt = clk.Now().Add(time.Second).UnixMilli()
+			}
+			addAlice(t, event)
+			ref := planOne(t, svc, event)
+			if uncertain {
+				lost := &failedReceiptDB{Database: database}
+				lost.fail.Store(true)
+				svc.db = lost
+				_, err := svc.attempt(t.Context(), ref)
+				require.ErrorContains(t, err, "lost database response")
+				clk.Tick(24*time.Hour - time.Minute - time.Second)
+			}
+			svc.db = &delayedClaimDB{Database: database, clock: clk, delay: 2 * time.Minute}
+			result, err := svc.attempt(t.Context(), ref)
+			require.NoError(t, err)
+			if uncertain {
+				require.Equal(t, db.NotificationDeliveriesStatusUnknown, result.Status)
+				require.Len(t, provider.requests, 1)
+			} else {
+				require.Equal(t, db.NotificationDeliveriesStatusSuppressed, result.Status)
+				require.Empty(t, provider.requests)
+			}
+		})
 	}
 
 	for _, overlap := range []string{"simultaneous claims", "after acceptance", "after rate limit"} {
@@ -247,8 +397,11 @@ func TestNotificationIntegration(t *testing.T) {
 		ref := planOne(t, svc, event)
 		for count, status := range []db.NotificationDeliveriesStatus{db.NotificationDeliveriesStatusPending, db.NotificationDeliveriesStatusSending} {
 			claimed, err := database.StartNotificationDeliveryAttempt(t.Context(), db.StartNotificationDeliveryAttemptParams{
-				WorkspaceID: event.WorkspaceID, ID: ref.ID, Now: sql.NullInt64{Int64: clk.Now().UnixMilli(), Valid: true},
-				ExpectedStatus: status, ExpectedAttemptCount: uint32(count),
+				WorkspaceID:          event.WorkspaceID,
+				ID:                   ref.ID,
+				Now:                  sql.NullInt64{Int64: clk.Now().UnixMilli(), Valid: true},
+				ExpectedStatus:       status,
+				ExpectedAttemptCount: uint32(count),
 			})
 			require.NoError(t, err)
 			require.Equal(t, int64(1), claimed)
@@ -291,19 +444,20 @@ func TestNotificationIntegration(t *testing.T) {
 		svc, event, provider, _ := newService(t)
 		addAlice(t, event)
 		addTarget(t, event, "", sql.NullInt32{Int32: 1, Valid: true}, sql.NullString{})
-		addTarget(t, event, "bob", sql.NullInt32{}, nullable("different-project"))
+		addTarget(t, event, bobID, sql.NullInt32{}, nullable(uid.New(uid.ProjectPrefix)))
 		foreign := event
-		foreign.WorkspaceID = "foreign-workspace"
-		addTarget(t, foreign, "bob", sql.NullInt32{}, sql.NullString{})
+		foreign.WorkspaceID = uid.New(uid.WorkspacePrefix)
+		addTarget(t, foreign, bobID, sql.NullInt32{}, sql.NullString{})
 		ref := planOne(t, svc, event)
 		row, err := database.FindNotificationDelivery(t.Context(), db.FindNotificationDeliveryParams{WorkspaceID: event.WorkspaceID, ID: ref.ID})
 		require.NoError(t, err)
 		require.NotContains(t, row.EncryptedTargetSnapshot, "alice@example.com")
 		require.NotContains(t, row.EncryptedTargetSnapshot, "Original content")
-		addTarget(t, event, "bob", sql.NullInt32{}, sql.NullString{})
+		addTarget(t, event, bobID, sql.NullInt32{}, sql.NullString{})
 		require.Equal(t, ref, planOne(t, svc, event))
 		changed := event
-		changed.Payload = json.RawMessage(`{"text":"Changed content"}`)
+		changed.Payload, err = json.Marshal(testPayload{Text: "Changed content"})
+		require.NoError(t, err)
 		_, err = svc.plan(t.Context(), changed)
 		require.ErrorContains(t, err, "identity reused")
 		result, err := svc.attempt(t.Context(), ref)
@@ -333,7 +487,9 @@ func TestNotificationIntegration(t *testing.T) {
 	t.Run("large encrypted snapshot round trip", func(t *testing.T) {
 		svc, event, provider, _ := newService(t)
 		text := strings.Repeat("a", 60_000)
-		event.Payload = json.RawMessage(`{"text":"` + text + `"}`)
+		payload, err := json.Marshal(testPayload{Text: text})
+		require.NoError(t, err)
+		event.Payload = payload
 		addAlice(t, event)
 		ref := planOne(t, svc, event)
 		result, err := svc.attempt(t.Context(), ref)
@@ -346,8 +502,12 @@ func TestNotificationIntegration(t *testing.T) {
 		svc, event, _, _ := newService(t)
 		addAlice(t, event)
 		require.NoError(t, database.InsertNotificationDelivery(t.Context(), db.InsertNotificationDeliveryParams{
-			ID: notification.DeliveryID(event.ID(), notification.Email, "user:alice"), WorkspaceID: event.WorkspaceID,
-			NotificationID: "other", Channel: db.NotificationDeliveriesChannelEmail, TargetKey: "user:alice", Status: db.NotificationDeliveriesStatusFailed,
+			ID:             notification.DeliveryID(event.ID(), notification.Email, "user:"+aliceID),
+			WorkspaceID:    event.WorkspaceID,
+			NotificationID: uid.New(uid.TestPrefix),
+			Channel:        db.NotificationDeliveriesChannelEmail,
+			TargetKey:      "user:" + aliceID,
+			Status:         db.NotificationDeliveriesStatusFailed,
 		}))
 		_, err := svc.plan(t.Context(), event)
 		require.Error(t, err)
@@ -366,28 +526,55 @@ func TestNotificationIntegration(t *testing.T) {
 			return response.GetEncrypted()
 		}
 		config, err := proto.Marshal(&notificationv1.DestinationConfig{Destination: &notificationv1.DestinationConfig_Webhook{
-			Webhook: &notificationv1.WebhookConfig{EncryptedUrl: encrypt("https://example.com/hook"), EncryptedSigningSecret: encrypt("signing-secret"),
-				Headers: []*notificationv1.WebhookHeader{{Name: "Authorization", EncryptedValue: encrypt("Bearer secret")}},
+			Webhook: &notificationv1.WebhookConfig{
+				EncryptedUrl:           encrypt("https://example.com/hook"),
+				EncryptedSigningSecret: encrypt("signing-secret"),
+				Headers:                []*notificationv1.WebhookHeader{{Name: "Authorization", EncryptedValue: encrypt("Bearer secret")}},
 			},
 		}})
 		require.NoError(t, err)
-		destinationID := uid.New("dest")
-		_, err = database.RW().ExecContext(t.Context(), `INSERT INTO notification_destinations (id, workspace_id, name, channel, config, enabled, created_at) VALUES (?, ?, 'Webhook', 'webhook', ?, TRUE, 1)`, destinationID, event.WorkspaceID, config)
-		require.NoError(t, err)
+		destinationID := uid.New(uid.TestPrefix)
+		require.NoError(t, database.InsertNotificationDestination(t.Context(), db.InsertNotificationDestinationParams{
+			ID:          destinationID,
+			WorkspaceID: event.WorkspaceID,
+			Name:        "Webhook",
+			Channel:     db.NotificationDestinationsChannelWebhook,
+			Config:      config,
+			Enabled:     true,
+			CreatedAt:   clk.Now().UnixMilli(),
+		}))
 		for range 2 {
-			subID := uid.New("sub")
-			_, err := database.RW().ExecContext(t.Context(), `INSERT INTO notification_subscriptions (id, workspace_id, name, notification_type, enabled, created_at) VALUES (?, ?, 'rule', ?, TRUE, 1)`, subID, event.WorkspaceID, event.Type)
-			require.NoError(t, err)
-			_, err = database.RW().ExecContext(t.Context(), `INSERT INTO notification_subscription_targets (id, workspace_id, subscription_id, channel, destination_id, created_at) VALUES (?, ?, ?, 'webhook', ?, 1)`, uid.New("target"), event.WorkspaceID, subID, destinationID)
-			require.NoError(t, err)
+			subID := uid.New(uid.TestPrefix)
+			require.NoError(t, database.InsertNotificationRule(t.Context(), db.InsertNotificationRuleParams{
+				ID:               subID,
+				WorkspaceID:      event.WorkspaceID,
+				Name:             "rule",
+				NotificationType: event.Type,
+				Enabled:          true,
+				CreatedAt:        clk.Now().UnixMilli(),
+			}))
+			require.NoError(t, database.InsertNotificationRuleTarget(t.Context(), db.InsertNotificationRuleTargetParams{
+				ID:             uid.New(uid.TestPrefix),
+				WorkspaceID:    event.WorkspaceID,
+				SubscriptionID: subID,
+				Channel:        db.NotificationSubscriptionTargetsChannelWebhook,
+				DestinationID:  nullable(destinationID),
+				CreatedAt:      clk.Now().UnixMilli(),
+			}))
 		}
 		ref := planOne(t, svc, event)
 		provider.failure = &notification.SendError{Kind: notification.Retryable, Code: "rate_limited"}
 		result, err := svc.attempt(t.Context(), ref)
 		require.NoError(t, err)
 		require.Equal(t, notification.Target{URL: "https://example.com/hook", SigningSecret: "signing-secret", Headers: map[string]string{"Authorization": "Bearer secret"}}, provider.requests[0].Target)
-		_, err = database.RW().ExecContext(t.Context(), `UPDATE notification_destinations SET enabled = FALSE WHERE id = ?`, destinationID)
-		require.NoError(t, err)
+		require.NoError(t, database.UpdateNotificationDestination(t.Context(), db.UpdateNotificationDestinationParams{
+			Name:        "Webhook",
+			Config:      config,
+			Enabled:     false,
+			UpdatedAt:   sql.NullInt64{Int64: clk.Now().UnixMilli(), Valid: true},
+			WorkspaceID: event.WorkspaceID,
+			ID:          destinationID,
+		}))
 		clk.Tick(result.RetryAfter)
 		result, err = svc.attempt(t.Context(), ref)
 		require.NoError(t, err)
@@ -399,11 +586,20 @@ func TestNotificationIntegration(t *testing.T) {
 		svc, event, provider, clk := newService(t)
 		provider.channel = notification.Webhook
 		svc.defaults = map[notification.Channel]string{notification.Webhook: "test"}
-		destinationID := uid.New("dest")
-		_, err := database.RW().ExecContext(t.Context(), `INSERT INTO notification_destinations (id, workspace_id, name, channel, config, enabled, created_at) VALUES (?, ?, 'Webhook', 'webhook', '', TRUE, 1)`, destinationID, event.WorkspaceID)
-		require.NoError(t, err)
+		destinationID := uid.New(uid.TestPrefix)
+		require.NoError(t, database.InsertNotificationDestination(t.Context(), db.InsertNotificationDestinationParams{
+			ID:          destinationID,
+			WorkspaceID: event.WorkspaceID,
+			Name:        "Webhook",
+			Channel:     db.NotificationDestinationsChannelWebhook,
+			Config:      []byte{},
+			Enabled:     true,
+			CreatedAt:   clk.Now().UnixMilli(),
+		}))
 		row, err := svc.freezeDelivery(t.Context(), event, notification.Content{Subject: "Test", Text: "Test"}, recipient{
-			key: "destination:" + destinationID, channel: notification.Webhook, config: []byte("invalid protobuf"),
+			key:     "destination:" + destinationID,
+			channel: notification.Webhook,
+			config:  []byte("invalid protobuf"),
 		}, clk.Now().UnixMilli())
 		require.NoError(t, err)
 		require.NoError(t, database.InsertNotificationDelivery(t.Context(), row))
@@ -425,12 +621,21 @@ func TestNotificationIntegration(t *testing.T) {
 			ref := planOne(t, svc, event)
 			switch change {
 			case "opt-out":
-				_, err := database.RW().ExecContext(t.Context(), `INSERT INTO notification_preferences (id, workspace_id, user_id, notification_type, channel, enabled, created_at) VALUES (?, ?, 'alice', ?, 'email', FALSE, 1)`, uid.New("pref"), event.WorkspaceID, event.Type)
-				require.NoError(t, err)
+				require.NoError(t, database.UpsertNotificationPreference(t.Context(), db.UpsertNotificationPreferenceParams{
+					ID:               uid.New(uid.TestPrefix),
+					WorkspaceID:      event.WorkspaceID,
+					UserID:           aliceID,
+					NotificationType: event.Type,
+					Enabled:          false,
+					CreatedAt:        clk.Now().UnixMilli(),
+				}))
 			case "membership removed":
 				svc.directory = &testDirectory{enabled: false}
 			case "workspace disabled":
-				_, err := database.RW().ExecContext(t.Context(), `UPDATE workspaces SET enabled = FALSE WHERE id = ?`, event.WorkspaceID)
+				_, err := database.UpdateWorkspaceEnabled(t.Context(), db.UpdateWorkspaceEnabledParams{
+					Enabled: false,
+					ID:      event.WorkspaceID,
+				})
 				require.NoError(t, err)
 			case "expired":
 				clk.Tick(time.Hour)
@@ -555,13 +760,13 @@ func TestNotificationIntegration(t *testing.T) {
 
 	t.Run("large audience is terminal but explicit recipients still work", func(t *testing.T) {
 		svc, event, _, _ := newService(t)
-		svc.directory = &testDirectory{enabled: true, audienceTooLarge: true}
+		svc.directory = &testDirectory{enabled: true, audienceTooLarge: true, members: members}
 		addAlice(t, event)
 		refs, err := svc.plan(t.Context(), event)
 		require.NoError(t, err)
 		require.Len(t, refs, 1)
 		addTarget(t, event, "", sql.NullInt32{Int32: int32(notificationv1.Audience_AUDIENCE_WORKSPACE_ADMINS), Valid: true}, sql.NullString{})
-		event.SourceEventID = "audience-event"
+		event.SourceEventID = uid.New(uid.TestPrefix)
 		_, err = svc.plan(t.Context(), event)
 		require.True(t, restate.IsTerminalError(err))
 		require.ErrorContains(t, err, "directory limit exceeded")
@@ -602,7 +807,7 @@ func TestNotificationIntegration(t *testing.T) {
 				}
 				return false
 			}, 30*time.Second, 50*time.Millisecond)
-			deliveryID := notification.DeliveryID(event.ID(), notification.Email, "user:alice")
+			deliveryID := notification.DeliveryID(event.ID(), notification.Email, "user:"+aliceID)
 			require.Equal(t, deliveryID, paused.Key)
 			require.NotEmpty(t, paused.DeploymentID)
 			directory.unavailable.Store(false)
@@ -647,7 +852,7 @@ func TestNotificationIntegration(t *testing.T) {
 		proxy.fail.Store(true)
 		svc.db = proxy
 		addAlice(t, event)
-		addTarget(t, event, "bob", sql.NullInt32{}, sql.NullString{})
+		addTarget(t, event, bobID, sql.NullInt32{}, sql.NullString{})
 		runtime := containers.Restate(t, svc.Definition(), svc.DeliveryDefinition())
 		client, err := notification.NewClient(runtime.IngressClient)
 		require.NoError(t, err)

@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required: [userId, email, admin]
+properties:
+  userId:
+    type: string
+  email:
+    type: string
+  admin:
+    type: boolean

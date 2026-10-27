@@ -23,10 +23,16 @@ func (s *Service) event(ctx restate.RunContext, req deployment.ReportRequest) (*
 		switch {
 		case row.Status == mysqltype.DeploymentsStatusReady || row.Status == mysqltype.DeploymentsStatusFailed:
 		case row.Status == mysqltype.DeploymentsStatusCancelled:
+			if req.Change.Type() == deployment.BuildFailed.Type() {
+				req.Change = deployment.Cancelled
+			}
 			if req.Change != deployment.Cancelled {
 				return nil, nil
 			}
 		case row.Status == mysqltype.DeploymentsStatusSuperseded:
+			if req.Change.Type() == deployment.BuildFailed.Type() {
+				req.Change = deployment.Superseded
+			}
 			if req.Change != deployment.Superseded && req.Change != deployment.CompletedWithoutPromotion {
 				return nil, nil
 			}

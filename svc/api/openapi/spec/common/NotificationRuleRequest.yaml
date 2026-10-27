@@ -1,0 +1,7 @@
+type: object
+additionalProperties: false
+required: [ruleId]
+properties:
+  ruleId:
+    type: string
+    minLength: 1

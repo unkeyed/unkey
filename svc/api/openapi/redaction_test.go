@@ -32,10 +32,13 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 		"data.url",          // portal URL, which carries the exchange code in its query
 		"data[].plaintext",  // listKeys response, one entry per key
 		"data[].value",      // listEnvironmentVariables response
-		"key",               // verifyKey and whoami requests
-		"loginId",           // cli.pollDeviceLogin request
-		"permissions",       // cli.approveDeviceLogin request
-		"refreshToken",      // cli.refreshToken request
+		"headers[].value",
+		"key",          // verifyKey and whoami requests
+		"loginId",      // cli.pollDeviceLogin request
+		"permissions",  // cli.approveDeviceLogin request
+		"refreshToken", // cli.refreshToken request
+		"signingSecret",
+		"url",
 		"userCode",          // cli.approveDeviceLogin request, the code shown in the terminal
 		"variables[].value", // setEnvironmentVariables request
 	}, paths)

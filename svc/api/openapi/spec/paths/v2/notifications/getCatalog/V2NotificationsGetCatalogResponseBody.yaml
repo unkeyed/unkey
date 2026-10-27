@@ -1,0 +1,25 @@
+type: object
+additionalProperties: false
+required: [meta, data]
+properties:
+  meta:
+    $ref: ../../../../common/Meta.yaml
+  data:
+    type: object
+    additionalProperties: false
+    required: [eventTypes, channels, audiences]
+    properties:
+      eventTypes:
+        type: array
+        description: Event types supported by the deployment notification catalog at runtime.
+        items:
+          type: string
+      channels:
+        type: array
+        items:
+          type: string
+      audiences:
+        type: array
+        items:
+          type: string
+          enum: [workspace_admins]

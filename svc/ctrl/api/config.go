@@ -117,6 +117,12 @@ type Config struct {
 	// Database is the MySQL DSN used for all control plane reads and writes.
 	Database string `toml:"database" config:"required,nonempty"`
 
+	// Vault encrypts notification destination credentials with workspace keyrings.
+	Vault config.VaultConfig `toml:"vault"`
+
+	// WorkOSAPIKey resolves verified notification recipients.
+	WorkOSAPIKey string `toml:"workos_api_key"`
+
 	// Observability configures tracing, logging, and metrics. See [config.Observability].
 	Observability config.Observability `toml:"observability"`
 

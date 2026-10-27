@@ -58,6 +58,8 @@ type usage struct{}
 
 type flags struct{}
 
+type notifications struct{}
+
 // apiRequestLogs represents the workspace's Unkey API request logs path shape
 type apiRequestLogs struct{}
 
@@ -123,6 +125,10 @@ func (usage) permissionActions(bool) permissionActionSet {
 }
 
 func (flags) permissionActions(bool) permissionActionSet {
+	return newPermissionActionSet(PermissionRead, PermissionWrite)
+}
+
+func (notifications) permissionActions(bool) permissionActionSet {
 	return newPermissionActionSet(PermissionRead, PermissionWrite)
 }
 

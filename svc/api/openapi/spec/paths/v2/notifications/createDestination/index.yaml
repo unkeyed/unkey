@@ -1,0 +1,53 @@
+post:
+  tags: [notifications]
+  summary: Create notification destination
+  description: Creates a shared destination. Requires unkey:v1:{workspaceId}:notifications#write. Webhooks require a signing secret of at least 32 characters. The idempotency key is workspace- and action-scoped; repeats return the existing redacted state without overwriting it. Use a fresh key for a different intended resource. Shared notification management is restricted to workspace admins by default.
+  operationId: notifications.createDestination
+  x-speakeasy-name-override: createDestination
+  x-unkey-idempotency: conditionally-idempotent
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ./V2NotificationsCreateDestinationRequestBody.yaml }
+  responses:
+    "200":
+      description: Created or previously created redacted destination.
+      content:
+        application/json:
+          schema: {
+            $ref: ../../../../common/NotificationDestinationResponse.yaml,
+          }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: Insufficient notification permissions,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

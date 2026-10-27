@@ -1,0 +1,59 @@
+post:
+  tags: [notifications]
+  summary: Test notification destination
+  description: Enqueues a durable test delivery to a saved destination. Requires unkey:v1:{workspaceId}:notifications#write. Draft URLs, headers and secrets are not accepted. Reusing an idempotency key for the same workspace and destination returns the same delivery. Accepted means provider acceptance, not inbox delivery.
+  operationId: notifications.testDestination
+  x-speakeasy-name-override: testDestination
+  x-unkey-idempotency: conditionally-idempotent
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ./V2NotificationsTestDestinationRequestBody.yaml }
+  responses:
+    "200":
+      description: Durable test delivery status.
+      content:
+        application/json:
+          schema: { $ref: ./V2NotificationsTestDestinationResponseBody.yaml }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: Insufficient notification permissions,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "404": {
+      description: Destination not found,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/NotFoundErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

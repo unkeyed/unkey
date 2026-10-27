@@ -528,6 +528,14 @@ func Run(ctx context.Context, cfg Config) error {
 		),
 	)
 
+	notifications := ctrlv1connect.NewNotificationServiceClient(
+		&http.Client{},
+		cfg.Control.URL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
+		})),
+	)
+
 	restateClient := restateingress.NewClient(
 		cfg.Restate.URL,
 		restateingress.WithAuthKey(cfg.Restate.APIKey),
@@ -581,6 +589,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Vault:             vaultClient,
 		CtrlProjectClient: ctrlProjectClient,
 		CtrlAppClient:     ctrlAppClient,
+		Notifications:     notifications,
 		Restate:           restateClient,
 
 		CtrlCustomDomainClient: ctrlCustomDomainClient,

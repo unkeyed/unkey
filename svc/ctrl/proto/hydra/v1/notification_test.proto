@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+service NotificationTestService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  rpc TestDestination(TestNotificationDestinationRequest) returns (TestNotificationDestinationResponse) {}
+}
+
+message TestNotificationDestinationRequest {
+  string workspace_id = 1;
+  string destination_id = 2;
+  string idempotency_key = 3;
+}
+
+message TestNotificationDestinationResponse {
+  string delivery_id = 1;
+  string status = 2;
+  string reason = 3;
+}

@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required: [name, value]
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 128
+  value:
+    type: string
+    maxLength: 2048
+    writeOnly: true
+    x-unkey-redact: true
+    description: Write-only header value. Never returned in a destination response.

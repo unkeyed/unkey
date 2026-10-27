@@ -29,7 +29,7 @@ func (c Change) Revision() int {
 	case LoadFailed:
 		return 3
 	case Cancelled, Superseded:
-		return 4
+		return 11
 	case RegionsStarted:
 		return 5
 	case RegionsFailed:

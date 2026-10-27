@@ -30,10 +30,14 @@ func (s *Service) Report(ctx restate.ObjectContext, req deployment.ReportRequest
 	if event == nil {
 		return "", nil
 	}
+	payload, decodeErr := deployment.Decode(*event)
+	if decodeErr != nil {
+		return "", decodeErr
+	}
 	id, dispatchErr := s.dispatcher.Dispatch(ctx, *event)
 	if dispatchErr != nil {
 		return "", dispatchErr
 	}
-	restate.Set(ctx, "last_change", req.Change)
+	restate.Set(ctx, "last_change", payload.Change)
 	return id, nil
 }

@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required: [meta, data, pagination]
+properties:
+  meta:
+    $ref: ../../../../common/Meta.yaml
+  data:
+    type: array
+    items:
+      $ref: ../../../../common/NotificationRule.yaml
+  pagination:
+    $ref: ../../../../common/NotificationPagination.yaml

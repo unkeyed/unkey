@@ -9,11 +9,14 @@ import (
 	"net/http"
 	"time"
 
+	"connectrpc.com/connect"
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	stripesdk "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
@@ -29,6 +32,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
@@ -38,12 +42,14 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/services/notification"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ops"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
@@ -291,6 +297,33 @@ func Run(ctx context.Context, cfg Config) error {
 		Restate:   restateClient,
 		Bearer:    cfg.AuthToken,
 		Auditlogs: auditlogSvc,
+	})))
+
+	var notificationVault vault.VaultServiceClient
+	if cfg.Vault.URL != "" {
+		notificationVault = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
+			&http.Client{Timeout: 10 * time.Second},
+			cfg.Vault.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": "Bearer " + cfg.Vault.Token,
+			})),
+		))
+	}
+	var notificationDirectory workos.Directory
+	if cfg.WorkOSAPIKey != "" {
+		notificationDirectory, err = workos.NewDirectory(cfg.WorkOSAPIKey)
+		if err != nil {
+			return fmt.Errorf("configure notification directory: %w", err)
+		}
+	}
+	mux.Handle(ctrlv1connect.NewNotificationServiceHandler(notification.New(notification.Config{
+		Database:  database,
+		Vault:     notificationVault,
+		Directory: notificationDirectory,
+		Restate:   restateClient,
+		Bearer:    cfg.AuthToken,
+		Auditlogs: auditlogSvc,
+		Clock:     clock.New(),
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {

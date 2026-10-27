@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+required: [notificationType, projectId, appId, environmentId]
+properties:
+  notificationType:
+    type: string
+    minLength: 1
+    description: Supported event type from notifications.getCatalog.
+  projectId:
+    type: string
+    minLength: 1
+  appId:
+    type: string
+    minLength: 1
+  environmentId:
+    type: string
+    minLength: 1

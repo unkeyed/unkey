@@ -1,0 +1,11 @@
+type: object
+additionalProperties: false
+required: [meta, data]
+properties:
+  meta:
+    $ref: ./Meta.yaml
+  data:
+    type: array
+    description: Effective preferences for every supported event type, owned by the authenticated user only.
+    items:
+      $ref: ./NotificationPreference.yaml

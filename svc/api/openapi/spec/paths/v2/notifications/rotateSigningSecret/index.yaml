@@ -1,0 +1,60 @@
+post:
+  tags: [notifications]
+  summary: Rotate notification signing secret
+  description: Replaces a destination's write-only signing secret. Requires unkey:v1:{workspaceId}:notifications#write. The caller supplies the secret; repeating the same value is safe. The response never contains the secret.
+  operationId: notifications.rotateSigningSecret
+  x-speakeasy-name-override: rotateSigningSecret
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ./V2NotificationsRotateSigningSecretRequestBody.yaml }
+  responses:
+    "200":
+      description: Redacted destination after rotation.
+      content:
+        application/json:
+          schema: {
+            $ref: ../../../../common/NotificationDestinationResponse.yaml,
+          }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: Insufficient notification permissions,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "404": {
+      description: Destination not found,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/NotFoundErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

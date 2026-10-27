@@ -31,6 +31,49 @@ components:
             name: portal_session
             type: apiKey
     schemas:
+        NotificationDestinationTarget:
+            type: object
+            additionalProperties: false
+            required:
+                - type
+                - destinationId
+            properties:
+                type:
+                    type: string
+                    enum:
+                        - destination
+                destinationId:
+                    type: string
+                    minLength: 1
+        NotificationUserTarget:
+            type: object
+            additionalProperties: false
+            required:
+                - type
+                - userId
+            properties:
+                type:
+                    type: string
+                    enum:
+                        - user
+                userId:
+                    type: string
+                    minLength: 1
+        NotificationAudienceTarget:
+            type: object
+            additionalProperties: false
+            required:
+                - type
+                - audience
+            properties:
+                type:
+                    type: string
+                    enum:
+                        - audience
+                audience:
+                    type: string
+                    enum:
+                        - workspace_admins
         V2AnalyticsGetGatewayRequestsRequestBody:
             type: object
             required:
@@ -3042,6 +3085,438 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2NotificationsCreateDestinationRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - name
+                - channel
+                - url
+                - idempotencyKey
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                channel:
+                    $ref: '#/components/schemas/NotificationChannel'
+                url:
+                    type: string
+                    minLength: 1
+                    maxLength: 8192
+                    writeOnly: true
+                    x-unkey-redact: true
+                    description: HTTPS delivery URL. This value is write-only; reads return its origin only.
+                headers:
+                    type: array
+                    maxItems: 16
+                    description: Webhook-only headers. Names must be unique ignoring case. Transport headers and names starting with Unkey- are reserved. Combined header names and values must not exceed 8192 bytes.
+                    items:
+                        $ref: '#/components/schemas/NotificationHeader'
+                signingSecret:
+                    type: string
+                    minLength: 32
+                    maxLength: 512
+                    writeOnly: true
+                    x-unkey-redact: true
+                    description: Write-only signing secret. Required for webhook destinations and not accepted for other channels. Must not exceed 512 UTF-8 bytes.
+                enabled:
+                    type: boolean
+                    default: true
+                idempotencyKey:
+                    $ref: '#/components/schemas/NotificationIdempotencyKey'
+        NotificationDestinationResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/NotificationDestination'
+        V2NotificationsCreateRuleRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - name
+                - notificationType
+                - enabled
+                - targets
+                - idempotencyKey
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                notificationType:
+                    type: string
+                    minLength: 1
+                    description: Supported event type from notifications.getCatalog. Unsupported types are rejected at runtime.
+                projectId:
+                    type: string
+                    minLength: 1
+                    description: Omit all scope IDs for a workspace-wide rule.
+                appId:
+                    type: string
+                    minLength: 1
+                    description: Requires projectId and must belong to that project.
+                environmentId:
+                    type: string
+                    minLength: 1
+                    description: Requires appId and must belong to that app.
+                enabled:
+                    type: boolean
+                targets:
+                    type: array
+                    minItems: 1
+                    maxItems: 100
+                    items:
+                        $ref: '#/components/schemas/NotificationTarget'
+                idempotencyKey:
+                    $ref: '#/components/schemas/NotificationIdempotencyKey'
+        NotificationRuleResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/NotificationRule'
+        NotificationDestinationRequest:
+            type: object
+            additionalProperties: false
+            required:
+                - destinationId
+            properties:
+                destinationId:
+                    type: string
+                    minLength: 1
+        NotificationEmptyResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        NotificationRuleRequest:
+            type: object
+            additionalProperties: false
+            required:
+                - ruleId
+            properties:
+                ruleId:
+                    type: string
+                    minLength: 1
+        V2NotificationsGetCatalogResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: object
+                    additionalProperties: false
+                    required:
+                        - eventTypes
+                        - channels
+                        - audiences
+                    properties:
+                        eventTypes:
+                            type: array
+                            description: Event types supported by the deployment notification catalog at runtime.
+                            items:
+                                type: string
+                        channels:
+                            type: array
+                            items:
+                                type: string
+                        audiences:
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - workspace_admins
+        NotificationPreferencesResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: array
+                    description: Effective preferences for every supported event type, owned by the authenticated user only.
+                    items:
+                        $ref: '#/components/schemas/NotificationPreference'
+        NotificationListRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                cursor:
+                    type: string
+                    maxLength: 256
+                    description: Opaque nextCursor from the previous response.
+                limit:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+                    default: 50
+        V2NotificationsListDestinationsResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/NotificationDestination'
+                pagination:
+                    $ref: '#/components/schemas/NotificationPagination'
+        V2NotificationsListMembersResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/NotificationMember'
+                pagination:
+                    $ref: '#/components/schemas/NotificationPagination'
+        V2NotificationsListRulesResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/NotificationRule'
+                pagination:
+                    $ref: '#/components/schemas/NotificationPagination'
+        V2NotificationsPreviewRecipientsRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - notificationType
+                - projectId
+                - appId
+                - environmentId
+            properties:
+                notificationType:
+                    type: string
+                    minLength: 1
+                    description: Supported event type from notifications.getCatalog.
+                projectId:
+                    type: string
+                    minLength: 1
+                appId:
+                    type: string
+                    minLength: 1
+                environmentId:
+                    type: string
+                    minLength: 1
+        V2NotificationsPreviewRecipientsResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/NotificationRecipient'
+        V2NotificationsRotateSigningSecretRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - destinationId
+                - signingSecret
+            properties:
+                destinationId:
+                    type: string
+                    minLength: 1
+                signingSecret:
+                    type: string
+                    minLength: 32
+                    maxLength: 512
+                    writeOnly: true
+                    x-unkey-redact: true
+                    description: Replacement write-only webhook signing secret, at most 512 UTF-8 bytes. Retrying the same value is safe.
+        V2NotificationsTestDestinationRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - destinationId
+                - idempotencyKey
+            properties:
+                destinationId:
+                    type: string
+                    minLength: 1
+                idempotencyKey:
+                    $ref: '#/components/schemas/NotificationIdempotencyKey'
+                    description: Contains 1 to 128 UTF-8 bytes, without leading or trailing whitespace or NUL characters. The server enforces the byte limit. Reusing this key for the same workspace and destination returns the same durable test delivery. Use a fresh key to send a new test.
+        V2NotificationsTestDestinationResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: object
+                    additionalProperties: false
+                    required:
+                        - deliveryId
+                        - status
+                    properties:
+                        deliveryId:
+                            type: string
+                        status:
+                            type: string
+                            enum:
+                                - pending
+                                - sending
+                                - accepted
+                                - delivered
+                                - failed
+                                - suppressed
+                                - unknown
+                            x-enum-varnames:
+                                - NotificationDeliveryPending
+                                - NotificationDeliverySending
+                                - NotificationDeliveryAccepted
+                                - NotificationDeliveryDelivered
+                                - NotificationDeliveryFailed
+                                - NotificationDeliverySuppressed
+                                - NotificationDeliveryUnknown
+                            description: Accepted indicates provider acceptance, not delivery to an inbox.
+                        reason:
+                            type: string
+                            description: Non-secret delivery outcome detail, when available.
+        V2NotificationsUpdateDestinationRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - destinationId
+            properties:
+                destinationId:
+                    type: string
+                    minLength: 1
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                enabled:
+                    type: boolean
+                url:
+                    type: string
+                    minLength: 1
+                    maxLength: 8192
+                    writeOnly: true
+                    x-unkey-redact: true
+                    description: Replacement HTTPS URL. The destination channel cannot be changed.
+                headers:
+                    type: array
+                    maxItems: 16
+                    description: Replacement headers. An empty array removes all headers; omitting this property preserves them.
+                    items:
+                        $ref: '#/components/schemas/NotificationHeader'
+                signingSecret:
+                    type: string
+                    minLength: 32
+                    maxLength: 512
+                    writeOnly: true
+                    x-unkey-redact: true
+                    description: Replacement write-only webhook signing secret, at most 512 UTF-8 bytes. Retrying the same value is safe.
+        V2NotificationsUpdatePreferencesRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - preferences
+            properties:
+                preferences:
+                    type: array
+                    maxItems: 100
+                    description: Atomic batch of personal preferences. Unsupported or duplicate event types reject the entire batch. Unspecified event types keep their previous effective values.
+                    items:
+                        $ref: '#/components/schemas/NotificationPreference'
+        V2NotificationsUpdateRuleRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - ruleId
+                - name
+                - notificationType
+                - enabled
+                - targets
+            description: Full replacement of a rule. Omitted scope IDs remove those scope bounds.
+            properties:
+                ruleId:
+                    type: string
+                    minLength: 1
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                notificationType:
+                    type: string
+                    minLength: 1
+                    description: Supported event type from notifications.getCatalog. Unsupported types are rejected at runtime.
+                projectId:
+                    type: string
+                    minLength: 1
+                    description: Omit all scope IDs for a workspace-wide rule.
+                appId:
+                    type: string
+                    minLength: 1
+                    description: Requires projectId and must belong to that project.
+                environmentId:
+                    type: string
+                    minLength: 1
+                    description: Requires appId and must belong to that app.
+                enabled:
+                    type: boolean
+                targets:
+                    type: array
+                    minItems: 1
+                    maxItems: 100
+                    items:
+                        $ref: '#/components/schemas/NotificationTarget'
         V2PermissionsCreatePermissionRequestBody:
             type: object
             required:
@@ -8513,6 +8988,169 @@ components:
                     type: string
                     description: The response body. Secret values are redacted.
                     example: '{"meta":{"requestId":"req_1234abcd"},"error":{"status":404}}'
+        NotificationChannel:
+            type: string
+            enum:
+                - slack
+                - discord
+                - webhook
+            description: Channel used to deliver notifications to a shared destination.
+        NotificationHeader:
+            type: object
+            additionalProperties: false
+            required:
+                - name
+                - value
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                value:
+                    type: string
+                    maxLength: 2048
+                    writeOnly: true
+                    x-unkey-redact: true
+                    description: Write-only header value. Never returned in a destination response.
+        NotificationIdempotencyKey:
+            type: string
+            minLength: 1
+            maxLength: 128
+            pattern: '^[^\s\x00]([^\x00]*[^\s\x00])?$'
+            description: Workspace- and action-scoped idempotency key containing 1 to 128 UTF-8 bytes. Leading or trailing whitespace and NUL characters are not allowed. The server enforces the byte limit, which may be reached before 128 Unicode characters. Repeated creation requests return the existing redacted resource without changing it. Repeated tests for the same destination return the original delivery. Use a fresh key for a different intended resource or a new test.
+        NotificationDestination:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - name
+                - channel
+                - enabled
+                - urlHint
+                - headerNames
+                - createdAt
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                channel:
+                    $ref: '#/components/schemas/NotificationChannel'
+                enabled:
+                    type: boolean
+                urlHint:
+                    type: string
+                    description: Destination origin only. Paths, queries, credentials and fragments are never returned.
+                headerNames:
+                    type: array
+                    items:
+                        type: string
+                    description: Configured header names. Header values and signing secrets are never returned.
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: Creation time in Unix milliseconds.
+        NotificationTarget:
+            oneOf:
+                - $ref: '#/components/schemas/NotificationDestinationTarget'
+                - $ref: '#/components/schemas/NotificationUserTarget'
+                - $ref: '#/components/schemas/NotificationAudienceTarget'
+            discriminator:
+                propertyName: type
+                mapping:
+                    destination: '#/components/schemas/NotificationDestinationTarget'
+                    user: '#/components/schemas/NotificationUserTarget'
+                    audience: '#/components/schemas/NotificationAudienceTarget'
+        NotificationRule:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - name
+                - notificationType
+                - enabled
+                - targets
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                notificationType:
+                    type: string
+                    description: Supported event type returned by notifications.getCatalog.
+                projectId:
+                    type: string
+                appId:
+                    type: string
+                environmentId:
+                    type: string
+                enabled:
+                    type: boolean
+                targets:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/NotificationTarget'
+        NotificationPreference:
+            type: object
+            additionalProperties: false
+            required:
+                - notificationType
+                - enabled
+            properties:
+                notificationType:
+                    type: string
+                    minLength: 1
+                    description: Supported event type returned by notifications.getCatalog.
+                enabled:
+                    type: boolean
+                    description: Whether the authenticated user receives this event type. Defaults to true when no preference is stored.
+        NotificationPagination:
+            type: object
+            additionalProperties: false
+            required:
+                - hasMore
+            properties:
+                nextCursor:
+                    type: string
+                    description: Opaque cursor to pass to the next request. Omitted after the last page.
+                hasMore:
+                    type: boolean
+        NotificationMember:
+            type: object
+            additionalProperties: false
+            required:
+                - userId
+                - email
+                - admin
+            properties:
+                userId:
+                    type: string
+                email:
+                    type: string
+                admin:
+                    type: boolean
+        NotificationRecipient:
+            type: object
+            additionalProperties: false
+            required:
+                - key
+                - channel
+            properties:
+                key:
+                    type: string
+                    description: Stable recipient identity for deduplication.
+                channel:
+                    type: string
+                    description: Delivery channel, including email for workspace members.
+                userId:
+                    type: string
+                destinationId:
+                    type: string
+                email:
+                    type: string
+                reason:
+                    type: string
+                    description: Reason this recipient is ineligible. Omitted or empty means eligible.
         V2PermissionsCreatePermissionResponseData:
             type: object
             properties:
@@ -17144,6 +17782,868 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+    /v2/notifications.createDestination:
+        post:
+            description: Creates a shared destination. Requires unkey:v1:{workspaceId}:notifications#write. Webhooks require a signing secret of at least 32 characters. The idempotency key is workspace- and action-scoped; repeats return the existing redacted state without overwriting it. Use a fresh key for a different intended resource. Shared notification management is restricted to workspace admins by default.
+            operationId: notifications.createDestination
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2NotificationsCreateDestinationRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationDestinationResponse'
+                    description: Created or previously created redacted destination.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Create notification destination
+            tags:
+                - notifications
+            x-speakeasy-name-override: createDestination
+            x-unkey-idempotency: conditionally-idempotent
+    /v2/notifications.createRule:
+        post:
+            description: Creates a workspace-wide or hierarchy-bounded rule. Requires unkey:v1:{workspaceId}:notifications#write. Event types are validated against the runtime deployment catalog. Targets and scope IDs must belong to the authenticated workspace. Repeating an idempotency key returns the existing rule without replacing it; use a fresh key for a different intended resource.
+            operationId: notifications.createRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2NotificationsCreateRuleRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationRuleResponse'
+                    description: Created or previously created rule.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Referenced resource not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Create notification rule
+            tags:
+                - notifications
+            x-speakeasy-name-override: createRule
+            x-unkey-idempotency: conditionally-idempotent
+    /v2/notifications.deleteDestination:
+        post:
+            description: Deletes a destination in the authenticated workspace. Requires unkey:v1:{workspaceId}:notifications#write. Remove the destination from all notification rules before deleting it; referenced destinations return 412.
+            operationId: notifications.deleteDestination
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/NotificationDestinationRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationEmptyResponse'
+                    description: Destination deleted.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Destination not found
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: The destination is referenced by a notification rule. Remove it from all rules before retrying.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Delete notification destination
+            tags:
+                - notifications
+            x-speakeasy-name-override: deleteDestination
+    /v2/notifications.deleteRule:
+        post:
+            description: Deletes a rule in the authenticated workspace. Requires unkey:v1:{workspaceId}:notifications#write.
+            operationId: notifications.deleteRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/NotificationRuleRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationEmptyResponse'
+                    description: Rule deleted.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Rule not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Delete notification rule
+            tags:
+                - notifications
+            x-speakeasy-name-override: deleteRule
+    /v2/notifications.getCatalog:
+        post:
+            description: Returns supported event types, channels and audiences. Available to any authenticated workspace member or root key; no workspace data is returned.
+            operationId: notifications.getCatalog
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2NotificationsGetCatalogResponseBody'
+                    description: Current notification catalog.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get notification catalog
+            tags:
+                - notifications
+            x-speakeasy-name-override: getCatalog
+    /v2/notifications.getDestination:
+        post:
+            description: Returns a redacted destination. Requires unkey:v1:{workspaceId}:notifications#read. Missing and unreadable destinations return the same not-found response. URLs, header values and signing secrets are never returned.
+            operationId: notifications.getDestination
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/NotificationDestinationRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationDestinationResponse'
+                    description: Redacted destination.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Destination not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get notification destination
+            tags:
+                - notifications
+            x-speakeasy-name-override: getDestination
+    /v2/notifications.getPreferences:
+        post:
+            description: Returns effective supported preferences for the authenticated user, defaulting to enabled. Requires a dashboard JWT with workspace roles or a CLI user session. Root keys and portal sessions are rejected, even with wildcard permissions. No request field can select another user or workspace.
+            operationId: notifications.getPreferences
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationPreferencesResponse'
+                    description: Authenticated user's effective preferences.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: A workspace user session is required
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get personal notification preferences
+            tags:
+                - notifications
+            x-speakeasy-name-override: getPreferences
+    /v2/notifications.getRule:
+        post:
+            description: Returns a rule in the authenticated workspace. Requires unkey:v1:{workspaceId}:notifications#read. Missing and unreadable rules return the same not-found response.
+            operationId: notifications.getRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/NotificationRuleRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationRuleResponse'
+                    description: Notification rule.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Rule not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get notification rule
+            tags:
+                - notifications
+            x-speakeasy-name-override: getRule
+    /v2/notifications.listDestinations:
+        post:
+            description: Lists redacted destinations in the authenticated workspace. Requires unkey:v1:{workspaceId}:notifications#read. Shared notification management is restricted to workspace admins by default.
+            operationId: notifications.listDestinations
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/NotificationListRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2NotificationsListDestinationsResponseBody'
+                    description: Redacted destinations.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List notification destinations
+            tags:
+                - notifications
+            x-speakeasy-name-override: listDestinations
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.nextCursor
+                type: cursor
+    /v2/notifications.listMembers:
+        post:
+            description: Lists workspace members eligible for notification targeting. Requires unkey:v1:{workspaceId}:notifications#read. Shared notification management is restricted to workspace admins by default.
+            operationId: notifications.listMembers
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/NotificationListRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2NotificationsListMembersResponseBody'
+                    description: Workspace members.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List notification members
+            tags:
+                - notifications
+            x-speakeasy-name-override: listMembers
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.nextCursor
+                type: cursor
+    /v2/notifications.listRules:
+        post:
+            description: Lists rules in the authenticated workspace. Requires unkey:v1:{workspaceId}:notifications#read. Shared notification management is restricted to workspace admins by default.
+            operationId: notifications.listRules
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/NotificationListRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2NotificationsListRulesResponseBody'
+                    description: Notification rules.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List notification rules
+            tags:
+                - notifications
+            x-speakeasy-name-override: listRules
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.nextCursor
+                type: cursor
+    /v2/notifications.previewRecipients:
+        post:
+            description: Resolves recipients for a supported event type in a concrete project, app and environment without sending. Requires unkey:v1:{workspaceId}:notifications#read. All three scope IDs are required and must form a hierarchy in the authenticated workspace. An empty or omitted reason means the recipient is eligible.
+            operationId: notifications.previewRecipients
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2NotificationsPreviewRecipientsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2NotificationsPreviewRecipientsResponseBody'
+                    description: Resolved recipients and eligibility.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Scope not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Preview notification recipients
+            tags:
+                - notifications
+            x-speakeasy-name-override: previewRecipients
+    /v2/notifications.rotateSigningSecret:
+        post:
+            description: Replaces a destination's write-only signing secret. Requires unkey:v1:{workspaceId}:notifications#write. The caller supplies the secret; repeating the same value is safe. The response never contains the secret.
+            operationId: notifications.rotateSigningSecret
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2NotificationsRotateSigningSecretRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationDestinationResponse'
+                    description: Redacted destination after rotation.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Destination not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Rotate notification signing secret
+            tags:
+                - notifications
+            x-speakeasy-name-override: rotateSigningSecret
+    /v2/notifications.testDestination:
+        post:
+            description: Enqueues a durable test delivery to a saved destination. Requires unkey:v1:{workspaceId}:notifications#write. Draft URLs, headers and secrets are not accepted. Reusing an idempotency key for the same workspace and destination returns the same delivery. Accepted means provider acceptance, not inbox delivery.
+            operationId: notifications.testDestination
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2NotificationsTestDestinationRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2NotificationsTestDestinationResponseBody'
+                    description: Durable test delivery status.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Destination not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Test notification destination
+            tags:
+                - notifications
+            x-speakeasy-name-override: testDestination
+            x-unkey-idempotency: conditionally-idempotent
+    /v2/notifications.updateDestination:
+        post:
+            description: Updates supplied destination fields; omitted fields remain unchanged. Channel is immutable. Requires unkey:v1:{workspaceId}:notifications#write. Secret values are write-only and responses are redacted. An empty headers array clears all headers.
+            operationId: notifications.updateDestination
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2NotificationsUpdateDestinationRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationDestinationResponse'
+                    description: Updated redacted destination.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Destination not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Update notification destination
+            tags:
+                - notifications
+            x-speakeasy-name-override: updateDestination
+    /v2/notifications.updatePreferences:
+        post:
+            description: Atomically updates the authenticated user's preferences and returns every supported effective preference. Requires a dashboard JWT with workspace roles or a CLI user session. Root keys and portal sessions are rejected, even with wildcard permissions. No request field can select another user or workspace.
+            operationId: notifications.updatePreferences
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2NotificationsUpdatePreferencesRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationPreferencesResponse'
+                    description: Authenticated user's effective preferences after the atomic update.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: A workspace user session is required
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Update personal notification preferences
+            tags:
+                - notifications
+            x-speakeasy-name-override: updatePreferences
+    /v2/notifications.updateRule:
+        post:
+            description: Replaces all mutable rule fields, including targets and scope bounds. Requires unkey:v1:{workspaceId}:notifications#write. Event types are validated against the runtime deployment catalog. Targets and scope IDs must belong to the authenticated workspace.
+            operationId: notifications.updateRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2NotificationsUpdateRuleRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotificationRuleResponse'
+                    description: Replaced rule.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient notification permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Rule or referenced resource not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Replace notification rule
+            tags:
+                - notifications
+            x-speakeasy-name-override: updateRule
     /v2/permissions.createPermission:
         post:
             description: |
@@ -21869,6 +23369,8 @@ tags:
       name: workspace
     - description: CLI device login
       name: cli
+    - description: Notification destinations, rules and personal preferences
+      name: notifications
 x-speakeasy-retries:
     backoff:
         exponent: 1.5

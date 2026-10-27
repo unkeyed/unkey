@@ -1,0 +1,37 @@
+post:
+  tags: [notifications]
+  summary: Get notification catalog
+  description: Returns supported event types, channels and audiences. Available to any authenticated workspace member or root key; no workspace data is returned.
+  operationId: notifications.getCatalog
+  x-speakeasy-name-override: getCatalog
+  security: [{ bearer: [] }]
+  responses:
+    "200":
+      description: Current notification catalog.
+      content:
+        application/json:
+          schema: { $ref: ./V2NotificationsGetCatalogResponseBody.yaml }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

@@ -67,11 +67,18 @@ func (s *Service) plan(ctx context.Context, event notification.Event) ([]deliver
 		deliveries = append(deliveries, row)
 	}
 
-	resource, err := json.Marshal(event.Resource)
-	if err != nil {
+	if err := s.store(ctx, event, hash, deliveries, now); err != nil {
 		return nil, err
 	}
-	err = db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+	return s.pending(ctx, event)
+}
+
+func (s *Service) store(ctx context.Context, event notification.Event, hash string, deliveries []db.InsertNotificationDeliveryParams, now int64) error {
+	resource, err := json.Marshal(event.Resource)
+	if err != nil {
+		return err
+	}
+	return db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		queries := db.NewQueries(tx)
 		if err := queries.InsertNotification(txCtx, db.InsertNotificationParams{
 			ID:               event.ID(),
@@ -95,10 +102,6 @@ func (s *Service) plan(ctx context.Context, event notification.Event) ([]deliver
 		}
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return s.pending(ctx, event)
 }
 
 func (s *Service) pending(ctx context.Context, event notification.Event) ([]deliveryRef, error) {

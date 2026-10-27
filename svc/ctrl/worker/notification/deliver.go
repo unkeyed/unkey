@@ -114,6 +114,13 @@ func (s *Service) attemptDelivery(ctx context.Context, row db.NotificationDelive
 	if !row.FirstAttemptAt.Valid {
 		row.FirstAttemptAt = sql.NullInt64{Int64: now.UnixMilli(), Valid: true}
 	}
+	now = s.clock.Now()
+	if uncertain && !canRetryAmbiguous(provider, row.FirstAttemptAt, now) {
+		return stop("unsafe_to_retry")
+	}
+	if frozen.Event.ExpiresAt != 0 && frozen.Event.ExpiresAt <= now.UnixMilli() {
+		return stop("expired")
+	}
 	receipt, sendErr := provider.Send(ctx, notification.Request{DeliveryID: row.ID, Event: frozen.Event, Content: frozen.Content, Target: target})
 	if sendErr == nil {
 		if len(receipt.MessageID) > 256 {

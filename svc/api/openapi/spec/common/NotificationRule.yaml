@@ -1,0 +1,23 @@
+type: object
+additionalProperties: false
+required: [id, name, notificationType, enabled, targets]
+properties:
+  id:
+    type: string
+  name:
+    type: string
+  notificationType:
+    type: string
+    description: Supported event type returned by notifications.getCatalog.
+  projectId:
+    type: string
+  appId:
+    type: string
+  environmentId:
+    type: string
+  enabled:
+    type: boolean
+  targets:
+    type: array
+    items:
+      $ref: ./NotificationTarget.yaml

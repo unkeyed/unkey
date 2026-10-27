@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+properties:
+  cursor:
+    type: string
+    maxLength: 256
+    description: Opaque nextCursor from the previous response.
+  limit:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 50

@@ -16,3 +16,6 @@ type IsInstanceEvent_State = isInstanceEvent_State
 
 // IsDeploymentState_State is the exported form of the protobuf oneof interface isDeploymentState_State.
 type IsDeploymentState_State = isDeploymentState_State
+
+// IsNotificationTarget_Target is the exported form of the protobuf oneof interface isNotificationTarget_Target.
+type IsNotificationTarget_Target = isNotificationTarget_Target

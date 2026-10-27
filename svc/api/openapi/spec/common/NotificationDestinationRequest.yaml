@@ -1,0 +1,7 @@
+type: object
+additionalProperties: false
+required: [destinationId]
+properties:
+  destinationId:
+    type: string
+    minLength: 1

@@ -1,0 +1,50 @@
+post:
+  tags: [notifications]
+  summary: Get notification rule
+  description: Returns a rule in the authenticated workspace. Requires unkey:v1:{workspaceId}:notifications#read. Missing and unreadable rules return the same not-found response.
+  operationId: notifications.getRule
+  x-speakeasy-name-override: getRule
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ../../../../common/NotificationRuleRequest.yaml }
+  responses:
+    "200":
+      description: Notification rule.
+      content:
+        application/json:
+          schema: { $ref: ../../../../common/NotificationRuleResponse.yaml }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "404": {
+      description: Rule not found,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/NotFoundErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

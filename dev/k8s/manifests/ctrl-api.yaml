@@ -15,6 +15,11 @@ data:
     default_domain = "unkey.local"
     cname_domain = "unkey.local"
     database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+    workos_api_key = "${WORKOS_API_KEY}"
+
+    [vault]
+    url = "http://vault:8060"
+    token = "${UNKEY_VAULT_TOKEN}"
 
     [vstream]
     address = "mysql:33575"
@@ -83,6 +88,14 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
           env:
+            - name: UNKEY_VAULT_TOKEN
+              value: vault-test-token-123
+            - name: WORKOS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: workos-credentials
+                  key: WORKOS_API_KEY
+                  optional: true
             - name: UNKEY_GITHUB_APP_WEBHOOK_SECRET
               valueFrom:
                 secretKeyRef:

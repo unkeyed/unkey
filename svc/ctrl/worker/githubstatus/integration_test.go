@@ -446,6 +446,29 @@ func TestDeploymentNotificationsThroughRestate(t *testing.T) {
 		}
 	})
 
+	t.Run("late cancellation and supersession replace progressing statuses", func(t *testing.T) {
+		for _, stopped := range []struct {
+			status mysqltype.DeploymentsStatus
+			change deployment.Change
+		}{
+			{status: mysqltype.DeploymentsStatusCancelled, change: deployment.Cancelled},
+			{status: mysqltype.DeploymentsStatusSuperseded, change: deployment.Superseded},
+		} {
+			project, app, environment := newApp(t, "late-"+string(stopped.status))
+			row := newDeployment(t, project, app, environment, 67)
+			_, err := client.Request(t.Context(), deployment.ReportRequest{DeploymentID: row.ID, Change: deployment.RoutingStarted})
+			require.NoError(t, err)
+			require.NoError(t, database.UpdateDeploymentStatus(t.Context(), db.UpdateDeploymentStatusParams{ID: row.ID, Status: stopped.status}))
+			_, err = client.Request(t.Context(), deployment.ReportRequest{DeploymentID: row.ID, Change: deployment.FinalizationFailed})
+			require.NoError(t, err)
+			github.mu.Lock()
+			status := github.statuses[len(github.statuses)-1]
+			github.mu.Unlock()
+			require.Equal(t, stopped.change.Description(), status.Description)
+			require.Equal(t, "error", status.State)
+		}
+	})
+
 	t.Run("existing GitHub deployment IDs are reused", func(t *testing.T) {
 		project, app, environment := newApp(t, "existing-deployment")
 		row := newDeployment(t, project, app, environment, 59)

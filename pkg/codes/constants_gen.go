@@ -92,6 +92,11 @@ const (
 	// NotFound indicates the requested flag definition was not found.
 	UnkeyDataErrorsFlagNotFound URN = "err:unkey:data:flag_not_found"
 
+	// Notification
+
+	// NotFound indicates the requested notification resource was not found.
+	UnkeyDataErrorsNotificationNotFound URN = "err:unkey:data:notification_not_found"
+
 	// Key
 
 	// NotFound indicates the requested key was not found.

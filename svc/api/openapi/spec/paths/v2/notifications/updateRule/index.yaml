@@ -1,0 +1,58 @@
+post:
+  tags: [notifications]
+  summary: Replace notification rule
+  description: Replaces all mutable rule fields, including targets and scope bounds. Requires unkey:v1:{workspaceId}:notifications#write. Event types are validated against the runtime deployment catalog. Targets and scope IDs must belong to the authenticated workspace.
+  operationId: notifications.updateRule
+  x-speakeasy-name-override: updateRule
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ./V2NotificationsUpdateRuleRequestBody.yaml }
+  responses:
+    "200":
+      description: Replaced rule.
+      content:
+        application/json:
+          schema: { $ref: ../../../../common/NotificationRuleResponse.yaml }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: Insufficient notification permissions,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "404": {
+      description: Rule or referenced resource not found,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/NotFoundErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

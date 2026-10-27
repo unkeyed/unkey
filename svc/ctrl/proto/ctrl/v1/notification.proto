@@ -1,0 +1,255 @@
+syntax = "proto3";
+package ctrl.v1;
+
+import "ctrl/v1/actor.proto";
+import "notification/v1/config.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+// Create operations are first-write-wins for a workspace, action, and idempotency key.
+// Retries return the existing redacted resource; credentials are never returned.
+service NotificationService {
+  rpc GetCatalog(NotificationGetCatalogRequest) returns (NotificationGetCatalogResponse) {}
+  rpc ListMembers(NotificationListMembersRequest) returns (NotificationListMembersResponse) {}
+  rpc ListDestinations(NotificationListDestinationsRequest) returns (NotificationListDestinationsResponse) {}
+  rpc GetDestination(NotificationGetDestinationRequest) returns (NotificationGetDestinationResponse) {}
+  rpc CreateDestination(NotificationCreateDestinationRequest) returns (NotificationCreateDestinationResponse) {}
+  rpc UpdateDestination(NotificationUpdateDestinationRequest) returns (NotificationUpdateDestinationResponse) {}
+  rpc DeleteDestination(NotificationDeleteDestinationRequest) returns (NotificationDeleteDestinationResponse) {}
+  rpc RotateSigningSecret(NotificationRotateSigningSecretRequest) returns (NotificationRotateSigningSecretResponse) {}
+  rpc TestDestination(NotificationTestDestinationRequest) returns (NotificationTestDestinationResponse) {}
+  rpc ListRules(NotificationListRulesRequest) returns (NotificationListRulesResponse) {}
+  rpc GetRule(NotificationGetRuleRequest) returns (NotificationGetRuleResponse) {}
+  rpc CreateRule(NotificationCreateRuleRequest) returns (NotificationCreateRuleResponse) {}
+  rpc UpdateRule(NotificationUpdateRuleRequest) returns (NotificationUpdateRuleResponse) {}
+  rpc DeleteRule(NotificationDeleteRuleRequest) returns (NotificationDeleteRuleResponse) {}
+  rpc GetPreferences(NotificationGetPreferencesRequest) returns (NotificationGetPreferencesResponse) {}
+  rpc UpdatePreferences(NotificationUpdatePreferencesRequest) returns (NotificationUpdatePreferencesResponse) {}
+  rpc PreviewRecipients(NotificationPreviewRecipientsRequest) returns (NotificationPreviewRecipientsResponse) {}
+}
+
+message NotificationHeader {
+  string name = 1;
+  string value = 2;
+}
+
+message NotificationHeaders {
+  repeated NotificationHeader items = 1;
+}
+
+message NotificationDestination {
+  string id = 1;
+  string name = 2;
+  string channel = 3;
+  bool enabled = 4;
+  string url_hint = 5;
+  repeated string header_names = 6;
+  int64 created_at = 7;
+}
+
+message NotificationTarget {
+  oneof target {
+    string destination_id = 1;
+    string user_id = 2;
+    notification.v1.Audience audience = 3;
+  }
+}
+
+message NotificationRule {
+  string id = 1;
+  string name = 2;
+  string notification_type = 3;
+  string project_id = 4;
+  string app_id = 5;
+  string environment_id = 6;
+  bool enabled = 7;
+  repeated NotificationTarget targets = 8;
+}
+
+message NotificationPreference {
+  string notification_type = 1;
+  bool enabled = 2;
+}
+
+message NotificationMember {
+  string user_id = 1;
+  string email = 2;
+  bool admin = 3;
+}
+
+message NotificationRecipient {
+  string key = 1;
+  string channel = 2;
+  string user_id = 3;
+  string destination_id = 4;
+  string email = 5;
+  string reason = 6;
+}
+
+message NotificationGetCatalogRequest {
+  string workspace_id = 1;
+}
+message NotificationGetCatalogResponse {
+  repeated string event_types = 1;
+  repeated string channels = 2;
+  repeated notification.v1.Audience audiences = 3;
+}
+message NotificationListMembersRequest {
+  string workspace_id = 1;
+  string cursor = 2;
+  int32 limit = 3;
+}
+message NotificationListMembersResponse {
+  repeated NotificationMember members = 1;
+  string next_cursor = 2;
+  bool has_more = 3;
+}
+message NotificationListDestinationsRequest {
+  string workspace_id = 1;
+  string cursor = 2;
+  int32 limit = 3;
+}
+message NotificationListDestinationsResponse {
+  repeated NotificationDestination destinations = 1;
+  string next_cursor = 2;
+  bool has_more = 3;
+}
+message NotificationGetDestinationRequest {
+  string workspace_id = 1;
+  string destination_id = 2;
+}
+message NotificationGetDestinationResponse {
+  NotificationDestination destination = 1;
+}
+message NotificationCreateDestinationRequest {
+  string workspace_id = 1;
+  string name = 2;
+  string channel = 3;
+  string url = 4;
+  repeated NotificationHeader headers = 5;
+  string signing_secret = 6;
+  bool enabled = 7;
+  string idempotency_key = 8;
+  ActorInfo actor = 9;
+}
+message NotificationCreateDestinationResponse {
+  NotificationDestination destination = 1;
+}
+message NotificationUpdateDestinationRequest {
+  string workspace_id = 1;
+  string destination_id = 2;
+  optional string name = 3;
+  optional bool enabled = 4;
+  optional string url = 5;
+  NotificationHeaders headers = 6;
+  optional string signing_secret = 7;
+  ActorInfo actor = 8;
+}
+message NotificationUpdateDestinationResponse {
+  NotificationDestination destination = 1;
+}
+message NotificationDeleteDestinationRequest {
+  string workspace_id = 1;
+  string destination_id = 2;
+  ActorInfo actor = 3;
+}
+message NotificationDeleteDestinationResponse {}
+message NotificationRotateSigningSecretRequest {
+  string workspace_id = 1;
+  string destination_id = 2;
+  string signing_secret = 3;
+  ActorInfo actor = 4;
+}
+message NotificationRotateSigningSecretResponse {
+  NotificationDestination destination = 1;
+}
+message NotificationTestDestinationRequest {
+  string workspace_id = 1;
+  string destination_id = 2;
+  string idempotency_key = 3;
+  ActorInfo actor = 4;
+}
+message NotificationTestDestinationResponse {
+  string delivery_id = 1;
+  string status = 2;
+  string reason = 3;
+}
+message NotificationListRulesRequest {
+  string workspace_id = 1;
+  string cursor = 2;
+  int32 limit = 3;
+}
+message NotificationListRulesResponse {
+  repeated NotificationRule rules = 1;
+  string next_cursor = 2;
+  bool has_more = 3;
+}
+message NotificationGetRuleRequest {
+  string workspace_id = 1;
+  string rule_id = 2;
+}
+message NotificationGetRuleResponse {
+  NotificationRule rule = 1;
+}
+message NotificationCreateRuleRequest {
+  string workspace_id = 1;
+  string name = 2;
+  string notification_type = 3;
+  string project_id = 4;
+  string app_id = 5;
+  string environment_id = 6;
+  bool enabled = 7;
+  repeated NotificationTarget targets = 8;
+  string idempotency_key = 9;
+  ActorInfo actor = 10;
+}
+message NotificationCreateRuleResponse {
+  NotificationRule rule = 1;
+}
+message NotificationUpdateRuleRequest {
+  string workspace_id = 1;
+  string rule_id = 2;
+  string name = 3;
+  string notification_type = 4;
+  string project_id = 5;
+  string app_id = 6;
+  string environment_id = 7;
+  bool enabled = 8;
+  repeated NotificationTarget targets = 9;
+  ActorInfo actor = 10;
+}
+message NotificationUpdateRuleResponse {
+  NotificationRule rule = 1;
+}
+message NotificationDeleteRuleRequest {
+  string workspace_id = 1;
+  string rule_id = 2;
+  ActorInfo actor = 3;
+}
+message NotificationDeleteRuleResponse {}
+message NotificationGetPreferencesRequest {
+  string workspace_id = 1;
+  string user_id = 2;
+}
+message NotificationGetPreferencesResponse {
+  repeated NotificationPreference preferences = 1;
+}
+message NotificationUpdatePreferencesRequest {
+  string workspace_id = 1;
+  string user_id = 2;
+  repeated NotificationPreference preferences = 3;
+  ActorInfo actor = 4;
+}
+message NotificationUpdatePreferencesResponse {
+  repeated NotificationPreference preferences = 1;
+}
+message NotificationPreviewRecipientsRequest {
+  string workspace_id = 1;
+  string notification_type = 2;
+  string project_id = 3;
+  string app_id = 4;
+  string environment_id = 5;
+}
+message NotificationPreviewRecipientsResponse {
+  repeated NotificationRecipient recipients = 1;
+}

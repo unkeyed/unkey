@@ -1,0 +1,19 @@
+type: object
+additionalProperties: false
+required: [key, channel]
+properties:
+  key:
+    type: string
+    description: Stable recipient identity for deduplication.
+  channel:
+    type: string
+    description: Delivery channel, including email for workspace members.
+  userId:
+    type: string
+  destinationId:
+    type: string
+  email:
+    type: string
+  reason:
+    type: string
+    description: Reason this recipient is ineligible. Omitted or empty means eligible.

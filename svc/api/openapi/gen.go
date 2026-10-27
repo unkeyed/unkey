@@ -5,6 +5,7 @@ package openapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/oapi-codegen/nullable"
@@ -494,6 +495,87 @@ func (e MethodMatchMethods) Valid() bool {
 	}
 }
 
+// Defines values for NotificationAudienceTargetAudience.
+const (
+	NotificationAudienceTargetAudienceWorkspaceAdmins NotificationAudienceTargetAudience = "workspace_admins"
+)
+
+// Valid indicates whether the value is a known member of the NotificationAudienceTargetAudience enum.
+func (e NotificationAudienceTargetAudience) Valid() bool {
+	switch e {
+	case NotificationAudienceTargetAudienceWorkspaceAdmins:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationAudienceTargetType.
+const (
+	Audience NotificationAudienceTargetType = "audience"
+)
+
+// Valid indicates whether the value is a known member of the NotificationAudienceTargetType enum.
+func (e NotificationAudienceTargetType) Valid() bool {
+	switch e {
+	case Audience:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationChannel.
+const (
+	Discord NotificationChannel = "discord"
+	Slack   NotificationChannel = "slack"
+	Webhook NotificationChannel = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the NotificationChannel enum.
+func (e NotificationChannel) Valid() bool {
+	switch e {
+	case Discord:
+		return true
+	case Slack:
+		return true
+	case Webhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationDestinationTargetType.
+const (
+	Destination NotificationDestinationTargetType = "destination"
+)
+
+// Valid indicates whether the value is a known member of the NotificationDestinationTargetType enum.
+func (e NotificationDestinationTargetType) Valid() bool {
+	switch e {
+	case Destination:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationUserTargetType.
+const (
+	NotificationUserTargetTypeUser NotificationUserTargetType = "user"
+)
+
+// Valid indicates whether the value is a known member of the NotificationUserTargetType enum.
+func (e NotificationUserTargetType) Valid() bool {
+	switch e {
+	case NotificationUserTargetTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateKeyCreditsRefillInterval.
 const (
 	UpdateKeyCreditsRefillIntervalDaily   UpdateKeyCreditsRefillInterval = "daily"
@@ -641,6 +723,54 @@ func (e V2KeysVerifyKeyResponseDataCode) Valid() bool {
 	case USAGEEXCEEDED:
 		return true
 	case VALID:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for V2NotificationsGetCatalogResponseBodyDataAudiences.
+const (
+	V2NotificationsGetCatalogResponseBodyDataAudiencesWorkspaceAdmins V2NotificationsGetCatalogResponseBodyDataAudiences = "workspace_admins"
+)
+
+// Valid indicates whether the value is a known member of the V2NotificationsGetCatalogResponseBodyDataAudiences enum.
+func (e V2NotificationsGetCatalogResponseBodyDataAudiences) Valid() bool {
+	switch e {
+	case V2NotificationsGetCatalogResponseBodyDataAudiencesWorkspaceAdmins:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for V2NotificationsTestDestinationResponseBodyDataStatus.
+const (
+	NotificationDeliveryAccepted   V2NotificationsTestDestinationResponseBodyDataStatus = "accepted"
+	NotificationDeliveryDelivered  V2NotificationsTestDestinationResponseBodyDataStatus = "delivered"
+	NotificationDeliveryFailed     V2NotificationsTestDestinationResponseBodyDataStatus = "failed"
+	NotificationDeliveryPending    V2NotificationsTestDestinationResponseBodyDataStatus = "pending"
+	NotificationDeliverySending    V2NotificationsTestDestinationResponseBodyDataStatus = "sending"
+	NotificationDeliverySuppressed V2NotificationsTestDestinationResponseBodyDataStatus = "suppressed"
+	NotificationDeliveryUnknown    V2NotificationsTestDestinationResponseBodyDataStatus = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the V2NotificationsTestDestinationResponseBodyDataStatus enum.
+func (e V2NotificationsTestDestinationResponseBodyDataStatus) Valid() bool {
+	switch e {
+	case NotificationDeliveryAccepted:
+		return true
+	case NotificationDeliveryDelivered:
+		return true
+	case NotificationDeliveryFailed:
+		return true
+	case NotificationDeliveryPending:
+		return true
+	case NotificationDeliverySending:
+		return true
+	case NotificationDeliverySuppressed:
+		return true
+	case NotificationDeliveryUnknown:
 		return true
 	default:
 		return false
@@ -2375,6 +2505,177 @@ type NotFoundErrorResponse struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// NotificationAudienceTarget defines model for NotificationAudienceTarget.
+type NotificationAudienceTarget struct {
+	Audience NotificationAudienceTargetAudience `json:"audience"`
+	Type     NotificationAudienceTargetType     `json:"type"`
+}
+
+// NotificationAudienceTargetAudience defines model for NotificationAudienceTarget.Audience.
+type NotificationAudienceTargetAudience string
+
+// NotificationAudienceTargetType defines model for NotificationAudienceTarget.Type.
+type NotificationAudienceTargetType string
+
+// NotificationChannel Channel used to deliver notifications to a shared destination.
+type NotificationChannel string
+
+// NotificationDestination defines model for NotificationDestination.
+type NotificationDestination struct {
+	// Channel Channel used to deliver notifications to a shared destination.
+	Channel NotificationChannel `json:"channel"`
+
+	// CreatedAt Creation time in Unix milliseconds.
+	CreatedAt int64 `json:"createdAt"`
+	Enabled   bool  `json:"enabled"`
+
+	// HeaderNames Configured header names. Header values and signing secrets are never returned.
+	HeaderNames []string `json:"headerNames"`
+	Id          string   `json:"id"`
+	Name        string   `json:"name"`
+
+	// UrlHint Destination origin only. Paths, queries, credentials and fragments are never returned.
+	UrlHint string `json:"urlHint"`
+}
+
+// NotificationDestinationRequest defines model for NotificationDestinationRequest.
+type NotificationDestinationRequest struct {
+	DestinationId string `json:"destinationId"`
+}
+
+// NotificationDestinationResponse defines model for NotificationDestinationResponse.
+type NotificationDestinationResponse struct {
+	Data NotificationDestination `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// NotificationDestinationTarget defines model for NotificationDestinationTarget.
+type NotificationDestinationTarget struct {
+	DestinationId string                            `json:"destinationId"`
+	Type          NotificationDestinationTargetType `json:"type"`
+}
+
+// NotificationDestinationTargetType defines model for NotificationDestinationTarget.Type.
+type NotificationDestinationTargetType string
+
+// NotificationEmptyResponse defines model for NotificationEmptyResponse.
+type NotificationEmptyResponse struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// NotificationHeader defines model for NotificationHeader.
+type NotificationHeader struct {
+	Name string `json:"name"`
+
+	// Value Write-only header value. Never returned in a destination response.
+	Value *string `json:"value,omitempty"`
+}
+
+// NotificationIdempotencyKey Workspace- and action-scoped idempotency key containing 1 to 128 UTF-8 bytes. Leading or trailing whitespace and NUL characters are not allowed. The server enforces the byte limit, which may be reached before 128 Unicode characters. Repeated creation requests return the existing redacted resource without changing it. Repeated tests for the same destination return the original delivery. Use a fresh key for a different intended resource or a new test.
+type NotificationIdempotencyKey = string
+
+// NotificationListRequest defines model for NotificationListRequest.
+type NotificationListRequest struct {
+	// Cursor Opaque nextCursor from the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+	Limit  *int    `json:"limit,omitempty"`
+}
+
+// NotificationMember defines model for NotificationMember.
+type NotificationMember struct {
+	Admin  bool   `json:"admin"`
+	Email  string `json:"email"`
+	UserId string `json:"userId"`
+}
+
+// NotificationPagination defines model for NotificationPagination.
+type NotificationPagination struct {
+	HasMore bool `json:"hasMore"`
+
+	// NextCursor Opaque cursor to pass to the next request. Omitted after the last page.
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// NotificationPreference defines model for NotificationPreference.
+type NotificationPreference struct {
+	// Enabled Whether the authenticated user receives this event type. Defaults to true when no preference is stored.
+	Enabled bool `json:"enabled"`
+
+	// NotificationType Supported event type returned by notifications.getCatalog.
+	NotificationType string `json:"notificationType"`
+}
+
+// NotificationPreferencesResponse defines model for NotificationPreferencesResponse.
+type NotificationPreferencesResponse struct {
+	// Data Effective preferences for every supported event type, owned by the authenticated user only.
+	Data []NotificationPreference `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// NotificationRecipient defines model for NotificationRecipient.
+type NotificationRecipient struct {
+	// Channel Delivery channel, including email for workspace members.
+	Channel       string  `json:"channel"`
+	DestinationId *string `json:"destinationId,omitempty"`
+	Email         *string `json:"email,omitempty"`
+
+	// Key Stable recipient identity for deduplication.
+	Key string `json:"key"`
+
+	// Reason Reason this recipient is ineligible. Omitted or empty means eligible.
+	Reason *string `json:"reason,omitempty"`
+	UserId *string `json:"userId,omitempty"`
+}
+
+// NotificationRule defines model for NotificationRule.
+type NotificationRule struct {
+	AppId         *string `json:"appId,omitempty"`
+	Enabled       bool    `json:"enabled"`
+	EnvironmentId *string `json:"environmentId,omitempty"`
+	Id            string  `json:"id"`
+	Name          string  `json:"name"`
+
+	// NotificationType Supported event type returned by notifications.getCatalog.
+	NotificationType string               `json:"notificationType"`
+	ProjectId        *string              `json:"projectId,omitempty"`
+	Targets          []NotificationTarget `json:"targets"`
+}
+
+// NotificationRuleRequest defines model for NotificationRuleRequest.
+type NotificationRuleRequest struct {
+	RuleId string `json:"ruleId"`
+}
+
+// NotificationRuleResponse defines model for NotificationRuleResponse.
+type NotificationRuleResponse struct {
+	Data NotificationRule `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// NotificationTarget defines model for NotificationTarget.
+type NotificationTarget struct {
+	union json.RawMessage
+}
+
+// NotificationUserTarget defines model for NotificationUserTarget.
+type NotificationUserTarget struct {
+	Type   NotificationUserTargetType `json:"type"`
+	UserId string                     `json:"userId"`
+}
+
+// NotificationUserTargetType defines model for NotificationUserTarget.Type.
+type NotificationUserTargetType string
 
 // OpenapiPolicy Validates matching requests against the app's uploaded OpenAPI spec. Has no
 // configuration of its own. If no spec has been uploaded for the deployment,
@@ -6256,6 +6557,185 @@ type V2LogsListApiRequestsResponseBody struct {
 	Pagination Pagination `json:"pagination"`
 }
 
+// V2NotificationsCreateDestinationRequestBody defines model for V2NotificationsCreateDestinationRequestBody.
+type V2NotificationsCreateDestinationRequestBody struct {
+	// Channel Channel used to deliver notifications to a shared destination.
+	Channel NotificationChannel `json:"channel"`
+	Enabled *bool               `json:"enabled,omitempty"`
+
+	// Headers Webhook-only headers. Names must be unique ignoring case. Transport headers and names starting with Unkey- are reserved. Combined header names and values must not exceed 8192 bytes.
+	Headers *[]NotificationHeader `json:"headers,omitempty"`
+
+	// IdempotencyKey Workspace- and action-scoped idempotency key containing 1 to 128 UTF-8 bytes. Leading or trailing whitespace and NUL characters are not allowed. The server enforces the byte limit, which may be reached before 128 Unicode characters. Repeated creation requests return the existing redacted resource without changing it. Repeated tests for the same destination return the original delivery. Use a fresh key for a different intended resource or a new test.
+	IdempotencyKey NotificationIdempotencyKey `json:"idempotencyKey"`
+	Name           string                     `json:"name"`
+
+	// SigningSecret Write-only signing secret. Required for webhook destinations and not accepted for other channels. Must not exceed 512 UTF-8 bytes.
+	SigningSecret *string `json:"signingSecret,omitempty"`
+
+	// Url HTTPS delivery URL. This value is write-only; reads return its origin only.
+	Url *string `json:"url,omitempty"`
+}
+
+// V2NotificationsCreateRuleRequestBody defines model for V2NotificationsCreateRuleRequestBody.
+type V2NotificationsCreateRuleRequestBody struct {
+	// AppId Requires projectId and must belong to that project.
+	AppId   *string `json:"appId,omitempty"`
+	Enabled bool    `json:"enabled"`
+
+	// EnvironmentId Requires appId and must belong to that app.
+	EnvironmentId *string `json:"environmentId,omitempty"`
+
+	// IdempotencyKey Workspace- and action-scoped idempotency key containing 1 to 128 UTF-8 bytes. Leading or trailing whitespace and NUL characters are not allowed. The server enforces the byte limit, which may be reached before 128 Unicode characters. Repeated creation requests return the existing redacted resource without changing it. Repeated tests for the same destination return the original delivery. Use a fresh key for a different intended resource or a new test.
+	IdempotencyKey NotificationIdempotencyKey `json:"idempotencyKey"`
+	Name           string                     `json:"name"`
+
+	// NotificationType Supported event type from notifications.getCatalog. Unsupported types are rejected at runtime.
+	NotificationType string `json:"notificationType"`
+
+	// ProjectId Omit all scope IDs for a workspace-wide rule.
+	ProjectId *string              `json:"projectId,omitempty"`
+	Targets   []NotificationTarget `json:"targets"`
+}
+
+// V2NotificationsGetCatalogResponseBody defines model for V2NotificationsGetCatalogResponseBody.
+type V2NotificationsGetCatalogResponseBody struct {
+	Data struct {
+		Audiences []V2NotificationsGetCatalogResponseBodyDataAudiences `json:"audiences"`
+		Channels  []string                                             `json:"channels"`
+
+		// EventTypes Event types supported by the deployment notification catalog at runtime.
+		EventTypes []string `json:"eventTypes"`
+	} `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2NotificationsGetCatalogResponseBodyDataAudiences defines model for V2NotificationsGetCatalogResponseBody.Data.Audiences.
+type V2NotificationsGetCatalogResponseBodyDataAudiences string
+
+// V2NotificationsListDestinationsResponseBody defines model for V2NotificationsListDestinationsResponseBody.
+type V2NotificationsListDestinationsResponseBody struct {
+	Data []NotificationDestination `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta       Meta                   `json:"meta"`
+	Pagination NotificationPagination `json:"pagination"`
+}
+
+// V2NotificationsListMembersResponseBody defines model for V2NotificationsListMembersResponseBody.
+type V2NotificationsListMembersResponseBody struct {
+	Data []NotificationMember `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta       Meta                   `json:"meta"`
+	Pagination NotificationPagination `json:"pagination"`
+}
+
+// V2NotificationsListRulesResponseBody defines model for V2NotificationsListRulesResponseBody.
+type V2NotificationsListRulesResponseBody struct {
+	Data []NotificationRule `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta       Meta                   `json:"meta"`
+	Pagination NotificationPagination `json:"pagination"`
+}
+
+// V2NotificationsPreviewRecipientsRequestBody defines model for V2NotificationsPreviewRecipientsRequestBody.
+type V2NotificationsPreviewRecipientsRequestBody struct {
+	AppId         string `json:"appId"`
+	EnvironmentId string `json:"environmentId"`
+
+	// NotificationType Supported event type from notifications.getCatalog.
+	NotificationType string `json:"notificationType"`
+	ProjectId        string `json:"projectId"`
+}
+
+// V2NotificationsPreviewRecipientsResponseBody defines model for V2NotificationsPreviewRecipientsResponseBody.
+type V2NotificationsPreviewRecipientsResponseBody struct {
+	Data []NotificationRecipient `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2NotificationsRotateSigningSecretRequestBody defines model for V2NotificationsRotateSigningSecretRequestBody.
+type V2NotificationsRotateSigningSecretRequestBody struct {
+	DestinationId string `json:"destinationId"`
+
+	// SigningSecret Replacement write-only webhook signing secret, at most 512 UTF-8 bytes. Retrying the same value is safe.
+	SigningSecret *string `json:"signingSecret,omitempty"`
+}
+
+// V2NotificationsTestDestinationRequestBody defines model for V2NotificationsTestDestinationRequestBody.
+type V2NotificationsTestDestinationRequestBody struct {
+	DestinationId string `json:"destinationId"`
+
+	// IdempotencyKey Workspace- and action-scoped idempotency key containing 1 to 128 UTF-8 bytes. Leading or trailing whitespace and NUL characters are not allowed. The server enforces the byte limit, which may be reached before 128 Unicode characters. Repeated creation requests return the existing redacted resource without changing it. Repeated tests for the same destination return the original delivery. Use a fresh key for a different intended resource or a new test.
+	IdempotencyKey NotificationIdempotencyKey `json:"idempotencyKey"`
+}
+
+// V2NotificationsTestDestinationResponseBody defines model for V2NotificationsTestDestinationResponseBody.
+type V2NotificationsTestDestinationResponseBody struct {
+	Data struct {
+		DeliveryId string `json:"deliveryId"`
+
+		// Reason Non-secret delivery outcome detail, when available.
+		Reason *string `json:"reason,omitempty"`
+
+		// Status Accepted indicates provider acceptance, not delivery to an inbox.
+		Status V2NotificationsTestDestinationResponseBodyDataStatus `json:"status"`
+	} `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2NotificationsTestDestinationResponseBodyDataStatus Accepted indicates provider acceptance, not delivery to an inbox.
+type V2NotificationsTestDestinationResponseBodyDataStatus string
+
+// V2NotificationsUpdateDestinationRequestBody defines model for V2NotificationsUpdateDestinationRequestBody.
+type V2NotificationsUpdateDestinationRequestBody struct {
+	DestinationId string `json:"destinationId"`
+	Enabled       *bool  `json:"enabled,omitempty"`
+
+	// Headers Replacement headers. An empty array removes all headers; omitting this property preserves them.
+	Headers *[]NotificationHeader `json:"headers,omitempty"`
+	Name    *string               `json:"name,omitempty"`
+
+	// SigningSecret Replacement write-only webhook signing secret, at most 512 UTF-8 bytes. Retrying the same value is safe.
+	SigningSecret *string `json:"signingSecret,omitempty"`
+
+	// Url Replacement HTTPS URL. The destination channel cannot be changed.
+	Url *string `json:"url,omitempty"`
+}
+
+// V2NotificationsUpdatePreferencesRequestBody defines model for V2NotificationsUpdatePreferencesRequestBody.
+type V2NotificationsUpdatePreferencesRequestBody struct {
+	// Preferences Atomic batch of personal preferences. Unsupported or duplicate event types reject the entire batch. Unspecified event types keep their previous effective values.
+	Preferences []NotificationPreference `json:"preferences"`
+}
+
+// V2NotificationsUpdateRuleRequestBody Full replacement of a rule. Omitted scope IDs remove those scope bounds.
+type V2NotificationsUpdateRuleRequestBody struct {
+	// AppId Requires projectId and must belong to that project.
+	AppId   *string `json:"appId,omitempty"`
+	Enabled bool    `json:"enabled"`
+
+	// EnvironmentId Requires appId and must belong to that app.
+	EnvironmentId *string `json:"environmentId,omitempty"`
+	Name          string  `json:"name"`
+
+	// NotificationType Supported event type from notifications.getCatalog. Unsupported types are rejected at runtime.
+	NotificationType string `json:"notificationType"`
+
+	// ProjectId Omit all scope IDs for a workspace-wide rule.
+	ProjectId *string              `json:"projectId,omitempty"`
+	RuleId    string               `json:"ruleId"`
+	Targets   []NotificationTarget `json:"targets"`
+}
+
 // V2PermissionsCreatePermissionRequestBody defines model for V2PermissionsCreatePermissionRequestBody.
 type V2PermissionsCreatePermissionRequestBody struct {
 	// Description Provides detailed documentation of what this permission grants access to.
@@ -8625,6 +9105,51 @@ type LogsGetApiRequestMetricsJSONRequestBody = V2LogsGetApiRequestMetricsRequest
 // LogsListApiRequestsJSONRequestBody defines body for LogsListApiRequests for application/json ContentType.
 type LogsListApiRequestsJSONRequestBody = V2LogsListApiRequestsRequestBody
 
+// NotificationsCreateDestinationJSONRequestBody defines body for NotificationsCreateDestination for application/json ContentType.
+type NotificationsCreateDestinationJSONRequestBody = V2NotificationsCreateDestinationRequestBody
+
+// NotificationsCreateRuleJSONRequestBody defines body for NotificationsCreateRule for application/json ContentType.
+type NotificationsCreateRuleJSONRequestBody = V2NotificationsCreateRuleRequestBody
+
+// NotificationsDeleteDestinationJSONRequestBody defines body for NotificationsDeleteDestination for application/json ContentType.
+type NotificationsDeleteDestinationJSONRequestBody = NotificationDestinationRequest
+
+// NotificationsDeleteRuleJSONRequestBody defines body for NotificationsDeleteRule for application/json ContentType.
+type NotificationsDeleteRuleJSONRequestBody = NotificationRuleRequest
+
+// NotificationsGetDestinationJSONRequestBody defines body for NotificationsGetDestination for application/json ContentType.
+type NotificationsGetDestinationJSONRequestBody = NotificationDestinationRequest
+
+// NotificationsGetRuleJSONRequestBody defines body for NotificationsGetRule for application/json ContentType.
+type NotificationsGetRuleJSONRequestBody = NotificationRuleRequest
+
+// NotificationsListDestinationsJSONRequestBody defines body for NotificationsListDestinations for application/json ContentType.
+type NotificationsListDestinationsJSONRequestBody = NotificationListRequest
+
+// NotificationsListMembersJSONRequestBody defines body for NotificationsListMembers for application/json ContentType.
+type NotificationsListMembersJSONRequestBody = NotificationListRequest
+
+// NotificationsListRulesJSONRequestBody defines body for NotificationsListRules for application/json ContentType.
+type NotificationsListRulesJSONRequestBody = NotificationListRequest
+
+// NotificationsPreviewRecipientsJSONRequestBody defines body for NotificationsPreviewRecipients for application/json ContentType.
+type NotificationsPreviewRecipientsJSONRequestBody = V2NotificationsPreviewRecipientsRequestBody
+
+// NotificationsRotateSigningSecretJSONRequestBody defines body for NotificationsRotateSigningSecret for application/json ContentType.
+type NotificationsRotateSigningSecretJSONRequestBody = V2NotificationsRotateSigningSecretRequestBody
+
+// NotificationsTestDestinationJSONRequestBody defines body for NotificationsTestDestination for application/json ContentType.
+type NotificationsTestDestinationJSONRequestBody = V2NotificationsTestDestinationRequestBody
+
+// NotificationsUpdateDestinationJSONRequestBody defines body for NotificationsUpdateDestination for application/json ContentType.
+type NotificationsUpdateDestinationJSONRequestBody = V2NotificationsUpdateDestinationRequestBody
+
+// NotificationsUpdatePreferencesJSONRequestBody defines body for NotificationsUpdatePreferences for application/json ContentType.
+type NotificationsUpdatePreferencesJSONRequestBody = V2NotificationsUpdatePreferencesRequestBody
+
+// NotificationsUpdateRuleJSONRequestBody defines body for NotificationsUpdateRule for application/json ContentType.
+type NotificationsUpdateRuleJSONRequestBody = V2NotificationsUpdateRuleRequestBody
+
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
 
@@ -8759,6 +9284,143 @@ type WorkspaceUpdateFlagJSONRequestBody = V2WorkspaceUpdateFlagRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody
+
+// AsNotificationDestinationTarget returns the union data inside the NotificationTarget as a NotificationDestinationTarget
+func (t NotificationTarget) AsNotificationDestinationTarget() (NotificationDestinationTarget, error) {
+	var body NotificationDestinationTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationDestinationTarget overwrites any union data inside the NotificationTarget as the provided NotificationDestinationTarget
+func (t *NotificationTarget) FromNotificationDestinationTarget(v NotificationDestinationTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"destination"}`))
+	t.union = b
+	return err
+}
+
+// MergeNotificationDestinationTarget performs a merge with any union data inside the NotificationTarget, using the provided NotificationDestinationTarget
+func (t *NotificationTarget) MergeNotificationDestinationTarget(v NotificationDestinationTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"destination"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsNotificationUserTarget returns the union data inside the NotificationTarget as a NotificationUserTarget
+func (t NotificationTarget) AsNotificationUserTarget() (NotificationUserTarget, error) {
+	var body NotificationUserTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationUserTarget overwrites any union data inside the NotificationTarget as the provided NotificationUserTarget
+func (t *NotificationTarget) FromNotificationUserTarget(v NotificationUserTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"user"}`))
+	t.union = b
+	return err
+}
+
+// MergeNotificationUserTarget performs a merge with any union data inside the NotificationTarget, using the provided NotificationUserTarget
+func (t *NotificationTarget) MergeNotificationUserTarget(v NotificationUserTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"user"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsNotificationAudienceTarget returns the union data inside the NotificationTarget as a NotificationAudienceTarget
+func (t NotificationTarget) AsNotificationAudienceTarget() (NotificationAudienceTarget, error) {
+	var body NotificationAudienceTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationAudienceTarget overwrites any union data inside the NotificationTarget as the provided NotificationAudienceTarget
+func (t *NotificationTarget) FromNotificationAudienceTarget(v NotificationAudienceTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"audience"}`))
+	t.union = b
+	return err
+}
+
+// MergeNotificationAudienceTarget performs a merge with any union data inside the NotificationTarget, using the provided NotificationAudienceTarget
+func (t *NotificationTarget) MergeNotificationAudienceTarget(v NotificationAudienceTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"audience"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotificationTarget) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotificationTarget) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "audience":
+		return t.AsNotificationAudienceTarget()
+	case "destination":
+		return t.AsNotificationDestinationTarget()
+	case "user":
+		return t.AsNotificationUserTarget()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotificationTarget) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotificationTarget) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsV2AppsCreateAppRequestBody0 returns the union data inside the V2AppsCreateAppRequestBody as a V2AppsCreateAppRequestBody0
 func (t V2AppsCreateAppRequestBody) AsV2AppsCreateAppRequestBody0() (V2AppsCreateAppRequestBody0, error) {

@@ -1,0 +1,10 @@
+oneOf:
+  - $ref: ./NotificationDestinationTarget.yaml
+  - $ref: ./NotificationUserTarget.yaml
+  - $ref: ./NotificationAudienceTarget.yaml
+discriminator:
+  propertyName: type
+  mapping:
+    destination: ./NotificationDestinationTarget.yaml
+    user: ./NotificationUserTarget.yaml
+    audience: ./NotificationAudienceTarget.yaml

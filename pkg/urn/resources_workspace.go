@@ -50,6 +50,10 @@ func (w workspace) Flags() V1 {
 	return V1{WorkspaceID: w.workspaceID, Resource: "flags"}
 }
 
+func (w workspace) Notifications() V1 {
+	return V1{WorkspaceID: w.workspaceID, Resource: "notifications"}
+}
+
 // ApiRequestLogs returns the resource name of the workspace's Unkey API
 // request logs.
 func (w workspace) ApiRequestLogs() V1 {

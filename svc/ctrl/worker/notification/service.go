@@ -1,7 +1,6 @@
 package notification
 
 import (
-	"context"
 	"errors"
 	"time"
 
@@ -12,11 +11,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/notification"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/notificationrouting"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 )
 
 // AudienceResolver returns user IDs from the supplied, verified workspace membership.
-type AudienceResolver func(context.Context, string, []workos.Member) ([]string, error)
+type AudienceResolver = notificationrouting.AudienceResolver
 
 // Config selects event definitions, channel providers, and workspace audience resolvers.
 // Directory is required only for email targets. Defaults maps each channel to a provider name.

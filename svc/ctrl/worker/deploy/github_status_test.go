@@ -17,11 +17,13 @@ import (
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	deploymentnotification "github.com/unkeyed/unkey/pkg/notification/deployment"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploymentnotify"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
@@ -81,6 +83,73 @@ func TestGitHubStatusReportsBuildFailure(t *testing.T) {
 	after, err := database.FindDeploymentById(ctx, row.ID)
 	require.NoError(t, err)
 	require.Equal(t, mysqltype.DeploymentsStatusFailed, after.Status)
+}
+
+func TestGitHubStatusReportsCancellationDuringBuild(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	t.Cleanup(cancel)
+	database, fixture := newDeployFixture(t, ctx)
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	github := &deploymentGitHub{Noop: githubclient.NewNoop(), tokenStarted: started, tokenRelease: release}
+	require.NoError(t, database.InsertGithubRepoConnection(ctx, db.InsertGithubRepoConnectionParams{
+		WorkspaceID:        fixture.workspaceID,
+		ProjectID:          fixture.projectID,
+		AppID:              fixture.appID,
+		InstallationID:     12345,
+		RepositoryID:       67890,
+		RepositoryFullName: fixtureRepo,
+		CreatedAt:          time.Now().UnixMilli(),
+	}))
+	row := fixture.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   fixture.workspaceID,
+		ProjectID:     fixture.projectID,
+		AppID:         fixture.appID,
+		EnvironmentID: fixture.environmentID,
+		Status:        mysqltype.DeploymentsStatusPending,
+		GitCommitSha:  sql.NullString{Valid: true, String: fixtureCommitSHA},
+	})
+	audit, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+	workflow, err := deploy.New(deploy.Config{
+		DB:            database,
+		Auditlogs:     audit,
+		Flags:         flags.NewNoop(),
+		GitHub:        github,
+		DashboardURL:  "https://app.unkey.com",
+		DefaultDomain: "unkey.app",
+	})
+	require.NoError(t, err)
+	cfg := deployRuntimeWithReporting(t, database, github, workflow)
+	t.Cleanup(func() { close(release) })
+	invocation, err := hydrav1.NewDeployWorkflowIngressClient(cfg.IngressClient, row.ID).Submit(ctx, &hydrav1.DeployRequest{
+		DeploymentId: row.ID,
+		Source: &hydrav1.DeployRequest_Git{Git: &hydrav1.GitSource{
+			InstallationId: 12345,
+			Repository:     fixtureRepo,
+			CommitSha:      fixtureCommitSHA,
+		}},
+	})
+	require.NoError(t, err)
+	select {
+	case <-started:
+	case <-ctx.Done():
+		t.Fatal("build did not reach source preparation")
+	}
+	require.Eventually(t, func() bool { return len(github.commitStatuses()) > 0 }, 10*time.Second, 50*time.Millisecond)
+	admin := restateadmin.New(restateadmin.Config{BaseURL: cfg.AdminURL})
+	require.NoError(t, deploycancel.Cancel(ctx, database, admin, deploycancel.Params{
+		Deployments: []deploycancel.Deployment{{ID: row.ID, InvocationID: invocation.Id()}},
+		Reason:      "Cancelled by user",
+		Status:      mysqltype.DeploymentsStatusCancelled,
+	}))
+	_, err = invocation.Attach(ctx)
+	require.Error(t, err)
+	require.Eventually(t, func() bool {
+		statuses := github.commitStatuses()
+		return len(statuses) > 1 && statuses[len(statuses)-1].Description == deploymentnotification.Cancelled.Description()
+	}, 10*time.Second, 50*time.Millisecond, "cancelling a running build must replace its pending GitHub status")
 }
 
 func TestDeploymentShowsSafeMessagesForUnrecognizedBuildFailures(t *testing.T) {
@@ -258,10 +327,12 @@ type deploymentCommitStatus struct {
 
 type deploymentGitHub struct {
 	*githubclient.Noop
-	mu         sync.Mutex
-	statuses   []deploymentCommitStatus
-	tokenError error
-	fileError  error
+	mu           sync.Mutex
+	statuses     []deploymentCommitStatus
+	tokenError   error
+	fileError    error
+	tokenStarted chan<- struct{}
+	tokenRelease <-chan struct{}
 }
 
 func (g *deploymentGitHub) GetFileContents(_ int64, _, _, _ string) ([]byte, bool, error) {
@@ -269,6 +340,13 @@ func (g *deploymentGitHub) GetFileContents(_ int64, _, _, _ string) ([]byte, boo
 }
 
 func (g *deploymentGitHub) GetScopedInstallationToken(_ int64, _ []string, _ map[string]string) (githubclient.InstallationToken, error) {
+	if g.tokenStarted != nil {
+		select {
+		case g.tokenStarted <- struct{}{}:
+		default:
+		}
+		<-g.tokenRelease
+	}
 	return githubclient.InstallationToken{}, g.tokenError
 }
 

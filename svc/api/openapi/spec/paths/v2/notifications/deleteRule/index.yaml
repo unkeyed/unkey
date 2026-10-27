@@ -1,0 +1,58 @@
+post:
+  tags: [notifications]
+  summary: Delete notification rule
+  description: Deletes a rule in the authenticated workspace. Requires unkey:v1:{workspaceId}:notifications#write.
+  operationId: notifications.deleteRule
+  x-speakeasy-name-override: deleteRule
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ../../../../common/NotificationRuleRequest.yaml }
+  responses:
+    "200":
+      description: Rule deleted.
+      content:
+        application/json:
+          schema: { $ref: ../../../../common/NotificationEmptyResponse.yaml }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: Insufficient notification permissions,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "404": {
+      description: Rule not found,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/NotFoundErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

@@ -1,0 +1,65 @@
+post:
+  tags: [notifications]
+  summary: Delete notification destination
+  description: Deletes a destination in the authenticated workspace. Requires unkey:v1:{workspaceId}:notifications#write. Remove the destination from all notification rules before deleting it; referenced destinations return 412.
+  operationId: notifications.deleteDestination
+  x-speakeasy-name-override: deleteDestination
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ../../../../common/NotificationDestinationRequest.yaml }
+  responses:
+    "200":
+      description: Destination deleted.
+      content:
+        application/json:
+          schema: { $ref: ../../../../common/NotificationEmptyResponse.yaml }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: Insufficient notification permissions,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "404": {
+      description: Destination not found,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/NotFoundErrorResponse.yaml },
+        },
+      },
+    }
+    "412":
+      description: The destination is referenced by a notification rule. Remove it from all rules before retrying.
+      content:
+        application/json:
+          schema: {
+            $ref: ../../../../error/PreconditionFailedErrorResponse.yaml,
+          }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

@@ -1,0 +1,52 @@
+post:
+  tags: [notifications]
+  summary: Get notification destination
+  description: Returns a redacted destination. Requires unkey:v1:{workspaceId}:notifications#read. Missing and unreadable destinations return the same not-found response. URLs, header values and signing secrets are never returned.
+  operationId: notifications.getDestination
+  x-speakeasy-name-override: getDestination
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ../../../../common/NotificationDestinationRequest.yaml }
+  responses:
+    "200":
+      description: Redacted destination.
+      content:
+        application/json:
+          schema: {
+            $ref: ../../../../common/NotificationDestinationResponse.yaml,
+          }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "404": {
+      description: Destination not found,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/NotFoundErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

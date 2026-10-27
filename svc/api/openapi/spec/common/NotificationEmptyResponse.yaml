@@ -1,0 +1,8 @@
+type: object
+additionalProperties: false
+required: [meta, data]
+properties:
+  meta:
+    $ref: ./Meta.yaml
+  data:
+    $ref: ./EmptyResponse.yaml

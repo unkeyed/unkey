@@ -19,6 +19,11 @@ type dataFlag struct {
 	NotFound Code
 }
 
+type dataNotification struct {
+	// NotFound indicates the requested notification resource was not found.
+	NotFound Code
+}
+
 // dataApi defines errors related to API operations.
 type dataApi struct {
 	// NotFound indicates the requested API was not found.
@@ -163,6 +168,7 @@ type dataAnalytics struct {
 type UnkeyDataErrors struct {
 	// Resource-specific categories
 	Flag               dataFlag
+	Notification       dataNotification
 	Key                dataKey
 	Workspace          dataWorkspace
 	Api                dataApi
@@ -191,6 +197,9 @@ type UnkeyDataErrors struct {
 var Data = UnkeyDataErrors{
 	Flag: dataFlag{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "flag_not_found"},
+	},
+	Notification: dataNotification{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "notification_not_found"},
 	},
 	Key: dataKey{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_not_found"},

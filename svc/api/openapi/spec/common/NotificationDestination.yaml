@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+required: [id, name, channel, enabled, urlHint, headerNames, createdAt]
+properties:
+  id:
+    type: string
+  name:
+    type: string
+  channel:
+    $ref: ./NotificationChannel.yaml
+  enabled:
+    type: boolean
+  urlHint:
+    type: string
+    description: Destination origin only. Paths, queries, credentials and fragments are never returned.
+  headerNames:
+    type: array
+    items:
+      type: string
+    description: Configured header names. Header values and signing secrets are never returned.
+  createdAt:
+    type: integer
+    format: int64
+    description: Creation time in Unix milliseconds.

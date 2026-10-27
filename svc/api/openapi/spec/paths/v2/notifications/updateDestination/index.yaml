@@ -1,0 +1,60 @@
+post:
+  tags: [notifications]
+  summary: Update notification destination
+  description: Updates supplied destination fields; omitted fields remain unchanged. Channel is immutable. Requires unkey:v1:{workspaceId}:notifications#write. Secret values are write-only and responses are redacted. An empty headers array clears all headers.
+  operationId: notifications.updateDestination
+  x-speakeasy-name-override: updateDestination
+  security: [{ bearer: [] }]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: ./V2NotificationsUpdateDestinationRequestBody.yaml }
+  responses:
+    "200":
+      description: Updated redacted destination.
+      content:
+        application/json:
+          schema: {
+            $ref: ../../../../common/NotificationDestinationResponse.yaml,
+          }
+    "400": {
+      description: Invalid request,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/BadRequestErrorResponse.yaml },
+        },
+      },
+    }
+    "401": {
+      description: Unauthorized,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/UnauthorizedErrorResponse.yaml },
+        },
+      },
+    }
+    "403": {
+      description: Insufficient notification permissions,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/ForbiddenErrorResponse.yaml },
+        },
+      },
+    }
+    "404": {
+      description: Destination not found,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/NotFoundErrorResponse.yaml },
+        },
+      },
+    }
+    "500": {
+      description: Internal server error,
+      content: {
+        application/json: {
+          schema: { $ref: ../../../../error/InternalServerErrorResponse.yaml },
+        },
+      },
+    }

@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required: [preferences]
+properties:
+  preferences:
+    type: array
+    maxItems: 100
+    description: Atomic batch of personal preferences. Unsupported or duplicate event types reject the entire batch. Unspecified event types keep their previous effective values.
+    items:
+      $ref: ../../../../common/NotificationPreference.yaml

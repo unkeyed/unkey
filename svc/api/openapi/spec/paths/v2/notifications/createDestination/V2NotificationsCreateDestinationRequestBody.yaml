@@ -1,0 +1,35 @@
+type: object
+additionalProperties: false
+required: [name, channel, url, idempotencyKey]
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 128
+  channel:
+    $ref: ../../../../common/NotificationChannel.yaml
+  url:
+    type: string
+    minLength: 1
+    maxLength: 8192
+    writeOnly: true
+    x-unkey-redact: true
+    description: HTTPS delivery URL. This value is write-only; reads return its origin only.
+  headers:
+    type: array
+    maxItems: 16
+    description: Webhook-only headers. Names must be unique ignoring case. Transport headers and names starting with Unkey- are reserved. Combined header names and values must not exceed 8192 bytes.
+    items:
+      $ref: ../../../../common/NotificationHeader.yaml
+  signingSecret:
+    type: string
+    minLength: 32
+    maxLength: 512
+    writeOnly: true
+    x-unkey-redact: true
+    description: Write-only signing secret. Required for webhook destinations and not accepted for other channels. Must not exceed 512 UTF-8 bytes.
+  enabled:
+    type: boolean
+    default: true
+  idempotencyKey:
+    $ref: ../../../../common/NotificationIdempotencyKey.yaml
