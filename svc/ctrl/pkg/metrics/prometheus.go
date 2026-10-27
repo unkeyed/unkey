@@ -3,6 +3,7 @@ package metrics
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 var (
@@ -22,43 +23,44 @@ var (
 	//
 	// Labels:
 	//   - "status": "success" or "error"
-	SyncDesiredStateTotal = promauto.NewCounterVec(
+	SyncDesiredStateTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
 			Name:      "sync_desired_state_total",
 			Help:      "Total number of SyncDesiredState RPC calls.",
 		},
-		[]string{"status"},
+		vec.Values("status", "success", "error"),
 	)
 
 	// SyncDesiredStateEventsSentTotal counts events sent during SyncDesiredState by resource type.
 	//
 	// Labels:
-	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
-	SyncDesiredStateEventsSentTotal = promauto.NewCounterVec(
+	//   - "resource_type": "deployment"
+	SyncDesiredStateEventsSentTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
 			Name:      "sync_desired_state_events_sent_total",
 			Help:      "Total number of events sent during SyncDesiredState.",
 		},
-		[]string{"resource_type"},
+		vec.Values("resource_type", "deployment"),
 	)
 
 	// DeploymentChangesProcessedTotal counts incremental deployment change processing outcomes.
 	//
 	// Labels:
-	//   - "resource_type": "deployment_topology", "sentinel", "cilium_network_policy", or "unknown"
+	//   - "resource_type": "deployment_topology"
 	//   - "status": "success", "not_found", or "error"
-	DeploymentChangesProcessedTotal = promauto.NewCounterVec(
+	DeploymentChangesProcessedTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
 			Name:      "deployment_changes_processed_total",
 			Help:      "Total number of deployment changes processed from VStream.",
 		},
-		[]string{"resource_type", "status"},
+		vec.Values("resource_type", "deployment_topology"),
+		vec.Values("status", "success", "not_found", "error"),
 	)
 
 	// NotifyInstancesReadyTotal counts the outcome of maybeNotifyInstancesReady
@@ -70,15 +72,28 @@ var (
 	// Labels:
 	//   - "outcome": "notified", "inactive_status", "topology_missing",
 	//                "threshold_not_met", "already_notified",
-	//                "topology_error", "instances_error", "restate_error"
-	NotifyInstancesReadyTotal = promauto.NewCounterVec(
+	//                "topology_error", "instances_error", "no_invocation",
+	//                "liveness_error", "deploy_not_live", "restate_error"
+	NotifyInstancesReadyTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
 			Name:      "notify_instances_ready_total",
 			Help:      "Outcome of maybeNotifyInstancesReady evaluations.",
 		},
-		[]string{"outcome"},
+		vec.Values("outcome",
+			"notified",
+			"inactive_status",
+			"topology_missing",
+			"threshold_not_met",
+			"already_notified",
+			"topology_error",
+			"instances_error",
+			"no_invocation",
+			"liveness_error",
+			"deploy_not_live",
+			"restate_error",
+		),
 	)
 
 	// ReportDeploymentStatusDurationSeconds measures control-plane handler
@@ -87,7 +102,7 @@ var (
 	//
 	// Labels:
 	//   - "result": "success", "error"
-	ReportDeploymentStatusDurationSeconds = promauto.NewHistogramVec(
+	ReportDeploymentStatusDurationSeconds = vec.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
@@ -95,6 +110,6 @@ var (
 			Help:      "Handler latency of ReportDeploymentStatus.",
 			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5},
 		},
-		[]string{"result"},
+		vec.Values("result", "success", "error"),
 	)
 )

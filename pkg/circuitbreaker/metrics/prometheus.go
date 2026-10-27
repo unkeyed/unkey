@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 var (
@@ -11,10 +11,13 @@ var (
 	//
 	// Example usage:
 	//   metrics.CircuitBreakerRequests.WithLabelValues("my_circuit_breaker", "open").Inc()
-	CircuitBreakerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+	CircuitBreakerRequests = vec.NewCounter(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "circuitbreaker",
 		Name:      "requests_total",
 		Help:      "Tracks the number of requests made to the circuitbreaker by state.",
-	}, []string{"service", "action"})
+	},
+		vec.Dynamic("service"),
+		vec.Values("action", "open", "halfopen", "closed"),
+	)
 )

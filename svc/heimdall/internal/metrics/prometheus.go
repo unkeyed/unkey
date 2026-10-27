@@ -3,18 +3,19 @@ package metrics
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 var (
 	// CollectionTotal counts collection ticks by result.
-	CollectionTotal = promauto.NewCounterVec(
+	CollectionTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
 			Name:      "collection_total",
 			Help:      "Total number of collection ticks.",
 		},
-		[]string{"result"}, // "success", "error"
+		vec.Values("result", "success", "error"),
 	)
 
 	// CollectionDuration tracks how long each collection tick takes.
@@ -50,27 +51,28 @@ var (
 
 	// LifecycleEmitted counts CRI lifecycle checkpoints successfully buffered.
 	// kind is "start" or "stop".
-	LifecycleEmitted = promauto.NewCounterVec(
+	LifecycleEmitted = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
 			Name:      "lifecycle_checkpoints_emitted_total",
 			Help:      "Total number of CRI lifecycle checkpoints written to the buffer.",
 		},
-		[]string{"kind"}, // "start", "stop"
+		vec.Values("kind", "start", "stop"),
 	)
 
 	// LifecycleDrops counts CRI lifecycle events we could not emit a
 	// checkpoint for. kind is the event type; reason explains the drop so we
 	// can distinguish informer races from cgroup-teardown races.
-	LifecycleDrops = promauto.NewCounterVec(
+	LifecycleDrops = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
 			Name:      "lifecycle_checkpoints_dropped_total",
 			Help:      "Total CRI lifecycle events that did not produce a checkpoint. Each drop is a bounded undercharge.",
 		},
-		[]string{"kind", "reason"}, // kind: "start"|"stop"; reason: "pod_not_found"|"cgroup_read_failed"|"restart_count_unknown"
+		vec.Values("kind", "start", "stop"),
+		vec.Values("reason", "pod_not_found", "cgroup_read_failed", "restart_count_unknown"),
 	)
 
 	// PeriodicSkips counts pods the 5s periodic tick skipped and did NOT
@@ -78,28 +80,36 @@ var (
 	// loop so we can tell "restart count not yet populated by informer"
 	// apart from "pod genuinely missing". Each skip is a bounded
 	// undercharge of one tick (currently 5s) for the affected pod.
-	PeriodicSkips = promauto.NewCounterVec(
+	PeriodicSkips = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
 			Name:      "periodic_skips_total",
 			Help:      "Pods skipped by the periodic collection tick (did not produce a checkpoint).",
 		},
-		[]string{"reason"}, // "restart_count_unknown", "cgroup_read_failed"
+		vec.Values("reason", "restart_count_unknown", "cgroup_read_failed"),
 	)
 
 	// NetworkAttachFailures counts per-pod network attach failures by
 	// reason. Lets us distinguish benign cases (pod already terminated
 	// and its sandbox container is gone from containerd) from real bugs
 	// (netns open failed, TCX attach rejected by the kernel).
-	NetworkAttachFailures = promauto.NewCounterVec(
+	NetworkAttachFailures = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
 			Name:      "network_attach_failures_total",
 			Help:      "Per-pod network attach failures, labeled by reason.",
 		},
-		[]string{"reason"}, // "sandbox_not_found", "netns_gone", "netns_open", "veth_lookup", "tcx_attach", "queue_full", "other"
+		vec.Values("reason",
+			"sandbox_not_found",
+			"netns_gone",
+			"netns_open",
+			"veth_lookup",
+			"tcx_attach",
+			"queue_full",
+			"other",
+		),
 	)
 
 	// BPFMapEntries tracks how many per-pod counter entries are live in
@@ -154,14 +164,14 @@ var (
 	// unresolvable pod). Pair with LifecycleEmitted to spot filtering
 	// regressions: if received > emitted by a large margin with no
 	// corresponding LifecycleDrops, we're silently discarding events.
-	CRIEventsReceived = promauto.NewCounterVec(
+	CRIEventsReceived = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
 			Name:      "cri_events_received_total",
 			Help:      "Raw CRI task events received from containerd, pre-filtering.",
 		},
-		[]string{"kind"}, // "start", "exit"
+		vec.Values("kind", "start", "exit"),
 	)
 
 	// CRIReconnects counts containerd subscription reconnect attempts.
@@ -181,14 +191,14 @@ var (
 	// readEphemeralUsedBytes silently returns 0 on any error (stat, statfs,
 	// bind-mount detection), which is a bounded undercharge but invisible
 	// without this counter.
-	DiskReadErrors = promauto.NewCounterVec(
+	DiskReadErrors = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
 			Name:      "disk_read_errors_total",
 			Help:      "Failures reading ephemeral-volume disk usage. Each failure undercharges one tick.",
 		},
-		[]string{"op"}, // "stat_root", "stat_mount", "statfs"
+		vec.Values("op", "stat_root", "stat_mount", "statfs"),
 	)
 
 	// NetworkReconcileEvictions counts attached entries closed by the

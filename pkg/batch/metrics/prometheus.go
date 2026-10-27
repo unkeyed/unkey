@@ -7,7 +7,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 // Standard histogram buckets for batch size metrics
@@ -28,7 +28,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.BatchSizeDistribution.WithLabelValues("database_writes", "size_limit").Observe(float64(len(batch)))
-	BatchSizeDistribution = promauto.NewHistogramVec(
+	BatchSizeDistribution = vec.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "batch",
@@ -36,7 +36,8 @@ var (
 			Help:      "Distribution of batch sizes when flushed",
 			Buckets:   batchSizeBuckets,
 		},
-		[]string{"name", "trigger"},
+		vec.Dynamic("name"),
+		vec.Values("trigger", "size_limit", "time_interval", "close"),
 	)
 
 	// BatchOperationsTotal tracks the total number of batch flush operations,
@@ -55,14 +56,16 @@ var (
 	// Example usage:
 	//   metrics.BatchOperationsTotal.WithLabelValues("database_writes", "size_limit", "success").Inc()
 	//   metrics.BatchOperationsTotal.WithLabelValues("log_entries", "time_interval", "error").Inc()
-	BatchOperationsTotal = promauto.NewCounterVec(
+	BatchOperationsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "batch",
 			Name:      "operations_total",
 			Help:      "Total number of batch flush operations processed",
 		},
-		[]string{"name", "trigger", "status"},
+		vec.Dynamic("name"),
+		vec.Values("trigger", "size_limit", "time_interval", "close"),
+		vec.Values("status", "success", "error"),
 	)
 
 	// BatchItemsProcessedTotal tracks the total number of items processed through all batches,
@@ -72,14 +75,14 @@ var (
 	//
 	// Example usage:
 	//   metrics.BatchItemsProcessedTotal.WithLabelValues("database_writes").Add(float64(len(batch)))
-	BatchItemsProcessedTotal = promauto.NewCounterVec(
+	BatchItemsProcessedTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "batch",
 			Name:      "items_processed_total",
 			Help:      "Total number of items processed through batches",
 		},
-		[]string{"name"},
+		vec.Dynamic("name"),
 	)
 
 	// BatchItemsProcessedErrorsTotal tracks the total number of items that resulted in errors
@@ -88,13 +91,13 @@ var (
 	//
 	// Example usage:
 	//   metrics.BatchItemsProcessedErrorsTotal.WithLabelValues("database_writes").Add(float64(errorCount))
-	BatchItemsProcessedErrorsTotal = promauto.NewCounterVec(
+	BatchItemsProcessedErrorsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "batch",
 			Name:      "items_processed_errors_total",
 			Help:      "Total number of items processed through batches that resulted in an error",
 		},
-		[]string{"name"},
+		vec.Dynamic("name"),
 	)
 )
