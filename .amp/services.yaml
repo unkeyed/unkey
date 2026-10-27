@@ -49,6 +49,16 @@ services:
       url: /health/live
       description: Local Deploy control-plane API from the minikube stack.
 
+  grafana:
+    command: >-
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services proxy "$PORT" 4000
+    port: 14000
+    health: /api/health
+    portal:
+      title: Grafana
+      description: Local Grafana with metrics, logs, and traces from the minikube stack.
+
   deployment-portals:
     command: >-
       "$HOME/.local/bin/mise" exec --
