@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: heimdall-plugin-test
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: heimdall-plugin-test
+  labels:
+    app: plugin-client
+spec:
+  containers:
+    - name: client
+      image: docker.io/library/busybox:1.37.0
+      command: ["sleep", "infinity"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: allowed
+  namespace: heimdall-plugin-test
+  labels:
+    app: plugin-server
+    access: allowed
+spec:
+  containers:
+    - name: server
+      image: docker.io/library/busybox:1.37.0
+      command:
+        - sh
+        - -c
+        - mkdir -p /www; printf 'allowed\n' > /www/index.html; exec httpd -f -p 8080 -h /www
+      readinessProbe:
+        httpGet:
+          path: /
+          port: 8080
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: denied
+  namespace: heimdall-plugin-test
+  labels:
+    app: plugin-server
+    access: denied
+spec:
+  containers:
+    - name: server
+      image: docker.io/library/busybox:1.37.0
+      command:
+        - sh
+        - -c
+        - mkdir -p /www; printf 'denied\n' > /www/index.html; exec httpd -f -p 8080 -h /www
+      readinessProbe:
+        httpGet:
+          path: /
+          port: 8080
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: client-egress
+  namespace: heimdall-plugin-test
+spec:
+  endpointSelector:
+    matchLabels:
+      app: plugin-client
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app: plugin-server
+            access: allowed
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egressDeny:
+    - toEndpoints:
+        - matchLabels:
+            app: plugin-server
+            access: denied

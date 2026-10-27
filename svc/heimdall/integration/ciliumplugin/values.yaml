@@ -1,0 +1,15 @@
+datapathPlugins:
+  enabled: true
+routingMode: native
+ipv4NativeRoutingCIDR: 10.244.0.0/16
+kubeProxyReplacement: false
+enableIPv4Masquerade: false
+enableIPv6Masquerade: false
+ipam:
+  mode: kubernetes
+operator:
+  replicas: 1
+envoy:
+  enabled: false
+hubble:
+  enabled: false
