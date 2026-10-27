@@ -625,13 +625,15 @@ func (w *Workflow) buildSourcePolicy() *spb.Policy {
 		return nil
 	}
 	host, _, _ := strings.Cut(w.registryConfig.Repository, "/")
+	host = strings.TrimSuffix(host, ":443")
+	pattern := "(?i)^docker-image://" + regexp.QuoteMeta(host) + "(:443)?/"
 	//nolint: exhaustruct
 	return &spb.Policy{
 		Version: 1,
 		Rules: []*spb.Rule{{
 			Action: spb.PolicyAction_DENY,
 			Selector: &spb.Selector{
-				Identifier: "(?i)^docker-image://" + regexp.QuoteMeta(strings.TrimSuffix(host, ":443")) + "(:443)?/",
+				Identifier: pattern,
 				MatchType:  spb.MatchType_REGEX,
 			},
 		}},
