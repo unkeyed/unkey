@@ -5,7 +5,7 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { OPTIONS_WITHOUT_MINUTES } from "@/components/logs/datetime/constants";
+import { HOUR_PLUS_OPTIONS } from "@/components/logs/datetime/constants";
 import { MotionProvider } from "@/components/motion-provider";
 import { TimeRangeFilter } from "@/components/time-range-filter";
 import { formatNumber } from "@/lib/fmt";
@@ -46,7 +46,7 @@ export function KeysDetailsLogsControls({
             filters={filters}
             updateFilters={updateFilters}
             look="logsCompact"
-            customOptions={OPTIONS_WITHOUT_MINUTES}
+            customOptions={HOUR_PLUS_OPTIONS}
           />
           <AnimatePresence mode="wait">
             {hasRemainingCredit ? (

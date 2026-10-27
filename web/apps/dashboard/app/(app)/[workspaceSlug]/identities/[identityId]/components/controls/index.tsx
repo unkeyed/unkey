@@ -4,7 +4,7 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { OPTIONS_WITHOUT_MINUTES } from "@/components/logs/datetime/constants";
+import { HOUR_PLUS_OPTIONS } from "@/components/logs/datetime/constants";
 import { TimeRangeFilter } from "@/components/time-range-filter";
 import { useFilters } from "../../hooks/use-filters";
 import { LogsFilters } from "./components/logs-filters";
@@ -27,7 +27,7 @@ export function IdentityDetailsLogsControls({
           filters={filters}
           updateFilters={updateFilters}
           look="logsCompact"
-          customOptions={OPTIONS_WITHOUT_MINUTES}
+          customOptions={HOUR_PLUS_OPTIONS}
         />
       </ControlsLeft>
       <ControlsRight>
