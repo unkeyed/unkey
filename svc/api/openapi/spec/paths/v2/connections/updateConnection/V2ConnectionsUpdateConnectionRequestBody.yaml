@@ -1,0 +1,24 @@
+type: object
+required:
+  - connectionId
+  - targetType
+properties:
+  connectionId:
+    type: string
+    minLength: 1
+  name:
+    type: string
+    minLength: 1
+    maxLength: 63
+    description: DNS label starting with a letter. The name self and the prefix unkey are reserved. Omit to keep the current name.
+  targetType:
+    "$ref": "../../../../common/ConnectionTargetType.yaml"
+  targetEnvironmentId:
+    type: string
+    minLength: 1
+    description: Required for environment selection. Must belong to the target app. Cleared for other modes.
+  targetDeploymentId:
+    type: string
+    minLength: 1
+    description: Required for deployment selection. Must be a ready, running deployment of the target app. Cleared for other modes.
+additionalProperties: false
