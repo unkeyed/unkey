@@ -5,7 +5,7 @@ services:
     port: 10350
     portal:
       title: Tilt
-      description: Reduced Deploy development stack running in minikube.
+      description: Deploy development stack running in minikube.
 
   dashboard:
     command: >-

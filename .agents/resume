@@ -2,11 +2,19 @@
 set -euo pipefail
 
 echo "Restoring Docker access..."
-sudo systemctl start docker
+if [[ -x /opt/orb-worker/docker-start.sh ]]; then
+  sudo bash /opt/orb-worker/docker-start.sh
+else
+  sudo systemctl start docker
+fi
 sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
 printf '1024\n' | sudo tee /proc/sys/fs/inotify/max_user_instances >/dev/null
 
 echo "Syncing the pinned mise binary..."
 "$(dirname "${BASH_SOURCE[0]}")/../dev/install-mise"
+
+if [[ -x /opt/orb-worker/docker-start.sh ]]; then
+  bash "$(dirname "${BASH_SOURCE[0]}")/../dev/orb/resume.sh"
+fi
 
 echo "Orb resume complete."
