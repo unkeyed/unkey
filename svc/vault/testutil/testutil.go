@@ -26,8 +26,9 @@ type TestVault struct {
 	// Token is the bearer token for authenticating requests.
 	Token string
 	// Client is a pre-configured vault client with auth interceptor.
-	Client vaultv1connect.VaultServiceClient
-	Clock  *clock.TestClock
+	Client    vaultv1connect.VaultServiceClient
+	CreateDEK func(context.Context, string) (string, error)
+	Clock     *clock.TestClock
 }
 
 // StartTestVault creates an in-memory vault with S3 storage and HTTP server.
@@ -82,10 +83,11 @@ func StartTestVault(t *testing.T) *TestVault {
 	)
 
 	return &TestVault{
-		URL:    server.URL,
-		Token:  token,
-		Client: client,
-		Clock:  clock,
+		URL:       server.URL,
+		Token:     token,
+		Client:    client,
+		CreateDEK: v.CreateDEK,
+		Clock:     clock,
 	}
 }
 
@@ -129,10 +131,11 @@ func StartTestVaultWithMemory(t *testing.T) *TestVault {
 	)
 
 	return &TestVault{
-		URL:    server.URL,
-		Token:  token,
-		Client: client,
-		Clock:  clock,
+		URL:       server.URL,
+		Token:     token,
+		Client:    client,
+		CreateDEK: v.CreateDEK,
+		Clock:     clock,
 	}
 }
 
