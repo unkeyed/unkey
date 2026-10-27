@@ -88,26 +88,6 @@ struct {
     __uint(pinning, LIBBPF_PIN_BY_NAME);
 } pod_counters SEC(".maps");
 
-struct app_address {
-    __u8 bytes[16];
-};
-
-struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __type(key, struct app_address);
-    __type(value, __u8);
-    __uint(max_entries, 65536);
-} app_peers SEC(".maps");
-
-// A separate pin preserves the existing public/private counter layout on rollout.
-struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __type(key, __u64);
-    __type(value, __u64);
-    __uint(max_entries, 16384);
-    __uint(pinning, LIBBPF_PIN_BY_NAME);
-} app_egress SEC(".maps");
-
 // is_v4_private returns 1 if addr is in RFC1918, CGNAT, link-local,
 // loopback, multicast, "this network", or limited-broadcast space — i.e.
 // anything that is not billable public-internet egress.
@@ -173,32 +153,16 @@ static __always_inline void account(struct __sk_buff *skb, int is_pod_egress) {
     if (data > data_end) return;
 
     int private;
-    struct app_address destination = {};
     if (skb->protocol == bpf_htons(ETH_P_IP)) {
         struct iphdr *iph = data;
         if ((void *)(iph + 1) > data_end) return;
         private = is_v4_private(is_pod_egress ? iph->daddr : iph->saddr);
-        destination.bytes[10] = 0xff;
-        destination.bytes[11] = 0xff;
-        __builtin_memcpy(&destination.bytes[12], &iph->daddr, 4);
     } else if (skb->protocol == bpf_htons(ETH_P_IPV6)) {
         struct ipv6hdr *ip6h = data;
         if ((void *)(ip6h + 1) > data_end) return;
         private = is_v6_private(is_pod_egress ? &ip6h->daddr : &ip6h->saddr);
-        __builtin_memcpy(destination.bytes, &ip6h->daddr, 16);
     } else {
         return;
-    }
-
-    if (is_pod_egress && private && bpf_map_lookup_elem(&app_peers, &destination)) {
-        __u64 key = POD_KEY;
-        __u64 *bytes = bpf_map_lookup_elem(&app_egress, &key);
-        if (!bytes) {
-            __u64 zero = 0;
-            bpf_map_update_elem(&app_egress, &key, &zero, BPF_NOEXIST);
-            bytes = bpf_map_lookup_elem(&app_egress, &key);
-        }
-        if (bytes) __sync_fetch_and_add(bytes, (__u64)skb->len);
     }
 
     // POD_KEY is baked into this program's .rodata at load time (see the

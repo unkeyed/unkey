@@ -78,12 +78,7 @@ func (m *fakeCounterMap) Lookup(key, valueOut any) error {
 	if !ok {
 		return ebpf.ErrKeyNotExist
 	}
-	switch value := valueOut.(type) {
-	case *bpfCounters:
-		*value = c
-	case *uint64:
-		*value = c.EgressPrivate
-	}
+	*valueOut.(*bpfCounters) = c
 	return nil
 }
 
@@ -232,7 +227,6 @@ func newTestReader(t *testing.T, node *fakeNode) *linuxReader {
 	t.Helper()
 	r := &linuxReader{
 		podCounters:   node.counters,
-		appEgress:     &fakeCounterMap{entries: make(map[uint64]bpfCounters)},
 		cd:            nil,
 		listSandboxes: node.list,
 		netnsGone:     node.netnsGone,

@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/netip"
 	"os"
 	"sync"
 	"time"
@@ -27,10 +26,7 @@ import (
 // file holds just the Reader interface methods and the async attach
 // worker pool.
 type linuxReader struct {
-	podCounters counterMap
-	appEgress   counterMap
-	appPeers    *ebpf.Map
-	peers       map[netip.Addr]struct{}
+	podCounters counterMap         // shared pinned counter map, read by Read()
 	cd          *containerd.Client // owned only for Close; lookups go through listSandboxes
 
 	// The three effectful steps of an attach, plus the netns liveness probe,
@@ -92,9 +88,6 @@ func (r *linuxReader) release(p attachedPod) {
 	_ = p.egress.Close()
 	p.coll.Close()
 	_ = r.podCounters.Delete(p.cookie)
-	if err := r.appEgress.Delete(p.cookie); err != nil && !errors.Is(err, ebpf.ErrKeyNotExist) {
-		logger.Error("delete app egress counter", "error", err.Error())
-	}
 }
 
 // counterMap is the subset of *ebpf.Map the reader uses. Read and Detach
@@ -195,20 +188,10 @@ func NewReader(criSocket string) (Reader, error) {
 		return nil, fmt.Errorf("open pinned pod_counters map: %w", err)
 	}
 	podCounters := mapColl.Maps["pod_counters"]
-	appEgress := mapColl.Maps["app_egress"]
-	appPeers := mapColl.Maps["app_peers"]
-	if podCounters == nil || appEgress == nil || appPeers == nil {
+	if podCounters == nil {
 		mapColl.Close()
 		_ = cd.Close()
-		return nil, fmt.Errorf("network map missing after load")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	err = pruneAppCounters(ctx, cd, appEgress)
-	cancel()
-	if err != nil {
-		mapColl.Close()
-		return nil, errors.Join(err, cd.Close())
+		return nil, fmt.Errorf("pod_counters map missing after load")
 	}
 
 	pinOpts := ebpf.MapOptions{ //nolint:exhaustruct // LoadPinOptions optional
@@ -216,9 +199,6 @@ func NewReader(criSocket string) (Reader, error) {
 	}
 	r := &linuxReader{
 		podCounters:   podCounters,
-		appEgress:     appEgress,
-		appPeers:      appPeers,
-		peers:         make(map[netip.Addr]struct{}),
 		cd:            cd,
 		listSandboxes: cd.Containers,
 		netnsGone:     netnsFileGone,
@@ -228,7 +208,7 @@ func NewReader(criSocket string) (Reader, error) {
 		// per-pod program pair (sharing the pinned map via pinOpts),
 		// attaches both TCX programs, and setns back.
 		attachEth0: func(netnsPath string) (*ebpf.Collection, link.Link, link.Link, uint64, error) {
-			return attachPodEth0(netnsPath, spec, pinOpts, appPeers)
+			return attachPodEth0(netnsPath, spec, pinOpts)
 		},
 		mu:       sync.Mutex{},
 		attached: make(map[types.UID]attachedPod),
@@ -539,47 +519,19 @@ func (r *linuxReader) Read(uid types.UID) (Counters, error) {
 	}
 
 	var c bpfCounters
-	if err := r.podCounters.Lookup(p.cookie, &c); err != nil && !errors.Is(err, ebpf.ErrKeyNotExist) {
+	if err := r.podCounters.Lookup(p.cookie, &c); err != nil {
+		if errors.Is(err, ebpf.ErrKeyNotExist) {
+			return zeroCounters, nil
+		}
 		return zeroCounters, fmt.Errorf("map lookup cookie=%d: %w", p.cookie, err)
-	}
-
-	var appBytes uint64
-	if err := r.appEgress.Lookup(p.cookie, &appBytes); err != nil && !errors.Is(err, ebpf.ErrKeyNotExist) {
-		return zeroCounters, fmt.Errorf("app egress lookup cookie=%d: %w", p.cookie, err)
 	}
 
 	return Counters{
 		EgressPublicBytes:   int64(c.EgressPublic),
 		EgressPrivateBytes:  int64(c.EgressPrivate),
-		EgressAppBytes:      int64(appBytes),
 		IngressPublicBytes:  int64(c.IngressPublic),
 		IngressPrivateBytes: int64(c.IngressPrivate),
 	}, nil
-}
-
-func (r *linuxReader) SetAppPeers(addresses map[netip.Addr]struct{}) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	for address := range r.peers {
-		if _, keep := addresses[address]; keep {
-			continue
-		}
-		if err := r.appPeers.Delete(address.As16()); err != nil && !errors.Is(err, ebpf.ErrKeyNotExist) {
-			return fmt.Errorf("remove app peer %s: %w", address, err)
-		}
-		delete(r.peers, address)
-	}
-	for address := range addresses {
-		if _, exists := r.peers[address]; exists {
-			continue
-		}
-		if err := r.appPeers.Put(address.As16(), uint8(1)); err != nil {
-			return fmt.Errorf("add app peer %s: %w", address, err)
-		}
-		r.peers[address] = struct{}{}
-	}
-	return nil
 }
 
 // MapEntries returns the number of attached pods, which equals the number
@@ -643,5 +595,5 @@ func (r *linuxReader) Close() error {
 	// Close the shared map handle. The pinned inode stays on disk (under
 	// bpfPinDir), so the next heimdall process reuses it — that's the point
 	// of the pin. We're only releasing the userspace FD.
-	return errors.Join(r.podCounters.Close(), r.appEgress.Close(), r.appPeers.Close())
+	return r.podCounters.Close()
 }

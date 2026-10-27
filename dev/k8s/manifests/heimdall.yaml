@@ -167,9 +167,6 @@ spec:
             - name: containerd-sock
               mountPath: /run/containerd/containerd.sock
               # Not read-only: gRPC over unix sockets needs write to send.
-            - name: cilium
-              mountPath: /var/run/cilium
-              readOnly: true
             - name: btf
               mountPath: /sys/kernel/btf
               readOnly: true
@@ -212,10 +209,6 @@ spec:
           hostPath:
             path: /run/containerd/containerd.sock
             type: Socket
-        - name: cilium
-          hostPath:
-            path: /var/run/cilium
-            type: Directory
         - name: btf
           hostPath:
             path: /sys/kernel/btf

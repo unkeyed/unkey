@@ -50,7 +50,6 @@ func attachPodEth0(
 	netnsPath string,
 	spec *ebpf.CollectionSpec,
 	pinOpts ebpf.MapOptions,
-	appPeers *ebpf.Map,
 ) (coll *ebpf.Collection, egress, ingress link.Link, cookie uint64, err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -113,8 +112,7 @@ func attachPodEth0(
 	}
 
 	coll, copyErr = ebpf.NewCollectionWithOptions(perPodSpec, ebpf.CollectionOptions{ //nolint:exhaustruct // Programs optional
-		Maps:            pinOpts,
-		MapReplacements: map[string]*ebpf.Map{"app_peers": appPeers},
+		Maps: pinOpts,
 	})
 	if copyErr != nil {
 		_ = restoreNetns(origNs)
