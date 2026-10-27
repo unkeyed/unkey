@@ -7,6 +7,7 @@ import {
   attemptAfterRejection,
   infiniteListOf,
   listOf,
+  searchedListOf,
 } from "./list";
 import { type QueryResult, fromQuery } from "./loadable";
 
@@ -36,6 +37,7 @@ function infinite(
     isFetching: false,
     refetch: calls.refetch,
     dataUpdatedAt: 100,
+    isPreviousData: false,
     hasNextPage: false,
     isFetchingNextPage: false,
     fetchNextPage: async () => undefined,
@@ -207,6 +209,26 @@ describe("infiniteListOf", () => {
 
   test("zero rows and no more pages is empty", () => {
     expect(view({ data: pages([]) })).toEqual({ status: "empty" });
+  });
+
+  test("a previous key's zero rows are loading, not empty", () => {
+    expect(view({ data: pages([]), isPreviousData: true })).toEqual({ status: "loading" });
+  });
+
+  test("a previous key's rows stay shown while the new key loads", () => {
+    expect(view({ data: pages(["a"]), isPreviousData: true })).toEqual({
+      status: "ready",
+      rows: ["a"],
+      footer: { kind: "hidden" },
+    });
+  });
+
+  test("a previous key's next page is not offered while the new key loads", () => {
+    expect(view({ data: pages(["a"]), isPreviousData: true, hasNextPage: true })).toEqual({
+      status: "ready",
+      rows: ["a"],
+      footer: { kind: "hidden" },
+    });
   });
 
   test("zero rows with a refresh error and no more pages stays ready so the error shows", () => {
@@ -396,6 +418,23 @@ describe("retrying", () => {
         retrying: true,
       },
     });
+  });
+});
+
+describe("searchedListOf", () => {
+  test("empty with no search stays empty", () => {
+    expect(searchedListOf({ status: "empty" }, "")).toEqual({ status: "empty" });
+  });
+
+  test("empty under a search is no match", () => {
+    expect(searchedListOf({ status: "empty" }, "acme")).toEqual({
+      status: "noMatch",
+      search: "acme",
+    });
+  });
+
+  test("loading under a search stays loading", () => {
+    expect(searchedListOf({ status: "loading" }, "acme")).toEqual({ status: "loading" });
   });
 });
 

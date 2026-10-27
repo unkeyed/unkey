@@ -1,20 +1,21 @@
-import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
-import { LogsDateTime } from "./components/logs-datetime";
-import { LogsSearch } from "./components/logs-search";
+import { ResourceSearchInput } from "@/components/resource-search-input";
+import { TimeRangeFilter } from "@/components/time-range-filter";
+import { ResourceListHeader, type ResourceListView, ResourceListViewToggle } from "@unkey/ui";
+import { useFilters } from "../hooks/use-filters";
 
-type Props = {
-  apiList: readonly ApiOverview[];
-  onApiListChange: (apiList: ApiOverview[]) => void;
-  onSearch: (value: boolean) => void;
-};
-
-export function ApiListControls(props: Props) {
+export function ApiListControls({
+  view,
+  onViewChange,
+}: {
+  view: ResourceListView;
+  onViewChange: (view: ResourceListView) => void;
+}) {
+  const { filters, updateFilters } = useFilters();
   return (
-    <div className="flex min-h-10 w-full items-center gap-2">
-      <div className="w-full md:w-[calc((100%-1.25rem)/2)] xl:w-[calc((100%-2.5rem)/3)]">
-        <LogsSearch {...props} />
-      </div>
-      <LogsDateTime />
-    </div>
+    <ResourceListHeader>
+      <ResourceSearchInput label="Search keyspaces" placeholder="Search keyspaces by name or ID" />
+      <TimeRangeFilter filters={filters} updateFilters={updateFilters} look="list" />
+      <ResourceListViewToggle value={view} onValueChange={onViewChange} />
+    </ResourceListHeader>
   );
 }

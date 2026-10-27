@@ -56,7 +56,8 @@ export const queryKeys = {
   ratelimit: {
     namespaces: {
       all: ratelimitNamespacesRoot,
-      list: (search: string) => [...ratelimitNamespacesRoot, "list", search] as const,
+      list: (input: { search: string; pageSize: number }) =>
+        [...ratelimitNamespacesRoot, "list", input] as const,
       detail: (namespaceId: string) => [...ratelimitNamespacesRoot, "detail", namespaceId] as const,
       every: [...ratelimitNamespacesRoot, "every"] as const,
     },

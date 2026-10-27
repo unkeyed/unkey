@@ -1,13 +1,18 @@
 "use client";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
+import { ListViews } from "@/components/list-views";
+import { useListSearch } from "@/components/resource-search-input";
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
+import { useListView } from "@/hooks/use-list-view";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import { useShowMore } from "@/lib/loadable/list";
 import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
 import { IconCubeOutline18, IconPlusOutline18 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Button,
   EmptyState,
@@ -19,22 +24,14 @@ import {
   ResourceList,
 } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
-import { parseAsString, useQueryState } from "nuqs";
 import { AppCard, AppCardSkeleton } from "./app-card";
-import { type AppRowData, filterApps, toAppRow } from "./app-row-model";
+import { filterApps, toAppRow } from "./app-row-model";
 import { AppsListControls } from "./apps-list-controls";
-import { AppsTable, AppsTableSkeleton } from "./apps-table";
+import { APPS_TABLE, AppsTableRow } from "./apps-table";
 import { projectAppsQueryFor } from "./queries";
-import { type AppsView, useAppsView } from "./use-apps-view";
-
-// One row at the 3-column desktop width so loading doesn't tower over the
-// real list before it resolves.
-const SKELETON_KEYS = ["skeleton-1", "skeleton-2", "skeleton-3"];
 
 const IDLE_POLL_MS = 60_000;
 const BUILDING_POLL_MS = 5_000;
-
-const queryOptions = { history: "replace", shallow: true, clearOnDefault: true } as const;
 
 export function AppsList() {
   const params = useParams();
@@ -43,11 +40,8 @@ export function AppsList() {
   const appHomeHref = useAppHomeHref();
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
   const { gated, openPaywall, planGate } = useDeployActionGate();
-  const [search, setSearch] = useQueryState(
-    "search",
-    parseAsString.withDefault("").withOptions(queryOptions),
-  );
-  const [view, setView] = useAppsView();
+  const search = useListSearch();
+  const [view, setView] = useListView("apps-view");
   // Without a Compute plan, creating an app opens the paywall instead.
   const openCreateApp = () =>
     gated
@@ -73,88 +67,57 @@ export function AppsList() {
     ),
     search,
   );
-
-  if (!apps.isLoading && apps.data.length === 0) {
-    return (
-      <>
-        <EmptyState>
-          <EmptyStateIcon>
-            <IconCubeOutline18 />
-          </EmptyStateIcon>
-          <EmptyStateHeader>
-            <EmptyStateTitle>No Apps Found</EmptyStateTitle>
-            <EmptyStateDescription>
-              This project has no apps yet. Create an app to start deploying.
-            </EmptyStateDescription>
-          </EmptyStateHeader>
-          <EmptyStateActions>
-            <Button variant="primary" size="sm" onClick={openCreateApp}>
-              <IconPlusOutline18 />
-              Create app
-            </Button>
-          </EmptyStateActions>
-        </EmptyState>
-        {planGate}
-      </>
-    );
-  }
+  const list = useShowMore({
+    rows,
+    total: apps.data.length,
+    isLoading: apps.isLoading,
+    search,
+  });
 
   return (
-    <ResourceList>
-      <AppsListControls
-        search={search}
-        onSearchChange={(value) => setSearch(value || null)}
-        view={view}
-        onViewChange={setView}
-      />
-      <AppsListBody
-        isLoading={apps.isLoading}
-        rows={rows}
-        search={search}
-        view={view}
-        projectId={projectId}
-      />
+    <>
+      {match(list)
+        .with({ status: "empty" }, () => <NoApps onCreate={openCreateApp} />)
+        .otherwise((content) => (
+          <ResourceList>
+            <AppsListControls view={view} onViewChange={setView} />
+            <ListViews
+              view={view}
+              content={content}
+              noun="apps"
+              table={APPS_TABLE}
+              rowKey={(row) => row.app.id}
+              renderCard={(row) => <AppCard row={row} projectId={projectId} />}
+              renderRow={(row, table) => (
+                <AppsTableRow row={row} projectId={projectId} table={table} />
+              )}
+              cardSkeleton={<AppCardSkeleton />}
+            />
+          </ResourceList>
+        ))}
       {planGate}
-    </ResourceList>
+    </>
   );
 }
 
-function AppsListBody({
-  isLoading,
-  rows,
-  search,
-  view,
-  projectId,
-}: {
-  isLoading: boolean;
-  rows: AppRowData[];
-  search: string;
-  view: AppsView;
-  projectId: string;
-}) {
-  if (isLoading && view === "list") {
-    return <AppsTableSkeleton />;
-  }
-  if (isLoading) {
-    return (
-      <div aria-busy="true" className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {SKELETON_KEYS.map((key) => (
-          <AppCardSkeleton key={key} />
-        ))}
-      </div>
-    );
-  }
-  if (rows.length === 0) {
-    return <p className="py-12 text-center text-sm text-gray-9">No apps match "{search}"</p>;
-  }
-  if (view === "list") {
-    return <AppsTable rows={rows} projectId={projectId} />;
-  }
+function NoApps({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {rows.map((row) => (
-        <AppCard key={row.app.id} row={row} projectId={projectId} />
-      ))}
-    </div>
+    <EmptyState>
+      <EmptyStateIcon>
+        <IconCubeOutline18 />
+      </EmptyStateIcon>
+      <EmptyStateHeader>
+        <EmptyStateTitle>No Apps Found</EmptyStateTitle>
+        <EmptyStateDescription>
+          This project has no apps yet. Create an app to start deploying.
+        </EmptyStateDescription>
+      </EmptyStateHeader>
+      <EmptyStateActions>
+        <Button variant="primary" size="sm" onClick={onCreate}>
+          <IconPlusOutline18 />
+          Create app
+        </Button>
+      </EmptyStateActions>
+    </EmptyState>
   );
 }

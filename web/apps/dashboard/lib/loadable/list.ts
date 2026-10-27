@@ -1,5 +1,6 @@
 import { isCancelledError } from "@tanstack/react-query";
 import { useState } from "react";
+import { GRID_PAGE_SIZE } from "../list-limits";
 import { type Failure, type Loadable, type QueryResult, type Stale, fromQuery } from "./loadable";
 
 export type ListFooterState =
@@ -20,6 +21,14 @@ export type ListView<Row> =
   | { status: "empty" }
   | { status: "ready"; rows: readonly Row[]; footer: ListFooterState };
 
+type NoMatch = { status: "noMatch"; search: string };
+
+export type SearchedListView<Row> = ListView<Row> | NoMatch;
+
+export type ListContent<Row> = Exclude<SearchedListView<Row>, { status: "failed" | "empty" }>;
+
+type ShownList<Row> = Extract<ListView<Row>, { status: "empty" | "ready" }>;
+
 export type NextPageAttempt =
   | { status: "idle" }
   | { status: "loading" }
@@ -27,6 +36,7 @@ export type NextPageAttempt =
 
 export type InfiniteQueryResult<Page> = QueryResult<{ pages: Page[] }> & {
   dataUpdatedAt: number;
+  isPreviousData: boolean;
   hasNextPage?: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: (options: { throwOnError: boolean }) => Promise<unknown>;
@@ -56,20 +66,21 @@ export function infiniteListOf<Page, Row>({
   if (pages.status !== "ready") {
     return pages;
   }
-  return toListView(
+  const list = toListView(
     pages.data.pages.flatMap(rowsOf),
     infiniteFooterOf(query, attempt, loadMore, pages.stale),
   );
+  if (list.status === "empty" && query.isPreviousData) {
+    return { status: "loading" };
+  }
+  return list;
 }
 
 export function attemptAfterRejection(error: unknown, dataUpdatedAt: number): NextPageAttempt {
   return isCancelledError(error) ? { status: "idle" } : { status: "failed", error, dataUpdatedAt };
 }
 
-export function useInfiniteList<Page, Row>(
-  query: InfiniteQueryResult<Page>,
-  rowsOf: (page: Page) => readonly Row[],
-): ListView<Row> {
+function useNextPageAttempt<Page>(query: InfiniteQueryResult<Page>) {
   const [attempt, setAttempt] = useState<NextPageAttempt>({ status: "idle" });
   const loadMore = () => {
     const { dataUpdatedAt } = query;
@@ -79,7 +90,70 @@ export function useInfiniteList<Page, Row>(
       (error: unknown) => setAttempt(attemptAfterRejection(error, dataUpdatedAt)),
     );
   };
+  return { attempt, loadMore };
+}
+
+export function useInfiniteList<Page, Row>(
+  query: InfiniteQueryResult<Page>,
+  rowsOf: (page: Page) => readonly Row[],
+): ListView<Row> {
+  const { attempt, loadMore } = useNextPageAttempt(query);
   return infiniteListOf({ query, rowsOf, attempt, loadMore });
+}
+
+export function searchedListOf<View extends { status: string }>(
+  list: View,
+  search: string,
+): View | NoMatch {
+  if (list.status === "empty" && search !== "") {
+    return { status: "noMatch", search };
+  }
+  return list;
+}
+
+export function useShowMore<Row>({
+  rows,
+  total,
+  isLoading,
+  search,
+  pageSize = GRID_PAGE_SIZE,
+}: {
+  rows: readonly Row[];
+  total: number;
+  isLoading: boolean;
+  search: string;
+  pageSize?: number;
+}): Exclude<SearchedListView<Row>, { status: "failed" }> {
+  const [limit, setLimit] = useState(pageSize);
+  const [limitSearch, setLimitSearch] = useState(search);
+  if (search !== limitSearch) {
+    setLimitSearch(search);
+    setLimit(pageSize);
+  }
+  if (isLoading) {
+    return { status: "loading" };
+  }
+  if (total === 0) {
+    return { status: "empty" };
+  }
+  const footer: ListFooterState =
+    rows.length > limit ? { kind: "more", onLoadMore: () => setLimit(limit + pageSize) } : HIDDEN;
+  return searchedListOf(toListView(rows.slice(0, limit), footer), search);
+}
+
+export function moreFooterOf({
+  hasMore,
+  isLoadingMore = false,
+  loadMore,
+}: {
+  hasMore: boolean | undefined;
+  isLoadingMore?: boolean;
+  loadMore: () => void;
+}): ListFooterState {
+  if (isLoadingMore) {
+    return { kind: "loadingMore" };
+  }
+  return hasMore ? { kind: "more", onLoadMore: loadMore } : HIDDEN;
 }
 
 function infiniteFooterOf<Page>(
@@ -113,14 +187,17 @@ function infiniteFooterOf<Page>(
   if (stale) {
     return refreshError(stale);
   }
-  return query.hasNextPage ? { kind: "more", onLoadMore: loadMore } : HIDDEN;
+  if (query.isPreviousData || !query.hasNextPage) {
+    return HIDDEN;
+  }
+  return { kind: "more", onLoadMore: loadMore };
 }
 
 function refreshError({ error, retry, retrying }: Stale): ListFooterState {
   return { kind: "error", reason: "refresh", error, onRetry: retry, retrying };
 }
 
-function toListView<Row>(rows: readonly Row[], footer: ListFooterState): ListView<Row> {
+function toListView<Row>(rows: readonly Row[], footer: ListFooterState): ShownList<Row> {
   if (rows.length === 0 && footer.kind === "hidden") {
     return { status: "empty" };
   }
