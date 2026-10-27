@@ -2,9 +2,12 @@ package deploy
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/google/go-containerregistry/pkg/name"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -67,7 +70,7 @@ func (w *Workflow) resolveSource(
 	switch source := req.GetSource().(type) {
 	case *hydrav1.DeployCreateRequest_Image:
 		// The caller's commit is recorded for display. None is looked up for an image.
-		return imageSource(source.Image.GetImage(), commit, imageref.Normalize), nil
+		return w.callerImageSource(ctx, target.ProjectID, source.Image.GetImage(), commit), nil
 
 	case *hydrav1.DeployCreateRequest_Git:
 		return w.resolveGitSource(target, commit, source.Git.GetPrNumber())
@@ -95,7 +98,7 @@ func (w *Workflow) resolveSource(
 					"OCI app %s has no image configured", target.AppID,
 				)), nil
 			}
-			return imageSource(target.OciImageReference.String, commit, imageref.Normalize), nil
+			return w.callerImageSource(ctx, target.ProjectID, target.OciImageReference.String, commit), nil
 		}
 
 		if target.GithubRepositoryFullName.Valid {
@@ -139,6 +142,112 @@ func imageSource(image string, commit gitCommit, normalize func(string) (string,
 		Commit:    commit,
 		Rejection: nil,
 	}
+}
+
+// callerImageSource normalizes an image the caller named and refuses it unless
+// the caller's project owns it.
+func (w *Workflow) callerImageSource(ctx context.Context, projectID, image string, commit gitCommit) resolvedSource {
+	return w.ownedImageSource(ctx, projectID, image, commit, imageref.Normalize)
+}
+
+// recordedImageSource is [callerImageSource] for a reference read off an
+// existing deployment row, which may predate the tag rule.
+func (w *Workflow) recordedImageSource(ctx context.Context, projectID, image string, commit gitCommit) resolvedSource {
+	return w.ownedImageSource(ctx, projectID, image, commit, imageref.NormalizeHistorical)
+}
+
+func (w *Workflow) ownedImageSource(
+	ctx context.Context,
+	projectID, image string,
+	commit gitCommit,
+	normalize func(string) (string, error),
+) resolvedSource {
+	resolved := imageSource(image, commit, normalize)
+	if resolved.Rejection != nil {
+		return resolved
+	}
+	if refusal := w.unownedImage(ctx, projectID, resolved.Source.Image); refusal != nil {
+		return newRejectedSource(refusal)
+	}
+	return resolved
+}
+
+// unownedImage returns a rejection when the build registry would answer a pull
+// with another project's image. Every project's build lands in one repository
+// that ctrl and krane pull with Unkey's credentials, so a tag naming another
+// project, or a digest our project never produced, runs someone else's code.
+func (w *Workflow) unownedImage(
+	ctx context.Context,
+	projectID, image string,
+) *rejection {
+	if w.registryConfig.Repository == "" {
+		return nil
+	}
+
+	var refused *rejection
+	refuse := func() *rejection {
+		if refused == nil {
+			refused = rejectf(
+				hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
+				"images in the Unkey build registry can only be deployed by the project that built them",
+			)
+		}
+		return refused
+	}
+
+	reference, err := name.ParseReference(image, name.WeakValidation)
+	if err != nil {
+		return refuse()
+	}
+	if !sameRepository(reference.Context(), w.buildRepository) {
+		return nil
+	}
+
+	switch ref := reference.(type) {
+	case name.Tag:
+		if strings.HasPrefix(ref.TagStr(), projectID+"-") {
+			return nil
+		}
+		// A tag can name a project that has since been deleted, usually because
+		// the deployment moved. Its image is still ours, and refusing it would
+		// freeze the row, so only a tag naming a live foreign project is refused.
+		stale, err := w.tagNamesDeletedProject(ctx, ref.TagStr())
+		if err != nil {
+			return refuse()
+		}
+		if stale {
+			return nil
+		}
+		return refuse()
+	case name.Digest:
+		owned, err := w.db.DeploymentProjectOwnsImage(ctx, db.DeploymentProjectOwnsImageParams{
+			ProjectID:     projectID,
+			ImageResolved: sql.NullString{String: image, Valid: true},
+		})
+		if err != nil {
+			return refuse()
+		}
+		if owned {
+			return nil
+		}
+		return refuse()
+	}
+	return refuse()
+}
+
+// tagNamesDeletedProject reports whether a build tag's `<projectID>-` prefix
+// names no project any more. A tag is no threat when its prefix belongs to
+// nothing, since no live project can be running that image as its own.
+func (w *Workflow) tagNamesDeletedProject(ctx context.Context, tag string) (bool, error) {
+	projectID, _, ok := strings.Cut(tag, "-")
+	if !ok || !strings.HasPrefix(projectID, "proj_") {
+		return false, nil
+	}
+	exists, err := w.db.ProjectExists(ctx, projectID)
+	if err != nil {
+		return false, err
+	}
+	return !exists, nil
 }
 
 // resolveGitSource resolves the app's repository connection and fills in the
@@ -314,7 +423,10 @@ func (w *Workflow) resolveExistingDeployment(
 		"source_deployment_id", src.ID,
 		"image", image,
 	)
-	return imageSource(image, commit, imageref.NormalizeHistorical), nil
+	// The row passed the workspace, project and app check above, but its image
+	// would still be pulled with Unkey's credentials, so a foreign reference a
+	// row recorded before the build registry was checked keeps recurring here.
+	return w.recordedImageSource(ctx, target.ProjectID, image, commit), nil
 }
 
 // fillCommitFromGitHub fills the commit's empty fields from GitHub. The public

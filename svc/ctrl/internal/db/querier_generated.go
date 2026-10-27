@@ -502,6 +502,16 @@ type Querier interface {
 	//  LEFT JOIN connection_app_targets bt ON bt.connection_id = b.id
 	//  WHERE w.id IN (/*SLICE:ids*/?)
 	DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error
+	//DeploymentProjectOwnsImage
+	//
+	//  SELECT EXISTS (
+	//      SELECT 1
+	//      FROM deployments
+	//      WHERE project_id = ?
+	//        AND image_resolved = ?
+	//      LIMIT 1
+	//  ) AS owns_image
+	DeploymentProjectOwnsImage(ctx context.Context, arg DeploymentProjectOwnsImageParams) (bool, error)
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -2469,6 +2479,15 @@ type Querier interface {
 	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
 	//  WHERE d.project_id = ?
 	NotifyDeploymentTopologiesByProject(ctx context.Context, arg NotifyDeploymentTopologiesByProjectParams) error
+	//ProjectExists
+	//
+	//  SELECT EXISTS (
+	//      SELECT 1
+	//      FROM projects
+	//      WHERE id = ?
+	//      LIMIT 1
+	//  ) AS project_exists
+	ProjectExists(ctx context.Context, id string) (bool, error)
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes

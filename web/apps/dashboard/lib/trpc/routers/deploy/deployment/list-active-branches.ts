@@ -58,7 +58,6 @@ export const listActiveBranches = workspaceProcedure
         prNumber: deployments.prNumber,
         forkRepositoryFullName: deployments.forkRepositoryFullName,
         requestedImage: deployments.imageRequested,
-        resolvedImage: deployments.imageResolved,
         trigger: deployments.trigger,
         createdAt: deployments.createdAt,
       })
@@ -96,6 +95,9 @@ export const listActiveBranches = workspaceProcedure
       branches: branchRows.map((row) => ({
         ...row,
         gitBranch: row.gitBranch ?? "",
+        // Built images live in a repository shared by every workspace, so its
+        // name stays server-side. The field stays for DeploymentSummary.
+        resolvedImage: null,
         gitCommitAuthorAvatarUrl:
           row.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",
       })),

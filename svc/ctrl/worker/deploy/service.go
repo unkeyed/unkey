@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"github.com/google/go-containerregistry/pkg/name"
 	"k8s.io/client-go/kubernetes"
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -10,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/fault"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -97,6 +99,7 @@ type Workflow struct {
 	buildConfig                     BuildConfig
 	k8s                             kubernetes.Interface
 	registryConfig                  RegistryConfig
+	buildRepository                 name.Repository
 	buildPlatform                   BuildPlatform
 	clickhouse                      clickhouse.ClickHouse
 	buildSteps                      *batch.BatchProcessor[schema.BuildStepV1]
@@ -184,6 +187,15 @@ func New(cfg Config) (*Workflow, error) {
 		}
 	}
 
+	var buildRepository name.Repository
+	if cfg.RegistryConfig.Repository != "" {
+		repository, err := name.NewRepository(cfg.RegistryConfig.Repository, name.WeakValidation)
+		if err != nil {
+			return nil, fault.Wrap(err, fault.Internal("invalid build registry repository"))
+		}
+		buildRepository = repository
+	}
+
 	// Reclaim build workspaces orphaned by a previous crash. Runs before any
 	// handler is bound, so no live workspace can match.
 	cleanupStaleRailpackWorkspaces()
@@ -200,6 +212,7 @@ func New(cfg Config) (*Workflow, error) {
 		buildConfig:                     cfg.Build,
 		k8s:                             cfg.K8s,
 		registryConfig:                  cfg.RegistryConfig,
+		buildRepository:                 buildRepository,
 		buildPlatform:                   cfg.BuildPlatform,
 		clickhouse:                      cfg.Clickhouse,
 		buildSteps:                      cfg.BuildSteps,

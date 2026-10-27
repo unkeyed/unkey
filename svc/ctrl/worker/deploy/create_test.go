@@ -36,10 +36,11 @@ import (
 const (
 	// A commit skips the GitHub lookup only when both the sha and the message
 	// are present. Every fixture sends both.
-	fixtureCommitSHA     = "9f2c1a7"
-	fixtureCommitMessage = "add the KEBAP endpoint"
-	fixtureImage         = "ghcr.io/unkey/kebap:v1"
-	fixtureRepo          = "acme/api"
+	fixtureCommitSHA       = "9f2c1a7"
+	fixtureCommitMessage   = "add the KEBAP endpoint"
+	fixtureImage           = "ghcr.io/unkey/kebap:v1"
+	fixtureRepo            = "acme/api"
+	fixtureBuildRepository = "registry.unkey.test/builds"
 )
 
 // TestCreateWritesRowAndStartsDeploy is the happy path. The recorded
@@ -951,6 +952,152 @@ func TestCreateFollowsAppSource(t *testing.T) {
 	})
 }
 
+// TestCreateRefusesTheBuildRepository covers images a caller names. Every
+// project's build lives in one repository that the resolver and krane pull with
+// Unkey's credentials, so naming a tag there would run another project's build
+func TestCreateRefusesTheBuildRepository(t *testing.T) {
+	for name, image := range map[string]string{
+		"digest":         fixtureBuildRepository + "@sha256:" + strings.Repeat("a", 64),
+		"uppercase host": strings.ToUpper("registry.unkey.test") + "/builds:v1",
+	} {
+		t.Run("request image by "+name, func(t *testing.T) {
+			ctx := context.Background()
+			h := newCreateHarness(t, ctx)
+
+			req := h.imageRequest()
+			req.Source = &hydrav1.DeployCreateRequest_Image{Image: &hydrav1.CreateImageSource{Image: image}}
+
+			resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+			require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
+			require.Zero(t, h.countDeployments(t, ctx))
+		})
+	}
+
+	t.Run("request image by another project's tag", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: h.foreignProjectTag(t)},
+		}
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
+		require.Zero(t, h.countDeployments(t, ctx))
+	})
+
+	t.Run("OCI app configured with a build tag", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarnessWithAppSource(t, ctx, db.AppsSourceTypeOci)
+		h.seedOciSource(t, ctx, h.foreignProjectTag(t))
+		h.dropBuildSettings(t, ctx)
+
+		req := h.imageRequest()
+		req.Source = nil
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
+		require.Zero(t, h.countDeployments(t, ctx))
+	})
+
+	// A redeploy of a git build records its tag as image_requested, and
+	// authorizing that deployment sends it back as a caller image
+	t.Run("request image is the project's own build tag", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		ownTag := fixtureBuildRepository + ":" + h.projectID + "-" + uid.New(uid.DeploymentPrefix)
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{Image: &hydrav1.CreateImageSource{Image: ownTag}}
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, h.create(t, ctx, deploymentID, req).GetOutcome())
+		require.Equal(t, ownTag, h.deployment(t, ctx, deploymentID).ImageRequested.String)
+	})
+
+	t.Run("redeploy of the app's own build", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		ownTag := fixtureBuildRepository + ":" + h.projectID + "-" + uid.New(uid.DeploymentPrefix)
+		current := h.commitDeployment(t, ctx, db.DeploymentsSourceGit, ownTag)
+		h.setCurrentDeployment(t, ctx, current.ID)
+
+		req := h.imageRequest()
+		req.Source = nil
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, h.create(t, ctx, deploymentID, req).GetOutcome())
+
+		sent := h.awaitDeploy(t, deploymentID)
+		image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+		require.True(t, ok)
+		require.Equal(t, ownTag, image.OciImage.GetImage())
+	})
+
+	// A row written before the check existed keeps reintroducing its image on
+	// every redeploy, so the check runs here too.
+	t.Run("redeploy of a stored foreign image", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		current := h.commitDeployment(t, ctx, db.DeploymentsSourceGit, h.foreignProjectTag(t))
+		h.setCurrentDeployment(t, ctx, current.ID)
+
+		req := h.imageRequest()
+		req.Source = nil
+
+		before := h.countDeployments(t, ctx)
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
+		require.Equal(t, before, h.countDeployments(t, ctx))
+	})
+
+	// The prefix check must compare whole segments: "proj_a-" is not a prefix of
+	// "proj_ab-x", even though "proj_a" is a prefix of "proj_ab".
+	t.Run("another project whose id extends this one", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		// A live project whose id has this project's id as a prefix.
+		longer := h.seeder.CreateProject(ctx, seed.CreateProjectRequest{
+			ID:          h.projectID + "x",
+			WorkspaceID: h.workspaceID,
+			Name:        "KEBAP longer",
+			Slug:        deploySlug(uid.ProjectPrefix),
+		})
+		tag := fixtureBuildRepository + ":" + longer.ID + "-" + uid.New(uid.DeploymentPrefix)
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{Image: &hydrav1.CreateImageSource{Image: tag}}
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
+	})
+
+	// A tag this project is about to build has no row yet, so a redeploy asked
+	// for it must not be refused.
+	t.Run("digest this project resolved", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		digest := fixtureBuildRepository + "@sha256:" + strings.Repeat("b", 64)
+		current := h.commitDeployment(t, ctx, db.DeploymentsSourceGit, digest)
+		h.setCurrentDeployment(t, ctx, current.ID)
+
+		req := h.imageRequest()
+		req.Source = nil
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, h.create(t, ctx, deploymentID, req).GetOutcome())
+
+		sent := h.awaitDeploy(t, deploymentID)
+		image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+		require.True(t, ok)
+		require.Equal(t, digest, image.OciImage.GetImage())
+	})
+}
+
 // TestCreateNormalizesImageReference pins the normalized reference on the row
 // and in the Deploy request, so the same image never appears under two spellings.
 func TestCreateNormalizesImageReference(t *testing.T) {
@@ -1329,7 +1476,7 @@ func newCreateHarnessWithAppSource(t *testing.T, ctx context.Context, appSource 
 				Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
 			},
 			K8s:                             nil,
-			RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
+			RegistryConfig:                  deploy.RegistryConfig{Repository: fixtureBuildRepository, Username: "", Password: "", Insecure: false},
 			BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 			Clickhouse:                      nil,
 			BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
@@ -1770,6 +1917,20 @@ func (h *createHarness) commitDeployment(t *testing.T, ctx context.Context, sour
 		Source:           source,
 		ImageResolved:    sql.NullString{Valid: true, String: resolved},
 	})
+}
+
+// foreignProjectTag returns a build tag whose prefix belongs to another live
+// project, which is what makes it foreign. A tag naming a deleted project is
+// allowed through, so the project has to exist.
+func (h *createHarness) foreignProjectTag(t *testing.T) string {
+	t.Helper()
+	project := h.seeder.CreateProject(context.Background(), seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: h.workspaceID,
+		Name:        "KEBAP foreign",
+		Slug:        deploySlug(uid.ProjectPrefix),
+	})
+	return fixtureBuildRepository + ":" + project.ID + "-" + uid.New(uid.DeploymentPrefix)
 }
 
 func (h *createHarness) seedOciSource(t *testing.T, ctx context.Context, image string) {
