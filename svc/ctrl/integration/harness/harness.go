@@ -254,6 +254,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 
 	cronSvc, err := cron.New(cron.Config{
 		DB:                        database,
+		Vault:                     vaultClient,
 		Clickhouse:                chClient,
 		Clock:                     o.clock,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
@@ -282,6 +283,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 			DeployBillingPush:  healthcheck.NewNoop(),
 			DeployBillingClose: healthcheck.NewNoop(),
 			DeploySpendCheck:   healthcheck.NewNoop(),
+			VaultReEncryption:  healthcheck.NewNoop(),
 		},
 	})
 	require.NoError(t, err)
