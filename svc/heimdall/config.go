@@ -21,8 +21,7 @@ type Config struct {
 	NodeName           string        `toml:"node_name" config:"required,nonempty"`
 	// CRISocket is the containerd socket path used to capture container exit
 	// events for ms-precise stop checkpoints. Empty disables CRI watching.
-	CRISocket    string `toml:"cri_socket" config:"default=/run/containerd/containerd.sock"`
-	CiliumSocket string `toml:"cilium_socket" config:"default=/var/run/cilium/cilium.sock"`
+	CRISocket string `toml:"cri_socket" config:"default=/run/containerd/containerd.sock"`
 	// KubeletRoot is the host path where kubelet's per-pod volume directories
 	// live. Used to statfs ephemeral volume mounts for disk_used_bytes.
 	// Empty disables used-bytes reporting.

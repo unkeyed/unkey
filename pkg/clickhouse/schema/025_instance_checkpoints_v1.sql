@@ -104,7 +104,6 @@ CREATE TABLE instance_checkpoints_v1 (
   -- tell "no traffic" apart from "not measured".
   network_egress_public_bytes Int64 CODEC(Delta, ZSTD(1)),
   network_egress_private_bytes Int64 CODEC(Delta, ZSTD(1)),
-  network_egress_app_bytes Int64 DEFAULT 0 CODEC(Delta, ZSTD(1)),
   network_ingress_public_bytes Int64 CODEC(Delta, ZSTD(1)),
   network_ingress_private_bytes Int64 CODEC(Delta, ZSTD(1)),
 

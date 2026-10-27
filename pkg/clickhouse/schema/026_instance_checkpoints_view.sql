@@ -34,7 +34,6 @@ SELECT
     disk_used_bytes,
     network_egress_public_bytes,
     network_egress_private_bytes,
-    network_egress_app_bytes,
     network_ingress_public_bytes,
     network_ingress_private_bytes,
     attributes

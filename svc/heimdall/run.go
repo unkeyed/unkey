@@ -129,7 +129,6 @@ func Run(ctx context.Context, cfg Config) error {
 	kc := collector.New(collector.Config{
 		CH:           checkpointBuffer,
 		PodLister:    podLister,
-		AppPeers:     network.NewAppPeers(cfg.CiliumSocket),
 		CgroupRoot:   "/sys/fs/cgroup",
 		CgroupDriver: cgroupDriver,
 		KubeletRoot:  cfg.KubeletRoot,
