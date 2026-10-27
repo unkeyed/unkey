@@ -2333,6 +2333,42 @@ type Querier interface {
 	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
 	//    )
 	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
+	// Scan account keys without parent joins. The primary-key cursor advances
+	// past unchanged rows without depending on encryption metadata.
+	//
+	//  SELECT pk, workspace_id AS keyring, encrypted_key AS ciphertext
+	//  FROM acme_users
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListVaultAcmeUsers(ctx context.Context, arg ListVaultAcmeUsersParams) ([]ListVaultAcmeUsersRow, error)
+	// Scan private keys without parent joins. The primary-key cursor advances
+	// past unchanged rows without depending on encryption metadata.
+	//
+	//  SELECT pk, workspace_id AS keyring, encrypted_private_key AS ciphertext
+	//  FROM certificates
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListVaultCertificates(ctx context.Context, arg ListVaultCertificatesParams) ([]ListVaultCertificatesRow, error)
+	// Scan passwords without parent joins. The primary-key cursor advances
+	// past unchanged rows without depending on encryption metadata.
+	//
+	//  SELECT pk, workspace_id AS keyring, password_encrypted AS ciphertext
+	//  FROM clickhouse_workspace_settings
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListVaultClickhouseSettings(ctx context.Context, arg ListVaultClickhouseSettingsParams) ([]ListVaultClickhouseSettingsRow, error)
+	// Scan snapshots without parent or status filters. The primary-key cursor
+	// advances past unchanged rows without depending on encryption metadata.
+	//
+	//  SELECT pk, environment_id AS keyring, encrypted_environment_variables AS ciphertext
+	//  FROM deployments
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListVaultDeployments(ctx context.Context, arg ListVaultDeploymentsParams) ([]ListVaultDeploymentsRow, error)
 	// Scan ciphertext without parent joins. The primary-key cursor advances
 	// past unchanged rows without depending on encryption metadata.
 	//
@@ -2342,6 +2378,33 @@ type Querier interface {
 	//  ORDER BY pk
 	//  LIMIT ?
 	ListVaultEncryptedKeys(ctx context.Context, arg ListVaultEncryptedKeysParams) ([]ListVaultEncryptedKeysRow, error)
+	// Scan ciphertext without parent joins. The primary-key cursor advances
+	// past unchanged rows without depending on encryption metadata.
+	//
+	//  SELECT pk, environment_id AS keyring, value AS ciphertext
+	//  FROM app_environment_variables
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListVaultEnvironmentVariables(ctx context.Context, arg ListVaultEnvironmentVariablesParams) ([]ListVaultEnvironmentVariablesRow, error)
+	// Scan credentials without parent or status filters. The primary-key cursor
+	// advances past unchanged rows without depending on encryption metadata.
+	//
+	//  SELECT pk, workspace_id AS keyring, config AS ciphertext
+	//  FROM logdrains
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListVaultLogdrains(ctx context.Context, arg ListVaultLogdrainsParams) ([]ListVaultLogdrainsRow, error)
+	// Include expired secrets and rows without parents. The primary-key cursor
+	// advances past unchanged rows without depending on encryption metadata.
+	//
+	//  SELECT pk, workspace_id AS keyring, encrypted AS ciphertext
+	//  FROM shared_secrets
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListVaultSharedSecrets(ctx context.Context, arg ListVaultSharedSecretsParams) ([]ListVaultSharedSecretsRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by
@@ -2988,6 +3051,42 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateUnkeyRootKeysLastUsed(ctx context.Context, arg UpdateUnkeyRootKeysLastUsedParams) error
+	// UpdateVaultAcmeUser preserves concurrent changes by matching the keyring and
+	// old ciphertext byte-for-byte, without changing ACME registration metadata.
+	//
+	//  UPDATE acme_users
+	//  SET encrypted_key = ?
+	//  WHERE pk = ?
+	//    AND BINARY workspace_id = BINARY ?
+	//    AND BINARY encrypted_key = BINARY ?
+	UpdateVaultAcmeUser(ctx context.Context, arg UpdateVaultAcmeUserParams) (int64, error)
+	// UpdateVaultCertificate preserves concurrent changes by matching the keyring
+	// and old ciphertext byte-for-byte, without changing certificate metadata.
+	//
+	//  UPDATE certificates
+	//  SET encrypted_private_key = ?
+	//  WHERE pk = ?
+	//    AND BINARY workspace_id = BINARY ?
+	//    AND BINARY encrypted_private_key = BINARY ?
+	UpdateVaultCertificate(ctx context.Context, arg UpdateVaultCertificateParams) (int64, error)
+	// UpdateVaultClickhouseSetting preserves concurrent changes by matching the
+	// keyring and old ciphertext byte-for-byte, without changing query limits.
+	//
+	//  UPDATE clickhouse_workspace_settings
+	//  SET password_encrypted = ?
+	//  WHERE pk = ?
+	//    AND BINARY workspace_id = BINARY ?
+	//    AND BINARY password_encrypted = BINARY ?
+	UpdateVaultClickhouseSetting(ctx context.Context, arg UpdateVaultClickhouseSettingParams) (int64, error)
+	// UpdateVaultDeployment preserves concurrent changes by matching the keyring
+	// and entire old blob byte-for-byte, without changing business metadata.
+	//
+	//  UPDATE deployments
+	//  SET encrypted_environment_variables = ?
+	//  WHERE pk = ?
+	//    AND BINARY environment_id = BINARY ?
+	//    AND BINARY encrypted_environment_variables = BINARY ?
+	UpdateVaultDeployment(ctx context.Context, arg UpdateVaultDeploymentParams) (int64, error)
 	// Replace only the version that was read. Binary comparison protects
 	// concurrent writes even on case-insensitive database collations.
 	//
@@ -2997,6 +3096,33 @@ type Querier interface {
 	//    AND BINARY workspace_id = BINARY ?
 	//    AND BINARY encrypted = BINARY ?
 	UpdateVaultEncryptedKey(ctx context.Context, arg UpdateVaultEncryptedKeyParams) (int64, error)
+	// UpdateVaultEnvironmentVariable preserves concurrent changes by matching the
+	// keyring and old ciphertext byte-for-byte, without changing business metadata.
+	//
+	//  UPDATE app_environment_variables
+	//  SET value = ?
+	//  WHERE pk = ?
+	//    AND BINARY environment_id = BINARY ?
+	//    AND BINARY value = BINARY ?
+	UpdateVaultEnvironmentVariable(ctx context.Context, arg UpdateVaultEnvironmentVariableParams) (int64, error)
+	// UpdateVaultLogdrain preserves concurrent changes by matching the keyring and
+	// entire old config byte-for-byte, without changing lease or delivery metadata.
+	//
+	//  UPDATE logdrains
+	//  SET config = ?
+	//  WHERE pk = ?
+	//    AND BINARY workspace_id = BINARY ?
+	//    AND BINARY config = BINARY ?
+	UpdateVaultLogdrain(ctx context.Context, arg UpdateVaultLogdrainParams) (int64, error)
+	// UpdateVaultSharedSecret atomically replaces ciphertext and encryption-key
+	// metadata only when the keyring and old ciphertext still match byte-for-byte.
+	//
+	//  UPDATE shared_secrets
+	//  SET encrypted = ?, encryption_key_id = ?
+	//  WHERE pk = ?
+	//    AND BINARY workspace_id = BINARY ?
+	//    AND BINARY encrypted = BINARY ?
+	UpdateVaultSharedSecret(ctx context.Context, arg UpdateVaultSharedSecretParams) (int64, error)
 	//UpdateWorkspaceBillingTier
 	//
 	//  UPDATE `workspace_billing`

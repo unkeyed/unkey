@@ -58,6 +58,13 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncrypt
 		scan func(context.Context, *batch)
 	}{
 		{name: "encrypted_keys", scan: h.encryptedKeys},
+		{name: "app_environment_variables", scan: h.environmentVariables},
+		{name: "deployments", scan: h.deployments},
+		{name: "logdrains", scan: h.logdrains},
+		{name: "certificates", scan: h.certificates},
+		{name: "shared_secrets", scan: h.sharedSecrets},
+		{name: "clickhouse_workspace_settings", scan: h.clickhouseSettings},
+		{name: "acme_users", scan: h.acmeUsers},
 	} {
 		after, err := restate.Get[cursor](ctx, table.name)
 		if err != nil {
