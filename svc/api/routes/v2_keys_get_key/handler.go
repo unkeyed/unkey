@@ -58,12 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Internal("key does not exist"),
-				fault.Public("We could not find the requested key."),
-			)
+			return apierrors.NotFound(codes.Data.Key.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -77,11 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Validate key belongs to authorized workspace
 	if keyData.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to different workspace"),
-			fault.Public("The specified key was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Key.NotFound.URN())
 	}
 
 	// Permission check

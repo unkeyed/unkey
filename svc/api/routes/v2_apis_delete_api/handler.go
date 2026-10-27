@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -61,10 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("api not found",
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-			)
+			return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 		}
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -74,10 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Check if API belongs to the authorized workspace
 	if api.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("wrong workspace",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	requiredPermissions := []rbac.PermissionQuery{
@@ -102,10 +97,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		if keyspaceErr == nil {
 			if keyspace.WorkspaceID != principal.AuthorizedWorkspaceID {
-				return fault.New("wrong workspace",
-					fault.Code(codes.Data.Api.NotFound.URN()),
-					fault.Internal("keyspace belongs to different workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
-				)
+				return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 			}
 			if !keyspace.DeletedAtM.Valid {
 				requiredPermissions = append(requiredPermissions, rbac.U(
@@ -123,10 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Check if API is deleted
 	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	// 5. Check delete protection

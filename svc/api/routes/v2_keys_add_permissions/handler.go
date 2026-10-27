@@ -21,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -62,11 +63,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyRow, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("key not found",
-				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Internal("key not found"),
-				fault.Public("The specified key was not found."),
-			)
+			return apierrors.NotFound(codes.Data.Key.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -78,11 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	key := db.ToKeyData(keyRow)
 
 	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to different workspace"),
-			fault.Public("The specified key was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Key.NotFound.URN())
 	}
 
 	err = principal.Authorize(
@@ -268,11 +261,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		for _, requestedSlug := range req.Permissions {
 			permission, exists := foundBySlug[strings.ToLower(requestedSlug)]
 			if !exists {
-				return fault.New("permission not found",
-					fault.Code(codes.Data.Permission.NotFound.URN()),
-					fault.Internal("permission belongs to a different project"),
-					fault.Public(fmt.Sprintf("Permission '%s' was not found.", requestedSlug)),
-				)
+				return apierrors.NotFound(codes.Data.Permission.NotFound.URN())
 			}
 			if _, exists = currentPermissionIDs[permission.ID]; !exists {
 				permissionsToSet = append(permissionsToSet, permission)

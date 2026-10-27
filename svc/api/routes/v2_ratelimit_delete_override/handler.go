@@ -62,28 +62,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if !found {
-		return fault.New("namespace not found",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace not found"),
-			fault.Public("This namespace does not exist."),
-		)
+		return apierrors.NotFound(codes.Data.RatelimitNamespace.NotFound.URN())
 	}
 
 	if ns.DeletedAtM.Valid {
-		return fault.New("namespace deleted",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace deleted"),
-			fault.Public("This namespace does not exist."),
-		)
+		return apierrors.NotFound(codes.Data.RatelimitNamespace.NotFound.URN())
 	}
 
 	override, ok := ns.DirectOverrides[req.Identifier]
 	if !ok {
-		return fault.New("override not found",
-			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-			fault.Internal("override not found"),
-			fault.Public("This override does not exist."),
-		)
+		return apierrors.NotFound(codes.Data.RatelimitOverride.NotFound.URN())
 	}
 
 	err = principal.Authorize(rbac.Or(

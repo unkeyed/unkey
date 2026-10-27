@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -71,12 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		),
 	))
 	if err != nil {
-		return fault.New(
-			"deployment not found",
-			fault.Code(codes.Data.Deployment.NotFound.URN()),
-			fault.Internal("authorization failed; returning not found to avoid leaking deployment existence"),
-			fault.Public("The requested deployment does not exist."),
-		)
+		return apierrors.NotFound(codes.Data.Deployment.NotFound.URN())
 	}
 
 	// A missing billing row means the workspace was never linked to billing and

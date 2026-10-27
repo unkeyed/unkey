@@ -6,9 +6,9 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/auth/portalrbac"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/portalscope"
 	rerollkey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
 )
@@ -77,11 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		!slices.Contains(keyspaceIDs, key.KeyAuthID) ||
 		!key.IdentityExternalID.Valid ||
 		key.IdentityExternalID.String != externalID {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key does not belong to portal session identity"),
-			fault.Public("The specified key was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Key.NotFound.URN())
 	}
 	return h.reroll.RerollKey(ctx, s, req, key)
 }

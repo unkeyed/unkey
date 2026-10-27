@@ -79,10 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("api not found",
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api not found"), fault.Public("The specified API was not found."),
-			)
+			return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -92,17 +89,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if api.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api belongs to different workspace"), fault.Public("The specified API was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api is deleted"), fault.Public("The specified API was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	keySpace, keySpaceErr := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
@@ -114,10 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if keySpaceErr == nil && keySpace.DeletedAtM.Valid {
-		return fault.New("keyspace not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("keyspace is deleted"), fault.Public("The specified API was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	keySpaceProjectID := api.ProjectID
@@ -336,11 +324,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 				}
 				if identity.ProjectID != projectID {
-					return fault.New("identity not found",
-						fault.Code(codes.Data.Identity.NotFound.URN()),
-						fault.Internal("identity belongs to a different project"),
-						fault.Public(fmt.Sprintf("Identity '%s' was not found.", externalID)),
-					)
+					return apierrors.NotFound(codes.Data.Identity.NotFound.URN())
 				}
 
 				insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identity.ID}
@@ -536,11 +520,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				for _, requestedSlug := range *req.Permissions {
 					permission, exists := existingPermMap[strings.ToLower(requestedSlug)]
 					if !exists {
-						return fault.New("permission not found",
-							fault.Code(codes.Data.Permission.NotFound.URN()),
-							fault.Internal("permission belongs to a different project"),
-							fault.Public(fmt.Sprintf("Permission '%s' was not found.", requestedSlug)),
-						)
+						return apierrors.NotFound(codes.Data.Permission.NotFound.URN())
 					}
 					requestedPermissions = append(requestedPermissions, permission)
 				}
@@ -628,10 +608,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						continue
 					}
 
-					return fault.New("role not found",
-						fault.Code(codes.Data.Role.NotFound.URN()),
-						fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", requestedName)),
-					)
+					return apierrors.NotFound(codes.Data.Role.NotFound.URN())
 				}
 
 				// Insert all requested roles

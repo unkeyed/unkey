@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -68,12 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api does not exist"),
-				fault.Public("The requested API does not exist or has been deleted."),
-			)
+			return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -84,20 +80,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if hit == cache.Null {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"),
-			fault.Public("The requested API does not exist or has been deleted."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	// Check if API belongs to the authorized workspace
 	if api.ApiWorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("wrong workspace",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"),
-			fault.Public("The requested API does not exist or has been deleted."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	projectID := api.KeyAuthProjectID
@@ -124,12 +112,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	migration, err := db.Query.FindKeyMigrationByID(ctx, h.DB.RO(), db.FindKeyMigrationByIDParams{ID: req.MigrationId, WorkspaceID: principal.AuthorizedWorkspaceID})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Migration.NotFound.URN()),
-				fault.Internal("migration does not exist"),
-				fault.Public("The requested Migration does not exist or has been deleted."),
-			)
+			return apierrors.NotFound(codes.Data.Migration.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -308,11 +291,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			for _, identity := range identities {
 				if identity.ProjectID != projectID {
-					return fault.New("identity not found",
-						fault.Code(codes.Data.Identity.NotFound.URN()),
-						fault.Internal("identity belongs to a different project"),
-						fault.Public(fmt.Sprintf("Identity '%s' was not found.", identity.ExternalID)),
-					)
+					return apierrors.NotFound(codes.Data.Identity.NotFound.URN())
 				}
 				externalIdToIdentityId[identity.ExternalID] = &identity.ID
 			}
@@ -333,11 +312,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			for _, permission := range permissions {
 				if permission.ProjectID != projectID {
-					return fault.New("permission not found",
-						fault.Code(codes.Data.Permission.NotFound.URN()),
-						fault.Internal("permission belongs to a different project"),
-						fault.Public(fmt.Sprintf("Permission '%s' was not found.", permission.Slug)),
-					)
+					return apierrors.NotFound(codes.Data.Permission.NotFound.URN())
 				}
 				permissionSlugToPermissionId[permission.Slug] = &permission.ID
 			}
@@ -358,11 +333,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			for _, role := range roles {
 				if role.ProjectID != projectID {
-					return fault.New("role not found",
-						fault.Code(codes.Data.Role.NotFound.URN()),
-						fault.Internal("role belongs to a different project"),
-						fault.Public(fmt.Sprintf("Role '%s' was not found.", role.Name)),
-					)
+					return apierrors.NotFound(codes.Data.Role.NotFound.URN())
 				}
 				roleNameToRoleId[role.Name] = &role.ID
 			}

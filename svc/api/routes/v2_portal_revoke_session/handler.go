@@ -32,10 +32,6 @@ type (
 // with a very large number of sessions doesn't hold one huge lock.
 const revokeBatchSize = 1000
 
-// notFoundMessage is shared by an unknown portal and a denied caller, so the two
-// look the same.
-const notFoundMessage = "Portal not found."
-
 type Handler struct {
 	DB           db.Database
 	Auditlogs    auditlogs.AuditLogService
@@ -123,11 +119,7 @@ func (h *Handler) authorizedPortal(ctx context.Context, principal *authprincipal
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return db.Portal{}, fault.New("portal not found",
-				fault.Code(codes.Data.Portal.NotFound.URN()),
-				fault.Internal("no portal matched the request in this workspace"),
-				fault.Public(notFoundMessage),
-			)
+			return db.Portal{}, apierrors.NotFound(codes.Data.Portal.NotFound.URN())
 		}
 		return db.Portal{}, fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

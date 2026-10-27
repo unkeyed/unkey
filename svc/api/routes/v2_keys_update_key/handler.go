@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -72,12 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyRow, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Internal("key does not exist"),
-				fault.Public("We could not find the requested key."),
-			)
+			return apierrors.NotFound(codes.Data.Key.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -90,11 +86,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	key := db.ToKeyData(keyRow)
 
 	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to different workspace"),
-			fault.Public("The specified key was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Key.NotFound.URN())
 	}
 
 	err = principal.Authorize(rbac.Or(
@@ -206,11 +198,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						}
 					}
 					if identity.ProjectID != projectID {
-						return fault.New("identity not found",
-							fault.Code(codes.Data.Identity.NotFound.URN()),
-							fault.Internal("identity belongs to a different project"),
-							fault.Public(fmt.Sprintf("Identity '%s' was not found.", externalID)),
-						)
+						return apierrors.NotFound(codes.Data.Identity.NotFound.URN())
 					}
 
 					update.IdentityID = sql.NullString{Valid: true, String: identity.ID}
@@ -495,11 +483,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				for _, requestedSlug := range *req.Permissions {
 					permission, exists := existingPermMap[strings.ToLower(requestedSlug)]
 					if !exists {
-						return fault.New("permission not found",
-							fault.Code(codes.Data.Permission.NotFound.URN()),
-							fault.Internal("permission belongs to a different project"),
-							fault.Public(fmt.Sprintf("Permission '%s' was not found.", requestedSlug)),
-						)
+						return apierrors.NotFound(codes.Data.Permission.NotFound.URN())
 					}
 					requestedPermissions = append(requestedPermissions, permission)
 				}
@@ -594,11 +578,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						continue
 					}
 
-					return fault.New("role not found",
-						fault.Code(codes.Data.Role.NotFound.URN()),
-						fault.Internal("role not found"),
-						fault.Public(fmt.Sprintf("Role '%s' was not found.", requestedName)),
-					)
+					return apierrors.NotFound(codes.Data.Role.NotFound.URN())
 				}
 
 				err = db.Query.DeleteAllKeyRolesByKeyID(ctx, tx, key.Key.ID)

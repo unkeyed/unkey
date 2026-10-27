@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -58,12 +59,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New(
-				"project or app not found",
-				fault.Code(codes.Data.Project.NotFound.URN()),
-				fault.Internal("project or app not found"),
-				fault.Public("The requested project or app does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Project.NotFound.URN())
 		}
 		return fault.Wrap(err, fault.Internal("failed to find project and app"))
 	}
@@ -76,12 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New(
-				"environment not found",
-				fault.Code(codes.Data.Environment.NotFound.URN()),
-				fault.Internal("environment did not resolve"),
-				fault.Public("The requested environment does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Environment.NotFound.URN())
 		}
 		return fault.Wrap(err, fault.Internal("failed to resolve environment"))
 	}
@@ -148,23 +139,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), *req.KeyspaceId)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return fault.New(
-					"keyspace not found",
-					fault.Code(codes.Data.KeyAuth.NotFound.URN()),
-					fault.Internal("keyspace not found"),
-					fault.Public("The specified keyspace was not found."),
-				)
+				return apierrors.NotFound(codes.Data.KeyAuth.NotFound.URN())
 			}
 			return fault.Wrap(err, fault.Internal("failed to find keyspace"))
 		}
 
 		if keySpace.WorkspaceID != principal.AuthorizedWorkspaceID {
-			return fault.New(
-				"keyspace not found",
-				fault.Code(codes.Data.KeyAuth.NotFound.URN()),
-				fault.Internal("keyspace belongs to different workspace, masking as 404"),
-				fault.Public("The specified keyspace was not found."),
-			)
+			return apierrors.NotFound(codes.Data.KeyAuth.NotFound.URN())
 		}
 	}
 

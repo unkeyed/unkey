@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 )
 
 // errorForOutcome maps a create outcome onto the error the caller sees, nil for
@@ -114,12 +115,7 @@ func errorForOutcome(outcome hydrav1.CreateOutcome, detail string) error {
 	// reach exists.
 	case hydrav1.CreateOutcome_CREATE_OUTCOME_TARGET_NOT_FOUND,
 		hydrav1.CreateOutcome_CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND:
-		return fault.New(
-			"deployment target not found",
-			fault.Code(codes.Data.Deployment.NotFound.URN()),
-			fault.Internal("create rejected: target or source deployment does not exist"),
-			fault.Public("The project, app, environment, or deployment does not exist."),
-		)
+		return apierrors.NotFound(codes.Data.Deployment.NotFound.URN())
 
 	// A rejection this mapping cannot name is still a rejection: answer an
 	// error, never a 201 for a row that does not exist.

@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -76,12 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New(
-				"environment not found",
-				fault.Code(codes.Data.Environment.NotFound.URN()),
-				fault.Internal("project, app, or environment did not resolve"),
-				fault.Public("The requested project, app, or environment does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Environment.NotFound.URN())
 		}
 		return fault.Wrap(err, fault.Internal("failed to resolve environment"))
 	}

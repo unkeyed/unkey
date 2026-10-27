@@ -81,12 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// FindDeploymentById is not workspace-scoped, so a match in another workspace
 	// is masked as not found to avoid leaking a deployment's existence
 	if db.IsNotFound(err) || dep.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New(
-			"deployment not found",
-			fault.Code(codes.Data.Deployment.NotFound.URN()),
-			fault.Internal("deployment not found or belongs to another workspace"),
-			fault.Public("The requested deployment does not exist."),
-		)
+		return apierrors.NotFound(codes.Data.Deployment.NotFound.URN())
 	}
 
 	err = principal.Authorize(rbac.U(

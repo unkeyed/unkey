@@ -28,10 +28,6 @@ type (
 	Response = openapi.V2PortalListSessionsResponseBody
 )
 
-// notFoundMessage is shared by an unknown portal and a denied caller, so the two
-// look the same.
-const notFoundMessage = "Portal not found."
-
 type Handler struct {
 	DB    db.Database
 	Clock clock.Clock
@@ -62,11 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("portal not found",
-				fault.Code(codes.Data.Portal.NotFound.URN()),
-				fault.Internal("no portal matched the request in this workspace"),
-				fault.Public(notFoundMessage),
-			)
+			return apierrors.NotFound(codes.Data.Portal.NotFound.URN())
 		}
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

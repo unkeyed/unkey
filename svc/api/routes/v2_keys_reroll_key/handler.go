@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -71,11 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.KeyWorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to different workspace"),
-			fault.Public("The specified key was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Key.NotFound.URN())
 	}
 	if err := principal.Authorize(rerollPermissionQuery(key)); err != nil {
 		return err
@@ -93,10 +90,7 @@ func (h *Handler) FindLiveKey(ctx context.Context, keyID string) (db.FindLiveKey
 	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), keyID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return zero, fault.New("key not found",
-				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Public("The specified key was not found."),
-			)
+			return zero, apierrors.NotFound(codes.Data.Key.NotFound.URN())
 		}
 
 		return zero, fault.Wrap(err,

@@ -30,6 +30,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	portalrules "github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+
 	// The key requirements below are owned by the operator routes that
 	// enforce them, so this route borrows them rather than restating them.
 	listkeys "github.com/unkeyed/unkey/svc/api/routes/v2_apis_list_keys"
@@ -173,11 +174,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("portal not found",
-				fault.Code(codes.Data.Portal.NotFound.URN()),
-				fault.Internal("no portal found for the given id or slug"),
-				fault.Public("Portal not found."),
-			)
+			return apierrors.NotFound(codes.Data.Portal.NotFound.URN())
 		}
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -354,11 +351,7 @@ func (h *Handler) mintSession(
 		})
 		if txErr != nil {
 			if db.IsNotFound(txErr) {
-				return fault.New("portal not found",
-					fault.Code(codes.Data.Portal.NotFound.URN()),
-					fault.Internal(fmt.Sprintf("portal %s was deleted after the replica read", req.Portal.ID)),
-					fault.Public("Portal not found."),
-				)
+				return apierrors.NotFound(codes.Data.Portal.NotFound.URN())
 			}
 			return fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

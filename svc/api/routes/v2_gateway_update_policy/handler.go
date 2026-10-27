@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -73,12 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New(
-				"environment not found",
-				fault.Code(codes.Data.Environment.NotFound.URN()),
-				fault.Internal("environment not found"),
-				fault.Public("The requested environment does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Environment.NotFound.URN())
 		}
 		return fault.Wrap(
 			err,
@@ -114,12 +110,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if _, lockErr := db.Query.LockEnvironmentForUpdate(ctx, tx, env.ID); lockErr != nil {
 			if db.IsNotFound(lockErr) {
 				// Deleted between the read above and acquiring the lock.
-				return fault.New(
-					"environment not found",
-					fault.Code(codes.Data.Environment.NotFound.URN()),
-					fault.Internal("environment deleted before lock"),
-					fault.Public("The requested environment does not exist."),
-				)
+				return apierrors.NotFound(codes.Data.Environment.NotFound.URN())
 			}
 			return fault.Wrap(
 				lockErr,
@@ -135,12 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
-				return fault.New(
-					"policy not found",
-					fault.Code(codes.Data.Policy.NotFound.URN()),
-					fault.Internal("no gateway policy config for environment"),
-					fault.Public("The requested policy does not exist. Note that policy ids change when the policy list is replaced."),
-				)
+				return apierrors.NotFound(codes.Data.Policy.NotFound.URN())
 			}
 			return fault.Wrap(
 				err,
@@ -162,12 +148,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		policies := cfg.GetPolicies()
 		idx := slices.IndexFunc(policies, func(p *frontlinev1.Policy) bool { return p.GetId() == req.PolicyId })
 		if idx < 0 {
-			return fault.New(
-				"policy not found",
-				fault.Code(codes.Data.Policy.NotFound.URN()),
-				fault.Internal("policy id not present in stored policies"),
-				fault.Public("The requested policy does not exist. Note that policy ids change when the policy list is replaced."),
-			)
+			return apierrors.NotFound(codes.Data.Policy.NotFound.URN())
 		}
 
 		// Patch at the API level and reconvert: the openapi->proto pass is
@@ -235,12 +216,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				if !slices.ContainsFunc(found, func(row db.FindKeyAuthsByIdsAndWorkspaceRow) bool {
 					return row.ID == id
 				}) {
-					return fault.New(
-						"keyspace not found",
-						fault.Code(codes.Data.KeySpace.NotFound.URN()),
-						fault.Internal("keyspace not found in workspace"),
-						fault.Public(fmt.Sprintf("Keyspace %q does not exist.", id)),
-					)
+					return apierrors.NotFound(codes.Data.KeySpace.NotFound.URN())
 				}
 			}
 		}
