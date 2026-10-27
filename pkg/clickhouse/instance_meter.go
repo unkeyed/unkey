@@ -60,9 +60,9 @@ type InstanceMeterUsage struct {
 // (CPU, memory, egress, disk) from Heimdall checkpoint data.
 //
 // Every meter is derived from consecutive checkpoint pairs within a single
-// container_uid (pod_uid + restart_count), so a container restart — which
-// starts fresh cgroup and network counters — never produces a cross-boundary
-// diff. Pairs whose timestamps are more than maxSampleGap apart are
+// recorded container_uid (pod_uid + restart_count). Pairs never cross these
+// recorded boundaries, but cached restart counts can lag physical restarts.
+// Pairs whose timestamps are more than maxSampleGap apart are
 // dropped, so an agent outage under-counts rather than over-charges.
 //
 //   - CPU and egress are monotonic counters: each pair contributes its

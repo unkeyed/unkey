@@ -2,6 +2,7 @@ package collector
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -109,7 +110,11 @@ func New(cfg Config) *Collector {
 }
 
 func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
-	repeat.Every(interval, func(ctx context.Context) {
+	if interval <= 0 {
+		return errors.New("collection interval must be positive")
+	}
+
+	repeat.Every(interval, func(_ context.Context) {
 		c.collectWithMetrics(ctx, interval)
 	}, repeat.WithContext(ctx))
 
@@ -143,10 +148,8 @@ func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
 
 	<-ctx.Done()
 
-	// Wait for CRI handler goroutine to finish before returning. The
-	// periodic repeat.Every also needs to drain — `stop()` via defer blocks
-	// until any in-flight tick completes. Combined, Run doesn't return until
-	// all in-flight handlers have had a chance to Buffer() their rows.
+	c.mu.Lock()
+	c.mu.Unlock()
 	watcherWG.Wait()
 
 	return ctx.Err()
@@ -155,18 +158,14 @@ func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
 func (c *Collector) collectWithMetrics(ctx context.Context, interval time.Duration) {
 	start := time.Now()
 
-	// Defence in depth only. repeat.Every invokes this synchronously from a single
-	// goroutine and nothing else takes c.mu, so this cannot contend today and the
-	// skip counter it used to feed could never fire. Overrun is detected below
-	// instead, which is the condition that actually costs money: a tick slower
-	// than the interval widens the gap between samples, and the billing query
-	// drops any pair more than max_sample_gap apart, silently zeroing every meter
-	// for every pod on the node.
 	if !c.mu.TryLock() {
 		logger.Info("skipping collection, previous tick still running")
 		return
 	}
 	defer c.mu.Unlock()
+	if ctx.Err() != nil {
+		return
+	}
 
 	err := c.collect(ctx)
 
@@ -191,36 +190,47 @@ func (c *Collector) collectWithMetrics(ctx context.Context, interval time.Durati
 // containers that only produce one other checkpoint (exit). Without it, a
 // container that lives entirely within one periodic interval would have
 // max(cpu_usage_usec) == min(...) → billing = 0.
-func (c *Collector) OnStart(_ context.Context, podUID string) {
-	c.emitLifecycleCheckpoint(podUID, checkpoint.EventStart)
+func (c *Collector) OnStart(_ context.Context, podUID, containerID string) {
+	c.emitCRICheckpoint(podUID, containerID, checkpoint.EventStart)
 }
 
 // OnExit is called by the CRI watcher when a container task exits. We read
 // the cgroup one final time before kubelet garbage collects it, closing the
 // undercharge window that would otherwise be up to one checkpoint_interval.
-func (c *Collector) OnExit(_ context.Context, podUID string) {
-	c.emitLifecycleCheckpoint(podUID, checkpoint.EventStop)
+func (c *Collector) OnExit(_ context.Context, podUID, containerID string) {
+	c.emitCRICheckpoint(podUID, containerID, checkpoint.EventStop)
 }
 
-// emitLifecycleCheckpoint writes one checkpoint tied to a container lifecycle
-// event (start or stop). Shared because both read the same cgroup fields —
-// only the event_kind differs.
-func (c *Collector) emitLifecycleCheckpoint(podUID, kind string) {
-	// On EventStop we always want to drop the BPF attach + map entry
-	// even if the checkpoint can't be written. The early-return paths
-	// below (pod_not_found, cgroup_read_failed, restart_count_unknown)
-	// are common at exit-time, and without an unconditional Detach
-	// here, stale UIDs accumulate in network.attached until process
-	// restart. Defer is fine — the explicit Detach at the bottom
-	// becomes a no-op (idempotent) when this fires first.
-	if kind == checkpoint.EventStop && c.network != nil {
-		defer c.network.Detach(types.UID(podUID))
-	}
-
+func (c *Collector) emitCRICheckpoint(podUID, containerID, kind string) {
 	pod := c.findPodByUID(podUID)
 	if pod == nil {
 		metrics.LifecycleDrops.WithLabelValues(kind, "pod_not_found").Inc()
-		return // not a krane pod, not on this node, or informer cache stale
+		return
+	}
+	status := findContainerStatus(pod, primaryContainerName(pod))
+	if containerID == "" || status == nil || status.ContainerID != "containerd://"+containerID {
+		metrics.LifecycleDrops.WithLabelValues(kind, "incarnation_unknown").Inc()
+		return
+	}
+	c.emitLifecycleCheckpoint(pod, kind)
+}
+
+func (c *Collector) currentIncarnation(pod *corev1.Pod) bool {
+	current := c.findPodByUID(string(pod.UID))
+	if current == nil {
+		return false
+	}
+	name := primaryContainerName(pod)
+	expected := findContainerStatus(pod, name)
+	actual := findContainerStatus(current, name)
+	return expected != nil && actual != nil && expected.ContainerID != "" &&
+		expected.ContainerID == actual.ContainerID && expected.RestartCount == actual.RestartCount
+}
+
+func (c *Collector) emitLifecycleCheckpoint(pod *corev1.Pod, kind string) {
+	if !c.currentIncarnation(pod) {
+		metrics.LifecycleDrops.WithLabelValues(kind, "incarnation_unknown").Inc()
+		return
 	}
 
 	// Same gating as the periodic loop — only read cgroup files when at
@@ -276,7 +286,19 @@ func (c *Collector) emitLifecycleCheckpoint(podUID, kind string) {
 		memoryAlloc = info.memoryAllocatedBytes
 	}
 
-	net, netAttached := c.attachAndReadNetwork(info)
+	var net network.Counters
+	var netAttached bool
+	if kind == checkpoint.EventStop {
+		if c.collectors.Network && c.network != nil && !info.hostNetwork {
+			net, netAttached = c.readNetwork(info.uid)
+		}
+	} else {
+		net, netAttached = c.attachAndReadNetwork(info)
+	}
+	if !c.currentIncarnation(pod) {
+		metrics.LifecycleDrops.WithLabelValues(kind, "incarnation_unknown").Inc()
+		return
+	}
 	c.ch.Buffer(schema.InstanceCheckpoint{
 		NodeID:                     c.nodeName,
 		WorkspaceID:                info.workspaceID,
@@ -315,8 +337,6 @@ func (c *Collector) emitLifecycleCheckpoint(podUID, kind string) {
 	})
 	metrics.LifecycleEmitted.WithLabelValues(kind).Inc()
 	metrics.CheckpointsWritten.Inc()
-	// EventStop network detach happens via the defer at the top of this
-	// function so it covers every early-return path too.
 }
 
 // HandlePodUpdate is called by the pod informer on every Status change. It
@@ -325,9 +345,7 @@ func (c *Collector) emitLifecycleCheckpoint(podUID, kind string) {
 //
 // This runs redundantly with the CRI watcher: CRI gives us ms-precise
 // signals; the informer catches cases where containerd drops the event
-// (containerd#3177) or where CRI is disabled. Duplicate checkpoints from
-// both paths are fine — they carry different ts (and hence different
-// idempotency keys), and max-min billing absorbs extra readings.
+// (containerd#3177) or where CRI is disabled.
 func (c *Collector) HandlePodUpdate(oldPod, newPod *corev1.Pod) {
 	if newPod.Spec.NodeName != c.nodeName {
 		return
@@ -349,9 +367,9 @@ func (c *Collector) HandlePodUpdate(oldPod, newPod *corev1.Pod) {
 
 	switch {
 	case runningTransition(oldStatus, newStatus):
-		c.OnStart(context.Background(), string(newPod.UID))
+		c.emitLifecycleCheckpoint(newPod, checkpoint.EventStart)
 	case terminatedTransition(oldStatus, newStatus):
-		c.OnExit(context.Background(), string(newPod.UID))
+		c.emitLifecycleCheckpoint(newPod, checkpoint.EventStop)
 	}
 }
 
@@ -371,8 +389,6 @@ func findContainerStatus(pod *corev1.Pod, name string) *corev1.ContainerStatus {
 	return nil
 }
 
-// runningTransition reports whether the container just entered the Running
-// state. Covers initial admission (old == nil) and Waiting → Running.
 func runningTransition(old, new *corev1.ContainerStatus) bool {
 	if new == nil || new.State.Running == nil {
 		return false
@@ -380,13 +396,7 @@ func runningTransition(old, new *corev1.ContainerStatus) bool {
 	if old == nil || old.State.Running == nil {
 		return true
 	}
-	// Same state; no transition. Restart (where old.RestartCount <
-	// new.RestartCount and old.State.Running != nil) is intentionally
-	// ignored here — CRI is the reliable path for restart detection
-	// because the pod cgroup counter resets on the new container, and
-	// firing a checkpoint against the new container_uid with its fresh
-	// counter is still correct billing.
-	return false
+	return old.ContainerID != new.ContainerID || old.RestartCount != new.RestartCount
 }
 
 // terminatedTransition reports whether the container just entered the

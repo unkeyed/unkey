@@ -39,8 +39,8 @@ const (
 // Required: newCRIWatcher rejects a nil handler so we never construct a
 // watcher that would panic on first event dispatch.
 type criHandler interface {
-	OnStart(ctx context.Context, podUID string)
-	OnExit(ctx context.Context, podUID string)
+	OnStart(ctx context.Context, podUID, containerID string)
+	OnExit(ctx context.Context, podUID, containerID string)
 }
 
 // criWatcher subscribes to containerd TaskStart and TaskExit events.
@@ -190,9 +190,9 @@ func (w *criWatcher) handle(ctx context.Context, topic string, raw typeurl.Any) 
 
 	switch kind {
 	case criStart:
-		w.handler.OnStart(ctx, podUID)
+		w.handler.OnStart(ctx, podUID, containerID)
 	case criExit:
-		w.handler.OnExit(ctx, podUID)
+		w.handler.OnExit(ctx, podUID, containerID)
 	}
 }
 

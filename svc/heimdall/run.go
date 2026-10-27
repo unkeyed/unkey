@@ -92,6 +92,10 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("getting in-cluster config: %w", err)
 	}
+	metrics.KubernetesAPIRequestErrors.Register()
+	k8sCfg.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+		return apiTransport{RoundTripper: rt}
+	})
 
 	clientset, err := kubernetes.NewForConfig(k8sCfg)
 	if err != nil {
@@ -99,6 +103,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	factory := informers.NewSharedInformerFactory(clientset, 0)
+	informerCtx, stopInformer := context.WithCancel(ctx)
+	defer func() {
+		stopInformer()
+		factory.Shutdown()
+	}()
 	podInformer := factory.Core().V1().Pods().Informer()
 	podLister := factory.Core().V1().Pods().Lister()
 
@@ -165,7 +174,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("registering pod event handler: %w", err)
 	}
 
-	factory.Start(ctx.Done())
+	factory.Start(informerCtx.Done())
 
 	// Refuse to start the collector with an unsynced cache. Without the
 	// check, a sync failure (ctx cancel before initial List completes, API
@@ -248,10 +257,16 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 
 		defer checkpointBuffer.Close()
+		if netReader != nil {
+			defer func() {
+				if err := netReader.Close(); err != nil {
+					logger.Warn("network reader close failed", "error", err.Error())
+				}
+			}()
+		}
 		defer func() {
-			if err := netReader.Close(); err != nil {
-				logger.Warn("network reader close failed", "error", err.Error())
-			}
+			stopInformer()
+			factory.Shutdown()
 		}()
 
 		return kc.Run(ctx, cfg.CollectionInterval)

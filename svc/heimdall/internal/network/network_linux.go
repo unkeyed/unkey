@@ -46,9 +46,11 @@ type linuxReader struct {
 	// call attachSync. Keeps the 5s collect tick from serialising on
 	// ~200ms-per-pod containerd/netns/TCX work during cold start or
 	// rollout storms.
-	attachQ  chan attachRequest
-	workerWG sync.WaitGroup
-	closed   chan struct{}
+	attachQ   chan attachRequest
+	workerWG  sync.WaitGroup
+	closed    chan struct{}
+	closeOnce sync.Once
+	closeErr  error
 }
 
 // attachRequest is one queued attach. gen is unique per request so a worker
@@ -74,12 +76,21 @@ type attachRequest struct {
 // then sit on an eth0 that no longer exists and the map entry stops
 // moving, while the informer still shows the pod Running.
 type attachedPod struct {
-	coll      *ebpf.Collection
-	egress    link.Link
-	ingress   link.Link
-	cookie    uint64
-	netnsPath string
+	coll         *ebpf.Collection
+	egress       link.Link
+	ingress      link.Link
+	cookie       uint64
+	netnsPath    string
+	counterState counterState
 }
+
+type counterState uint8
+
+const (
+	counterUnobserved counterState = iota
+	counterObserved
+	counterLost
+)
 
 // release closes the pod's TCX links, unloads its programs, and drops its
 // counter map entry. Caller holds r.mu.
@@ -95,6 +106,8 @@ func (r *linuxReader) release(p attachedPod) {
 // substitute an in-memory map where loading a real BPF map is impossible.
 type counterMap interface {
 	Lookup(key, valueOut any) error
+	NextKey(key, nextKeyOut any) error
+	MaxEntries() uint32
 	Delete(key any) error
 	Close() error
 }
@@ -210,13 +223,15 @@ func NewReader(criSocket string) (Reader, error) {
 		attachEth0: func(netnsPath string) (*ebpf.Collection, link.Link, link.Link, uint64, error) {
 			return attachPodEth0(netnsPath, spec, pinOpts)
 		},
-		mu:       sync.Mutex{},
-		attached: make(map[types.UID]attachedPod),
-		pending:  make(map[types.UID]uint64),
-		nextGen:  0,
-		attachQ:  make(chan attachRequest, attachQueueSize),
-		closed:   make(chan struct{}),
-		workerWG: sync.WaitGroup{},
+		mu:        sync.Mutex{},
+		attached:  make(map[types.UID]attachedPod),
+		pending:   make(map[types.UID]uint64),
+		nextGen:   0,
+		attachQ:   make(chan attachRequest, attachQueueSize),
+		closed:    make(chan struct{}),
+		workerWG:  sync.WaitGroup{},
+		closeOnce: sync.Once{},
+		closeErr:  nil,
 	}
 
 	for i := 0; i < attachWorkers; i++ {
@@ -272,9 +287,16 @@ func PinDir() string { return bpfPinDir }
 // attachQueueSize. The caller's next tick will re-request the same UID.
 func (r *linuxReader) Attach(uid types.UID) error {
 	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	select {
+	case <-r.closed:
+		return os.ErrClosed
+	default:
+	}
+
 	if p, ok := r.attached[uid]; ok {
 		if !r.netnsGone(p.netnsPath) {
-			r.mu.Unlock()
 			return nil
 		}
 		r.release(p)
@@ -284,28 +306,19 @@ func (r *linuxReader) Attach(uid types.UID) error {
 			"pod_uid", string(uid), "netns_path", p.netnsPath)
 	}
 	if _, ok := r.pending[uid]; ok {
-		r.mu.Unlock()
 		return nil
 	}
 	r.nextGen++
 	req := attachRequest{uid: uid, gen: r.nextGen}
 	r.pending[uid] = req.gen
-	r.mu.Unlock()
 
 	select {
 	case r.attachQ <- req:
 		return nil
-	case <-r.closed:
-		r.mu.Lock()
-		r.clearPending(req)
-		r.mu.Unlock()
-		return nil
 	default:
 		// Queue full. Roll back the pending entry so the collector's next
 		// tick can try again. Treated as a transient error.
-		r.mu.Lock()
 		r.clearPending(req)
-		r.mu.Unlock()
 		return ErrAttachQueueFull
 	}
 }
@@ -319,17 +332,13 @@ func (r *linuxReader) clearPending(req attachRequest) {
 	}
 }
 
-// runAttachWorker pulls UIDs off the queue and performs the synchronous
-// attach work. Exits when r.closed is signalled. We don't close r.attachQ
-// on shutdown — closing it races with concurrent Attach calls that might
-// still be in the middle of their send-select, and a send on a closed
-// channel panics. Signalling via r.closed plus letting the channel get
-// GC'd is simpler and race-free.
-//
-// Spawned via workerWG.Go so the Add(1)/defer Done() bookkeeping is
-// implicit.
 func (r *linuxReader) runAttachWorker() {
 	for {
+		select {
+		case <-r.closed:
+			return
+		default:
+		}
 		select {
 		case <-r.closed:
 			return
@@ -453,11 +462,12 @@ func (r *linuxReader) attachSync(req attachRequest) error {
 	}
 
 	r.attached[uid] = attachedPod{
-		coll:      coll,
-		egress:    egress,
-		ingress:   ingressLink,
-		cookie:    cookie,
-		netnsPath: netnsPath,
+		coll:         coll,
+		egress:       egress,
+		ingress:      ingressLink,
+		cookie:       cookie,
+		netnsPath:    netnsPath,
+		counterState: counterUnobserved,
 	}
 	r.mu.Unlock()
 
@@ -499,17 +509,7 @@ func (r *linuxReader) Detach(uid types.UID) {
 // the same as zero bytes: the counter map is pinned so a restarted heimdall
 // still faces a kernel counter holding the pod's month-to-date total. Reporting
 // zero there made the following tick's delta the whole cumulative counter.
-//
-// A pod that is attached but has no map entry yet genuinely has seen no packets,
-// so that path still returns zeros.
 func (r *linuxReader) Read(uid types.UID) (Counters, error) {
-	// Hold the lock across the lookup so the attach record and the map
-	// entry are read as one state. Releasing it in between lets a
-	// concurrent Detach or Reconcile delete the entry after we decided the
-	// pod is attached, and the ErrKeyNotExist path below would then report
-	// zero bytes as a measured value. The lookup is a single syscall on a
-	// hash map; holding r.mu for it is cheaper than a mis-stamped
-	// checkpoint.
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -517,14 +517,24 @@ func (r *linuxReader) Read(uid types.UID) (Counters, error) {
 	if !ok {
 		return zeroCounters, ErrNotAttached
 	}
+	if p.counterState == counterLost {
+		return zeroCounters, ErrCounterLost
+	}
 
 	var c bpfCounters
 	if err := r.podCounters.Lookup(p.cookie, &c); err != nil {
 		if errors.Is(err, ebpf.ErrKeyNotExist) {
-			return zeroCounters, nil
+			if p.counterState == counterUnobserved {
+				return zeroCounters, ErrCounterUnobserved
+			}
+			p.counterState = counterLost
+			r.attached[uid] = p
+			return zeroCounters, ErrCounterLost
 		}
 		return zeroCounters, fmt.Errorf("map lookup cookie=%d: %w", p.cookie, err)
 	}
+	p.counterState = counterObserved
+	r.attached[uid] = p
 
 	return Counters{
 		EgressPublicBytes:   int64(c.EgressPublic),
@@ -534,16 +544,27 @@ func (r *linuxReader) Read(uid types.UID) (Counters, error) {
 	}, nil
 }
 
-// MapEntries returns the number of attached pods, which equals the number
-// of live entries we've inserted into the BPF counter map. Using the Go
-// side bookkeeping avoids iterating the map on every tick; drift is
-// possible only if the kernel's LRU evicts an entry while we still think
-// we have it attached (the next Read returns zeros, which is safe).
-func (r *linuxReader) MapEntries() int {
+func (r *linuxReader) MapEntries() (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return len(r.attached)
+	seen := make(map[uint64]struct{})
+	var key any
+	for range uint64(r.podCounters.MaxEntries()) + 1 {
+		var next uint64
+		if err := r.podCounters.NextKey(key, &next); err != nil {
+			if errors.Is(err, ebpf.ErrKeyNotExist) {
+				return len(seen), nil
+			}
+			return 0, fmt.Errorf("enumerate counter map: %w", err)
+		}
+		if _, ok := seen[next]; ok {
+			return 0, ebpf.ErrIterationAborted
+		}
+		seen[next] = struct{}{}
+		key = next
+	}
+	return 0, ebpf.ErrIterationAborted
 }
 
 // Reconcile evicts attached entries whose pod UID is absent from active
@@ -569,31 +590,32 @@ func (r *linuxReader) Reconcile(active map[types.UID]struct{}) {
 }
 
 func (r *linuxReader) Close() error {
-	// Signal Attach callers and workers (both select on r.closed). Workers
-	// exit their for-select; any UIDs still in the queue are dropped (we
-	// are shutting down, and the collector will re-request them if needed
-	// on the next lifecycle). We deliberately do NOT close r.attachQ —
-	// closing it races with in-flight sends from Attach and would panic.
-	close(r.closed)
-	r.workerWG.Wait()
+	r.closeOnce.Do(func() {
+		r.mu.Lock()
+		close(r.closed)
+		r.mu.Unlock()
+		r.workerWG.Wait()
 
-	r.mu.Lock()
-	defer r.mu.Unlock()
+		r.mu.Lock()
+		defer r.mu.Unlock()
 
-	for uid, p := range r.attached {
-		_ = p.ingress.Close()
-		_ = p.egress.Close()
-		p.coll.Close()
-		delete(r.attached, uid)
-	}
+		for uid, p := range r.attached {
+			_ = p.ingress.Close()
+			_ = p.egress.Close()
+			p.coll.Close()
+			delete(r.attached, uid)
+		}
 
-	r.pending = map[types.UID]uint64{}
-	if r.cd != nil {
-		_ = r.cd.Close()
-	}
+		clear(r.pending)
+		for len(r.attachQ) > 0 {
+			<-r.attachQ
+		}
+		if r.cd != nil {
+			_ = r.cd.Close()
+		}
 
-	// Close the shared map handle. The pinned inode stays on disk (under
-	// bpfPinDir), so the next heimdall process reuses it — that's the point
-	// of the pin. We're only releasing the userspace FD.
-	return r.podCounters.Close()
+		// Keep the pin for reuse by the next process; only release our FD.
+		r.closeErr = r.podCounters.Close()
+	})
+	return r.closeErr
 }

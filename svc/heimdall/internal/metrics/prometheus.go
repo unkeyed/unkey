@@ -233,17 +233,21 @@ var (
 		},
 	)
 
-	// InformerCacheSynced is 1 when the pod informer cache has completed
-	// its initial list+watch sync and 0 before that. Collection during
-	// the unsync window sees a partial pod set, which undercharges —
-	// bounded (first ~second of startup) but worth alerting on if it
-	// ever flips back to 0 at runtime (apiserver outage during watch).
 	InformerCacheSynced = lazy.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
 			Name:      "informer_cache_synced",
-			Help:      "1 when the pod informer cache is synced, 0 otherwise.",
+			Help:      "1 after the pod informer completes initial cache sync; does not indicate API connectivity or cache freshness.",
+		},
+	)
+
+	KubernetesAPIRequestErrors = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "heimdall",
+			Name:      "kubernetes_api_request_errors_total",
+			Help:      "Kubernetes API requests with transport errors or HTTP status >= 400, excluding shutdown cancellation. Does not detect stalled open watch streams.",
 		},
 	)
 )
