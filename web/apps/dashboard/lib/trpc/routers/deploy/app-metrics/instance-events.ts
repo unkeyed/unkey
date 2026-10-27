@@ -17,6 +17,7 @@ export const appMetricsInstanceEvents = workspaceProcedure
       await clickhouse.instanceEvents.crashTimeline({
         workspaceId: scope.workspaceId,
         projectId: scope.projectId,
+        appId: scope.appId,
         environmentId: scope.environmentId,
         startTime: scope.grid.startMs,
         endTime: scope.grid.endMs,

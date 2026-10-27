@@ -5,6 +5,7 @@ import { CapturingQuerier } from "./test-utils";
 const request: CrashTimelineRequest = {
   workspaceId: "ws_123",
   projectId: "proj_123",
+  appId: "app_123",
   environmentId: "env_123",
   startTime: 1,
   endTime: 2,
@@ -34,6 +35,16 @@ describe("getCrashTimeline", () => {
 
     expect(ch.queries[0]).toContain(
       "(event_kind != 'waiting' OR reason IN {waitingReasons: Array(String)})",
+    );
+  });
+
+  it("filters by app so the table's sort key prefix applies", async () => {
+    const ch = new CapturingQuerier();
+
+    await getCrashTimeline(ch)(request);
+
+    expect(ch.queries[0]).toContain(
+      "AND project_id = {projectId: String}\n          AND app_id = {appId: String}\n          AND environment_id = {environmentId: String}",
     );
   });
 });

@@ -170,6 +170,7 @@ export function getInstanceEvents(ch: Querier) {
 export const crashTimelineRequestSchema = z.object({
   workspaceId: z.string(),
   projectId: z.string(),
+  appId: z.string(),
   environmentId: z.string(),
   startTime: z.int(),
   endTime: z.int(),
@@ -201,6 +202,7 @@ export function getCrashTimeline(ch: Querier) {
         FROM ${TABLE}
         WHERE workspace_id = {workspaceId: String}
           AND project_id = {projectId: String}
+          AND app_id = {appId: String}
           AND environment_id = {environmentId: String}
           AND time >= {startTime: UInt64}
           AND time <= {endTime: UInt64}
