@@ -68,7 +68,8 @@ export default function Layout({ children }: LayoutProps) {
   const isCreationWizard =
     pathname === "/integrations/github/callback" ||
     /\/projects\/[^/]+\/apps\/new$/.test(pathname) ||
-    /\/settings\/logdrains\/new$/.test(pathname);
+    /\/settings\/logdrains\/new$/.test(pathname) ||
+    pathname === routes.cli.device();
   const billingUpgrades = useBillingUIUpgrades();
   const searchParams = useSearchParams();
   // These reads need the authenticated organization, not the workspace response.
