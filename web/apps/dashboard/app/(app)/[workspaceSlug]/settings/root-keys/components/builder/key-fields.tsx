@@ -34,15 +34,16 @@ function NameField() {
 
 type KeyFieldsProps = {
   children: ReactNode;
+  nameHidden?: boolean;
 };
 
-export function KeyFields({ children }: KeyFieldsProps) {
+export function KeyFields({ children, nameHidden = false }: KeyFieldsProps) {
   const { control } = useFormContext<RootKeyFormValues>();
   const { errors } = useFormState({ control, name: "policies" });
 
   return (
     <div className="flex flex-col gap-6">
-      <NameField />
+      {nameHidden ? null : <NameField />}
 
       <div className="flex flex-col gap-2">
         <span className="flex h-5 items-center text-sm text-gray-11">

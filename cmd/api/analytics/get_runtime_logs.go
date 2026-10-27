@@ -32,7 +32,7 @@ For full documentation, see https://www.unkey.com/docs/platform/analytics/get-ru
 			cli.String("query", "SQL query to run against runtime log data.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

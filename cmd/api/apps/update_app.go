@@ -27,7 +27,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/apps/update
 		Examples: []string{"unkey api apps update-app --project=payments --app=app_1234abcd --name='Payments API'", `unkey api apps update-app --project=payments --app=payments-api --git='{"repository":"unkeyed/api","defaultBranch":"main"}'`, `unkey api apps update-app --project=payments --app=payments-api --oci='{"image":"ghcr.io/acme/payments:v2"}'`, "unkey api apps update-app --project=payments --app=payments-api --git=null"},
 		Flags:    []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("name", "New human-readable name for the app.", cli.MutuallyExclusive("body")), cli.String("slug", "New app slug.", cli.MutuallyExclusive("body")), cli.String("git", "GitHub repository update as a JSON object, or null to disconnect.", cli.MutuallyExclusive("body")), cli.String("oci", "OCI image update as a JSON object.", cli.MutuallyExclusive("body")), cli.Bool("delete-protection", "Enable or disable delete protection for the app.", cli.MutuallyExclusive("body"))},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

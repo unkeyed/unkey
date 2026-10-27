@@ -39,7 +39,7 @@ func listDeploymentsCmd() *cli.Command {
 			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug to filter by.", cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug to filter by.", cli.MutuallyExclusive("body")), cli.String("environment", "Environment ID or slug to filter by.", cli.MutuallyExclusive("body")),
 			cli.StringSlice("status", "Lifecycle statuses to include. Valid choices: "+strings.Join(deploymentStatuses, ", ")+".", cli.Validate(validateDeploymentStatuses), cli.MutuallyExclusive("body")), cli.Int64("limit", "Maximum deployments to return per page (default 100).", cli.MutuallyExclusive("body")), cli.String("cursor", "Pagination cursor from a previous response.", cli.MutuallyExclusive("body"))},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}
