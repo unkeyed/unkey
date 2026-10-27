@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+#MISE description="Compare API trial coverage and elapsed time"
+set -euo pipefail
+
+node --input-type=module - "${1:?usage: verify-api-trial <artifacts-directory>}" <<'JS'
+import assert from "node:assert/strict";
+import { appendFileSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const root = process.argv[2];
+const readLines = (path) => readFileSync(path, "utf8").trim().split("\n").filter(Boolean);
+const unique = (values, label) => {
+  assert.equal(new Set(values).size, values.length, `${label}: duplicate entries`);
+  return [...values].sort();
+};
+
+function readRun(name) {
+  const directory = join(root, name);
+  const candidates = unique(readLines(join(directory, "candidates.txt")), `${name} candidates`);
+  const assigned = unique(readLines(join(directory, "assigned.txt")), `${name} assignments`);
+  const run = JSON.parse(readFileSync(join(directory, "run.json"), "utf8"));
+  const outcomes = readLines(join(directory, "outcomes.jsonl")).map((line) => JSON.parse(line));
+  assert.equal(run.exitCode, 0, `${name}: test command failed`);
+  assert.ok(Number.isFinite(run.elapsedSeconds) && run.elapsedSeconds > 0, `${name}: invalid duration`);
+  assert.ok(Number.isInteger(run.cpuCount) && run.cpuCount > 0, `${name}: invalid CPU count`);
+  assert.ok(candidates.length > 0 && assigned.length > 0, `${name}: no packages`);
+  assert.ok(assigned.every((packageName) => candidates.includes(packageName)), `${name}: unknown package`);
+  assert.ok(outcomes.every((event) => event.Action === "pass" || event.Action === "skip"), `${name}: failed tests`);
+  const packages = unique(outcomes.filter((event) => !event.Test).map((event) => event.Package), `${name} completed packages`);
+  assert.deepEqual(packages, assigned, `${name}: assigned packages did not all finish`);
+  const tests = outcomes.filter((event) => event.Test);
+  assert.ok(tests.some((event) => event.Action === "pass"), `${name}: no passing tests executed`);
+  return { candidates, assigned, tests, elapsedSeconds: run.elapsedSeconds, cpuCount: run.cpuCount };
+}
+
+const baseline = readRun("baseline-0");
+const shards = [readRun("split-0"), readRun("split-1")];
+assert.deepEqual(baseline.assigned, baseline.candidates, "baseline did not run the complete suite");
+for (const shard of shards) {
+  assert.deepEqual(shard.candidates, baseline.candidates, "candidate lists differ between jobs");
+  assert.equal(shard.cpuCount, baseline.cpuCount, "runner CPU counts differ");
+}
+const assigned = unique(shards.flatMap((shard) => shard.assigned), "combined shards");
+assert.deepEqual(assigned, baseline.assigned, "shards do not cover the baseline packages");
+const testResults = (tests) => unique(
+  tests.map((event) => JSON.stringify([event.Package, event.Test, event.Action])),
+  "test results",
+);
+assert.deepEqual(
+  testResults(shards.flatMap((shard) => shard.tests)),
+  testResults(baseline.tests),
+  "test names or pass/skip outcomes differ between baseline and shards",
+);
+
+const seconds = (value) => `${value.toFixed(2)}s`;
+const elapsedSplit = Math.max(...shards.map((shard) => shard.elapsedSeconds));
+const elapsedAggregate = shards.reduce((total, shard) => total + shard.elapsedSeconds, 0);
+const passed = baseline.tests.filter((event) => event.Action === "pass").length;
+const skipped = baseline.tests.length - passed;
+const summary = [
+  "## API test splitting trial",
+  "",
+  `Coverage verified: ${assigned.length} packages, ${passed} passed test events, ${skipped} skipped test events. No missing or duplicate package assignments.`,
+  "",
+  "| Configuration | Test command duration | Aggregate test runner time |",
+  "| --- | --- | --- |",
+  `| One ${baseline.cpuCount}-CPU runner | ${seconds(baseline.elapsedSeconds)} | ${seconds(baseline.elapsedSeconds)} |`,
+  `| Two ${baseline.cpuCount}-CPU runners | ${seconds(elapsedSplit)} (slowest shard) | ${seconds(elapsedAggregate)} |`,
+  "",
+  ...shards.map((shard, index) => `Shard ${index}: ${shard.assigned.length} packages, ${seconds(shard.elapsedSeconds)}.`),
+  "",
+  "One sample per configuration. Test-result caching is disabled. Durations include Go compilation and test/container startup, but exclude runner/tool setup, report upload, and container cleanup. Compare complete job durations before adopting. The first split can use fallback weights until Depot has timing history.",
+  "",
+  "External API smoke tests have no credentials and remain skipped. No production endpoint is tested.",
+  "",
+].join("\n");
+console.log(summary);
+if (process.env.GITHUB_STEP_SUMMARY) {
+  appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+}
+JS

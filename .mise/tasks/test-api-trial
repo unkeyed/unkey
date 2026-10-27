@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#MISE description="Run Depot-assigned API test packages with JUnit reporting"
+set -euo pipefail
+
+results="${1:?usage: test-api-trial <results-directory>}"
+mapfile -t packages
+if [ "${#packages[@]}" -eq 0 ]; then
+  echo "No API packages assigned" >&2
+  exit 1
+fi
+for package in "${packages[@]}"; do
+  if [[ ! "$package" =~ ^github\.com/unkeyed/unkey/svc/api(/[-a-zA-Z0-9_]+)*$ ]]; then
+    echo "Invalid API package: $package" >&2
+    exit 1
+  fi
+done
+
+mkdir -p "$results"
+printf '%s\n' "${packages[@]}" > "$results/assigned.txt"
+export UNKEY_TEST_COMPOSE_PROJECT="unkey-api-trial-$$"
+unset UNKEY_ROOT_KEY UNKEY_API_BASE_URL UNKEY_TEST_KEEP_RESTATE
+
+cleanup() {
+  local status=$?
+  local projects=""
+  projects="$(docker compose ls --all --format json | jq -r \
+    --arg prefix "${UNKEY_TEST_COMPOSE_PROJECT}-" \
+    '.[] | select(.Name | startswith($prefix)) | .Name')" || true
+  for project in "$UNKEY_TEST_COMPOSE_PROJECT" $projects; do
+    docker compose -f pkg/testutil/docker-compose.test.yaml -p "$project" down --volumes >/dev/null 2>&1 || true
+  done
+  exit "$status"
+}
+trap cleanup EXIT
+
+started="$(date +%s%N)"
+status=0
+gotestsum --junitfile "$results/junit.xml" --jsonfile "$results/raw.jsonl" \
+  --junitfile-testcase-classname full --junitfile-testsuite-name full \
+  -- -count=1 -p=8 -parallel=8 -timeout=15m "${packages[@]}" || status=$?
+finished="$(date +%s%N)"
+jq -n --argjson started "$started" --argjson finished "$finished" --argjson status "$status" \
+  --argjson cpuCount "$(nproc)" \
+  '{elapsedSeconds: (($finished - $started) / 1000000000), exitCode: $status, cpuCount: $cpuCount}' > "$results/run.json"
+jq -c 'select(.Action == "pass" or .Action == "fail" or .Action == "skip") | {Action, Package, Test, Elapsed}' \
+  "$results/raw.jsonl" > "$results/outcomes.jsonl"
+rm "$results/raw.jsonl"
+exit "$status"

@@ -1,0 +1,3 @@
+[tools]
+"github:depot/cli" = "2.103.3"
+"github:gotestyourself/gotestsum" = "1.13.0"

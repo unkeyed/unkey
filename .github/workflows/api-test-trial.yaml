@@ -1,0 +1,78 @@
+name: API Test Splitting Trial
+on:
+  push:
+    branches: [trial/api-test-splitting]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: api-test-trial-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    name: API ${{ matrix.mode }} (${{ matrix.index }})
+    runs-on: depot-ubuntu-24.04-8
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: baseline
+            index: 0
+            total: 1
+          - mode: split
+            index: 0
+            total: 2
+          - mode: split
+            index: 1
+            total: 2
+    env:
+      MISE_ENV: api-test-trial
+      RESULTS: test-results/${{ matrix.mode }}-${{ matrix.index }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Discover API test packages
+        run: |
+          mkdir -p "$RESULTS"
+          mise exec -- go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./svc/api/... \
+            | LC_ALL=C sort > "$RESULTS/candidates.txt"
+          test -s "$RESULTS/candidates.txt"
+      - name: Run API tests
+        run: |
+          mise exec -- depot tests run \
+            --candidates-file "$RESULTS/candidates.txt" \
+            --candidate-type classname \
+            --index '${{ matrix.index }}' --total '${{ matrix.total }}' \
+            --split-key api-test-trial --report-key api-test-trial \
+            --command 'mise run test-api-trial "$RESULTS"' \
+            --report-path "$RESULTS/junit.xml"
+      - name: Upload trial results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: ${{ matrix.mode }}-${{ matrix.index }}
+          path: ${{ env.RESULTS }}/
+          if-no-files-found: error
+          retention-days: 7
+  compare:
+    name: Verify API coverage and compare durations
+    needs: test
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          path: test-results
+      - name: Verify assignments and outcomes
+        run: mise run verify-api-trial test-results
