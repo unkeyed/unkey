@@ -56,7 +56,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 
 	// Test case for API that's already deleted
@@ -84,7 +84,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 
 	t.Run("API belongs to different workspace", func(t *testing.T) {
@@ -105,6 +105,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 }

@@ -131,7 +131,7 @@ func TestWorkerRejections(t *testing.T) {
 			detail:     "source deployment d_KEBAP does not belong to app app_KEBAP",
 			status:     http.StatusNotFound,
 			docs:       "https://unkey.com/docs/errors/unkey/data/deployment_not_found",
-			wantDetail: "Resource does not exist.",
+			wantDetail: "The project, app, environment, or deployment does not exist.",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

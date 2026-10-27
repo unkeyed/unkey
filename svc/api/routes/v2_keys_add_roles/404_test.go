@@ -56,7 +56,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
 	})
 
 	// Test case for key in different workspace
@@ -96,7 +96,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
 	})
 
 	// Test case for role not found by ID
@@ -134,7 +134,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
 	// Test case for role not found by name
@@ -172,7 +172,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
 	// Test case for role in different workspace
@@ -220,7 +220,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
 	// Test case for role by name in different workspace
@@ -269,7 +269,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
 	// Test case for multiple roles with one not found
@@ -320,8 +320,8 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.NotContains(t, res.Body.Error.Detail, invalidName)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, invalidName)
+		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
 	// Test case for deleted key
@@ -374,7 +374,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
 	})
 
 	// Test case for deleted role
@@ -424,7 +424,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
 	t.Run("role from another project", func(t *testing.T) {

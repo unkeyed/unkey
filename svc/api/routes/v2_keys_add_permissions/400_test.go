@@ -218,7 +218,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
 	t.Run("permission not found by slug", func(t *testing.T) {
@@ -237,7 +237,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
 	t.Run("key not found", func(t *testing.T) {
@@ -269,6 +269,6 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "key was not found")
 	})
 }

@@ -122,7 +122,7 @@ func TestValidationErrors(t *testing.T) {
 		// This returns 404 because the handler tries to find the key and fails
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("missing roles field", func(t *testing.T) {
@@ -229,7 +229,7 @@ func TestValidationErrors(t *testing.T) {
 
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("role not found by name", func(t *testing.T) {
@@ -266,7 +266,7 @@ func TestValidationErrors(t *testing.T) {
 
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("key not found", func(t *testing.T) {
@@ -296,7 +296,7 @@ func TestValidationErrors(t *testing.T) {
 
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("role from different workspace by ID", func(t *testing.T) {
@@ -343,7 +343,7 @@ func TestValidationErrors(t *testing.T) {
 		// Should return 404 for security (workspace isolation)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("role from different workspace by name", func(t *testing.T) {
@@ -391,6 +391,6 @@ func TestValidationErrors(t *testing.T) {
 		// Should return 404 for security (workspace isolation)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 }

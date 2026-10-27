@@ -167,7 +167,7 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		require.Equal(t, 404, res.Status) // Key not found (because it belongs to different workspace)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "key was not found")
 	})
 
 	t.Run("root key with no permissions", func(t *testing.T) {

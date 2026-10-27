@@ -116,7 +116,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "The provided root key is invalid. The requested workspace does not exist.", res.Body.Error.Detail)
 	})
 }
 

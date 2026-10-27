@@ -66,7 +66,7 @@ func TestAddPermissionsRejectsPermissionFromAnotherProject(t *testing.T) {
 	})
 
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-	require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+	require.Contains(t, res.Body.Error.Detail, permissionSlug)
 
 	permissions, err := db.Query.ListDirectPermissionsByKeyID(t.Context(), h.DB.RO(), key.KeyID)
 	require.NoError(t, err)

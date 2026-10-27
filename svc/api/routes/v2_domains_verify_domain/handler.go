@@ -59,12 +59,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Domain.NotFound.URN()),
-				fault.Internal(fmt.Sprintf("no custom domain %q in workspace %s", identifier, principal.AuthorizedWorkspaceID)),
-				fault.Public("The requested domain does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Domain.NotFound.URN())
 		}
 		return fault.Wrap(
 			err,
@@ -115,12 +110,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		//nolint:exhaustive // all other Connect error codes fall through to the generic mapping
 		switch connect.CodeOf(err) {
 		case connect.CodeNotFound:
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Domain.NotFound.URN()),
-				fault.Internal(fmt.Sprintf("ctrl has no domain %q for project %s while row %s exists: %s", domain.Domain, domain.ProjectID, domain.ID, err.Error())),
-				fault.Public("The requested domain does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Domain.NotFound.URN())
 		// Ctrl re-checks the verified guard the handler already passed, so a
 		// precondition failure here means the state changed between the two checks.
 		case connect.CodeFailedPrecondition:

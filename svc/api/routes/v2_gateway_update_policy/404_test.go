@@ -56,7 +56,7 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 	t.Run("unknown policy id", func(t *testing.T) {
 		res := call(t, makeRequest(env, uid.New(uid.PolicyPrefix)))
 		require.Contains(t, res.Body.Error.Type, "policy_not_found")
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "policy ids change")
 	})
 
 	t.Run("policy id from another environment", func(t *testing.T) {

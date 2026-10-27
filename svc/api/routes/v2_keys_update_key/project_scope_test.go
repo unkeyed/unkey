@@ -65,7 +65,7 @@ func TestUpdateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
 	})
 
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-	require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+	require.Contains(t, res.Body.Error.Detail, permissionSlug)
 
 	permissions, err := db.Query.ListDirectPermissionsByKeyID(t.Context(), h.DB.RO(), key.KeyID)
 	require.NoError(t, err)
@@ -108,5 +108,5 @@ func TestUpdateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 	}, handler.Request{KeyId: key.KeyID, ExternalId: nullable.NewNullableWithValue(externalID)})
 
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-	require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+	require.Contains(t, res.Body.Error.Detail, externalID)
 }

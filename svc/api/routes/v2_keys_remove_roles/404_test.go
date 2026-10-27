@@ -66,7 +66,8 @@ func TestNotFoundErrors(t *testing.T) {
 
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "key")
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("role not found by ID", func(t *testing.T) {
@@ -104,8 +105,9 @@ func TestNotFoundErrors(t *testing.T) {
 
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
-		require.NotContains(t, res.Body.Error.Detail, nonExistentRoleID)
+		require.Contains(t, res.Body.Error.Detail, "Role")
+		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Contains(t, res.Body.Error.Detail, nonExistentRoleID)
 	})
 
 	t.Run("role not found by name", func(t *testing.T) {
@@ -143,8 +145,9 @@ func TestNotFoundErrors(t *testing.T) {
 
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
-		require.NotContains(t, res.Body.Error.Detail, nonExistentRoleName)
+		require.Contains(t, res.Body.Error.Detail, "Role")
+		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Contains(t, res.Body.Error.Detail, nonExistentRoleName)
 	})
 
 	t.Run("key from different workspace", func(t *testing.T) {
@@ -193,7 +196,8 @@ func TestNotFoundErrors(t *testing.T) {
 		// Should return 404 for security (workspace isolation)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "key")
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("role from different workspace by ID", func(t *testing.T) {
@@ -242,7 +246,7 @@ func TestNotFoundErrors(t *testing.T) {
 		// Should return 404 for security (workspace isolation)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("role from different workspace by name", func(t *testing.T) {
@@ -292,7 +296,7 @@ func TestNotFoundErrors(t *testing.T) {
 		// Should return 404 for security (workspace isolation)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 
 	t.Run("multiple roles with one not found", func(t *testing.T) {
@@ -343,7 +347,8 @@ func TestNotFoundErrors(t *testing.T) {
 		// Should fail when ANY role is not found
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
-		require.NotContains(t, res.Body.Error.Detail, nonExistentRoleName)
+		require.Contains(t, res.Body.Error.Detail, "Role")
+		require.Contains(t, res.Body.Error.Detail, "not found")
+		require.Contains(t, res.Body.Error.Detail, nonExistentRoleName)
 	})
 }

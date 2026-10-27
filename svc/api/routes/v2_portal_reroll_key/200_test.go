@@ -180,7 +180,7 @@ func TestPortalSessionCannotRerollOtherIdentityKey(t *testing.T) {
 	res := testutil.CallRoute[Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 
 	require.Equal(t, 404, res.Status, "rerolling another identity's key should return 404")
-	require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+	require.Equal(t, "The specified key was not found.", res.Body.Error.Detail)
 	require.NotContains(t, res.RawBody, otherKey.KeyID)
 }
 

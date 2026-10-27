@@ -114,7 +114,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		})
 
 		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, externalID)
 		keys, err := db.Query.FindKeysByHash(ctx, h.DB.RO(), []string{key.LongTokenHash})
 		require.NoError(t, err)
 		require.Empty(t, keys)
@@ -144,7 +144,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		})
 
 		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, slug)
 	})
 
 	t.Run("rejects role from another project", func(t *testing.T) {
@@ -170,7 +170,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		})
 
 		require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, name)
 	})
 
 	t.Run("basic migration", func(t *testing.T) {

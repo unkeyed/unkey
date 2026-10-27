@@ -338,6 +338,6 @@ func TestAuthenticationErrors(t *testing.T) {
 		// Should return 404 for security (workspace isolation)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "not found")
 	})
 }

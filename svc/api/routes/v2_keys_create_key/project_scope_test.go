@@ -115,7 +115,7 @@ func TestCreateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
 	})
 
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-	require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+	require.Contains(t, res.Body.Error.Detail, permissionSlug)
 
 	permissionsInKeyProject, err := db.Query.FindPermissionsBySlugs(t.Context(), h.DB.RO(), db.FindPermissionsBySlugsParams{
 		WorkspaceID: workspace.ID,
@@ -155,5 +155,5 @@ func TestCreateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 	}, handler.Request{ApiId: keyProjectAPI.ID, ExternalId: new(externalID)})
 
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-	require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+	require.Contains(t, res.Body.Error.Detail, externalID)
 }

@@ -62,12 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New(
-				"environment not found",
-				fault.Code(codes.Data.Environment.NotFound.URN()),
-				fault.Internal("environment not found"),
-				fault.Public("The requested environment does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Environment.NotFound.URN())
 		}
 		return fault.Wrap(
 			err,

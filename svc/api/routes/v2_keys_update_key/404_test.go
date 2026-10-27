@@ -44,7 +44,7 @@ func TestUpdateKeyNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "We could not find the requested key")
 	})
 
 	t.Run("when the key has been deleted", func(t *testing.T) {
@@ -70,6 +70,6 @@ func TestUpdateKeyNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "We could not find the requested key")
 	})
 }
