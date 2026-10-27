@@ -128,6 +128,8 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 			Healthcheck:                   row.DeploymentHealthcheck,
 			K8sNamespace:                  row.K8sNamespace,
 			EnvironmentSlug:               row.EnvironmentSlug,
+			EnvironmentKind:               row.EnvironmentKind,
+			Capabilities:                  row.DeploymentCapabilities,
 			RegionName:                    row.RegionName,
 			GitRepo:                       row.GitRepo,
 		}
@@ -168,7 +170,9 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 			Port:                          deployment.Port,
 			ShutdownSignal:                string(deployment.ShutdownSignal),
 			EnvironmentSlug:               &deployment.EnvironmentSlug,
+			EnvironmentKind:               string(deployment.EnvironmentKind),
 			Region:                        &deployment.RegionName,
+			Capabilities:                  &ctrlv1.DeploymentCapabilities{PrivateNetworking: deployment.Capabilities.PrivateNetworking},
 		}
 
 		if deployment.GitCommitSha.Valid {
