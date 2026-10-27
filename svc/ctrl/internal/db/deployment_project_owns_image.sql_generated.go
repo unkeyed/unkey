@@ -16,7 +16,6 @@ SELECT EXISTS (
     FROM deployments
     WHERE project_id = ?
       AND image_resolved = ?
-    LIMIT 1
 ) AS owns_image
 `
 
@@ -32,7 +31,6 @@ type DeploymentProjectOwnsImageParams struct {
 //	    FROM deployments
 //	    WHERE project_id = ?
 //	      AND image_resolved = ?
-//	    LIMIT 1
 //	) AS owns_image
 func (q *Queries) DeploymentProjectOwnsImage(ctx context.Context, arg DeploymentProjectOwnsImageParams) (bool, error) {
 	row := q.db.QueryRowContext(ctx, deploymentProjectOwnsImage, arg.ProjectID, arg.ImageResolved)

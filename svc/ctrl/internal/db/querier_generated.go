@@ -509,7 +509,6 @@ type Querier interface {
 	//      FROM deployments
 	//      WHERE project_id = ?
 	//        AND image_resolved = ?
-	//      LIMIT 1
 	//  ) AS owns_image
 	DeploymentProjectOwnsImage(ctx context.Context, arg DeploymentProjectOwnsImageParams) (bool, error)
 	//EndActiveDeploymentStepsForDeployments

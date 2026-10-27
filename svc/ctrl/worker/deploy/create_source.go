@@ -145,8 +145,11 @@ func imageSource(image string, commit gitCommit, normalize func(string) (string,
 }
 
 // ownedImageSource normalizes an image and refuses one from the build
-// repository unless the caller's project built it. Every project pushes to that
-// one repository, and ctrl and krane pull from it with Unkey's credentials.
+// repository unless the caller's project built it. The build repository is
+// [RegistryConfig.Repository], for example registry.depot.dev/<org>. Builds of
+// every project are pushed there as <projectID>-<deploymentID> tags, and ctrl
+// and krane pull from it with Unkey's credentials, so without this check one
+// project could deploy another project's build.
 func (w *Workflow) ownedImageSource(
 	ctx context.Context,
 	projectID, image string,
@@ -161,17 +164,13 @@ func (w *Workflow) ownedImageSource(
 		return normalized, nil
 	}
 
-	refused := newRejectedSource(rejectf(
-		hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
-		"images in the Unkey build registry can only be deployed by the project that built them",
-	))
 	buildRepository, err := name.NewRepository(w.registryConfig.Repository, name.WeakValidation)
 	if err != nil {
 		return resolvedSource{}, fmt.Errorf("invalid build registry repository: %w", err)
 	}
 	reference, err := name.ParseReference(normalized.Source.Image, name.WeakValidation)
 	if err != nil {
-		return refused, nil
+		return newRejectedSource(rejectf(hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, "%s", err.Error())), nil
 	}
 	if !sameRepository(reference.Context(), buildRepository) {
 		return normalized, nil
@@ -191,7 +190,10 @@ func (w *Workflow) ownedImageSource(
 		}
 	}
 	if !owned {
-		return refused, nil
+		return newRejectedSource(rejectf(
+			hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
+			"images in the Unkey build registry can only be deployed by the project that built them",
+		)), nil
 	}
 	return normalized, nil
 }
