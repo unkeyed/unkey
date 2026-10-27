@@ -47,6 +47,7 @@ func PathsFromSpec(spec []byte) ([]string, error) {
 		truncated:     make(map[string]struct{}),
 		annotated:     make(map[string]bool),
 		unaddressable: nil,
+		inexpressible: nil,
 	}
 
 	for _, item := range mapAt(doc, "paths") {
@@ -89,6 +90,14 @@ func PathsFromSpec(spec []byte) ([]string, error) {
 		return nil, fault.New("only a property can carry " + Extension + ", found it on: " + strings.Join(w.unaddressable, ", "))
 	}
 
+	// A member name the path grammar cannot carry would emit a path that never
+	// matches the body, leaving the annotated value unredacted.
+	if len(w.inexpressible) > 0 {
+		sort.Strings(w.inexpressible)
+
+		return nil, fault.New("property name cannot be expressed as a redaction path: " + strings.Join(w.inexpressible, ", "))
+	}
+
 	paths := make([]string, 0, len(w.found))
 	for p := range w.found {
 		paths = append(paths, p)
@@ -110,6 +119,10 @@ type walker struct {
 	// unaddressable collects annotations on schemas that are not properties, so
 	// they fail loudly instead of doing nothing.
 	unaddressable []string
+
+	// inexpressible collects annotated paths whose member names the path grammar
+	// cannot carry, which would otherwise silently never match.
+	inexpressible []string
 
 	// annotated memoizes whether a component's subtree contains an annotation.
 	annotated map[string]bool
@@ -140,7 +153,11 @@ func (w *walker) walk(schema map[string]any, path []string, visiting map[string]
 			}
 		}
 		if annotatedHere {
-			w.found[strings.Join(extend(path, name), ".")] = struct{}{}
+			segments := extend(path, name)
+			if !expressible(segments) {
+				w.inexpressible = append(w.inexpressible, strings.Join(segments, "."))
+			}
+			w.found[strings.Join(segments, ".")] = struct{}{}
 		}
 
 		w.walk(property, extend(path, name), visiting)
@@ -306,6 +323,25 @@ func extend(path []string, segment string) []string {
 	out[len(path)] = segment
 
 	return out
+}
+
+// expressible reports whether every segment of a path can be written in the
+// grammar [New] parses, which reserves '.' for nesting and '[]' for array steps.
+// A member named "a.b" or "a[0]" would otherwise be read as two members or as
+// an array step, and never match the body.
+func expressible(segments []string) bool {
+	for _, segment := range segments {
+		label := segment
+		for strings.HasSuffix(label, "[]") {
+			label = label[:len(label)-2]
+		}
+
+		if strings.ContainsAny(label, ".[]") {
+			return false
+		}
+	}
+
+	return true
 }
 
 // bodySchema extracts the JSON schema from a requestBody or response object.
