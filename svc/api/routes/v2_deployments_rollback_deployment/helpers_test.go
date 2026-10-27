@@ -55,9 +55,3 @@ func setCurrentDeployment(t *testing.T, h *testutil.Harness, appID, deploymentID
 func writeEnvironments(workspaceID string) string {
 	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Write).Value
 }
-
-// readEnvironments is the permission to read but not write every environment,
-// so the handler refuses the caller.
-func readEnvironments(workspaceID string) string {
-	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Read).Value
-}

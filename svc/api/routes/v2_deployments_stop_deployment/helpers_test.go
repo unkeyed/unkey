@@ -36,9 +36,3 @@ func authHeaders(rootKey string) http.Header {
 func writeDeployments(workspaceID string) string {
 	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value
 }
-
-// readDeployments is the permission to read but not write every deployment,
-// so the handler refuses the caller.
-func readDeployments(workspaceID string) string {
-	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Read).Value
-}
