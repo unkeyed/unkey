@@ -105,6 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			principal.Permissions,
 			permissionQuery,
 			codes.Data.RatelimitOverride.NotFound.URN(),
+			"Resource does not exist.",
 		)
 	}
 

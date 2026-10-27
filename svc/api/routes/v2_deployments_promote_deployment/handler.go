@@ -79,7 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permissionQuery,
 			deployment.Visibility(principal.AuthorizedWorkspaceID, dep),
 			codes.Data.Deployment.NotFound.URN(),
-			"The requested deployment does not exist.",
+			"Resource does not exist.",
 		)
 	}
 

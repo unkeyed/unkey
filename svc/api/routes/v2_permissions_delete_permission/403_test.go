@@ -67,7 +67,7 @@ func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 		)
 
 		require.Equal(t, http.StatusNotFound, res.Status)
-		require.Equal(t, "The requested permission does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.NotContains(t, res.RawBody, permissionID)
 
 		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)
@@ -116,7 +116,7 @@ func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 		)
 
 		require.Equal(t, http.StatusNotFound, res.Status)
-		require.Equal(t, "The requested permission does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 
 	// Test case for wrong workspace

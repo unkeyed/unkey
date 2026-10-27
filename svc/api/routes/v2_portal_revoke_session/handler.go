@@ -148,7 +148,7 @@ func (h *Handler) authorizedPortal(ctx context.Context, principal *authprincipal
 	)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return db.Portal{}, apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Portal.NotFound.URN())
+		return db.Portal{}, apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Portal.NotFound.URN(), "Resource does not exist.")
 	}
 
 	return found, nil

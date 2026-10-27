@@ -90,7 +90,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Deployment.NotFound.URN())
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Deployment.NotFound.URN(), "Resource does not exist.")
 	}
 
 	page, err := h.ClickHouse.GetBuildLogs(ctx, clickhouse.GetBuildLogsRequest{

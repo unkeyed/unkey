@@ -76,7 +76,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Portal.NotFound.URN())
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Portal.NotFound.URN(), "Resource does not exist.")
 	}
 
 	now := h.Clock.Now().UnixMilli()

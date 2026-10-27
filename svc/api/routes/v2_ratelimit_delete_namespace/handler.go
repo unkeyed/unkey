@@ -79,6 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				principal.Permissions,
 				permissionQuery,
 				codes.Data.RatelimitNamespace.NotFound.URN(),
+				"Resource does not exist.",
 			)
 		}
 

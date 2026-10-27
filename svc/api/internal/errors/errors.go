@@ -67,16 +67,16 @@ func NotFound(code codes.URN) error {
 //
 // granted and query are the principal permissions and the query that produced
 // err. When err is an insufficient-permissions denial and the caller cannot
-// read the resource, the result is a fresh not-found fault using code,
-// with no permission text attached. When the caller can read the
+// read the resource, the result is a fresh not-found fault using code and
+// public, with no permission text attached. When the caller can read the
 // resource, the result is a fresh insufficient-permissions fault whose public
 // message names the missing permission or permissions and says to log in again
 // or grant them. Any other error, including a nil error, is returned unchanged.
 //
 // The result is never a wrap of err. Public messages in a fault chain are
 // concatenated into the response, and the denial names resource ids.
-func MaskInsufficientPermissionsAsNotFound(err error, granted []string, query rbac.PermissionQuery, code codes.URN) error {
-	return MaskInsufficientPermissionsWithVisibility(err, granted, query, query, code)
+func MaskInsufficientPermissionsAsNotFound(err error, granted []string, query rbac.PermissionQuery, code codes.URN, public string) error {
+	return MaskInsufficientPermissionsWithVisibility(err, granted, query, query, code, public)
 }
 
 // MaskInsufficientPermissionsWithVisibility is
@@ -86,7 +86,7 @@ func MaskInsufficientPermissionsAsNotFound(err error, granted []string, query rb
 // for the resource the not-found response hides. required is the query that
 // produced err, so the 403 names the action the route demanded rather than
 // offering the read as a substitute.
-func MaskInsufficientPermissionsWithVisibility(err error, granted []string, required, visibility rbac.PermissionQuery, code codes.URN) error {
+func MaskInsufficientPermissionsWithVisibility(err error, granted []string, required, visibility rbac.PermissionQuery, code codes.URN, public string) error {
 	errCode, ok := fault.GetCode(err)
 	if !ok || errCode != codes.Auth.Authorization.InsufficientPermissions.URN() {
 		return err
@@ -94,7 +94,11 @@ func MaskInsufficientPermissionsWithVisibility(err error, granted []string, requ
 	if rbac.CanRead(visibility, granted) {
 		return readablePermissionDenied(required, granted)
 	}
-	return NotFound(code)
+	return fault.New("resource not found",
+		fault.Code(code),
+		fault.Internal("masking insufficient permissions as not found"),
+		fault.Public(public),
+	)
 }
 
 func readablePermissionDenied(required rbac.PermissionQuery, granted []string) error {

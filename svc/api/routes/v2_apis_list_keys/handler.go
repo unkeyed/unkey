@@ -126,6 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			principal.Permissions,
 			permissionQuery,
 			codes.Data.Api.NotFound.URN(),
+			"Resource does not exist.",
 		)
 	}
 
@@ -149,7 +150,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				principal.Permissions,
 				decryptQuery,
 				codes.Data.Api.NotFound.URN(),
-				"The requested API does not exist or has been deleted.",
+				"Resource does not exist.",
 			)
 		}
 

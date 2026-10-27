@@ -66,7 +66,7 @@ func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 		)
 
 		require.Equal(t, http.StatusNotFound, res.Status)
-		require.Equal(t, "The requested role does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.NotContains(t, res.RawBody, roleID)
 	})
 

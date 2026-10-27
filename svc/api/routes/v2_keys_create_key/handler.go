@@ -59,7 +59,7 @@ func maskCreateKeyPermissions(err error, granted []string, query rbac.Permission
 			rbac.U(keyspace.Key("*"), permissions.Read),
 		),
 		codes.Data.Api.NotFound.URN(),
-		"The specified API was not found.",
+		"Resource does not exist.",
 	)
 }
 
