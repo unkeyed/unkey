@@ -6,10 +6,13 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 )
 
-// sameRepository compares two repositories, ignoring host case and an explicit
-// :443. The ownership check and the resolver both use it, so an image they see
-// as outside the build repository is also fetched without its credentials.
-// For example, "Registry.Unkey.cloud:443/builds" matches "registry.unkey.cloud/builds".
+// sameRepository reports whether two references name the same repository.
+// Host names are case-insensitive and :443 is the HTTPS default, so
+// "Registry.Depot.dev:443/<org>" and "registry.depot.dev/<org>" reach the same
+// registry. The caller writes the image string, so a plain string comparison
+// would let another spelling of the build repository skip the ownership check.
+// The resolver uses the same function to decide when to send Unkey's
+// credentials, so the check and the pull always agree on which images are ours.
 func sameRepository(a, b name.Repository) bool {
 	sameHost := strings.EqualFold(strings.TrimSuffix(a.RegistryStr(), ":443"), strings.TrimSuffix(b.RegistryStr(), ":443"))
 	return sameHost && strings.EqualFold(a.RepositoryStr(), b.RepositoryStr())
