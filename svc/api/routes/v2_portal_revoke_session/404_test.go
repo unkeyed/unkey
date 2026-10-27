@@ -33,7 +33,7 @@ func TestRevokeSessionUnknownPortal(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, request(target, "user_1"))
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-			require.Equal(t, "Portal not found.", res.Body.Error.Detail)
+			require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		})
 	}
 

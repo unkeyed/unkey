@@ -151,7 +151,7 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "identity does not exist")
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
