@@ -3,18 +3,26 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { LogsDateTime } from "./components/logs-datetime";
+import { OPTIONS_WITHOUT_MINUTES } from "@/components/logs/datetime/constants";
+import { TimeRangeFilter } from "@/components/time-range-filter";
+import { useFilters } from "../../hooks/use-filters";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
 export function KeysOverviewLogsControls({ apiId }: { apiId: string }) {
+  const { filters, updateFilters } = useFilters();
   return (
     <ControlsContainer>
       <ControlsLeft>
         <LogsSearch apiId={apiId} />
         <LogsFilters />
-        <LogsDateTime />
+        <TimeRangeFilter
+          filters={filters}
+          updateFilters={updateFilters}
+          look="logsCompact"
+          customOptions={OPTIONS_WITHOUT_MINUTES}
+        />
       </ControlsLeft>
       <ControlsRight>
         <LogsRefresh />

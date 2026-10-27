@@ -94,3 +94,7 @@ export const DEFAULT_OPTIONS: OptionsType = [
 ];
 
 export const CUSTOM_OPTION_ID = DEFAULT_OPTIONS.find((o) => o.value === undefined)?.id;
+
+export const OPTIONS_WITHOUT_MINUTES = DEFAULT_OPTIONS.filter(
+  (option) => !option.value || !option.value.endsWith("m"),
+);
