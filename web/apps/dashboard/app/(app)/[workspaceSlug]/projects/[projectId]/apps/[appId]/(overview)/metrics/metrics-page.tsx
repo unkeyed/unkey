@@ -33,7 +33,6 @@ import { InstancesTab } from "./instances-tab";
 import { MetricCard } from "./metric-card";
 import { MetricPanel } from "./metric-panel";
 import { METRICS_TABS, type MetricsPageModel, TABS } from "./model";
-import { RegionSelect } from "./region-select";
 import { ReplicaSheet } from "./replica-sheet";
 import { type MetricsPageController, useMetricsPage } from "./use-metrics-page";
 
@@ -125,7 +124,7 @@ function ReadyMetrics({ model, page }: { model: ReadyModel; page: MetricsPageCon
               syncId={SYNC_ID}
               onOpen={page.openReplica}
               logsHref={page.logsHref}
-              onClearInstance={page.clearInstance}
+              onFilterChange={page.setFilter}
             />
           ))
           .exhaustive()}
@@ -155,16 +154,8 @@ function chartMarkers(model: ReadyModel, page: MetricsPageController): ChartMark
 }
 
 function MetricsControls({ page }: { page: MetricsPageController }) {
-  const regionFilter = page.model.kind === "ready" ? page.model.regionFilter : null;
   return (
     <>
-      {regionFilter && (
-        <RegionSelect
-          regions={regionFilter.regions}
-          value={regionFilter.region}
-          onChange={page.setRegion}
-        />
-      )}
       <EnvironmentSelect
         includeAll={false}
         value={page.environmentId ?? ""}

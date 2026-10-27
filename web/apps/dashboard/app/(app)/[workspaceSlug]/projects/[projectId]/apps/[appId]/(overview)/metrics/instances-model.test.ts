@@ -88,10 +88,11 @@ const usage: InstanceSeries = {
 
 function view(input: Partial<Parameters<typeof instancesTabView>[0]> = {}) {
   const result = instancesTabView({
+    grid,
     instances: ready([usEast, euCentral, previous, crashing]),
     usage: ready(usage),
-    region: null,
-    selected: null,
+    events: ready([]),
+    filter: { regions: [], statuses: [], instances: [] },
     ...input,
   });
   if (result.status !== "ready") {
@@ -148,7 +149,7 @@ describe("instance tones and instanceSrLabel", () => {
   });
 
   it("shows the crash, then the previous deploy, then the state as row status", () => {
-    const [crashed, , current, old] = view().rows.map((r) => r.instance.statusText);
+    const [current, crashed, , old] = view().rows.map((r) => r.instance.statusText);
     expect([crashed, current, old]).toEqual([
       "CrashLoopBackOff · 7 restarts",
       "Running",
@@ -159,21 +160,30 @@ describe("instance tones and instanceSrLabel", () => {
 
 describe("instancesTabView", () => {
   it("passes loading, failure and no instances through as their own states", () => {
-    const base = { usage: ready(usage), region: null, selected: null };
+    const base = {
+      grid,
+      usage: ready(usage),
+      events: ready([]),
+      filter: { regions: [], statuses: [], instances: [] },
+    };
     const failure = failed();
     expect(instancesTabView({ ...base, instances: loading })).toBe(loading);
     expect(instancesTabView({ ...base, instances: failure })).toBe(failure);
     expect(instancesTabView({ ...base, instances: ready([]) })).toEqual({ status: "empty" });
   });
 
-  it("lists the region names and sorts the rows by health, deploy, region and name", () => {
+  it("lists the region names and sorts the rows by deploy, region and name", () => {
     const result = view();
-    expect(result.regions).toEqual(["eu-central-1", "us-east-1"]);
+    expect(result.filters).toEqual({
+      regions: { options: ["eu-central-1", "us-east-1"], selected: [] },
+      statuses: { options: ["unhealthy", "running", "previous"], selected: [] },
+      instances: { options: ["eu-0", "eu-1", "us-0", "us-old"], selected: [] },
+    });
     expect(
       result.rows.map((r) => [r.instance.key, r.instance.tone, r.instance.statusText]),
     ).toEqual([
-      ["eu-1", "unhealthy", "CrashLoopBackOff · 7 restarts"],
       ["eu-0", "current", "Running"],
+      ["eu-1", "unhealthy", "CrashLoopBackOff · 7 restarts"],
       ["us-0", "current", "Running"],
       ["us-old", "previous", "Previous deploy"],
     ]);
@@ -193,7 +203,7 @@ describe("instancesTabView", () => {
       deployment: { id: "d_old", source: null },
     });
     const result = view({ instances: ready([usEast, previous, crashedOld, oldOnly]) });
-    expect(result.regions).toEqual(["ap-south-1", "sa-east-1", "us-east-1"]);
+    expect(result.filters.regions.options).toEqual(["ap-south-1", "sa-east-1", "us-east-1"]);
   });
 
   it("draws previous first and unhealthy on top, and colors a rollout like current", () => {
@@ -230,8 +240,8 @@ describe("instancesTabView", () => {
 
   it("gives each row its share of its own limit, hot from 90%", () => {
     expect(view().rows.map((r) => [r.instance.key, r.usage.cpu.percent, r.usage.cpu.hot])).toEqual([
-      ["eu-1", null, false],
       ["eu-0", 94, true],
+      ["eu-1", null, false],
       ["us-0", 50, false],
       ["us-old", 20, false],
     ]);
@@ -260,14 +270,44 @@ describe("instancesTabView", () => {
   });
 
   it("filters the usage section to one region and lists only its deploys", () => {
-    const filtered = view({ region: "eu-central-1" });
-    expect(filtered.region).toBe("eu-central-1");
-    expect(filtered.regions).toEqual(["eu-central-1", "us-east-1"]);
-    expect(filtered.rows.map((r) => r.instance.key)).toEqual(["eu-1", "eu-0"]);
+    const filtered = view({ filter: { regions: ["eu-central-1"], statuses: [], instances: [] } });
+    expect(filtered.filters).toEqual({
+      regions: { options: ["eu-central-1", "us-east-1"], selected: ["eu-central-1"] },
+      statuses: { options: ["unhealthy", "running"], selected: [] },
+      instances: { options: ["eu-0", "eu-1"], selected: [] },
+    });
+    expect(filtered.rows.map((r) => r.instance.key)).toEqual(["eu-0", "eu-1"]);
     expect(filtered.legend).toEqual({
       current: [{ id: "d_new", source: null }],
       previous: [],
       unhealthy: true,
+    });
+  });
+
+  it("scopes to every selected region", () => {
+    const apSouth = instance("ap-0", { region: { name: "ap-south-1" } });
+    const filtered = view({
+      instances: ready([usEast, euCentral, apSouth]),
+      filter: { regions: ["ap-south-1", "eu-central-1"], statuses: [], instances: [] },
+    });
+    expect(filtered.filters.instances.options).toEqual(["ap-0", "eu-0"]);
+    expect(filtered.rows.map((r) => r.instance.key)).toEqual(["ap-0", "eu-0"]);
+    expect(Object.keys(filtered.usage[0].series)).toEqual(["eu-0", "ap-0"]);
+  });
+
+  it("narrows to the selected instances inside the selected regions", () => {
+    const filtered = view({
+      filter: { regions: ["us-east-1"], statuses: [], instances: ["us-old"] },
+    });
+    expect(filtered.filters.instances).toEqual({
+      options: ["us-0", "us-old"],
+      selected: ["us-old"],
+    });
+    expect(filtered.rows.map((r) => r.instance.key)).toEqual(["us-old"]);
+    expect(filtered.legend).toEqual({
+      current: [],
+      previous: [{ id: "d_old", source: null }],
+      unhealthy: false,
     });
   });
 
@@ -282,19 +322,113 @@ describe("instancesTabView", () => {
     });
   });
 
-  it("treats an unknown region as all regions", () => {
-    const all = view({ region: "ap-south-1" });
-    expect(all.region).toBeNull();
+  it("drops unknown regions and instances outside the selected regions", () => {
+    const stale = view({
+      filter: {
+        regions: ["ap-south-1", "eu-central-1"],
+        statuses: [],
+        instances: ["us-0", "gone", "eu-0"],
+      },
+    });
+    expect(stale.filters).toEqual({
+      regions: { options: ["eu-central-1", "us-east-1"], selected: ["eu-central-1"] },
+      statuses: { options: ["unhealthy", "running"], selected: [] },
+      instances: { options: ["eu-0", "eu-1"], selected: ["eu-0"] },
+    });
+    expect(stale.rows.map((r) => r.instance.key)).toEqual(["eu-0"]);
+  });
+
+  it("narrows rows, lines, legend and instance options to the selected status", () => {
+    const unhealthy = view({ filter: { regions: [], statuses: ["unhealthy"], instances: [] } });
+    expect(unhealthy.filters.statuses).toEqual({
+      options: ["unhealthy", "running", "previous"],
+      selected: ["unhealthy"],
+    });
+    expect(unhealthy.filters.instances.options).toEqual(["eu-1"]);
+    expect(unhealthy.rows.map((r) => r.instance.key)).toEqual(["eu-1"]);
+    expect(Object.keys(unhealthy.usage[0].series)).toEqual(["eu-1"]);
+    expect(unhealthy.legend).toEqual({
+      current: [{ id: "d_new", source: null }],
+      previous: [],
+      unhealthy: true,
+    });
+  });
+
+  it("lists only the statuses present in the selected regions and combines them", () => {
+    const filtered = view({
+      filter: { regions: ["us-east-1"], statuses: ["previous", "running"], instances: [] },
+    });
+    expect(filtered.filters.statuses).toEqual({
+      options: ["running", "previous"],
+      selected: ["running", "previous"],
+    });
+    expect(filtered.rows.map((r) => r.instance.key)).toEqual(["us-0", "us-old"]);
+  });
+
+  it("drops a status that no instance in scope has", () => {
+    const stale = view({
+      filter: { regions: ["eu-central-1"], statuses: ["previous"], instances: [] },
+    });
+    expect(stale.filters.statuses).toEqual({ options: ["unhealthy", "running"], selected: [] });
+    expect(stale.rows.map((r) => r.instance.key)).toEqual(["eu-0", "eu-1"]);
+  });
+
+  it("narrows crash episodes to the instances in a status scope", () => {
+    const events = ready([
+      {
+        id: "e1",
+        atMs: 1,
+        instance: "eu-1",
+        instanceId: "ins_eu-1",
+        region: "eu-central-1",
+        deploymentId: "d_new",
+        kind: "crashloop" as const,
+        reason: "CrashLoopBackOff",
+        exitCode: null,
+      },
+      {
+        id: "e2",
+        atMs: 2,
+        instance: "eu-0",
+        instanceId: "ins_eu-0",
+        region: "eu-central-1",
+        deploymentId: "d_new",
+        kind: "oom" as const,
+        reason: "OOMKilled",
+        exitCode: 137,
+      },
+    ]);
+    const result = view({
+      events,
+      filter: { regions: [], statuses: ["unhealthy"], instances: [] },
+    });
+    expect(result.episodes.map((e) => e.instance)).toEqual(["eu-1"]);
+  });
+
+  it("reports a failed events query and shows no episodes", () => {
+    const result = view({ events: failed() });
+    expect([result.episodes, result.crashEventsFailed]).toEqual([[], true]);
+    expect(view({ events: loading }).crashEventsFailed).toBe(false);
+  });
+
+  it("files disabled instances under Disabled, not Running", () => {
+    const disabled = instance("us-off", { status: "inactive" });
+    const result = view({
+      instances: ready([usEast, disabled]),
+      filter: { regions: [], statuses: ["disabled"], instances: [] },
+    });
+    expect(result.filters.statuses).toEqual({
+      options: ["running", "disabled"],
+      selected: ["disabled"],
+    });
+    expect(result.rows.map((r) => r.instance.key)).toEqual(["us-off"]);
+  });
+
+  it("treats a selection with nothing known as all", () => {
+    const all = view({ filter: { regions: ["ap-south-1"], statuses: [], instances: ["gone"] } });
+    expect(all.filters.regions.selected).toEqual([]);
+    expect(all.filters.instances.selected).toEqual([]);
     expect(all.rows).toHaveLength(4);
-  });
-
-  it("resolves the selected instance", () => {
-    expect(view({ selected: "us-old" }).selected?.key).toBe("us-old");
-  });
-
-  it("ignores a selected instance outside the region filter", () => {
-    const outside = view({ region: "eu-central-1", selected: "us-0" });
-    expect(outside.selected).toBeNull();
   });
 
   it("keeps the instances and blanks the usage when the usage query fails", () => {
@@ -302,7 +436,7 @@ describe("instancesTabView", () => {
     const result = view({ usage: failure });
     expect(result.usage[0].chart).toBe(failure);
     expect(result.rows.map((r) => r.usage.cpu.percent)).toEqual([null, null, null, null]);
-    expect(result.regions).toHaveLength(2);
+    expect(result.filters.regions.options).toEqual(["eu-central-1", "us-east-1"]);
   });
 });
 

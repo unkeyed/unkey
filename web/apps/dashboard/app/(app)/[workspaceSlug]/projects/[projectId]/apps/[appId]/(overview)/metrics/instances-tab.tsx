@@ -21,19 +21,26 @@ type Props = LayoutHandlers & {
   syncId: string;
 };
 
-export function InstancesTab({ view, markers, syncId, onOpen, logsHref, onClearInstance }: Props) {
+export function InstancesTab({ view, markers, syncId, ...handlers }: Props) {
   return (
     <div className="flex flex-col gap-4">
       {match(view)
         .with({ status: "loading" }, () => (
-          <>
-            <div className="grid gap-4 md:grid-cols-2">
+          <Card className="overflow-hidden">
+            <div className="grid divide-y divide-grayA-4 md:grid-cols-2 md:divide-x md:divide-y-0">
               {INSTANCE_METRICS.map((metric) => (
-                <Skeleton key={metric} className="h-[260px] w-full rounded-lg" />
+                <div key={metric} className="p-4">
+                  <Skeleton className="h-[220px] w-full rounded-md" />
+                </div>
               ))}
             </div>
-            <Skeleton className="h-[320px] w-full rounded-lg" />
-          </>
+            <div className="flex min-h-11 items-center border-t border-grayA-4 px-3">
+              <Skeleton className="h-7 w-24 rounded-md" />
+            </div>
+            <div className="border-t border-grayA-4 p-4">
+              <Skeleton className="h-[280px] w-full rounded-md" />
+            </div>
+          </Card>
         ))
         .with({ status: "failed" }, () => (
           <Card className="flex h-40 items-center justify-center text-xs text-gray-10">
@@ -54,14 +61,7 @@ export function InstancesTab({ view, markers, syncId, onOpen, logsHref, onClearI
           </EmptyState>
         ))
         .with({ status: "ready" }, (ready) => (
-          <InstancesLayout
-            view={ready}
-            markers={markers}
-            syncId={syncId}
-            onOpen={onOpen}
-            logsHref={logsHref}
-            onClearInstance={onClearInstance}
-          />
+          <InstancesLayout view={ready} markers={markers} syncId={syncId} {...handlers} />
         ))
         .exhaustive()}
     </div>

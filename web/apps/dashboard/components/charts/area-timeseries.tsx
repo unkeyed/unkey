@@ -2,8 +2,9 @@
 
 import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { useMeasuredWidth } from "@/hooks/use-measured-width";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useEffect, useId, useState } from "react";
+import { type ReactNode, useEffect, useId, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -22,6 +23,9 @@ import {
   type ChartMarkers,
   MarkerLayer,
   activeMarkerSpan,
+  placeMarkers,
+  stackGapPct,
+  stackHeightPx,
 } from "./chart-markers";
 import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
@@ -111,6 +115,7 @@ type Props = {
   showZeroLine?: boolean;
   syncId?: string;
   markers?: ChartMarkers;
+  tooltipFooter?: (point: AreaChartPoint) => ReactNode;
   focusKey?: string | null;
   connectNulls?: boolean;
 };
@@ -139,6 +144,7 @@ export function AreaTimeseriesChart({
   showZeroLine,
   syncId,
   markers,
+  tooltipFooter,
   focusKey = null,
   connectNulls = false,
 }: Props) {
@@ -148,6 +154,7 @@ export function AreaTimeseriesChart({
   const chartId = useId().replace(/:/g, "");
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const scrub = useSyncedScrub(syncId);
+  const { width: widthPx, measureRef } = useMeasuredWidth<HTMLDivElement>();
   useEffect(() => {
     const timer = setTimeout(() => setShouldAnimate(false), 600);
     return () => clearTimeout(timer);
@@ -216,13 +223,17 @@ export function AreaTimeseriesChart({
     nowMs: Date.now(),
   });
 
+  const placed = markers
+    ? placeMarkers(markers.items, xDomain, stackGapPct((widthPx ?? 0) - yGutterPx))
+    : [];
   const margin = {
-    top: showAxes || markers ? 16 : 4,
+    top: (showAxes || markers ? 16 : 4) + stackHeightPx(placed),
     right: 0,
     bottom: 0,
     left: 0,
   };
   const markerSpan = markers ? activeMarkerSpan(markers.items, markers.activeId, xDomain) : null;
+  const insetLeft = margin.left + yGutterPx;
 
   const style = FILL_STYLES[fill];
   const focused = focusKey !== null && configKeys.includes(focusKey) ? focusKey : null;
@@ -298,7 +309,7 @@ export function AreaTimeseriesChart({
           domain={yDomain}
           hide={!showAxes}
         />
-        {markers && <MarkerLayer markers={markers} domain={xDomain} span={markerSpan} />}
+        {markers && <MarkerLayer markers={markers} span={markerSpan} placed={placed} />}
         <ChartTooltip
           allowEscapeViewBox={{ x: false, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}
@@ -347,6 +358,7 @@ export function AreaTimeseriesChart({
                   {rows.length === 0 && <span className="text-gray-9">No data</span>}
                   {hiddenCount > 0 && <span className="text-gray-9">+{hiddenCount} more</span>}
                 </div>
+                {tooltipFooter?.(point)}
               </div>
             );
           }}
@@ -378,12 +390,12 @@ export function AreaTimeseriesChart({
     return chart;
   }
   return (
-    <div className="relative w-full">
+    <div ref={measureRef} className={cn("relative w-full", widthPx === undefined && "invisible")}>
       {chart}
       <ChartMarkerOverlay
         markers={markers}
-        domain={xDomain}
-        insetLeft={margin.left + yGutterPx}
+        placed={placed}
+        insetLeft={insetLeft}
         insetRight={margin.right}
         bandHeight={margin.top}
       />

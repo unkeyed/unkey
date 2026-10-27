@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import {
   type InstanceTableRow,
   type LineTone,
+  type LogsTarget,
   type UsageCell,
   instanceSrLabel,
 } from "./instances-model";
@@ -26,7 +27,7 @@ const COLUMNS =
 
 const TONE_TEXT: Record<LineTone, { name: string; status: string }> = {
   unhealthy: { name: "text-gray-12", status: "text-error-11" },
-  previous: { name: "text-gray-10", status: "text-gray-10" },
+  previous: { name: "text-gray-12", status: "text-gray-11" },
   current: { name: "text-gray-12", status: "text-gray-11" },
 };
 
@@ -38,14 +39,14 @@ export function InstanceTable({
   footer,
 }: {
   rows: InstanceTableRow[];
-  logsHref: (row: InstanceRow) => Route;
+  logsHref: (target: LogsTarget) => Route;
   onOpen: (row: InstanceRow) => void;
   onHover: (key: string | null) => void;
   footer?: ReactNode;
 }) {
   return (
-    <ResourceListContent>
-      <div className={cn(COLUMNS, "h-9 border-b border-grayA-4 bg-gray-2 text-xs text-gray-10")}>
+    <ResourceListContent className="rounded-none border-0 border-t border-grayA-4 bg-transparent">
+      <div className={cn(COLUMNS, "h-8 border-b border-grayA-4 bg-gray-2 text-xs text-gray-10")}>
         <span>Instance</span>
         <span>Status</span>
         <span>Region</span>
@@ -83,7 +84,10 @@ export function InstanceTable({
                 <span className="flex items-center justify-end gap-3">
                   {tone === "unhealthy" && (
                     <Link
-                      href={logsHref(instance)}
+                      href={logsHref({
+                        deploymentId: instance.deployment.id,
+                        instanceId: instance.instanceId,
+                      })}
                       className="relative rounded-sm text-xs text-gray-11 outline-none hover:text-gray-12 focus-visible:ring-1 focus-visible:ring-grayA-12"
                     >
                       Logs

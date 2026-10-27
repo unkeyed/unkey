@@ -5,23 +5,32 @@ import type { Loadable } from "@/lib/loadable/loadable";
 import type {
   DeployMarker,
   Grid,
+  InstanceEvent,
   InstanceRow,
   InstanceSeries,
   MetricId,
   Sources,
 } from "@/lib/metrics/app-metrics";
-import { type ChartState, METRIC_VIEWS, cardState } from "@/lib/metrics/views";
+import {
+  type ChartState,
+  METRIC_VIEWS,
+  type MetricUnit,
+  type SeriesView,
+  cardState,
+} from "@/lib/metrics/views";
 import { match } from "@unkey/match";
+import { type ChartScale, SHARE_SCALE, absoluteScale } from "./allocation";
 import { type DeployEffect, type EffectSamples, deployEffects } from "./deploy-effects";
 import {
+  type FilterSelection,
   INSTANCE_METRICS,
   type InstanceChart,
   type InstanceMetric,
   type InstancesTabView,
-  type RegionFilter,
   instanceChart,
   instancesTabView,
 } from "./instances-model";
+import { type PerInstanceInputs, perInstanceShare } from "./per-instance";
 
 export type MetricsEnvironment = Pick<Environment, "id" | "slug" | "kind">;
 
@@ -45,7 +54,7 @@ export function resolveEnvironment(
   return isLoading ? { kind: "loading" } : { kind: "none" };
 }
 
-export const METRICS_TABS = ["traffic", "resources", "instances"] as const;
+export const METRICS_TABS = ["instances", "traffic", "resources"] as const;
 export type MetricsTab = (typeof METRICS_TABS)[number];
 
 type TabLayout =
@@ -68,10 +77,27 @@ function isInstanceMetric(metric: MetricId): metric is InstanceMetric {
 }
 
 export function needsInstanceSeries(tab: MetricsTab, expanded: MetricId | null): boolean {
-  return tab === "instances" || (expanded !== null && isInstanceMetric(expanded));
+  return (
+    tab === "instances" || tab === "resources" || (expanded !== null && isInstanceMetric(expanded))
+  );
 }
 
-export type MetricCardModel = { metric: MetricId; state: ChartState };
+export type CardView = {
+  title: string;
+  subtitle: string | null;
+  series: Record<string, SeriesView>;
+  primary: string;
+  scale: ChartScale;
+  connectNulls: boolean;
+  total: MetricUnit | null;
+};
+
+export type MetricCardModel = { metric: MetricId; state: ChartState; view: CardView };
+
+const PER_INSTANCE_SERIES: Record<string, SeriesView> = {
+  average: { label: "Instance average", color: "var(--color-activity)" },
+  busiest: { label: "Busiest instance", color: "var(--color-feature-9)" },
+};
 
 export function legendReadout(
   chart: ReadonlyArray<AreaChartPoint>,
@@ -113,7 +139,7 @@ export type TabView =
 export type PanelModel = {
   card: MetricCardModel;
   stats: PanelStats | null;
-  byInstance: InstanceChart | null;
+  byInstance: (InstanceChart & { scale: ChartScale }) | null;
   deploys: DeployView[];
 };
 
@@ -125,7 +151,6 @@ export type MetricsPageModel =
       environment: MetricsEnvironment;
       tab: MetricsTab;
       view: TabView;
-      regionFilter: RegionFilter | null;
       markers: ChartMarker[];
       deploys: ReadonlyMap<string, DeployView>;
       panel: PanelModel | null;
@@ -139,8 +164,41 @@ function effectSamples({ traffic, resources }: Sources): EffectSamples {
   return { traffic: readyOrNull(traffic), resources: readyOrNull(resources) };
 }
 
-function cardOf(sources: Sources, metric: MetricId): MetricCardModel {
-  return { metric, state: cardState(sources, metric) };
+type CardInputs = Pick<MetricsPageInput, "sources"> & Omit<PerInstanceInputs, "app">;
+
+function cardOf(input: CardInputs, metric: MetricId): MetricCardModel {
+  const view = METRIC_VIEWS[metric];
+  const share = isInstanceMetric(metric)
+    ? perInstanceShare({ ...input, app: input.sources.resources }, metric)
+    : null;
+  if (share) {
+    return {
+      metric,
+      state: share.state,
+      view: {
+        title: view.title,
+        subtitle: ["per instance", share.allocation].filter(Boolean).join(" · "),
+        series: PER_INSTANCE_SERIES,
+        primary: "average",
+        scale: SHARE_SCALE,
+        connectNulls: false,
+        total: view.unit,
+      },
+    };
+  }
+  return {
+    metric,
+    state: cardState(input.sources, metric),
+    view: {
+      title: view.title,
+      subtitle: null,
+      series: view.series,
+      primary: view.primary,
+      scale: absoluteScale(view.unit),
+      connectNulls: view.gaps === "bridge",
+      total: null,
+    },
+  };
 }
 
 type MetricsPageInput = {
@@ -152,8 +210,8 @@ type MetricsPageInput = {
   byInstance: Loadable<InstanceSeries>;
   deploys: Loadable<DeployMarker[]>;
   instances: Loadable<InstanceRow[]>;
-  region: string | null;
-  selected: string | null;
+  events: Loadable<InstanceEvent[]>;
+  filter: FilterSelection;
 };
 
 export function metricsPageModel(input: MetricsPageInput): MetricsPageModel {
@@ -179,16 +237,17 @@ function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): M
     layout.kind === "metrics"
       ? {
           kind: "metrics",
-          hero: cardOf(sources, layout.hero),
-          grid: layout.grid.map((metric) => cardOf(sources, metric)),
+          hero: cardOf(input, layout.hero),
+          grid: layout.grid.map((metric) => cardOf(input, metric)),
         }
       : {
           kind: "instances",
           instances: instancesTabView({
+            grid: input.grid,
             instances: input.instances,
             usage: input.byInstance,
-            region: input.region,
-            selected: input.selected,
+            events: input.events,
+            filter: input.filter,
           }),
         };
 
@@ -197,23 +256,16 @@ function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): M
     environment,
     tab: input.tab,
     view,
-    regionFilter: regionFilterOf(view),
     markers: markers.map((d) => ({
       id: d.deploymentId,
       atMs: d.readyAtMs,
       span: d.serving && { endMs: d.serving.untilMs },
+      shape: "dot",
+      label: null,
     })),
     deploys: new Map(deploys.map((d) => [d.marker.deploymentId, d])),
     panel: input.expanded ? panelOf(input.expanded, input, deploys) : null,
   };
-}
-
-function regionFilterOf(view: TabView): RegionFilter | null {
-  if (view.kind !== "instances" || view.instances.status !== "ready") {
-    return null;
-  }
-  const { regions, region } = view.instances;
-  return { regions, region };
 }
 
 function panelOf(
@@ -226,15 +278,15 @@ function panelOf(
   },
   deploys: DeployView[],
 ): PanelModel {
-  const card = cardOf(input.sources, metric);
+  const card = cardOf(input, metric);
   return {
     card,
-    stats:
-      card.state.status === "ready"
-        ? panelStats(card.state.chart, METRIC_VIEWS[metric].primary)
-        : null,
+    stats: card.state.status === "ready" ? panelStats(card.state.chart, card.view.primary) : null,
     byInstance: isInstanceMetric(metric)
-      ? instanceChart(input.byInstance, input.instances, metric)
+      ? {
+          ...instanceChart(input.byInstance, input.instances, metric),
+          scale: absoluteScale(METRIC_VIEWS[metric].unit),
+        }
       : null,
     deploys: deploys.filter((d) => d.marker.readyAtMs >= input.grid.startMs).reverse(),
   };

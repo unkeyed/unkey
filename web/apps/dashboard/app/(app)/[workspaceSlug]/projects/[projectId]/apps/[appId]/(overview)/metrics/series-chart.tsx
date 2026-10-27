@@ -3,7 +3,7 @@
 import { type AreaChartPoint, AreaTimeseriesChart } from "@/components/charts/area-timeseries";
 import type { ChartMarkers } from "@/components/charts/chart-markers";
 import { NoDataPlaceholder } from "@/components/charts/no-data-placeholder";
-import { DAY_MS, type Grid } from "@/lib/metrics/app-metrics";
+import { type Grid, spansDays } from "@/lib/metrics/app-metrics";
 import {
   type ChartState,
   type MetricUnit,
@@ -12,7 +12,6 @@ import {
   formatValue,
 } from "@/lib/metrics/views";
 import { match } from "@unkey/match";
-import { cn } from "cn";
 import type { ReactNode } from "react";
 import type { ChartScale } from "./allocation";
 import { useHoveredBucket, useSetHoveredBucket } from "./chart-hover";
@@ -26,10 +25,10 @@ type SeriesChartProps = {
   series: Record<string, SeriesView>;
   scale: ChartScale;
   markers?: ChartMarkers;
+  tooltipFooter?: (point: AreaChartPoint) => ReactNode;
   height: number;
   syncId: string;
   legend?: ReactNode;
-  legendClassName?: string;
   focusKey?: string | null;
   connectNulls?: boolean;
   unavailableCopy?: string;
@@ -41,15 +40,15 @@ export function SeriesChart({
   series,
   scale,
   markers,
+  tooltipFooter,
   height,
   syncId,
   legend,
-  legendClassName,
   focusKey,
   connectNulls,
   unavailableCopy = `${title} metrics are unavailable right now`,
 }: SeriesChartProps) {
-  const frame = { legend, legendClassName, series, unit: scale.unit };
+  const frame = { legend, series, unit: scale.unit };
   return match(state)
     .with({ status: "empty" }, () => <NoDataPlaceholder height={height + LEGEND_HEIGHT} />)
     .with({ status: "failed" }, () => (
@@ -79,6 +78,7 @@ export function SeriesChart({
           series={series}
           scale={scale}
           markers={markers}
+          tooltipFooter={tooltipFooter}
           height={height}
           syncId={syncId}
           focusKey={focusKey}
@@ -91,14 +91,12 @@ export function SeriesChart({
 
 function ChartFrame({
   legend,
-  legendClassName,
   chart,
   series,
   unit,
   children,
 }: {
   legend: ReactNode;
-  legendClassName?: string;
   chart: AreaChartPoint[] | null;
   series: Record<string, SeriesView>;
   unit: MetricUnit;
@@ -107,7 +105,7 @@ function ChartFrame({
   return (
     <div className="flex flex-col gap-3">
       {children}
-      <div className={cn("flex flex-wrap border-t border-grayA-4 text-xs", legendClassName)}>
+      <div className="-mx-4 -mb-3 flex flex-wrap border-t border-grayA-4 text-xs">
         {legend ?? <SeriesLegendCells chart={chart} series={series} unit={unit} />}
       </div>
     </div>
@@ -120,6 +118,7 @@ type GridChartProps = {
   series: Record<string, SeriesView>;
   scale: ChartScale;
   markers?: ChartMarkers;
+  tooltipFooter?: (point: AreaChartPoint) => ReactNode;
   height: number;
   syncId: string;
   focusKey?: string | null;
@@ -132,6 +131,7 @@ function GridChart({
   series,
   scale,
   markers,
+  tooltipFooter,
   height,
   syncId,
   focusKey,
@@ -150,6 +150,7 @@ function GridChart({
       formatTooltipValue={format.format}
       syncId={syncId}
       markers={markers}
+      tooltipFooter={tooltipFooter}
       focusKey={focusKey}
       connectNulls={connectNulls}
       onActiveChange={(point) => setHovered(point?.originalTimestamp ?? null)}
@@ -164,10 +165,6 @@ function GridChart({
       }}
     />
   );
-}
-
-function spansDays(grid: Grid): boolean {
-  return grid.endMs - grid.startMs >= DAY_MS;
 }
 
 function SeriesLegendCells({
