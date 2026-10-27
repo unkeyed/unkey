@@ -1,0 +1,6 @@
+type: string
+enum:
+  - automatic
+  - environment
+  - deployment
+description: Automatic environment selection, an explicit target environment, or a pinned deployment.

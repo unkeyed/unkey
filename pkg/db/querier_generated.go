@@ -678,6 +678,12 @@ type Querier interface {
 	//    AND EXISTS (SELECT 1 FROM apps a WHERE a.id = d.app_id AND a.deleted_at IS NULL)
 	//    AND EXISTS (SELECT 1 FROM environments e WHERE e.id = d.environment_id AND e.deleted_at IS NULL)
 	FindDeploymentByIdAndWorkspace(ctx context.Context, db DBTX, arg FindDeploymentByIdAndWorkspaceParams) (FindDeploymentByIdAndWorkspaceRow, error)
+	//FindDeploymentConnectionScope
+	//
+	//  SELECT id, project_id, app_id, environment_id
+	//  FROM deployments
+	//  WHERE id = ? AND workspace_id = ?
+	FindDeploymentConnectionScope(ctx context.Context, db DBTX, arg FindDeploymentConnectionScopeParams) (FindDeploymentConnectionScopeRow, error)
 	//FindDeploymentWithEnvironment
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind
@@ -1803,6 +1809,13 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) error
+	//InsertAppConnection
+	//
+	//  INSERT INTO app_connections (
+	//      id, workspace_id, project_id, app_id, environment_id,
+	//      resource_type, resource_id, name, created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertAppConnection(ctx context.Context, db DBTX, arg InsertAppConnectionParams) error
 	//InsertAppEnvironmentVariable
 	//
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
@@ -1904,6 +1917,12 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseWorkspaceSettings(ctx context.Context, db DBTX, arg InsertClickhouseWorkspaceSettingsParams) error
+	//InsertConnectionAppTarget
+	//
+	//  INSERT INTO connection_app_targets (
+	//      connection_id, selection_mode, target_environment_id, target_deployment_id
+	//  ) VALUES (?, ?, ?, ?)
+	InsertConnectionAppTarget(ctx context.Context, db DBTX, arg InsertConnectionAppTargetParams) error
 	//InsertCustomDomain
 	//
 	//  INSERT INTO custom_domains (
@@ -2015,6 +2034,19 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error
+	// Used by tests to seed saved deployment connections.
+	//
+	//  INSERT INTO deployment_connections (
+	//      deployment_id, connection_id, workspace_id, project_id, app_id, environment_id,
+	//      resource_type, resource_id, name, created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertDeploymentConnection(ctx context.Context, db DBTX, arg InsertDeploymentConnectionParams) error
+	// Used by tests to seed saved deployment targets.
+	//
+	//  INSERT INTO deployment_connection_app_targets (
+	//      deployment_id, connection_id, selection_mode, target_environment_id, target_deployment_id
+	//  ) VALUES (?, ?, ?, ?, ?)
+	InsertDeploymentConnectionAppTarget(ctx context.Context, db DBTX, arg InsertDeploymentConnectionAppTargetParams) error
 	//InsertDeploymentStep
 	//
 	//  INSERT INTO `deployment_steps` (
@@ -2668,6 +2700,25 @@ type Querier interface {
 	//  FROM app_build_settings
 	//  WHERE app_id = ?
 	ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppBuildSetting, error)
+	//ListAppConnections
+	//
+	//  SELECT c.id, c.app_id, c.environment_id, c.resource_id AS target_app_id,
+	//      a.name AS target_app_name, a.slug AS target_app_slug, c.name,
+	//      t.selection_mode, t.target_environment_id, t.target_deployment_id
+	//  FROM app_connections c
+	//  LEFT JOIN connection_app_targets t ON t.connection_id = c.id
+	//  INNER JOIN apps a ON a.id = c.resource_id
+	//      AND a.workspace_id = c.workspace_id AND a.project_id = c.project_id
+	//  WHERE c.workspace_id = ?
+	//      AND c.project_id = ?
+	//      AND c.app_id = ?
+	//      AND c.environment_id = ?
+	//      AND c.resource_type = 'app'
+	//      AND c.resource_id <> c.app_id
+	//      AND c.id >= ?
+	//  ORDER BY c.id
+	//  LIMIT ?
+	ListAppConnections(ctx context.Context, db DBTX, arg ListAppConnectionsParams) ([]ListAppConnectionsRow, error)
 	//ListAppEnvVarsByAppAndEnv
 	//
 	//  SELECT id, `key`, value, `type`, description, created_at
@@ -3521,6 +3572,17 @@ type Querier interface {
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error)
+	// Used by tests to inspect saved deployment connections.
+	//
+	//  SELECT c.connection_id, c.name, c.resource_id, t.selection_mode,
+	//      t.target_environment_id, t.target_deployment_id
+	//  FROM deployment_connections c
+	//  INNER JOIN deployment_connection_app_targets t
+	//      ON t.deployment_id = c.deployment_id AND t.connection_id = c.connection_id
+	//  WHERE c.workspace_id = ?
+	//      AND c.deployment_id = ?
+	//  ORDER BY c.name
+	ListSavedAppConnections(ctx context.Context, db DBTX, arg ListSavedAppConnectionsParams) ([]ListSavedAppConnectionsRow, error)
 	// ListUnkeyPermissionRowsByPrincipal loads permission identities before a
 	// replacement so removed assignments retain their audit target IDs.
 	//
@@ -3577,6 +3639,26 @@ type Querier interface {
 	//  WHERE id = ? AND deleted_at IS NULL
 	//  LOCK IN SHARE MODE
 	LockActiveProject(ctx context.Context, db DBTX, id string) (string, error)
+	//LockAppConnection
+	//
+	//  SELECT c.id, c.project_id, c.app_id, c.environment_id, c.resource_id, c.name
+	//  FROM app_connections c
+	//  INNER JOIN connection_app_targets t ON t.connection_id = c.id
+	//  WHERE c.id = ?
+	//      AND c.workspace_id = ?
+	//      AND c.resource_type = 'app'
+	//  FOR UPDATE
+	LockAppConnection(ctx context.Context, db DBTX, arg LockAppConnectionParams) (LockAppConnectionRow, error)
+	//LockConnectionTargetDeployment
+	//
+	//  SELECT id, environment_id, status, desired_state, first_ready_at
+	//  FROM deployments
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	//      AND project_id = ?
+	//      AND app_id = ?
+	//  FOR UPDATE
+	LockConnectionTargetDeployment(ctx context.Context, db DBTX, arg LockConnectionTargetDeploymentParams) (LockConnectionTargetDeploymentRow, error)
 	// LockDefaultProjectByWorkspaceID uses a current read so a transaction can
 	// observe a default project created after its repeatable-read snapshot.
 	//
@@ -4119,6 +4201,12 @@ type Querier interface {
 	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
+	// UpdateDeploymentFirstReadyAt is used by API tests to model reaching ready.
+	//
+	//  UPDATE deployments
+	//  SET first_ready_at = COALESCE(first_ready_at, ?)
+	//  WHERE id = ?
+	UpdateDeploymentFirstReadyAt(ctx context.Context, db DBTX, arg UpdateDeploymentFirstReadyAtParams) error
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
