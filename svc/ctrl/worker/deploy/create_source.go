@@ -70,7 +70,7 @@ func (w *Workflow) resolveSource(
 	switch source := req.GetSource().(type) {
 	case *hydrav1.DeployCreateRequest_Image:
 		// The caller's commit is recorded for display. None is looked up for an image.
-		return w.ownedImageSource(ctx, target.ProjectID, source.Image.GetImage(), commit, imageref.Normalize), nil
+		return w.ownedImageSource(ctx, target.ProjectID, source.Image.GetImage(), commit, imageref.Normalize)
 
 	case *hydrav1.DeployCreateRequest_Git:
 		return w.resolveGitSource(target, commit, source.Git.GetPrNumber())
@@ -98,7 +98,7 @@ func (w *Workflow) resolveSource(
 					"OCI app %s has no image configured", target.AppID,
 				)), nil
 			}
-			return w.ownedImageSource(ctx, target.ProjectID, target.OciImageReference.String, commit, imageref.Normalize), nil
+			return w.ownedImageSource(ctx, target.ProjectID, target.OciImageReference.String, commit, imageref.Normalize)
 		}
 
 		if target.GithubRepositoryFullName.Valid {
@@ -144,102 +144,53 @@ func imageSource(image string, commit gitCommit, normalize func(string) (string,
 	}
 }
 
-// ownedImageSource normalizes an image and refuses it unless the caller's
-// project owns it. A reference read off an existing deployment row may carry an
-// implicit tag, so those callers pass [imageref.NormalizeHistorical].
+// ownedImageSource normalizes an image and refuses one from the build
+// repository unless the caller's project built it. Every project pushes to that
+// one repository, and ctrl and krane pull from it with Unkey's credentials.
 func (w *Workflow) ownedImageSource(
 	ctx context.Context,
 	projectID, image string,
 	commit gitCommit,
 	normalize func(string) (string, error),
-) resolvedSource {
+) (resolvedSource, error) {
 	resolved := imageSource(image, commit, normalize)
-	if resolved.Rejection != nil {
-		return resolved
-	}
-	if refusal := w.unownedImage(ctx, projectID, resolved.Source.Image); refusal != nil {
-		return newRejectedSource(refusal)
-	}
-	return resolved
-}
-
-// unownedImage refuses a reference the shared build registry would answer with
-// another project's image. Every project builds into one repository that ctrl
-// and krane pull with Unkey's credentials.
-func (w *Workflow) unownedImage(
-	ctx context.Context,
-	projectID, image string,
-) *rejection {
-	if w.registryConfig.Repository == "" {
-		return nil
+	if resolved.Rejection != nil || w.registryConfig.Repository == "" {
+		return resolved, nil
 	}
 
-	var refused *rejection
-	refuse := func() *rejection {
-		if refused == nil {
-			refused = rejectf(
-				hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
-				"images in the Unkey build registry can only be deployed by the project that built them",
-			)
-		}
-		return refused
-	}
-
-	reference, err := name.ParseReference(image, name.WeakValidation)
-	if err != nil {
-		return refuse()
-	}
+	refused := newRejectedSource(rejectf(
+		hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
+		"images in the Unkey build registry can only be deployed by the project that built them",
+	))
 	buildRepository, err := name.NewRepository(w.registryConfig.Repository, name.WeakValidation)
 	if err != nil {
-		return refuse()
+		return resolvedSource{}, fmt.Errorf("invalid build registry repository: %w", err)
+	}
+	reference, err := name.ParseReference(resolved.Source.Image, name.WeakValidation)
+	if err != nil {
+		return refused, nil
 	}
 	if !sameRepository(reference.Context(), buildRepository) {
-		return nil
+		return resolved, nil
 	}
 
+	owned := false
 	switch ref := reference.(type) {
 	case name.Tag:
-		if strings.HasPrefix(ref.TagStr(), projectID+"-") {
-			return nil
-		}
-		// A tag can name a project that has since been deleted. Refusing it would
-		// freeze the row, and no live project can collide with a dead prefix.
-		stale, err := w.tagNamesDeletedProject(ctx, ref.TagStr())
-		if err != nil {
-			return refuse()
-		}
-		if stale {
-			return nil
-		}
-		return refuse()
+		owned = strings.HasPrefix(ref.TagStr(), projectID+"-")
 	case name.Digest:
-		owned, err := w.db.DeploymentProjectOwnsImage(ctx, db.DeploymentProjectOwnsImageParams{
+		owned, err = w.db.DeploymentProjectOwnsImage(ctx, db.DeploymentProjectOwnsImageParams{
 			ProjectID:     projectID,
-			ImageResolved: sql.NullString{String: image, Valid: true},
+			ImageResolved: sql.NullString{String: resolved.Source.Image, Valid: true},
 		})
 		if err != nil {
-			return refuse()
+			return resolvedSource{}, fmt.Errorf("failed to check image ownership: %w", err)
 		}
-		if owned {
-			return nil
-		}
-		return refuse()
 	}
-	return refuse()
-}
-
-// tagNamesDeletedProject reports whether a build tag's `<projectID>-` prefix
-// names no project any more.
-func (w *Workflow) tagNamesDeletedProject(ctx context.Context, tag string) (bool, error) {
-	projectID, _, ok := strings.Cut(tag, "-")
-	if !ok || !strings.HasPrefix(projectID, "proj_") {
-		return false, nil
+	if !owned {
+		return refused, nil
 	}
-	exists, err := w.db.ProjectExists(ctx, projectID)
-	if err != nil {
-		return false, err
-	}
-	return !exists, nil
+	return resolved, nil
 }
 
 // resolveGitSource resolves the app's repository connection and fills in the
@@ -415,9 +366,8 @@ func (w *Workflow) resolveExistingDeployment(
 		"source_deployment_id", src.ID,
 		"image", image,
 	)
-	// The check above scopes the deployment, not the image it carries, which is
-	// still pulled with Unkey's credentials.
-	return w.ownedImageSource(ctx, target.ProjectID, image, commit, imageref.NormalizeHistorical), nil
+	// The workspace check above covers the row, not the image it carries.
+	return w.ownedImageSource(ctx, target.ProjectID, image, commit, imageref.NormalizeHistorical)
 }
 
 // fillCommitFromGitHub fills the commit's empty fields from GitHub. The public

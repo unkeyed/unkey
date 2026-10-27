@@ -952,13 +952,13 @@ func TestCreateFollowsAppSource(t *testing.T) {
 	})
 }
 
-// TestCreateRefusesTheBuildRepository covers images a caller names. Every
-// project's build lives in one repository that the resolver and krane pull with
-// Unkey's credentials, so naming a tag there would run another project's build
+// TestCreateRefusesTheBuildRepository covers every path that names an image in
+// the build repository shared by all projects.
 func TestCreateRefusesTheBuildRepository(t *testing.T) {
 	for name, image := range map[string]string{
-		"digest":         fixtureBuildRepository + "@sha256:" + strings.Repeat("a", 64),
-		"uppercase host": strings.ToUpper("registry.unkey.test") + "/builds:v1",
+		"digest":                fixtureBuildRepository + "@sha256:" + strings.Repeat("a", 64),
+		"uppercase host":        strings.ToUpper("registry.unkey.test") + "/builds:v1",
+		"deleted project's tag": fixtureBuildRepository + ":" + uid.New(uid.ProjectPrefix) + "-" + uid.New(uid.DeploymentPrefix),
 	} {
 		t.Run("request image by "+name, func(t *testing.T) {
 			ctx := context.Background()
@@ -1919,9 +1919,7 @@ func (h *createHarness) commitDeployment(t *testing.T, ctx context.Context, sour
 	})
 }
 
-// foreignProjectTag returns a build tag whose prefix belongs to another live
-// project, which is what makes it foreign. A tag naming a deleted project is
-// allowed through, so the project has to exist.
+// foreignProjectTag returns a build tag of another project in the workspace.
 func (h *createHarness) foreignProjectTag(t *testing.T) string {
 	t.Helper()
 	project := h.seeder.CreateProject(context.Background(), seed.CreateProjectRequest{

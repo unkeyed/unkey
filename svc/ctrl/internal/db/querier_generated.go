@@ -2479,15 +2479,6 @@ type Querier interface {
 	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
 	//  WHERE d.project_id = ?
 	NotifyDeploymentTopologiesByProject(ctx context.Context, arg NotifyDeploymentTopologiesByProjectParams) error
-	//ProjectExists
-	//
-	//  SELECT EXISTS (
-	//      SELECT 1
-	//      FROM projects
-	//      WHERE id = ?
-	//      LIMIT 1
-	//  ) AS project_exists
-	ProjectExists(ctx context.Context, id string) (bool, error)
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes
