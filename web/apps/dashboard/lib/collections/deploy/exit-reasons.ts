@@ -114,7 +114,7 @@ export function summarizeExit(lastExit: LastExit): ExitSummary {
       : null;
   return {
     severity: stuck ? "error" : "warning",
-    label: copy?.label ?? reason ?? "Exited",
+    label: copy?.label ?? (reason || "Exited"),
     exit: failedCode !== null ? `exit=${failedCode}` : null,
     sentences: [hint, copy?.body ?? null].filter((sentence) => sentence !== null),
     raw: rawOf(lastExit),
