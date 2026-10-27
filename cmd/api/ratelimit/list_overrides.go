@@ -40,7 +40,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 			cli.String("cursor", "Pagination cursor from a previous response.", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}
