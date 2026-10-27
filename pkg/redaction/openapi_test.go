@@ -336,6 +336,51 @@ components:
 	)
 }
 
+// Found by an adversarial review. A member name the path grammar cannot carry
+// emits a path that never matches the body, so the annotated value is logged.
+func TestPathsFromSpec_MemberNameThePathGrammarCannotCarry(t *testing.T) {
+	t.Parallel()
+
+	// A member named "a.b" would be read as the nested members a and b, so the
+	// emitted path would never match the body and the value would be logged.
+	dotted := []byte(`
+paths:
+  /v2/thing:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                a.b:
+                  type: string
+                  x-unkey-redact: true
+`)
+
+	_, err := PathsFromSpec(dotted)
+	require.ErrorContains(t, err, "property name cannot be expressed as a redaction path")
+	require.ErrorContains(t, err, "a.b")
+
+	bracketed := []byte(`
+paths:
+  /v2/thing:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items[0]:
+                  type: string
+                  x-unkey-redact: true
+`)
+
+	_, err = PathsFromSpec(bracketed)
+	require.ErrorContains(t, err, "items[0]")
+}
+
 // Found by an adversarial review. An annotation only means something on a property,
 // because only a property has a name to build a path from. Annotating an items
 // schema or a body root used to be silently dropped, which is the exact failure
