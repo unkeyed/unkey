@@ -1,0 +1,20 @@
+type: object
+required:
+  - connectionId
+  - connectionName
+  - callerAppId
+  - callerAppName
+  - provenance
+properties:
+  connectionId:
+    type: string
+  connectionName:
+    type: string
+  callerAppId:
+    type: string
+  callerAppName:
+    type: string
+  provenance:
+    type: string
+    enum: [current_rule]
+additionalProperties: false

@@ -5,6 +5,7 @@ package openapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/oapi-codegen/nullable"
@@ -62,6 +63,21 @@ func (e ConnectionTargetType) Valid() bool {
 	case ConnectionTargetTypeDeployment:
 		return true
 	case ConnectionTargetTypeEnvironment:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CurrentConnectionPinProvenance.
+const (
+	CurrentRule CurrentConnectionPinProvenance = "current_rule"
+)
+
+// Valid indicates whether the value is a known member of the CurrentConnectionPinProvenance enum.
+func (e CurrentConnectionPinProvenance) Valid() bool {
+	switch e {
+	case CurrentRule:
 		return true
 	default:
 		return false
@@ -509,6 +525,21 @@ func (e MethodMatchMethods) Valid() bool {
 	case MethodMatchMethodsPOST:
 		return true
 	case MethodMatchMethodsPUT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SnapshotConnectionPinProvenance.
+const (
+	DeploymentSnapshot SnapshotConnectionPinProvenance = "deployment_snapshot"
+)
+
+// Valid indicates whether the value is a known member of the SnapshotConnectionPinProvenance enum.
+func (e SnapshotConnectionPinProvenance) Valid() bool {
+	switch e {
+	case DeploymentSnapshot:
 		return true
 	default:
 		return false
@@ -1079,6 +1110,18 @@ type ConflictErrorResponse struct {
 // ConnectionTargetType Automatic environment selection, an explicit target environment, or a pinned deployment.
 type ConnectionTargetType string
 
+// CurrentConnectionPin defines model for CurrentConnectionPin.
+type CurrentConnectionPin struct {
+	CallerAppId    string                         `json:"callerAppId"`
+	CallerAppName  string                         `json:"callerAppName"`
+	ConnectionId   string                         `json:"connectionId"`
+	ConnectionName string                         `json:"connectionName"`
+	Provenance     CurrentConnectionPinProvenance `json:"provenance"`
+}
+
+// CurrentConnectionPinProvenance defines model for CurrentConnectionPin.Provenance.
+type CurrentConnectionPinProvenance string
+
 // Deployment defines model for Deployment.
 type Deployment struct {
 	// App Slug of the app this deployment belongs to.
@@ -1175,6 +1218,11 @@ type Deployment struct {
 //
 // Example: promote
 type DeploymentAction string
+
+// DeploymentConnectionPin defines model for DeploymentConnectionPin.
+type DeploymentConnectionPin struct {
+	union json.RawMessage
+}
 
 // DeploymentConnectionSummary defines model for DeploymentConnectionSummary.
 type DeploymentConnectionSummary struct {
@@ -3070,6 +3118,27 @@ type ServiceUnavailableErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
+// SnapshotConnectionPin defines model for SnapshotConnectionPin.
+type SnapshotConnectionPin struct {
+	CallerAppId        string `json:"callerAppId"`
+	CallerAppName      string `json:"callerAppName"`
+	CallerDeploymentId string `json:"callerDeploymentId"`
+
+	// CallerStatus Current lifecycle status of the deployment. Poll until it reaches a
+	// terminal state: ready (serving), failed, skipped, superseded, stopped,
+	// or cancelled.
+	//
+	//
+	// Example: ready
+	CallerStatus   DeploymentStatus                `json:"callerStatus"`
+	ConnectionId   string                          `json:"connectionId"`
+	ConnectionName string                          `json:"connectionName"`
+	Provenance     SnapshotConnectionPinProvenance `json:"provenance"`
+}
+
+// SnapshotConnectionPinProvenance defines model for SnapshotConnectionPin.Provenance.
+type SnapshotConnectionPinProvenance string
+
 // StringMatch String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
 //
 // Example: {"ignoreCase":true,"prefix":"/api/"}
@@ -4392,6 +4461,25 @@ type V2DeploymentsListBuildLogsResponseBody struct {
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination Pagination `json:"pagination"`
+}
+
+// V2DeploymentsListConnectionPinsRequestBody defines model for V2DeploymentsListConnectionPinsRequestBody.
+type V2DeploymentsListConnectionPinsRequestBody struct {
+	DeploymentId string `json:"deploymentId"`
+}
+
+// V2DeploymentsListConnectionPinsResponseBody defines model for V2DeploymentsListConnectionPinsResponseBody.
+type V2DeploymentsListConnectionPinsResponseBody struct {
+	Data V2DeploymentsListConnectionPinsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsListConnectionPinsResponseData defines model for V2DeploymentsListConnectionPinsResponseData.
+type V2DeploymentsListConnectionPinsResponseData struct {
+	Pins      []DeploymentConnectionPin `json:"pins"`
+	Truncated bool                      `json:"truncated"`
 }
 
 // V2DeploymentsListConnectionsRequestBody defines model for V2DeploymentsListConnectionsRequestBody.
@@ -8782,6 +8870,9 @@ type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequest
 // DeploymentsListBuildLogsJSONRequestBody defines body for DeploymentsListBuildLogs for application/json ContentType.
 type DeploymentsListBuildLogsJSONRequestBody = V2DeploymentsListBuildLogsRequestBody
 
+// DeploymentsListConnectionPinsJSONRequestBody defines body for DeploymentsListConnectionPins for application/json ContentType.
+type DeploymentsListConnectionPinsJSONRequestBody = V2DeploymentsListConnectionPinsRequestBody
+
 // DeploymentsListConnectionsJSONRequestBody defines body for DeploymentsListConnections for application/json ContentType.
 type DeploymentsListConnectionsJSONRequestBody = V2DeploymentsListConnectionsRequestBody
 
@@ -9042,6 +9133,107 @@ type WorkspaceUpdateFlagJSONRequestBody = V2WorkspaceUpdateFlagRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody
+
+// AsCurrentConnectionPin returns the union data inside the DeploymentConnectionPin as a CurrentConnectionPin
+func (t DeploymentConnectionPin) AsCurrentConnectionPin() (CurrentConnectionPin, error) {
+	var body CurrentConnectionPin
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCurrentConnectionPin overwrites any union data inside the DeploymentConnectionPin as the provided CurrentConnectionPin
+func (t *DeploymentConnectionPin) FromCurrentConnectionPin(v CurrentConnectionPin) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"provenance":"current_rule"}`))
+	t.union = b
+	return err
+}
+
+// MergeCurrentConnectionPin performs a merge with any union data inside the DeploymentConnectionPin, using the provided CurrentConnectionPin
+func (t *DeploymentConnectionPin) MergeCurrentConnectionPin(v CurrentConnectionPin) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"provenance":"current_rule"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSnapshotConnectionPin returns the union data inside the DeploymentConnectionPin as a SnapshotConnectionPin
+func (t DeploymentConnectionPin) AsSnapshotConnectionPin() (SnapshotConnectionPin, error) {
+	var body SnapshotConnectionPin
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSnapshotConnectionPin overwrites any union data inside the DeploymentConnectionPin as the provided SnapshotConnectionPin
+func (t *DeploymentConnectionPin) FromSnapshotConnectionPin(v SnapshotConnectionPin) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"provenance":"deployment_snapshot"}`))
+	t.union = b
+	return err
+}
+
+// MergeSnapshotConnectionPin performs a merge with any union data inside the DeploymentConnectionPin, using the provided SnapshotConnectionPin
+func (t *DeploymentConnectionPin) MergeSnapshotConnectionPin(v SnapshotConnectionPin) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"provenance":"deployment_snapshot"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t DeploymentConnectionPin) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"provenance"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t DeploymentConnectionPin) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "current_rule":
+		return t.AsCurrentConnectionPin()
+	case "deployment_snapshot":
+		return t.AsSnapshotConnectionPin()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t DeploymentConnectionPin) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *DeploymentConnectionPin) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsV2AppsCreateAppRequestBody0 returns the union data inside the V2AppsCreateAppRequestBody as a V2AppsCreateAppRequestBody0
 func (t V2AppsCreateAppRequestBody) AsV2AppsCreateAppRequestBody0() (V2AppsCreateAppRequestBody0, error) {
