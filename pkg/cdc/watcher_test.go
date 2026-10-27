@@ -2,6 +2,7 @@ package cdc
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	binlog "vitess.io/vitess/go/vt/proto/binlogdata"
 	"vitess.io/vitess/go/vt/proto/query"
@@ -265,6 +267,9 @@ func TestWatch_CoalescesOnlyCommittedCheckpoints(t *testing.T) {
 	watcher.clock = controlled
 	var checkpoints [][]byte
 	err := watcher.Watch(t.Context(), nil, func(event Event) error {
+		if event.Heartbeat {
+			return nil
+		}
 		if event.Change == nil {
 			checkpoints = append(checkpoints, event.ResumeToken)
 			return nil
@@ -291,7 +296,12 @@ func TestWatch_HeartbeatDoesNotCommitPendingPosition(t *testing.T) {
 		{Events: []*binlog.VEvent{{Type: binlog.VEventType_VGTID, Vgtid: &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "uncommitted"}}}}}},
 		{Events: []*binlog.VEvent{{Type: binlog.VEventType_HEARTBEAT}}},
 	}}, rules)
-	err := watcher.Watch(t.Context(), nil, func(Event) error { return errors.New("event before commit") })
+	err := watcher.Watch(t.Context(), nil, func(event Event) error {
+		if event.Heartbeat {
+			return nil
+		}
+		return errors.New("event before commit")
+	})
 	require.ErrorIs(t, err, io.EOF)
 }
 
@@ -391,7 +401,7 @@ func TestWatch_OnlyExpiredBinlogsRequireSnapshot(t *testing.T) {
 	} {
 		t.Run(test.message, func(t *testing.T) {
 			watcher := testWatcher(t, &scriptedServer{err: status.Error(codes.Unknown, test.message)}, rules)
-			token := []byte(`{"rules":[{"table":"records","query":"select id from records"}],"position":{"shardGtids":[{"keyspace":"unkey","shard":"0","gtid":"position-7"}]}}`)
+			token := testResumeToken(t, rules, &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "position-7"}}})
 			err := watcher.Watch(t.Context(), token, func(Event) error { return errors.New("unexpected event") })
 			require.Error(t, err)
 			require.Equal(t, test.expired, errors.Is(err, ErrExpired))
@@ -402,9 +412,20 @@ func TestWatch_OnlyExpiredBinlogsRequireSnapshot(t *testing.T) {
 func TestWatch_RejectsForeignSnapshotTable(t *testing.T) {
 	rules := []Rule{{Table: "records", Query: "select id from records"}}
 	watcher := testWatcher(t, &scriptedServer{}, rules)
-	token := []byte(`{"rules":[{"table":"records","query":"select id from records"}],"position":{"shardGtids":[{"keyspace":"unkey","shard":"0","gtid":"position-7","tablePKs":[{"tableName":"workspaces"}]}]}}`)
+	token := testResumeToken(t, rules, &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{
+		Keyspace: "unkey", Shard: "0", Gtid: "position-7", TablePKs: []*binlog.TableLastPK{{TableName: "workspaces"}},
+	}}})
 	err := watcher.Watch(t.Context(), token, func(Event) error { return errors.New("unexpected event") })
 	require.ErrorIs(t, err, ErrInvalidToken)
+}
+
+func testResumeToken(t *testing.T, rules []Rule, position *binlog.VGtid) []byte {
+	t.Helper()
+	encodedPosition, err := protojson.Marshal(position)
+	require.NoError(t, err)
+	token, err := json.Marshal(resumeToken{Rules: rules, Position: encodedPosition})
+	require.NoError(t, err)
+	return token
 }
 
 func TestWatch_TokensBindToAllRules(t *testing.T) {
@@ -440,4 +461,68 @@ func TestWatch_TokensBindToAllRules(t *testing.T) {
 			require.ErrorIs(t, err, test.want)
 		})
 	}
+}
+
+// TestWatch_SurfacesFinalCopyCompletionAndHeartbeats guarantees that consumers
+// learn when a snapshot holds every matching row and that an idle stream is
+// alive, without treating vtgate's per-shard copy completions as the end.
+func TestWatch_SurfacesFinalCopyCompletionAndHeartbeats(t *testing.T) {
+	watcher := testWatcher(t, &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
+		{Type: binlog.VEventType_ROW, RowEvent: &binlog.RowEvent{TableName: "records", RowChanges: []*binlog.RowChange{{After: &query.Row{Lengths: []int64{1}, Values: []byte("a")}}}}},
+		{Type: binlog.VEventType_COPY_COMPLETED, Keyspace: "unkey", Shard: "0"},
+		{Type: binlog.VEventType_COPY_COMPLETED},
+		{Type: binlog.VEventType_HEARTBEAT},
+	}}}}, []Rule{{Table: "records", Query: "select id from records"}})
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	var kinds []string
+	err := watcher.Watch(ctx, nil, func(event Event) error {
+		switch {
+		case event.Change != nil:
+			kinds = append(kinds, "change")
+		case event.CopyCompleted:
+			kinds = append(kinds, "copy_completed")
+		case event.Heartbeat:
+			kinds = append(kinds, "heartbeat")
+			cancel()
+		default:
+			kinds = append(kinds, "checkpoint")
+		}
+		return nil
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	require.Equal(t, []string{"change", "copy_completed", "heartbeat"}, kinds)
+}
+
+// TestWatch_CheckpointReportsCommitTime guarantees that consumers can tell how
+// old a checkpoint is, and cannot mistake a checkpoint without commit times,
+// or one shard's commit in a sharded keyspace, for a current one.
+func TestWatch_CheckpointReportsCommitTime(t *testing.T) {
+	position := func(gtid string) *binlog.VGtid {
+		return &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: gtid}}}
+	}
+	committed := time.Unix(1_700_000_000, 0)
+	row := &binlog.VEvent{Type: binlog.VEventType_ROW, RowEvent: &binlog.RowEvent{RowChanges: []*binlog.RowChange{{After: &query.Row{Lengths: []int64{1}, Values: []byte("a")}}}}}
+	watcher := testWatcher(t, &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
+		row,
+		{Type: binlog.VEventType_VGTID, Vgtid: position("copy")},
+		{Type: binlog.VEventType_COMMIT},
+		row,
+		{Type: binlog.VEventType_VGTID, Vgtid: position("live")},
+		{Type: binlog.VEventType_COMMIT, Timestamp: committed.Unix(), CurrentTime: committed.Add(3 * time.Second).UnixNano()},
+		row,
+		{Type: binlog.VEventType_VGTID, Vgtid: &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{
+			{Keyspace: "unkey", Shard: "-80", Gtid: "a"}, {Keyspace: "unkey", Shard: "80-", Gtid: "b"},
+		}}},
+		{Type: binlog.VEventType_COMMIT, Timestamp: committed.Unix(), CurrentTime: committed.Add(time.Second).UnixNano()},
+	}}}}, []Rule{{Table: "records", Query: "select id from records"}})
+	var commits []time.Time
+	err := watcher.Watch(t.Context(), nil, func(event Event) error {
+		if event.Change == nil && !event.Heartbeat && !event.CopyCompleted {
+			commits = append(commits, event.CommitTime)
+		}
+		return nil
+	})
+	require.ErrorIs(t, err, io.EOF)
+	require.Equal(t, []time.Time{{}, committed, {}}, commits)
 }
