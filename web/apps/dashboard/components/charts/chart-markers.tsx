@@ -236,7 +236,7 @@ export function ChartMarkerOverlay({
                 style={{ left: `${m.leftPct}%`, bottom: slot.layer * STACK_STEP_PX }}
               >
                 {slot.overflow > 0 ? (
-                  <span className="text-[9px] leading-none font-medium text-error-11">
+                  <span className="text-3xs leading-none font-medium text-error-11">
                     +{slot.overflow}
                   </span>
                 ) : (
