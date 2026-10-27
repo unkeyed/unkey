@@ -7,7 +7,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
@@ -21,7 +21,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.BufferInserts.WithLabelValues(b.String(), "buffered").Inc()
-	BufferState = lazy.NewCounterVec(
+	BufferState = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "buffer",
@@ -36,7 +36,7 @@ var (
 	//
 	// Example usage:
 	// 	 metrics.BufferSize.WithLabelValues(b.String(), "true").Set(float64(capacity)/float64(maxCapacity))
-	BufferSize = lazy.NewGaugeVec(
+	BufferSize = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "buffer",

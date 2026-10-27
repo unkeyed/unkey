@@ -7,7 +7,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // Standard histogram buckets for latency metrics in seconds
@@ -55,7 +55,7 @@ var (
 	//       metrics.HTTPRequestLatency.WithLabelValues("GET", "/users", "200").Observe(v)
 	//   }))
 	//   defer timer.ObserveDuration()
-	HTTPRequestLatency = lazy.NewHistogramVec(
+	HTTPRequestLatency = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "http",
@@ -71,7 +71,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.HTTPRequestTotal.WithLabelValues("GET", "/users", "200").Inc()
-	HTTPRequestTotal = lazy.NewCounterVec(
+	HTTPRequestTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "http",
@@ -87,7 +87,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.HTTPRequestBodySize.WithLabelValues("POST", "/api/upload", "200").Observe(float64(bodySize))
-	HTTPRequestBodySize = lazy.NewHistogramVec(
+	HTTPRequestBodySize = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "http",

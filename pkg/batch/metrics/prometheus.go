@@ -7,7 +7,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // Standard histogram buckets for batch size metrics
@@ -28,7 +28,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.BatchSizeDistribution.WithLabelValues("database_writes", "size_limit").Observe(float64(len(batch)))
-	BatchSizeDistribution = lazy.NewHistogramVec(
+	BatchSizeDistribution = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "batch",
@@ -55,7 +55,7 @@ var (
 	// Example usage:
 	//   metrics.BatchOperationsTotal.WithLabelValues("database_writes", "size_limit", "success").Inc()
 	//   metrics.BatchOperationsTotal.WithLabelValues("log_entries", "time_interval", "error").Inc()
-	BatchOperationsTotal = lazy.NewCounterVec(
+	BatchOperationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "batch",
@@ -72,7 +72,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.BatchItemsProcessedTotal.WithLabelValues("database_writes").Add(float64(len(batch)))
-	BatchItemsProcessedTotal = lazy.NewCounterVec(
+	BatchItemsProcessedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "batch",
@@ -88,7 +88,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.BatchItemsProcessedErrorsTotal.WithLabelValues("database_writes").Add(float64(errorCount))
-	BatchItemsProcessedErrorsTotal = lazy.NewCounterVec(
+	BatchItemsProcessedErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "batch",

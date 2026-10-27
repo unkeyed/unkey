@@ -13,7 +13,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // latencyBuckets are standard histogram buckets for latency metrics in seconds.
@@ -48,7 +48,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitWindows.Set(float64(activeCounters))
-	RatelimitWindows = lazy.NewGauge(
+	RatelimitWindows = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -63,7 +63,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitWindowsCreated.Inc()
-	RatelimitWindowsCreated = lazy.NewCounter(
+	RatelimitWindowsCreated = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -78,7 +78,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitWindowsEvicted.Inc()
-	RatelimitWindowsEvicted = lazy.NewCounter(
+	RatelimitWindowsEvicted = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -101,7 +101,7 @@ var (
 	// Example usage:
 	//   metrics.RatelimitDecision.WithLabelValues(workspaceID, "local", "passed").Inc()
 	//   metrics.RatelimitDecision.WithLabelValues(workspaceID, "origin", "denied").Inc()
-	RatelimitDecision = lazy.NewCounterVec(
+	RatelimitDecision = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -118,7 +118,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitCASExhausted.Inc()
-	RatelimitCASExhausted = lazy.NewCounter(
+	RatelimitCASExhausted = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -138,7 +138,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitStrictModeActivations.WithLabelValues(workspaceID).Inc()
-	RatelimitStrictModeActivations = lazy.NewCounterVec(
+	RatelimitStrictModeActivations = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -168,7 +168,7 @@ var (
 	// Example usage:
 	//   metrics.RatelimitOriginOperations.WithLabelValues("fetch_stale").Inc()
 	//   metrics.RatelimitOriginOperations.WithLabelValues("sync").Inc()
-	RatelimitOriginOperations = lazy.NewCounterVec(
+	RatelimitOriginOperations = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -184,7 +184,7 @@ var (
 	// Example usage:
 	//   metrics.RatelimitOriginLatency.WithLabelValues("fetch_stale").Observe(seconds)
 	//   metrics.RatelimitOriginLatency.WithLabelValues("sync").Observe(seconds)
-	RatelimitOriginLatency = lazy.NewHistogramVec(
+	RatelimitOriginLatency = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -201,7 +201,7 @@ var (
 	// reason: "circuit_open" (breaker short-circuit — dominates the count once
 	// open, not a real failure), "timeout" (deadline or socket timeout), or
 	// "other" (Redis/network error). For root cause, look at reason!="circuit_open".
-	RatelimitOriginErrors = lazy.NewCounterVec(
+	RatelimitOriginErrors = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -223,7 +223,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitGlobalPushTotal.Add(float64(len(batch)))
-	RatelimitGlobalPushTotal = lazy.NewCounter(
+	RatelimitGlobalPushTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -240,7 +240,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitGlobalPushErrors.Inc()
-	RatelimitGlobalPushErrors = lazy.NewCounter(
+	RatelimitGlobalPushErrors = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -257,7 +257,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitGlobalPullRowsApplied.Add(float64(len(rows)))
-	RatelimitGlobalPullRowsApplied = lazy.NewCounter(
+	RatelimitGlobalPullRowsApplied = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -272,7 +272,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitGlobalPullErrors.Inc()
-	RatelimitGlobalPullErrors = lazy.NewCounter(
+	RatelimitGlobalPullErrors = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -288,7 +288,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitGlobalEntriesCreated.Inc()
-	RatelimitGlobalEntriesCreated = lazy.NewCounter(
+	RatelimitGlobalEntriesCreated = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -304,7 +304,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitGlobalPullRowsLastPoll.Set(float64(len(rows)))
-	RatelimitGlobalPullRowsLastPoll = lazy.NewGauge(
+	RatelimitGlobalPullRowsLastPoll = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",

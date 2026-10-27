@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
@@ -11,7 +11,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.CircuitBreakerRequests.WithLabelValues("my_circuit_breaker", "open").Inc()
-	CircuitBreakerRequests = lazy.NewCounterVec(prometheus.CounterOpts{
+	CircuitBreakerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "circuitbreaker",
 		Name:      "requests_total",

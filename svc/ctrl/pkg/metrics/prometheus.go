@@ -2,13 +2,13 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
 	// FullSyncDurationSeconds tracks how long full syncs take in the
 	// SyncDesiredState RPC. Growth indicates increasing resource count in the region.
-	FullSyncDurationSeconds = lazy.NewHistogram(
+	FullSyncDurationSeconds = promauto.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
@@ -22,7 +22,7 @@ var (
 	//
 	// Labels:
 	//   - "status": "success" or "error"
-	SyncDesiredStateTotal = lazy.NewCounterVec(
+	SyncDesiredStateTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
@@ -36,7 +36,7 @@ var (
 	//
 	// Labels:
 	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
-	SyncDesiredStateEventsSentTotal = lazy.NewCounterVec(
+	SyncDesiredStateEventsSentTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
@@ -51,7 +51,7 @@ var (
 	// Labels:
 	//   - "resource_type": "deployment_topology", "sentinel", "cilium_network_policy", or "unknown"
 	//   - "status": "success", "not_found", or "error"
-	DeploymentChangesProcessedTotal = lazy.NewCounterVec(
+	DeploymentChangesProcessedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
@@ -71,7 +71,7 @@ var (
 	//   - "outcome": "notified", "inactive_status", "topology_missing",
 	//                "threshold_not_met", "already_notified",
 	//                "topology_error", "instances_error", "restate_error"
-	NotifyInstancesReadyTotal = lazy.NewCounterVec(
+	NotifyInstancesReadyTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
@@ -87,7 +87,7 @@ var (
 	//
 	// Labels:
 	//   - "result": "success", "error"
-	ReportDeploymentStatusDurationSeconds = lazy.NewHistogramVec(
+	ReportDeploymentStatusDurationSeconds = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "control",

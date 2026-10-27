@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // Outcome labels for upstreamDialsTotal.
@@ -19,7 +19,7 @@ var (
 	//
 	// Buckets cover the full range up to the 300s function timeout —
 	// these requests can be intentionally long.
-	upstreamSeconds = lazy.NewHistogramVec(
+	upstreamSeconds = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -39,7 +39,7 @@ var (
 	// hop depth via _sum/_count and alerts can use bucket boundaries to
 	// distinguish "all good" (everything in le=1) from "drift" (any rate
 	// past le=1).
-	hopsHistogram = lazy.NewHistogramVec(
+	hopsHistogram = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -54,7 +54,7 @@ var (
 	// transport. Healthy operation reuses pooled connections; a high dial
 	// rate per destination signals pool churn — a leading indicator of
 	// upstream-saturation outages before errors fire.
-	upstreamDialsTotal = lazy.NewCounterVec(
+	upstreamDialsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
