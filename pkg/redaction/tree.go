@@ -26,6 +26,10 @@ func (r *Redactor) add(path string) {
 	for _, segment := range strings.Split(path, ".") {
 		label, arrays := splitSegment(segment)
 
+		// Store names folded, because that is how a member is matched to a
+		// struct field and therefore how a caller can spell it in a body.
+		label = strings.ToLower(label)
+
 		// A segment can be array steps alone, as in the leading "[]" of
 		// "[].key", where the body itself is an array.
 		if label != "" {
@@ -78,6 +82,9 @@ func splitSegment(segment string) (string, int) {
 // path tree and have its own credential logged. Escapes are vanishingly rare in
 // practice, so they take a slower path that decodes first, and a name that will
 // not decode at all is treated as sensitive rather than guessed at.
+//
+// The same reasoning applies to case, which is why every name is folded before
+// it is matched: `{"Key":"..."}` binds to a `key` field, so it must redact too.
 func (r *Redactor) resolve(frames []frame, depth, untracked int, desynced bool, in []byte, nameStart, nameEnd int) *node {
 	raw := in[nameStart+1 : nameEnd-1]
 	if bytes.IndexByte(raw, '\\') < 0 {
@@ -102,12 +109,25 @@ func decodeName(token []byte) (string, bool) {
 	return name, true
 }
 
+// foldName lowercases a member name into the form the path tree stores. A name
+// that is already folded keeps the single-allocation lookup.
+func foldName(name []byte) string {
+	for _, c := range name {
+		if c >= 'A' && c <= 'Z' || c >= 0x80 {
+			return strings.ToLower(string(name))
+		}
+	}
+
+	return string(name)
+}
+
 // lookup resolves an unescaped member name. While the scan is synchronized this
 // is an exact path match; once desynchronized it degrades to matching the name
-// alone. Taking []byte keeps the map lookup allocation-free.
+// alone.
 func (r *Redactor) lookup(frames []frame, depth, untracked int, desynced bool, name []byte) *node {
+	folded := foldName(name)
 	if desynced {
-		if _, sensitive := r.names[string(name)]; sensitive {
+		if _, sensitive := r.names[folded]; sensitive {
 			return redactAll
 		}
 
@@ -119,13 +139,14 @@ func (r *Redactor) lookup(frames []frame, depth, untracked int, desynced bool, n
 		return nil
 	}
 
-	return children[string(name)]
+	return children[folded]
 }
 
 // lookupString is [Redactor.lookup] for a name that had to be decoded.
 func (r *Redactor) lookupString(frames []frame, depth, untracked int, desynced bool, name string) *node {
+	folded := strings.ToLower(name)
 	if desynced {
-		if _, sensitive := r.names[name]; sensitive {
+		if _, sensitive := r.names[folded]; sensitive {
 			return redactAll
 		}
 
@@ -137,7 +158,7 @@ func (r *Redactor) lookupString(frames []frame, depth, untracked int, desynced b
 		return nil
 	}
 
-	return children[name]
+	return children[folded]
 }
 
 // childrenAt returns the member names reachable at the current position, or nil
