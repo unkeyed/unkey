@@ -10,7 +10,7 @@ import { ClosedEnum } from "../../types/enums.js";
  *
  * @remarks
  */
-export const Kind = {
+export const EnvironmentVariableInputKind = {
   Recoverable: "recoverable",
   Writeonly: "writeonly",
 } as const;
@@ -19,7 +19,9 @@ export const Kind = {
  *
  * @remarks
  */
-export type Kind = ClosedEnum<typeof Kind>;
+export type EnvironmentVariableInputKind = ClosedEnum<
+  typeof EnvironmentVariableInputKind
+>;
 
 /**
  * A single environment variable to set.
@@ -46,7 +48,7 @@ export type EnvironmentVariableInput = {
    *
    * @remarks
    */
-  kind?: Kind | undefined;
+  kind?: EnvironmentVariableInputKind | undefined;
   /**
    * Human-readable description of the variable.
    *
@@ -56,9 +58,9 @@ export type EnvironmentVariableInput = {
 };
 
 /** @internal */
-export const Kind$outboundSchema: z.ZodNativeEnum<typeof Kind> = z.nativeEnum(
-  Kind,
-);
+export const EnvironmentVariableInputKind$outboundSchema: z.ZodNativeEnum<
+  typeof EnvironmentVariableInputKind
+> = z.nativeEnum(EnvironmentVariableInputKind);
 
 /** @internal */
 export type EnvironmentVariableInput$Outbound = {
@@ -76,7 +78,7 @@ export const EnvironmentVariableInput$outboundSchema: z.ZodType<
 > = z.object({
   key: z.string(),
   value: z.string(),
-  kind: Kind$outboundSchema.default("writeonly"),
+  kind: EnvironmentVariableInputKind$outboundSchema.default("writeonly"),
   description: z.string().optional(),
 });
 

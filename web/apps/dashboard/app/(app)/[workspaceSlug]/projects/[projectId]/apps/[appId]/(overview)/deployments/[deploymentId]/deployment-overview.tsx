@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DeploymentApproval } from "./(deployment-progress)/deployment-approval";
 import { DeploymentSkipped } from "./(deployment-progress)/deployment-skipped";
 import { FailedDeploymentBanner } from "./(deployment-progress)/failed-deployment-banner";
+import { ConnectionPinsNotice } from "./connection-pins-notice";
 import { DeploymentSuccessBanner } from "./deployment-success-banner";
 import { DeploymentDetailsCard } from "./details/deployment-details-card";
 import { DeploymentStagesCard } from "./details/deployment-stages-card";
@@ -32,6 +33,7 @@ export function DeploymentOverview() {
         />
       )}
       <DeploymentDetailsCard page={page} />
+      <ConnectionPinsNotice />
       {page.body === "stages" ? (
         <DeploymentStagesCard page={page} />
       ) : (
