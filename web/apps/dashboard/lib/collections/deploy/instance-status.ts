@@ -4,6 +4,10 @@ export const INSTANCE_STATUSES = ["inactive", "pending", "running", "failed"] as
 
 export type InstanceStatus = (typeof INSTANCE_STATUSES)[number];
 
+export function toInstanceKey(k8sPodName: string, region: string): string {
+  return `${k8sPodName}::${region}`;
+}
+
 export type InstanceState = "starting" | "running" | "unhealthy" | "inactive";
 
 export const instanceLabel: Record<InstanceState, string> = {
