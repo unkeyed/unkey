@@ -1,8 +1,16 @@
+import { canAccessWorkspace } from "@/lib/auth/roles";
 import { loadWorkspace } from "@/lib/db/load-workspace";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
 
 export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
+  if (!canAccessWorkspace(ctx.tenant.role)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Your organization role does not have workspace access.",
+    });
+  }
+
   if (ctx.workspace) {
     return ctx.workspace;
   }
