@@ -258,14 +258,15 @@ describe("resolveInstancesView", () => {
       kind: "empty",
       message: "No instances running",
     });
-    expect(resolveInstancesView(input({ stage: "error" }))).toEqual({
-      kind: "empty",
-      message: "No instances",
-    });
+    expect(resolveInstancesView(input())).toEqual({ kind: "empty", message: "No instances" });
     expect(resolveInstancesView(input({ stage: "started", desiredState: "stopped" }))).toEqual({
       kind: "empty",
       message: "No instances running",
     });
+  });
+
+  test("a failed step with no rows shows nothing", () => {
+    expect(resolveInstancesView(input({ stage: "error" }))).toEqual({ kind: "none" });
   });
 });
 
