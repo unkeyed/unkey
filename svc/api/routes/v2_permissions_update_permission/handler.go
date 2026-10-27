@@ -57,11 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Search:      req.Permission,
 		})
 		if db.IsNotFound(err) {
-			return openapi.Permission{}, fault.New("permission not found",
-				fault.Code(codes.Data.Permission.NotFound.URN()),
-				fault.Internal("permission not found"),
-				fault.Public("The requested permission does not exist."),
-			)
+			return openapi.Permission{}, apierrors.NotFound(codes.Data.Permission.NotFound.URN())
 		}
 		if err != nil {
 			return openapi.Permission{}, fault.Wrap(err,
