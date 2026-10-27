@@ -53,12 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New(
-				"domain not found",
-				fault.Code(codes.Data.Domain.NotFound.URN()),
-				fault.Internal("domain not found"),
-				fault.Public("The requested domain does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Domain.NotFound.URN())
 		}
 		return fault.Wrap(
 			err,
@@ -77,7 +72,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
 			codes.Data.Domain.NotFound.URN(),
-			"The requested domain does not exist.",
 		)
 	}
 

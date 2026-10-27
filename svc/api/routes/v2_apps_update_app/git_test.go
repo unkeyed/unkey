@@ -11,7 +11,6 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	github "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -338,15 +337,9 @@ func TestUpdateAppConnectRepositoryForbidden(t *testing.T) {
 
 func TestUpdateAppOCIImageWithAppSettings(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctrlClient := &testutil.MockAppClient{
-		UpdateOciImageSourceFunc: func(_ context.Context, _ *ctrlv1.UpdateOciImageSourceRequest) (*ctrlv1.UpdateOciImageSourceResponse, error) {
-			return &ctrlv1.UpdateOciImageSourceResponse{ImageReference: "index.docker.io/library/nginx:1.27"}, nil
-		},
-	}
 	route := &handler.Handler{
-		DB:         h.DB,
-		Auditlogs:  h.Auditlogs,
-		CtrlClient: ctrlClient,
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
 	}
 	h.Register(route)
 
@@ -363,12 +356,13 @@ func TestUpdateAppOCIImageWithAppSettings(t *testing.T) {
 		Slug:        appSlug(),
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:          uid.New(uid.AppPrefix),
-		WorkspaceID: workspace.ID,
-		ProjectID:   project.ID,
-		Name:        "OCI app",
-		Slug:        appSlug(),
-		SourceType:  db.AppsSourceTypeOci,
+		ID:             uid.New(uid.AppPrefix),
+		WorkspaceID:    workspace.ID,
+		ProjectID:      project.ID,
+		Name:           "OCI app",
+		Slug:           appSlug(),
+		SourceType:     db.AppsSourceTypeOci,
+		ImageReference: "index.docker.io/library/nginx:1.26",
 	})
 	updatedName := "Updated OCI app"
 	updatedSlug := appSlug()
@@ -391,27 +385,88 @@ func TestUpdateAppOCIImageWithAppSettings(t *testing.T) {
 	require.Equal(t, updatedName, res.Body.Data.Name)
 	require.Equal(t, updatedSlug, res.Body.Data.Slug)
 	require.True(t, res.Body.Data.DeleteProtection)
-	require.Len(t, ctrlClient.UpdateOciImageSourceCalls, 1)
-	call := ctrlClient.UpdateOciImageSourceCalls[0]
-	require.Equal(t, workspace.ID, call.GetWorkspaceId())
-	require.Equal(t, app.ID, call.GetAppId())
-	require.Equal(t, "nginx:1.27", call.GetImageReference())
-	require.NotNil(t, call.GetActor())
 
 	updatedApp, err := db.Query.FindAppById(context.Background(), h.DB.RO(), app.ID)
 	require.NoError(t, err)
 	require.Equal(t, updatedName, updatedApp.Name)
 	require.Equal(t, updatedSlug, updatedApp.Slug)
 	require.True(t, updatedApp.DeleteProtection.Bool)
+	source, err := db.Query.FindAppSourceOciByAppId(context.Background(), h.DB.RO(), app.ID)
+	require.NoError(t, err)
+	require.Equal(t, "index.docker.io/library/nginx:1.27", source.ImageReference)
+	require.Len(t, h.FindAuditLogsByTargetID(context.Background(), t, app.ID), 2)
+}
+
+func TestUpdateAppOCIFailureLeavesSettingsUnchanged(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		image          string
+		imageStored    string
+		statusExpected int
+	}{
+		{
+			name:           "invalid image",
+			image:          "nginx",
+			imageStored:    "index.docker.io/library/nginx:1.26",
+			statusExpected: http.StatusBadRequest,
+		},
+		{
+			name:           "missing OCI source rolls back settings",
+			image:          "nginx:1.27",
+			imageStored:    "",
+			statusExpected: http.StatusInternalServerError,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := testutil.NewHarness(t)
+			route := &handler.Handler{
+				DB:        h.DB,
+				Auditlogs: h.Auditlogs,
+			}
+			h.Register(route)
+			workspace := h.Resources().UserWorkspace
+			rootKey := h.CreateRootKey(workspace.ID, "app.*.update_app")
+			headers := http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			}
+			project := h.CreateProject(seed.CreateProjectRequest{
+				ID:          uid.New(uid.ProjectPrefix),
+				WorkspaceID: workspace.ID,
+				Name:        "OCI",
+				Slug:        appSlug(),
+			})
+			app := h.CreateApp(seed.CreateAppRequest{
+				ID:             uid.New(uid.AppPrefix),
+				WorkspaceID:    workspace.ID,
+				ProjectID:      project.ID,
+				Name:           "Original app",
+				Slug:           appSlug(),
+				SourceType:     db.AppsSourceTypeOci,
+				ImageReference: tc.imageStored,
+			})
+			res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, headers, handler.Request{
+				Project:          project.ID,
+				App:              app.ID,
+				Name:             new("Changed app"),
+				DeleteProtection: new(true),
+				Oci:              &openapi.AppOCI{Image: tc.image},
+			})
+			stored, err := db.Query.FindAppById(context.Background(), h.DB.RO(), app.ID)
+			require.NoError(t, err)
+			require.Equal(t, app.Name, stored.Name)
+			require.Equal(t, app.DeleteProtection, stored.DeleteProtection)
+			require.Empty(t, h.FindAuditLogsByTargetID(context.Background(), t, app.ID))
+			require.Equal(t, tc.statusExpected, res.Status, "received: %s", res.RawBody)
+		})
+	}
 }
 
 func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctrlClient := &testutil.MockAppClient{}
 	route := &handler.Handler{
-		DB:         h.DB,
-		Auditlogs:  h.Auditlogs,
-		CtrlClient: ctrlClient,
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
 	}
 	h.Register(route)
 
@@ -472,7 +527,6 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
 
-	require.Empty(t, ctrlClient.UpdateOciImageSourceCalls)
 }
 
 func requireAuditEvent(ctx context.Context, t *testing.T, h *testutil.Harness, targetID, event string) {

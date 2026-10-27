@@ -210,7 +210,12 @@ function useProductionOverview({
       defaultBranch: app?.defaultBranch ?? null,
       domains: all,
       domainsHref: routes.projects.apps.domains(appScope),
+      addDomainHref:
+        isCurrent && !all.some((d) => d.source === "custom")
+          ? routes.projects.apps.domains({ ...appScope, add: true })
+          : null,
       policiesHref: routes.projects.apps.policies(appScope),
+      addPolicyHref: routes.projects.apps.policies({ ...appScope, add: true }),
     },
     sourceRepo,
     diagnostic,

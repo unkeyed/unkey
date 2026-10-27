@@ -40,7 +40,11 @@ fi
 echo "Docker installation completed in $((SECONDS - docker_started_at))s."
 
 echo "Starting Docker..."
-sudo systemctl start docker
+if [[ -x /opt/orb-worker/docker-start.sh ]]; then
+  sudo bash /opt/orb-worker/docker-start.sh
+else
+  sudo systemctl start docker
+fi
 sudo usermod -aG docker "$(id -un)"
 # The setup shell predates the group membership change, so grant this user
 # access without requiring the orb to restart before tests can use Docker.

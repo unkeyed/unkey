@@ -28,7 +28,7 @@ func TestListBuildLogsNotFound(t *testing.T) {
 		t.Helper()
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: deploymentID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-		require.Equal(t, "The requested deployment does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.NotContains(t, res.RawBody, deploymentID)
 		return res
 	}

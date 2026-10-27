@@ -5,13 +5,13 @@ import {
   IconEarthOutline18,
   IconGridOutline18,
   IconLayers3Outline18,
-  IconLink4Outline18,
   IconMicrochipOutline18,
+  IconPlusOutline12,
   IconShieldKeyOutline18,
 } from "@unkey/icons";
 import { Card, Skeleton } from "@unkey/ui";
 import { cn } from "cn";
-import { Canvas, Group, HFlow, Node, NodeHeader, RowItem, Rows } from "./canvas/nodes";
+import { Canvas, Group, HFlow, IconRow, Node, NodeHeader, RowItem, Rows } from "./canvas/nodes";
 
 function Bar({ className }: { className: string }) {
   return <Skeleton className={cn("inline-block h-3 rounded align-middle", className)} />;
@@ -25,16 +25,12 @@ export function AppCanvasSkeleton() {
           <Node>
             <NodeHeader icon={<IconEarthOutline18 />} name="Domains" />
             <Rows>
-              <RowItem
-                icon={<IconEarthOutline18 />}
-                label="Unkey"
-                value={<Bar className="w-32" />}
-              />
-              <RowItem
-                icon={<IconLink4Outline18 />}
-                label="Custom"
-                value={<Bar className="w-28" />}
-              />
+              <IconRow icon={<IconEarthOutline18 />}>
+                <Bar className="w-40" />
+              </IconRow>
+              <IconRow icon={<IconPlusOutline12 />}>
+                <Bar className="w-16" />
+              </IconRow>
             </Rows>
           </Node>
         </Group>

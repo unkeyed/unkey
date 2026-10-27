@@ -3,6 +3,7 @@ package middleware_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger/loggertest"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // newSession builds a fully initialized zen.Session bound to a fresh
@@ -116,19 +118,48 @@ func TestErrorMiddleware_NotFound_DoesNotLog(t *testing.T) {
 	before := h.Snapshot()
 
 	sess, rec := newSession(t, http.MethodGet, "/v2/keys.getKey")
-	notFound := fault.New("missing", fault.Code(codes.Data.Key.NotFound.URN()))
+	notFound := fault.New("missing",
+		fault.Code(codes.Data.Key.NotFound.URN()),
+		fault.Public("The requested key does not exist."),
+	)
 
 	mw := middleware.WithErrorHandling()
-	_ = mw(func(_ context.Context, _ *zen.Session) error {
+	err := mw(func(_ context.Context, _ *zen.Session) error {
 		return notFound
 	})(context.Background(), sess)
+	require.NoError(t, err)
 
 	require.Equal(t, http.StatusNotFound, rec.Code)
+	var response openapi.NotFoundErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&response))
+	require.Equal(t, openapi.BaseError{
+		Status: http.StatusNotFound,
+		Title:  "Not Found",
+		Type:   "https://unkey.com/docs/errors/unkey/data/key_not_found",
+		Detail: "The requested key does not exist.",
+	}, response.Error)
 
 	for _, r := range h.Since(before) {
 		require.NotEqual(t, "api error", r.Message,
 			"4xx must not emit the api error log")
 	}
+}
+
+func TestErrorMiddleware_Forbidden_PreservesPermissionDetail(t *testing.T) {
+	sess, rec := newSession(t, http.MethodPost, "/v2/keys.getKey")
+	denied := fault.New("decrypt denied",
+		fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+		fault.Public("Missing permission to decrypt this key."),
+	)
+
+	err := middleware.WithErrorHandling()(func(_ context.Context, _ *zen.Session) error {
+		return denied
+	})(t.Context(), sess)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusForbidden, rec.Code)
+	var response openapi.ForbiddenErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&response))
+	require.Equal(t, "Missing permission to decrypt this key.", response.Error.Detail)
 }
 
 // toInt64 normalises slog's int-or-int64 attr representation so tests can

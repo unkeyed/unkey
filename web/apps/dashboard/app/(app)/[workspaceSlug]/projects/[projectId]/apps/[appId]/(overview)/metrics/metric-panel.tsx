@@ -4,6 +4,7 @@ import type { ChartMarkers } from "@/components/charts/chart-markers";
 import type { RangePreset } from "@/lib/metrics/app-metrics";
 import { METRIC_VIEWS, RANGE_LABELS, formatValue, primarySeries } from "@/lib/metrics/views";
 import {
+  Card,
   SlidePanel,
   SlidePanelCloseButton,
   SlidePanelContent,
@@ -75,35 +76,41 @@ function PanelBody({
         <SlidePanelCloseButton />
       </SlidePanelHeader>
       <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 pt-2 pb-6">
-        <dl className="grid grid-cols-4 overflow-hidden rounded-lg border border-grayA-4">
-          {STATS.map(({ key, label }) => (
-            <div
-              key={key}
-              className="flex flex-col gap-1 border-l border-grayA-4 px-3 py-2.5 first:border-l-0"
-            >
-              <dt className="text-xs font-medium text-gray-10">
-                {label}
-                {hasManySeries && (
-                  <span className="font-normal text-gray-9"> · {primary.label}</span>
-                )}
-              </dt>
-              <dd className="font-mono text-sm tabular-nums text-gray-12">
-                {panel.stats ? formatValue(view.unit, panel.stats[key]) : "—"}
-              </dd>
-            </div>
-          ))}
-        </dl>
-        <SeriesChart
-          title={view.title}
-          state={panel.card.state}
-          series={view.series}
-          scale={absoluteScale(view.unit)}
-          markers={markers}
-          height={300}
-          syncId={PANEL_SYNC_ID}
-        />
+        <Card>
+          <dl className="grid grid-cols-4 border-b border-grayA-4">
+            {STATS.map(({ key, label }) => (
+              <div
+                key={key}
+                className="flex flex-col gap-1 border-l border-grayA-4 px-4 py-2.5 first:border-l-0"
+              >
+                <dt className="text-xs font-medium text-gray-10">
+                  {label}
+                  {hasManySeries && (
+                    <span className="font-normal text-gray-9"> · {primary.label}</span>
+                  )}
+                </dt>
+                <dd className="font-mono text-sm tabular-nums text-gray-12">
+                  {panel.stats ? formatValue(view.unit, panel.stats[key]) : "—"}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <div className="px-4 pt-3 pb-3">
+            <SeriesChart
+              title={view.title}
+              state={panel.card.state}
+              series={view.series}
+              scale={absoluteScale(view.unit)}
+              markers={markers}
+              height={300}
+              syncId={PANEL_SYNC_ID}
+              connectNulls={view.gaps === "bridge"}
+              legendClassName="-mx-4 -mb-3"
+            />
+          </div>
+        </Card>
         {panel.byInstance && (
-          <section className="flex flex-col gap-2">
+          <Card className="flex flex-col gap-1.5 px-4 pt-3 pb-3">
             <h3 className="text-sm font-medium text-gray-12">By instance</h3>
             <SeriesChart
               title={`${view.title} by instance`}
@@ -112,8 +119,9 @@ function PanelBody({
               scale={absoluteScale(view.unit)}
               height={160}
               syncId={PANEL_SYNC_ID}
+              legendClassName="-mx-4 -mb-3"
             />
-          </section>
+          </Card>
         )}
         {panel.deploys.length > 0 && (
           <section className="flex flex-col gap-2">

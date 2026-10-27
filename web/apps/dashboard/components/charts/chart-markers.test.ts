@@ -11,9 +11,23 @@ const items = [
 describe("placeMarkers", () => {
   it("places markers inside the domain as a percent of its width", () => {
     expect(placeMarkers(items, [1_000, 2_000])).toEqual([
-      { id: "inside", atMs: 1_500, leftPct: 50 },
-      { id: "last", atMs: 1_800, leftPct: 80 },
-      { id: "unspanned", atMs: 1_900, leftPct: 90 },
+      { key: "inside", ids: ["inside"], atMs: 1_500, x: 1_500, leftPct: 50, late: false },
+      { key: "last", ids: ["last"], atMs: 1_800, x: 1_800, leftPct: 80, late: false },
+      { key: "unspanned", ids: ["unspanned"], atMs: 1_900, x: 1_900, leftPct: 90, late: false },
+    ]);
+  });
+
+  it("groups markers past the domain end into one marker on the right edge", () => {
+    expect(placeMarkers(items, [1_250, 1_750])).toEqual([
+      { key: "inside", ids: ["inside"], atMs: 1_500, x: 1_500, leftPct: 50, late: false },
+      {
+        key: "late",
+        ids: ["last", "unspanned"],
+        atMs: 1_900,
+        x: 1_750,
+        leftPct: 100,
+        late: true,
+      },
     ]);
   });
 

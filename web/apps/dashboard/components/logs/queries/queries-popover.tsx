@@ -199,7 +199,7 @@ const QueriesContent = ({ focusedTabIndex, selectedQueryIndex, user }: QueriesCo
               >
                 <Button
                   variant="outline"
-                  size="md"
+                  size="sm"
                   className="flex items-center justify-center px-2"
                 >
                   <IconBook2Outline18 className="py-0.5" />

@@ -24,15 +24,15 @@ import {
   IconLayers3Outline18,
   IconLink4Outline18,
   IconMicrochipOutline18,
+  IconPlusOutline12,
   IconShieldKeyOutline18,
   IconTerminalOutline18,
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, Button, InfoTooltip, Skeleton, useElapsed } from "@unkey/ui";
+import { Button, InfoTooltip, Skeleton, useElapsed } from "@unkey/ui";
 import { cn } from "cn";
 import type { Route } from "next";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { DeploymentStatusIndicator, StatusDot } from "../../../components/deployment-status-dot";
 import type { DisplayDomain } from "../../../components/display-domain";
@@ -43,6 +43,8 @@ import {
   GhostNode,
   Group,
   HFlow,
+  IconRow,
+  LinkRow,
   MoreRow,
   Node,
   NodeHeader,
@@ -57,8 +59,8 @@ import { type DeploymentDisplayStatus, STATUS_META } from "./status";
 const NODE_ROW_LIMIT = 5;
 
 export function AppCanvas() {
-  const { isCurrent, canvas } = useProductionCard();
-  const { domains, domainsHref, policiesHref } = canvas;
+  const { canvas } = useProductionCard();
+  const { domains, domainsHref, addDomainHref, policiesHref, addPolicyHref } = canvas;
   const { policies, view, retry, isRetrying } = useProductionPolicies();
   const listed = view.type === "list";
 
@@ -68,7 +70,7 @@ export function AppCanvas() {
         icon={<IconEarthOutline18 />}
         label={domains.length > 0 ? `Domains · ${domains.length}` : "Domains"}
       >
-        <DomainsNode domains={domains} href={domainsHref} isCurrent={isCurrent} />
+        <DomainsNode domains={domains} href={domainsHref} addHref={addDomainHref} />
       </Group>
       <HFlow empty={domains.length === 0} />
       <Group icon={<IconCubeOutline18 />} label="App">
@@ -87,7 +89,7 @@ export function AppCanvas() {
               icon={<IconShieldKeyOutline18 />}
               name="Add a policy"
               description="Auth, ratelimits and firewall rules at the gateway."
-              href={policiesHref}
+              href={addPolicyHref}
             />
           ))
           .with("list", () => <PoliciesNode policies={policies} href={policiesHref} />)
@@ -97,75 +99,73 @@ export function AppCanvas() {
   );
 }
 
-const DOMAIN_ROW: Record<DisplayDomain["source"], { icon: ReactNode; label: string }> = {
-  platform: { icon: <IconEarthOutline18 />, label: "Unkey" },
-  custom: { icon: <IconLink4Outline18 />, label: "Custom" },
+const DOMAIN_ICON: Record<DisplayDomain["source"], ReactNode> = {
+  platform: <IconEarthOutline18 />,
+  custom: <IconLink4Outline18 />,
 };
 
 function DomainsNode({
   domains,
   href,
-  isCurrent,
+  addHref,
 }: {
   domains: ReadonlyArray<DisplayDomain>;
   href: Route;
-  isCurrent: boolean;
+  addHref: Route | null;
 }) {
   const hasPlatform = domains.some((d) => d.source === "platform");
-  const hasCustom = domains.some((d) => d.source === "custom");
-  const offerCustom = isCurrent && !hasCustom;
-  const placeholders = Number(!hasPlatform) + Number(offerCustom);
-  const shown = domains.slice(0, NODE_ROW_LIMIT - placeholders);
+  const reserved = Number(!hasPlatform) + Number(addHref !== null);
+  const shown = domains.slice(0, NODE_ROW_LIMIT - reserved);
   return (
     <Node link={{ href, label: "Domain settings" }}>
       <NodeHeader icon={<IconEarthOutline18 />} name="Domains" />
       <Rows>
         {!hasPlatform && (
-          <RowItem
-            icon={DOMAIN_ROW.platform.icon}
-            label={DOMAIN_ROW.platform.label}
-            value="Not assigned yet"
-          />
+          <IconRow icon={DOMAIN_ICON.platform}>
+            <span className="text-gray-10">Unkey domain not assigned yet</span>
+          </IconRow>
         )}
         {shown.map((d) => (
-          <RowItem
-            key={d.id}
-            icon={DOMAIN_ROW[d.source].icon}
-            label={DOMAIN_ROW[d.source].label}
-            value={<HostnameLink domain={d} />}
-          />
+          <IconRow key={d.id} icon={DOMAIN_ICON[d.source]}>
+            <HostnameLink domain={d} />
+          </IconRow>
         ))}
-        {offerCustom && (
-          <RowItem
-            icon={DOMAIN_ROW.custom.icon}
-            label={DOMAIN_ROW.custom.label}
-            value={
-              <Link
-                href={href}
-                className="relative z-10 font-sans text-gray-10 hover:text-gray-12 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
-              >
-                Add domain
-              </Link>
-            }
-          />
-        )}
         <MoreRow count={domains.length - shown.length} href={href} />
+        {addHref && (
+          <LinkRow
+            href={addHref}
+            icon={<IconPlusOutline12 className="size-2.5" />}
+            className="mt-1"
+          >
+            Add domain
+          </LinkRow>
+        )}
       </Rows>
     </Node>
   );
 }
 
 function HostnameLink({ domain }: { domain: DisplayDomain }) {
+  const { head, apex } = splitApex(domain.hostname);
   return (
-    <a
-      href={domain.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="relative z-10 hover:underline rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
-    >
-      {domain.hostname}
-    </a>
+    <InfoTooltip asChild content={domain.hostname} position={{ side: "top" }}>
+      <a
+        href={domain.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative z-10 flex min-w-0 font-mono text-gray-12 hover:underline rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
+      >
+        <span className="truncate">{head}</span>
+        <span className="max-w-full shrink-0 truncate">{apex}</span>
+      </a>
+    </InfoTooltip>
   );
+}
+
+function splitApex(hostname: string): { head: string; apex: string } {
+  const labels = hostname.split(".");
+  const apex = labels.slice(-2).join(".");
+  return { head: hostname.slice(0, hostname.length - apex.length), apex };
 }
 
 function AppNode() {
@@ -200,7 +200,6 @@ function AppNode() {
                 value={deployment.gitBranch || "—"}
                 fullValue={deployment.gitBranch || undefined}
                 hint={deployment.gitCommitSha?.slice(0, 7)}
-                copy={deployment.gitCommitSha ?? undefined}
               />
               <RowItem
                 icon={<IconCodeCommitOutline18 />}
@@ -215,7 +214,7 @@ function AppNode() {
             <RowItem
               icon={<IconLayers2Outline18 />}
               label="Image"
-              value={image ?? "Unknown"}
+              value={<span className="font-sans">{image ?? "Unknown"}</span>}
               fullValue={image ?? undefined}
               hint={deployedAgo}
               copy={image ?? undefined}
@@ -285,7 +284,7 @@ function PoliciesNode({ policies, href }: { policies: PolicyRow[]; href: Route }
       <NodeHeader
         icon={<IconShieldKeyOutline18 />}
         name="Policies"
-        right={<Badge variant="count">{policies.length}</Badge>}
+        right={<span className="text-2xs tabular-nums text-gray-10">{policies.length}</span>}
       />
       <Rows>
         {policies.slice(0, NODE_ROW_LIMIT).map((p) => (

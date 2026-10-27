@@ -24,13 +24,19 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 
 	require.Equal(t, []string{
 		"code",              // portal exchangeCode request, the single-use code
-		"data.accessToken",  // portal exchangeCode response
+		"data.accessToken",  // portal exchangeCode response, and CLI poll and refresh responses
 		"data.key",          // createKey and rerollKey responses
+		"data.loginId",      // cli.startDeviceLogin response, the poll secret
 		"data.plaintext",    // getKey response, recoverable key material
+		"data.refreshToken", // cli poll and refresh responses
 		"data.url",          // portal URL, which carries the exchange code in its query
 		"data[].plaintext",  // listKeys response, one entry per key
 		"data[].value",      // listEnvironmentVariables response
 		"key",               // verifyKey and whoami requests
+		"loginId",           // cli.pollDeviceLogin request
+		"permissions",       // cli.approveDeviceLogin request
+		"refreshToken",      // cli.refreshToken request
+		"userCode",          // cli.approveDeviceLogin request, the code shown in the terminal
 		"variables[].value", // setEnvironmentVariables request
 	}, paths)
 
@@ -60,6 +66,11 @@ func TestRedactorFromSpecStripsKnownSecrets(t *testing.T) {
 		"portal createSession":        `{"data":{"id":"ps_123","url":"https://portal.unkey.com/?code=pst_FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
 		"portal exchangeCode request": `{"code":"pst_FIXTURE_LEAK"}`,
 		"portal access token":         `{"data":{"accessToken":"pat_FIXTURE_LEAK","expiresAt":1711386400000},"meta":{"requestId":"req_1"}}`,
+		"cli start response":          `{"data":{"loginId":"FIXTURE_LEAK","userCode":"ABCD-EFGH"},"meta":{"requestId":"req_1"}}`,
+		"cli poll response":           `{"data":{"accessToken":"FIXTURE_LEAK","refreshToken":"FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
+		"cli approve request":         `{"userCode":"FIXTURE_LEAK","permissions":["FIXTURE_LEAK"]}`,
+		"cli refresh request":         `{"refreshToken":"FIXTURE_LEAK"}`,
+		"cli poll request":            `{"loginId":"FIXTURE_LEAK"}`,
 		"truncated env var payload":   `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK`,
 	}
 

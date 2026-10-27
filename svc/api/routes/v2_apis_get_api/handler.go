@@ -54,10 +54,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("api not found",
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-			)
+			return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -67,19 +64,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if hit == cache.Null {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"),
-			fault.Public("The requested API does not exist or has been deleted."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	// Check if API belongs to the authorized workspace
 	if api.ApiWorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("wrong workspace",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	if !api.ApiKeyAuthID.Valid {
@@ -103,7 +93,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
 			codes.Data.Api.NotFound.URN(),
-			"The requested API does not exist or has been deleted.",
 		)
 	}
 

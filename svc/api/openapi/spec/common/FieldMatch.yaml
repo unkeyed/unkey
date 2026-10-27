@@ -8,10 +8,12 @@ properties:
     maxLength: 256
   present:
     type: boolean
-    description: Matches when the field is present if true, or absent if false, regardless of value.
+    description: |-
+      Matches when the field is present if true, or absent if false, regardless of value.
+      Defaults to true when neither `present` nor `value` is supplied.
   value:
     "$ref": "./StringMatch.yaml"
 additionalProperties: false
 description: |-
-  Matches a named request field (header or query parameter). Exactly one of
-  `present` or `value` must be set.
+  Matches a named request field (header or query parameter). Set `present` or
+  `value`, not both. If neither is supplied, the field must be present.

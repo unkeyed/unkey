@@ -389,15 +389,16 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principa
 			for _, name := range names {
 				id := nameToID[name]
 				result[name] = db.FindRatelimitNamespace{
-					ID:                id,
-					WorkspaceID:       principal.AuthorizedWorkspaceID,
-					ProjectID:         projectID,
-					Name:              name,
-					CreatedAtM:        now,
-					UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
-					DeletedAtM:        sql.NullInt64{Valid: false, Int64: 0},
-					DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-					WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+					ID:                 id,
+					WorkspaceID:        principal.AuthorizedWorkspaceID,
+					ProjectID:          projectID,
+					Name:               name,
+					UseGlobalRatelimit: false,
+					CreatedAtM:         now,
+					UpdatedAtM:         sql.NullInt64{Valid: false, Int64: 0},
+					DeletedAtM:         sql.NullInt64{Valid: false, Int64: 0},
+					DirectOverrides:    make(map[string]db.FindRatelimitNamespaceLimitOverride),
+					WildcardOverrides:  make([]db.FindRatelimitNamespaceLimitOverride, 0),
 				}
 			}
 
