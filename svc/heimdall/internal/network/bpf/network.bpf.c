@@ -141,8 +141,6 @@ static __always_inline struct counters *lookup_or_init(__u64 key) {
     return bpf_map_lookup_elem(&pod_counters, &key);
 }
 
-// account adds skb->len to the right per-pod counter slot. `is_pod_egress`
-// selects which end of the flow to classify and which counter pair to hit.
 static __always_inline void account(struct __sk_buff *skb, int is_pod_egress) {
     void *data     = (void *)(long)skb->data;
     void *data_end = (void *)(long)skb->data_end;
@@ -176,7 +174,10 @@ static __always_inline void account(struct __sk_buff *skb, int is_pod_egress) {
     __u64 *slot;
     if (is_pod_egress) slot = private ? &c->egress_private  : &c->egress_public;
     else               slot = private ? &c->ingress_private : &c->ingress_public;
-    __sync_fetch_and_add(slot, (__u64)skb->len);
+    // Egress wire_len includes GSO headers; ingress wire_len omits Ethernet.
+    // This is the pod-hook estimate, not confirmation of downstream delivery.
+    __u64 bytes = is_pod_egress ? skb->wire_len : skb->len;
+    __sync_fetch_and_add(slot, bytes);
 }
 
 // count_egress is attached to tc-egress of pod-side eth0. Packets leaving

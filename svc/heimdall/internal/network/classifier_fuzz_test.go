@@ -48,7 +48,7 @@ func FuzzClassifier(f *testing.F) {
 	f.Fuzz(func(t *testing.T, frame []byte) {
 		objs := loadFuzzObjects(t)
 		for _, prog := range []*ebpf.Program{objs.CountEgress, objs.CountIngress} {
-			ret, err := prog.Run(&ebpf.RunOptions{Data: frame}) //nolint:exhaustruct
+			ret, err := prog.Run(&ebpf.RunOptions{Data: frame, Context: bpfSkBuff{}})
 			if err != nil {
 				// EINVAL covers the "skb too small" / "context shape rejected"
 				// cases the kernel emits before our program runs. Those are

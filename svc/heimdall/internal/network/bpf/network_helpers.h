@@ -114,7 +114,7 @@ static long (*bpf_map_update_elem)(void *map, const void *key, const void *value
 // These structs are stable kernel UAPI, ABI-frozen across versions.
 
 // __sk_buff is the BPF program's context (also used by tc/TCX programs).
-// Hundreds of fields exist; we only touch `data`, `data_end`, and `len`.
+// Keep the UAPI layout through wire_len, including unused intervening fields.
 // Using `__u32` for the pointer fields matches the kernel's userspace-safe
 // layout.
 struct __sk_buff {
@@ -135,7 +135,21 @@ struct __sk_buff {
     __u32 tc_classid;
     __u32 data;
     __u32 data_end;
+    __u32 napi_id;
+    __u32 family;
+    __u32 remote_ip4;
+    __u32 local_ip4;
+    __u32 remote_ip6[4];
+    __u32 local_ip6[4];
+    __u32 remote_port;
+    __u32 local_port;
+    __u32 data_meta;
+    __u64 flow_keys;
+    __u64 tstamp;
+    __u32 wire_len;
 };
+
+_Static_assert(__builtin_offsetof(struct __sk_buff, wire_len) == 160, "__sk_buff wire_len UAPI offset");
 
 // IPv4 header. Bit-fields layout (ihl, version) is little-endian
 // dependent in the kernel header; our targets are LE, so this matches.

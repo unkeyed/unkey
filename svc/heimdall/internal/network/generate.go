@@ -20,4 +20,4 @@
 
 package network
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -target bpfel -type counters bpf bpf/network.bpf.c -- -I./bpf
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -target bpfel -type counters -type __sk_buff bpf bpf/network.bpf.c -- -I./bpf

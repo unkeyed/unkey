@@ -21,6 +21,40 @@ type bpfCounters struct {
 	IngressPrivate uint64
 }
 
+type bpfSkBuff struct {
+	_              structs.HostLayout
+	Len            uint32
+	PktType        uint32
+	Mark           uint32
+	QueueMapping   uint32
+	Protocol       uint32
+	VlanPresent    uint32
+	VlanTci        uint32
+	VlanProto      uint32
+	Priority       uint32
+	IngressIfindex uint32
+	Ifindex        uint32
+	TcIndex        uint32
+	Cb             [5]uint32
+	Hash           uint32
+	TcClassid      uint32
+	Data           uint32
+	DataEnd        uint32
+	NapiId         uint32
+	Family         uint32
+	RemoteIp4      uint32
+	LocalIp4       uint32
+	RemoteIp6      [4]uint32
+	LocalIp6       [4]uint32
+	RemotePort     uint32
+	LocalPort      uint32
+	DataMeta       uint32
+	FlowKeys       uint64
+	Tstamp         uint64
+	WireLen        uint32
+	_              [4]byte
+}
+
 // loadBpf returns the embedded CollectionSpec for bpf.
 func loadBpf() (*ebpf.CollectionSpec, error) {
 	reader := bytes.NewReader(_BpfBytes)

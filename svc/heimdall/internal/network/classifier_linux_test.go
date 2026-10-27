@@ -7,26 +7,18 @@ import (
 	"errors"
 	"net"
 	"os"
+	"runtime"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/rlimit"
 	"github.com/stretchr/testify/require"
+	"github.com/vishvananda/netlink"
+	"golang.org/x/sys/unix"
 )
-
-// These tests load the compiled BPF program and invoke it synthetically
-// via BPF_PROG_TEST_RUN (cilium/ebpf's Program.Run). Each case constructs
-// a fake L2 + L3 frame with a chosen source/destination IP, runs one of
-// count_egress / count_ingress on it, and asserts the right slot in the
-// counter map moved by skb->len.
-//
-// The test intentionally doesn't exercise the Go-side attach / containerd
-// / netlink paths: those depend on a real pod and a real kernel interface.
-// This test is the classifier's unit-level contract only.
-//
-// Requires CAP_BPF (or root) + a Linux kernel >= 5.8 to load tc/TCX-era
-// BPF programs. On CI runners without that, the tests self-skip.
 
 // --- Frame builders -------------------------------------------------------
 //
@@ -146,7 +138,7 @@ func loadTestObjects(t *testing.T) *bpfObjects {
 // is an observer and must be non-terminating in the TCX chain.
 func runProg(t *testing.T, prog *ebpf.Program, frame []byte) {
 	t.Helper()
-	ret, err := prog.Run(&ebpf.RunOptions{Data: frame}) //nolint:exhaustruct
+	ret, err := prog.Run(&ebpf.RunOptions{Data: frame, Context: bpfSkBuff{}})
 	require.NoError(t, err, "prog.Run")
 	require.Equal(t, int32(-1), int32(ret), "observer must return TC_ACT_UNSPEC")
 }
@@ -415,6 +407,163 @@ func TestClassifier_Accumulates(t *testing.T) {
 
 	c := readCounters(t, objs.PodCounters)
 	require.EqualValues(t, 3*frameLen, c.EgressPublic, "counters must accumulate")
+}
+
+func TestClassifier_EgressWireLengthPreservesIngressFrameLength(t *testing.T) {
+	for _, frame := range []struct {
+		name        string
+		build       func(*testing.T, net.IP, net.IP, int) []byte
+		source      net.IP
+		destination net.IP
+	}{
+		{name: "IPv4", build: buildIPv4Frame, source: net.ParseIP("192.0.2.1"), destination: net.ParseIP("192.0.2.2")},
+		{name: "IPv6", build: buildIPv6Frame, source: net.ParseIP("2001:db8::1"), destination: net.ParseIP("2001:db8::2")},
+	} {
+		t.Run(frame.name, func(t *testing.T) {
+			objects := loadTestObjects(t)
+			for _, program := range []*ebpf.Program{objects.CountEgress, objects.CountIngress} {
+				result, err := program.Run(&ebpf.RunOptions{
+					Data:    frame.build(t, frame.source, frame.destination, 3179),
+					Context: bpfSkBuff{WireLen: 3305},
+				})
+				require.NoError(t, err)
+				require.Equal(t, int32(-1), int32(result))
+			}
+			counters := readCounters(t, objects.PodCounters)
+			require.EqualValues(t, 3305, counters.EgressPublic)
+			require.EqualValues(t, 3179, counters.IngressPublic)
+			require.Zero(t, counters.EgressPrivate)
+			require.Zero(t, counters.IngressPrivate)
+		})
+	}
+}
+
+func TestClassifier_SegmentedEgress(t *testing.T) {
+	for _, family := range []struct {
+		name        string
+		podAddress  string
+		peerAddress string
+		headerBytes int
+	}{
+		{name: "IPv4", podAddress: "192.0.2.1/24", peerAddress: "192.0.2.2/24", headerBytes: 42},
+		{name: "IPv6", podAddress: "2001:db8::1/64", peerAddress: "2001:db8::2/64", headerBytes: 62},
+	} {
+		t.Run(family.name, func(t *testing.T) {
+			if family.name == "IPv6" {
+				fd, err := unix.Socket(unix.AF_INET6, unix.SOCK_DGRAM, 0)
+				if errors.Is(err, unix.EAFNOSUPPORT) {
+					t.Skip("kernel IPv6 networking is unavailable")
+				}
+				require.NoError(t, err)
+				require.NoError(t, unix.Close(fd))
+			}
+			for _, segmented := range []bool{false, true} {
+				name := "individual datagrams"
+				if segmented {
+					name = "UDP segmentation offload"
+				}
+				t.Run(name, func(t *testing.T) {
+					objects := loadTestObjects(t)
+					sender, receiver := classifierUDPPair(t, objects.CountEgress, family.podAddress, family.peerAddress)
+					const segmentBytes = 1000
+					payload := make([]byte, 3*segmentBytes+137)
+					for i := range payload {
+						payload[i] = byte(i % 251)
+					}
+					if segmented {
+						raw, err := sender.SyscallConn()
+						require.NoError(t, err)
+						var optionErr error
+						require.NoError(t, raw.Control(func(fd uintptr) {
+							optionErr = unix.SetsockoptInt(int(fd), unix.SOL_UDP, unix.UDP_SEGMENT, segmentBytes)
+						}))
+						require.NoError(t, optionErr)
+						written, err := sender.Write(payload)
+						require.NoError(t, err)
+						require.Equal(t, len(payload), written)
+					} else {
+						for offset := 0; offset < len(payload); offset += segmentBytes {
+							part := payload[offset:min(offset+segmentBytes, len(payload))]
+							written, err := sender.Write(part)
+							require.NoError(t, err)
+							require.Equal(t, len(part), written)
+						}
+					}
+					require.NoError(t, receiver.SetReadDeadline(time.Now().Add(5*time.Second)))
+					for offset := 0; offset < len(payload); offset += segmentBytes {
+						buffer := make([]byte, len(payload))
+						read, err := receiver.Read(buffer)
+						require.NoError(t, err)
+						require.Equal(t, payload[offset:min(offset+segmentBytes, len(payload))], buffer[:read])
+					}
+					counters := readCounters(t, objects.PodCounters)
+					require.EqualValues(t, len(payload)+4*family.headerBytes, counters.EgressPublic)
+				})
+			}
+		})
+	}
+}
+
+func classifierUDPPair(t *testing.T, program *ebpf.Program, podAddress, peerAddress string) (*net.UDPConn, *net.UDPConn) {
+	t.Helper()
+	runtime.LockOSThread()
+	original, err := os.Open("/proc/thread-self/ns/net")
+	if err != nil {
+		runtime.UnlockOSThread()
+		require.NoError(t, err)
+	}
+	t.Cleanup(func() { require.NoError(t, original.Close()) })
+	defer func() {
+		if err := unix.Setns(int(original.Fd()), unix.CLONE_NEWNET); err != nil {
+			t.Errorf("restore network namespace: %v", err)
+			return
+		}
+		runtime.UnlockOSThread()
+	}()
+	require.NoError(t, unix.Unshare(unix.CLONE_NEWNET))
+	pod, err := os.Open("/proc/thread-self/ns/net")
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, pod.Close()) })
+	require.NoError(t, unix.Unshare(unix.CLONE_NEWNET))
+	attributes := netlink.NewLinkAttrs()
+	attributes.Name = "peer0"
+	veth := netlink.NewVeth(attributes)
+	veth.PeerName = "eth0"
+	veth.PeerNamespace = netlink.NsFd(pod.Fd())
+	require.NoError(t, netlink.LinkAdd(veth))
+	peerLink, err := netlink.LinkByName("peer0")
+	require.NoError(t, err)
+	peerIP, err := netlink.ParseAddr(peerAddress)
+	require.NoError(t, err)
+	peerIP.Flags = unix.IFA_F_NODAD
+	require.NoError(t, netlink.AddrAdd(peerLink, peerIP))
+	require.NoError(t, netlink.LinkSetUp(peerLink))
+	receiver, err := net.ListenUDP("udp", &net.UDPAddr{IP: peerIP.IP})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, receiver.Close()) })
+
+	require.NoError(t, unix.Setns(int(pod.Fd()), unix.CLONE_NEWNET))
+	podLink, err := netlink.LinkByName("eth0")
+	require.NoError(t, err)
+	podIP, err := netlink.ParseAddr(podAddress)
+	require.NoError(t, err)
+	podIP.Flags = unix.IFA_F_NODAD
+	require.NoError(t, netlink.AddrAdd(podLink, podIP))
+	require.NoError(t, netlink.LinkSetUp(podLink))
+	attachment, err := link.AttachTCX(link.TCXOptions{
+		Interface: podLink.Attrs().Index,
+		Program:   program,
+		Attach:    ebpf.AttachTCXEgress,
+		Anchor:    link.Head(),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, attachment.Close()) })
+	address, ok := receiver.LocalAddr().(*net.UDPAddr)
+	require.True(t, ok)
+	sender, err := net.DialUDP("udp", nil, address)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, sender.Close()) })
+	return sender, receiver
 }
 
 // bpffsTempDir returns a unique directory under /sys/fs/bpf for test pins.
