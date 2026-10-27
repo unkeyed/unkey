@@ -116,6 +116,12 @@
 // SHA. Live-traffic routing is handled separately by sticky route reassignment
 // in RoutingService, not by a dedicated "live" domain type.
 //
+// Labels are joined from user-chosen slugs, so two apps can build the same
+// one. A route row records its app, and [Workflow.ConfigureRouting] never
+// points a row that belongs to one app at a deployment of another. The app
+// that comes second uses the label with its app code added instead, see
+// [appCode].
+//
 // A DNS label has at most 63 characters, see [RFC 1034 section 3.1] and
 // [RFC 1035 section 2.3.4]. When a generated label is longer, [buildDomains]
 // cuts the part before the workspace slug and puts a hash of the full label

@@ -20,6 +20,8 @@ Each hostname starts with a prefix made from your <Tooltip tip="A group of apps,
 
 For a pull request from a fork, the fork owner's name is added, so its deployments don't clash with yours: `payments-fork-contributor-...`.
 
+Two apps can build the same hostname, because hostnames are made from slugs you choose. For example, workspace `acme` on branch `main-x` and workspace `x-acme` on branch `main` both build `payments-git-main-x-acme.unkey.app`. The app that gets the hostname first keeps it. The other app gets the same hostname with a six-character app code added, such as `payments-git-main-x-acme-a1b2c3.unkey.app`. The code never changes, so that hostname stays the same across deployments.
+
 ## The five hostnames
 
 For a deployment in workspace `acme`, project `payments`, app `default`, <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> `production`, built from commit `1a2b3c4d5e6f` on branch `feature/new_checkout` with deployment ID `d_3f9kq2x7`, the deployment gets these hostnames:
