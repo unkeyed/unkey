@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -147,7 +148,7 @@ func TestResolver_ResolveJWTWithJWKSURL(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	resolver, err := NewResolverWithJWKSURL(
+	resolver, err := newTestJWKSResolver(t,
 		testWorkspaceLookup("ws_123"),
 		jwksIssuer,
 		Audience,
@@ -297,6 +298,15 @@ func TestResolver_RejectsJWTWithUnexpectedIssuer(t *testing.T) {
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.Error(t, err)
 	require.Nil(t, principal)
+}
+
+func newTestJWKSResolver(t *testing.T, workspaceLookup WorkspaceLookup, issuer string, audience string, jwksURL string) (*Resolver, error) {
+	t.Helper()
+	clk := clock.NewTestClock()
+	keys, err := NewJWKSCache(clk)
+	require.NoError(t, err)
+	t.Cleanup(keys.Close)
+	return NewResolverWithJWKSURL(workspaceLookup, issuer, audience, jwksURL, keys, clk)
 }
 
 func generateJWKS(t *testing.T) (string, []byte) {
@@ -536,10 +546,9 @@ func TestResolver_RefreshesJWKSAfterKeyRotation(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
-	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	testClock := resolver.verifier.(*jwksVerifier).clock.(*clock.TestClock)
 
 	oldToken := signRS256Token(t, oldKeyPEM, "user_old")
 	principal, err := resolver.Resolve(context.Background(), jwtSession(t, oldToken))
@@ -562,7 +571,7 @@ func TestResolver_RefreshesJWKSAfterKeyRotation(t *testing.T) {
 
 // TestResolver_ServesPreviousJWKSKeysDuringEndpointOutage guarantees an
 // unreachable JWKS endpoint does not invalidate tokens signed by already
-// fetched keys.
+// fetched keys until cache expiry, but failed refreshes cannot extend trust.
 func TestResolver_ServesPreviousJWKSKeysDuringEndpointOutage(t *testing.T) {
 	t.Parallel()
 
@@ -573,10 +582,9 @@ func TestResolver_ServesPreviousJWKSKeysDuringEndpointOutage(t *testing.T) {
 		require.NoError(t, err)
 	}))
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
-	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	testClock := resolver.verifier.(*jwksVerifier).clock.(*clock.TestClock)
 
 	token := signRS256Token(t, keyPEM, "user_123")
 	_, err = resolver.Resolve(context.Background(), jwtSession(t, token))
@@ -594,6 +602,27 @@ func TestResolver_ServesPreviousJWKSKeysDuringEndpointOutage(t *testing.T) {
 	principal, err := resolver.Resolve(context.Background(), jwtSession(t, token))
 	require.NoError(t, err)
 	require.Equal(t, "user_123", principal.Subject.ID)
+
+	testClock.Tick(4*time.Minute - time.Nanosecond)
+	_, err = resolver.Resolve(context.Background(), jwtSession(t, signRS256Token(t, unknownKeyPEM, "user_rogue")))
+	require.Error(t, err)
+	_, err = resolver.Resolve(context.Background(), jwtSession(t, token))
+	require.NoError(t, err)
+
+	testClock.Tick(time.Nanosecond)
+	for range 2 {
+		principal, err = resolver.Resolve(context.Background(), jwtSession(t, token))
+		require.Error(t, err)
+		require.Nil(t, principal)
+		code, ok := fault.GetCode(err)
+		require.True(t, ok)
+		require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), code)
+	}
+
+	testClock.Tick(time.Minute)
+	principal, err = resolver.Resolve(context.Background(), jwtSession(t, token))
+	require.Error(t, err)
+	require.Nil(t, principal)
 }
 
 // TestResolver_JWKSFetchFailureIsNotACredentialError guarantees an unreachable
@@ -607,7 +636,7 @@ func TestResolver_JWKSFetchFailureIsNotACredentialError(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 
 	keyPEM, _ := generateJWKS(t)
@@ -630,7 +659,7 @@ func TestResolver_RejectsOversizedJWKSBody(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 
 	keyPEM, _ := generateJWKS(t)
@@ -655,7 +684,7 @@ func TestResolver_GarbageTokenIsACredentialError(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 
 	principal, err := resolver.Resolve(context.Background(), jwtSession(t, "aaa.bbb.ccc"))
@@ -743,7 +772,7 @@ func TestResolver_SkipsUnusableJWKSKeys(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 
 	token := signRS256TokenWithKID(t, privateKeyPEM, "good-key", rs256Claims("user_123", time.Now().Add(time.Minute)))
@@ -769,10 +798,9 @@ func TestResolver_RefetchesOnlyForUnknownSigningKeys(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
-	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	testClock := resolver.verifier.(*jwksVerifier).clock.(*clock.TestClock)
 
 	valid := signRS256TokenWithKID(t, keyPEM, "test-key-1", rs256Claims("user_123", time.Now().Add(time.Minute)))
 	_, err = resolver.Resolve(context.Background(), jwtSession(t, valid))
@@ -895,10 +923,9 @@ func TestResolver_CachedKeysServeWhileRefetchHangs(t *testing.T) {
 		}
 	})
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
-	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	testClock := resolver.verifier.(*jwksVerifier).clock.(*clock.TestClock)
 
 	valid := signRS256TokenWithKID(t, keyPEM, "test-key-1", rs256Claims("user_123", time.Now().Add(time.Minute)))
 	_, err = resolver.Resolve(context.Background(), jwtSession(t, valid))
@@ -954,11 +981,8 @@ func TestResolver_ColdStartSharesOneFetch(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
-	// A frozen clock keeps the backoff window open, so a second fetch within
-	// this test can only come from broken locking, never from elapsed time.
-	resolver.verifier.(*jwksVerifier).clock = clock.NewTestClock()
 
 	token := signRS256TokenWithKID(t, keyPEM, "test-key-1", rs256Claims("user_123", time.Now().Add(time.Minute)))
 
@@ -998,10 +1022,9 @@ func TestResolver_ConcurrentMixedTraffic(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
-	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	testClock := resolver.verifier.(*jwksVerifier).clock.(*clock.TestClock)
 
 	valid := signRS256TokenWithKID(t, keyPEM, "test-key-1", rs256Claims("user_123", time.Now().Add(time.Minute)))
 	unknownKid := signRS256TokenWithKID(t, keyPEM, "rotated-key", rs256Claims("user_123", time.Now().Add(time.Minute)))
@@ -1061,7 +1084,7 @@ func TestResolver_RejectsAlgorithmConfusion(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	jwksResolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	jwksResolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
 
 	claims := rs256Claims("user_123", time.Now().Add(time.Minute))
@@ -1119,10 +1142,9 @@ func TestResolver_RejectsTamperedTokens(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
-	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	testClock := resolver.verifier.(*jwksVerifier).clock.(*clock.TestClock)
 
 	valid := signRS256TokenWithKID(t, keyPEM, "test-key-1", rs256Claims("user_123", time.Now().Add(time.Minute)))
 	_, err = resolver.Resolve(context.Background(), jwtSession(t, valid))
@@ -1290,7 +1312,7 @@ func TestResolver_UnusableJWKSDocuments(t *testing.T) {
 			}))
 			t.Cleanup(jwksServer.Close)
 
-			resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+			resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 			require.NoError(t, err)
 
 			keyPEM, _ := generateJWKS(t)
@@ -1328,10 +1350,9 @@ func TestResolver_DroppedKeysStopVerifying(t *testing.T) {
 	}))
 	t.Cleanup(jwksServer.Close)
 
-	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
 	require.NoError(t, err)
-	testClock := clock.NewTestClock()
-	resolver.verifier.(*jwksVerifier).clock = testClock
+	testClock := resolver.verifier.(*jwksVerifier).clock.(*clock.TestClock)
 
 	oldToken := signRS256TokenWithKID(t, oldKeyPEM, "key-old", rs256Claims("user_old", time.Now().Add(time.Minute)))
 	_, err = resolver.Resolve(context.Background(), jwtSession(t, oldToken))
@@ -1352,4 +1373,108 @@ func TestResolver_DroppedKeysStopVerifying(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, principal)
 	require.Equal(t, int64(2), fetches.Load())
+}
+
+func TestResolver_RejectsRevokedJWKSKeyAfterCacheExpiry(t *testing.T) {
+	t.Parallel()
+
+	oldKeyPEM, oldJWKS := generateJWKSWithKID(t, "key-old")
+	newKeyPEM, newJWKS := generateJWKSWithKID(t, "key-new")
+	var oldDocument, newDocument jwksResponse
+	require.NoError(t, json.Unmarshal(oldJWKS, &oldDocument))
+	require.NoError(t, json.Unmarshal(newJWKS, &newDocument))
+	oldDocument.Keys = append(oldDocument.Keys, newDocument.Keys...)
+	initialJWKS, err := json.Marshal(oldDocument)
+	require.NoError(t, err)
+
+	jwksBody := &atomic.Pointer[[]byte]{}
+	jwksBody.Store(&initialJWKS)
+	jwksServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, err := w.Write(*jwksBody.Load())
+		require.NoError(t, err)
+	}))
+	t.Cleanup(jwksServer.Close)
+
+	resolver, err := newTestJWKSResolver(t, testWorkspaceLookup(uid.New(uid.WorkspacePrefix)), jwksIssuer, Audience, jwksServer.URL)
+	require.NoError(t, err)
+	testClock := resolver.verifier.(*jwksVerifier).clock.(*clock.TestClock)
+	oldToken := signRS256TokenWithKID(t, oldKeyPEM, "key-old", rs256Claims(uid.New(uid.TestPrefix), time.Now().Add(time.Hour)))
+	_, err = resolver.Resolve(context.Background(), jwtSession(t, oldToken))
+	require.NoError(t, err)
+
+	jwksBody.Store(&newJWKS)
+	testClock.Tick(5*time.Minute - time.Nanosecond)
+	_, err = resolver.Resolve(context.Background(), jwtSession(t, oldToken))
+	require.NoError(t, err)
+	testClock.Tick(time.Nanosecond)
+	principal, err := resolver.Resolve(context.Background(), jwtSession(t, oldToken))
+	require.Error(t, err)
+	require.Nil(t, principal)
+
+	newToken := signRS256TokenWithKID(t, newKeyPEM, "key-new", rs256Claims(uid.New(uid.TestPrefix), time.Now().Add(time.Hour)))
+	_, err = resolver.Resolve(context.Background(), jwtSession(t, newToken))
+	require.NoError(t, err)
+}
+
+func TestResolver_SharedJWKSCacheIsolatesProviders(t *testing.T) {
+	t.Parallel()
+
+	keyFirst, jwksFirst := generateJWKS(t)
+	keySecond, jwksSecond := generateJWKS(t)
+	for _, tc := range []struct {
+		name     string
+		path     string
+		issuer   string
+		audience string
+	}{
+		{name: "different endpoints", path: "/second", issuer: jwksIssuer, audience: Audience},
+		{name: "different issuers", path: "/first", issuer: "https://auth.example.com", audience: Audience},
+		{name: "different audiences", path: "/first", issuer: jwksIssuer, audience: "another-api"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				body := jwksFirst
+				if req.URL.Path == "/second" {
+					body = jwksSecond
+				}
+				_, err := w.Write(body)
+				require.NoError(t, err)
+			}))
+			t.Cleanup(server.Close)
+			clk := clock.NewTestClock()
+			keys, err := NewJWKSCache(clk)
+			require.NoError(t, err)
+			t.Cleanup(keys.Close)
+			lookup := testWorkspaceLookup(uid.New(uid.WorkspacePrefix))
+			first, err := NewResolverWithJWKSURL(lookup, jwksIssuer, Audience, server.URL+"/first", keys, clk)
+			require.NoError(t, err)
+			second, err := NewResolverWithJWKSURL(lookup, tc.issuer, tc.audience, server.URL+tc.path, keys, clk)
+			require.NoError(t, err)
+
+			claimsFirst := rs256Claims(uid.New(uid.TestPrefix), time.Now().Add(time.Hour))
+			claimsSecond := rs256Claims(uid.New(uid.TestPrefix), time.Now().Add(time.Hour))
+			claimsSecond.Issuer = tc.issuer
+			claimsSecond.Audience = []string{tc.audience}
+			signingKeySecond := keyFirst
+			if tc.path == "/second" {
+				signingKeySecond = keySecond
+			}
+			tokenFirst := signRS256TokenWithKID(t, keyFirst, "test-key-1", claimsFirst)
+			tokenSecond := signRS256TokenWithKID(t, signingKeySecond, "test-key-1", claimsSecond)
+
+			principal, err := first.Resolve(context.Background(), jwtSession(t, tokenFirst))
+			require.NoError(t, err)
+			require.Equal(t, claimsFirst.Subject, principal.Subject.ID)
+			principal, err = second.Resolve(context.Background(), jwtSession(t, tokenSecond))
+			require.NoError(t, err)
+			require.Equal(t, claimsSecond.Subject, principal.Subject.ID)
+			principal, err = first.Resolve(context.Background(), jwtSession(t, tokenSecond))
+			require.Error(t, err)
+			require.Nil(t, principal)
+			principal, err = second.Resolve(context.Background(), jwtSession(t, tokenFirst))
+			require.Error(t, err)
+			require.Nil(t, principal)
+		})
+	}
 }

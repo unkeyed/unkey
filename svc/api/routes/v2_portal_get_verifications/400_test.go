@@ -15,11 +15,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
 )
 
-// TestPortalSessionAnalyticsRejectsOversizedWindow verifies the query window is
-// bounded by the workspace's log retention. This endpoint runs on the shared
-// ClickHouse connection, so an unbounded window would let an end user force an
-// arbitrarily large scan.
-func TestPortalSessionAnalyticsRejectsOversizedWindow(t *testing.T) {
+// TestPortalSessionAnalyticsClampsOversizedWindow verifies oversized windows
+// are served within retention while inverted windows remain invalid.
+func TestPortalSessionAnalyticsClampsOversizedWindow(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
@@ -37,24 +35,15 @@ func TestPortalSessionAnalyticsRejectsOversizedWindow(t *testing.T) {
 	now := time.Now().UnixMilli()
 	dayMs := int64(24 * time.Hour / time.Millisecond)
 
-	// 40-day window against a 30-day retention must be rejected.
 	req := Request{
 		StartTime: now - 40*dayMs,
 		EndTime:   now,
 	}
 
-	res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-	require.Equal(t, 400, res.Status, "window wider than retention must be rejected")
-
-	// The retention ceiling carries its own code, so a client can branch on it
-	// without matching the human message. It is the same code the operator
-	// analytics path raises against the same limit.
+	res := testutil.CallRoute[Request, Response](h, route, headers, req)
+	require.Equal(t, 200, res.Status, "window wider than retention must be clamped")
 	require.NotNil(t, res.Body)
-	require.Equal(t, codes.User.BadRequest.QueryRangeExceedsRetention.DocsURL(), res.Body.Error.Type,
-		"retention rejection must be distinguishable from ordinary input validation")
 
-	// An inverted window is ordinary input validation, not a retention ceiling,
-	// so the two stay distinguishable.
 	inverted := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, headers, Request{
 		StartTime: now,
 		EndTime:   now - dayMs,

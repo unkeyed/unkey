@@ -11,7 +11,7 @@ export function CreateLogdrainButton({
   disabled?: boolean;
 }) {
   return (
-    <Button size="md" variant="primary" onClick={onClick} disabled={disabled}>
+    <Button size="sm" variant="primary" onClick={onClick} disabled={disabled}>
       <IconPlusOutline18 />
       Create Log Drain
     </Button>

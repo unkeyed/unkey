@@ -1,0 +1,215 @@
+"use client";
+
+import { type AreaChartPoint, AreaTimeseriesChart } from "@/components/charts/area-timeseries";
+import type { ChartMarkers } from "@/components/charts/chart-markers";
+import { NoDataPlaceholder } from "@/components/charts/no-data-placeholder";
+import { DAY_MS, type Grid } from "@/lib/metrics/app-metrics";
+import {
+  type ChartState,
+  type MetricUnit,
+  type SeriesView,
+  UNITS,
+  formatValue,
+} from "@/lib/metrics/views";
+import { match } from "@unkey/match";
+import { cn } from "cn";
+import type { ReactNode } from "react";
+import type { ChartScale } from "./allocation";
+import { useHoveredBucket, useSetHoveredBucket } from "./chart-hover";
+import { legendReadout } from "./model";
+
+const LEGEND_HEIGHT = 33;
+
+type SeriesChartProps = {
+  title: string;
+  state: ChartState;
+  series: Record<string, SeriesView>;
+  scale: ChartScale;
+  markers?: ChartMarkers;
+  height: number;
+  syncId: string;
+  legend?: ReactNode;
+  legendClassName?: string;
+  focusKey?: string | null;
+  connectNulls?: boolean;
+  unavailableCopy?: string;
+};
+
+export function SeriesChart({
+  title,
+  state,
+  series,
+  scale,
+  markers,
+  height,
+  syncId,
+  legend,
+  legendClassName,
+  focusKey,
+  connectNulls,
+  unavailableCopy = `${title} metrics are unavailable right now`,
+}: SeriesChartProps) {
+  const frame = { legend, legendClassName, series, unit: scale.unit };
+  return match(state)
+    .with({ status: "empty" }, () => <NoDataPlaceholder height={height + LEGEND_HEIGHT} />)
+    .with({ status: "failed" }, () => (
+      <ChartFrame {...frame} chart={null}>
+        <div className="flex items-center justify-center text-xs text-gray-10" style={{ height }}>
+          {unavailableCopy}
+        </div>
+      </ChartFrame>
+    ))
+    .with({ status: "loading" }, () => (
+      <ChartFrame {...frame} chart={null}>
+        <AreaTimeseriesChart
+          data={[]}
+          isLoading
+          config={series}
+          height={height}
+          fill="flat"
+          formatTooltipValue={UNITS[scale.unit].format}
+        />
+      </ChartFrame>
+    ))
+    .with({ status: "ready" }, (ready) => (
+      <ChartFrame {...frame} chart={ready.chart}>
+        <GridChart
+          chart={ready.chart}
+          grid={ready.grid}
+          series={series}
+          scale={scale}
+          markers={markers}
+          height={height}
+          syncId={syncId}
+          focusKey={focusKey}
+          connectNulls={connectNulls}
+        />
+      </ChartFrame>
+    ))
+    .exhaustive();
+}
+
+function ChartFrame({
+  legend,
+  legendClassName,
+  chart,
+  series,
+  unit,
+  children,
+}: {
+  legend: ReactNode;
+  legendClassName?: string;
+  chart: AreaChartPoint[] | null;
+  series: Record<string, SeriesView>;
+  unit: MetricUnit;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      {children}
+      <div className={cn("flex flex-wrap border-t border-grayA-4 text-xs", legendClassName)}>
+        {legend ?? <SeriesLegendCells chart={chart} series={series} unit={unit} />}
+      </div>
+    </div>
+  );
+}
+
+type GridChartProps = {
+  chart: AreaChartPoint[];
+  grid: Grid;
+  series: Record<string, SeriesView>;
+  scale: ChartScale;
+  markers?: ChartMarkers;
+  height: number;
+  syncId: string;
+  focusKey?: string | null;
+  connectNulls?: boolean;
+};
+
+function GridChart({
+  chart,
+  grid,
+  series,
+  scale,
+  markers,
+  height,
+  syncId,
+  focusKey,
+  connectNulls,
+}: GridChartProps) {
+  const setHovered = useSetHoveredBucket();
+  const format = UNITS[scale.unit];
+  return (
+    <AreaTimeseriesChart
+      data={chart}
+      config={series}
+      height={height}
+      fill="flat"
+      showZeroLine
+      showDateInTooltip={spansDays(grid)}
+      formatTooltipValue={format.format}
+      syncId={syncId}
+      markers={markers}
+      focusKey={focusKey}
+      connectNulls={connectNulls}
+      onActiveChange={(point) => setHovered(point?.originalTimestamp ?? null)}
+      axis={{
+        x: { domain: [grid.startMs, grid.endMs - grid.bucketMs] },
+        y: {
+          floor: format.yFloor,
+          max: scale.yMax ?? undefined,
+          tickCount: scale.tickCount,
+          formatTick: format.tick,
+        },
+      }}
+    />
+  );
+}
+
+function spansDays(grid: Grid): boolean {
+  return grid.endMs - grid.startMs >= DAY_MS;
+}
+
+function SeriesLegendCells({
+  chart,
+  series,
+  unit,
+}: {
+  chart: AreaChartPoint[] | null;
+  series: Record<string, SeriesView>;
+  unit: MetricUnit;
+}) {
+  const hoveredMs = useHoveredBucket();
+  const keys = Object.keys(series);
+  const readout = chart && legendReadout(chart, keys, hoveredMs);
+  return keys.map((key) => {
+    const value = readout?.[key] ?? null;
+    return (
+      <LegendCell key={key} color={series[key].color} label={series[key].label}>
+        <span className="font-medium tabular-nums text-gray-12">
+          {value === null ? "—" : formatValue(unit, value)}
+        </span>
+      </LegendCell>
+    );
+  });
+}
+
+export function LegendCell({
+  color,
+  label,
+  children,
+}: {
+  color: string;
+  label: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-36 flex-1 items-center justify-between gap-3 border-l border-grayA-4 px-4 py-2 first:border-l-0">
+      <span className="flex items-center gap-2 text-gray-11">
+        <span className="size-2.5 shrink-0 rounded-xs" style={{ backgroundColor: color }} />
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}

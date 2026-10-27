@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Start the full development stack on a metal orb with eBPF and gVisor"
+#MISE depends=["install-web"]
+#MISE raw=true
+set -euo pipefail
+
+exec bash ./dev/orb/start.sh "$@"

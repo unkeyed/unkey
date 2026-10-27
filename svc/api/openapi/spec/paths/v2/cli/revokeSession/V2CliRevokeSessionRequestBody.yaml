@@ -1,0 +1,9 @@
+type: object
+additionalProperties: false
+required:
+  - sessionId
+properties:
+  sessionId:
+    type: string
+    minLength: 1
+    description: CLI session id.

@@ -3,33 +3,18 @@ import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.s
 import { Button, Checkbox } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useState } from "react";
+import { statusRangeOptions } from "../request-logs-filter-items";
 
-type StatusOption = {
-  id: number;
-  status: number;
-  display: string;
-  label: string;
-  color: string;
-  checked: boolean;
-};
-
-const RANGE_OPTIONS: StatusOption[] = [
-  { id: 1, status: 200, display: "2xx", label: "Success", color: "bg-success-9", checked: false },
-  { id: 2, status: 300, display: "3xx", label: "Redirect", color: "bg-info-8", checked: false },
-  { id: 3, status: 400, display: "4xx", label: "Warning", color: "bg-warning-8", checked: false },
-  { id: 4, status: 500, display: "5xx", label: "Error", color: "bg-error-9", checked: false },
-];
-
-const RANGE_VALUES = new Set([200, 300, 400, 500]);
+const RANGE_VALUES = new Set(statusRangeOptions.map((option) => option.status));
 
 export const RequestStatusFilter = () => {
   const { filters, updateFilters } = useRequestLogsFilters();
 
-  const [checkboxes, setCheckboxes] = useState<StatusOption[]>(() => {
+  const [checkboxes, setCheckboxes] = useState(() => {
     const activeStatuses = new Set(
       filters.filter((f) => f.field === "status").map((f) => Number(f.value)),
     );
-    return RANGE_OPTIONS.map((opt) => ({ ...opt, checked: activeStatuses.has(opt.status) }));
+    return statusRangeOptions.map((opt) => ({ ...opt, checked: activeStatuses.has(opt.status) }));
   });
 
   const [customCode, setCustomCode] = useState(() => {

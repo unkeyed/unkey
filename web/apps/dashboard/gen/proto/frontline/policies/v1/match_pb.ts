@@ -183,11 +183,9 @@ export const MethodMatchSchema: GenMessage<MethodMatch> = /*@__PURE__*/
  * HeaderMatch tests a request header by name and optionally by value. Header
  * names are always matched case-insensitively per HTTP semantics (RFC 7230).
  *
- * When the request contains multiple values for the same header name (either
- * via repeated headers or comma-separated values), the match succeeds if any
- * single value satisfies the condition. This follows the principle of least
- * surprise for operators who may not know whether their clients send headers
- * as separate entries or comma-delimited lists.
+ * Each header field value is matched as a whole. Commas are literal characters,
+ * not separators. To match separate values, send repeated header fields with
+ * the same name. The match succeeds if any field value satisfies the condition.
  *
  * @generated from message frontline.v1.HeaderMatch
  */
@@ -216,9 +214,9 @@ export type HeaderMatch = Message<"frontline.v1.HeaderMatch"> & {
     case: "present";
   } | {
     /**
-     * Match against the header value(s) using a [StringMatch]. If the header
-     * has multiple values, the match succeeds if any value satisfies the
-     * StringMatch condition.
+     * Match each complete header field value using a [StringMatch]. Repeated
+     * fields match if any field value satisfies the condition. Comma-separated
+     * values within a field are not split.
      *
      * @generated from field: frontline.v1.StringMatch value = 3;
      */
