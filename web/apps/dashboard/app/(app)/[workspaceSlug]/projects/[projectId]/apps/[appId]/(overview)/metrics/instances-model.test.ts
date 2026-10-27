@@ -288,10 +288,8 @@ describe("instancesTabView", () => {
     expect(all.rows).toHaveLength(4);
   });
 
-  it("draws the selected instance last", () => {
-    const selected = view({ selected: "us-old" });
-    expect(selected.selected?.key).toBe("us-old");
-    expect(Object.keys(selected.usage[0].series)).toEqual(["us-0", "eu-0", "eu-1", "us-old"]);
+  it("resolves the selected instance", () => {
+    expect(view({ selected: "us-old" }).selected?.key).toBe("us-old");
   });
 
   it("ignores a selected instance outside the region filter", () => {

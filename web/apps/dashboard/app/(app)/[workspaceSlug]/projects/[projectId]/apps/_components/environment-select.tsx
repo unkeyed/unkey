@@ -72,7 +72,7 @@ export function EnvironmentSelect({
 
 function OptionLabel({ option }: { option: Option }) {
   return option.environment ? (
-    <EnvironmentLabel environment={option.environment} className="text-sm text-gray-12" />
+    <EnvironmentLabel environment={option.environment} className="font-sans text-sm text-gray-12" />
   ) : (
     option.label
   );
