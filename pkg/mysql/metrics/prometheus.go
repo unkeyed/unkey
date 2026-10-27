@@ -51,13 +51,4 @@ var (
 		},
 		[]string{"replica", "operation", "status"},
 	)
-
-	// DatabaseOperationsErrorsTotal tracks mysql operation errors by replica
-	// mode and operation type.
-	DatabaseOperationsErrorsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "unkey",
-		Subsystem: "database",
-		Name:      "operations_errors_total",
-		Help:      "Total number of database operation errors.",
-	}, []string{"replica", "operation"})
 )
