@@ -1060,7 +1060,6 @@ func TestCreateRefusesTheBuildRepository(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx)
 
-		// A live project whose id has this project's id as a prefix.
 		longer := h.seeder.CreateProject(ctx, seed.CreateProjectRequest{
 			ID:          h.projectID + "x",
 			WorkspaceID: h.workspaceID,
@@ -1075,8 +1074,8 @@ func TestCreateRefusesTheBuildRepository(t *testing.T) {
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
 	})
 
-	// A tag this project is about to build has no row yet, so a redeploy asked
-	// for it must not be refused.
+	// A digest names no project, so it passes only because a row of this
+	// project resolved to it
 	t.Run("digest this project resolved", func(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx)
