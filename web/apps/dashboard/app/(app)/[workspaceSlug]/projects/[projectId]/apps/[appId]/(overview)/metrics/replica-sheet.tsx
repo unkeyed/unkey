@@ -195,7 +195,6 @@ function UsageSection({ section, markers }: { section: ReplicaSection; markers: 
         markers={markers}
         height={CHART_HEIGHT}
         syncId={SYNC_ID}
-        legendClassName="-mx-4 -mb-3"
       />
     </Section>
   );

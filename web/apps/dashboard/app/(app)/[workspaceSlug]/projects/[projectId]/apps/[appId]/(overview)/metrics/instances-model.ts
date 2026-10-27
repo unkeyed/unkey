@@ -10,6 +10,7 @@ import type {
   DeployRole,
   DeploySource,
   Grid,
+  InstanceEvent,
   InstanceRow,
   InstanceSeries,
   MetricId,
@@ -24,6 +25,7 @@ import {
   SHARE_SCALE,
   shareOf,
 } from "./allocation";
+import { type CrashEpisode, crashEpisodes, eventsInScope } from "./events-model";
 
 export type InstanceMetric = Extract<MetricId, "cpu" | "memory">;
 
@@ -196,7 +198,10 @@ export type UsageCard = InstanceChart & {
   allocation: string | null;
 };
 
-function allocationOf(instances: InstanceView[], metric: InstanceMetric): string | null {
+function allocationOf(
+  instances: ReadonlyArray<Pick<InstanceRow, "replica">>,
+  metric: InstanceMetric,
+): string | null {
   const [first] = instances;
   if (!first) {
     return null;
@@ -232,13 +237,6 @@ export type InstanceTableRow = {
   usage: Record<InstanceMetric, UsageCell>;
 };
 
-const SEVERITY: Record<InstanceState, number> = {
-  unhealthy: 0,
-  starting: 1,
-  running: 2,
-  inactive: 3,
-};
-
 function tableRows(instances: InstanceView[], usage: UsagePoints | null): InstanceTableRow[] {
   return instances
     .map((instance) => ({
@@ -250,12 +248,17 @@ function tableRows(instances: InstanceView[], usage: UsagePoints | null): Instan
     }))
     .toSorted(
       (a, b) =>
-        SEVERITY[a.instance.state] - SEVERITY[b.instance.state] ||
         Number(a.instance.role === "previous") - Number(b.instance.role === "previous") ||
         a.instance.region.name.localeCompare(b.instance.region.name) ||
         a.instance.key.localeCompare(b.instance.key),
     );
 }
+
+export type LogsTarget = {
+  deploymentId: string;
+  instanceId: string | null;
+  window?: { startMs: number; endMs: number };
+};
 
 export type DeployRef = { id: string; source: DeploySource | null };
 
@@ -273,25 +276,104 @@ function legendOf(instances: InstanceView[]): UsageLegend {
   };
 }
 
-export type RegionFilter = { regions: string[]; region: string | null };
+export type FilterChoice<T extends string = string> = { options: T[]; selected: T[] };
+
+const STATUSES = ["unhealthy", "starting", "running", "disabled", "previous"] as const;
+
+export type InstanceStatusFilter = (typeof STATUSES)[number];
+
+const STATUS_LABEL: Record<InstanceStatusFilter, string> = {
+  unhealthy: "Unhealthy",
+  starting: "Starting",
+  running: "Running",
+  disabled: instanceLabel.inactive,
+  previous: "Previous deploy",
+};
+
+const STATUS_LABELS: ReadonlyMap<string, string> = new Map(Object.entries(STATUS_LABEL));
+
+export function statusLabel(status: string): string {
+  return STATUS_LABELS.get(status) ?? status;
+}
+
+const CURRENT_STATUS: Record<InstanceState, InstanceStatusFilter> = {
+  unhealthy: "unhealthy",
+  starting: "starting",
+  running: "running",
+  inactive: "disabled",
+};
+
+const TONE_STATUS: Record<LineTone, (state: InstanceState) => InstanceStatusFilter> = {
+  current: (state) => CURRENT_STATUS[state],
+  previous: () => "previous",
+  unhealthy: () => "unhealthy",
+};
+
+function statusOf(instance: InstanceView): InstanceStatusFilter {
+  return TONE_STATUS[instance.tone](instance.state);
+}
+
+export type InstanceFilters = {
+  regions: FilterChoice;
+  statuses: FilterChoice<InstanceStatusFilter>;
+  instances: FilterChoice;
+};
+
+export type FilterKey = keyof InstanceFilters;
+
+export type FilterSelection = Record<FilterKey, string[]>;
+
+function choiceOf<T extends string>(options: T[], requested: string[]): FilterChoice<T> {
+  return { options, selected: options.filter((option) => requested.includes(option)) };
+}
+
+function narrowed<T extends string>(
+  all: InstanceView[],
+  choice: FilterChoice<T>,
+  read: (instance: InstanceView) => T,
+): InstanceView[] {
+  return choice.selected.length === 0 ? all : all.filter((i) => choice.selected.includes(read(i)));
+}
+
+function scopeOf(
+  all: InstanceView[],
+  requested: FilterSelection,
+): { filters: InstanceFilters; inScope: InstanceView[] } {
+  const regions = choiceOf(regionNames(all), requested.regions);
+  const inRegions = narrowed(all, regions, (i) => i.region.name);
+  const present = new Set(inRegions.map(statusOf));
+  const statuses = choiceOf(
+    STATUSES.filter((status) => present.has(status)),
+    requested.statuses,
+  );
+  const inStatuses = narrowed(inRegions, statuses, statusOf);
+  const keys = inStatuses.map((i) => i.key).sort((a, b) => a.localeCompare(b));
+  const instances = choiceOf(keys, requested.instances);
+  const inScope = narrowed(inStatuses, instances, (i) => i.key);
+  return { filters: { regions, statuses, instances }, inScope };
+}
 
 export type InstancesTabView =
   | { status: "loading" }
   | ({ status: "failed" } & Failure)
   | { status: "empty" }
-  | ({
+  | {
       status: "ready";
-      selected: InstanceView | null;
+      grid: Grid;
+      filters: InstanceFilters;
+      episodes: CrashEpisode[];
+      crashEventsFailed: boolean;
       legend: UsageLegend;
       usage: UsageCard[];
       rows: InstanceTableRow[];
-    } & RegionFilter);
+    };
 
 export function instancesTabView(input: {
+  grid: Grid;
   instances: Loadable<InstanceRow[]>;
   usage: Loadable<InstanceSeries>;
-  region: string | null;
-  selected: string | null;
+  events: Loadable<InstanceEvent[]>;
+  filter: FilterSelection;
 }): InstancesTabView {
   const { instances } = input;
   if (instances.status !== "ready") {
@@ -300,17 +382,26 @@ export function instancesTabView(input: {
   if (instances.data.length === 0) {
     return { status: "empty" };
   }
-  const all = instanceViews(instances.data);
-  const regions = regionNames(all);
-  const region = input.region !== null && regions.includes(input.region) ? input.region : null;
-  const inScope = region === null ? all : all.filter((i) => i.region.name === region);
-  const selected = inScope.find((i) => i.key === input.selected) ?? null;
+  const { filters, inScope } = scopeOf(instanceViews(instances.data), input.filter);
   const usage = usageOf(input.usage);
   return {
     status: "ready",
-    regions,
-    region,
-    selected,
+    grid: input.grid,
+    filters,
+    episodes:
+      input.events.status === "ready"
+        ? crashEpisodes(
+            eventsInScope(input.events.data, {
+              regions: filters.regions.selected,
+              instances:
+                filters.statuses.selected.length > 0 || filters.instances.selected.length > 0
+                  ? inScope.map((i) => i.key)
+                  : [],
+            }),
+            input.grid.endMs,
+          )
+        : [],
+    crashEventsFailed: input.events.status === "failed",
     legend: legendOf(inScope),
     usage: INSTANCE_METRICS.map((metric) => usageCard(inScope, usage, metric)),
     rows: tableRows(inScope, usage.status === "ready" ? usage : null),

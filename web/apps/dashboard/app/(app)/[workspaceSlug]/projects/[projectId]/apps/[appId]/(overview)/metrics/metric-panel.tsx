@@ -105,7 +105,6 @@ function PanelBody({
               height={300}
               syncId={PANEL_SYNC_ID}
               connectNulls={view.gaps === "bridge"}
-              legendClassName="-mx-4 -mb-3"
             />
           </div>
         </Card>
@@ -119,7 +118,6 @@ function PanelBody({
               scale={absoluteScale(view.unit)}
               height={160}
               syncId={PANEL_SYNC_ID}
-              legendClassName="-mx-4 -mb-3"
             />
           </Card>
         )}
