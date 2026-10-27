@@ -20,21 +20,18 @@ const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 const DropdownMenuSubTrigger = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubmenuTrigger>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubmenuTrigger> & {
-    inset?: boolean;
-  }
->(({ className, inset, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubmenuTrigger>
+>(({ className, children, ...props }, ref) => (
   <DropdownMenuPrimitive.SubmenuTrigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center rounded-xs px-2 py-1.5 text-sm outline-hidden focus:bg-gray-12 focus:text-gray-1 data-popup-open:bg-gray-12 data-popup-open:text-gray-1",
-      inset && "pl-8",
+      "flex cursor-default select-none items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-grayA-3 focus:text-gray-12 data-popup-open:bg-grayA-3",
       className,
     )}
     {...props}
   >
     {children}
-    <IconChevronRightOutline18 className="w-4 h-4 ml-auto shrink-0" />
+    <IconChevronRightOutline18 className="ml-auto size-3 shrink-0 text-gray-9" />
   </DropdownMenuPrimitive.SubmenuTrigger>
 ));
 DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubmenuTrigger.displayName;
@@ -121,18 +118,16 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   <DropdownMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-xs py-1.5 pl-8 pr-2 text-sm outline-hidden transition-colors focus:bg-gray-12 focus:text-gray-1 data-disabled:pointer-events-none data-disabled:opacity-50",
+      "flex cursor-default select-none items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-grayA-3 focus:text-gray-12 data-disabled:pointer-events-none data-disabled:opacity-50",
       className,
     )}
     checked={checked}
     {...props}
   >
-    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-      <DropdownMenuPrimitive.CheckboxItemIndicator>
-        <IconCheckOutline18 className="w-4 h-4" />
-      </DropdownMenuPrimitive.CheckboxItemIndicator>
-    </span>
     {children}
+    <DropdownMenuPrimitive.CheckboxItemIndicator className="ml-auto flex shrink-0 items-center">
+      <IconCheckOutline18 className="size-4" />
+    </DropdownMenuPrimitive.CheckboxItemIndicator>
   </DropdownMenuPrimitive.CheckboxItem>
 ));
 DropdownMenuCheckboxItem.displayName = DropdownMenuPrimitive.CheckboxItem.displayName;

@@ -87,6 +87,18 @@ func TestDeleteAPIRejectsNonmatchingURNPermission(t *testing.T) {
 				return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", otherWorkspace.ID, target.ProjectID, target.KeyAuthID.String)
 			},
 		},
+		{
+			name: "legacy wildcard",
+			permission: func(_ db.Api) string {
+				return "api.*.delete_api"
+			},
+		},
+		{
+			name: "legacy API",
+			permission: func(target db.Api) string {
+				return fmt.Sprintf("api.%s.delete_api", target.ID)
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -212,9 +224,9 @@ func TestDeleteAPIRejectsForeignWorkspaceKeyspace(t *testing.T) {
 	require.False(t, notDeleted.DeletedAtM.Valid)
 }
 
-// TestDeleteAPIWithoutKeyspaceRetainsLegacyAuthorization guarantees that old
-// API rows with a nullable keyspace remain deletable through legacy permissions.
-func TestDeleteAPIWithoutKeyspaceRetainsLegacyAuthorization(t *testing.T) {
+// TestDeleteAPIWithoutKeyspaceRejectsDeletion guarantees that missing keyspace
+// ownership cannot fall back to legacy permissions or a wildcard URN grant.
+func TestDeleteAPIWithoutKeyspaceRejectsDeletion(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
@@ -232,17 +244,23 @@ func TestDeleteAPIWithoutKeyspaceRetainsLegacyAuthorization(t *testing.T) {
 		Slug:        uid.New("project"),
 	}).ID
 	api := insertAPI(t, h, workspace.ID, projectID, sql.NullString{})
-	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("api.%s.delete_api", api.ID))
+	for _, permission := range []string{
+		fmt.Sprintf("api.%s.delete_api", api.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#delete", workspace.ID),
+	} {
+		t.Run(permission, func(t *testing.T) {
+			rootKey := h.CreateRootKey(workspace.ID, permission)
+			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			}, handler.Request{ApiId: api.ID})
+			require.Equal(t, http.StatusForbidden, res.Status, "received: %s", res.RawBody)
+		})
+	}
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}, handler.Request{ApiId: api.ID})
-	require.Equal(t, http.StatusOK, res.Status, "received: %s", res.RawBody)
-
-	deleted, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
+	notDeleted, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 	require.NoError(t, err)
-	require.True(t, deleted.DeletedAtM.Valid)
+	require.False(t, notDeleted.DeletedAtM.Valid)
 }
 
 func insertKeySpace(t *testing.T, h *testutil.Harness, workspaceID, projectID string) string {

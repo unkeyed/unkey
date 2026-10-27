@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - refreshToken
+properties:
+  refreshToken:
+    type: string
+    minLength: 8
+    x-unkey-redact: true
+    description: Refresh token from the previous login or refresh.

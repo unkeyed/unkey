@@ -1,6 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { MotionProvider } from "@/components/motion-provider";
+import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -30,53 +31,55 @@ export function DeploymentSuccessBanner({ visible }: { visible: boolean }) {
   }
 
   return createPortal(
-    <AnimatePresence>
-      {visible && (
-        <motion.output
-          className="pointer-events-none fixed inset-0 z-[100] block overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={reduceMotion ? { opacity: 1 } : { opacity: [0, 1, 1, 0] }}
-          exit={{ opacity: 0 }}
-          transition={
-            reduceMotion
-              ? { duration: 0 }
-              : {
-                  duration: VICTORY_DURATION_SECONDS,
-                  times: [0, 0.18, 0.78, 1],
-                  ease: [0.4, 0, 0.2, 1],
-                }
-          }
-          aria-live="polite"
-        >
-          <div className="absolute inset-0 bg-black/35" />
-          <div className="absolute left-[-17.5dvh] top-[54.6%] h-[35%] w-[calc(100%+35dvh)] bg-[linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.9)_25%,rgba(0,0,0,0.9)_75%,transparent_100%)] blur-[1.75dvh]" />
-          {ZOOM_BLUR_LAYERS.map((layer, index) => (
+    <MotionProvider>
+      <AnimatePresence>
+        {visible && (
+          <m.output
+            className="pointer-events-none fixed inset-0 z-[100] block overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: [0, 1, 1, 0] }}
+            exit={{ opacity: 0 }}
+            transition={
+              reduceMotion
+                ? { duration: 0 }
+                : {
+                    duration: VICTORY_DURATION_SECONDS,
+                    times: [0, 0.18, 0.78, 1],
+                    ease: [0.4, 0, 0.2, 1],
+                  }
+            }
+            aria-live="polite"
+          >
+            <div className="absolute inset-0 bg-black/35" />
+            <div className="absolute left-[-17.5dvh] top-[54.6%] h-[35%] w-[calc(100%+35dvh)] bg-[linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.9)_25%,rgba(0,0,0,0.9)_75%,transparent_100%)] blur-[1.75dvh]" />
+            {ZOOM_BLUR_LAYERS.map((layer, index) => (
+              <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: layers are a static ordered visual effect.
+                key={index}
+                aria-hidden="true"
+                className={textClassName}
+                style={{
+                  color: `rgba(254, 109, 40, ${layer.opacity})`,
+                  filter: "blur(max(1px, 0.0926dvh))",
+                  transform: `translate(-50%, -50%) scale(${layer.scale}) scaleY(1.5)`,
+                }}
+              >
+                Application Deployed
+              </span>
+            ))}
             <span
-              // biome-ignore lint/suspicious/noArrayIndexKey: layers are a static ordered visual effect.
-              key={index}
-              aria-hidden="true"
               className={textClassName}
               style={{
-                color: `rgba(254, 109, 40, ${layer.opacity})`,
-                filter: "blur(max(1px, 0.0926dvh))",
-                transform: `translate(-50%, -50%) scale(${layer.scale}) scaleY(1.5)`,
+                color: "rgba(255, 210, 87, 0.9)",
+                transform: "translate(-50%, -50%) scaleY(1.5)",
               }}
             >
               Application Deployed
             </span>
-          ))}
-          <span
-            className={textClassName}
-            style={{
-              color: "rgba(255, 210, 87, 0.9)",
-              transform: "translate(-50%, -50%) scaleY(1.5)",
-            }}
-          >
-            Application Deployed
-          </span>
-        </motion.output>
-      )}
-    </AnimatePresence>,
+          </m.output>
+        )}
+      </AnimatePresence>
+    </MotionProvider>,
     document.body,
   );
 }

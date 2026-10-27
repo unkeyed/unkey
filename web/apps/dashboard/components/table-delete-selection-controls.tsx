@@ -1,8 +1,9 @@
 "use client";
 import { AnimatedCounter } from "@/components/api-keys-table/components/selection-controls";
+import { MotionProvider } from "@/components/motion-provider";
 import { IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useRef, useState } from "react";
 
 type TableDeleteSelectionControlsProps = {
@@ -31,10 +32,10 @@ export const TableDeleteSelectionControls = ({
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <>
+    <MotionProvider>
       <AnimatePresence>
         {selectedCount > 0 && (
-          <motion.div
+          <m.div
             key="selection-controls"
             className="border-b w-full overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
@@ -84,7 +85,7 @@ export const TableDeleteSelectionControls = ({
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -101,6 +102,6 @@ export const TableDeleteSelectionControls = ({
         cancelButtonText="Cancel"
         variant="danger"
       />
-    </>
+    </MotionProvider>
   );
 };

@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auth/portalrbac"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -21,9 +23,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/portalscope"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
-
-// millisPerDay is the width of one retention day in unix milliseconds.
-const millisPerDay = 24 * 60 * 60 * 1000
 
 // DefaultMaxPerKeySeries bounds how many keys a single per-key breakout may
 // return. It exists to cap what one session can pull over the shared ClickHouse
@@ -54,6 +53,7 @@ type (
 // parser that are inappropriate for an end user.
 type Handler struct {
 	ClickHouse       clickhouse.ClickHouse
+	Clock            clock.Clock
 	DB               db.Database
 	LimitsCache      cache.Cache[string, keysdb.Limit]
 	MaxPerKeySeries  int
@@ -97,10 +97,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Both bounds must be non-negative before the retention check below, which
-	// compares their difference: a large negative start against a large positive
-	// end overflows int64 and wraps negative, reading as a window smaller than
-	// retention and selecting minute granularity over an unbounded range.
 	if req.StartTime < 0 || req.EndTime <= req.StartTime {
 		return fault.New("invalid time window",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -109,12 +105,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Bound the window to the workspace's log retention. This runs on the shared
-	// ClickHouse connection, so an unbounded window (e.g. the unix epoch to a far
-	// future) would let an end user force an arbitrarily large scan and
-	// zero-filled series. We use the same log retention limit that the protected
-	// analytics.getVerifications path uses as MaxQueryRangeDays, so the portal
-	// cannot query a wider range than the workspace itself.
 	limits, _, err := h.LimitsCache.SWR(ctx, principal.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
 		return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
 	}, caches.DefaultFindFirstOp)
@@ -126,12 +116,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if limits.LogsRetentionDaysMax > 0 && req.EndTime-req.StartTime > int64(limits.LogsRetentionDaysMax)*millisPerDay {
-		return fault.New("time window too large",
-			fault.Code(codes.User.BadRequest.QueryRangeExceedsRetention.URN()),
-			fault.Internal("requested window exceeds workspace log retention"),
-			fault.Public(fmt.Sprintf("The requested time window is too large. The maximum window is %d days.", limits.LogsRetentionDaysMax)),
-		)
+	if limits.LogsRetentionDaysMax > 0 {
+		startTime := time.UnixMilli(req.StartTime)
+		endTime := time.UnixMilli(req.EndTime)
+		retention := time.Duration(limits.LogsRetentionDaysMax) * 24 * time.Hour
+		now := h.Clock.Now().UTC()
+		if endTime.After(now) {
+			endTime = now
+		}
+
+		cutoff := now.Truncate(24 * time.Hour).Add(-retention)
+		if startTime.Before(cutoff) {
+			startTime = cutoff
+		}
+		if startTime.After(endTime) {
+			startTime = endTime
+		}
+		req.StartTime = startTime.UnixMilli()
+		req.EndTime = endTime.UnixMilli()
 	}
 
 	perKey, err := h.ClickHouse.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{

@@ -1,5 +1,5 @@
 "use client";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { queryClient } from "./client";
 
 export type LoadSource = {
@@ -20,16 +20,19 @@ function subscribe(onChange: () => void): () => void {
 export function useCollectionLoad(...sources: LoadSource[]): {
   failed: boolean;
   retry: () => void;
+  retrying: boolean;
 } {
+  const [retrying, setRetrying] = useState(false);
   const failed = useSyncExternalStore(
     subscribe,
     () => sources.some((source) => source.isError),
     () => false,
   );
   const retry = () => {
-    for (const source of sources) {
-      source.clearError().catch(() => undefined);
-    }
+    setRetrying(true);
+    Promise.allSettled(sources.map((source) => source.clearError())).finally(() =>
+      setRetrying(false),
+    );
   };
-  return { failed, retry };
+  return { failed, retry, retrying };
 }

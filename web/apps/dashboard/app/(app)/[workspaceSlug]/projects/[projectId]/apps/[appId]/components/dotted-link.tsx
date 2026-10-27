@@ -8,7 +8,7 @@ const DEFAULT_LINK_CLASS =
   "text-gray-12 text-xs decoration-dotted underline underline-offset-3 transition-all font-medium";
 
 type DottedLinkProps = {
-  href: string;
+  href: string | undefined;
   copyValue?: string;
   external?: boolean;
   className?: string;
@@ -22,6 +22,9 @@ export function DottedLink({
   className = DEFAULT_LINK_CLASS,
   children,
 }: DottedLinkProps) {
+  if (!href) {
+    return children;
+  }
   return (
     <div className="flex items-center gap-2">
       {external ? (

@@ -34,11 +34,23 @@ export const projectRoutes = {
   logs({
     appId,
     deploymentId,
+    instanceId,
+    startTime,
+    endTime,
     ...scope
-  }: ProjectScope & { appId?: string; deploymentId?: string }): Route {
+  }: ProjectScope & {
+    appId?: string;
+    deploymentId?: string;
+    instanceId?: string;
+    startTime?: number;
+    endTime?: number;
+  }): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/logs", projectParams(scope), {
       appId: appId ? isFilter(appId) : undefined,
       deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
+      instanceId: instanceId ? isFilter(instanceId) : undefined,
+      startTime: startTime?.toString(),
+      endTime: endTime?.toString(),
     });
   },
 
@@ -93,10 +105,11 @@ export const projectRoutes = {
       return buildRoute("/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings", params);
     },
 
-    domains(scope: AppScope): Route {
+    domains({ add, ...scope }: AppScope & { add?: boolean }): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/domains",
         appParams(scope),
+        { add: add || undefined },
       );
     },
 
@@ -108,9 +121,17 @@ export const projectRoutes = {
       );
     },
 
-    policies(scope: AppScope): Route {
+    policies({ add, ...scope }: AppScope & { add?: boolean }): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/policies",
+        appParams(scope),
+        { add: add || undefined },
+      );
+    },
+
+    metrics(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/metrics",
         appParams(scope),
       );
     },

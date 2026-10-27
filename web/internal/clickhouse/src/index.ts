@@ -1,9 +1,12 @@
+import { getAppResources, getAppResourcesByInstance } from "./app-metrics/resources";
+import { getAppTraffic } from "./app-metrics/traffic";
 import { getAuditLogs } from "./audit-logs";
 import {
   getActiveKeysUsage,
   getDeployMeterUsage,
   getDeployUsageTimeseries,
 } from "./deploy_billing";
+import { getEnvironmentRequests } from "./frontline/legacy/environment-requests";
 export {
   type ActiveKeysUsage,
   activeKeysUsage,
@@ -17,7 +20,7 @@ export {
   deployUsageTimeseriesInterval,
 } from "./deploy_billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
-import { getInstanceEvents } from "./instance-events";
+import { getCrashTimeline, getInstanceEvents } from "./instance-events";
 export { instanceEventKind, type InstanceEventKind } from "./instance-events";
 import {
   getDailyActiveKeysTimeseries,
@@ -106,7 +109,6 @@ import {
   getRequestDetails,
   getRequestLogs,
 } from "./frontline";
-import { getEnvironmentRequests } from "./frontline/environment-requests";
 import { getRuntimeLogs } from "./runtime-logs";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
@@ -357,6 +359,13 @@ export class ClickHouse {
       requests: getEnvironmentRequests(this.querier),
     };
   }
+  public get appMetrics() {
+    return {
+      traffic: getAppTraffic(this.querier),
+      resources: getAppResources(this.querier),
+      resourcesByInstance: getAppResourcesByInstance(this.querier),
+    };
+  }
   public get frontline() {
     return {
       logs: getRequestLogs(this.querier),
@@ -380,6 +389,7 @@ export class ClickHouse {
   public get instanceEvents() {
     return {
       list: getInstanceEvents(this.querier),
+      crashTimeline: getCrashTimeline(this.querier),
     };
   }
   public get auditLogs() {

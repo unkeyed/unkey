@@ -48,7 +48,9 @@ func TestGetDeploymentInsufficientPermissions(t *testing.T) {
 		DeploymentId: deploymentID,
 	}
 
-	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-	require.Equal(t, http.StatusForbidden, res.Status)
-	require.NotNil(t, res.Body)
+	missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{DeploymentId: uid.New(uid.DeploymentPrefix)})
+	require.Equal(t, http.StatusNotFound, missing.Status)
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+	require.Equal(t, missing.Status, res.Status)
+	require.Equal(t, missing.Body.Error, res.Body.Error)
 }

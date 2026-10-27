@@ -121,7 +121,7 @@ func TestGetDeploymentRejectsURNPermissionWithWrongAncestry(t *testing.T) {
 			rootKey := fixture.h.CreateRootKey(fixture.setup.Workspace.ID, permission)
 			res := fixture.call(rootKey)
 
-			require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 		})
 	}
 }
@@ -143,7 +143,7 @@ func TestGetDeploymentRejectsURNWritePermission(t *testing.T) {
 	rootKey := fixture.h.CreateRootKey(fixture.setup.Workspace.ID, permission)
 	res := fixture.call(rootKey)
 
-	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 }
 
 // TestGetDeploymentRejectsURNPermissionFromAnotherWorkspace guarantees
@@ -163,7 +163,7 @@ func TestGetDeploymentRejectsURNPermissionFromAnotherWorkspace(t *testing.T) {
 	rootKey := fixture.h.CreateRootKey(fixture.setup.Workspace.ID, permission)
 	res := fixture.call(rootKey)
 
-	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 }
 
 // TestGetDeploymentMasksURNCrossWorkspaceAccess guarantees that an exact

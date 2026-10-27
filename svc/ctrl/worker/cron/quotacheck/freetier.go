@@ -209,21 +209,8 @@ func (h *Handler) notifyThrottledBestEffort(
 		return
 	}
 
-	title := fmt.Sprintf("Free Tier Rate Limited: %s", ws.Name)
-	payload := slack.Payload{
-		Text: title,
-		Blocks: []slack.Block{
-			slack.NewHeaderBlock(title),
-			slack.NewSectionBlock(
-				slack.NewMarkdownField(fmt.Sprintf("*Workspace ID:*\n`%s`", ws.ID)),
-				slack.NewMarkdownField(fmt.Sprintf("*Workspace Name:*\n%s", ws.Name)),
-				slack.NewMarkdownField(fmt.Sprintf("*Organisation ID:*\n`%s`", ws.OrgID)),
-				slack.NewMarkdownField(fmt.Sprintf("*Rate Limit:*\n%d requests/minute", throttleRequestsPerMinute)),
-			),
-		},
-	}
 	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
-		return slack.NewClient().Send(rc, h.slackWebhookURL, payload)
+		return slack.NewClient().Send(rc, h.slackWebhookURL, throttledSlackMessage(ws, h.billingBaseURL))
 	}, restate.WithName("notify throttled workspace on slack"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
 		logger.Error("free tier throttled slack notification failed",
 			"workspace_id", ws.ID,

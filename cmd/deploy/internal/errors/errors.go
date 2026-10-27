@@ -42,16 +42,19 @@ func formatAuthenticationError(apiErr *apierrors.UnauthorizedErrorResponse) stri
 	// Provide specific guidance based on the error detail
 	detail := strings.ToLower(apiErr.Error_.GetDetail())
 	if strings.Contains(detail, "invalid") || strings.Contains(detail, "token") {
-		msg.WriteString("Your root key is invalid or has expired.\n\n")
+		msg.WriteString("The credential for unkey deploy is invalid or has expired.\n\n")
 		msg.WriteString("Please check:\n")
-		msg.WriteString("  • The root key is correct (--root-key flag or UNKEY_ROOT_KEY env var)\n")
-		msg.WriteString("  • The key hasn't been revoked or deleted\n")
-		msg.WriteString("  • You're using a root key, not an API key\n")
+		msg.WriteString("  • --root-key, when you passed one\n")
+		msg.WriteString("  • UNKEY_ROOT_KEY\n")
+		msg.WriteString("  • the CLI session from unkey login, for the API that issued it\n")
+		msg.WriteString("  • a root key saved with unkey login --root-key\n")
 	} else {
-		msg.WriteString("Could not authenticate your request.\n\n")
-		msg.WriteString("Make sure you've provided a valid root key using:\n")
-		msg.WriteString("  • --root-key flag, or\n")
-		msg.WriteString("  • UNKEY_ROOT_KEY environment variable\n")
+		msg.WriteString("Could not authenticate unkey deploy.\n\n")
+		msg.WriteString("Provide a credential in this order:\n")
+		msg.WriteString("  • --root-key\n")
+		msg.WriteString("  • UNKEY_ROOT_KEY\n")
+		msg.WriteString("  • unkey login\n")
+		msg.WriteString("  • unkey login --root-key\n")
 	}
 
 	appendMetadata(&msg, apiErr.Meta, apiErr.Error_.GetType())
