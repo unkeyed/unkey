@@ -1,0 +1,7 @@
+hubble:
+  ui:
+    rollOutPods: true
+    frontend:
+      server:
+        ipv6:
+          enabled: false

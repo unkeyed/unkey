@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   alertCustomerLifecycle,
+  alertInvalidProductQuotaMetadata,
+  alertOrphanedDeploySubscription,
   alertPaymentFailed,
   alertPaymentRecovered,
   escapeSlackText,
@@ -138,7 +140,12 @@ type SentBlock = {
   type: string;
   text?: SentTextObject;
   fields?: SentTextObject[];
-  elements?: Array<{ type: string; url?: string; text?: SentTextObject }>;
+  elements?: Array<{
+    type: string;
+    url?: string;
+    text?: SentTextObject | string;
+    verbatim?: boolean;
+  }>;
 };
 
 const sentBlocks = (): SentBlock[] => {
@@ -155,6 +162,11 @@ const sentMrkdwnObjects = (): SentTextObject[] => {
     }
     if (Array.isArray(block.fields)) {
       objects.push(...block.fields);
+    }
+    for (const element of block.elements ?? []) {
+      if (element.type === "mrkdwn" && typeof element.text === "string") {
+        objects.push({ type: element.type, text: element.text, verbatim: element.verbatim });
+      }
     }
   }
   return objects;
@@ -264,9 +276,7 @@ describe("alerts escape attacker-controlled fields", () => {
       await send();
 
       const text = sentText();
-      // The attacker's `<`/`>` become entities, so no literal link delimiters survive.
-      expect(text).not.toContain("<");
-      expect(text).not.toContain(">");
+      expect(text).not.toContain("<https://evil.example");
       expect(text).toContain("&lt;");
     });
 
@@ -306,29 +316,32 @@ describe("alerts escape attacker-controlled fields", () => {
 });
 
 describe("alertCustomerLifecycle", () => {
-  it("renders a header, the customer/workspace/plan fields, and a Stripe link", async () => {
+  it("renders the workspace and plan, customer contact, Stripe link and copyable IDs", async () => {
+    const workspaceId = `ws_${crypto.randomUUID()}`;
+    const stripeCustomerId = `cus_${crypto.randomUUID()}`;
     await alertCustomerLifecycle({
       action: "signup",
       name: "Jane",
       email: "jane@acme.com",
-      workspaceId: "ws_123",
+      workspaceId,
       workspaceName: "Acme",
       product: "Pro",
       price: "$25",
-      stripeCustomerId: "cus_123",
+      stripeCustomerId,
       livemode: true,
     });
 
     expect(headerText()).toBe(":bugeyes: New customer signup");
-    expect(fieldTexts()).toEqual([
-      "*Customer*\nJane",
-      "*Email*\njane@acme.com",
-      "*Workspace*\nAcme",
-      "*Workspace ID*\nws_123",
-      "*Tier / Product*\nPro",
-      "*Price*\n$25",
-    ]);
-    expect(buttonUrl()).toBe("https://dashboard.stripe.com/customers/cus_123");
+    expect(fieldTexts()).toEqual(["*Workspace*\nAcme", "*Plan*\nPro · $25"]);
+    expect(sentText()).toContain("*Customer*\nJane\njane@acme.com");
+    expect(sentText()).toContain(`Workspace ID: \`${workspaceId}\``);
+    expect(sentText()).toContain(`Stripe customer: \`${stripeCustomerId}\``);
+    expect(sentText()).toContain(
+      `<https://dashboard.stripe.com/customers/${stripeCustomerId}|View customer in Stripe>`,
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).text).toBe(
+      "New customer signup. Customer: Jane (jane@acme.com). Workspace: Acme. Plan: Pro · $25.",
+    );
   });
 
   it("shows the tier transition for an upgrade", async () => {
@@ -344,10 +357,10 @@ describe("alertCustomerLifecycle", () => {
     });
 
     expect(headerText()).toBe(":stonks: Subscription upgraded");
-    expect(fieldTexts()).toContain("*Tier / Product*\nFree → Pro");
+    expect(fieldTexts()).toContain("*Plan*\nFree → Pro · $25");
   });
 
-  it("marks a downgrade with its own emoji", async () => {
+  it("shows the downgrade and its plan transition", async () => {
     await alertCustomerLifecycle({
       action: "downgrade",
       name: "Jane",
@@ -359,6 +372,7 @@ describe("alertCustomerLifecycle", () => {
     });
 
     expect(headerText()).toBe(":notstonks: Subscription downgraded");
+    expect(fieldTexts()).toContain("*Plan*\nPro → Free");
   });
 
   it("adds a standing note for a cancellation", async () => {
@@ -387,7 +401,9 @@ describe("alertCustomerLifecycle", () => {
       livemode: false,
     });
 
-    expect(buttonUrl()).toBe("https://dashboard.stripe.com/test/customers/cus_123");
+    expect(sentText()).toContain(
+      "<https://dashboard.stripe.com/test/customers/cus_123|View customer in Stripe>",
+    );
   });
 
   it("omits the workspace fields and the Stripe link when they are not known", async () => {
@@ -400,34 +416,211 @@ describe("alertCustomerLifecycle", () => {
       price: "$25",
     });
 
-    expect(fieldTexts()).toEqual([
-      "*Customer*\nJane",
-      "*Email*\njane@acme.com",
-      "*Tier / Product*\nCompute Pro",
-      "*Price*\n$25",
-    ]);
-    expect(buttonUrl()).toBeUndefined();
+    expect(fieldTexts()).toEqual(["*Plan*\nCompute Pro · $25"]);
+    expect(sentText()).toContain("*Customer*\nJane\njane@acme.com");
+    expect(sentText()).not.toMatch(/Workspace|Stripe|undefined/);
+  });
+
+  it("keeps the customer contact without creating an empty facts section", async () => {
+    await alertCustomerLifecycle({ action: "signup", name: "Jane", email: "jane@acme.com" });
+    expect(sentText()).toBe("*Customer*\nJane\njane@acme.com");
+    expect(sentBlocks().every((block) => block.fields === undefined)).toBe(true);
+  });
+
+  it("shows a known price without inventing an unknown plan", async () => {
+    await alertCustomerLifecycle({
+      action: "update",
+      name: "Jane",
+      email: "jane@acme.com",
+      price: "$25",
+    });
+    expect(fieldTexts()).toEqual(["*Price*\n$25"]);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).text).toBe(
+      "Subscription updated. Customer: Jane (jane@acme.com). Price: $25.",
+    );
+  });
+
+  it("bounds combined contact and plan text within Slack limits", async () => {
+    const long = "&".repeat(500);
+    await alertCustomerLifecycle({
+      action: "upgrade",
+      name: long,
+      email: long,
+      workspaceName: long,
+      previousProduct: long,
+      product: long,
+      price: long,
+    });
+    for (const block of sentBlocks()) {
+      if (block.text) {
+        expect(Array.from(block.text.text).length).toBeLessThanOrEqual(3000);
+      }
+      for (const field of block.fields ?? []) {
+        expect(Array.from(field.text).length).toBeLessThanOrEqual(2000);
+      }
+    }
+    expect(sentText()).toContain("&amp;");
   });
 });
 
-describe("alertPaymentFailed", () => {
-  it("renders the amount and a Stripe link", async () => {
-    await alertPaymentFailed({
-      email: "jane@acme.com",
-      name: "Jane",
-      amount: 2500,
-      stripeCustomerId: "cus_123",
+describe("payment alerts", () => {
+  it.each([
+    {
+      send: alertPaymentFailed,
+      emoji: ":warning:",
+      title: "Payment failed",
+      amount: 2499,
+      rendered: "$24.99",
+      livemode: false,
+    },
+    {
+      send: alertPaymentRecovered,
+      emoji: ":tada:",
+      title: "Payment recovered",
+      amount: 5001,
+      rendered: "$50.01",
       livemode: true,
+    },
+  ])(
+    "renders $title with the amount, customer contact, Stripe link and copyable ID",
+    async ({ send, emoji, title, amount, rendered, livemode }) => {
+      const stripeCustomerId = `cus_${crypto.randomUUID()}`;
+      await send({ email: "jane@acme.com", name: "Jane", amount, stripeCustomerId, livemode });
+
+      expect(headerText()).toBe(`${emoji} ${title}`);
+      expect(sentText()).toContain(`*Amount*\n${rendered}`);
+      expect(sentText()).toContain("*Customer*\nJane\njane@acme.com");
+      expect(sentText()).toContain(`Stripe customer: \`${stripeCustomerId}\``);
+      expect(sentText()).toContain(
+        `<https://dashboard.stripe.com${livemode ? "" : "/test"}/customers/${stripeCustomerId}|View customer in Stripe>`,
+      );
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body).text).toContain(
+        `${title}: ${rendered}. Customer: Jane (jane@acme.com).`,
+      );
+    },
+  );
+
+  it("keeps a zero amount and omits unknown Stripe details", async () => {
+    await alertPaymentFailed({ email: "jane@acme.com", name: "Jane", amount: 0 });
+    expect(sentText()).toContain("*Amount*\n$0.00");
+    expect(sentText()).not.toMatch(/Stripe|undefined/);
+  });
+});
+
+describe("billing attention alerts", () => {
+  const ids = () => ({
+    subscriptionId: `sub_${crypto.randomUUID()}`,
+    workspaceId: `ws_${crypto.randomUUID()}`,
+    sessionId: `cs_${crypto.randomUUID()}`,
+    eventId: `evt_${crypto.randomUUID()}`,
+    productId: `prod_${crypto.randomUUID()}`,
+  });
+  const fallbackText = (): string => JSON.parse(fetchMock.mock.calls[0][1].body).text;
+
+  for (const livemode of [true, false]) {
+    it(`renders the orphan consequence, copyable IDs and labeled link (live: ${livemode})`, async () => {
+      const details = ids();
+      await alertOrphanedDeploySubscription({
+        ...details,
+        reason: "subscription_conflict",
+        livemode,
+      });
+
+      expect(headerText()).toBe("Compute subscription needs attention");
+      expect(fieldTexts()).toEqual([
+        "*Product*\nCompute",
+        "*Reason*\nSubscription conflict",
+        `*Workspace ID*\n\`${details.workspaceId}\``,
+        `*Subscription*\n\`${details.subscriptionId}\``,
+      ]);
+      expect(sentText()).toContain(`Checkout session: \`${details.sessionId}\``);
+      expect(sentText()).toContain(`Stripe event: \`${details.eventId}\``);
+      expect(sentText()).toContain("still billing but is not linked to its workspace.");
+      expect(sentText()).toContain(
+        `<https://dashboard.stripe.com${livemode ? "" : "/test"}/subscriptions/${details.subscriptionId}|Review subscription in Stripe>`,
+      );
+      expect(fallbackText()).toBe(
+        `Compute subscription ${details.subscriptionId} is billing but unlinked. Review it in Stripe and cancel or refund it manually.`,
+      );
+      expect(buttonUrl()).toBeUndefined();
+      expect(sentMrkdwnObjects().every((object) => object.verbatim)).toBe(true);
     });
 
-    expect(headerText()).toBe(":warning: Payment failed");
-    expect(fieldTexts()).toEqual([
-      "*Customer*\nJane",
-      "*Email*\njane@acme.com",
-      "*Amount*\n$25.00",
-    ]);
-    expect(buttonUrl()).toBe("https://dashboard.stripe.com/customers/cus_123");
+    it(`renders metadata consequences and encoded resource links (live: ${livemode})`, async () => {
+      const details = { ...ids(), productId: `prod_${crypto.randomUUID()}/a b` };
+      await alertInvalidProductQuotaMetadata({ ...details, productName: "Compute Pro", livemode });
+
+      const base = `https://dashboard.stripe.com${livemode ? "" : "/test"}`;
+      expect(headerText()).toBe("Product quota settings need attention");
+      expect(fieldTexts()).toEqual([
+        "*Product*\nCompute Pro",
+        `*Subscription*\n\`${details.subscriptionId}\``,
+      ]);
+      expect(sentText()).toContain(
+        `<${base}/products/${encodeURIComponent(details.productId)}|Review product in Stripe> · <${base}/subscriptions/${details.subscriptionId}|View subscription>`,
+      );
+      expect(sentText()).toContain(`Product ID: \`${details.productId}\``);
+      expect(sentText()).toContain(`Stripe event: \`${details.eventId}\``);
+      expect(sentText()).toContain("Workspace tier sync was skipped.");
+      expect(fallbackText()).toBe(
+        "Compute Pro: workspace tier sync was skipped because quota metadata is invalid or missing. Fix the product metadata in Stripe.",
+      );
+      expect(buttonUrl()).toBeUndefined();
+      expect(sentMrkdwnObjects().every((object) => object.verbatim)).toBe(true);
+    });
+  }
+
+  it("omits unknown optional IDs and retains unknown reasons and API product", async () => {
+    await alertOrphanedDeploySubscription({
+      subscriptionId: ids().subscriptionId,
+      reason: "future_reason",
+      product: "API",
+    });
+    expect(headerText()).toBe("API subscription needs attention");
+    expect(fieldTexts()).toContain("*Reason*\nfuture_reason");
+    expect(sentText()).not.toMatch(/Workspace ID|Checkout session|Stripe event|undefined/);
+    expect(sentBlocks().some((block) => block.type === "context")).toBe(false);
   });
+
+  const senders = [
+    (value: string) => alertOrphanedDeploySubscription({ ...ids(), reason: value }),
+    (value: string) => alertInvalidProductQuotaMetadata({ ...ids(), productName: value }),
+  ];
+  for (const [index, send] of senders.entries()) {
+    it(`escapes mentions, injected links and forged lines in billing alert ${index}`, async () => {
+      const hostile =
+        "<!here> <@U123> <https://evil.example|Click>\nforged\u2028line & http://evil.example";
+      await send(hostile);
+      expect(sentText()).toContain(escapeSlackText(hostile));
+      expect(sentText()).not.toContain("<!here>");
+      expect(sentText()).not.toContain("<@U123>");
+      expect(sentText()).not.toContain("<https://evil.example");
+      expect(sentText()).not.toContain("\nforged");
+      expect(sentMrkdwnObjects().every((object) => object.verbatim)).toBe(true);
+      expect(fallbackText()).not.toMatch(/<!|<@|<https:\/\/evil|\n/);
+    });
+
+    it(`bounds free text in billing alert ${index}`, async () => {
+      await send("a".repeat(500));
+      expect(sentText()).toContain(`${"a".repeat(256)}…`);
+      expect(sentText()).not.toContain("a".repeat(257));
+    });
+
+    it(`keeps billing alert ${index} best-effort without exposing customer data in logs`, async () => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      fetchMock.mockRejectedValueOnce(new Error("offline"));
+      await expect(send("private billing value")).resolves.toBeUndefined();
+      fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
+      await expect(send("private billing value")).resolves.toBeUndefined();
+      expect(error).toHaveBeenCalledTimes(2);
+      expect(JSON.stringify(error.mock.calls)).not.toContain("private billing value");
+      fetchMock.mockClear();
+      vi.stubEnv("SLACK_WEBHOOK_CUSTOMERS", "");
+      await expect(send("private billing value")).resolves.toBeUndefined();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  }
 });
 
 describe("postToSlack", () => {

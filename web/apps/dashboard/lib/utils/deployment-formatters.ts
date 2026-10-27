@@ -63,7 +63,7 @@ export function formatStorageParts(mib: number): FormattedParts {
   return { value: `${mib}`, unit: "MiB" };
 }
 
-function joinParts({ value, unit }: FormattedParts): string {
+export function joinParts({ value, unit }: { value: string; unit?: string }): string {
   return unit ? `${value} ${unit}` : value;
 }
 

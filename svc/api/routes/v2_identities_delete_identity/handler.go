@@ -65,10 +65,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("identity not found",
-				fault.Code(codes.Data.Identity.NotFound.URN()),
-				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Identity.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -96,7 +93,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
 			codes.Data.Identity.NotFound.URN(),
-			"This identity does not exist.",
 		)
 	}
 

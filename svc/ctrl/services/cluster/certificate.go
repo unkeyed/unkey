@@ -120,7 +120,10 @@ func (s *Service) EnsureInfraCertificate(ctx context.Context, domain string) {
 
 	// Read back the row to get its real ID: the upsert above may have hit the
 	// existing row, in which case the ID we generated was discarded.
-	created, err := s.db.FindCustomDomainByDomain(ctx, domain)
+	domainID, err := s.db.FindCustomDomainIDByWorkspaceAndDomain(ctx, db.FindCustomDomainIDByWorkspaceAndDomainParams{
+		WorkspaceID: infraWorkspaceID,
+		Domain:      domain,
+	})
 	if err != nil {
 		logger.Error("failed to load infra domain after upsert", "error", err, "domain", domain)
 		return
@@ -131,7 +134,7 @@ func (s *Service) EnsureInfraCertificate(ctx context.Context, domain string) {
 	// challenge makes this a duplicate-key error, which is success, not failure.
 	err = s.db.InsertAcmeChallenge(ctx, db.InsertAcmeChallengeParams{
 		WorkspaceID:   infraWorkspaceID,
-		DomainID:      created.ID,
+		DomainID:      domainID,
 		Token:         "",
 		Authorization: "",
 		Status:        db.AcmeChallengesStatusWaiting,

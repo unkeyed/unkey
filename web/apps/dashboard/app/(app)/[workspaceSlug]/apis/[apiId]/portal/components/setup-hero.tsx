@@ -24,7 +24,7 @@ export function SetupHero({ onEnable }: { onEnable: () => void }) {
         </EmptyStateDescription>
       </EmptyStateHeader>
       <EmptyStateActions>
-        <Button variant="primary" size="md" onClick={onEnable}>
+        <Button variant="primary" size="sm" onClick={onEnable}>
           Enable Customer portal
         </Button>
       </EmptyStateActions>

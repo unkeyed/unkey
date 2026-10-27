@@ -118,11 +118,12 @@ func New(cfg Config) (*Engine, error) {
 	// Keyed by ciphertext, so entries self-invalidate when credentials
 	// change. The TTL bounds how long plaintext credentials stay in memory.
 	decryptCache, err := cache.New(cache.Config[cache.ScopedKey, string]{
-		Fresh:    10 * time.Minute,
-		Stale:    10 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "logdrain_decrypted_credentials",
-		Clock:    cfg.Clock,
+		Fresh:     10 * time.Minute,
+		Stale:     10 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "logdrain_decrypted_credentials",
+		Clock:     cfg.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("build decrypt cache: %w", err)

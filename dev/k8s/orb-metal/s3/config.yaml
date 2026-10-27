@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: s3-config
+  namespace: unkey
+data:
+  garage.toml: |
+    metadata_dir = "/var/lib/garage/meta"
+    data_dir = "/var/lib/garage/data"
+    db_engine = "sqlite"
+
+    replication_factor = 1
+
+    rpc_bind_addr = "0.0.0.0:3901"
+    rpc_public_addr = "127.0.0.1:3901"
+    # Dev-only secret. Garage requires it even in single-node mode.
+    rpc_secret = "0000000000000000000000000000000000000000000000000000000000000000"
+
+    [s3_api]
+    # Must match the region the S3 client signs requests with. Vault's
+    # client defaults to "auto" and doesn't expose a region override,
+    # so we configure Garage to expect "auto" rather than its default.
+    s3_region = "auto"
+    api_bind_addr = "0.0.0.0:3902"
+    root_domain = ".s3.garage.localhost"
+
+    [admin]
+    api_bind_addr = "0.0.0.0:3903"
+    admin_token = "dev-admin-token"
+    metrics_token = "dev-metrics-token"

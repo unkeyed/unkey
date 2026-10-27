@@ -61,9 +61,13 @@ var errNotVerified = errors.New("domain not verified yet")
 // If verification fails after ~24 hours of retries, Restate kills the invocation.
 func (s *Service) VerifyDomain(
 	ctx restate.ObjectContext,
-	_ *hydrav1.VerifyDomainRequest,
+	req *hydrav1.VerifyDomainRequest,
 ) (*hydrav1.VerifyDomainResponse, error) {
-	domainID := restate.Key(ctx)
+	domainID := req.GetDomainId()
+	if domainID == "" {
+		// Invocations submitted before FQDN keying carry the row ID in the key.
+		domainID = restate.Key(ctx)
+	}
 
 	// Journaled so every retry measures the row-visibility grace from the first
 	// attempt rather than from itself, which would never let the window expire.
@@ -89,6 +93,10 @@ func (s *Service) VerifyDomain(
 			return nil, restate.ToTerminalError(fmt.Errorf("domain record not found: %s", domainID), restate.WithErrorCode(404))
 		}
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
+	}
+
+	if req.GetDomainId() != "" && dom.Domain != restate.Key(ctx) {
+		return nil, restate.ToTerminalError(errors.New("domain does not match object key"), restate.WithErrorCode(400))
 	}
 
 	elapsed := time.Since(startedAt)
@@ -228,9 +236,12 @@ func (s *Service) VerifyDomain(
 // user fixes DNS configuration.
 func (s *Service) RetryVerification(
 	ctx restate.ObjectContext,
-	_ *hydrav1.RetryVerificationRequest,
+	req *hydrav1.RetryVerificationRequest,
 ) (*hydrav1.RetryVerificationResponse, error) {
-	domainID := restate.Key(ctx)
+	domainID := req.GetDomainId()
+	if domainID == "" {
+		domainID = restate.Key(ctx)
+	}
 	logger.Info("retrying domain verification", "domain_id", domainID)
 
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
@@ -246,7 +257,7 @@ func (s *Service) RetryVerification(
 		return nil, err
 	}
 
-	_, verifyErr := s.VerifyDomain(ctx, &hydrav1.VerifyDomainRequest{})
+	_, verifyErr := s.VerifyDomain(ctx, &hydrav1.VerifyDomainRequest{DomainId: req.GetDomainId()})
 	if verifyErr != nil {
 		return nil, verifyErr
 	}

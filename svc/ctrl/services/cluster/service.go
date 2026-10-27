@@ -146,21 +146,23 @@ func New(cfg Config) (*Service, error) {
 		clk = clock.New()
 	}
 	clusterCache, err := cache.New(cache.Config[clusterCacheKey, db.FindClusterRow]{
-		Fresh:    clusterCacheFresh,
-		Stale:    clusterCacheStale,
-		MaxSize:  clusterCacheMaxSize,
-		Resource: "ctrl_clusters",
-		Clock:    clk,
+		Fresh:     clusterCacheFresh,
+		Stale:     clusterCacheStale,
+		MaxSize:   clusterCacheMaxSize,
+		Resource:  "ctrl_clusters",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cluster cache: %w", err)
 	}
 	provisionedCerts, err := cache.New(cache.Config[string, bool]{
-		Fresh:    infraCertCacheTTL,
-		Stale:    infraCertCacheTTL,
-		MaxSize:  infraCertCacheMaxSize,
-		Resource: "ctrl_infra_certs",
-		Clock:    clk,
+		Fresh:     infraCertCacheTTL,
+		Stale:     infraCertCacheTTL,
+		MaxSize:   infraCertCacheMaxSize,
+		Resource:  "ctrl_infra_certs",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create infra cert cache: %w", err)

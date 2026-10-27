@@ -198,17 +198,13 @@ async function openOwningApp(domain: string, workspaceSlug: string): Promise<str
 
 async function listAllDomains(projectId: string): Promise<ApiDomain[]> {
   const all: ApiDomain[] = [];
-  let cursor: string | undefined;
-
-  do {
-    const page = await getUnkeyClient().domains.listDomains({
-      project: projectId,
-      cursor,
-    });
-    all.push(...page.data);
-    cursor = page.pagination?.hasMore ? page.pagination.cursor : undefined;
-  } while (cursor);
-
+  const pages = await getUnkeyClient().domains.listDomains({ project: projectId });
+  for await (const { result } of pages) {
+    all.push(...result.data);
+    if (!result.pagination.hasMore) {
+      break;
+    }
+  }
   return all;
 }
 

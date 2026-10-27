@@ -4,7 +4,15 @@ import type {
   StringConfig,
 } from "@/components/logs/validation/filter.types";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
+import { HttpMethod, type TextFilter } from "@unkey/api/models/components";
 import { z } from "zod";
+
+const pathOperators = [
+  "is",
+  "contains",
+  "startsWith",
+  "endsWith",
+] as const satisfies readonly (keyof TextFilter)[];
 
 // Configuration
 export const logsFilterFieldConfig: FilterFieldConfigs = {
@@ -28,11 +36,11 @@ export const logsFilterFieldConfig: FilterFieldConfigs = {
   methods: {
     type: "string",
     operators: ["is"],
-    validValues: ["GET", "POST", "PUT", "DELETE", "PATCH"] as const,
+    validValues: Object.values(HttpMethod),
   },
   paths: {
     type: "string",
-    operators: ["is", "contains", "startsWith", "endsWith"],
+    operators: [...pathOperators],
   },
   host: {
     type: "string",
@@ -75,7 +83,7 @@ export interface StatusConfig extends NumberConfig {
 }
 
 // Schemas
-export const logsFilterOperatorEnum = z.enum(["is", "contains", "startsWith", "endsWith"]);
+export const logsFilterOperatorEnum = z.enum(pathOperators);
 
 export const logsFilterFieldEnum = z.enum([
   "host",
@@ -93,6 +101,24 @@ export const logsFilterFieldEnum = z.enum([
 
 export const filterOutputSchema = createFilterOutputSchema(
   logsFilterFieldEnum,
+  logsFilterOperatorEnum,
+  logsFilterFieldConfig,
+);
+
+// The /logs page has no app, deployment, or environment filter. Those fields
+// exist for the gateway requests page, which shares this config
+export const logsSearchFieldEnum = logsFilterFieldEnum.extract([
+  "requestId",
+  "methods",
+  "paths",
+  "status",
+  "startTime",
+  "endTime",
+  "since",
+]);
+
+export const logsSearchOutputSchema = createFilterOutputSchema(
+  logsSearchFieldEnum,
   logsFilterOperatorEnum,
   logsFilterFieldConfig,
 );

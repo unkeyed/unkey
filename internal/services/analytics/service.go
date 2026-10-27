@@ -54,11 +54,12 @@ func NewConnectionManager(config ConnectionManagerConfig) (ConnectionManager, er
 	// Create cache for ClickHouse connections
 	connectionCache, err := cache.New(cache.Config[string, clickhouse.ClickHouse]{
 		// It's fine to keep a long cache time for this.
-		Fresh:    24 * time.Hour,
-		Stale:    24 * time.Hour,
-		MaxSize:  1_000,
-		Resource: "clickhouse_analytics_connection",
-		Clock:    config.Clock,
+		Fresh:     24 * time.Hour,
+		Stale:     24 * time.Hour,
+		MaxSize:   1_000,
+		Resource:  "clickhouse_analytics_connection",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to create connection cache"))

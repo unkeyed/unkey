@@ -1,0 +1,47 @@
+post:
+  x-speakeasy-ignore: true
+  tags:
+    - cli
+  summary: Revoke a CLI session
+  description: |
+    Revokes a CLI session. A member can revoke their own sessions. An admin can revoke any session in the workspace.
+    Requires a dashboard session or a CLI access token. Root keys are rejected.
+  operationId: cli.revokeSession
+  x-speakeasy-name-override: revokeSession
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2CliRevokeSessionRequestBody.yaml
+  responses:
+    "200":
+      description: Session revoked, or it was already revoked.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliRevokeSessionResponseBody.yaml
+    "400":
+      description: Unknown session.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: The caller cannot revoke this session.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

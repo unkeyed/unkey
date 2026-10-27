@@ -1,7 +1,8 @@
-import type { LogsRequestSchema } from "@/lib/schemas/logs.schema";
+import { type Log, listApiRequests } from "@/lib/api-request-logs";
+import { queryKeys } from "@/lib/query-keys";
 import { trpc } from "@/lib/trpc/client";
+import { useQuery } from "@tanstack/react-query";
 import type { RequestDetailsRequest, RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import type { Log } from "@unkey/clickhouse/src/logs";
 import type { KeyVerificationSource } from "@unkey/clickhouse/src/verifications";
 import { useEffect, useState } from "react";
 
@@ -35,28 +36,25 @@ function requestDetailsWindow(time: number | undefined) {
   };
 }
 
-export function buildRequestDetailsQueryParams({
-  requestId,
-  time,
-}: RequestDetailsTarget): LogsRequestSchema {
+/** The query for one API request row, shared by the details hook and the row-hover prefetch. */
+export function apiRequestDetailsQuery({ requestId, time }: RequestDetailsTarget) {
+  const window = requestDetailsWindow(time);
+
   return {
-    limit: 1,
-    ...requestDetailsWindow(time),
-    host: { filters: [] },
-    method: { filters: [] },
-    path: { filters: [] },
-    status: { filters: [] },
-    requestId: requestId
-      ? {
-          filters: [
-            {
-              operator: "is",
-              value: requestId,
-            },
-          ],
-        }
-      : null,
-    since: "",
+    queryKey: queryKeys.logs.apiRequests.detail(requestId ?? "", time ?? 0),
+    queryFn: async ({ signal }: { signal?: AbortSignal }) => {
+      const page = await listApiRequests(
+        {
+          limit: 1,
+          filters: {
+            time: { gte: window.startTime, lte: window.endTime },
+            requestId: { is: [requestId ?? ""] },
+          },
+        },
+        signal,
+      );
+      return page.logs[0] ?? null;
+    },
   };
 }
 
@@ -89,13 +87,11 @@ export function useFetchRequestDetails({ requestId, time, source }: RequestDetai
     refetchInterval: retryScheduled ? MISSING_LOG_RETRY_INTERVAL_MS : (false as const),
   };
 
-  const apiQuery = trpc.logs.queryLogs.useQuery(
-    buildRequestDetailsQueryParams({ requestId, time }),
-    {
-      ...sharedOptions,
-      enabled: enabled && !isGateway,
-    },
-  );
+  const apiQuery = useQuery({
+    ...apiRequestDetailsQuery({ requestId, time }),
+    ...sharedOptions,
+    enabled: enabled && !isGateway,
+  });
 
   const gatewayQuery = trpc.deploy.requestLogs.details.useQuery(
     buildGatewayRequestDetailsQueryParams({ requestId, time }),
@@ -110,8 +106,8 @@ export function useFetchRequestDetails({ requestId, time, source }: RequestDetai
     ? gatewayQuery.data?.log
       ? { source: "gateway", log: gatewayQuery.data.log }
       : undefined
-    : apiQuery.data?.logs[0]
-      ? { source: "api", log: apiQuery.data.logs[0] }
+    : apiQuery.data
+      ? { source: "api", log: apiQuery.data }
       : undefined;
 
   // missCount only covers responses the effect below has already folded in, so
@@ -143,6 +139,6 @@ export function useFetchRequestDetails({ requestId, time, source }: RequestDetai
   return {
     details: found,
     isLoading: query.isLoading || isAwaitingIngestion,
-    error: query.error,
+    error: query.error instanceof Error ? query.error : null,
   };
 }

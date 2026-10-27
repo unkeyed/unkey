@@ -176,3 +176,11 @@ post:
                   detail: Failed to retrieve build logs.
                   status: 500
                   type: https://unkey.com/docs/errors/unkey/application/service_unavailable
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"
