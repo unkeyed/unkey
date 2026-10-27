@@ -2333,6 +2333,15 @@ type Querier interface {
 	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
 	//    )
 	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
+	// Scan ciphertext without parent joins. The primary-key cursor advances
+	// past unchanged rows without depending on encryption metadata.
+	//
+	//  SELECT pk, workspace_id AS keyring, encrypted AS ciphertext
+	//  FROM encrypted_keys
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListVaultEncryptedKeys(ctx context.Context, arg ListVaultEncryptedKeysParams) ([]ListVaultEncryptedKeysRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by
@@ -2979,6 +2988,15 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateUnkeyRootKeysLastUsed(ctx context.Context, arg UpdateUnkeyRootKeysLastUsedParams) error
+	// Replace only the version that was read. Binary comparison protects
+	// concurrent writes even on case-insensitive database collations.
+	//
+	//  UPDATE encrypted_keys
+	//  SET encrypted = ?, encryption_key_id = ?
+	//  WHERE pk = ?
+	//    AND BINARY workspace_id = BINARY ?
+	//    AND BINARY encrypted = BINARY ?
+	UpdateVaultEncryptedKey(ctx context.Context, arg UpdateVaultEncryptedKeyParams) (int64, error)
 	//UpdateWorkspaceBillingTier
 	//
 	//  UPDATE `workspace_billing`

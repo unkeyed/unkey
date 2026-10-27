@@ -598,6 +598,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// options below mirror each task's pre-consolidation behavior.
 	cronSvc, err := cron.New(cron.Config{
 		DB:                        database,
+		Vault:                     vaultClient,
 		Clickhouse:                ch,
 		Clock:                     clk,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
@@ -625,6 +626,7 @@ func Run(ctx context.Context, cfg Config) error {
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
+			VaultReEncryption:  cronHeartbeat(cfg.Heartbeat.VaultReEncryptionURL),
 		},
 	})
 	if err != nil {
@@ -762,7 +764,15 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
+	cronVaultReEncryptionRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
+		ConfigureHandler("RunVaultReEncryption", cronVaultReEncryptionRetry).
 		ConfigureHandler("RunBuildLimitSync", cronBuildLimitSyncRetry).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).

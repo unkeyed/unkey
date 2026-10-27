@@ -116,6 +116,9 @@ type CronServiceClient interface {
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
 	RunClickhouseUserReconcile(opts ...sdk_go.ClientOption) sdk_go.Client[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse]
+	// RunVaultReEncryption scans all MySQL ciphertext, one table at a time. Key is
+	// "vault-re-encryption"; cursors survive retries and subsequent cron ticks.
+	RunVaultReEncryption(opts ...sdk_go.ClientOption) sdk_go.Client[*RunVaultReEncryptionRequest, *RunVaultReEncryptionResponse]
 }
 
 type cronServiceClient struct {
@@ -252,6 +255,14 @@ func (c *cronServiceClient) RunClickhouseUserReconcile(opts ...sdk_go.ClientOpti
 	return sdk_go.WithRequestType[*RunClickhouseUserReconcileRequest](sdk_go.Object[*RunClickhouseUserReconcileResponse](c.ctx, "hydra.v1.CronService", c.key, "RunClickhouseUserReconcile", cOpts...))
 }
 
+func (c *cronServiceClient) RunVaultReEncryption(opts ...sdk_go.ClientOption) sdk_go.Client[*RunVaultReEncryptionRequest, *RunVaultReEncryptionResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunVaultReEncryptionRequest](sdk_go.Object[*RunVaultReEncryptionResponse](c.ctx, "hydra.v1.CronService", c.key, "RunVaultReEncryption", cOpts...))
+}
+
 // CronServiceIngressClient is the ingress client API for hydra.v1.CronService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -340,6 +351,9 @@ type CronServiceIngressClient interface {
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
 	RunClickhouseUserReconcile() ingress.Requester[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse]
+	// RunVaultReEncryption scans all MySQL ciphertext, one table at a time. Key is
+	// "vault-re-encryption"; cursors survive retries and subsequent cron ticks.
+	RunVaultReEncryption() ingress.Requester[*RunVaultReEncryptionRequest, *RunVaultReEncryptionResponse]
 }
 
 type cronServiceIngressClient struct {
@@ -429,6 +443,11 @@ func (c *cronServiceIngressClient) RunBuildLimitSync() ingress.Requester[*RunBui
 func (c *cronServiceIngressClient) RunClickhouseUserReconcile() ingress.Requester[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse](c.client, c.serviceName, "RunClickhouseUserReconcile", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunVaultReEncryption() ingress.Requester[*RunVaultReEncryptionRequest, *RunVaultReEncryptionResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunVaultReEncryptionRequest, *RunVaultReEncryptionResponse](c.client, c.serviceName, "RunVaultReEncryption", &c.key, &codec)
 }
 
 // CronServiceServer is the server API for hydra.v1.CronService service.
@@ -536,6 +555,9 @@ type CronServiceServer interface {
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
 	RunClickhouseUserReconcile(ctx sdk_go.ObjectContext, req *RunClickhouseUserReconcileRequest) (*RunClickhouseUserReconcileResponse, error)
+	// RunVaultReEncryption scans all MySQL ciphertext, one table at a time. Key is
+	// "vault-re-encryption"; cursors survive retries and subsequent cron ticks.
+	RunVaultReEncryption(ctx sdk_go.ObjectContext, req *RunVaultReEncryptionRequest) (*RunVaultReEncryptionResponse, error)
 }
 
 // UnimplementedCronServiceServer should be embedded to have
@@ -590,6 +612,9 @@ func (UnimplementedCronServiceServer) RunBuildLimitSync(ctx sdk_go.ObjectContext
 func (UnimplementedCronServiceServer) RunClickhouseUserReconcile(ctx sdk_go.ObjectContext, req *RunClickhouseUserReconcileRequest) (*RunClickhouseUserReconcileResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunClickhouseUserReconcile not implemented"), sdk_go.WithErrorCode(501))
 }
+func (UnimplementedCronServiceServer) RunVaultReEncryption(ctx sdk_go.ObjectContext, req *RunVaultReEncryptionRequest) (*RunVaultReEncryptionResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunVaultReEncryption not implemented"), sdk_go.WithErrorCode(501))
+}
 func (UnimplementedCronServiceServer) testEmbeddedByValue() {}
 
 // UnsafeCronServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -624,5 +649,6 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunDeploySpendCheck", sdk_go.NewObjectHandler(srv.RunDeploySpendCheck))
 	router = router.Handler("RunBuildLimitSync", sdk_go.NewObjectHandler(srv.RunBuildLimitSync))
 	router = router.Handler("RunClickhouseUserReconcile", sdk_go.NewObjectHandler(srv.RunClickhouseUserReconcile))
+	router = router.Handler("RunVaultReEncryption", sdk_go.NewObjectHandler(srv.RunVaultReEncryption))
 	return router
 }
