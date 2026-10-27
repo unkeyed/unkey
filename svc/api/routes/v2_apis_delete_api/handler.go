@@ -58,88 +58,68 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not found",
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-			)
-		}
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
-		)
-	}
-
-	// Check if API belongs to the authorized workspace
-	if api.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("wrong workspace",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
-		)
-	}
-
-	requiredPermissions := []rbac.PermissionQuery{
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.DeleteAPI,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   api.ID,
-			Action:       rbac.DeleteAPI,
-		}),
-	}
-	if api.KeyAuthID.Valid {
-		keyspace, keyspaceErr := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
-		if keyspaceErr != nil && !db.IsNotFound(keyspaceErr) {
-			return fault.Wrap(keyspaceErr,
+	now := time.Now()
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		api, err := db.Query.FindApiByIDForUpdate(ctx, tx, req.ApiId)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return fault.New("api not found",
+					fault.Code(codes.Data.Api.NotFound.URN()),
+					fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
+				)
+			}
+			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
 			)
 		}
-		if keyspaceErr == nil {
-			if keyspace.WorkspaceID != principal.AuthorizedWorkspaceID {
-				return fault.New("wrong workspace",
-					fault.Code(codes.Data.Api.NotFound.URN()),
-					fault.Internal("keyspace belongs to different workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
+
+		if api.WorkspaceID != principal.AuthorizedWorkspaceID || api.DeletedAtM.Valid {
+			return fault.New("api not found",
+				fault.Code(codes.Data.Api.NotFound.URN()),
+				fault.Internal("api deleted or belongs to another workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
+			)
+		}
+
+		var requiredPermissions []rbac.PermissionQuery
+		if api.KeyAuthID.Valid {
+			keyspace, keyspaceErr := db.Query.FindKeySpaceByID(ctx, tx, api.KeyAuthID.String)
+			if keyspaceErr != nil && !db.IsNotFound(keyspaceErr) {
+				return fault.Wrap(keyspaceErr,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
 				)
 			}
-			if !keyspace.DeletedAtM.Valid {
-				requiredPermissions = append(requiredPermissions, rbac.U(
-					urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keyspace.ProjectID).Keyspace(keyspace.ID),
-					permissions.Delete,
-				))
+			if keyspaceErr == nil {
+				if keyspace.WorkspaceID != principal.AuthorizedWorkspaceID {
+					return fault.New("wrong workspace",
+						fault.Code(codes.Data.Api.NotFound.URN()),
+						fault.Internal("keyspace belongs to different workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
+					)
+				}
+				if !keyspace.DeletedAtM.Valid {
+					requiredPermissions = append(requiredPermissions, rbac.U(
+						urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keyspace.ProjectID).Keyspace(keyspace.ID),
+						permissions.Delete,
+					))
+				}
 			}
 		}
-	}
 
-	err = principal.Authorize(rbac.Or(requiredPermissions...))
-	if err != nil {
-		return err
-	}
+		err = principal.Authorize(rbac.Or(requiredPermissions...))
+		if err != nil {
+			return err
+		}
 
-	// Check if API is deleted
-	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-		)
-	}
+		// 5. Check delete protection
+		if api.DeleteProtection.Valid && api.DeleteProtection.Bool {
+			return fault.New("delete protected",
+				fault.Code(codes.App.Protection.ProtectedResource.URN()),
+				fault.Internal("api is protected from deletion"),
+				fault.Public("This API has delete protection enabled. Disable it before attempting to delete."),
+			)
+		}
 
-	// 5. Check delete protection
-	if api.DeleteProtection.Valid && api.DeleteProtection.Bool {
-		return fault.New("delete protected",
-			fault.Code(codes.App.Protection.ProtectedResource.URN()),
-			fault.Internal("api is protected from deletion"),
-			fault.Public("This API has delete protection enabled. Disable it before attempting to delete."),
-		)
-	}
-
-	now := time.Now()
-	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Soft delete the API
 		err = db.Query.SoftDeleteApi(ctx, tx, db.SoftDeleteApiParams{
 			ApiID: req.ApiId,
