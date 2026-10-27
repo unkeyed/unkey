@@ -7,9 +7,13 @@
 // svc/api verifies tokens against every configured secret. The JWKS source
 // fetches RS256 RSA signing keys from a JWKS endpoint lazily on first use,
 // selects the key named by the token's kid header, and refetches the set when
-// a token's signing key may be missing from it, so signing-key rotations are
-// picked up without a restart. Malformed JWKS entries are skipped rather than
+// a token's signing key may be missing or the set reaches its five-minute
+// lifetime. Expired sets are not used during endpoint outages, which bounds
+// trust in revoked keys. Malformed JWKS entries are skipped rather than
 // failing the fetch.
+//
+// JWKS resolvers share a [NewJWKSCache] instance, with separate entries for
+// each URL, issuer, and audience. The API closes the cache during shutdown.
 //
 // The package uses the repository's local
 // [github.com/unkeyed/unkey/pkg/jwt] verifier instead of adding another JWT
