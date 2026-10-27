@@ -14,7 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -127,7 +130,8 @@ func TestGetDeploymentAvailableActionsFollowPermissions(t *testing.T) {
 
 	t.Run("a key with write on the environment is offered promote and rollback", func(t *testing.T) {
 		key := h.CreateRootKey(setup.Workspace.ID,
-			readDeployments(setup.Workspace.ID), writeEnvironments(setup.Workspace.ID))
+			readDeployments(setup.Workspace.ID),
+			rbac.U(urn.New().Workspace(setup.Workspace.ID).Project("*").App("*").Environment("*"), permissions.Write).Value)
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route,
 			authHeaders(key), handler.Request{DeploymentId: other.ID})
 		require.Equal(t, http.StatusOK, res.Status, res.RawBody)

@@ -15,15 +15,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// writeLifecycle are the permissions to write every environment and every
-// deployment, which together cover promote, rollback, stop, and start.
-func writeLifecycle(workspaceID string) []string {
-	return []string{
-		rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Write).Value,
-		rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value,
-	}
-}
-
 func TestAvailableActions(t *testing.T) {
 	const (
 		ready    = mysqltype.DeploymentsStatusReady
@@ -72,8 +63,11 @@ func TestAvailableActions(t *testing.T) {
 			workspaceID := uid.New(uid.WorkspacePrefix)
 			got := availableActions(Input{
 				WorkspaceID: workspaceID,
-				Permissions: writeLifecycle(workspaceID),
-				Deployment:  db.ListDeploymentsRow{ID: self, Status: tc.status, DesiredState: tc.desiredState, ProjectID: uid.New(uid.ProjectPrefix), AppID: uid.New(uid.AppPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix)},
+				Permissions: []string{
+					rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Write).Value,
+					rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Write).Value,
+				},
+				Deployment: db.ListDeploymentsRow{ID: self, Status: tc.status, DesiredState: tc.desiredState, ProjectID: uid.New(uid.ProjectPrefix), AppID: uid.New(uid.AppPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix)},
 				State: db.ListDeploymentEnvAndAppStateRow{
 					EnvironmentSlug:        tc.envSlug,
 					EnvironmentKind:        tc.envKind,

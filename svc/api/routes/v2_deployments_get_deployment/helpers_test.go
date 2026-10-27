@@ -27,9 +27,3 @@ func authHeaders(rootKey string) http.Header {
 func readDeployments(workspaceID string) string {
 	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Read).Value
 }
-
-// writeEnvironments is the permission to write every environment, which
-// promote and rollback check.
-func writeEnvironments(workspaceID string) string {
-	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Write).Value
-}
