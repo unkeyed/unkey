@@ -50,7 +50,11 @@ func (s *Service) encrypt(
 		s.keyCache.Set(ctx, cacheKey, dek)
 	}
 
-	nonce, ciphertext, err := encryption.Encrypt(dek.GetKey(), []byte(req.GetData()))
+	return encryptWithKey(req.GetData(), dek)
+}
+
+func encryptWithKey(data string, dek *vaultv1.DataEncryptionKey) (*vaultv1.EncryptResponse, error) {
+	nonce, ciphertext, err := encryption.Encrypt(dek.GetKey(), []byte(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt data: %w", err)
 	}

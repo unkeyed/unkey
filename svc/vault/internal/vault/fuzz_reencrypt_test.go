@@ -73,12 +73,9 @@ func FuzzReEncryptRoundtrip(f *testing.F) {
 	})
 }
 
-// FuzzReEncryptProducesDifferentCiphertext verifies that re-encryption generates
-// new ciphertext (due to new nonce).
-//
-// This is important for security: re-encryption should produce a fresh ciphertext
-// that looks different from the original, even though it contains the same data.
-func FuzzReEncryptProducesDifferentCiphertext(f *testing.F) {
+// FuzzReEncryptPreservesCurrentCiphertext verifies that re-encryption leaves
+// ciphertext unchanged until its DEK changes.
+func FuzzReEncryptPreservesCurrentCiphertext(f *testing.F) {
 	fuzz.Seed(f)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -119,9 +116,8 @@ func FuzzReEncryptProducesDifferentCiphertext(f *testing.F) {
 		require.NoError(t, err)
 		reencryptedCiphertext := reencRes.Msg.GetEncrypted()
 
-		// Ciphertexts should be different (different nonces)
-		require.NotEqual(t, originalCiphertext, reencryptedCiphertext,
-			"re-encrypted ciphertext should differ from original due to new nonce")
+		require.Equal(t, originalCiphertext, reencryptedCiphertext,
+			"ciphertext on the current DEK must remain unchanged")
 
 		// Both should decrypt to the same data
 		decrypt := func(encrypted string) string {

@@ -104,9 +104,9 @@ func TestKeyLifecycle_ReEncryptPreservesData(t *testing.T) {
 	require.Equal(t, originalData, decRes.Msg.GetPlaintext())
 }
 
-// TestKeyLifecycle_ReEncryptProducesDifferentCiphertext verifies that
-// re-encryption produces a different ciphertext (due to new nonce).
-func TestKeyLifecycle_ReEncryptProducesDifferentCiphertext(t *testing.T) {
+// TestKeyLifecycle_ReEncryptPreservesCurrentCiphertext verifies that
+// re-encryption leaves ciphertext unchanged until its DEK changes.
+func TestKeyLifecycle_ReEncryptPreservesCurrentCiphertext(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 	keyring := "test-keyring-reencrypt-diff"
@@ -133,9 +133,8 @@ func TestKeyLifecycle_ReEncryptProducesDifferentCiphertext(t *testing.T) {
 	reencRes, err := service.ReEncrypt(ctx, reencReq)
 	require.NoError(t, err)
 
-	// Ciphertexts should be different (different nonce)
-	require.NotEqual(t, originalEncrypted, reencRes.Msg.GetEncrypted(),
-		"re-encrypted data should have different ciphertext")
+	require.Equal(t, originalEncrypted, reencRes.Msg.GetEncrypted(),
+		"ciphertext on the current DEK must remain unchanged")
 }
 
 // TestKeyLifecycle_OldCiphertextStillDecryptable verifies that after

@@ -2,13 +2,62 @@ package vault
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"testing"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"google.golang.org/protobuf/proto"
 )
+
+func TestReEncryptSkipsCurrentDEK(t *testing.T) {
+	service := setupTestService(t)
+	keyring := uid.New(uid.WorkspacePrefix)
+	req := connect.NewRequest(&vaultv1.EncryptRequest{Keyring: keyring, Data: "keep this secret unchanged"})
+	req.Header().Set("Authorization", "Bearer "+service.bearer)
+	encrypted, err := service.Encrypt(t.Context(), req)
+	require.NoError(t, err)
+	reencrypt := connect.NewRequest(&vaultv1.ReEncryptRequest{
+		Keyring: keyring, Encrypted: encrypted.Msg.GetEncrypted(),
+	})
+	reencrypt.Header().Set("Authorization", "Bearer "+service.bearer)
+	unchanged, err := service.ReEncrypt(t.Context(), reencrypt)
+	require.NoError(t, err)
+	require.Equal(t, encrypted.Msg.GetEncrypted(), unchanged.Msg.GetEncrypted())
+	require.Equal(t, encrypted.Msg.GetKeyId(), unchanged.Msg.GetKeyId())
+
+	keyID, err := service.CreateDEK(t.Context(), keyring)
+	require.NoError(t, err)
+	rotated, err := service.ReEncrypt(t.Context(), reencrypt)
+	require.NoError(t, err)
+	require.Equal(t, keyID, rotated.Msg.GetKeyId())
+	require.NotEqual(t, encrypted.Msg.GetEncrypted(), rotated.Msg.GetEncrypted())
+	decrypt := connect.NewRequest(&vaultv1.DecryptRequest{Keyring: keyring, Encrypted: rotated.Msg.GetEncrypted()})
+	decrypt.Header().Set("Authorization", "Bearer "+service.bearer)
+	plaintext, err := service.Decrypt(t.Context(), decrypt)
+	require.NoError(t, err)
+	require.Equal(t, req.Msg.GetData(), plaintext.Msg.GetPlaintext())
+	reencrypt.Msg.KeyId = proto.String(encrypted.Msg.GetKeyId())
+	pinned, err := service.ReEncrypt(t.Context(), reencrypt)
+	require.NoError(t, err)
+	require.Equal(t, encrypted.Msg.GetEncrypted(), pinned.Msg.GetEncrypted())
+	fresh, err := service.Encrypt(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, keyID, fresh.Msg.GetKeyId(), "re-encryption must refresh the keyring's active-key cache")
+	encoded, err := base64.StdEncoding.DecodeString(encrypted.Msg.GetEncrypted())
+	require.NoError(t, err)
+	var envelope vaultv1.Encrypted
+	require.NoError(t, proto.Unmarshal(encoded, &envelope))
+	envelope.Ciphertext[0] ^= 1
+	encoded, err = proto.Marshal(&envelope)
+	require.NoError(t, err)
+	reencrypt.Msg.Encrypted = base64.StdEncoding.EncodeToString(encoded)
+	_, err = service.ReEncrypt(t.Context(), reencrypt)
+	require.Error(t, err, "the same-key shortcut must still authenticate ciphertext")
+}
 
 func TestReEncrypt_WithValidAuth(t *testing.T) {
 	service := setupTestService(t)
