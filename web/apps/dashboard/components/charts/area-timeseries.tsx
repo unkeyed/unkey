@@ -4,7 +4,7 @@ import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { useMeasuredWidth } from "@/hooks/use-measured-width";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { type ReactNode, useEffect, useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -115,7 +115,6 @@ type Props = {
   showZeroLine?: boolean;
   syncId?: string;
   markers?: ChartMarkers;
-  tooltipFooter?: (point: AreaChartPoint) => ReactNode;
   focusKey?: string | null;
   connectNulls?: boolean;
 };
@@ -144,7 +143,6 @@ export function AreaTimeseriesChart({
   showZeroLine,
   syncId,
   markers,
-  tooltipFooter,
   focusKey = null,
   connectNulls = false,
 }: Props) {
@@ -358,7 +356,6 @@ export function AreaTimeseriesChart({
                   {rows.length === 0 && <span className="text-gray-9">No data</span>}
                   {hiddenCount > 0 && <span className="text-gray-9">+{hiddenCount} more</span>}
                 </div>
-                {tooltipFooter?.(point)}
               </div>
             );
           }}

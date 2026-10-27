@@ -25,7 +25,6 @@ type SeriesChartProps = {
   series: Record<string, SeriesView>;
   scale: ChartScale;
   markers?: ChartMarkers;
-  tooltipFooter?: (point: AreaChartPoint) => ReactNode;
   height: number;
   syncId: string;
   legend?: ReactNode;
@@ -40,7 +39,6 @@ export function SeriesChart({
   series,
   scale,
   markers,
-  tooltipFooter,
   height,
   syncId,
   legend,
@@ -78,7 +76,6 @@ export function SeriesChart({
           series={series}
           scale={scale}
           markers={markers}
-          tooltipFooter={tooltipFooter}
           height={height}
           syncId={syncId}
           focusKey={focusKey}
@@ -118,7 +115,6 @@ type GridChartProps = {
   series: Record<string, SeriesView>;
   scale: ChartScale;
   markers?: ChartMarkers;
-  tooltipFooter?: (point: AreaChartPoint) => ReactNode;
   height: number;
   syncId: string;
   focusKey?: string | null;
@@ -131,7 +127,6 @@ function GridChart({
   series,
   scale,
   markers,
-  tooltipFooter,
   height,
   syncId,
   focusKey,
@@ -150,7 +145,6 @@ function GridChart({
       formatTooltipValue={format.format}
       syncId={syncId}
       markers={markers}
-      tooltipFooter={tooltipFooter}
       focusKey={focusKey}
       connectNulls={connectNulls}
       onActiveChange={(point) => setHovered(point?.originalTimestamp ?? null)}

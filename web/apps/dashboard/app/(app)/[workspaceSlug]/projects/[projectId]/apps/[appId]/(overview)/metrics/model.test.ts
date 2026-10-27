@@ -117,11 +117,10 @@ describe("resolveEnvironment", () => {
 });
 
 describe("needsInstanceSeries", () => {
-  it("reads per-instance series for the instances and resources tabs and cpu and memory panels", () => {
+  it("reads per-instance series for the instances tab and the cpu and memory panels", () => {
     expect(needsInstanceSeries("instances", null)).toBe(true);
     expect(needsInstanceSeries("traffic", "memory")).toBe(true);
-    expect(needsInstanceSeries("resources", null)).toBe(true);
-    expect(needsInstanceSeries("traffic", "disk")).toBe(false);
+    expect(needsInstanceSeries("resources", "disk")).toBe(false);
     expect(needsInstanceSeries("traffic", null)).toBe(false);
   });
 });
@@ -129,17 +128,14 @@ describe("needsInstanceSeries", () => {
 describe("metricsPageModel", () => {
   it("lays out the traffic tab as a requests hero over errors and latency", () => {
     const { view } = readyModel(metricsPageModel(base));
-    if (view.kind !== "metrics") {
-      throw new Error("expected metrics view");
-    }
-    expect(
-      [view.hero, ...view.grid].map((c) => [c.metric, c.state.status, c.view.subtitle]),
-    ).toEqual([
-      ["requests", "loading", null],
-      ["errors", "loading", null],
-      ["latency", "loading", null],
-    ]);
-    expect(view.hero.view.scale).toEqual({ unit: "requestsPerSecond", yMax: null, tickCount: 4 });
+    expect(view).toEqual({
+      kind: "metrics",
+      hero: { metric: "requests", state: { status: "loading" } },
+      grid: [
+        { metric: "errors", state: { status: "loading" } },
+        { metric: "latency", state: { status: "loading" } },
+      ],
+    });
   });
 
   it("lays out the resources tab as a cpu hero over the other resources", () => {
@@ -151,39 +147,11 @@ describe("metricsPageModel", () => {
       status: "ready",
       grid,
       chart: [
-        { originalTimestamp: 0, average: 0.3, busiest: 0.3, total: 250 },
-        { originalTimestamp: 60_000, average: 0.7, busiest: 0.7, total: 350 },
+        { originalTimestamp: 0, cpu: 250 },
+        { originalTimestamp: 60_000, cpu: 350 },
       ],
     });
-    expect(
-      [view.hero, ...view.grid].map((c) => [
-        c.metric,
-        c.view.subtitle,
-        c.view.scale.unit,
-        Object.keys(c.view.series),
-        c.view.total,
-      ]),
-    ).toEqual([
-      ["cpu", "per instance · of 1/2 vCPU", "ratio", ["average", "busiest"], "millicores"],
-      ["memory", "per instance · of 512 MiB", "ratio", ["average", "busiest"], "bytes"],
-      ["network", null, "bytesPerSecond", ["ingress", "egress"], null],
-      ["disk", null, "bytes", ["disk"], null],
-      ["instances", null, "count", ["instances"], null],
-    ]);
-  });
-
-  it("falls back to the app-level resource card while instance data is unavailable", () => {
-    const { view } = readyModel(
-      metricsPageModel({ ...base, tab: "resources", byInstance: failed(), instances: loading }),
-    );
-    if (view.kind !== "metrics") {
-      throw new Error("expected metrics view");
-    }
-    expect([view.hero.view.subtitle, view.hero.view.scale.unit, view.hero.state.status]).toEqual([
-      null,
-      "millicores",
-      "ready",
-    ]);
+    expect(view.grid.map((c) => c.metric)).toEqual(["memory", "network", "disk", "instances"]);
   });
 
   it("passes a failed source through to its cards", () => {
@@ -222,9 +190,8 @@ describe("metricsPageModel", () => {
 
   it("builds the expanded cpu panel with stats, the live instances and in-range deploys", () => {
     const { panel } = readyModel(metricsPageModel({ ...base, expanded: "cpu" }));
-    expect(panel?.stats).toEqual({ latest: 0.7, average: 0.5, peak: 0.7, low: 0.3 });
+    expect(panel?.stats).toEqual({ latest: 350, average: 300, peak: 350, low: 250 });
     expect(panel?.byInstance).toEqual({
-      scale: { unit: "millicores", yMax: null, tickCount: 4 },
       series: { "pod-b": { label: "pod-b", color: "var(--color-activity)" } },
       chart: {
         status: "ready",
@@ -239,14 +206,12 @@ describe("metricsPageModel", () => {
   });
 
   it("has no per-instance chart for a traffic panel and no panel when nothing is expanded", () => {
-    const panel = readyModel(metricsPageModel({ ...base, expanded: "requests" })).panel;
-    expect([panel?.card.metric, panel?.card.state, panel?.stats, panel?.byInstance]).toEqual([
-      "requests",
-      { status: "loading" },
-      null,
-      null,
-    ]);
-    expect(panel?.deploys).toEqual([{ marker: deployedInRange, effects: [] }]);
+    expect(readyModel(metricsPageModel({ ...base, expanded: "requests" })).panel).toEqual({
+      card: { metric: "requests", state: { status: "loading" } },
+      stats: null,
+      byInstance: null,
+      deploys: [{ marker: deployedInRange, effects: [] }],
+    });
     expect(readyModel(metricsPageModel(base)).panel).toBeNull();
   });
 

@@ -198,7 +198,7 @@ export type UsageCard = InstanceChart & {
   allocation: string | null;
 };
 
-export function allocationOf(
+function allocationOf(
   instances: ReadonlyArray<Pick<InstanceRow, "replica">>,
   metric: InstanceMetric,
 ): string | null {

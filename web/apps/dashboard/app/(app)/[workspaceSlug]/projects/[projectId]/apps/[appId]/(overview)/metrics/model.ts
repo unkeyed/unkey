@@ -11,15 +11,8 @@ import type {
   MetricId,
   Sources,
 } from "@/lib/metrics/app-metrics";
-import {
-  type ChartState,
-  METRIC_VIEWS,
-  type MetricUnit,
-  type SeriesView,
-  cardState,
-} from "@/lib/metrics/views";
+import { type ChartState, METRIC_VIEWS, cardState } from "@/lib/metrics/views";
 import { match } from "@unkey/match";
-import { type ChartScale, SHARE_SCALE, absoluteScale } from "./allocation";
 import { type DeployEffect, type EffectSamples, deployEffects } from "./deploy-effects";
 import {
   type FilterSelection,
@@ -30,7 +23,6 @@ import {
   instanceChart,
   instancesTabView,
 } from "./instances-model";
-import { type PerInstanceInputs, perInstanceShare } from "./per-instance";
 
 export type MetricsEnvironment = Pick<Environment, "id" | "slug" | "kind">;
 
@@ -77,27 +69,10 @@ function isInstanceMetric(metric: MetricId): metric is InstanceMetric {
 }
 
 export function needsInstanceSeries(tab: MetricsTab, expanded: MetricId | null): boolean {
-  return (
-    tab === "instances" || tab === "resources" || (expanded !== null && isInstanceMetric(expanded))
-  );
+  return tab === "instances" || (expanded !== null && isInstanceMetric(expanded));
 }
 
-export type CardView = {
-  title: string;
-  subtitle: string | null;
-  series: Record<string, SeriesView>;
-  primary: string;
-  scale: ChartScale;
-  connectNulls: boolean;
-  total: MetricUnit | null;
-};
-
-export type MetricCardModel = { metric: MetricId; state: ChartState; view: CardView };
-
-const PER_INSTANCE_SERIES: Record<string, SeriesView> = {
-  average: { label: "Instance average", color: "var(--color-activity)" },
-  busiest: { label: "Busiest instance", color: "var(--color-feature-9)" },
-};
+export type MetricCardModel = { metric: MetricId; state: ChartState };
 
 export function legendReadout(
   chart: ReadonlyArray<AreaChartPoint>,
@@ -139,7 +114,7 @@ export type TabView =
 export type PanelModel = {
   card: MetricCardModel;
   stats: PanelStats | null;
-  byInstance: (InstanceChart & { scale: ChartScale }) | null;
+  byInstance: InstanceChart | null;
   deploys: DeployView[];
 };
 
@@ -164,41 +139,8 @@ function effectSamples({ traffic, resources }: Sources): EffectSamples {
   return { traffic: readyOrNull(traffic), resources: readyOrNull(resources) };
 }
 
-type CardInputs = Pick<MetricsPageInput, "sources"> & Omit<PerInstanceInputs, "app">;
-
-function cardOf(input: CardInputs, metric: MetricId): MetricCardModel {
-  const view = METRIC_VIEWS[metric];
-  const share = isInstanceMetric(metric)
-    ? perInstanceShare({ ...input, app: input.sources.resources }, metric)
-    : null;
-  if (share) {
-    return {
-      metric,
-      state: share.state,
-      view: {
-        title: view.title,
-        subtitle: ["per instance", share.allocation].filter(Boolean).join(" · "),
-        series: PER_INSTANCE_SERIES,
-        primary: "average",
-        scale: SHARE_SCALE,
-        connectNulls: false,
-        total: view.unit,
-      },
-    };
-  }
-  return {
-    metric,
-    state: cardState(input.sources, metric),
-    view: {
-      title: view.title,
-      subtitle: null,
-      series: view.series,
-      primary: view.primary,
-      scale: absoluteScale(view.unit),
-      connectNulls: view.gaps === "bridge",
-      total: null,
-    },
-  };
+function cardOf(sources: Sources, metric: MetricId): MetricCardModel {
+  return { metric, state: cardState(sources, metric) };
 }
 
 type MetricsPageInput = {
@@ -237,8 +179,8 @@ function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): M
     layout.kind === "metrics"
       ? {
           kind: "metrics",
-          hero: cardOf(input, layout.hero),
-          grid: layout.grid.map((metric) => cardOf(input, metric)),
+          hero: cardOf(sources, layout.hero),
+          grid: layout.grid.map((metric) => cardOf(sources, metric)),
         }
       : {
           kind: "instances",
@@ -278,15 +220,15 @@ function panelOf(
   },
   deploys: DeployView[],
 ): PanelModel {
-  const card = cardOf(input, metric);
+  const card = cardOf(input.sources, metric);
   return {
     card,
-    stats: card.state.status === "ready" ? panelStats(card.state.chart, card.view.primary) : null,
+    stats:
+      card.state.status === "ready"
+        ? panelStats(card.state.chart, METRIC_VIEWS[metric].primary)
+        : null,
     byInstance: isInstanceMetric(metric)
-      ? {
-          ...instanceChart(input.byInstance, input.instances, metric),
-          scale: absoluteScale(METRIC_VIEWS[metric].unit),
-        }
+      ? instanceChart(input.byInstance, input.instances, metric)
       : null,
     deploys: deploys.filter((d) => d.marker.readyAtMs >= input.grid.startMs).reverse(),
   };

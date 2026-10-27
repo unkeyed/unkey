@@ -2,7 +2,7 @@
 
 import type { ChartMarkers } from "@/components/charts/chart-markers";
 import type { RangePreset } from "@/lib/metrics/app-metrics";
-import { RANGE_LABELS, formatValue } from "@/lib/metrics/views";
+import { METRIC_VIEWS, RANGE_LABELS, formatValue, primarySeries } from "@/lib/metrics/views";
 import {
   Card,
   SlidePanel,
@@ -12,10 +12,10 @@ import {
   SlidePanelHeader,
   SlidePanelTitle,
 } from "@unkey/ui";
+import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { commitSubject, sourceLabel } from "./deploy-identity";
 import { EffectChips } from "./effect-chips";
-import { totalFooter } from "./metric-card";
 import type { DeployView, PanelModel, PanelStats } from "./model";
 import { SeriesChart } from "./series-chart";
 
@@ -61,17 +61,14 @@ function PanelBody({
   subtitle: string;
   markers: ChartMarkers;
 }) {
-  const { view } = panel.card;
-  const primary = view.series[view.primary];
+  const view = METRIC_VIEWS[panel.card.metric];
+  const primary = primarySeries(panel.card.metric);
   const hasManySeries = Object.keys(view.series).length > 1;
   return (
     <>
       <SlidePanelHeader>
         <div className="flex flex-col gap-1">
-          <SlidePanelTitle>
-            {view.title}
-            {view.subtitle && <span className="font-normal text-gray-10"> · {view.subtitle}</span>}
-          </SlidePanelTitle>
+          <SlidePanelTitle>{view.title}</SlidePanelTitle>
           <SlidePanelDescription className="first-letter:uppercase">
             {subtitle}
           </SlidePanelDescription>
@@ -93,7 +90,7 @@ function PanelBody({
                   )}
                 </dt>
                 <dd className="font-mono text-sm tabular-nums text-gray-12">
-                  {panel.stats ? formatValue(view.scale.unit, panel.stats[key]) : "—"}
+                  {panel.stats ? formatValue(view.unit, panel.stats[key]) : "—"}
                 </dd>
               </div>
             ))}
@@ -103,12 +100,11 @@ function PanelBody({
               title={view.title}
               state={panel.card.state}
               series={view.series}
-              scale={view.scale}
+              scale={absoluteScale(view.unit)}
               markers={markers}
               height={300}
               syncId={PANEL_SYNC_ID}
-              connectNulls={view.connectNulls}
-              tooltipFooter={totalFooter(view)}
+              connectNulls={view.gaps === "bridge"}
             />
           </div>
         </Card>
@@ -119,7 +115,7 @@ function PanelBody({
               title={`${view.title} by instance`}
               state={panel.byInstance.chart}
               series={panel.byInstance.series}
-              scale={panel.byInstance.scale}
+              scale={absoluteScale(view.unit)}
               height={160}
               syncId={PANEL_SYNC_ID}
             />
