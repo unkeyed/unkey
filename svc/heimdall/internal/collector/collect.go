@@ -51,8 +51,23 @@ type podInfo struct {
 // collect runs one tick: list krane pods on this node, read their cgroup
 // counters, and buffer one checkpoint per container. All billing math is
 // deferred to query time.
-func (c *Collector) collect(_ context.Context) error {
+func (c *Collector) collect(ctx context.Context) error {
 	tickStart := time.Now()
+	if c.network != nil {
+		c.appPeersReady.Store(false)
+		peers, err := c.appPeers.Addresses(ctx)
+		if err == nil {
+			err = c.network.SetAppPeers(peers)
+		}
+		c.appPeersReady.Store(err == nil)
+		if err != nil {
+			logger.Error("sync app metering peers", "error", err.Error())
+			if clearErr := c.network.SetAppPeers(nil); clearErr != nil {
+				logger.Error("clear app metering peers", "error", clearErr.Error())
+			}
+		}
+	}
+
 	now := c.clk.Now().UnixMilli()
 	pods, listed := c.buildKranePodLookup()
 
@@ -153,6 +168,7 @@ func (c *Collector) collect(_ context.Context) error {
 			DiskUsedBytes:              diskUsed,
 			NetworkEgressPublicBytes:   net.EgressPublicBytes,
 			NetworkEgressPrivateBytes:  net.EgressPrivateBytes,
+			NetworkEgressAppBytes:      net.EgressAppBytes,
 			NetworkIngressPublicBytes:  net.IngressPublicBytes,
 			NetworkIngressPrivateBytes: net.IngressPrivateBytes,
 			Region:                     c.region,
@@ -164,6 +180,7 @@ func (c *Collector) collect(_ context.Context) error {
 				EBPFProgramVersion: buildinfo.Revision,
 				EBPFPinDir:         network.PinDir(),
 				NetworkAttached:    netAttached,
+				NetworkAppAttached: netAttached && c.appPeersReady.Load(),
 				Collectors:         c.enabledCollectorNames(),
 			}.Marshal(),
 		})
@@ -367,6 +384,7 @@ func primaryContainerName(pod *corev1.Pod) string {
 var zeroCounters = network.Counters{
 	EgressPublicBytes:   0,
 	EgressPrivateBytes:  0,
+	EgressAppBytes:      0,
 	IngressPublicBytes:  0,
 	IngressPrivateBytes: 0,
 }

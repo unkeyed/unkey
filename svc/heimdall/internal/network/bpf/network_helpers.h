@@ -42,6 +42,7 @@ typedef __u32                __be32;
 // because byte counts are large enough that __sync_fetch_and_add
 // contention is negligible at our packet rates.
 
+#define BPF_MAP_TYPE_HASH 1
 #define BPF_MAP_TYPE_LRU_HASH 9
 
 // ─── BPF map flags ────────────────────────────────────────────────────
