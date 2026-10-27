@@ -613,9 +613,13 @@ func (w *Workflow) registryAuthProvider() session.Attachable {
 	})
 }
 
-// buildSourcePolicy denies every image on the build registry's host. BuildKit
-// keys the registry credentials by host, so a FROM naming any repository there,
-// including another project's build, would be pulled with them.
+// buildSourcePolicy makes BuildKit refuse every image on the build registry's
+// host, for example any FROM registry.depot.dev/... in a customer Dockerfile.
+// BuildKit sends Unkey's registry credentials to that host, and every project
+// pushes its builds to one repository there, so without this rule a Dockerfile
+// could FROM another project's build. Builds only push to that host and never
+// need to pull from it. The rule is the same for every project, so a project
+// cannot FROM its own earlier builds either
 func (w *Workflow) buildSourcePolicy() *spb.Policy {
 	if w.registryConfig.Repository == "" {
 		return nil
