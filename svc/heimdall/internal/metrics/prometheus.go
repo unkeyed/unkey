@@ -72,7 +72,7 @@ var (
 			Help:      "Total CRI lifecycle events that did not produce a checkpoint. Each drop is a bounded undercharge.",
 		},
 		vec.Values("kind", "start", "stop"),
-		vec.Values("reason", "pod_not_found", "cgroup_read_failed", "restart_count_unknown"),
+		vec.Values("reason", "pod_not_found", "cgroup_read_failed", "restart_count_unknown", "incarnation_unknown"),
 	)
 
 	// PeriodicSkips counts pods the 5s periodic tick skipped and did NOT
@@ -243,17 +243,21 @@ var (
 		},
 	)
 
-	// InformerCacheSynced is 1 when the pod informer cache has completed
-	// its initial list+watch sync and 0 before that. Collection during
-	// the unsync window sees a partial pod set, which undercharges —
-	// bounded (first ~second of startup) but worth alerting on if it
-	// ever flips back to 0 at runtime (apiserver outage during watch).
 	InformerCacheSynced = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
 			Name:      "informer_cache_synced",
-			Help:      "1 when the pod informer cache is synced, 0 otherwise.",
+			Help:      "1 after the pod informer completes initial cache sync; does not indicate API connectivity or cache freshness.",
+		},
+	)
+
+	KubernetesAPIRequestErrors = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "heimdall",
+			Name:      "kubernetes_api_request_errors_total",
+			Help:      "Kubernetes API requests with transport errors or HTTP status >= 400, excluding shutdown cancellation. Does not detect stalled open watch streams.",
 		},
 	)
 )

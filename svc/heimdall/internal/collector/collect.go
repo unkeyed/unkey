@@ -173,11 +173,12 @@ func (c *Collector) collect(_ context.Context) error {
 
 	metrics.KranePods.Set(float64(len(pods)))
 	if c.network != nil {
-		// Sample the BPF map depth so operators can alert before LRU
-		// eviction kicks in (the map has max_entries=16384; beyond that
-		// the kernel silently drops traffic from the oldest veth). With
-		// kubelet default max-pods of 110-250, this gives ~40x headroom.
-		metrics.BPFMapEntries.Set(float64(c.network.MapEntries()))
+		entries, err := c.network.MapEntries()
+		if err != nil {
+			logger.Warn("network map occupancy unavailable", "error", err.Error())
+		} else {
+			metrics.BPFMapEntries.Set(float64(entries))
+		}
 	}
 
 	logger.Info("collection tick",
@@ -402,17 +403,17 @@ func (c *Collector) attachAndReadNetwork(info podInfo) (network.Counters, bool) 
 	}
 
 	if err := c.network.Attach(info.uid); err != nil {
-		// Attach is async and idempotent; the only error it surfaces is
-		// ErrAttachQueueFull, meaning a rollout storm pushed the queue
-		// past capacity. Counter-side undercount for this tick is the
-		// cost; next tick re-requests. Real attach failures (netns gone,
-		// TCX rejected, etc.) are reported from the worker into
-		// NetworkAttachFailures, not from here.
-		metrics.NetworkAttachFailures.WithLabelValues("queue_full").Inc()
+		if !errors.Is(err, os.ErrClosed) {
+			metrics.NetworkAttachFailures.WithLabelValues("queue_full").Inc()
+		}
 		return zeroCounters, false
 	}
 
-	counters, err := c.network.Read(info.uid)
+	return c.readNetwork(info.uid)
+}
+
+func (c *Collector) readNetwork(uid types.UID) (network.Counters, bool) {
+	counters, err := c.network.Read(uid)
 	if err != nil {
 		// ErrNotAttached is the expected one-tick gap after a restart or a fresh
 		// attach, not a failure: the pinned counter map outlives the process, so
@@ -420,7 +421,7 @@ func (c *Collector) attachAndReadNetwork(info podInfo) (network.Counters, bool) 
 		// holds real byte totals. Counting it as a read error would fire on every
 		// DaemonSet rollout. Either way netAttached is false, which is what keeps
 		// the unmeasured value out of the billed delta.
-		if !errors.Is(err, network.ErrNotAttached) {
+		if !errors.Is(err, network.ErrNotAttached) && !errors.Is(err, network.ErrCounterUnobserved) {
 			metrics.NetworkReadErrors.Inc()
 		}
 		return zeroCounters, false

@@ -153,9 +153,6 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 				diskBytes:   gib,
 			}))
 		}
-		// Restart 1: fresh cgroup, counter resets to 0 and climbs again. A
-		// naive global max-min across the boundary would go negative or
-		// double-count; per-container_uid integration must not.
 		c1 := newContainerWithRestart(1)
 		restartBase := base + 3*sampleGap
 		for i := 0; i < 3; i++ {

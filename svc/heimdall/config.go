@@ -49,6 +49,9 @@ type Config struct {
 var allCollectors = []string{"cpu", "memory", "disk", "network"}
 
 func (c *Config) Validate() error {
+	if c.CollectionInterval <= 0 {
+		return fmt.Errorf("collection_interval must be positive")
+	}
 	if len(c.Collectors) == 0 {
 		c.Collectors = allCollectors
 		return nil
