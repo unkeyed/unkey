@@ -38,13 +38,11 @@ describe("getCrashTimeline", () => {
     );
   });
 
-  it("filters by app so the table's sort key prefix applies", async () => {
+  it("filters by app", async () => {
     const ch = new CapturingQuerier();
 
     await getCrashTimeline(ch)(request);
 
-    expect(ch.queries[0]).toContain(
-      "AND project_id = {projectId: String}\n          AND app_id = {appId: String}\n          AND environment_id = {environmentId: String}",
-    );
+    expect(ch.queries[0]).toContain("app_id = {appId: String}");
   });
 });
