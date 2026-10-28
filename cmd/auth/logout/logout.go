@@ -1,18 +1,14 @@
 package logout
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/internal/sdk"
+	"github.com/unkeyed/unkey/internal/sdk/models/components"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/cli/session"
 )
@@ -61,24 +57,17 @@ func revoke(ctx context.Context, fallbackURL string) (session.Session, error) {
 	if err != nil {
 		return session.Session{}, err
 	}
-	body, err := json.Marshal(map[string]string{"sessionId": current.SessionID})
+	api := sdk.NewClient(apiURL(current, fallbackURL), nil)
+	res, err := api.Cli.RevokeSession(ctx, components.V2CliRevokeSessionRequestBody{SessionID: current.SessionID}, sdk.Bearer(current.AccessToken))
 	if err != nil {
+		var response *sdk.ResponseError
+		if errors.As(err, &response) {
+			return current, fmt.Errorf("revoke returned %d: %w", response.StatusCode, err)
+		}
 		return current, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL(current, fallbackURL)+"/v2/cli.revokeSession", bytes.NewReader(body))
-	if err != nil {
-		return current, err
-	}
-	req.Header.Set("content-type", "application/json")
-	req.Header.Set("authorization", "Bearer "+current.AccessToken)
-	res, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
-	if err != nil {
-		return current, err
-	}
-	defer func() { _ = res.Body.Close() }()
-	payload, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
-	if res.StatusCode >= 300 {
-		return current, fmt.Errorf("revoke returned %d: %s", res.StatusCode, strings.TrimSpace(string(payload)))
+	if res.V2CliRevokeSessionResponseBody == nil {
+		return current, fmt.Errorf("revoke returned %d", res.HTTPMeta.Response.StatusCode)
 	}
 	return current, nil
 }

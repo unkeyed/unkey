@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+#MISE description="Generate the internal Go SDK and polling helpers with Speakeasy"
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+target="${root}/internal/sdk"
+stage="${target}/.speakeasy/staging/internal-go"
+
+(
+  cd "${root}/svc/api/openapi"
+  go run generate_bundle.go -input openapi-split.yaml -output openapi-generated.yaml
+)
+
+mkdir -p "${stage}/.speakeasy"
+cp "${target}/gen.yaml" "${stage}/gen.yaml"
+cp "${target}/.speakeasy/gen.lock" "${stage}/.speakeasy/gen.lock"
+(
+  cd "${target}"
+  speakeasy run \
+    --target internal-go \
+    --auto-yes \
+    --minimal \
+    --output console \
+    --skip-compile \
+    --skip-testing \
+    --skip-upload-spec \
+    --skip-versioning
+)
+
+cp "${stage}/client.go" "${stage}/cli.go" "${target}/"
+for directory in internal models optionalnullable polling retry types; do
+  mkdir -p "${target}/${directory}"
+  rsync -a --delete --exclude hooks/registration.go "${stage}/${directory}/" "${target}/${directory}/"
+done
+cp "${stage}/.speakeasy/gen.lock" "${target}/.speakeasy/gen.lock"
