@@ -32,7 +32,7 @@ export function CodeSnippets({
             <SegmentedControlItem<Language>
               key={value}
               value={value}
-              className="min-h-6 rounded-[5px] px-2 text-xs"
+              className="min-h-6 rounded-sm px-2 text-xs"
             >
               {LANGUAGES[value].label}
             </SegmentedControlItem>

@@ -68,7 +68,7 @@ function StepNumber({ number, muted = false }: { number: number; muted?: boolean
   return (
     <span
       className={cn(
-        "flex size-[18px] shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
+        "flex size-[18px] shrink-0 items-center justify-center rounded-full text-2xs font-semibold",
         muted ? "bg-grayA-5 text-gray-11" : "bg-gray-12 text-gray-1",
       )}
     >
