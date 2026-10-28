@@ -53,10 +53,10 @@ export function ActiveBranchRow({
         <SourceChip deployment={deployment} repoFullName={repoFullName} />
       </span>
       <span className="hidden w-40 shrink-0 items-center lg:flex">
-        <AuthorCell deployment={deployment} withHandle />
+        <AuthorCell deployment={deployment} withHandle handleClassName="text-xs" />
       </span>
       <span className="hidden w-28 shrink-0 items-center justify-end md:flex">
-        <RowTime value={deployment.createdAt} />
+        <RowTime value={deployment.createdAt} className="text-xs" />
       </span>
       <RowMenu
         deployment={deployment}

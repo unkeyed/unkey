@@ -6,7 +6,8 @@ import {
 } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { summarizeInstances } from "@/lib/collections/deploy/instance-status";
-import type { NodeTone } from "./canvas/nodes";
+
+export type StatusBadgeVariant = "primary" | "success" | "error" | "warning";
 
 export type DeploymentDisplayStatus =
   | "live"
@@ -30,6 +31,18 @@ const DISPLAY_BY_GROUP: Record<DeploymentStatusGroup, DeploymentDisplayStatus> =
   skipped: "skipped",
 };
 
+export const GROUP_BADGE_VARIANT: Record<DeploymentStatusGroup, StatusBadgeVariant> = {
+  ready: "primary",
+  building: "primary",
+  queued: "primary",
+  blocked: "warning",
+  failed: "error",
+  stopped: "primary",
+  cancelled: "primary",
+  superseded: "primary",
+  skipped: "primary",
+};
+
 export function deriveProductionStatus(
   deployment: Pick<Deployment, "status" | "instances" | "targetRegions" | "desiredState">,
 ): DeploymentDisplayStatus {
@@ -45,49 +58,54 @@ export function deriveProductionStatus(
 
 export const STATUS_META: Record<
   DeploymentDisplayStatus,
-  { label: string; dotClass: string; tone: NodeTone; polls: boolean }
+  { label: string; dotClass: string; badge: StatusBadgeVariant; polls: boolean }
 > = {
-  live: { label: "Live", dotClass: DEPLOYMENT_GROUP_COLOR.ready, tone: "default", polls: true },
+  live: {
+    label: "Live",
+    dotClass: DEPLOYMENT_GROUP_COLOR.ready,
+    badge: "success",
+    polls: true,
+  },
   deploying: {
     label: DEPLOYMENT_STATUS_LABELS.deploying,
     dotClass: DEPLOYMENT_GROUP_COLOR.building,
-    tone: "default",
+    badge: "primary",
     polls: true,
   },
   crashing: {
     label: "Crashing",
     dotClass: DEPLOYMENT_GROUP_COLOR.failed,
-    tone: "error",
+    badge: "error",
     polls: true,
   },
   failed: {
     label: DEPLOYMENT_STATUS_LABELS.failed,
     dotClass: DEPLOYMENT_GROUP_COLOR.failed,
-    tone: "error",
+    badge: "error",
     polls: false,
   },
   stopped: {
     label: DEPLOYMENT_STATUS_LABELS.stopped,
     dotClass: DEPLOYMENT_GROUP_COLOR.stopped,
-    tone: "default",
+    badge: "primary",
     polls: false,
   },
   cancelled: {
     label: DEPLOYMENT_STATUS_LABELS.cancelled,
     dotClass: DEPLOYMENT_GROUP_COLOR.cancelled,
-    tone: "default",
+    badge: "primary",
     polls: false,
   },
   superseded: {
     label: DEPLOYMENT_STATUS_LABELS.superseded,
     dotClass: DEPLOYMENT_GROUP_COLOR.superseded,
-    tone: "default",
+    badge: "primary",
     polls: false,
   },
   skipped: {
     label: DEPLOYMENT_STATUS_LABELS.skipped,
     dotClass: DEPLOYMENT_GROUP_COLOR.skipped,
-    tone: "default",
+    badge: "primary",
     polls: false,
   },
 };

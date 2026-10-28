@@ -1,17 +1,25 @@
 import {
   IconCodeBranchOutline18,
-  IconCodeCommitOutline18,
   IconCubeOutline18,
   IconEarthOutline18,
   IconGridOutline18,
-  IconLayers3Outline18,
+  IconLink4Outline18,
   IconMicrochipOutline18,
-  IconPlusOutline12,
   IconShieldKeyOutline18,
 } from "@unkey/icons";
 import { Card, Skeleton } from "@unkey/ui";
 import { cn } from "cn";
-import { Canvas, Group, HFlow, IconRow, Node, NodeHeader, RowItem, Rows } from "./canvas/nodes";
+import {
+  Canvas,
+  GhostNode,
+  Group,
+  HFlow,
+  IconRow,
+  Node,
+  NodeHeader,
+  RowItem,
+  Rows,
+} from "./canvas/nodes";
 
 function Bar({ className }: { className: string }) {
   return <Skeleton className={cn("inline-block h-3 rounded align-middle", className)} />;
@@ -28,17 +36,19 @@ export function AppCanvasSkeleton() {
               <IconRow icon={<IconEarthOutline18 />}>
                 <Bar className="w-40" />
               </IconRow>
-              <IconRow icon={<IconPlusOutline12 />}>
-                <Bar className="w-16" />
-              </IconRow>
             </Rows>
           </Node>
+          <GhostNode
+            icon={<IconLink4Outline18 />}
+            name={<Bar className="w-28" />}
+            description={<Bar className="w-44" />}
+          />
         </Group>
         <HFlow empty />
         <Group icon={<IconCubeOutline18 />} label="App">
           <Node>
             <NodeHeader
-              icon={<Skeleton className="size-3.5 rounded-full" />}
+              icon={<Skeleton className="size-3 rounded-full" />}
               name={<Bar className="w-16" />}
               right={<Bar className="w-10" />}
             />
@@ -49,21 +59,9 @@ export function AppCanvasSkeleton() {
                 value={<Bar className="w-20" />}
               />
               <RowItem
-                icon={<IconCodeCommitOutline18 />}
-                label="Commit"
-                value={<Bar className="w-36" />}
-              />
-            </Rows>
-            <Rows>
-              <RowItem
                 icon={<IconEarthOutline18 />}
                 label="Regions"
                 value={<Bar className="w-10" />}
-              />
-              <RowItem
-                icon={<IconLayers3Outline18 />}
-                label="Instances"
-                value={<Bar className="w-4" />}
               />
               <RowItem
                 icon={<IconMicrochipOutline18 />}
@@ -78,9 +76,15 @@ export function AppCanvasSkeleton() {
           <Node>
             <NodeHeader icon={<IconShieldKeyOutline18 />} name="Policies" />
             <Rows>
-              <Bar className="w-3/4" />
-              <Bar className="w-2/3" />
-              <Bar className="w-1/2" />
+              <IconRow icon={<IconShieldKeyOutline18 />}>
+                <Bar className="w-3/4" />
+              </IconRow>
+              <IconRow icon={<IconShieldKeyOutline18 />}>
+                <Bar className="w-2/3" />
+              </IconRow>
+              <IconRow icon={<IconShieldKeyOutline18 />}>
+                <Bar className="w-1/2" />
+              </IconRow>
             </Rows>
           </Node>
         </Group>
