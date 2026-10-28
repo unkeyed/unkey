@@ -41,7 +41,7 @@ func TestUpdateNamespaceSuccess(t *testing.T) {
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, ns.ID, res.Body.Data.Id)
 		require.Equal(t, name, res.Body.Data.Name)
-		require.Equal(t, ns.CreatedAtM, res.Body.Data.CreatedAt)
+		require.Equal(t, ns.CreatedAt, res.Body.Data.CreatedAt)
 		require.NotZero(t, res.Body.Data.UpdatedAt)
 
 		stored := findNamespace(t, h, ns)

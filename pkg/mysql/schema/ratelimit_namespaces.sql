@@ -5,6 +5,7 @@ CREATE TABLE `ratelimit_namespaces` (
 	`project_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`name` varchar(512) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`use_global_ratelimit` boolean NOT NULL DEFAULT false,
+	`global_ratelimit_mode` enum('off','shadow','on') NOT NULL DEFAULT 'off',
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
