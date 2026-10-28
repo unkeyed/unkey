@@ -486,15 +486,15 @@ When running in `check` mode, also report:
 
 ## Step 7: Verify
 
-Format command declarations, then run scoped tests, the Go build, and documentation checks through mise:
+Write command fields and each flag, example, and child command on separate lines. Run `gofmt` on changed Go files, then run scoped tests, the Go build, and documentation checks through mise:
 
 ```bash
-mise run fmt-cli-commands
+mise exec -- gofmt -w <changed-go-files>
 mise exec -- rask ./cmd/api/...
 mise run build
 mise run docs-lint
 ```
 
-The CLI formatter puts command fields and each flag, example, and child command on separate lines. `gofmt` alone does not enforce this layout; `mise run build` checks it. Pass file paths after `--` to format only changed commands.
+`gofmt` preserves existing line breaks in composite literals; it does not choose their layout. Review declarations for readability instead of adding a custom formatter or formatting tests.
 
 Keep coverage for canonical and legacy command routing, human empty and populated output, full JSON envelopes, invalid output values, pagination, and stdout/stderr separation. Report unavailable checks and pre-existing failures without weakening them. Never use `go build` directly. Always use `mise run build`.
