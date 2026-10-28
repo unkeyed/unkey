@@ -94,21 +94,14 @@ func TestCanRead(t *testing.T) {
 			want:    false,
 		},
 		{
-			name: "legacy deployment read does not reveal a rollback",
-			query: Or(
-				T(Tuple{ResourceType: Environment, ResourceID: "*", Action: RollbackDeployment}),
-				T(Tuple{ResourceType: Environment, ResourceID: environmentID, Action: RollbackDeployment}),
-				U(deployment, permissions.Write),
-			),
+			name:    "legacy deployment read does not reveal a rollback",
+			query:   U(deployment, permissions.Write),
 			granted: []string{"environment.*.read_deployment"},
 			want:    false,
 		},
 		{
-			name: "environment read reveals a rollback on that environment",
-			query: Or(
-				T(Tuple{ResourceType: Environment, ResourceID: "*", Action: RollbackDeployment}),
-				U(environment, permissions.Write),
-			),
+			name:    "environment read reveals a rollback on that environment",
+			query:   U(environment, permissions.Write),
 			granted: []string{environment.String() + "#read"},
 			want:    true,
 		},
@@ -129,11 +122,8 @@ func TestCanRead(t *testing.T) {
 			want:    false,
 		},
 		{
-			name: "unrelated deployment action does not reveal the deployment",
-			query: Or(
-				T(Tuple{ResourceType: Environment, ResourceID: "*", Action: RollbackDeployment}),
-				U(deployment, permissions.Write),
-			),
+			name:    "unrelated deployment action does not reveal the deployment",
+			query:   U(deployment, permissions.Write),
 			granted: []string{"environment.*.promote_deployment"},
 			want:    false,
 		},

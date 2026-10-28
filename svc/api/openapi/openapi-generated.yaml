@@ -12286,9 +12286,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.promote_deployment` (to promote deployments in any environment)
-                - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
+                Your root key must have write permission on the environment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
             operationId: deployments.promoteDeployment
             requestBody:
                 content:
@@ -12393,9 +12392,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.rollback_deployment` (to roll back deployments in any environment)
-                - `environment.<environment_id>.rollback_deployment` (to roll back deployments in a specific environment)
+                Your root key must have write permission on the environment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
             operationId: deployments.rollbackDeployment
             requestBody:
                 content:
@@ -12495,9 +12493,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.start_deployment` (to start deployments in any environment)
-                - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
+                Your root key must have write permission on the deployment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
             operationId: deployments.startDeployment
             requestBody:
                 content:
@@ -12598,9 +12595,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.stop_deployment` (to stop deployments in any environment)
-                - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
+                Your root key must have write permission on the deployment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
             operationId: deployments.stopDeployment
             requestBody:
                 content:
