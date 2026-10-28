@@ -18,6 +18,7 @@ import (
 	"github.com/containerd/containerd/v2/pkg/oci"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -90,6 +91,28 @@ func (m *fakeCounterMap) Delete(key any) error {
 }
 
 func (m *fakeCounterMap) Close() error { return nil }
+
+func (m *fakeCounterMap) MaxEntries() uint32 { return 16384 }
+
+func (m *fakeCounterMap) NextKey(key, nextKeyOut any) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var next uint64
+	found := false
+	for candidate := range m.entries {
+		if key != nil && candidate <= key.(uint64) {
+			continue
+		}
+		if !found || candidate < next {
+			next, found = candidate, true
+		}
+	}
+	if !found {
+		return ebpf.ErrKeyNotExist
+	}
+	*nextKeyOut.(*uint64) = next
+	return nil
+}
 
 func (m *fakeCounterMap) set(cookie uint64, egressPublic uint64) {
 	m.mu.Lock()
@@ -238,12 +261,79 @@ func newTestReader(t *testing.T, node *fakeNode) *linuxReader {
 		attachQ:       make(chan attachRequest, attachQueueSize),
 		workerWG:      sync.WaitGroup{},
 		closed:        make(chan struct{}),
+		closeOnce:     sync.Once{},
+		closeErr:      nil,
 	}
 	for i := 0; i < attachWorkers; i++ {
 		r.workerWG.Go(r.runAttachWorker)
 	}
 	t.Cleanup(func() { require.NoError(t, r.Close()) })
 	return r
+}
+
+func TestCloseDrainsAttachAndRejectsNewRequests(t *testing.T) {
+	t.Run("in-flight attach", func(t *testing.T) {
+		node := newFakeNode()
+		sb := node.addSandbox(uid.New(uid.TestPrefix))
+		r := newTestReader(t, node)
+		gate := node.gate(t, sb)
+		pod := types.UID(uid.New(uid.TestPrefix))
+		require.NoError(t, r.Attach(pod))
+		<-gate.entered
+		done := make(chan error, 8)
+		for range cap(done) {
+			go func() { done <- r.Close() }()
+		}
+		<-r.closed
+		require.Empty(t, done)
+		require.ErrorIs(t, r.Attach(pod), os.ErrClosed)
+		gate.open()
+		for range cap(done) {
+			require.NoError(t, <-done)
+		}
+		require.True(t, node.linksClosed(sb))
+		_, err := r.Read(pod)
+		require.ErrorIs(t, err, ErrNotAttached)
+		for range 1000 {
+			require.ErrorIs(t, r.Attach(types.UID(uid.New(uid.TestPrefix))), os.ErrClosed)
+		}
+		require.NoError(t, r.Close())
+	})
+}
+
+func TestCloseConcurrentReaderCalls(t *testing.T) {
+	r := newTestReader(t, newFakeNode())
+	start := make(chan struct{})
+	results := make(chan error, 16)
+	for range cap(results) {
+		go func() {
+			pod := types.UID(uid.New(uid.TestPrefix))
+			<-start
+			for range 100 {
+				err := r.Attach(pod)
+				if err != nil && !errors.Is(err, os.ErrClosed) && !errors.Is(err, ErrAttachQueueFull) {
+					results <- err
+					return
+				}
+				_, err = r.Read(pod)
+				if !errors.Is(err, ErrNotAttached) {
+					results <- fmt.Errorf("expected unattached pod: %v", err)
+					return
+				}
+				r.Detach(pod)
+				r.Reconcile(nil)
+			}
+			results <- nil
+		}()
+	}
+	close(start)
+	require.NoError(t, r.Close())
+	for range cap(results) {
+		require.NoError(t, <-results)
+	}
+	entries, err := r.MapEntries()
+	require.NoError(t, err)
+	require.Zero(t, entries)
 }
 
 // tick replays one collector tick for a live pod: reconcile against the
@@ -399,10 +489,80 @@ func TestAttach_StableNetnsIsNotReattached(t *testing.T) {
 	sb := node.addSandbox("sandbox-a")
 	for i := 0; i < 3; i++ {
 		_, err := tick(t, r, uid)
-		require.NoError(t, err)
+		require.ErrorIs(t, err, ErrCounterUnobserved)
 	}
 	require.False(t, node.linksClosed(sb))
-	require.Equal(t, 1, r.MapEntries())
+	entries, err := r.MapEntries()
+	require.NoError(t, err)
+	require.Zero(t, entries)
+}
+
+func TestRead_CounterLossIsNotZero(t *testing.T) {
+	for _, traffic := range []uint64{0, 1000} {
+		t.Run(fmt.Sprintf("bytes=%d", traffic), func(t *testing.T) {
+			node := newFakeNode()
+			r := newTestReader(t, node)
+			podUID := types.UID(uid.New(uid.TestPrefix))
+			sb := node.addSandbox(uid.New(uid.TestPrefix))
+			initial, err := tick(t, r, podUID)
+			require.ErrorIs(t, err, ErrCounterUnobserved)
+			require.Equal(t, zeroCounters, initial)
+			_, err = r.Read(podUID)
+			require.ErrorIs(t, err, ErrCounterUnobserved, "absence is not proof of prior loss")
+			node.counters.set(node.cookie(sb), traffic)
+			before, err := r.Read(podUID)
+			require.NoError(t, err)
+			require.EqualValues(t, traffic, before.EgressPublicBytes)
+			require.NoError(t, node.counters.Delete(node.cookie(sb)))
+			_, err = r.Read(podUID)
+			require.ErrorIs(t, err, ErrCounterLost)
+			node.counters.set(node.cookie(sb), 1000)
+			_, err = r.Read(podUID)
+			require.ErrorIs(t, err, ErrCounterLost, "a recreated counter does not restore continuity")
+		})
+	}
+}
+
+func TestMapEntries_CountsRetainedCountersWithoutAttachments(t *testing.T) {
+	node := newFakeNode()
+	r := newTestReader(t, node)
+	for i := range 3 {
+		sb := node.addSandbox(uid.New(uid.TestPrefix))
+		node.counters.set(node.cookie(sb), uint64(i+1)*1000)
+	}
+	entries, err := r.MapEntries()
+	require.NoError(t, err)
+	require.Equal(t, 3, entries)
+}
+
+type interruptedCounterMap struct {
+	counterMap
+	keys []uint64
+	err  error
+}
+
+func (m *interruptedCounterMap) MaxEntries() uint32 { return 2 }
+
+func (m *interruptedCounterMap) NextKey(_, nextKeyOut any) error {
+	if len(m.keys) == 0 {
+		return m.err
+	}
+	*nextKeyOut.(*uint64) = m.keys[0]
+	m.keys = m.keys[1:]
+	return nil
+}
+
+func TestMapEntries_RejectsIncompleteEnumeration(t *testing.T) {
+	for _, keys := range [][]uint64{{1}, {1, 1}, {1, 2, 3}} {
+		t.Run(fmt.Sprint(keys), func(t *testing.T) {
+			node := newFakeNode()
+			r := newTestReader(t, node)
+			r.podCounters = &interruptedCounterMap{counterMap: node.counters, keys: keys, err: os.ErrPermission}
+			entries, err := r.MapEntries()
+			require.Error(t, err)
+			require.Zero(t, entries, "partial occupancy must not be published")
+		})
+	}
 }
 
 func TestSandboxNetnsPath(t *testing.T) {
