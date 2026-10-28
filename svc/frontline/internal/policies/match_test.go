@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -466,4 +467,17 @@ func TestMatchesRequest_RemoteIpMissing(t *testing.T) {
 	matched, err := matchesRequest(req, netip.Addr{}, exprs, newRegexCache())
 	require.Error(t, err)
 	require.False(t, matched)
+}
+
+func TestRegexCache_StaysBounded(t *testing.T) {
+	t.Parallel()
+	rc := newRegexCache()
+
+	for i := range regexCacheEntriesMax + 10 {
+		re, err := rc.get(fmt.Sprintf("^/p%d$", i))
+		require.NoError(t, err)
+		require.True(t, re.MatchString(fmt.Sprintf("/p%d", i)))
+	}
+
+	require.Len(t, rc.cache, regexCacheEntriesMax)
 }
