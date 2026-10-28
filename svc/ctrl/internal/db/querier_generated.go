@@ -222,6 +222,19 @@ type Querier interface {
 	//  FROM `github_repo_connections`
 	//  WHERE app_id = ?
 	CountGithubRepoConnectionsByAppId(ctx context.Context, appID string) (int64, error)
+	// Counts an end user's rows in every table a GDPR end user erasure deletes,
+	// through the identity and key ids the test seeded. Used only by tests.
+	//
+	//  SELECT
+	//    (SELECT COUNT(*) FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?) AS identities,
+	//    (SELECT COUNT(*) FROM portal_sessions WHERE portal_sessions.workspace_id = ? AND portal_sessions.external_id = ?) AS portal_sessions,
+	//    (SELECT COUNT(*) FROM ratelimits WHERE ratelimits.identity_id = ?) AS identity_ratelimits,
+	//    (SELECT COUNT(*) FROM `keys` WHERE keys.id = ?) AS key_rows,
+	//    (SELECT COUNT(*) FROM keys_permissions WHERE keys_permissions.key_id = ?) AS keys_permissions,
+	//    (SELECT COUNT(*) FROM keys_roles WHERE keys_roles.key_id = ?) AS keys_roles,
+	//    (SELECT COUNT(*) FROM encrypted_keys WHERE encrypted_keys.key_id = ?) AS encrypted_keys,
+	//    (SELECT COUNT(*) FROM ratelimits WHERE ratelimits.key_id = ?) AS key_ratelimits
+	CountIdentityRowsByTable(ctx context.Context, arg CountIdentityRowsByTableParams) (CountIdentityRowsByTableRow, error)
 	// CountOrphanConnectionAppTargets verifies deletion cascades in tests.
 	//
 	//  SELECT COUNT(*) FROM connection_app_targets t
@@ -252,6 +265,82 @@ type Querier interface {
 	//  FROM `projects`
 	//  WHERE id = ?
 	CountProjectsById(ctx context.Context, id string) (int64, error)
+	// Counts a dashboard user's rows in every table a GDPR user erasure deletes.
+	// Used only by tests.
+	//
+	//  SELECT
+	//    (SELECT COUNT(*) FROM cli_sessions WHERE cli_sessions.user_id = ?) AS cli_sessions,
+	//    (SELECT COUNT(*) FROM device_authorizations WHERE device_authorizations.approver_user_id = ?) AS device_authorizations,
+	//    (SELECT COUNT(*) FROM compute_signup_credit_claims WHERE compute_signup_credit_claims.workos_user_id = ?) AS compute_signup_credit_claims
+	CountUserRowsByTable(ctx context.Context, arg CountUserRowsByTableParams) (CountUserRowsByTableRow, error)
+	// Counts a workspace's rows in every table a GDPR workspace erasure deletes.
+	// Used only by tests, which assert that an erasure leaves nothing behind and
+	// leaves other workspaces alone. Tables without a workspace_id are counted
+	// through the parent ids the test seeded, because the erasure deletes the
+	// parents too.
+	//
+	//  SELECT
+	//    (SELECT COUNT(*) FROM acme_challenges WHERE acme_challenges.workspace_id = ?) AS acme_challenges,
+	//    (SELECT COUNT(*) FROM acme_users WHERE acme_users.workspace_id = ?) AS acme_users,
+	//    (SELECT COUNT(*) FROM apis WHERE apis.workspace_id = ?) AS apis,
+	//    (SELECT COUNT(*) FROM app_build_settings WHERE app_build_settings.workspace_id = ?) AS app_build_settings,
+	//    (SELECT COUNT(*) FROM app_connections WHERE app_connections.workspace_id = ?) AS app_connections,
+	//    (SELECT COUNT(*) FROM app_environment_variables WHERE app_environment_variables.workspace_id = ?) AS app_environment_variables,
+	//    (SELECT COUNT(*) FROM app_regional_settings WHERE app_regional_settings.workspace_id = ?) AS app_regional_settings,
+	//    (SELECT COUNT(*) FROM app_runtime_settings WHERE app_runtime_settings.workspace_id = ?) AS app_runtime_settings,
+	//    (SELECT COUNT(*) FROM app_source_oci WHERE app_source_oci.workspace_id = ?) AS app_source_oci,
+	//    (SELECT COUNT(*) FROM apps WHERE apps.workspace_id = ?) AS apps,
+	//    (SELECT COUNT(*) FROM billing_subscriptions WHERE billing_subscriptions.workspace_id = ?) AS billing_subscriptions,
+	//    (SELECT COUNT(*) FROM certificates WHERE certificates.workspace_id = ?) AS certificates,
+	//    (SELECT COUNT(*) FROM cilium_network_policies WHERE cilium_network_policies.workspace_id = ?) AS cilium_network_policies,
+	//    (SELECT COUNT(*) FROM cli_sessions WHERE cli_sessions.workspace_id = ?) AS cli_sessions,
+	//    (SELECT COUNT(*) FROM clickhouse_outbox WHERE clickhouse_outbox.workspace_id = ?) AS clickhouse_outbox,
+	//    (SELECT COUNT(*) FROM clickhouse_workspace_settings WHERE clickhouse_workspace_settings.workspace_id = ?) AS clickhouse_workspace_settings,
+	//    (SELECT COUNT(*) FROM compute_signup_credit_claims WHERE compute_signup_credit_claims.workspace_id = ?) AS compute_signup_credit_claims,
+	//    (SELECT COUNT(*) FROM custom_domains WHERE custom_domains.workspace_id = ?) AS custom_domains,
+	//    (SELECT COUNT(*) FROM deployment_connections WHERE deployment_connections.workspace_id = ?) AS deployment_connections,
+	//    (SELECT COUNT(*) FROM deployment_steps WHERE deployment_steps.workspace_id = ?) AS deployment_steps,
+	//    (SELECT COUNT(*) FROM deployment_topology WHERE deployment_topology.workspace_id = ?) AS deployment_topology,
+	//    (SELECT COUNT(*) FROM deployments WHERE deployments.workspace_id = ?) AS deployments,
+	//    (SELECT COUNT(*) FROM device_authorizations WHERE device_authorizations.workspace_id = ?) AS device_authorizations,
+	//    (SELECT COUNT(*) FROM encrypted_keys WHERE encrypted_keys.workspace_id = ?) AS encrypted_keys,
+	//    (SELECT COUNT(*) FROM environments WHERE environments.workspace_id = ?) AS environments,
+	//    (SELECT COUNT(*) FROM flag_overrides WHERE flag_overrides.workspace_id = ?) AS flag_overrides,
+	//    (SELECT COUNT(*) FROM github_app_installations WHERE github_app_installations.workspace_id = ?) AS github_app_installations,
+	//    (SELECT COUNT(*) FROM github_repo_connections WHERE github_repo_connections.workspace_id = ?) AS github_repo_connections,
+	//    (SELECT COUNT(*) FROM horizontal_autoscaling_policies WHERE horizontal_autoscaling_policies.workspace_id = ?) AS horizontal_autoscaling_policies,
+	//    (SELECT COUNT(*) FROM identities WHERE identities.workspace_id = ?) AS identities,
+	//    (SELECT COUNT(*) FROM instances WHERE instances.workspace_id = ?) AS instances,
+	//    (SELECT COUNT(*) FROM key_auth WHERE key_auth.workspace_id = ?) AS key_auth,
+	//    (SELECT COUNT(*) FROM key_migrations WHERE key_migrations.workspace_id = ?) AS key_migrations,
+	//    (SELECT COUNT(*) FROM `keys` WHERE keys.workspace_id = ?) AS key_rows,
+	//    (SELECT COUNT(*) FROM keys_permissions WHERE keys_permissions.workspace_id = ?) AS keys_permissions,
+	//    (SELECT COUNT(*) FROM keys_roles WHERE keys_roles.workspace_id = ?) AS keys_roles,
+	//    (SELECT COUNT(*) FROM limits WHERE limits.workspace_id = ?) AS limits,
+	//    (SELECT COUNT(*) FROM logdrains WHERE logdrains.workspace_id = ?) AS logdrains,
+	//    (SELECT COUNT(*) FROM openapi_specs WHERE openapi_specs.workspace_id = ?) AS openapi_specs,
+	//    (SELECT COUNT(*) FROM permissions WHERE permissions.workspace_id = ?) AS permissions,
+	//    (SELECT COUNT(*) FROM portal_domains WHERE portal_domains.workspace_id = ?) AS portal_domains,
+	//    (SELECT COUNT(*) FROM portal_sessions WHERE portal_sessions.workspace_id = ?) AS portal_sessions,
+	//    (SELECT COUNT(*) FROM portals WHERE portals.workspace_id = ?) AS portals,
+	//    (SELECT COUNT(*) FROM projects WHERE projects.workspace_id = ?) AS projects,
+	//    (SELECT COUNT(*) FROM ratelimit_global_counters WHERE ratelimit_global_counters.workspace_id = ?) AS ratelimit_global_counters,
+	//    (SELECT COUNT(*) FROM ratelimit_namespaces WHERE ratelimit_namespaces.workspace_id = ?) AS ratelimit_namespaces,
+	//    (SELECT COUNT(*) FROM ratelimit_overrides WHERE ratelimit_overrides.workspace_id = ?) AS ratelimit_overrides,
+	//    (SELECT COUNT(*) FROM ratelimits WHERE ratelimits.workspace_id = ?) AS ratelimits,
+	//    (SELECT COUNT(*) FROM roles WHERE roles.workspace_id = ?) AS roles,
+	//    (SELECT COUNT(*) FROM roles_permissions WHERE roles_permissions.workspace_id = ?) AS roles_permissions,
+	//    (SELECT COUNT(*) FROM shared_secrets WHERE shared_secrets.workspace_id = ?) AS shared_secrets,
+	//    (SELECT COUNT(*) FROM unkey_principal_permissions WHERE unkey_principal_permissions.workspace_id = ?) AS unkey_principal_permissions,
+	//    (SELECT COUNT(*) FROM unkey_root_keys WHERE unkey_root_keys.workspace_id = ?) AS unkey_root_keys,
+	//    (SELECT COUNT(*) FROM workspace_billing WHERE workspace_billing.workspace_id = ?) AS workspace_billing,
+	//    (SELECT COUNT(*) FROM workspaces WHERE workspaces.id = ?) AS workspaces,
+	//    (SELECT COUNT(*) FROM `keys` WHERE keys.for_workspace_id = ?) AS legacy_root_keys,
+	//    (SELECT COUNT(*) FROM keys_permissions WHERE keys_permissions.key_id = ?) AS legacy_root_key_permissions,
+	//    (SELECT COUNT(*) FROM connection_app_targets WHERE connection_app_targets.connection_id = ?) AS connection_app_targets,
+	//    (SELECT COUNT(*) FROM deployment_connection_app_targets WHERE deployment_connection_app_targets.deployment_id = ?) AS deployment_connection_app_targets,
+	//    (SELECT COUNT(*) FROM frontline_routes WHERE frontline_routes.project_id = ?) AS frontline_routes
+	CountWorkspaceRowsByTable(ctx context.Context, arg CountWorkspaceRowsByTableParams) (CountWorkspaceRowsByTableRow, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -1430,6 +1519,11 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertCiliumNetworkPolicy(ctx context.Context, arg InsertCiliumNetworkPolicyParams) error
+	// Inserts a CLI session. Used only by tests; the API owns session creation.
+	//
+	//  INSERT INTO cli_sessions (id, workspace_id, user_id, user_name, permissions, refresh_token_hash, refresh_family, created_at, last_used_at, expires_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertCliSession(ctx context.Context, arg InsertCliSessionParams) error
 	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
 	// from the same MySQL transaction as the underlying mutation, so durability
 	// is exactly the durability of the mutation: if the mutation commits, the
@@ -1482,6 +1576,11 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseWorkspaceSettings(ctx context.Context, arg InsertClickhouseWorkspaceSettingsParams) error
+	// Inserts a signup credit claim. Used only by tests; the dashboard owns claims.
+	//
+	//  INSERT INTO compute_signup_credit_claims (card_fingerprint, workspace_id, stripe_customer_id, workos_user_id, attempt_id, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?)
+	InsertComputeSignupCreditClaim(ctx context.Context, arg InsertComputeSignupCreditClaimParams) error
 	// InsertConnectionAppTarget must share a transaction with InsertAppConnection.
 	//
 	//  INSERT INTO connection_app_targets (
@@ -1636,6 +1735,12 @@ type Querier interface {
 	//      autoscaling_threshold_memory = ?,
 	//      desired_status = ?
 	InsertDeploymentTopology(ctx context.Context, arg InsertDeploymentTopologyParams) error
+	// Inserts an approved device authorization. Used only by tests; the API owns
+	// the device flow.
+	//
+	//  INSERT INTO device_authorizations (id, user_code, expires_at, status, workspace_id, approver_user_id, approver_name, created_at)
+	//  VALUES (?, ?, ?, 'approved', ?, ?, ?, ?)
+	InsertDeviceAuthorization(ctx context.Context, arg InsertDeviceAuthorizationParams) error
 	//InsertEnvironment
 	//
 	//  INSERT INTO environments (
@@ -1907,6 +2012,12 @@ type Querier interface {
 	//      domain_connect_provider, domain_connect_url, invocation_id, created_at
 	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertPortalDomain(ctx context.Context, arg InsertPortalDomainParams) error
+	// Inserts a portal session for an end user. Used only by tests; the portal
+	// owns session creation.
+	//
+	//  INSERT INTO portal_sessions (id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	InsertPortalSession(ctx context.Context, arg InsertPortalSessionParams) error
 	//InsertProject
 	//
 	//  INSERT INTO projects (
@@ -2697,6 +2808,11 @@ type Querier interface {
 	//  SET stripe_customer_id = ?
 	//  WHERE workspace_id = ?
 	SetWorkspaceStripeCustomerId(ctx context.Context, arg SetWorkspaceStripeCustomerIdParams) error
+	// Soft-deletes an identity the way the API's identity delete does. Used only by
+	// tests that need a soft-deleted identity.
+	//
+	//  UPDATE identities SET deleted = true, updated_at = ? WHERE id = ?
+	SoftDeleteIdentity(ctx context.Context, arg SoftDeleteIdentityParams) error
 	//SoftDeleteKeyByID
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
@@ -2999,6 +3115,12 @@ type Querier interface {
 	//  SET tier = ?, updated_at_m = ?
 	//  WHERE workspace_id = ?
 	UpdateWorkspaceBillingTier(ctx context.Context, arg UpdateWorkspaceBillingTierParams) error
+	// Sets a workspace's delete protection. Used only by tests: the dashboard
+	// creates every workspace protected, and a GDPR workspace erasure refuses a
+	// protected one.
+	//
+	//  UPDATE `workspaces` SET delete_protection = ? WHERE id = ?
+	UpdateWorkspaceDeleteProtection(ctx context.Context, arg UpdateWorkspaceDeleteProtectionParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
