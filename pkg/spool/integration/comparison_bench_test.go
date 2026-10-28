@@ -31,12 +31,13 @@ import (
 var errRejected = errors.New("request rejected")
 
 type comparisonFixture struct {
-	schema map[string]any
-	prefix string
-	block  string
-	bytes  int64
-	suffix string
-	valid  bool
+	schema  map[string]any
+	prefix  string
+	block   string
+	bytes   int64
+	suffix  string
+	valid   bool
+	chunked bool
 }
 
 func (f comparisonFixture) body() (io.Reader, int64) {
@@ -69,8 +70,11 @@ func comparisonFixtures() map[string]comparisonFixture {
 	}
 	fixtures := make(map[string]comparisonFixture)
 	for name, size := range map[string]int64{"1KiB": 1 << 10, "1MiB": 1 << 20, "8MiB": 8 << 20, "16MiB": 16 << 20, "64MiB": 64 << 20} {
-		fixtures[name] = comparisonFixture{schema: schema, prefix: `{"image":"`, block: strings.Repeat("a", 32<<10), bytes: size, suffix: `","count":1}`, valid: true}
+		fixtures[name] = comparisonFixture{schema: schema, prefix: `{"image":"`, block: strings.Repeat("a", 32<<10), bytes: size, suffix: `","count":1}`, valid: true, chunked: false}
 	}
+	chunked := fixtures["16MiB"]
+	chunked.chunked = true
+	fixtures["16MiB-chunked"] = chunked
 	unicode := fixtures["16MiB"]
 	unicode.block = strings.Repeat(`é😀\n\ud83d\ude00`, 1024)
 	unicode.bytes = (16 << 20) / int64(len(unicode.block)) * int64(len(unicode.block))
@@ -90,7 +94,7 @@ func comparisonFixtures() map[string]comparisonFixture {
 			"type": "object", "properties": map[string]any{"name": map[string]any{"type": "string"}, "n": map[string]any{"type": "integer"}},
 			"required": []string{"name", "n"}, "additionalProperties": false,
 		}},
-		prefix: "[", block: block, bytes: (16 << 20) / int64(len(block)) * int64(len(block)), suffix: item + "]", valid: true,
+		prefix: "[", block: block, bytes: (16 << 20) / int64(len(block)) * int64(len(block)), suffix: item + "]", valid: true, chunked: false,
 	}
 	return fixtures
 }
@@ -124,6 +128,10 @@ func comparisonAdmission(b *testing.B, mode string, schema map[string]any) func(
 	require.NoError(b, err)
 	compiled, err := streamschema.Compile(document, streamschema.DefaultLimits())
 	require.NoError(b, err)
+	if mode == "ram" {
+		return comparisonMemoryAdmission(compiled, 128<<20, 1<<30, 8)
+	}
+	require.Equal(b, "after", mode)
 	pool, err := spool.NewPool(spool.Config{Dir: b.TempDir(), BodyBytesMax: 128 << 20, TotalBytesMax: 1 << 30, ConcurrentMax: 8})
 	require.NoError(b, err)
 	return func(r *http.Request) (io.ReadCloser, error) {
@@ -153,7 +161,7 @@ func BenchmarkValidationComparison(b *testing.B) {
 		b.Run(name, func(b *testing.B) {
 			for _, concurrency := range []int{1, 8} {
 				b.Run(fmt.Sprintf("c%d", concurrency), func(b *testing.B) {
-					for _, mode := range []string{"before", "after"} {
+					for _, mode := range []string{"before", "after", "ram"} {
 						b.Run(mode, func(b *testing.B) {
 							admit := comparisonAdmission(b, mode, fixture.schema)
 							digest := comparisonDigest(b, fixture)
@@ -164,6 +172,9 @@ func BenchmarkValidationComparison(b *testing.B) {
 									return 0, err
 								}
 								req.ContentLength = size
+								if fixture.chunked {
+									req.ContentLength = -1
+								}
 								req.Header.Set("Content-Type", "application/json")
 								body, err := admit(req)
 								if !fixture.valid && errors.Is(err, errRejected) {
@@ -193,13 +204,13 @@ func BenchmarkValidationComparison(b *testing.B) {
 
 func BenchmarkHTTPValidationComparison(b *testing.B) {
 	fixtures := comparisonFixtures()
-	for _, name := range []string{"1KiB", "16MiB"} {
+	for _, name := range []string{"1KiB", "16MiB", "16MiB-chunked"} {
 		b.Run(name, func(b *testing.B) {
 			fixture := fixtures[name]
 			digest := comparisonDigest(b, fixture)
 			for _, concurrency := range []int{1, 8} {
 				b.Run(fmt.Sprintf("c%d", concurrency), func(b *testing.B) {
-					for _, mode := range []string{"before", "after"} {
+					for _, mode := range []string{"before", "after", "ram"} {
 						b.Run(mode, func(b *testing.B) {
 							admit := comparisonAdmission(b, mode, fixture.schema)
 							upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -240,6 +251,9 @@ func BenchmarkHTTPValidationComparison(b *testing.B) {
 									return 0, err
 								}
 								req.ContentLength = size
+								if fixture.chunked {
+									req.ContentLength = -1
+								}
 								req.Header.Set("Content-Type", "application/json")
 								response, err := frontend.Client().Do(req)
 								if err != nil {
