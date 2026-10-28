@@ -8,6 +8,9 @@ metadata:
   namespace: unkey
 spec:
   schedule: {{ $job.schedule | quote }}
+  {{- with $job.timeZone }}
+  timeZone: {{ . | quote }}
+  {{- end }}
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 5

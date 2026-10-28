@@ -7,7 +7,8 @@ restateIngressUrl: "http://restate.unkey.svc.cluster.local:8080"
 # date) encode it in the key; the rest use a fixed per-task slug.
 jobs:
   vault-re-encryption:
-    schedule: "*/5 * * * *"
+    schedule: "0 12 * * 2"
+    timeZone: "Europe/Berlin"
     urlPath: "hydra.v1.CronService/vault-re-encryption/RunVaultReEncryption/send"
     idempotencyKey: "vault-re-encryption-$(date -u +%Y-%m-%dT%H:%M)"
 
