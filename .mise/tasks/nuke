@@ -88,7 +88,7 @@ echo "Exit Tilt and stop Unkey tests before continuing. Local Unkey data will be
 read -r -p "Type unkey to delete these resources: " confirmation
 [ "$confirmation" = unkey ] || exit 0
 
-if $delete_cluster; then minikube delete -p unkey; fi
+if $delete_cluster; then KUBECONFIG=/dev/null minikube delete -p unkey; fi
 if $delete_builder; then docker buildx rm unkey; fi
 for id in ${containers[@]+"${containers[@]}"}; do docker container rm --force "$id"; done
 

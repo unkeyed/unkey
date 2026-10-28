@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Run a command with only the local Minikube cluster's kubeconfig"
+set -euo pipefail
+
+source ./dev/local-cluster.sh
+with_local_cluster "$@"
