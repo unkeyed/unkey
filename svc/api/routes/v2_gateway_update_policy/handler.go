@@ -215,6 +215,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		updated.Id = req.PolicyId
 		policies[idx] = updated
+		if orderErr := policyconfig.CheckOrder(policies); orderErr != nil {
+			return orderErr
+		}
 
 		// Stored keyauth was verified at write time; only keyspaces
 		// arriving with this request need checking.

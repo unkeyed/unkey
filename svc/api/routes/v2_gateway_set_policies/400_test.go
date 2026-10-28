@@ -41,6 +41,19 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "exactly one of")
 	})
 
+	t.Run("subject rate limit without keyauth before it", func(t *testing.T) {
+		res := callTyped(t, []openapi.Policy{{
+			Name:    "by-subject",
+			Enabled: true,
+			Ratelimit: &openapi.RatelimitPolicy{
+				Limit: 10, WindowMs: 1000,
+				Identifier: &openapi.RatelimitIdentifier{AuthenticatedSubject: &openapi.AuthenticatedSubjectKey{}},
+			},
+		}})
+		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)
+		require.Contains(t, res.Body.Error.Detail, "needs an enabled keyauth policy before it")
+	})
+
 	t.Run("more than 50 policies in request", func(t *testing.T) {
 		policies := make([]openapi.Policy, 51)
 		for i := range policies {
