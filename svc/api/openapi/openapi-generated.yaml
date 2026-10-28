@@ -9810,6 +9810,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getGatewayRequests
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getRatelimits:
         post:
             description: |
@@ -9884,6 +9885,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getRatelimits
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getRuntimeLogs:
         post:
             description: |
@@ -9960,6 +9962,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getRuntimeLogs
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getVerifications:
         post:
             description: |
@@ -10029,6 +10032,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getVerifications
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apis.createApi:
         post:
             description: |
@@ -10239,6 +10243,7 @@ paths:
             tags:
                 - apis
             x-speakeasy-name-override: getApi
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apis.listKeys:
         post:
             description: |
@@ -10322,6 +10327,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.createApp:
         post:
             description: |
@@ -10719,6 +10725,7 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: getApp
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.listApps:
         post:
             description: |
@@ -10864,6 +10871,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.updateApp:
         post:
             description: |
@@ -11179,6 +11187,7 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: getDeviceLogin
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/cli.listSessions:
         post:
             description: |
@@ -11216,6 +11225,7 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: listSessions
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/cli.revokeSession:
         post:
             description: |
@@ -11442,6 +11452,7 @@ paths:
                 - deploy
             x-speakeasy-group: internal
             x-speakeasy-name-override: getDeployment
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.authorizeDeployment:
         post:
             description: |
@@ -11895,6 +11906,7 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: getDeployment
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.listBuildLogs:
         post:
             description: |
@@ -12090,6 +12102,7 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.listDeployments:
         post:
             description: |
@@ -12266,6 +12279,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.promoteDeployment:
         post:
             description: |
@@ -13410,6 +13424,7 @@ paths:
                 - domains
             x-speakeasy-name-override: getDomain
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/domains.listDomains:
         post:
             description: |
@@ -13709,6 +13724,7 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/domains.verifyDomain:
         post:
             description: |
@@ -14043,6 +14059,7 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: getEnvironment
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.listEnvironmentVariables:
         post:
             description: |
@@ -14134,6 +14151,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.listEnvironments:
         post:
             description: |
@@ -14302,6 +14320,7 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: listEnvironments
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.removeEnvironmentVariables:
         post:
             description: |
@@ -14718,6 +14737,7 @@ paths:
             tags:
                 - gateway
             x-speakeasy-name-override: listPolicies
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/gateway.setPolicies:
         post:
             description: |
@@ -15350,6 +15370,7 @@ paths:
             tags:
                 - identities
             x-speakeasy-name-override: getIdentity
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/identities.listIdentities:
         post:
             description: |
@@ -15471,6 +15492,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/identities.updateIdentity:
         post:
             description: |
@@ -15937,6 +15959,7 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: getKey
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/keys.migrateKeys:
         post:
             description: |
@@ -16711,6 +16734,7 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: whoami
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/liveness:
         get:
             description: |
@@ -16893,23 +16917,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
                     description: The query exceeds a query limit
-                "429":
-                    content:
-                        application/json:
-                            examples:
-                                workspaceRateLimited:
-                                    summary: Workspace rate limit exceeded
-                                    value:
-                                        error:
-                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
-                                            status: 429
-                                            title: Too Many Requests
-                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
-                                        meta:
-                                            requestId: req_1234abcd
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: The workspace rate limit is exceeded
                 "500":
                     content:
                         application/json:
@@ -16929,6 +16936,7 @@ paths:
                 - logs
             x-speakeasy-name-override: getApiRequestMetrics
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/logs.listApiRequests:
         post:
             description: |
@@ -17048,23 +17056,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
                     description: The query exceeds a query limit
-                "429":
-                    content:
-                        application/json:
-                            examples:
-                                workspaceRateLimited:
-                                    summary: Workspace rate limit exceeded
-                                    value:
-                                        error:
-                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
-                                            status: 429
-                                            title: Too Many Requests
-                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
-                                        meta:
-                                            requestId: req_1234abcd
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: The workspace rate limit is exceeded
                 "500":
                     content:
                         application/json:
@@ -17092,6 +17083,7 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.createPermission:
         post:
             description: |
@@ -17451,6 +17443,7 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: GetPermission
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.getRole:
         post:
             description: |
@@ -17516,6 +17509,7 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: GetRole
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.listPermissions:
         post:
             description: |
@@ -17584,6 +17578,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.listRoles:
         post:
             description: |
@@ -17658,6 +17653,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.setRolePermissions:
         post:
             description: |
@@ -18473,6 +18469,7 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: getPortal
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.getVerifications:
         post:
             description: |
@@ -18553,6 +18550,7 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: getVerifications
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.listKeys:
         post:
             description: |
@@ -18630,6 +18628,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.listSessions:
         post:
             description: |
@@ -18712,6 +18711,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.rerollKey:
         post:
             description: |
@@ -19315,6 +19315,7 @@ paths:
             tags:
                 - projects
             x-speakeasy-name-override: getProject
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/projects.listProjects:
         post:
             description: |
@@ -19438,6 +19439,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/projects.updateProject:
         post:
             description: |
@@ -20006,6 +20008,7 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: getOverride
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.limit:
         post:
             description: |
@@ -20276,6 +20279,7 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.listOverrides:
         post:
             description: |
@@ -20372,6 +20376,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.multiLimit:
         post:
             description: |
@@ -20963,6 +20968,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/rootKeys.rerollKey:
         post:
             description: |
@@ -21172,6 +21178,7 @@ paths:
                 - workspace
             x-speakeasy-name-override: getFlags
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.getLimits:
         post:
             description: |
@@ -21343,6 +21350,7 @@ paths:
                 - workspace
             x-speakeasy-name-override: getLimits
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.getUsage:
         post:
             description: |
@@ -21661,6 +21669,7 @@ paths:
                 - workspace
             x-speakeasy-name-override: getUsage
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.updateFlag:
         post:
             description: |

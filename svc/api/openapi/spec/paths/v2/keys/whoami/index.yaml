@@ -17,6 +17,7 @@ post:
     If your credential lacks permissions but the key exists, we may return a 404 status here to prevent leaking the existence of a key to unauthorized clients. If you believe that a key should exist, but receive a 404, please double check your credential has the correct permissions.
 
   operationId: keys.whoami
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: whoami
   requestBody:
     content:

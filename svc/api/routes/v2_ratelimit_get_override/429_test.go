@@ -12,17 +12,18 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_get_override"
+	setoverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_set_override"
 )
 
 func TestWorkspaceRateLimit_DefaultLimits_Unlimited(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	// Fresh workspaces have no workspace API throttle configured by default.
 	ws := h.CreateWorkspace()
 	rootKey := h.CreateRootKey(ws.ID)
 
-	route := &handler.Handler{
+	route := &setoverride.Handler{
 		DB:             h.DB,
+		Auditlogs:      h.Auditlogs,
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)
@@ -32,15 +33,15 @@ func TestWorkspaceRateLimit_DefaultLimits_Unlimited(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	req := handler.Request{
+	req := setoverride.Request{
 		Namespace:  "nonexistent",
 		Identifier: "test",
+		Limit:      10,
+		Duration:   1000,
 	}
 
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-	// Should not be 429. The handler proceeds past rate limiting and hits
-	// namespace-not-found.
-	require.NotEqual(t, http.StatusTooManyRequests, res.Status)
+	res := testutil.CallRoute[setoverride.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusNotFound, res.Status)
 }
 
 func TestWorkspaceRateLimit_NullFields_Unlimited(t *testing.T) {
@@ -49,11 +50,11 @@ func TestWorkspaceRateLimit_NullFields_Unlimited(t *testing.T) {
 	ws := h.CreateWorkspace()
 	rootKey := h.CreateRootKey(ws.ID)
 
-	// Limits exist but the API request limit is NULL = unlimited.
 	upsertWorkspaceLimits(t, h, ws.ID, sql.NullInt32{})
 
-	route := &handler.Handler{
+	route := &setoverride.Handler{
 		DB:             h.DB,
+		Auditlogs:      h.Auditlogs,
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)
@@ -63,22 +64,23 @@ func TestWorkspaceRateLimit_NullFields_Unlimited(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	req := handler.Request{
+	req := setoverride.Request{
 		Namespace:  "nonexistent",
 		Identifier: "test",
+		Limit:      10,
+		Duration:   1000,
 	}
 
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-	require.NotEqual(t, http.StatusTooManyRequests, res.Status)
+	res := testutil.CallRoute[setoverride.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusNotFound, res.Status)
 }
 
-func TestWorkspaceRateLimit_ZeroLimit_Returns429(t *testing.T) {
+func TestWorkspaceRateLimit_ZeroLimit_AllowsReads(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	ws := h.CreateWorkspace()
 	rootKey := h.CreateRootKey(ws.ID)
 
-	// limit=0 means explicitly blocked, zero requests allowed
 	upsertWorkspaceLimits(t, h, ws.ID, sql.NullInt32{Valid: true, Int32: 0})
 
 	route := &handler.Handler{
@@ -97,18 +99,17 @@ func TestWorkspaceRateLimit_ZeroLimit_Returns429(t *testing.T) {
 		Identifier: "test",
 	}
 
-	res := testutil.CallRoute[handler.Request, openapi.TooManyRequestsErrorResponse](h, route, headers, req)
-	require.Equal(t, http.StatusTooManyRequests, res.Status)
-	require.Equal(t, http.StatusTooManyRequests, res.Body.Error.Status)
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusNotFound, res.Status)
+	require.Empty(t, res.Headers.Get("RateLimit-Limit"))
 }
 
-func TestWorkspaceRateLimit_EnforcesLimit(t *testing.T) {
+func TestWorkspaceRateLimit_ReadsDoNotConsumeWriteAllowance(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	ws := h.CreateWorkspace()
 	rootKey := h.CreateRootKey(ws.ID)
 
-	// Allow exactly 2 requests per 60s window.
 	upsertWorkspaceLimits(t, h, ws.ID, sql.NullInt32{Valid: true, Int32: 2})
 
 	route := &handler.Handler{
@@ -116,6 +117,12 @@ func TestWorkspaceRateLimit_EnforcesLimit(t *testing.T) {
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)
+	writeRoute := &setoverride.Handler{
+		DB:             h.DB,
+		Auditlogs:      h.Auditlogs,
+		NamespaceCache: h.Caches.RatelimitNamespace,
+	}
+	h.Register(writeRoute)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -127,16 +134,30 @@ func TestWorkspaceRateLimit_EnforcesLimit(t *testing.T) {
 		Identifier: "test",
 	}
 
-	// First two requests should pass rate limiting
-	res1 := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-	require.NotEqual(t, http.StatusTooManyRequests, res1.Status)
+	for range 3 {
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Empty(t, res.Headers.Get("RateLimit-Limit"))
+	}
 
-	res2 := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-	require.NotEqual(t, http.StatusTooManyRequests, res2.Status)
+	writeRequest := setoverride.Request{
+		Namespace:  req.Namespace,
+		Identifier: req.Identifier,
+		Limit:      10,
+		Duration:   1000,
+	}
+	for range 2 {
+		res := testutil.CallRoute[setoverride.Request, openapi.NotFoundErrorResponse](h, writeRoute, headers, writeRequest)
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, "2", res.Headers.Get("RateLimit-Limit"))
+	}
 
-	// Third request should be rate limited
-	res3 := testutil.CallRoute[handler.Request, openapi.TooManyRequestsErrorResponse](h, route, headers, req)
-	require.Equal(t, http.StatusTooManyRequests, res3.Status)
+	blocked := testutil.CallRoute[setoverride.Request, openapi.TooManyRequestsErrorResponse](h, writeRoute, headers, writeRequest)
+	require.Equal(t, http.StatusTooManyRequests, blocked.Status)
+	require.Equal(t, "https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited", blocked.Body.Error.Type)
+
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusNotFound, res.Status)
 }
 
 func upsertWorkspaceLimits(

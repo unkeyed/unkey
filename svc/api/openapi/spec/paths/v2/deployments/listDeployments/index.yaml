@@ -22,6 +22,7 @@ post:
     one environment is not sufficient for a request that spans more than that
     environment.
   operationId: deployments.listDeployments
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listDeployments
   security:
     - bearer: []
