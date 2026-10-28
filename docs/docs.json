@@ -249,6 +249,7 @@
                         "group": "Authentication",
                         "pages": [
                           "errors/unkey/authentication/credential_rejected",
+                          "errors/unkey/authentication/device_login_expired",
                           "errors/unkey/authentication/key_not_found",
                           "errors/unkey/authentication/malformed",
                           "errors/unkey/authentication/missing",

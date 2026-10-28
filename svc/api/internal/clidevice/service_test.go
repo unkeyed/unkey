@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/auth/workos"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -54,9 +55,11 @@ func newService(h *testutil.Harness, membership mem) *Service {
 		DB:               h.DB,
 		Auditlogs:        h.Auditlogs,
 		Clock:            h.Clock,
+		Ratelimit:        h.Ratelimit,
 		Memberships:      membership,
 		DashboardBaseURL: "http://localhost:3000",
 		Signer:           signer,
+		SessionCache:     cache.NewNoopCache[string, SessionVerdict](),
 	}
 }
 
@@ -91,7 +94,7 @@ func permissionOnlyDeveloperHas(t *testing.T, workspaceID string) string {
 	return ""
 }
 
-func TestApproveRejectsMissingMaliciousAndOverscopedPermissions(t *testing.T) {
+func TestApproveRejectsMaliciousAndOverscopedPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	svc := newService(h, mem{})
@@ -100,9 +103,6 @@ func TestApproveRejectsMissingMaliciousAndOverscopedPermissions(t *testing.T) {
 
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.7", UserAgent: "unkey-cli/1.0"})
 	require.NoError(t, err)
-
-	err = svc.Approve(t.Context(), ApproveRequest{Principal: developer, UserCode: started.UserCode, Permissions: nil})
-	require.Equal(t, codes.App.Validation.InvalidInput.URN(), codeOf(t, err))
 
 	err = svc.Approve(t.Context(), ApproveRequest{Principal: developer, UserCode: started.UserCode, Permissions: []string{"not a permission"}})
 	require.Equal(t, codes.App.Validation.InvalidInput.URN(), codeOf(t, err))
@@ -136,6 +136,9 @@ func TestPollIssuesASessionInsteadOfARootKey(t *testing.T) {
 	userID := uid.New(uid.TestPrefix)
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.8", UserAgent: "unkey-cli/1.0"})
 	require.NoError(t, err)
+	require.Equal(t, "http://localhost:3000/cli/device?user_code="+started.UserCode, started.VerificationURL)
+	require.Equal(t, int32(deviceTTL/time.Second), started.ExpiresIn)
+	require.EqualValues(t, pollIntervalSeconds, started.Interval)
 
 	pending, err := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID, RemoteIP: "127.0.0.1", UserAgent: "unkey-cli"})
 	require.NoError(t, err)

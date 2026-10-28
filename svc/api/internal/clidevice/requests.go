@@ -11,12 +11,11 @@ type StartRequest struct {
 
 // Started is the secret and the code the CLI shows.
 type Started struct {
-	LoginID                 string
-	UserCode                string
-	VerificationURI         string
-	VerificationURIComplete string
-	ExpiresIn               int32
-	Interval                int32
+	LoginID         string
+	UserCode        string
+	VerificationURL string
+	ExpiresIn       int32
+	Interval        int32
 }
 
 // GetRequest loads one authorization for the approval page.
@@ -38,7 +37,6 @@ type Authorization struct {
 }
 
 // ApproveRequest records the permissions the dashboard user granted.
-// Permissions must already be a subset of the approver's role.
 type ApproveRequest struct {
 	Principal   *principal.Principal
 	UserCode    string
@@ -51,7 +49,6 @@ type DenyRequest struct {
 	UserCode  string
 }
 
-// PollRequest is an unauthenticated cli.pollDeviceLogin call.
 type PollRequest struct {
 	LoginID   string
 	RemoteIP  string
@@ -60,14 +57,10 @@ type PollRequest struct {
 
 // PollResult is the current login. Tokens are set only when Status is complete.
 type PollResult struct {
-	Status       PollStatus
-	Interval     int32
-	Detail       string
-	AccessToken  string
-	RefreshToken string
-	ExpiresIn    int64
-	WorkspaceID  string
-	SessionID    string
+	Status   PollStatus
+	Interval int32
+	Detail   string
+	Tokens
 }
 
 // RefreshRequest exchanges a refresh token for a new pair.

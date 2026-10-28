@@ -4,56 +4,52 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 
-	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/db"
 	principalpermissions "github.com/unkeyed/unkey/svc/api/internal/principal"
 )
 
 // Get returns the authorization behind a user code.
 func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error) {
-	if err := RequireDashboardSession(req.Principal); err != nil {
+	if _, err := RequireDashboardSession(req.Principal); err != nil {
 		return Authorization{}, err
 	}
-	code, err := normalizeUserCode(req.UserCode)
-	if err != nil {
-		return Authorization{}, err
-	}
-	row, err := db.Query.FindDeviceAuthorizationByUserCode(ctx, s.DB.RO(), code)
+
+	row, err := db.Query.FindDeviceAuthorizationByUserCode(ctx, s.DB.RO(), normalizeUserCode(req.UserCode))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return Authorization{}, loginNotFound()
 		}
 		return Authorization{}, err
 	}
-	return authorizationFrom(s.present(row)), nil
+	return Authorization{
+		UserCode:           row.UserCode,
+		DeviceName:         row.DeviceName.String,
+		RequesterIP:        row.RequesterIp.String,
+		RequesterUserAgent: row.RequesterUserAgent.String,
+		Status:             string(s.authorizationStatus(row)),
+		WorkspaceID:        row.WorkspaceID.String,
+		CreatedAt:          row.CreatedAt,
+		ExpiresAt:          row.ExpiresAt,
+	}, nil
 }
 
 // Approve stores the permissions the dashboard user granted.
-// The handler checks the subset first. This checks it again so a caller of
-// the service cannot skip it.
 func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 	if err := s.requireEnabled(); err != nil {
 		return err
 	}
-	if err := RequireDashboardSession(req.Principal); err != nil {
-		return err
-	}
-	code, err := normalizeUserCode(req.UserCode)
+	source, err := RequireDashboardSession(req.Principal)
 	if err != nil {
 		return err
 	}
+
 	validated, err := principalpermissions.ValidateDelegatedPermissions(ctx, req.Principal, req.Permissions)
 	if err != nil {
 		return err
 	}
-	if len(validated) == 0 {
-		return invalid("Select at least one permission.")
-	}
-	source, ok := req.Principal.Source.(principal.JWTSource)
-	if !ok {
-		return dashboardSessionRequired()
-	}
+
 	rolesJSON, err := json.Marshal(source.Roles)
 	if err != nil {
 		return err
@@ -64,7 +60,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 	}
 
 	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, code)
+		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
 				return loginNotFound()
@@ -77,6 +73,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 		if row.ApproverUserID.Valid && row.ApproverUserID.String != req.Principal.Subject.ID {
 			return forbidden("Another account already approved this login.")
 		}
+
 		workspace, err := db.Query.FindWorkspaceByID(ctx, tx, req.Principal.AuthorizedWorkspaceID)
 		if err != nil {
 			return err
@@ -84,14 +81,27 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 		if !workspaceUsable(workspace) {
 			return forbidden("This workspace cannot approve a CLI login.")
 		}
+
 		n, err := db.Query.ApproveDeviceAuthorization(ctx, tx, db.ApproveDeviceAuthorizationParams{
-			WorkspaceID:    sql.NullString{String: req.Principal.AuthorizedWorkspaceID, Valid: true},
-			ApproverUserID: sql.NullString{String: req.Principal.Subject.ID, Valid: true},
-			ApproverName:   sql.NullString{String: req.Principal.Subject.Name, Valid: req.Principal.Subject.Name != ""},
-			ApproverRoles:  rolesJSON,
-			Permissions:    permsJSON,
-			ApprovedAt:     sql.NullInt64{Int64: s.Clock.Now().UnixMilli(), Valid: true},
-			ID:             row.ID,
+			WorkspaceID: sql.NullString{
+				String: req.Principal.AuthorizedWorkspaceID,
+				Valid:  true,
+			},
+			ApproverUserID: sql.NullString{
+				String: req.Principal.Subject.ID,
+				Valid:  true,
+			},
+			ApproverName: sql.NullString{
+				String: req.Principal.Subject.Name,
+				Valid:  req.Principal.Subject.Name != "",
+			},
+			ApproverRoles: rolesJSON,
+			Permissions:   permsJSON,
+			ApprovedAt: sql.NullInt64{
+				Int64: s.Clock.Now().UnixMilli(),
+				Valid: true,
+			},
+			ID: row.ID,
 		})
 		if err != nil {
 			return err
@@ -108,15 +118,12 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 	if err := s.requireEnabled(); err != nil {
 		return err
 	}
-	if err := RequireDashboardSession(req.Principal); err != nil {
+	if _, err := RequireDashboardSession(req.Principal); err != nil {
 		return err
 	}
-	code, err := normalizeUserCode(req.UserCode)
-	if err != nil {
-		return err
-	}
+
 	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, code)
+		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
 				return loginNotFound()
@@ -132,6 +139,7 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 		if row.ApproverUserID.Valid && row.ApproverUserID.String != req.Principal.Subject.ID {
 			return forbidden("Another account already approved this login.")
 		}
+
 		n, err := db.Query.DenyDeviceAuthorization(ctx, tx, row.ID)
 		if err != nil {
 			return err
@@ -143,18 +151,17 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 	})
 }
 
-func (s *Service) present(row db.DeviceAuthorization) db.DeviceAuthorization {
+func (s *Service) authorizationStatus(row db.DeviceAuthorization) db.DeviceAuthorizationsStatus {
 	if row.ExpiresAt <= s.Clock.Now().UnixMilli() &&
 		row.Status != db.DeviceAuthorizationsStatusConsumed &&
 		row.Status != db.DeviceAuthorizationsStatusDenied {
-		row.Status = db.DeviceAuthorizationsStatusExpired
+		return db.DeviceAuthorizationsStatusExpired
 	}
-	return row
+	return row.Status
 }
 
 func (s *Service) rejectClosed(row db.DeviceAuthorization) error {
-	row = s.present(row)
-	switch row.Status {
+	switch s.authorizationStatus(row) {
 	case db.DeviceAuthorizationsStatusConsumed:
 		return invalid("This login was already used.")
 	case db.DeviceAuthorizationsStatusDenied:
@@ -168,15 +175,6 @@ func (s *Service) rejectClosed(row db.DeviceAuthorization) error {
 	}
 }
 
-func authorizationFrom(row db.DeviceAuthorization) Authorization {
-	return Authorization{
-		UserCode:           row.UserCode,
-		DeviceName:         row.DeviceName.String,
-		RequesterIP:        row.RequesterIp.String,
-		RequesterUserAgent: row.RequesterUserAgent.String,
-		Status:             string(row.Status),
-		WorkspaceID:        row.WorkspaceID.String,
-		CreatedAt:          row.CreatedAt,
-		ExpiresAt:          row.ExpiresAt,
-	}
+func normalizeUserCode(raw string) string {
+	return strings.ToUpper(strings.TrimSpace(raw))
 }

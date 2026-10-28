@@ -6,4 +6,4 @@ properties:
   meta:
     $ref: ../../../../common/Meta.yaml
   data:
-    $ref: ./V2CliRefreshTokenResponseData.yaml
+    $ref: ./V2CliExchangeTokenResponseData.yaml
