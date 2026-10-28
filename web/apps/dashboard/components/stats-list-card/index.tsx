@@ -1,7 +1,8 @@
 "use client";
 
 import { formatNumber } from "@/lib/fmt";
-import { InfoTooltip } from "@unkey/ui";
+import { match } from "@unkey/match";
+import { InfoTooltip, Skeleton } from "@unkey/ui";
 import { cn } from "cn";
 import type { Route } from "next";
 import Link from "next/link";
@@ -139,26 +140,27 @@ export function ChartWell({
 }) {
   return (
     <div className={cn("relative h-12 w-full", className)}>
-      {chart.type === "loading" ? (
-        <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
-          Loading...
-        </div>
-      ) : chart.type === "error" ? (
-        <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
-          Activity unavailable
-        </div>
-      ) : chart.type === "empty" ? (
-        <>
-          <BaselineTicks buckets={chart.buckets} />
-          <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
-            No activity
-          </div>
-        </>
-      ) : (
-        <StatsSparkline data={chart.points} labels={labels} />
-      )}
+      {match(chart)
+        .with({ type: "loading" }, () => <Skeleton className="absolute inset-0" />)
+        .with({ type: "error" }, () => <ChartNote>Activity unavailable</ChartNote>)
+        .with({ type: "empty" }, ({ buckets }) => (
+          <>
+            <BaselineTicks buckets={buckets} />
+            <ChartNote>No activity</ChartNote>
+          </>
+        ))
+        .with({ type: "data" }, ({ points }) => <StatsSparkline data={points} labels={labels} />)
+        .exhaustive()}
       {/* Painted last so the dashed baseline reads in front of the bar bases. */}
       <div className="absolute inset-x-0 bottom-0 border-t border-dashed border-gray-5 pointer-events-none" />
+    </div>
+  );
+}
+
+function ChartNote({ children }: { children: ReactNode }) {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
+      {children}
     </div>
   );
 }

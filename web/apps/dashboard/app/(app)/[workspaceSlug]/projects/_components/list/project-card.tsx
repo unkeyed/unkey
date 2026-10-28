@@ -2,6 +2,7 @@ import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useMeasuredWidth } from "@/hooks/use-measured-width";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { ProjectApp } from "@/lib/collections/deploy/project-cards";
+import { plural } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip, Skeleton } from "@unkey/ui";
@@ -13,7 +14,7 @@ import {
 } from "../../[projectId]/apps/[appId]/(overview)/hooks/use-warm-app-page";
 import { AppDetailHoverCard, AppRow } from "../apps/app-row";
 import { ProjectActionsButton } from "./project-actions";
-import { appNoun, projectSummaryOf } from "./project-summary";
+import { projectSummaryOf } from "./project-summary";
 
 type ProjectCardProps = {
   ref: Ref<HTMLDivElement>;
@@ -37,7 +38,7 @@ export function ProjectCard({ ref, warm, name, projectId, apps, isLoading }: Pro
   const { appsByRecency, appsLabel } = projectSummaryOf(apps);
   const visible = appsByRecency.slice(0, MAX_VISIBLE_APPS);
   const rest = appsByRecency.slice(MAX_VISIBLE_APPS);
-  const restLabel = `+${rest.length} more ${appNoun(rest.length)}`;
+  const restLabel = `+${plural(rest.length, "more app")}`;
 
   const { width, measureRef } = useMeasuredWidth<HTMLDivElement>();
 

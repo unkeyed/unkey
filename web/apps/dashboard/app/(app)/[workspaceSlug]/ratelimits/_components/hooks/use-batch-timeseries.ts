@@ -49,15 +49,14 @@ export const useBatchRatelimitTimeseries = (namespaceIds: string[]) => {
     return { startTime: start, endTime: end };
   }, [filters, timestamp]);
 
-  const { data, isLoading, isError, isPreviousData } =
-    trpc.ratelimit.logs.queryRatelimitTimeseriesBatch.useQuery(
-      { namespaceIds, startTime, endTime },
-      {
-        enabled: namespaceIds.length > 0,
-        refetchInterval: 10_000,
-        keepPreviousData: true,
-      },
-    );
+  const { data, isLoading, isError } = trpc.ratelimit.logs.queryRatelimitTimeseriesBatch.useQuery(
+    { namespaceIds, startTime, endTime },
+    {
+      enabled: namespaceIds.length > 0,
+      refetchInterval: 10_000,
+      keepPreviousData: true,
+    },
+  );
 
   const timeseriesByNamespace = useMemo(() => {
     if (!data) {
@@ -65,11 +64,6 @@ export const useBatchRatelimitTimeseries = (namespaceIds: string[]) => {
     }
 
     const result: Record<string, NamespaceTimeseries> = {};
-    if (!isPreviousData) {
-      for (const nsId of namespaceIds) {
-        result[nsId] = [];
-      }
-    }
     for (const [nsId, points] of Object.entries(data.timeseriesByNamespace)) {
       result[nsId] = points.map((ts) => ({
         displayX: formatTimestampForChart(ts.x, data.granularity),
@@ -80,7 +74,7 @@ export const useBatchRatelimitTimeseries = (namespaceIds: string[]) => {
       }));
     }
     return result;
-  }, [data, isPreviousData, namespaceIds]);
+  }, [data]);
 
   return { timeseriesByNamespace, isLoading, isError, granularity: data?.granularity };
 };
