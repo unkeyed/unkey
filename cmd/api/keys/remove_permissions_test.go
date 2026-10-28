@@ -26,7 +26,7 @@ func TestRemovePermissions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := testutil.CaptureRequestWithData[openapi.V2KeysRemovePermissionsRequestBody](t, Cmd(), tt.args, []any{})
+			req := testutil.CaptureRequestWithData[openapi.V2KeysRemovePermissionsRequestBody](t, Cmd(), tt.args+" --yes", []any{})
 			require.Equal(t, tt.want, req)
 		})
 	}

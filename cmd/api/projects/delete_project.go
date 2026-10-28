@@ -33,6 +33,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -41,15 +42,13 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Projects.DeleteProject, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(cmd, res.V2ProjectsDeleteProjectResponseBody)
+			req, err := util.RequestBody(cmd, components.V2ProjectsDeleteProjectRequestBody{Project: cmd.String("project")})
+			if err != nil {
+				return err
 			}
-			req := components.V2ProjectsDeleteProjectRequestBody{Project: cmd.String("project")}
+			if err := util.Confirm(cmd, fmt.Sprintf("Delete project %q and all its apps, environments, deployments, and domains?", req.Project)); err != nil {
+				return err
+			}
 			res, err := client.Projects.DeleteProject(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
