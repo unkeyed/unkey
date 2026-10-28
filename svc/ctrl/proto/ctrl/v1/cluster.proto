@@ -98,6 +98,47 @@ message GetDesiredDeploymentStateRequest {
   string deployment_id = 2;
 }
 
+message PrivateNetworkStateChunk {
+  repeated PrivateNetworkConnection connections = 1;
+  bool complete = 2;
+  // total is the number of connections in the whole snapshot, set on the complete chunk.
+  uint64 total = 3;
+  PrivateNetworkTopology topology = 4;
+  string version = 5;
+  // snapshot_id names the five-second window in which the last database change
+  // Ctrl applied committed. Ctrl instances at the same position send the same
+  // snapshot_id, and different values reflect different positions. Until Ctrl
+  // applies a change with a known commit time, it is a random value.
+  string snapshot_id = 6;
+  // unchanged is sent only in response to a matching known_version. Reuse the
+  // last complete snapshot; an empty response without it is not an empty catalog.
+  bool unchanged = 7;
+  // certified is set on the complete chunk when the snapshot's position
+  // committed at most ten seconds ago. Krane deletes a grant only after it is
+  // absent from certified snapshots with two snapshot_id values. Ctrl never
+  // certifies snapshots of a keyspace with more than one shard.
+  bool certified = 8;
+}
+
+message PrivateNetworkTopology {
+  uint32 version = 1;
+  repeated ClusterKey clusters = 2;
+}
+
+message PrivateNetworkConnection {
+  string workspace_id = 1;
+  string project_id = 2;
+  string target_app_id = 3;
+  string target_app_slug = 4;
+  string k8s_namespace = 5;
+  string target_deployment_id = 6;
+  int32 target_port = 7;
+  string target_environment_id = 8;
+  string caller_deployment_id = 9;
+  string connection_id = 10;
+  string connection_name = 11;
+}
+
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
 // Used by runActualStateReportLoop to inform the control plane of K8s cluster state.
 message ReportDeploymentStatusRequest {
