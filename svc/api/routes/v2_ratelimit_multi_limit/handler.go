@@ -9,6 +9,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/gcra"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -39,6 +41,7 @@ type Handler struct {
 	DB              db.Database
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
 	Ratelimit       ratelimit.Service
+	GlobalRatelimit *gcra.Limiter
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
 }
@@ -166,9 +169,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Build ratelimit requests for all checks
 	ratelimitReqs := make([]ratelimit.RatelimitRequest, len(req))
 	checkMetadata := make([]checkMeta, len(req))
+	modes := make([]db.RatelimitNamespacesGlobalRatelimitMode, len(req))
 
 	for i, check := range req {
 		ns := namespaces[check.Namespace]
+		modes[i] = ns.GlobalRatelimitMode
 
 		if ns.DeletedAtM.Valid {
 			return fault.New("namespace was deleted",
@@ -208,9 +213,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Batch rate limit all requests using RatelimitMany
+	// Batch rate limit all requests
 	start := time.Now()
-	results, err := h.Ratelimit.RatelimitMany(ctx, ratelimitReqs)
+	var results []ratelimit.RatelimitResponse
+	system := "regional"
+	mode := gcra.ModeOf(modes...)
+	if mode == db.RatelimitNamespacesGlobalRatelimitModeOn {
+		system = "gcra"
+		results, err = h.GlobalRatelimit.Allow(ctx, ratelimitReqs)
+	} else {
+		results, err = h.Ratelimit.RatelimitMany(ctx, ratelimitReqs)
+	}
+	metrics.RatelimitDecisionDuration.WithLabelValues("multi_limit", system).Observe(time.Since(start).Seconds())
+	if err == nil && mode == db.RatelimitNamespacesGlobalRatelimitModeShadow {
+		passed := true
+		for _, result := range results {
+			passed = passed && result.Success
+		}
+		h.GlobalRatelimit.Shadow(ctx, "multi_limit", ratelimitReqs, passed)
+	}
+	if _, coded := fault.GetCode(err); coded {
+		return err
+	}
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -389,16 +413,16 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principa
 			for _, name := range names {
 				id := nameToID[name]
 				result[name] = db.FindRatelimitNamespace{
-					ID:                 id,
-					WorkspaceID:        principal.AuthorizedWorkspaceID,
-					ProjectID:          projectID,
-					Name:               name,
-					UseGlobalRatelimit: false,
-					CreatedAtM:         now,
-					UpdatedAtM:         sql.NullInt64{Valid: false, Int64: 0},
-					DeletedAtM:         sql.NullInt64{Valid: false, Int64: 0},
-					DirectOverrides:    make(map[string]db.FindRatelimitNamespaceLimitOverride),
-					WildcardOverrides:  make([]db.FindRatelimitNamespaceLimitOverride, 0),
+					ID:                  id,
+					WorkspaceID:         principal.AuthorizedWorkspaceID,
+					ProjectID:           projectID,
+					Name:                name,
+					GlobalRatelimitMode: db.RatelimitNamespacesGlobalRatelimitModeOff,
+					CreatedAtM:          now,
+					UpdatedAtM:          sql.NullInt64{Valid: false, Int64: 0},
+					DeletedAtM:          sql.NullInt64{Valid: false, Int64: 0},
+					DirectOverrides:     make(map[string]db.FindRatelimitNamespaceLimitOverride),
+					WildcardOverrides:   make([]db.FindRatelimitNamespaceLimitOverride, 0),
 				}
 			}
 

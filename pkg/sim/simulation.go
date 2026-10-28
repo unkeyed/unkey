@@ -49,34 +49,45 @@ type apply[S any] func(*Simulation[S]) *Simulation[S]
 //	    }),
 //	)
 func New[State any](seed Seed, fns ...apply[State]) *Simulation[State] {
-	// Create a source for reproducible random number generation
-
 	// nolint:gosec
-	rng := rand.New(rand.NewChaCha8(seed))
-	// Initialize the simulation
+	s := NewWithRand(rand.New(rand.NewChaCha8(seed)), fns...)
+	s.seed = seed
+	return s
+}
+
+// NewWithRand is like New, but every random choice comes from rng. A fuzz
+// test uses it to drive the simulation from the fuzzer's bytes.
+func NewWithRand[State any](rng *rand.Rand, fns ...apply[State]) *Simulation[State] {
 	s := &Simulation[State]{
 		clock:       clock.NewTestClock(time.UnixMilli(2000000000000)),
-		seed:        seed,
-		rng:         rng,                   // Use our custom source
-		ticks:       rng.Int64N(1_000_000), // Default to a reasonable number
+		seed:        Seed{},
+		rng:         rng,
+		ticks:       rng.Int64N(1_000_000),
 		timePerTick: time.Duration(1+rng.IntN(10)) * time.Millisecond,
 		state:       nil,
 		Errors:      []error{},
 		applied:     0,
-		eventStats:  make(map[string]int), // Initialize event stats map
+		eventStats:  make(map[string]int),
 		validators:  []Validator[State]{},
 	}
-
-	// Apply configuration functions
 	for _, fn := range fns {
 		s = fn(s)
 		s.applied++
 	}
 	return s
 }
+
 func WithValidator[S any](validator Validator[S]) apply[S] {
 	return func(s *Simulation[S]) *Simulation[S] {
 		s.validators = append(s.validators, validator)
+		return s
+	}
+}
+
+// WithTicks sets how many events Run executes.
+func WithTicks[S any](ticks int64) apply[S] {
+	return func(s *Simulation[S]) *Simulation[S] {
+		s.ticks = ticks
 		return s
 	}
 }

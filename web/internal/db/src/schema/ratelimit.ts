@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable, unique, uniqueIndex } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  boolean,
+  index,
+  mysqlEnum,
+  mysqlTable,
+  unique,
+  uniqueIndex,
+} from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
@@ -14,7 +22,15 @@ export const ratelimitNamespaces = mysqlTable(
     workspaceId: id("workspace_id").notNull(),
     projectId: id("project_id").notNull(),
     name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
+    // Replaced by global_ratelimit_mode. Running API pods still select it, so
+    // drop it only after they stop.
     useGlobalRatelimit: boolean("use_global_ratelimit").notNull().default(false),
+    // off: decide with the old limiter only. shadow: decide with the old
+    // limiter, and also run the global limiter for metrics only. on: decide
+    // with the global limiter only.
+    globalRatelimitMode: mysqlEnum("global_ratelimit_mode", ["off", "shadow", "on"])
+      .notNull()
+      .default("off"),
 
     ...lifecycleDatesMigration,
   },

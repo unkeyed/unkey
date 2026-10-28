@@ -25,14 +25,14 @@ func newName() string {
 	return uid.New("email.outbound")
 }
 
-func findNamespace(t *testing.T, h *testutil.Harness, workspaceID, name string) (db.RatelimitNamespace, bool) {
+func findNamespace(t *testing.T, h *testutil.Harness, workspaceID, name string) (db.FindRatelimitNamespaceByNameRow, bool) {
 	t.Helper()
 	ns, err := db.Query.FindRatelimitNamespaceByName(t.Context(), h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
 		WorkspaceID: workspaceID,
 		Name:        name,
 	})
 	if db.IsNotFound(err) {
-		return db.RatelimitNamespace{}, false
+		return db.FindRatelimitNamespaceByNameRow{}, false
 	}
 	require.NoError(t, err)
 	return ns, true

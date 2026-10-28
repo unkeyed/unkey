@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/flags"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/gcra"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -77,6 +78,11 @@ type Services struct {
 
 	// Ratelimit provides distributed rate limiting across API requests.
 	Ratelimit ratelimit.Service
+
+	// GlobalRatelimit decides the limits of namespaces whose
+	// `global_ratelimit_mode` is on, and runs the shadow decisions of
+	// namespaces in shadow mode. All pods share its state through MySQL.
+	GlobalRatelimit *gcra.Limiter
 
 	// Auditlogs records security-relevant events for compliance and debugging.
 	Auditlogs auditlogs.AuditLogService
