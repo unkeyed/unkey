@@ -1,25 +1,22 @@
 "use client";
 
 import { ListViews } from "@/components/list-views";
-import { LoadError } from "@/components/load-error";
-import { useListSearch } from "@/components/resource-search-input";
+import { TimeRangeFilter } from "@/components/logs/datetime/time-range-filter";
+import { ResourceSearchInput, useListSearch } from "@/components/resource-search-input";
 import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
-import { useListView } from "@/hooks/use-list-view";
 import { GRID_PAGE_SIZE } from "@/lib/list-limits";
 import { searchedListOf, useInfiniteList } from "@/lib/loadable/list";
 import { trpc } from "@/lib/trpc/client";
-import { match } from "@unkey/match";
-import { ResourceList } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { ApiCard, ApiRow, KEYSPACE_TABLE } from "./api-list-item";
-import { ApiListControls } from "./controls";
 import { EmptyKeyspaces } from "./empty-keyspaces";
+import { useFilters } from "./hooks/use-filters";
 
 export function ApiListClient({ workspaceSlug }: { workspaceSlug: string }) {
   const searchParams = useSearchParams();
   const isNewApi = searchParams?.get("new") === "true";
-  const [view, setView] = useListView("keyspaces-view");
   const search = useListSearch();
+  const { filters, updateFilters } = useFilters();
 
   const query = trpc.api.overview.query.useInfiniteQuery(
     { limit: GRID_PAGE_SIZE, search: search || undefined },
@@ -33,29 +30,27 @@ export function ApiListClient({ workspaceSlug }: { workspaceSlug: string }) {
     search,
   );
 
-  return match(list)
-    .with({ status: "empty" }, () => (
-      <EmptyKeyspaces workspaceSlug={workspaceSlug} isNewApi={isNewApi} />
-    ))
-    .otherwise((content) => (
-      <ResourceList>
-        <ApiListControls view={view} onViewChange={setView} />
-        {match(content)
-          .with({ status: "failed" }, ({ error, retry }) => (
-            <LoadError title="Could not load keyspaces" error={error} onRetry={retry} />
-          ))
-          .otherwise((shown) => (
-            <ListViews
-              view={view}
-              content={shown}
-              noun="keyspaces"
-              table={KEYSPACE_TABLE}
-              rowKey={(api) => api.id}
-              renderCard={(api) => <ApiCard api={api} />}
-              renderRow={(api, table) => <ApiRow api={api} table={table} />}
-              cardSkeleton={<StatsListCardSkeleton subtitle />}
-            />
-          ))}
-      </ResourceList>
-    ));
+  return (
+    <ListViews
+      list={list}
+      viewStorageKey="keyspaces-view"
+      noun="keyspaces"
+      failedTitle="Could not load keyspaces"
+      empty={<EmptyKeyspaces workspaceSlug={workspaceSlug} isNewApi={isNewApi} />}
+      controls={
+        <>
+          <ResourceSearchInput
+            label="Search keyspaces"
+            placeholder="Search keyspaces by name or ID"
+          />
+          <TimeRangeFilter filters={filters} updateFilters={updateFilters} look="list" />
+        </>
+      }
+      table={KEYSPACE_TABLE}
+      rowKey={(api) => api.id}
+      renderCard={(api) => <ApiCard api={api} />}
+      renderRow={(api) => <ApiRow api={api} />}
+      cardSkeleton={<StatsListCardSkeleton subtitle />}
+    />
+  );
 }

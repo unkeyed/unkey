@@ -1,6 +1,5 @@
 import { isCancelledError } from "@tanstack/react-query";
 import { useState } from "react";
-import { GRID_PAGE_SIZE } from "../list-limits";
 import { type Failure, type Loadable, type QueryResult, type Stale, fromQuery } from "./loadable";
 
 export type ListFooterState =
@@ -24,8 +23,6 @@ export type ListView<Row> =
 type NoMatch = { status: "noMatch"; search: string };
 
 export type SearchedListView<Row> = ListView<Row> | NoMatch;
-
-export type ListContent<Row> = Exclude<SearchedListView<Row>, { status: "failed" | "empty" }>;
 
 type ShownList<Row> = Extract<ListView<Row>, { status: "empty" | "ready" }>;
 
@@ -111,34 +108,52 @@ export function searchedListOf<View extends { status: string }>(
   return list;
 }
 
-export function useShowMore<Row>({
-  rows,
-  total,
-  isLoading,
+export function usePageLimit(search: string, pageSize: number) {
+  const [shown, setShown] = useState({ forSearch: search, limit: pageSize });
+  const limit = shown.forSearch === search ? shown.limit : pageSize;
+  return { limit, loadMore: () => setShown({ forSearch: search, limit: limit + pageSize }) };
+}
+
+export function shownListOf<Row>({
+  all,
+  matches,
   search,
-  pageSize = GRID_PAGE_SIZE,
+  limit,
+  loadMore,
 }: {
-  rows: readonly Row[];
-  total: number;
-  isLoading: boolean;
+  all: readonly Row[];
+  matches: (rows: readonly Row[]) => readonly Row[];
   search: string;
-  pageSize?: number;
-}): Exclude<SearchedListView<Row>, { status: "failed" }> {
-  const [limit, setLimit] = useState(pageSize);
-  const [limitSearch, setLimitSearch] = useState(search);
-  if (search !== limitSearch) {
-    setLimitSearch(search);
-    setLimit(pageSize);
+  limit: number;
+  loadMore: () => void;
+}): SearchedListView<Row> {
+  if (all.length === 0) {
+    return { status: "empty" };
   }
+  const rows = matches(all);
+  const footer: ListFooterState =
+    rows.length > limit ? { kind: "more", onLoadMore: loadMore } : HIDDEN;
+  return searchedListOf(toListView(rows.slice(0, limit), footer), search);
+}
+
+export function useShowMore<Row>({
+  all,
+  isLoading,
+  matches,
+  search,
+  pageSize,
+}: {
+  all: readonly Row[];
+  isLoading: boolean;
+  matches: (rows: readonly Row[]) => readonly Row[];
+  search: string;
+  pageSize: number;
+}): SearchedListView<Row> {
+  const { limit, loadMore } = usePageLimit(search, pageSize);
   if (isLoading) {
     return { status: "loading" };
   }
-  if (total === 0) {
-    return { status: "empty" };
-  }
-  const footer: ListFooterState =
-    rows.length > limit ? { kind: "more", onLoadMore: () => setLimit(limit + pageSize) } : HIDDEN;
-  return searchedListOf(toListView(rows.slice(0, limit), footer), search);
+  return shownListOf({ all, matches, search, limit, loadMore });
 }
 
 export function moreFooterOf({

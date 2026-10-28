@@ -1,54 +1,29 @@
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
+import { isTimeFilter, timeValuesOf, withTimeRange } from "@/components/logs/datetime/time-filters";
 import { IconCalendarOutline18 } from "@unkey/icons";
 import { useState } from "react";
-import type { DeploymentListFilterValue } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import { FilterTriggerButton } from "../filter-trigger-button";
 
 const TITLE_EMPTY_DEFAULT = "Select Time Range";
-const TIME_FIELDS: readonly string[] = ["startTime", "endTime", "since"];
 
 export const DeploymentListDatetime = () => {
   const [title, setTitle] = useState<string | null>(TITLE_EMPTY_DEFAULT);
   const { filters, updateFilters } = useFilters();
 
-  const hasTimeFilters = filters.some((f) => TIME_FIELDS.includes(f.field));
+  const timeFilters = filters.filter(isTimeFilter);
+  const hasTimeFilters = timeFilters.length > 0;
   const isLoading = hasTimeFilters && title === null;
   const displayTitle = hasTimeFilters ? (title ?? "Loading...") : TITLE_EMPTY_DEFAULT;
-
-  const timeValues = Object.fromEntries(
-    filters.filter((f) => TIME_FIELDS.includes(f.field)).map((f) => [f.field, f.value]),
-  );
 
   return (
     <DatetimePopover
       maxDate={new Date()}
       align="end"
-      initialTimeValues={timeValues}
-      onDateTimeChange={(startTime, endTime, since) => {
-        const next: DeploymentListFilterValue[] = filters.filter(
-          (f) => !TIME_FIELDS.includes(f.field),
-        );
-        if (since !== undefined) {
-          next.push({ field: "since", value: since, id: crypto.randomUUID(), operator: "is" });
-        } else if (startTime) {
-          next.push({
-            field: "startTime",
-            value: startTime,
-            id: crypto.randomUUID(),
-            operator: "is",
-          });
-          if (endTime) {
-            next.push({
-              field: "endTime",
-              value: endTime,
-              id: crypto.randomUUID(),
-              operator: "is",
-            });
-          }
-        }
-        updateFilters(next);
-      }}
+      initialTimeValues={timeValuesOf(timeFilters)}
+      onDateTimeChange={(startTime, endTime, since) =>
+        updateFilters(withTimeRange(filters, { startTime, endTime, since }))
+      }
       initialTitle={displayTitle}
       onSuggestionChange={setTitle}
     >

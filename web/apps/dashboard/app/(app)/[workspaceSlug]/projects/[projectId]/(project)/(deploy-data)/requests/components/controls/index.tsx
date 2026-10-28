@@ -3,7 +3,8 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { TimeRangeFilter } from "@/components/time-range-filter";
+import { TimeRangeFilter } from "@/components/logs/datetime/time-range-filter";
+import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
 import { useRequestLogsFilters } from "../../hooks/use-request-logs-filters";
 import { RequestLogsFilters } from "./components/request-logs-filters";
 import { RequestLogsLiveSwitch } from "./components/request-logs-live-switch";
@@ -21,7 +22,7 @@ export function RequestLogsControls() {
           filters={filters}
           updateFilters={updateFilters}
           look="logs"
-          defaultTitle="Last 6 hours"
+          defaultSince={DEFAULT_LOGS_SINCE}
         />
       </ControlsLeft>
       <ControlsRight>

@@ -30,8 +30,6 @@ export const PROJECT_TABLE = listTable({
 
 type ProjectItemProps = { project: Project; name: string };
 
-type ProjectRowItemProps = ProjectItemProps & { table: typeof PROJECT_TABLE };
-
 function useProjectListItem(project: Project, nearViewport: boolean) {
   const { apps, isLoading } = useProjectCard(project.id, { nearViewport });
   const { warmApp, cancelWarm } = useWarmAppPage();
@@ -67,7 +65,7 @@ export function ProjectGridItem({ project, name }: ProjectItemProps) {
   );
 }
 
-export function ProjectRowItem({ project, name, table }: ProjectRowItemProps) {
+export function ProjectRowItem({ project, name }: ProjectItemProps) {
   const { ref, isNear } = useNearViewport<HTMLLIElement>();
   const { apps, isLoading, warm } = useProjectListItem(project, isNear);
   const workspace = useWorkspaceNavigation();
@@ -76,7 +74,7 @@ export function ProjectRowItem({ project, name, table }: ProjectRowItemProps) {
   return (
     <ListTableRow
       ref={ref}
-      table={table}
+      table={PROJECT_TABLE}
       href={routes.projects.detail({ workspaceSlug: workspace.slug, projectId: project.id })}
       label={`View ${name} project`}
       {...warm}

@@ -23,18 +23,16 @@ export const APPS_TABLE = listTable({
 export function AppsTableRow({
   row,
   projectId,
-  table,
 }: {
   row: AppRowData;
   projectId: string;
-  table: typeof APPS_TABLE;
 }) {
   const { app, deployment } = row;
   const warm = useWarmAppHandlers(projectId, app.id);
 
   return (
     <ListTableRow
-      table={table}
+      table={APPS_TABLE}
       href={row.href}
       label={`View ${app.name}`}
       {...warm}

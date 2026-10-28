@@ -3,7 +3,7 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { TimeRangeFilter } from "@/components/time-range-filter";
+import { TimeRangeFilter } from "@/components/logs/datetime/time-range-filter";
 import { Separator } from "@unkey/ui";
 import { useFilters } from "../../hooks/use-filters";
 import type { WorkspaceProps } from "../logs-client";

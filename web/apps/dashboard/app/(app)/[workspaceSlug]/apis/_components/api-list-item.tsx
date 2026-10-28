@@ -1,11 +1,7 @@
 "use client";
 
 import { StatsListCard, type StatsListCardProps } from "@/components/stats-list-card";
-import {
-  StatsListRow,
-  type StatsListTable,
-  statsListTable,
-} from "@/components/stats-list-card/row";
+import { StatsListRow, statsListTable } from "@/components/stats-list-card/row";
 import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatNumber } from "@/lib/fmt";
@@ -48,6 +44,6 @@ export function ApiCard({ api }: { api: ApiOverview }) {
   return <StatsListCard {...useApiStats(api)} />;
 }
 
-export function ApiRow({ api, table }: { api: ApiOverview; table: StatsListTable }) {
-  return <StatsListRow table={table} {...useApiStats(api)} />;
+export function ApiRow({ api }: { api: ApiOverview }) {
+  return <StatsListRow table={KEYSPACE_TABLE} {...useApiStats(api)} />;
 }

@@ -1,3 +1,4 @@
+import { useRender } from "@base-ui/react/use-render";
 import type * as React from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
@@ -76,6 +77,87 @@ function ResourceListRow({
   );
 }
 
+function ResourceListGrid({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3", className)}
+      {...props}
+    />
+  );
+}
+
+type ResourceListColumn = {
+  id: string;
+  header: React.ReactNode;
+  width: string;
+};
+
+type ColumnsStyle = React.CSSProperties & Record<"--list-columns", string>;
+
+function ResourceListTable({
+  columns,
+  minWidth,
+  footer,
+  style,
+  children,
+  ...props
+}: React.ComponentProps<"div"> & {
+  columns: readonly ResourceListColumn[];
+  minWidth: number;
+  footer?: React.ReactNode;
+}) {
+  const columnsStyle: ColumnsStyle = {
+    ...style,
+    "--list-columns": columns.map((column) => column.width).join(" "),
+  };
+  return (
+    <ResourceListContent style={columnsStyle} {...props}>
+      <div className="overflow-x-auto">
+        <div style={{ minWidth }}>
+          <div
+            aria-hidden="true"
+            className="grid grid-cols-(--list-columns) items-center gap-4 border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12"
+          >
+            {columns.map((column) => (
+              <span key={column.id}>{column.header}</span>
+            ))}
+          </div>
+          {children}
+        </div>
+      </div>
+      {footer}
+    </ResourceListContent>
+  );
+}
+
+function ResourceListTableRow({
+  link,
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"li"> & { link?: React.ReactElement }) {
+  return (
+    <ResourceListItem
+      className={cn(
+        "grid h-12 grid-cols-(--list-columns) items-center gap-4 px-4 text-xs text-gray-12",
+        link && "transition-colors hover:bg-grayA-2 has-[>a:focus-visible]:bg-grayA-2",
+        className,
+      )}
+      {...props}
+    >
+      {link ? <ResourceListRowLink render={link} /> : null}
+      {children}
+    </ResourceListItem>
+  );
+}
+
+function ResourceListRowLink({ render }: { render: React.ReactElement }) {
+  return useRender({
+    render,
+    props: { className: "absolute inset-0 z-0 outline-hidden" },
+  });
+}
+
 function ResourceListFooter({
   variant = "framed",
   className,
@@ -115,10 +197,13 @@ export {
   ResourceListBody,
   ResourceListContent,
   ResourceListFooter,
+  ResourceListGrid,
   ResourceListHeader,
   ResourceListItem,
   ResourceListRow,
   ResourceListSearch,
   ResourceListShowMore,
+  ResourceListTable,
+  ResourceListTableRow,
 };
-export type { ResourceListFooterVariant };
+export type { ResourceListColumn, ResourceListFooterVariant };

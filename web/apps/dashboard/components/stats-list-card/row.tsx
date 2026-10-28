@@ -17,7 +17,7 @@ const COUNTED: Record<StatsChartState["type"], boolean> = {
   data: true,
 };
 
-export type StatsListTable = ReturnType<typeof statsListTable>;
+type StatsListTable = ReturnType<typeof statsListTable>;
 
 export function statsListTable({
   name,

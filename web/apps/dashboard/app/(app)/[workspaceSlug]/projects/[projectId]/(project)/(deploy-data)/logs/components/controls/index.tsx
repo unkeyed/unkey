@@ -5,7 +5,8 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { TimeRangeFilter } from "@/components/time-range-filter";
+import { TimeRangeFilter } from "@/components/logs/datetime/time-range-filter";
+import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
 import { useRuntimeLogsFilters } from "../../hooks/use-runtime-logs-filters";
 import { RuntimeLogsFilters } from "./components/runtime-logs-filters";
 import { RuntimeLogsLiveSwitch } from "./components/runtime-logs-live-switch";
@@ -23,7 +24,7 @@ export function RuntimeLogsControls() {
           filters={filters}
           updateFilters={updateFilters}
           look="logs"
-          defaultTitle="Last 6 hours"
+          defaultSince={DEFAULT_LOGS_SINCE}
         />
       </ControlsLeft>
       <ControlsRight>

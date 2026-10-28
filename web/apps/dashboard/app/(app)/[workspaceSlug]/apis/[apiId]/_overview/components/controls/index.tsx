@@ -4,7 +4,7 @@ import {
   ControlsRight,
 } from "@/components/logs/controls-container";
 import { HOUR_PLUS_OPTIONS } from "@/components/logs/datetime/constants";
-import { TimeRangeFilter } from "@/components/time-range-filter";
+import { TimeRangeFilter } from "@/components/logs/datetime/time-range-filter";
 import { useFilters } from "../../hooks/use-filters";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsRefresh } from "./components/logs-refresh";
@@ -20,7 +20,7 @@ export function KeysOverviewLogsControls({ apiId }: { apiId: string }) {
         <TimeRangeFilter
           filters={filters}
           updateFilters={updateFilters}
-          look="logsCompact"
+          look="logs"
           customOptions={HOUR_PLUS_OPTIONS}
         />
       </ControlsLeft>

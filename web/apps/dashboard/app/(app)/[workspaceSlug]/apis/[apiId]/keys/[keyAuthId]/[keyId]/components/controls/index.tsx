@@ -6,8 +6,8 @@ import {
   ControlsRight,
 } from "@/components/logs/controls-container";
 import { HOUR_PLUS_OPTIONS } from "@/components/logs/datetime/constants";
+import { TimeRangeFilter } from "@/components/logs/datetime/time-range-filter";
 import { MotionProvider } from "@/components/motion-provider";
-import { TimeRangeFilter } from "@/components/time-range-filter";
 import { formatNumber } from "@/lib/fmt";
 import { queryKeys } from "@/lib/query-keys";
 import { getUnkeyClient } from "@/lib/unkey-client";
@@ -45,7 +45,7 @@ export function KeysDetailsLogsControls({
           <TimeRangeFilter
             filters={filters}
             updateFilters={updateFilters}
-            look="logsCompact"
+            look="logs"
             customOptions={HOUR_PLUS_OPTIONS}
           />
           <AnimatePresence mode="wait">

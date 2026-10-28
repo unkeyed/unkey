@@ -1,7 +1,6 @@
 "use client";
 
 import { IconGridOutline18, IconSquareBulletListOutline18 } from "@unkey/icons";
-import { cn } from "../../lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "../tabs";
 
 export const RESOURCE_LIST_VIEWS = ["grid", "list"] as const;
@@ -34,7 +33,7 @@ export function ResourceListViewToggle({
           onValueChange(view);
         }
       }}
-      className={cn("md:ml-auto", className)}
+      className={className}
     >
       <TabsList aria-label="View" className="h-8 gap-0.5 border bg-raised p-0.5">
         {RESOURCE_LIST_VIEWS.map((view) => {

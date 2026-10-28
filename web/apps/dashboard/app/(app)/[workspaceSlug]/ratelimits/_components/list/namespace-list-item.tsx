@@ -1,11 +1,7 @@
 "use client";
 
 import { StatsListCard, type StatsListCardProps } from "@/components/stats-list-card";
-import {
-  StatsListRow,
-  type StatsListTable,
-  statsListTable,
-} from "@/components/stats-list-card/row";
+import { StatsListRow, statsListTable } from "@/components/stats-list-card/row";
 import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatMs } from "@/lib/ms";
@@ -75,6 +71,6 @@ export function NamespaceCard(props: NamespaceItemProps) {
   return <StatsListCard {...useNamespaceStats(props)} />;
 }
 
-export function NamespaceRow({ table, ...props }: NamespaceItemProps & { table: StatsListTable }) {
-  return <StatsListRow table={table} {...useNamespaceStats(props)} />;
+export function NamespaceRow(props: NamespaceItemProps) {
+  return <StatsListRow table={NAMESPACE_TABLE} {...useNamespaceStats(props)} />;
 }

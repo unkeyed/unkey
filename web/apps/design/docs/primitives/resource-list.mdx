@@ -13,6 +13,9 @@ description: Resource list components provide the shared layout for filterable l
 - `ResourceListContent` draws the list frame.
 - `ResourceListBody` and `ResourceListItem` render a semantic list.
 - `ResourceListRow` makes a whole row clickable, with `label` as its accessible name. Pass `expanded` while its panel is open.
+- `ResourceListGrid` lays out cards in one, two or three columns.
+- `ResourceListTable` draws a list frame with a column header. Each column has an `id`, a `header` and a grid `width`. Pass the pager as `footer`.
+- `ResourceListTableRow` puts its cells on the table columns. Pass a `link` element to make the whole row a link.
 - `ResourceListFooter` holds the Show more button. Use `variant="bare"` under a grid of cards.
 - `ResourceListShowMore` is the Show more button. Pass `loading` while a page loads.
 - `ResourceListViewToggle` switches between grid and list views. `useListView` stores the choice in the dashboard.
@@ -33,8 +36,8 @@ Keep the resource title and primary action in `PageHeader`.
 
 ### Header order
 
-Put search first, then filters, then `ResourceListViewToggle` on the right edge.
+Put search first, then filters, then `ResourceListViewToggle`. Give the toggle `md:ml-auto` to push it to the right edge.
 
 ### Interactive cells
 
-Give a copy button or other interactive cell in a clickable row the `relative` class, or the row takes its clicks.
+Give a copy button or other interactive cell in a clickable row the `relative` class, or the row takes its clicks. In a `ResourceListTableRow`, use `relative z-10`.

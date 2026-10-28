@@ -1,17 +1,23 @@
 import {
   ResourceList,
   ResourceListBody,
-  ResourceListContent,
   ResourceListFooter,
+  ResourceListGrid,
   ResourceListHeader,
-  ResourceListItem,
   ResourceListSearch,
   ResourceListShowMore,
+  ResourceListTable,
+  ResourceListTableRow,
   type ResourceListView,
   ResourceListViewToggle,
   SearchInput,
 } from "@unkey/ui";
 import { useState } from "react";
+
+const columns = [
+  { id: "name", header: "Keyspace", width: "minmax(0,1fr)" },
+  { id: "id", header: "ID", width: "minmax(0,1fr)" },
+];
 
 const keyspaces = [
   { id: "ks_2tQx8", name: "Production API" },
@@ -43,32 +49,42 @@ export default function ResourceListViewToggleExample() {
             placeholder="Search keyspaces"
           />
         </ResourceListSearch>
-        <ResourceListViewToggle value={view} onValueChange={setView} />
+        <ResourceListViewToggle className="md:ml-auto" value={view} onValueChange={setView} />
       </ResourceListHeader>
       {view === "grid" ? (
         <>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <ResourceListGrid>
             {shown.map((keyspace) => (
               <div key={keyspace.id} className="rounded-lg border bg-raised p-5 shadow-xs">
                 <div className="truncate font-medium text-gray-12 text-sm">{keyspace.name}</div>
                 <div className="font-mono text-gray-11 text-xs">{keyspace.id}</div>
               </div>
             ))}
-          </div>
+          </ResourceListGrid>
           {showMore ? <ResourceListFooter variant="bare">{showMore}</ResourceListFooter> : null}
         </>
       ) : (
-        <ResourceListContent>
+        <ResourceListTable
+          columns={columns}
+          minWidth={360}
+          footer={showMore ? <ResourceListFooter>{showMore}</ResourceListFooter> : null}
+        >
           <ResourceListBody>
             {shown.map((keyspace) => (
-              <ResourceListItem key={keyspace.id} className="flex h-12 items-center gap-4 px-4">
-                <span className="truncate font-medium text-gray-12 text-sm">{keyspace.name}</span>
-                <span className="font-mono text-gray-11 text-xs">{keyspace.id}</span>
-              </ResourceListItem>
+              <ResourceListTableRow
+                key={keyspace.id}
+                link={
+                  <a href={`#${keyspace.id}`}>
+                    <span className="sr-only">View {keyspace.name}</span>
+                  </a>
+                }
+              >
+                <span className="truncate font-medium text-sm">{keyspace.name}</span>
+                <span className="font-mono text-gray-11">{keyspace.id}</span>
+              </ResourceListTableRow>
             ))}
           </ResourceListBody>
-          {showMore ? <ResourceListFooter>{showMore}</ResourceListFooter> : null}
-        </ResourceListContent>
+        </ResourceListTable>
       )}
     </ResourceList>
   );

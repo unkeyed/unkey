@@ -3,7 +3,7 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { TimeRangeFilter } from "@/components/time-range-filter";
+import { TimeRangeFilter } from "@/components/logs/datetime/time-range-filter";
 import { Separator } from "@unkey/ui";
 import { useFilters } from "../../hooks/use-filters";
 import { useRetentionTimeRange } from "../../hooks/use-retention-time-range";
@@ -16,19 +16,17 @@ import { LogsSearch } from "./components/logs-search";
 
 export function LogsControls() {
   const { filters, updateFilters } = useFilters();
-  const { key, customOptions, minDate } = useRetentionTimeRange();
+  const retention = useRetentionTimeRange();
   return (
     <ControlsContainer>
       <ControlsLeft>
         <LogsSearch />
         <LogsFilters />
         <TimeRangeFilter
-          key={key}
           filters={filters}
           updateFilters={updateFilters}
           look="logs"
-          customOptions={customOptions}
-          minDate={minDate}
+          {...retention}
         />
         <Separator
           orientation="vertical"

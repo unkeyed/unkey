@@ -38,7 +38,10 @@ export function toAppRow(app: App, href: Route): AppRowData {
   };
 }
 
-export function filterApps<T extends { app: App }>(rows: T[], search: string): T[] {
+export function filterApps<T extends { app: App }>(
+  rows: readonly T[],
+  search: string,
+): readonly T[] {
   const query = search.trim().toLowerCase();
   if (!query) {
     return rows;

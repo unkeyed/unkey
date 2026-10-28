@@ -1,3 +1,5 @@
+import { getTimestampFromRelative } from "@/lib/duration";
+import { DAY_IN_MS } from "@/lib/trpc/routers/utils/constants";
 import type { OptionsType } from "./types";
 
 export const DEFAULT_OPTIONS: OptionsType = [
@@ -98,3 +100,15 @@ export const CUSTOM_OPTION_ID = DEFAULT_OPTIONS.find((o) => o.value === undefine
 export const HOUR_PLUS_OPTIONS = DEFAULT_OPTIONS.filter(
   (option) => !option.value || !option.value.endsWith("m"),
 );
+
+export function presetsWithinRetention(retentionDays: number | null): OptionsType {
+  if (retentionDays === null) {
+    return DEFAULT_OPTIONS;
+  }
+  const now = Date.now();
+  return DEFAULT_OPTIONS.filter(
+    (option) =>
+      option.value === undefined ||
+      now - getTimestampFromRelative(option.value, now) <= retentionDays * DAY_IN_MS,
+  );
+}

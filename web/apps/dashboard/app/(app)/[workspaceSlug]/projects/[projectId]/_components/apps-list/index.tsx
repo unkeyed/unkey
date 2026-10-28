@@ -1,18 +1,17 @@
 "use client";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { ListViews } from "@/components/list-views";
-import { useListSearch } from "@/components/resource-search-input";
+import { ResourceSearchInput, useListSearch } from "@/components/resource-search-input";
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
-import { useListView } from "@/hooks/use-list-view";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import { GRID_PAGE_SIZE } from "@/lib/list-limits";
 import { useShowMore } from "@/lib/loadable/list";
 import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
 import { IconCubeOutline18, IconPlusOutline18 } from "@unkey/icons";
-import { match } from "@unkey/match";
 import {
   Button,
   EmptyState,
@@ -21,12 +20,10 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  ResourceList,
 } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { AppCard, AppCardSkeleton } from "./app-card";
 import { filterApps, toAppRow } from "./app-row-model";
-import { AppsListControls } from "./apps-list-controls";
 import { APPS_TABLE, AppsTableRow } from "./apps-table";
 import { projectAppsQueryFor } from "./queries";
 
@@ -41,7 +38,6 @@ export function AppsList() {
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const search = useListSearch();
-  const [view, setView] = useListView("apps-view");
   // Without a Compute plan, creating an app opens the paywall instead.
   const openCreateApp = () =>
     gated
@@ -61,40 +57,36 @@ export function AppsList() {
     intervalMs: hasInFlightDeployment ? BUILDING_POLL_MS : IDLE_POLL_MS,
     enabled: true,
   });
-  const rows = filterApps(
-    apps.data.map((app) =>
+  const list = useShowMore({
+    all: apps.data.map((app) =>
       toAppRow(app, appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id })),
     ),
-    search,
-  );
-  const list = useShowMore({
-    rows,
-    total: apps.data.length,
     isLoading: apps.isLoading,
+    matches: (rows) => filterApps(rows, search),
     search,
+    pageSize: GRID_PAGE_SIZE,
   });
 
   return (
     <>
-      {match(list)
-        .with({ status: "empty" }, () => <NoApps onCreate={openCreateApp} />)
-        .otherwise((content) => (
-          <ResourceList>
-            <AppsListControls view={view} onViewChange={setView} />
-            <ListViews
-              view={view}
-              content={content}
-              noun="apps"
-              table={APPS_TABLE}
-              rowKey={(row) => row.app.id}
-              renderCard={(row) => <AppCard row={row} projectId={projectId} />}
-              renderRow={(row, table) => (
-                <AppsTableRow row={row} projectId={projectId} table={table} />
-              )}
-              cardSkeleton={<AppCardSkeleton />}
-            />
-          </ResourceList>
-        ))}
+      <ListViews
+        list={list}
+        viewStorageKey="apps-view"
+        noun="apps"
+        failedTitle="Could not load apps"
+        empty={<NoApps onCreate={openCreateApp} />}
+        controls={
+          <ResourceSearchInput
+            label="Search apps"
+            placeholder="Search by name, repo, image or domain"
+          />
+        }
+        table={APPS_TABLE}
+        rowKey={(row) => row.app.id}
+        renderCard={(row) => <AppCard row={row} projectId={projectId} />}
+        renderRow={(row) => <AppsTableRow row={row} projectId={projectId} />}
+        cardSkeleton={<AppCardSkeleton />}
+      />
       {planGate}
     </>
   );

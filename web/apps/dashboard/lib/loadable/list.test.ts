@@ -8,6 +8,7 @@ import {
   infiniteListOf,
   listOf,
   searchedListOf,
+  shownListOf,
 } from "./list";
 import { type QueryResult, fromQuery } from "./loadable";
 
@@ -435,6 +436,45 @@ describe("searchedListOf", () => {
 
   test("loading under a search stays loading", () => {
     expect(searchedListOf({ status: "loading" }, "acme")).toEqual({ status: "loading" });
+  });
+});
+
+describe("shownListOf", () => {
+  const loadMore = () => {};
+  const startsWithA = (rows: readonly string[]) => rows.filter((row) => row.startsWith("a"));
+
+  test("no rows at all is empty, even under a search", () => {
+    expect(shownListOf({ all: [], matches: startsWithA, search: "a", limit: 2, loadMore })).toEqual(
+      { status: "empty" },
+    );
+  });
+
+  test("rows that match none of the search are no match", () => {
+    expect(
+      shownListOf({ all: ["bee"], matches: startsWithA, search: "a", limit: 2, loadMore }),
+    ).toEqual({ status: "noMatch", search: "a" });
+  });
+
+  test("matches past the limit show the first page and a more footer", () => {
+    expect(
+      shownListOf({
+        all: ["ant", "ape", "bee", "asp"],
+        matches: startsWithA,
+        search: "a",
+        limit: 2,
+        loadMore,
+      }),
+    ).toEqual({
+      status: "ready",
+      rows: ["ant", "ape"],
+      footer: { kind: "more", onLoadMore: loadMore },
+    });
+  });
+
+  test("matches within the limit hide the footer", () => {
+    expect(
+      shownListOf({ all: ["ant", "bee"], matches: startsWithA, search: "a", limit: 2, loadMore }),
+    ).toEqual({ status: "ready", rows: ["ant"], footer: { kind: "hidden" } });
   });
 });
 
