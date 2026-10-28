@@ -4,12 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 )
+
+var errRefreshRotated = errors.New("refresh token rotated concurrently")
 
 // Refresh rotates the refresh token and returns a new access token.
 // The user's current WorkOS roles are intersected with the stored permissions.
@@ -113,21 +116,29 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 			return err
 		}
 		if n != 1 {
-			return unauthenticated("This refresh token was already used. Run unkey login again.")
+			return errRefreshRotated
 		}
 
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
-		if err := s.writeAudit(ctx, tx, auditEntry{
-			Event:       auditlog.CLISessionRefreshEvent,
-			Display:     "Refreshed CLI session " + row.ID,
-			UserID:      row.UserID,
-			UserName:    row.UserName.String,
-			WorkspaceID: workspace.ID,
-			SessionID:   row.ID,
-			DeviceName:  row.DeviceName.String,
-			RemoteIP:    req.RemoteIP,
-			UserAgent:   req.UserAgent,
-		}); err != nil {
+		if err := s.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
+			Event:         auditlog.CLISessionRefreshEvent,
+			Display:       "Refreshed CLI session " + row.ID,
+			WorkspaceID:   workspace.ID,
+			ActorType:     auditlog.UserActor,
+			ActorID:       row.UserID,
+			ActorName:     row.UserName.String,
+			ActorMeta:     map[string]any{"via": "cli", "session_id": row.ID, "device": row.DeviceName.String},
+			CorrelationID: "",
+			RemoteIP:      req.RemoteIP,
+			UserAgent:     req.UserAgent,
+			Targets: []auditlog.AuditLogTarget{{
+				Type:        auditlog.CLISessionTargetType,
+				ID:          row.ID,
+				Name:        row.DeviceName.String,
+				DisplayName: row.DeviceName.String,
+				Meta:        map[string]any{},
+			}},
+		}}); err != nil {
 			return err
 		}
 
@@ -140,6 +151,9 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		}
 		return nil
 	})
+	if errors.Is(err, errRefreshRotated) {
+		return s.refreshPreviousToken(ctx, req, hashRefreshToken(strings.TrimSpace(req.RefreshToken)), row.RefreshFamily)
+	}
 	return tokens, err
 }
 

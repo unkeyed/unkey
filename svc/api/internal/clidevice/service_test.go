@@ -294,6 +294,47 @@ func TestPreviousRefreshTokenWithinGraceDoesNotRevokeTheFamily(t *testing.T) {
 	require.NoError(t, err)
 }
 
+type overlappingMemberships struct {
+	arrived sync.WaitGroup
+	mu      sync.Mutex
+	calls   int
+}
+
+func (m *overlappingMemberships) ActiveRoles(context.Context, string, string) ([]string, bool, error) {
+	m.mu.Lock()
+	m.calls++
+	wait := m.calls <= 2
+	m.mu.Unlock()
+	if wait {
+		m.arrived.Done()
+		m.arrived.Wait()
+	}
+	return []string{"admin"}, true, nil
+}
+
+func TestOverlappingRefreshesHonorTheGraceWindow(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+	memberships := &overlappingMemberships{}
+	memberships.arrived.Add(2)
+	svc.Memberships = memberships
+	results := make(chan error, 2)
+	for range 2 {
+		go func() {
+			_, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+			results <- err
+		}()
+	}
+	for range 2 {
+		require.NoError(t, <-results)
+	}
+	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	require.False(t, row.RevokedAt.Valid)
+}
+
 func TestExpiredAndRevokedSessionsCannotRefresh(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
@@ -486,6 +527,18 @@ func TestRevokeAndListAreScopedToTheCaller(t *testing.T) {
 	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), owned.SessionID)
 	require.NoError(t, err)
 	require.True(t, row.RevokedAt.Valid)
+	logs := h.FindAuditLogsByTargetID(t.Context(), t, owned.SessionID)
+	found := false
+	for _, log := range logs {
+		if log.Event != "cli.session.revoke" {
+			continue
+		}
+		found = true
+		require.Equal(t, admin.Subject.ID, log.Actor.ID)
+		require.NotContains(t, log.Actor.Meta, "session_id")
+		require.NotContains(t, log.Actor.Meta, "device")
+	}
+	require.True(t, found)
 }
 
 func TestConcurrentPollsIssueOneSession(t *testing.T) {
