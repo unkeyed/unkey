@@ -180,6 +180,8 @@ A method match on `GET` also matches `HEAD`, because most frameworks answer `HEA
 
 Matching on a list of protected paths is fragile. A route you forget, or a spelling your framework accepts that the gateway doesn't, stays open. Put API key authentication on a broad scope instead: every request, or a prefix such as `/api/` that holds all your private routes. Serve public routes outside that prefix, or from a separate app.
 
+If a narrower path needs a stricter API key policy, such as `/api/admin/` with a different keyspace, put that policy above the broad one. The first API key policy that succeeds decides who the caller is, so a stricter policy below a broad one never runs.
+
 ## Put policies in the right order
 
 The gateway runs matching, enabled authentication, rate limit, firewall, and OpenAPI validation policies from top to bottom. In the dashboard, drag a row by its handle to reorder. Order matters in four ways:
