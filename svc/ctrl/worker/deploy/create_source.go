@@ -2,9 +2,12 @@ package deploy
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	imagename "github.com/google/go-containerregistry/pkg/name"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -67,7 +70,7 @@ func (w *Workflow) resolveSource(
 	switch source := req.GetSource().(type) {
 	case *hydrav1.DeployCreateRequest_Image:
 		// The caller's commit is recorded for display. None is looked up for an image.
-		return imageSource(source.Image.GetImage(), commit, imageref.Normalize), nil
+		return w.ownedImageSource(ctx, target.ProjectID, source.Image.GetImage(), commit, imageref.Normalize)
 
 	case *hydrav1.DeployCreateRequest_Git:
 		return w.resolveGitSource(target, commit, source.Git.GetPrNumber())
@@ -95,7 +98,7 @@ func (w *Workflow) resolveSource(
 					"OCI app %s has no image configured", target.AppID,
 				)), nil
 			}
-			return imageSource(target.OciImageReference.String, commit, imageref.Normalize), nil
+			return w.ownedImageSource(ctx, target.ProjectID, target.OciImageReference.String, commit, imageref.Normalize)
 		}
 
 		if target.GithubRepositoryFullName.Valid {
@@ -139,6 +142,63 @@ func imageSource(image string, commit gitCommit, normalize func(string) (string,
 		Commit:    commit,
 		Rejection: nil,
 	}
+}
+
+// ownedImageSource normalizes an image and refuses one from the build
+// repository unless the caller's project built it. The build repository is
+// [RegistryConfig.Repository], for example registry.depot.dev/<org>. Builds of
+// every project are pushed there as <projectID>-<deploymentID> tags, and ctrl
+// and krane pull from it with Unkey's credentials, so without this check one
+// project could deploy another project's build.
+func (w *Workflow) ownedImageSource(
+	ctx context.Context,
+	projectID, image string,
+	commit gitCommit,
+	normalize func(string) (string, error),
+) (resolvedSource, error) {
+	if w.registryConfig.Repository == "" {
+		return imageSource(image, commit, normalize), nil
+	}
+	normalized := imageSource(image, commit, normalize)
+	if normalized.Rejection != nil {
+		return normalized, nil
+	}
+
+	buildRepository, err := imagename.NewRepository(w.registryConfig.Repository, imagename.WeakValidation)
+	if err != nil {
+		return resolvedSource{}, fmt.Errorf("invalid build registry repository: %w", err)
+	}
+	reference, err := imagename.ParseReference(normalized.Source.Image, imagename.WeakValidation)
+	if err != nil {
+		return newRejectedSource(rejectf(
+			hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
+			"%q is not a valid image reference", normalized.Source.Image,
+		)), nil
+	}
+	if !sameRepository(reference.Context(), buildRepository) {
+		return normalized, nil
+	}
+
+	owned := false
+	switch ref := reference.(type) {
+	case imagename.Tag:
+		owned = strings.HasPrefix(ref.TagStr(), projectID+"-")
+	case imagename.Digest:
+		owned, err = w.db.DeploymentProjectOwnsImage(ctx, db.DeploymentProjectOwnsImageParams{
+			ProjectID:     projectID,
+			ImageResolved: sql.NullString{String: normalized.Source.Image, Valid: true},
+		})
+		if err != nil {
+			return resolvedSource{}, fmt.Errorf("failed to check image ownership: %w", err)
+		}
+	}
+	if !owned {
+		return newRejectedSource(rejectf(
+			hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
+			"images in the Unkey build registry can only be deployed by the project that built them",
+		)), nil
+	}
+	return normalized, nil
 }
 
 // resolveGitSource resolves the app's repository connection and fills in the
@@ -314,7 +374,8 @@ func (w *Workflow) resolveExistingDeployment(
 		"source_deployment_id", src.ID,
 		"image", image,
 	)
-	return imageSource(image, commit, imageref.NormalizeHistorical), nil
+	// The workspace check above covers the row, not the image it carries.
+	return w.ownedImageSource(ctx, target.ProjectID, image, commit, imageref.NormalizeHistorical)
 }
 
 // fillCommitFromGitHub fills the commit's empty fields from GitHub. The public
