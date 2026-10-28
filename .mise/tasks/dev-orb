@@ -4,6 +4,7 @@
 #MISE raw=true
 set -euo pipefail
 
+source ./dev/disable-aws.sh
 if [[ -x /opt/orb-worker/docker-start.sh ]]; then
   exec bash ./dev/orb/start.sh "$@"
 fi
