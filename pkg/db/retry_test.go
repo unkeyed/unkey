@@ -29,22 +29,41 @@ func TestWithRetryContext_Success(t *testing.T) {
 }
 
 func TestWithRetryContext_RetriesTransientErrors(t *testing.T) {
-	ctx := context.Background()
-	callCount := 0
-	// Use actual MySQL deadlock error (1213) which is recognized as transient
-	deadlockErr := &mysql.MySQLError{Number: 1213, Message: "Deadlock found when trying to get lock"}
+	for _, tt := range []struct {
+		name string
+		err  *mysql.MySQLError
+	}{
+		{
+			name: "deadlock",
+			err: &mysql.MySQLError{
+				Number:  1213,
+				Message: "Deadlock found when trying to get lock",
+			},
+		},
+		{
+			name: "vitess connection reset",
+			err: &mysql.MySQLError{
+				Number:   1815,
+				SQLState: [5]byte{'0', '8', 'S', '0', '1'},
+				Message:  "internal connection error: read: connection reset by peer, after 1 attempts",
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			callCount := 0
+			result, err := WithRetryContext(t.Context(), func() (string, error) {
+				callCount++
+				if callCount < 3 {
+					return "", tt.err
+				}
+				return "success", nil
+			})
 
-	result, err := WithRetryContext(ctx, func() (string, error) {
-		callCount++
-		if callCount < 3 {
-			return "", deadlockErr
-		}
-		return "success", nil
-	})
-
-	require.NoError(t, err)
-	require.Equal(t, "success", result)
-	require.Equal(t, 3, callCount, "should retry twice then succeed")
+			require.NoError(t, err)
+			require.Equal(t, "success", result)
+			require.Equal(t, 3, callCount, "should retry twice then succeed")
+		})
+	}
 }
 
 func TestWithRetryContext_SkipsRetryOnNotFound(t *testing.T) {
