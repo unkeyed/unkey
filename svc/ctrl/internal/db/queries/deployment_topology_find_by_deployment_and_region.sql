@@ -28,6 +28,8 @@ SELECT
     d.healthcheck,
     w.k8s_namespace,
     e.slug AS environment_slug,
+    e.kind AS environment_kind,
+    d.capabilities,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM `deployment_topology` dt

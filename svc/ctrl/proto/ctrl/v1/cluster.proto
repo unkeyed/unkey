@@ -332,6 +332,25 @@ message ApplyDeployment {
   // The volume is created when the pod starts and deleted when the pod terminates.
   // When absent, no ephemeral volume is attached.
   optional EphemeralStorage ephemeral_storage = 29;
+
+  // environment_kind is "production" or "preview". Krane labels Pods with it so
+  // the private resolver can identify callers.
+  string environment_kind = 30;
+
+  // capabilities are the features the deployment saved when it was created.
+  // A missing message enables none of them.
+  DeploymentCapabilities capabilities = 33;
+
+  reserved 31, 32;
+  reserved "private_networking", "private_network_replica_host";
+}
+
+message DeploymentCapabilities {
+  // private_networking enrolls the deployment's Pods in private networking
+  // where the region has a private resolver: private DNS through that
+  // resolver, with self.unkey.internal naming the deployment's own replicas,
+  // and connectivity between those replicas.
+  bool private_networking = 1;
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.

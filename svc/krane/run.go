@@ -212,19 +212,20 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
-		ClientSet:           clientset,
-		DynamicClient:       dynamicClient,
-		Cluster:             cluster,
-		CellID:              cfg.Cluster.CellID,
-		Region:              cfg.Cluster.Region,
-		Platform:            cfg.Cluster.Platform,
-		Vault:               vaultClient,
-		Registry:            registryCfg,
-		Fingerprints:        fingerprintCache,
-		EventDedup:          instanceEventDedupCache,
-		ObservedTransitions: deploymentTransitionsCache,
-		StorageClassName:    cfg.StorageClassName,
-		DisableGvisor:       cfg.DisableGvisor,
+		ClientSet:                clientset,
+		DynamicClient:            dynamicClient,
+		Cluster:                  cluster,
+		CellID:                   cfg.Cluster.CellID,
+		Region:                   cfg.Cluster.Region,
+		Platform:                 cfg.Cluster.Platform,
+		Vault:                    vaultClient,
+		Registry:                 registryCfg,
+		Fingerprints:             fingerprintCache,
+		EventDedup:               instanceEventDedupCache,
+		ObservedTransitions:      deploymentTransitionsCache,
+		StorageClassName:         cfg.StorageClassName,
+		PrivateNetworkResolverIP: "",
+		DisableGvisor:            cfg.DisableGvisor,
 
 		MaxConcurrentRollouts: cfg.MaxConcurrentRollouts,
 	})
