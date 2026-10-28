@@ -8,11 +8,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	firewallExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/firewall"
+	openapiExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -275,6 +277,108 @@ func TestEvaluate_FirewallDeniesOutsideRemoteIpRange(t *testing.T) {
 			code, ok := fault.GetCode(err)
 			require.True(t, ok)
 			require.Equal(t, codes.Frontline.Firewall.Denied.URN(), code)
+		})
+	}
+}
+
+func TestEvaluate_KeyAuthSkipCannotBypassStricterPolicyThroughPathVariant(t *testing.T) {
+	t.Parallel()
+
+	denied := fault.New("denied", fault.Code(codes.Frontline.Auth.InsufficientPermissions.URN()))
+	publicCfg := &frontlinev1.KeyAuth{KeySpaceIds: []string{uid.New(uid.KeySpacePrefix)}}
+	adminCfg := &frontlinev1.KeyAuth{KeySpaceIds: []string{uid.New(uid.KeySpacePrefix)}}
+	engine := &Engine{
+		regexCache: newRegexCache(),
+		keyAuth: keyAuthenticatorFunc(func(_ context.Context, _ *zen.Session, _ *http.Request, _ string, cfg *frontlinev1.KeyAuth) (*principal.Principal, error) {
+			if cfg == adminCfg {
+				return nil, denied
+			}
+			return &principal.Principal{Subject: "public_caller"}, nil
+		}),
+	}
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      uid.New(uid.PolicyPrefix),
+			Enabled: new(true),
+			Match: []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+				Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/public/"}},
+			}}}},
+			Config: &frontlinev1.Policy_Keyauth{Keyauth: publicCfg},
+		},
+		{
+			Id:      uid.New(uid.PolicyPrefix),
+			Enabled: new(true),
+			Match: []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+				Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Exact{Exact: "/admin"}},
+			}}}},
+			Config: &frontlinev1.Policy_Keyauth{Keyauth: adminCfg},
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/public/..;/admin", nil)
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+	_, err := engine.Evaluate(t.Context(), sess, req, uid.New(uid.WorkspacePrefix), uid.New(uid.AppPrefix), policies)
+	require.ErrorIs(t, err, denied)
+}
+
+func TestEvaluate_OpenAPIValidatesPathAndMethodVariants(t *testing.T) {
+	t.Parallel()
+
+	spec := []byte(`openapi: 3.0.0
+info: {title: Users, version: "1"}
+paths:
+  /users:
+    get:
+      responses:
+        "200": {description: ok}
+`)
+	policies := []*frontlinev1.Policy{{
+		Id:      uid.New(uid.PolicyPrefix),
+		Enabled: new(true),
+		Match: []*frontlinev1.MatchExpr{
+			{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+				Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Exact{Exact: "/users"}},
+			}}},
+			{Expr: &frontlinev1.MatchExpr_Method{Method: &frontlinev1.MethodMatch{Methods: []string{http.MethodGet}}}},
+		},
+		Config: &frontlinev1.Policy_Openapi{Openapi: &frontlinev1.OpenApiRequestValidation{SpecYaml: spec}},
+	}}
+
+	for _, tt := range []struct {
+		name     string
+		method   string
+		target   string
+		rejected bool
+	}{
+		{name: "spec path", method: http.MethodGet, target: "/users", rejected: false},
+		{name: "head on a get path passes validation", method: http.MethodHead, target: "/users", rejected: false},
+		{name: "trailing slash passes validation", method: http.MethodGet, target: "/users/", rejected: false},
+		{name: "case variant is validated and rejected", method: http.MethodGet, target: "/Users", rejected: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			openapi, err := openapiExec.New(clock.New(), 0, 0)
+			require.NoError(t, err)
+			t.Cleanup(openapi.Close)
+			engine := &Engine{openapi: openapi, regexCache: newRegexCache()}
+
+			req := httptest.NewRequest(tt.method, tt.target, nil)
+			sess := &zen.Session{}
+			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+			_, err = engine.Evaluate(t.Context(), sess, req, uid.New(uid.WorkspacePrefix), uid.New(uid.AppPrefix), policies)
+			if !tt.rejected {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Error(t, err)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.Frontline.OpenApi.InvalidRequest.URN(), code)
 		})
 	}
 }

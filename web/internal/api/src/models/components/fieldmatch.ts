@@ -14,15 +14,18 @@ import {
 } from "./stringmatch.js";
 
 /**
- * Matches a named request field (header or query parameter). Exactly one of
+ * Matches a named request field (header or query parameter). Set `present` or
  *
  * @remarks
- * `present` or `value` must be set.
+ * `value`, not both. If neither is supplied, the field must be present.
  */
 export type FieldMatch = {
   name: string;
   /**
    * Matches when the field is present if true, or absent if false, regardless of value.
+   *
+   * @remarks
+   * Defaults to true when neither `present` nor `value` is supplied.
    */
   present?: boolean | undefined;
   /**

@@ -47,17 +47,17 @@ export type MatchExpr = {
    */
   method?: MethodMatch | undefined;
   /**
-   * Matches a named request field (header or query parameter). Exactly one of
+   * Matches a named request field (header or query parameter). Set `present` or
    *
    * @remarks
-   * `present` or `value` must be set.
+   * `value`, not both. If neither is supplied, the field must be present.
    */
   header?: FieldMatch | undefined;
   /**
-   * Matches a named request field (header or query parameter). Exactly one of
+   * Matches a named request field (header or query parameter). Set `present` or
    *
    * @remarks
-   * `present` or `value` must be set.
+   * `value`, not both. If neither is supplied, the field must be present.
    */
   queryParam?: FieldMatch | undefined;
   /**
