@@ -1,4 +1,4 @@
-// Package workos resolves organization admin and member email addresses.
+// Package workos reads organization roles and member email addresses.
 // New selects a noop when no API key is configured.
 package workos
 
@@ -8,6 +8,7 @@ import "context"
 type Client interface {
 	Resolver
 	MemberEmails(ctx context.Context, orgID string) ([]string, error)
+	ActiveRoles(ctx context.Context, orgID string, userID string) ([]string, bool, error)
 }
 
 // Resolver returns the email addresses to notify for an organization.
