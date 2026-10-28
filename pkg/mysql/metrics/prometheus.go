@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 // Standard histogram buckets for latency metrics in seconds
@@ -29,7 +29,7 @@ var latencyBuckets = []float64{
 var (
 	// DatabaseOperationsLatency tracks latency in seconds for mysql operations
 	// by replica mode, operation type, and status.
-	DatabaseOperationsLatency = lazy.NewHistogramVec(
+	DatabaseOperationsLatency = vec.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "database",
@@ -37,27 +37,22 @@ var (
 			Help:      "Histogram of database operation latencies in seconds.",
 			Buckets:   latencyBuckets,
 		},
-		[]string{"replica", "operation", "status"},
+		vec.Dynamic("replica"),
+		vec.Values("operation", "exec", "prepare", "query", "query_row", "begin", "commit", "rollback", "batch"),
+		vec.Values("status", "success", "error"),
 	)
 
 	// DatabaseOperationsTotal tracks the total number of mysql operations
 	// by replica mode, operation type, and status.
-	DatabaseOperationsTotal = lazy.NewCounterVec(
+	DatabaseOperationsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "database",
 			Name:      "operations_total",
 			Help:      "Total number of database operations processed.",
 		},
-		[]string{"replica", "operation", "status"},
+		vec.Dynamic("replica"),
+		vec.Values("operation", "exec", "prepare", "query", "query_row", "begin", "commit", "rollback", "batch"),
+		vec.Values("status", "success", "error"),
 	)
-
-	// DatabaseOperationsErrorsTotal tracks mysql operation errors by replica
-	// mode and operation type.
-	DatabaseOperationsErrorsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "unkey",
-		Subsystem: "database",
-		Name:      "operations_errors_total",
-		Help:      "Total number of database operation errors.",
-	}, []string{"replica", "operation"})
 )

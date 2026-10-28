@@ -133,7 +133,7 @@ function collectNavigation(docsJson) {
       return;
     }
     const nowHidden = hidden || node.hidden === true;
-    // A product entry's `product` is its display name ("API management"); lint keys
+    // A product entry's `product` is its display name ("API Management"); lint keys
     // products by slug ("api-management") to match tag_to_product in the manifest.
     const nowProduct = typeof node.product === "string" ? productSlug(node.product) : product;
     for (const [key, value] of Object.entries(node)) {

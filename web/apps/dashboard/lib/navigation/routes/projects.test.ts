@@ -42,6 +42,18 @@ describe("routes.projects.logs", () => {
       routes.projects.logs({ workspaceSlug: ws, projectId, deploymentId, instanceId: "ins_1" }),
     ).toBe("/acme/projects/proj_123/logs?deploymentId=is:d_789&instanceId=is:ins_1");
   });
+
+  it("scopes logs to a time window", () => {
+    expect(
+      routes.projects.logs({
+        workspaceSlug: ws,
+        projectId,
+        deploymentId,
+        startTime: 1_000,
+        endTime: 2_000,
+      }),
+    ).toBe("/acme/projects/proj_123/logs?deploymentId=is:d_789&startTime=1000&endTime=2000");
+  });
 });
 
 describe("routes.projects.requests", () => {

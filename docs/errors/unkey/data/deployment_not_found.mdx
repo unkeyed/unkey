@@ -31,7 +31,7 @@ The deployment you referenced doesn't exist in your workspace. You get HTTP 404.
 ## Likely causes
 
 - The deployment ID has a typo. Deployment IDs start with `d_`.
-- Your root key doesn't have the permission the call needs. The get, promote, rollback, stop, and start endpoints return this 404 instead of a 403, so it's as likely a permission problem as a wrong ID.
+- Your root key can't read the deployment. The get, promote, rollback, stop, and start endpoints return this 404 instead of a 403, so it's as likely a permission problem as a wrong ID. A key that can read the deployment but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 - For a redeploy with `deployments.createDeployment`, the source deployment is from a different app or environment.
 - The deployment is in another workspace.
 

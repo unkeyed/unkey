@@ -2,26 +2,19 @@ package integration_test
 
 import (
 	"maps"
-	"os"
 	"testing"
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
 	"github.com/unkeyed/unkey/svc/vault/keys"
 )
 
-var observabilityRegistry = prometheus.NewRegistry()
-
-func TestMain(m *testing.M) {
-	lazy.SetRegistry(observabilityRegistry)
-	os.Exit(m.Run())
-}
+var observabilityRegistry = prometheus.DefaultGatherer
 
 // A new key needs two writes, and decrypt doesn't reuse the cached LATEST alias.
 func TestS3Metrics_CountStorageOperationsForBulkRPCs(t *testing.T) {

@@ -1,4 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
+import { toInstanceKey } from "@/lib/collections/deploy/instance-status";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import {
   type RuntimeLogsResponseSchema,
@@ -7,12 +8,7 @@ import {
 } from "@/lib/schemas/runtime-logs.schema";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import {
-  resolveK8sNamesToInstanceIds,
-  toInstanceKey,
-  transformFilters,
-  uniqueK8sRegionEntries,
-} from "./utils";
+import { resolveK8sNamesToInstanceIds, transformFilters, uniqueK8sRegionEntries } from "./utils";
 
 export const queryRuntimeLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))

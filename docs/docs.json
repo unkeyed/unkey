@@ -54,7 +54,7 @@
           },
           {
             "href": "/api-management",
-            "label": "API management"
+            "label": "API Management"
           },
           {
             "href": "https://unkey.com/pricing",
@@ -192,6 +192,7 @@
                   "platform/cli/overview",
                   "platform/cli/install",
                   "platform/cli/authentication",
+                  "platform/cli/login",
                   "platform/cli/output-and-flags",
                   "platform/cli/auth/login"
                 ]
@@ -491,7 +492,7 @@
                 ]
               },
               {
-                "group": "API management",
+                "group": "API Management",
                 "pages": [
                   {
                     "group": "APIs",
@@ -851,8 +852,8 @@
       {
         "description": "API keys, rate limiting, identities, permissions, and analytics",
         "icon": "key",
-        "name": "API management",
-        "product": "API management",
+        "name": "API Management",
+        "product": "API Management",
         "tabs": [
           {
             "groups": [
@@ -1334,6 +1335,10 @@
     {
       "destination": "/api-management/cli/analytics/get-verifications",
       "source": "/cli/analytics/get-verifications"
+    },
+    {
+      "destination": "/platform/cli/login",
+      "source": "/cli/login"
     },
     {
       "destination": "/platform/cli/auth/login",

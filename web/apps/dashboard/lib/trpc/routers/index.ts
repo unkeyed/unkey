@@ -28,6 +28,7 @@ import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
 import { appMetricsDeploys } from "./deploy/app-metrics/deploys";
+import { appMetricsInstanceEvents } from "./deploy/app-metrics/instance-events";
 import { appMetricsInstances } from "./deploy/app-metrics/instances";
 import { appMetricsResources, appMetricsTraffic } from "./deploy/app-metrics/source";
 import { appMetricsSourceByInstance } from "./deploy/app-metrics/source-by-instance";
@@ -318,6 +319,7 @@ export const router = t.router({
       sourceByInstance: appMetricsSourceByInstance,
       deploys: appMetricsDeploys,
       instances: appMetricsInstances,
+      instanceEvents: appMetricsInstanceEvents,
     }),
     metrics: t.router({
       getAppRpsMetrics,

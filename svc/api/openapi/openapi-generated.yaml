@@ -3132,6 +3132,7 @@ components:
                     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
                 permissions:
                     type: array
+                    maxItems: 1000
                     description: |
                         Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
 
@@ -3388,6 +3389,7 @@ components:
                         Accepts either the generated role ID or the unique role name.
                 permissions:
                     type: array
+                    maxItems: 1000
                     description: The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
                     items:
                         type: string
@@ -5480,6 +5482,11 @@ components:
                 status:
                     type: string
                     description: pending, approved, consumed, denied, or expired.
+                grantablePermissions:
+                    type: array
+                    description: Permissions the signed-in member's role allows. The approval page starts with all of them selected.
+                    items:
+                        type: string
                 createdAt:
                     type: integer
                     format: int64
@@ -11611,6 +11618,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the required permission.
                 "404":
                     content:
                         application/json:
@@ -11629,8 +11642,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key cannot write to it. Both cases return the same response, so
-                        deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the required permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -11741,6 +11755,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the required permission.
                 "404":
                     content:
                         application/json:
@@ -11759,8 +11779,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key cannot write to it. Both cases return the same response, so
-                        deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the required permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -12112,6 +12133,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks permission to read its build logs.
                 "404":
                     content:
                         application/json:
@@ -12406,6 +12433,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `promote_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -12413,8 +12446,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `promote_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `promote_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -12506,6 +12540,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `rollback_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -12513,8 +12553,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `rollback_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `rollback_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -12602,6 +12643,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `start_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -12609,8 +12656,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `start_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `start_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -12698,6 +12746,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `stop_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -12705,8 +12759,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `stop_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `stop_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -12929,9 +12984,9 @@ paths:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
                         Forbidden - The root key or its workspace is disabled, or the workspace has already attached as
-                        many custom domains as its plan allows. A root key that simply lacks
-                        `environment.*.create_domain` receives a 404 instead, so permissions cannot be used to discover
-                        which environments exist.
+                        many custom domains as its plan allows, or the root key can read the environment but lacks
+                        `environment.*.create_domain`. A root key that cannot read the environment receives a 404
+                        instead, so permissions cannot be used to discover which environments exist.
                 "404":
                     content:
                         application/json:
@@ -13114,9 +13169,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-                        `environment.*.delete_domain` receives a 404 instead, so permissions cannot be used to
-                        discover which domains exist.
+                        Forbidden - The root key or its workspace is disabled, or the root key can read the domain but
+                        lacks `environment.*.delete_domain`. A root key that cannot read the domain receives a 404
+                        instead, so permissions cannot be used to discover which domains exist.
                 "404":
                     content:
                         application/json:
@@ -13135,7 +13190,7 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The domain does not exist in your workspace, it was already deleted, or your
-                        root key may not delete it.
+                        root key cannot read it.
                 "429":
                     content:
                         application/json:
@@ -13873,8 +13928,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that only lacks
-                        `environment.*.verify_domain` receives a 404 instead.
+                        Forbidden - The root key or its workspace is disabled, or the root key can read the domain but
+                        lacks `environment.*.verify_domain`. A root key that cannot read the domain receives a 404
+                        instead.
                 "404":
                     content:
                         application/json:
@@ -13893,7 +13949,7 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The domain does not exist in your workspace, or it was deleted, or your
-                        root key is not permitted to verify it.
+                        root key cannot read it.
                 "412":
                     content:
                         application/json:
@@ -17414,6 +17470,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The role does not exist in your workspace, or your root key cannot read it.
                 "429":
                     content:
                         application/problem+json:
@@ -17882,7 +17944,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the permission but lacks the required permission. A key that cannot read the permission gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -17900,7 +17962,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The permission does not exist in your workspace, or your root key lacks write access to it.
+                        Not Found - The permission does not exist in your workspace, or your root key cannot read it.
                         Both cases return the same response, so a root key cannot learn which permissions exist.
                 "409":
                     content:
@@ -18049,7 +18111,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the role but lacks the required permission. A key that cannot read the role gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -18067,7 +18129,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The role does not exist in your workspace, or your root key lacks write access to it.
+                        Not Found - The role does not exist in your workspace, or your root key cannot read it.
                         Both cases return the same response, so a root key cannot learn which roles exist.
                 "409":
                     content:
@@ -18217,8 +18279,10 @@ paths:
                 returns 403 for the whole request rather than minting a reduced session, so a
                 missing grant is visible instead of surfacing later as a broken portal.
 
-                Missing the portal permission itself returns **404**, not 403: a caller who
-                cannot mint for a portal is not told whether it exists.
+                Missing the portal permission itself returns **404** when your root key
+                cannot read the portal or its sessions, so a caller who cannot see a portal
+                is not told whether it exists. A root key that can read the portal but lacks
+                the permission gets **403**.
 
                 Your root key must also be associated with a workspace that has an enabled portal.
             operationId: portal.createSession
@@ -18319,7 +18383,8 @@ paths:
                 - `portal.*.delete_portal` (to delete any portal in the workspace)
                 - `portal.<portal_id>.delete_portal` (to delete a specific portal)
 
-                Without the permission this returns **404**, not 403.
+                A root key that cannot read the portal gets **404**. One that can read it
+                but lacks the permission gets **403**.
             operationId: portal.deletePortal
             requestBody:
                 content:
@@ -18347,13 +18412,19 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the portal but lacks the permission to delete it.
                 "404":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        No such portal, or your root key may not delete it.
+                        No such portal, or your root key cannot read it.
                 "429":
                     content:
                         application/problem+json:
@@ -18842,7 +18913,8 @@ paths:
                 which dashboard roles carry. Unlike `portal.createSession`, a dashboard
                 session can call this, not just a root key.
 
-                Without the permission this returns **404**, not 403.
+                A root key that cannot read the portal's sessions gets **404**. One that can
+                read them but lacks the permission gets **403**.
             operationId: portal.revokeSession
             requestBody:
                 content:
@@ -18870,13 +18942,19 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the portal's sessions but lacks the permission to revoke them.
                 "404":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        No such portal, or your root key may not revoke its sessions.
+                        No such portal, or your root key cannot read its sessions.
                 "429":
                     content:
                         application/problem+json:
@@ -18918,7 +18996,8 @@ paths:
                 - `portal.*.update_portal` (to update any portal in the workspace)
                 - `portal.<portal_id>.update_portal` (to update a specific portal)
 
-                Without the permission this returns **404**, not 403.
+                A root key that cannot read the portal gets **404**. One that can read it
+                but lacks the permission gets **403**.
             operationId: portal.updatePortal
             requestBody:
                 content:
@@ -18946,6 +19025,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the portal but lacks the permission to update it, or it cannot use the named app or keyspace.
                 "404":
                     content:
                         application/json:
@@ -18953,7 +19038,7 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         No such portal, the named app or keyspace is not in your workspace, or
-                        your root key may not update it.
+                        your root key cannot read it.
                 "409":
                     content:
                         application/json:
@@ -19792,7 +19877,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the namespace but lacks the required permission. A key that cannot read the namespace gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -19810,7 +19895,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The namespace does not exist in your workspace, was already deleted, or your root key lacks delete access to it.
+                        Not Found - The namespace does not exist in your workspace, was already deleted, or your root key cannot read it.
                         All cases return the same response, so a root key cannot learn which namespaces exist.
                 "429":
                     content:
@@ -20756,7 +20841,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the namespace but lacks the required permission. A key that cannot read the namespace gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -20774,7 +20859,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The namespace does not exist in your workspace, was deleted, or your root key lacks write access to it.
+                        Not Found - The namespace does not exist in your workspace, was deleted, or your root key cannot read it.
                         All cases return the same response, so a root key cannot learn which namespaces exist.
                 "409":
                     content:

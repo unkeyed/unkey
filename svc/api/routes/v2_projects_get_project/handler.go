@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -78,18 +79,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.U(
+	permissionQuery := rbac.U(
 		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID),
 		permissions.Read,
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		// Mirror the missing-slug 404 so an unauthorized key can't probe which
 		// slugs exist or read the project ID from the authorization error.
-		return fault.New(
-			"project not found",
-			fault.Code(codes.Data.Project.NotFound.URN()),
-			fault.Internal("authorization failed; returning not found to avoid leaking project existence"),
-			fault.Public("The requested project does not exist."),
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			codes.Data.Project.NotFound.URN(),
+			"The requested project does not exist.",
 		)
 	}
 

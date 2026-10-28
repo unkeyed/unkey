@@ -64,13 +64,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(permission.ProjectID).RBAC().Permission(permission.ID),
 		permissions.Read,
 	)
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		readPermission,
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Permission.NotFound.URN(),
+			"Resource does not exist.",
 		)
 	}
 

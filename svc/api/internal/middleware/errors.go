@@ -285,7 +285,7 @@ func WithErrorHandling() zen.Middleware {
 					Error: openapi.BaseError{
 						Title:  "Forbidden",
 						Type:   code.DocsURL(),
-						Detail: fault.UserFacingMessage(err),
+						Detail: RedactResourceIDs(fault.UserFacingMessage(err)),
 						Status: http.StatusForbidden,
 					},
 				})
@@ -301,7 +301,7 @@ func WithErrorHandling() zen.Middleware {
 					Error: openapi.BaseError{
 						Title:  "Forbidden",
 						Type:   code.DocsURL(),
-						Detail: fault.UserFacingMessage(err),
+						Detail: RedactResourceIDs(fault.UserFacingMessage(err)),
 						Status: http.StatusForbidden,
 					},
 				})
@@ -315,7 +315,7 @@ func WithErrorHandling() zen.Middleware {
 					Error: openapi.BaseError{
 						Title:  "Insufficient Permissions",
 						Type:   code.DocsURL(),
-						Detail: fault.UserFacingMessage(err),
+						Detail: RedactResourceIDs(fault.UserFacingMessage(err)),
 						Status: http.StatusForbidden,
 					},
 				})
@@ -390,7 +390,7 @@ func WithErrorHandling() zen.Middleware {
 					Error: openapi.BaseError{
 						Title:  "Key is disabled",
 						Type:   code.DocsURL(),
-						Detail: fault.UserFacingMessage(err),
+						Detail: RedactResourceIDs(fault.UserFacingMessage(err)),
 						Status: http.StatusForbidden,
 					},
 				})
@@ -404,7 +404,7 @@ func WithErrorHandling() zen.Middleware {
 					Error: openapi.BaseError{
 						Title:  "Workspace is disabled",
 						Type:   code.DocsURL(),
-						Detail: fault.UserFacingMessage(err),
+						Detail: RedactResourceIDs(fault.UserFacingMessage(err)),
 						Status: http.StatusForbidden,
 					},
 				})

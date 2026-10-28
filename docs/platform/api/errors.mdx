@@ -18,7 +18,7 @@ When a request fails, the response has an `error` object instead of `data`. Ever
   "meta": { "requestId": "req_2c9a0jf23l4k567" },
   "error": {
     "title": "Insufficient Permissions",
-    "detail": "Missing one of these permissions: api.*.delete_api or api.api_1234abcd.delete_api",
+    "detail": "Missing one of these permissions: api.*.delete_api or api.{api}.delete_api. Log in again with one of those permissions, or grant it.",
     "status": 403,
     "type": "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions"
   }
@@ -32,7 +32,7 @@ When a request fails, the response has an `error` object instead of `data`. Ever
 </ResponseField>
 
 <ResponseField name="detail" type="string" required>
-  A plain explanation of what went wrong, written to help a developer fix it. It can name the field, resource, or permission involved. Don't parse it, because the wording can change.
+  A plain explanation of what went wrong, written to help a developer fix it. It can name the field, resource, or permission involved. In a 403, resource IDs appear as their prefix in braces, such as `{api}`, so substitute the ID from your own request. Don't parse it, because the wording can change.
 </ResponseField>
 
 <ResponseField name="status" type="integer" required>

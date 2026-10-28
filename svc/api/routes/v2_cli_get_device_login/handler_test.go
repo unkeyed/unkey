@@ -2,15 +2,53 @@ package handler_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/auth/workos"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_get_device_login"
 )
+
+// TestGrantablePermissionsFollowsEachRole guarantees the approval page offers
+// exactly the permissions of the signed-in role. Admin can grant workspace
+// root-key access. Developer and basic_member share one set and cannot grant
+// root keys. Viewer is read-only.
+func TestGrantablePermissionsFollowsEachRole(t *testing.T) {
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	admin := workos.PermissionsForRoles(workspaceID, []string{"admin"})
+	developer := workos.PermissionsForRoles(workspaceID, []string{"developer"})
+	member := workos.PermissionsForRoles(workspaceID, []string{"basic_member"})
+	viewer := workos.PermissionsForRoles(workspaceID, []string{"viewer"})
+
+	require.Equal(t, admin, handler.GrantablePermissions(principalWith(admin)))
+	require.Equal(t, developer, handler.GrantablePermissions(principalWith(developer)))
+	require.Equal(t, member, handler.GrantablePermissions(principalWith(member)))
+	require.Equal(t, viewer, handler.GrantablePermissions(principalWith(viewer)))
+	require.Empty(t, handler.GrantablePermissions(principalWith(nil)))
+
+	require.Equal(t, developer, member)
+	require.Contains(t, admin, "unkey:v1:"+workspaceID+":**#*")
+	require.NotContains(t, developer, "unkey:v1:"+workspaceID+":**#*")
+	for _, permission := range developer {
+		require.NotContains(t, permission, "rootKeys")
+	}
+	for _, permission := range viewer {
+		require.False(t, strings.HasSuffix(permission, "#write"))
+		require.False(t, strings.HasSuffix(permission, "#delete"))
+		require.False(t, strings.HasSuffix(permission, "#decrypt"))
+	}
+}
+
+func principalWith(permissions []string) *principal.Principal {
+	return &principal.Principal{Permissions: permissions}
+}
 
 func TestGetRequiresADashboardSession(t *testing.T) {
 	h := testutil.NewHarness(t)

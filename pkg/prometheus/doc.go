@@ -6,11 +6,12 @@
 //
 // # Usage
 //
-// Build the server from the service's own registry so it exposes only that
-// service's metrics, then serve it on a dedicated listener. Serve blocks, so
-// run it in a goroutine and shut it down on context cancellation:
+// Metrics register in the default registry at package init (promauto). Each
+// service binary links only its own metrics packages. Serve them on a
+// dedicated listener. Serve blocks, so run it in a goroutine and shut it down
+// on context cancellation:
 //
-//	prom, err := prometheus.NewWithRegistry(reg)
+//	prom, err := prometheus.New()
 //	if err != nil {
 //	    return err
 //	}

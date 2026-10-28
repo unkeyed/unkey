@@ -74,15 +74,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check permissions using either wildcard or the specific identity ID
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
 			permissions.Read,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Identity.NotFound.URN())
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Identity.NotFound.URN(), "Resource does not exist.")
 	}
 
 	metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)

@@ -26,7 +26,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
@@ -51,7 +50,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
@@ -108,12 +106,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := cfg.Clock
 
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	reg.MustRegister(prometheus.NewSystemMetricsCollector())
-	lazy.SetRegistry(reg)
+	prometheus.RegisterSystemMetrics()
 	buildinfometrics.Register("api")
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
@@ -127,7 +120,7 @@ func Run(ctx context.Context, cfg Config) error {
 			// The API runs against Grafana Cloud and cannot be scraped, so it
 			// pushes metrics over OTLP. All other services are pulled via
 			// /metrics and leave this nil.
-			PrometheusGatherer: reg,
+			PrometheusGatherer: promclient.DefaultGatherer,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -151,7 +144,7 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(database.Close)
 
 	if cfg.Observability.Metrics != nil {
-		prom, promErr := prometheus.NewWithRegistry(reg)
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}

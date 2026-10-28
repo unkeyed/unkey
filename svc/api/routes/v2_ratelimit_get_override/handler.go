@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -95,23 +96,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.U(
+	permissionQuery := rbac.U(
 		urn.New().
 			Workspace(principal.AuthorizedWorkspaceID).
 			Project(ns.ProjectID).
 			RatelimitNamespace(ns.ID).
 			Override(override.ID),
 		permissions.Read,
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		// Deliberately not fault.Wrap(err): the error middleware joins every
-		// public message in the chain into the response detail, and the rbac
-		// rejection's public message names the override ID, which would leak
-		// the existence this 404 is masking.
-		return fault.New("override exists but principal may not read it",
-			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-			fault.Internal("masking insufficient permissions as not found"),
-			fault.Public("This override does not exist."),
+		// A fresh fault, not a wrap: the error middleware joins every public
+		// message in the chain, and the denial names the override id.
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			codes.Data.RatelimitOverride.NotFound.URN(),
+			"This override does not exist.",
 		)
 	}
 

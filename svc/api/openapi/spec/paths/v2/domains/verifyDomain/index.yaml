@@ -100,8 +100,9 @@ post:
                   type: unauthorized
     "403":
       description: |
-        Forbidden - The root key or its workspace is disabled. A root key that only lacks
-        `environment.*.verify_domain` receives a 404 instead.
+        Forbidden - The root key or its workspace is disabled, or the root key can read the domain but
+        lacks `environment.*.verify_domain`. A root key that cannot read the domain receives a 404
+        instead.
       content:
         application/json:
           schema:
@@ -120,7 +121,7 @@ post:
     "404":
       description: |
         Not Found - The domain does not exist in your workspace, or it was deleted, or your
-        root key is not permitted to verify it.
+        root key cannot read it.
       content:
         application/json:
           schema:

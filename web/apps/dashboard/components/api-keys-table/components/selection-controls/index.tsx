@@ -1,3 +1,4 @@
+import { MotionProvider } from "@/components/motion-provider";
 import { RECENTLY_USED_WINDOW_LABEL, isRecentlyUsed } from "@/lib/recently-used-key";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
@@ -9,7 +10,7 @@ import {
   IconXmarkOutline18,
 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
 import { useBatchUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
@@ -94,10 +95,10 @@ export const SelectionControls = ({
     recentlyUsedCount > 0 ? `${recentlyUsedSummary} and may still be live. ` : "";
 
   return (
-    <>
+    <MotionProvider>
       <AnimatePresence>
         {selectedKeys.size > 0 && (
-          <motion.div
+          <m.div
             key="selection-controls"
             className="border-b w-full overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
@@ -196,7 +197,7 @@ export const SelectionControls = ({
                 </div>
               )}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -236,13 +237,13 @@ export const SelectionControls = ({
           onClose={() => setIsBatchEditExternalIdOpen(false)}
         />
       )}
-    </>
+    </MotionProvider>
   );
 };
 
 export const AnimatedCounter = ({ value }: { value: number }) => {
   return (
-    <motion.div
+    <m.div
       key={`counter-${value}`}
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -250,6 +251,6 @@ export const AnimatedCounter = ({ value }: { value: number }) => {
       className="size-[18px] text-2xs leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border"
     >
       <span className="flex items-center justify-center">{value}</span>
-    </motion.div>
+    </m.div>
   );
 };

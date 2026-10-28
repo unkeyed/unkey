@@ -84,8 +84,8 @@ const base = {
   byInstance: ready(byInstance),
   deploys: ready([servingBefore, deployedInRange]),
   instances: ready([podB]),
-  region: null,
-  selected: null,
+  events: ready([]),
+  filter: { regions: [], statuses: [], instances: [] },
 };
 
 function readyModel(model: ReturnType<typeof metricsPageModel>) {
@@ -163,15 +163,18 @@ describe("metricsPageModel", () => {
   });
 
   it("shows live instances with their share of the limit on the instances tab", () => {
-    const { view, regionFilter } = readyModel(metricsPageModel({ ...base, tab: "instances" }));
+    const { view } = readyModel(metricsPageModel({ ...base, tab: "instances" }));
     if (view.kind !== "instances" || view.instances.status !== "ready") {
       throw new Error("expected a ready instances tab");
     }
     expect(
       view.instances.rows.map((r) => [r.instance.key, r.usage.cpu.percent, r.usage.memory.percent]),
     ).toEqual([["pod-b", 70, 0]]);
-    expect(regionFilter).toEqual({ regions: [podB.region.name], region: null });
-    expect(readyModel(metricsPageModel(base)).regionFilter).toBeNull();
+    expect(view.instances.filters).toEqual({
+      regions: { options: [podB.region.name], selected: [] },
+      statuses: { options: ["running"], selected: [] },
+      instances: { options: ["pod-b"], selected: [] },
+    });
   });
 
   it("keeps instances listed while their usage is still loading", () => {
@@ -214,8 +217,8 @@ describe("metricsPageModel", () => {
 
   it("turns ready deploys into chart markers", () => {
     expect(readyModel(metricsPageModel(base)).markers).toEqual([
-      { id: "d_one", atMs: -60_000, span: { endMs: 60_000 } },
-      { id: "d_two", atMs: 60_000, span: { endMs: null } },
+      { id: "d_one", atMs: -60_000, span: { endMs: 60_000 }, shape: "dot", label: null },
+      { id: "d_two", atMs: 60_000, span: { endMs: null }, shape: "dot", label: null },
     ]);
   });
 
@@ -228,8 +231,8 @@ describe("metricsPageModel", () => {
       }),
     );
     expect(model.markers).toEqual([
-      { id: "d_one", atMs: -60_000, span: null },
-      { id: "d_two", atMs: 60_000, span: null },
+      { id: "d_one", atMs: -60_000, span: null, shape: "dot", label: null },
+      { id: "d_two", atMs: 60_000, span: null, shape: "dot", label: null },
     ]);
     expect([...model.deploys.values()].map((d) => d.effects)).toEqual([[], []]);
   });

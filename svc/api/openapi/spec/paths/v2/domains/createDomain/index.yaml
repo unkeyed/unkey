@@ -174,9 +174,9 @@ post:
     "403":
       description: |
         Forbidden - The root key or its workspace is disabled, or the workspace has already attached as
-        many custom domains as its plan allows. A root key that simply lacks
-        `environment.*.create_domain` receives a 404 instead, so permissions cannot be used to discover
-        which environments exist.
+        many custom domains as its plan allows, or the root key can read the environment but lacks
+        `environment.*.create_domain`. A root key that cannot read the environment receives a 404
+        instead, so permissions cannot be used to discover which environments exist.
       content:
         application/json:
           schema:

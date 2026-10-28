@@ -20,7 +20,7 @@ export {
   deployUsageTimeseriesInterval,
 } from "./deploy_billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
-import { getInstanceEvents } from "./instance-events";
+import { getCrashTimeline, getInstanceEvents } from "./instance-events";
 export { instanceEventKind, type InstanceEventKind } from "./instance-events";
 import {
   getDailyActiveKeysTimeseries,
@@ -389,6 +389,7 @@ export class ClickHouse {
   public get instanceEvents() {
     return {
       list: getInstanceEvents(this.querier),
+      crashTimeline: getCrashTimeline(this.querier),
     };
   }
   public get auditLogs() {

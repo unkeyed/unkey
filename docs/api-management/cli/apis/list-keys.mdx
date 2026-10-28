@@ -72,7 +72,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`api.*.read_key` or `api.<apiId>.read_key`, together with `api.*.read_api` or `api.<apiId>.read_api`. `--decrypt` also needs `api.*.decrypt_key` or `api.<apiId>.decrypt_key`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the API exists. See [Root key permissions](/platform/root-keys/permissions).
+`api.*.read_key` or `api.<apiId>.read_key`, together with `api.*.read_api` or `api.<apiId>.read_api`. `--decrypt` also needs `api.*.decrypt_key` or `api.<apiId>.decrypt_key`. Without the permission you get a 404, so the response doesn't reveal whether the API exists. If your key can read the keys but not decrypt them, `--decrypt` fails with a 403 that names the missing permission. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

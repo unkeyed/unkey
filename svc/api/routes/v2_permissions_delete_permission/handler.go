@@ -66,18 +66,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(permission.ProjectID).RBAC().Permission(permission.ID),
 		permissions.Delete,
 	)
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		deletePermission,
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
 			Action:       rbac.DeletePermission,
 		}),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Permission.NotFound.URN(),
+			"Resource does not exist.",
 		)
 	}
 
