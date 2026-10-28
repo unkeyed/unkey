@@ -38,14 +38,23 @@ func Candidates(decoded string) []string {
 }
 
 // HasEncodedSeparator reports whether an escaped path contains an encoded
-// slash or backslash. Frameworks disagree on whether these split segments, so
-// the gateway cannot know which handler the app will pick and rejects them.
+// slash or backslash, including multiply encoded forms such as "%252f".
+// Frameworks disagree on whether these split segments, and an app that decodes
+// twice turns "%252f" into "/", so the gateway cannot know which handler the
+// app will pick and rejects them.
 func HasEncodedSeparator(escaped string) bool {
-	for i := 0; i+2 < len(escaped); i++ {
+	for i := 0; i < len(escaped); i++ {
 		if escaped[i] != '%' {
 			continue
 		}
-		switch strings.ToLower(escaped[i+1 : i+3]) {
+		j := i + 1
+		for strings.HasPrefix(escaped[j:], "25") {
+			j += 2
+		}
+		if j+2 > len(escaped) {
+			continue
+		}
+		switch strings.ToLower(escaped[j : j+2]) {
 		case "2f", "5c":
 			return true
 		}

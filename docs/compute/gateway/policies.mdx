@@ -166,7 +166,7 @@ Many app frameworks send several spellings of a path to the same handler. The ga
 - It ignores a trailing slash, so `/admin/` matches `/admin`, and a `prefix` of `/admin/` matches `/admin`.
 - It removes `;` parameters from each segment, so `/admin;jsessionid=1` matches `/admin`.
 - It collapses repeated slashes and resolves `.` and `..` segments, so `/a/%2e%2e/admin` matches `/admin`.
-- It rejects paths that contain `%2F` (an encoded `/`) or `%5C` (an encoded `\`) with [`encoded_path_separator`](/errors/frontline/client/encoded_path_separator). Frameworks disagree on whether these split the path, so the gateway can't match them to policies reliably.
+- It rejects paths that contain `%2F` (an encoded `/`) or `%5C` (an encoded `\`), including double-encoded forms such as `%252F`, with [`encoded_path_separator`](/errors/frontline/client/encoded_path_separator). Frameworks disagree on whether these split the path, so the gateway can't match them to policies reliably.
 
 Patterns match the normalized path, never the raw one. A `regex` written against `;` or `..` text doesn't match. Your app still receives the original, unmodified request.
 

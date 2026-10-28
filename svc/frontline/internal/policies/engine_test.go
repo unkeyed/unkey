@@ -350,6 +350,8 @@ func TestEvaluate_RejectsEncodedPathSeparator(t *testing.T) {
 		{target: "/files/a%2fb", policies: policies, rejected: true},
 		{target: "/public/x%2F..%2F..%2Finternal/x", policies: policies, rejected: true},
 		{target: "/files/a%5Cb", policies: policies, rejected: true},
+		{target: "/admin%252fevil", policies: policies, rejected: true},
+		{target: "/files/100%25", policies: policies, rejected: false},
 		{target: "/files/a%20b", policies: policies, rejected: false},
 		{target: "/files/a%2Fb", policies: nil, rejected: false},
 	} {
