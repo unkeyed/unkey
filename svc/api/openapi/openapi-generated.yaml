@@ -31,6 +31,56 @@ components:
             name: portal_session
             type: apiKey
     schemas:
+        CurrentConnectionPin:
+            type: object
+            required:
+                - connectionId
+                - connectionName
+                - callerAppId
+                - callerAppName
+                - provenance
+            properties:
+                connectionId:
+                    type: string
+                connectionName:
+                    type: string
+                callerAppId:
+                    type: string
+                callerAppName:
+                    type: string
+                provenance:
+                    type: string
+                    enum:
+                        - current_rule
+            additionalProperties: false
+        SnapshotConnectionPin:
+            type: object
+            required:
+                - connectionId
+                - connectionName
+                - callerAppId
+                - callerAppName
+                - callerDeploymentId
+                - callerStatus
+                - provenance
+            properties:
+                connectionId:
+                    type: string
+                connectionName:
+                    type: string
+                callerAppId:
+                    type: string
+                callerAppName:
+                    type: string
+                callerDeploymentId:
+                    type: string
+                callerStatus:
+                    "$ref": "#/components/schemas/DeploymentStatus"
+                provenance:
+                    type: string
+                    enum:
+                        - deployment_snapshot
+            additionalProperties: false
         V2AnalyticsGetGatewayRequestsRequestBody:
             type: object
             required:
@@ -1183,6 +1233,26 @@ components:
                     description: The log entries, in the order the build printed them.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
+        V2DeploymentsListConnectionPinsRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    type: string
+                    minLength: 1
+            additionalProperties: false
+        V2DeploymentsListConnectionPinsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2DeploymentsListConnectionPinsResponseData"
             additionalProperties: false
         V2DeploymentsListConnectionsRequestBody:
             type: object
@@ -6663,6 +6733,29 @@ components:
                 The output stream a build log entry was printed to. Many tools write progress
                 and warnings to `stderr`, so `stderr` does not mean that the step failed.
             example: stdout
+        V2DeploymentsListConnectionPinsResponseData:
+            type: object
+            required:
+                - pins
+                - truncated
+            properties:
+                pins:
+                    type: array
+                    maxItems: 10
+                    items:
+                        "$ref": "#/components/schemas/DeploymentConnectionPin"
+                truncated:
+                    type: boolean
+            additionalProperties: false
+        DeploymentConnectionPin:
+            oneOf:
+                - "$ref": "#/components/schemas/CurrentConnectionPin"
+                - "$ref": "#/components/schemas/SnapshotConnectionPin"
+            discriminator:
+                propertyName: provenance
+                mapping:
+                    current_rule: "#/components/schemas/CurrentConnectionPin"
+                    deployment_snapshot: "#/components/schemas/SnapshotConnectionPin"
         V2DeploymentsListConnectionsResponseData:
             type: object
             required:
@@ -12824,6 +12917,60 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+    /v2/deployments.listConnectionPins:
+        post:
+            description: |
+                Return up to ten current defaults and active deployment snapshots that pin
+                this deployment. Current defaults come first, ordered by name. Snapshots
+                follow, ordered by saved name and caller creation time. A default and its
+                snapshot are separate entries. Snapshots count only while their caller is
+                running or in flight with private networking enabled.
+                Requires read access to the target deployment. Missing and unreadable
+                deployments return the same 404 response.
+            operationId: deployments.listConnectionPins
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsListConnectionPinsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsListConnectionPinsResponseBody'
+                    description: Connections pinning the deployment and truncation status.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication required.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Deployment not found.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: List connections pinning a deployment
+            tags:
+                - deployments
+            x-speakeasy-name-override: listConnectionPins
     /v2/deployments.listConnections:
         post:
             description: |

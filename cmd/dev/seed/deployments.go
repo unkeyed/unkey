@@ -88,6 +88,7 @@ func seedDeployments(ctx context.Context, cmd *cli.Command) error {
 				Port:                          8080,
 				ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
 				UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
+				Capabilities:                  mysqltype.DeploymentCapabilities{PrivateNetworking: false},
 				Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 				PrNumber:                      sql.NullInt64{},
 				ForkRepositoryFullName:        sql.NullString{},

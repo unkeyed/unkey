@@ -1,0 +1,53 @@
+post:
+  tags:
+    - deployments
+  summary: List connections pinning a deployment
+  description: |
+    Return up to ten current defaults and active deployment snapshots that pin
+    this deployment. Current defaults come first, ordered by name. Snapshots
+    follow, ordered by saved name and caller creation time. A default and its
+    snapshot are separate entries. Snapshots count only while their caller is
+    running or in flight with private networking enabled.
+    Requires read access to the target deployment. Missing and unreadable
+    deployments return the same 404 response.
+  operationId: deployments.listConnectionPins
+  x-speakeasy-name-override: listConnectionPins
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsListConnectionPinsRequestBody.yaml"
+  responses:
+    "200":
+      description: Connections pinning the deployment and truncation status.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsListConnectionPinsResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Deployment not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
