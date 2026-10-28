@@ -81,7 +81,6 @@ type ProjectDataContextType = {
   isEnvironmentsLoading: boolean;
   isCustomDomainsLoading: boolean;
 
-  getDomainsForDeployment: (deploymentId: string) => Domain[];
   getLiveDomains: () => Domain[];
   getEnvironmentOrLiveDomains: () => Domain[];
 
@@ -291,9 +290,6 @@ export const ProjectDataProvider = ({
 
       customDomains,
       isCustomDomainsLoading: customDomainsQuery.isLoading,
-
-      getDomainsForDeployment: (deploymentId: string) =>
-        domains.filter((d) => d.deploymentId === deploymentId),
 
       getLiveDomains: () => domains.filter((d) => d.sticky === "live"),
 
