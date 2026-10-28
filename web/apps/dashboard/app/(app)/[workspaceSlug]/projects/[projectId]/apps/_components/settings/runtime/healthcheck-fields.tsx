@@ -27,14 +27,13 @@ export function HealthcheckFields({ form }: { form: UseFormReturn<RuntimeValues>
   const pathEmpty = form.watch("healthcheck.path") === "";
 
   return (
-    <>
-      <SettingsRow>
-        <SettingsRowHeader>
-          <SettingsRowTitle>Health check path</SettingsRowTitle>
-        </SettingsRowHeader>
-        <SettingsRowContent>
+    <SettingsRow>
+      <SettingsRowHeader>
+        <SettingsRowTitle>Health check</SettingsRowTitle>
+      </SettingsRowHeader>
+      <SettingsRowContent>
+        <div className="flex max-w-(--setting-w) flex-col gap-3">
           <FormField
-            className="max-w-(--setting-w)"
             error={errors?.path?.message}
             description={pathEmpty ? "Leave empty to turn off health checks." : undefined}
           >
@@ -89,44 +88,44 @@ export function HealthcheckFields({ form }: { form: UseFormReturn<RuntimeValues>
               </InputGroup>
             )}
           </FormField>
-        </SettingsRowContent>
-      </SettingsRow>
-      {HEALTHCHECK_FIELDS.map(({ name, label, min, max, unit }) => (
-        <SettingsRow key={name}>
-          <SettingsRowHeader>
-            <SettingsRowTitle>{label}</SettingsRowTitle>
-          </SettingsRowHeader>
-          <SettingsRowContent>
-            <FormField error={errors?.[name]?.message}>
-              {(field) => (
-                <InputGroup variant={field.variant} className="w-28">
-                  <InputGroupInput
-                    data-1p-ignore
-                    id={field.id}
-                    type="number"
-                    inputMode="numeric"
-                    min={min}
-                    max={max}
-                    step={1}
-                    aria-label={unit === "s" ? `${label} in seconds` : label}
-                    aria-invalid={field.invalid}
-                    aria-describedby={field.describedBy}
-                    disabled={pathEmpty}
-                    className="pl-3 font-mono tabular-nums"
-                    onWheelCapture={(e) => e.currentTarget.blur()}
-                    {...register(`healthcheck.${name}`, { valueAsNumber: true })}
-                  />
-                  {unit ? (
-                    <InputGroupAddon align="inline-end">
-                      <InputGroupText className="font-mono">{unit}</InputGroupText>
-                    </InputGroupAddon>
-                  ) : null}
-                </InputGroup>
-              )}
-            </FormField>
-          </SettingsRowContent>
-        </SettingsRow>
-      ))}
-    </>
+          <div className="grid grid-cols-2 items-start gap-3">
+            {HEALTHCHECK_FIELDS.map(({ name, label, min, max, unit }) => (
+              <FormField
+                key={name}
+                label={label}
+                className="min-w-0"
+                error={errors?.[name]?.message}
+              >
+                {(field) => (
+                  <InputGroup variant={field.variant}>
+                    <InputGroupInput
+                      data-1p-ignore
+                      id={field.id}
+                      type="number"
+                      inputMode="numeric"
+                      min={min}
+                      max={max}
+                      step={1}
+                      aria-label={unit === "s" ? `${label} in seconds` : label}
+                      aria-invalid={field.invalid}
+                      aria-describedby={field.describedBy}
+                      disabled={pathEmpty}
+                      className="pl-3 font-mono tabular-nums"
+                      onWheelCapture={(e) => e.currentTarget.blur()}
+                      {...register(`healthcheck.${name}`, { valueAsNumber: true })}
+                    />
+                    {unit ? (
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupText className="font-mono">{unit}</InputGroupText>
+                      </InputGroupAddon>
+                    ) : null}
+                  </InputGroup>
+                )}
+              </FormField>
+            ))}
+          </div>
+        </div>
+      </SettingsRowContent>
+    </SettingsRow>
   );
 }

@@ -16,8 +16,8 @@ import {
 export const HTTP_METHODS = ["GET", "POST"] as const;
 
 export const HEALTHCHECK_FIELDS = [
-  { name: "intervalSeconds", label: "Health check interval", min: 1, max: 3600, unit: "s" },
-  { name: "timeoutSeconds", label: "Health check timeout", min: 1, max: 3600, unit: "s" },
+  { name: "intervalSeconds", label: "Interval", min: 1, max: 3600, unit: "s" },
+  { name: "timeoutSeconds", label: "Timeout", min: 1, max: 3600, unit: "s" },
   { name: "failureThreshold", label: "Failure threshold", min: 1, max: 100, unit: "" },
   { name: "initialDelaySeconds", label: "Initial delay", min: 0, max: 3600, unit: "s" },
 ] as const;
