@@ -1,6 +1,5 @@
 import { type InferSelectModel, and, db, eq, inArray } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import type { LastExit } from "@/lib/types/deploy";
 import {
   appRegionalSettings,
   deploymentTopology,
@@ -11,7 +10,6 @@ import {
 } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { mapInstanceRow } from "./deployment-query-helpers";
-import { lastExitsByDeployment } from "./legacy/deployment-query-helpers";
 
 type DesiredRegion = {
   region: { id: string; name: string; platform: string };
@@ -24,7 +22,6 @@ type DeploymentDetails = Pick<
   "id" | "projectId" | "appId" | "environmentId" | "desiredState" | "triggerReason"
 > & {
   instances: ReturnType<typeof mapInstanceRow>[];
-  lastExit: LastExit | null;
   desiredInstanceCount: number;
   desiredRegions: DesiredRegion[];
   targetRegions: TargetRegion[];
@@ -151,7 +148,6 @@ export const listDeploymentDetails = workspaceProcedure
       }
     }
 
-    const lastExitByDeployment = lastExitsByDeployment(instanceRows);
     const targetsByDeployment = Map.groupBy(topologyRows, (row) => row.deploymentId);
 
     return Object.fromEntries(
@@ -162,7 +158,6 @@ export const listDeploymentDetails = workspaceProcedure
           {
             ...row,
             instances: instancesByDeployment.get(row.id) ?? [],
-            lastExit: lastExitByDeployment.get(row.id) ?? null,
             desiredInstanceCount: desired?.desiredInstanceCount ?? 0,
             desiredRegions: desired?.desiredRegions ?? [],
             targetRegions: (targetsByDeployment.get(row.id) ?? []).map((target) => ({

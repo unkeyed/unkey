@@ -94,12 +94,8 @@ export const deploymentSchema = z.object({
       reason: z.string().nullable(),
       message: z.string(),
       exitCode: z.number().int().nullable(),
-      restartCount: z.number().int(),
-      finishedAt: z.number().nullable(),
     })
     .nullable(),
-  // Deployment-wide exit for the pre-app_v2 pages; delete with their legacy/ folders
-  lastExit: lastExitSchema.nullable(),
 });
 
 export type Deployment = z.infer<typeof deploymentSchema>;
@@ -155,7 +151,6 @@ type RowDetails = Pick<
   | "desiredInstanceCount"
   | "desiredRegions"
   | "triggerReason"
-  | "lastExit"
 > & {
   // A server older than this bundle omits it, as after a rollback with a tab still open
   targetRegions?: Deployment["targetRegions"];
@@ -254,11 +249,8 @@ function toDeployment(
           reason: crashLoop.meta?.reason ?? null,
           message: crashLoop.message,
           exitCode: crashLoop.meta?.exitCode ?? null,
-          restartCount: crashLoop.meta?.restartCount ?? 0,
-          finishedAt: crashLoop.time ?? null,
         }
       : null,
-    lastExit: details.lastExit,
   };
 }
 
