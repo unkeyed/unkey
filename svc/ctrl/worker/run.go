@@ -402,6 +402,14 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Email.ResendAPIKey != "" {
 		gdprResend = gdprerasure.NewResend(cfg.Email.ResendAPIKey)
 	}
+	var gdprPlain gdprerasure.PlainCustomers
+	if cfg.Plain.APIKey != "" {
+		gdprPlain = gdprerasure.NewPlain(cfg.Plain.APIKey)
+	}
+	var gdprDepot gdprerasure.DepotProjects
+	if buildConfig.Backend == deploy.BuildBackendDepot && buildConfig.Depot.APIUrl != "" && registryConfig.Password != "" {
+		gdprDepot = gdprerasure.NewDepot(buildConfig.Depot.APIUrl, registryConfig.Password)
+	}
 	if clickhouseClient == nil {
 		logger.Warn("GdprErasureWorkflow: ClickHouse not configured, erasures will not reach analytics rows")
 	}
@@ -411,6 +419,8 @@ func Run(ctx context.Context, cfg Config) error {
 		WorkOS:     workos.New(cfg.WorkOSAPIKey, ""),
 		Stripe:     gdprStripe,
 		Resend:     gdprResend,
+		Plain:      gdprPlain,
+		Depot:      gdprDepot,
 	})
 	if err != nil {
 		return fmt.Errorf("create gdpr erasure workflow: %w", err)

@@ -283,6 +283,14 @@ type EmailConfig struct {
 	From string `toml:"from"`
 }
 
+// PlainConfig holds the Plain support inbox credentials.
+type PlainConfig struct {
+	// APIKey authenticates Plain's GraphQL API. GDPR user erasure deletes the
+	// user's Plain customer with it, which needs the customer:read and
+	// customer:delete permissions. Empty refuses user erasures.
+	APIKey string `toml:"api_key"`
+}
+
 // Config holds the complete configuration for the Restate worker service.
 // It is designed to be loaded from a TOML file using [config.Load]:
 //
@@ -363,6 +371,9 @@ type Config struct {
 	Billing BillingConfig `toml:"billing"`
 
 	Email EmailConfig `toml:"email"`
+
+	// Plain configures the support inbox GDPR user erasure removes users from.
+	Plain PlainConfig `toml:"plain"`
 
 	// WorkOSAPIKey resolves notification recipients. Empty resolves no recipients.
 	WorkOSAPIKey string `toml:"workos_api_key"`

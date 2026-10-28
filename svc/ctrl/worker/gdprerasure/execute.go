@@ -146,6 +146,20 @@ func (d deleteStripeCustomer) execute(ctx restate.Context, w *Workflow, s subjec
 	})
 }
 
+func (d deleteDepotProjects) execute(ctx restate.Context, w *Workflow, s subject) (int64, error) {
+	var total int64
+	for _, projectID := range s.depotProjectIDs {
+		rows, err := deleteExternal(ctx, d.name()+" "+projectID, func(rc restate.RunContext) (bool, error) {
+			return w.depot.DeleteProject(rc, projectID)
+		})
+		if err != nil {
+			return total, err
+		}
+		total += rows
+	}
+	return total, nil
+}
+
 func (d deleteWorkOSOrganization) execute(ctx restate.Context, w *Workflow, s subject) (int64, error) {
 	if s.orgID == "" {
 		return 0, nil
@@ -162,6 +176,12 @@ func (d deleteResendContact) execute(ctx restate.Context, w *Workflow, s subject
 	return deleteExternal(ctx, d.name(), func(rc restate.RunContext) (bool, error) {
 		return w.resend.DeleteContact(rc, s.email)
 	})
+}
+
+func (d deletePlainCustomer) execute(ctx restate.Context, w *Workflow, s subject) (int64, error) {
+	return restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
+		return w.plain.DeleteCustomers(rc, s.email, s.userID)
+	}, restate.WithName(d.name()))
 }
 
 func (d deleteWorkOSUser) execute(ctx restate.Context, w *Workflow, s subject) (int64, error) {

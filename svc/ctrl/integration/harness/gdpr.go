@@ -25,10 +25,27 @@ func WithoutResend() Option {
 	}
 }
 
+// WithoutPlain binds GdprErasureWorkflow without a Plain client, as a worker
+// with no Plain key runs it.
+func WithoutPlain() Option {
+	return func(o *harnessOpts) {
+		o.withoutPlain = true
+	}
+}
+
+// WithoutDepot binds GdprErasureWorkflow without a Depot client, as a worker
+// that does not build on Depot runs it.
+func WithoutDepot() Option {
+	return func(o *harnessOpts) {
+		o.withoutDepot = true
+	}
+}
+
 // ErasedRecords records the external deletes GdprErasureWorkflow requests.
 // Each delete reports whether the record existed the first time its id is
 // deleted, as the real services do. A WorkOS user added with AddWorkOSUser
-// has an email until it is deleted.
+// has an email until it is deleted, and a Plain customer added with
+// AddPlainCustomer can be found until it is deleted.
 type ErasedRecords struct {
 	mu                  sync.Mutex
 	stripeCustomerIDs   []string
@@ -36,11 +53,22 @@ type ErasedRecords struct {
 	workOSUserIDs       []string
 	workOSOrgIDs        []string
 	resendContactEmails []string
+	plainCustomers      []plainCustomer
+	plainCustomerIDs    []string
+	depotProjectIDs     []string
+}
+
+type plainCustomer struct {
+	id         string
+	email      string
+	externalID string
 }
 
 var (
 	_ gdprerasure.StripeCustomers = (*ErasedRecords)(nil)
 	_ gdprerasure.ResendContacts  = (*ErasedRecords)(nil)
+	_ gdprerasure.PlainCustomers  = (*ErasedRecords)(nil)
+	_ gdprerasure.DepotProjects   = (*ErasedRecords)(nil)
 	_ workos.Eraser               = (*ErasedRecords)(nil)
 )
 
@@ -61,6 +89,33 @@ func (e *ErasedRecords) UserEmail(_ context.Context, userID string) (string, err
 		return "", nil
 	}
 	return e.workOSUserEmails[userID], nil
+}
+
+// AddPlainCustomer makes customerID a Plain customer with this email address
+// and external id.
+func (e *ErasedRecords) AddPlainCustomer(customerID, email, externalID string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.plainCustomers = append(e.plainCustomers, plainCustomer{id: customerID, email: email, externalID: externalID})
+}
+
+func (e *ErasedRecords) DeleteCustomers(_ context.Context, email, externalID string) (int64, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	var deleted int64
+	e.plainCustomers = slices.DeleteFunc(e.plainCustomers, func(c plainCustomer) bool {
+		if (email == "" || c.email != email) && (externalID == "" || c.externalID != externalID) {
+			return false
+		}
+		e.plainCustomerIDs = append(e.plainCustomerIDs, c.id)
+		deleted++
+		return true
+	})
+	return deleted, nil
+}
+
+func (e *ErasedRecords) DeleteProject(_ context.Context, projectID string) (bool, error) {
+	return e.record(&e.depotProjectIDs, projectID), nil
 }
 
 func (e *ErasedRecords) DeleteContact(_ context.Context, email string) (bool, error) {
@@ -90,6 +145,12 @@ func (e *ErasedRecords) WorkOSOrgIDs() []string { return e.snapshot(e.workOSOrgI
 
 // ResendContactEmails returns the Resend contacts deleted so far.
 func (e *ErasedRecords) ResendContactEmails() []string { return e.snapshot(e.resendContactEmails) }
+
+// PlainCustomerIDs returns the Plain customers deleted so far.
+func (e *ErasedRecords) PlainCustomerIDs() []string { return e.snapshot(e.plainCustomerIDs) }
+
+// DepotProjectIDs returns the Depot projects deleted so far.
+func (e *ErasedRecords) DepotProjectIDs() []string { return e.snapshot(e.depotProjectIDs) }
 
 func (e *ErasedRecords) record(ids *[]string, id string) bool {
 	e.mu.Lock()

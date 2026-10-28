@@ -41,6 +41,16 @@ type Config struct {
 	// is configured, and then every user erasure fails before anything is
 	// deleted.
 	Resend ResendContacts
+
+	// Plain deletes a dashboard user's Plain customer. Nil when no Plain key is
+	// configured, and then every user erasure fails before anything is
+	// deleted.
+	Plain PlainCustomers
+
+	// Depot deletes a workspace's Depot projects. Nil when the worker does not
+	// build on Depot, and then erasing a workspace that has a Depot project
+	// fails before anything is deleted.
+	Depot DepotProjects
 }
 
 // Workflow implements GdprErasureWorkflow.
@@ -51,6 +61,8 @@ type Workflow struct {
 	workos     workos.Eraser
 	stripe     StripeCustomers
 	resend     ResendContacts
+	plain      PlainCustomers
+	depot      DepotProjects
 }
 
 var _ hydrav1.GdprErasureWorkflowServer = (*Workflow)(nil)
@@ -71,6 +83,8 @@ func New(cfg Config) (*Workflow, error) {
 		workos:                                 cfg.WorkOS,
 		stripe:                                 cfg.Stripe,
 		resend:                                 cfg.Resend,
+		plain:                                  cfg.Plain,
+		depot:                                  cfg.Depot,
 	}, nil
 }
 
@@ -111,6 +125,9 @@ func (w *Workflow) plan(ctx restate.WorkflowContext, req *hydrav1.GdprErasureReq
 		if w.resend == nil {
 			return nil, nil, restate.TerminalErrorf("no resend key is configured, so user %s would stay a resend contact; refusing to erase", userID)
 		}
+		if w.plain == nil {
+			return nil, nil, restate.TerminalErrorf("no plain key is configured, so user %s would stay a plain customer; refusing to erase", userID)
+		}
 		email, err := restate.Run(ctx, func(rc restate.RunContext) (string, error) {
 			return w.workos.UserEmail(rc, userID)
 		}, restate.WithName("read workos user email"))
@@ -125,6 +142,7 @@ func (w *Workflow) plan(ctx restate.WorkflowContext, req *hydrav1.GdprErasureReq
 			identityIDs:      nil,
 			orgID:            "",
 			stripeCustomerID: "",
+			depotProjectIDs:  nil,
 		}, userSteps, nil
 
 	case *hydrav1.GdprErasureRequest_Workspace:
@@ -162,6 +180,7 @@ func (w *Workflow) plan(ctx restate.WorkflowContext, req *hydrav1.GdprErasureReq
 			identityIDs:      identityIDs,
 			orgID:            "",
 			stripeCustomerID: "",
+			depotProjectIDs:  nil,
 		}, endUserSteps, nil
 
 	default:
@@ -180,6 +199,8 @@ type workspaceRecord struct {
 	// StripeCustomerShares counts the other workspaces billed to the same
 	// Stripe customer.
 	StripeCustomerShares int64 `json:"stripe_customer_shares"`
+
+	DepotProjectIDs []string `json:"depot_project_ids"`
 }
 
 // guardWorkspace refuses an erasure it cannot finish or must not start, and
@@ -203,6 +224,9 @@ func (w *Workflow) guardWorkspace(ctx restate.WorkflowContext, workspaceID, work
 	if record.StripeCustomerID != "" && w.stripe == nil {
 		return nil, restate.TerminalErrorf("workspace %s has stripe customer %s but no stripe key is configured", workspaceID, record.StripeCustomerID)
 	}
+	if len(record.DepotProjectIDs) > 0 && w.depot == nil {
+		return nil, restate.TerminalErrorf("workspace %s has %d depot projects but no depot api is configured", workspaceID, len(record.DepotProjectIDs))
+	}
 	return &subject{
 		workspaceID:      workspaceID,
 		externalID:       "",
@@ -211,6 +235,7 @@ func (w *Workflow) guardWorkspace(ctx restate.WorkflowContext, workspaceID, work
 		identityIDs:      nil,
 		orgID:            record.OrgID,
 		stripeCustomerID: record.StripeCustomerID,
+		depotProjectIDs:  record.DepotProjectIDs,
 	}, nil
 }
 
@@ -225,6 +250,14 @@ func (w *Workflow) readWorkspace(ctx context.Context, workspaceID string) (works
 		record.Found = true
 		record.Slug = workspace.Slug
 		record.OrgID = workspace.OrgID
+	}
+
+	depotProjectIDs, err := w.db.ListDepotProjectIDsByWorkspaceID(ctx, workspaceID)
+	if err != nil {
+		return record, err
+	}
+	for _, id := range depotProjectIDs {
+		record.DepotProjectIDs = append(record.DepotProjectIDs, id.String)
 	}
 
 	billing, err := w.db.FindWorkspaceBillingByWorkspaceID(ctx, workspaceID)

@@ -28,12 +28,12 @@ type auditActor struct {
 
 // TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs guarantees that a
 // GDPR user erasure deletes the user's sessions, device approvals and signup
-// credit claims, their Resend contact and their WorkOS account, forgets them as
-// the trigger of their deployments while keeping the deployments, and strips
-// their name, metadata, address and user agent from audit logs, both exported
-// and still queued, while keeping the events and the actor id as the
-// customer's security record. Another user's rows and contact stay intact, and
-// a second request changes nothing.
+// credit claims, their Resend contact, their Plain customer and their WorkOS
+// account, forgets them as the trigger of their deployments while keeping the
+// deployments, and strips their name, metadata, address and user agent from
+// audit logs, both exported and still queued, while keeping the events and the
+// actor id as the customer's security record. Another user's rows, contact and
+// customer stay intact, and a second request changes nothing.
 func TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs(t *testing.T) {
 	h := harness.New(t)
 	ws := h.Seed.CreateWorkspace(h.Ctx)
@@ -41,9 +41,12 @@ func TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs(t *testing.T) {
 	userID := uid.New(uid.TestPrefix)
 	neighbourID := uid.New(uid.TestPrefix)
 	deploymentIDs := make(map[string]string, 2)
+	plainCustomerIDs := make(map[string]string, 2)
 	for _, id := range []string{userID, neighbourID} {
 		deploymentIDs[id] = seedUser(t, h, ws.ID, id)
 		h.Erased.AddWorkOSUser(id, id+"@example.com")
+		plainCustomerIDs[id] = uid.New(uid.TestPrefix)
+		h.Erased.AddPlainCustomer(plainCustomerIDs[id], id+"@example.com", id)
 	}
 
 	require.Equal(t, db.CountUserRowsByTableRow{CliSessions: 1, DeviceAuthorizations: 1, ComputeSignupCreditClaims: 1}, countUserRows(t, h, userID))
@@ -63,6 +66,7 @@ func TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs(t *testing.T) {
 	require.Equal(t, []auditActor{pseudonym}, auditActors(t, h, ws.ID, userID))
 	require.Equal(t, []string{userID}, h.Erased.WorkOSUserIDs())
 	require.Equal(t, []string{userID + "@example.com"}, h.Erased.ResendContactEmails())
+	require.Equal(t, []string{plainCustomerIDs[userID]}, h.Erased.PlainCustomerIDs())
 	deploymentAfter := deploymentBefore
 	deploymentAfter.TriggeredBy = sql.NullString{}
 	require.Equal(t, deploymentAfter, findDeployment(t, h, deploymentIDs[userID]))
@@ -96,6 +100,50 @@ func TestUserErasureFailsClosedWithoutResendKey(t *testing.T) {
 	_, err := erase(t, h, userRequest(userID))
 	require.Error(t, err)
 	require.ErrorContains(t, err, "no resend key")
+
+	require.Equal(t, before, countUserRows(t, h, userID))
+	require.Equal(t, outboxBefore, outboxActors(t, h, ws.ID, userID))
+	require.Equal(t, auditBefore, auditActors(t, h, ws.ID, userID))
+	require.Equal(t, deploymentBefore, findDeployment(t, h, deploymentID))
+	require.Empty(t, h.Erased.WorkOSUserIDs())
+	require.Empty(t, h.Erased.ResendContactEmails())
+}
+
+// TestUserErasureDeletesPlainCustomerByExternalID guarantees that a user
+// erasure finds the user's Plain customer by their WorkOS id when WorkOS no
+// longer has their email, as after an earlier run deleted the WorkOS user.
+func TestUserErasureDeletesPlainCustomerByExternalID(t *testing.T) {
+	h := harness.New(t)
+	userID := uid.New(uid.TestPrefix)
+	customerID := uid.New(uid.TestPrefix)
+	h.Erased.AddPlainCustomer(customerID, uid.New(uid.TestPrefix)+"@example.com", userID)
+	h.Erased.AddPlainCustomer(uid.New(uid.TestPrefix), uid.New(uid.TestPrefix)+"@example.com", uid.New(uid.TestPrefix))
+
+	_, err := erase(t, h, userRequest(userID))
+	require.NoError(t, err)
+
+	require.Equal(t, []string{customerID}, h.Erased.PlainCustomerIDs())
+	require.Empty(t, h.Erased.ResendContactEmails())
+}
+
+// TestUserErasureFailsClosedWithoutPlainKey guarantees that a worker without a
+// Plain key refuses to erase a user, instead of deleting their rows and WorkOS
+// account and leaving their support history in Plain.
+func TestUserErasureFailsClosedWithoutPlainKey(t *testing.T) {
+	h := harness.New(t, harness.WithoutPlain())
+	ws := h.Seed.CreateWorkspace(h.Ctx)
+	userID := uid.New(uid.TestPrefix)
+	deploymentID := seedUser(t, h, ws.ID, userID)
+	h.Erased.AddWorkOSUser(userID, userID+"@example.com")
+
+	before := countUserRows(t, h, userID)
+	outboxBefore := outboxActors(t, h, ws.ID, userID)
+	auditBefore := auditActors(t, h, ws.ID, userID)
+	deploymentBefore := findDeployment(t, h, deploymentID)
+
+	_, err := erase(t, h, userRequest(userID))
+	require.Error(t, err)
+	require.ErrorContains(t, err, "no plain key")
 
 	require.Equal(t, before, countUserRows(t, h, userID))
 	require.Equal(t, outboxBefore, outboxActors(t, h, ws.ID, userID))

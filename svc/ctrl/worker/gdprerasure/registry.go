@@ -22,13 +22,15 @@ const (
 
 // workspaceSteps erases a workspace. Compute stops first so no row vanishes
 // under a running pod. The Stripe customer goes before workspace_billing, the
-// row that names it. Child tables without a workspace_id are found through
-// their parents, so they run before them. The workspaces row goes last: until
-// then a re-run can still read the WorkOS organization to delete.
+// row that names it, and the Depot projects go before projects, the rows that
+// name them. Child tables without a workspace_id are found through their
+// parents, so they run before them. The workspaces row goes last: until then a
+// re-run can still read the WorkOS organization to delete.
 var workspaceSteps = concat(
 	[]step{
 		teardownCompute{},
 		deleteStripeCustomer{},
+		deleteDepotProjects{},
 
 		mysqlDelete{table: "keys_permissions", by: "legacy root key", where: "key_id IN (" + legacyRootKeys + ")"},
 		mysqlDelete{table: "keys_roles", by: "legacy root key", where: "key_id IN (" + legacyRootKeys + ")"},
@@ -168,13 +170,15 @@ var endUserSteps = []step{
 	mysqlDelete{table: "identities", by: "", where: "workspace_id = :workspace_id AND external_id = :external_id"},
 }
 
-// userSteps erases a dashboard user. The Resend contact goes first, so a key
-// that cannot delete contacts stops the erasure before any row changes. Audit
-// log rows stay, because they are the customer's security record, but lose the
-// user's name, metadata, address and user agent. The outbox is rewritten first
-// so a pending export cannot bring those back into ClickHouse.
+// userSteps erases a dashboard user. The Resend contact and Plain customer go
+// first, so a key that cannot delete them stops the erasure before any row
+// changes. Audit log rows stay, because they are the customer's security
+// record, but lose the user's name, metadata, address and user agent. The
+// outbox is rewritten first so a pending export cannot bring those back into
+// ClickHouse.
 var userSteps = []step{
 	deleteResendContact{},
+	deletePlainCustomer{},
 	mysqlDelete{table: "cli_sessions", by: "", where: "user_id = :user_id"},
 	mysqlDelete{table: "device_authorizations", by: "", where: "approver_user_id = :user_id"},
 	mysqlDelete{table: "compute_signup_credit_claims", by: "", where: "workos_user_id = :user_id"},

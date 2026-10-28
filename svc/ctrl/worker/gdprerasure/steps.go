@@ -74,6 +74,11 @@ type deleteStripeCustomer struct{}
 
 func (deleteStripeCustomer) name() string { return "delete stripe customer" }
 
+// deleteDepotProjects deletes the Depot projects of the workspace's projects.
+type deleteDepotProjects struct{}
+
+func (deleteDepotProjects) name() string { return "delete depot projects" }
+
 // deleteWorkOSOrganization deletes the workspace's WorkOS organization.
 type deleteWorkOSOrganization struct{}
 
@@ -83,6 +88,11 @@ func (deleteWorkOSOrganization) name() string { return "delete workos organizati
 type deleteResendContact struct{}
 
 func (deleteResendContact) name() string { return "delete resend contact" }
+
+// deletePlainCustomer deletes the dashboard user's Plain customer.
+type deletePlainCustomer struct{}
+
+func (deletePlainCustomer) name() string { return "delete plain customer" }
 
 // deleteWorkOSUser deletes the dashboard user's WorkOS account.
 type deleteWorkOSUser struct{}

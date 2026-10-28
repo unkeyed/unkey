@@ -89,7 +89,7 @@ type Harness struct {
 	// pass a *clock.TestClock via WithClock and assert against it here.
 	Clock clock.Clock
 
-	// Erased records the Stripe, WorkOS and Resend deletes
+	// Erased records the Stripe, WorkOS, Resend, Plain and Depot deletes
 	// GdprErasureWorkflow requests.
 	Erased *ErasedRecords
 }
@@ -112,6 +112,8 @@ type harnessOpts struct {
 
 	withoutStripe bool
 	withoutResend bool
+	withoutPlain  bool
+	withoutDepot  bool
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -366,6 +368,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 		workOSUserIDs:       nil,
 		workOSOrgIDs:        nil,
 		resendContactEmails: nil,
+		plainCustomers:      nil,
+		plainCustomerIDs:    nil,
+		depotProjectIDs:     nil,
 	}
 	var gdprStripe gdprerasure.StripeCustomers = erased
 	if o.withoutStripe {
@@ -375,12 +380,22 @@ func New(t *testing.T, opts ...Option) *Harness {
 	if o.withoutResend {
 		gdprResend = nil
 	}
+	var gdprPlain gdprerasure.PlainCustomers = erased
+	if o.withoutPlain {
+		gdprPlain = nil
+	}
+	var gdprDepot gdprerasure.DepotProjects = erased
+	if o.withoutDepot {
+		gdprDepot = nil
+	}
 	gdprErasure, err := gdprerasure.New(gdprerasure.Config{
 		DB:         database,
 		ClickHouse: chClient,
 		WorkOS:     erased,
 		Stripe:     gdprStripe,
 		Resend:     gdprResend,
+		Plain:      gdprPlain,
+		Depot:      gdprDepot,
 	})
 	require.NoError(t, err)
 

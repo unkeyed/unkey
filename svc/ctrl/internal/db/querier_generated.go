@@ -2264,6 +2264,15 @@ type Querier interface {
 	//    AND created_at < ?
 	//    AND (updated_at IS NULL OR updated_at < ?)
 	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
+	// Lists the Depot projects a workspace's projects build in, soft-deleted
+	// projects included, so a GDPR erasure can delete them.
+	//
+	//  SELECT depot_project_id FROM projects
+	//  WHERE workspace_id = ?
+	//    AND depot_project_id IS NOT NULL
+	//    AND depot_project_id != ''
+	//  ORDER BY id
+	ListDepotProjectIDsByWorkspaceID(ctx context.Context, workspaceID string) ([]sql.NullString, error)
 	//ListEnvironmentIdsByApp
 	//
 	//  SELECT environments.id FROM environments WHERE environments.app_id = ?

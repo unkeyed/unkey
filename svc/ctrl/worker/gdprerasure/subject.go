@@ -14,6 +14,7 @@ type subject struct {
 	identityIDs      []string
 	orgID            string
 	stripeCustomerID string
+	depotProjectIDs  []string
 }
 
 var placeholderPattern = regexp.MustCompile(`:([a-z_]+)`)

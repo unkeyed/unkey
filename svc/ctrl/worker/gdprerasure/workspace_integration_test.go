@@ -24,6 +24,7 @@ type seededWorkspace struct {
 	slug             string
 	orgID            string
 	stripeCustomerID string
+	depotProjectID   string
 	projectID        string
 	deploymentID     string
 	connectionID     string
@@ -32,8 +33,9 @@ type seededWorkspace struct {
 
 // TestWorkspaceErasureRemovesEverythingAndSparesNeighbours guarantees that a
 // GDPR workspace erasure leaves no row of the workspace in any MySQL or
-// ClickHouse table, deletes its Stripe customer and WorkOS organization, leaves
-// another workspace untouched, and converges: a second request deletes nothing.
+// ClickHouse table, deletes its Stripe customer, Depot project and WorkOS
+// organization, leaves another workspace untouched, and converges: a second
+// request deletes nothing.
 func TestWorkspaceErasureRemovesEverythingAndSparesNeighbours(t *testing.T) {
 	h := harness.New(t)
 	internal := seedInternalWorkspace(t, h)
@@ -60,6 +62,7 @@ func TestWorkspaceErasureRemovesEverythingAndSparesNeighbours(t *testing.T) {
 	require.Equal(t, db.CountWorkspaceRowsByTableRow{}, countWorkspaceRows(t, h, subject))
 	require.Empty(t, clickhouseCounts(t, h, "workspace_id", "workspace_id = ?", subject.id))
 	require.Equal(t, []string{subject.stripeCustomerID}, h.Erased.StripeCustomerIDs())
+	require.Equal(t, []string{subject.depotProjectID}, h.Erased.DepotProjectIDs())
 	require.Equal(t, []string{subject.orgID}, h.Erased.WorkOSOrgIDs())
 
 	require.Equal(t, neighbourBefore, countWorkspaceRows(t, h, neighbour))
@@ -90,6 +93,7 @@ func TestWorkspaceErasureRefusesMismatchedSlug(t *testing.T) {
 	require.Equal(t, before, countWorkspaceRows(t, h, subject))
 	require.Equal(t, clickhouseBefore, clickhouseCounts(t, h, "workspace_id", "workspace_id = ?", subject.id))
 	require.Empty(t, h.Erased.StripeCustomerIDs())
+	require.Empty(t, h.Erased.DepotProjectIDs())
 	require.Empty(t, h.Erased.WorkOSOrgIDs())
 }
 
@@ -109,6 +113,28 @@ func TestWorkspaceErasureFailsClosedWithoutStripeKey(t *testing.T) {
 
 	require.Equal(t, before, countWorkspaceRows(t, h, subject))
 	require.Equal(t, clickhouseBefore, clickhouseCounts(t, h, "workspace_id", "workspace_id = ?", subject.id))
+	require.Empty(t, h.Erased.WorkOSOrgIDs())
+}
+
+// TestWorkspaceErasureFailsClosedWithoutDepot guarantees that a worker that
+// does not build on Depot refuses to erase a workspace with a Depot project,
+// instead of deleting the row that names the project and stranding the
+// customer's build context and cache.
+func TestWorkspaceErasureFailsClosedWithoutDepot(t *testing.T) {
+	h := harness.New(t, harness.WithoutDepot())
+	internal := seedInternalWorkspace(t, h)
+	subject := seedWorkspace(t, h, internal)
+	before := countWorkspaceRows(t, h, subject)
+	clickhouseBefore := clickhouseCounts(t, h, "workspace_id", "workspace_id = ?", subject.id)
+
+	_, err := erase(t, h, workspaceRequest(subject.id, subject.slug))
+	require.Error(t, err)
+	require.ErrorContains(t, err, "no depot api")
+
+	require.Equal(t, before, countWorkspaceRows(t, h, subject))
+	require.Equal(t, clickhouseBefore, clickhouseCounts(t, h, "workspace_id", "workspace_id = ?", subject.id))
+	require.Empty(t, h.Erased.StripeCustomerIDs())
+	require.Empty(t, h.Erased.DepotProjectIDs())
 	require.Empty(t, h.Erased.WorkOSOrgIDs())
 }
 
@@ -150,6 +176,12 @@ func seedWorkspace(t *testing.T, h *harness.Harness, internal internalWorkspace)
 		Name:        "erasure",
 		Slug:        uid.New(uid.TestPrefix),
 	})
+	depotProjectID := uid.New(uid.TestPrefix)
+	require.NoError(t, h.DB.UpdateProjectDepotID(ctx, db.UpdateProjectDepotIDParams{
+		DepotProjectID: sql.NullString{String: depotProjectID, Valid: true},
+		UpdatedAt:      sql.NullInt64{Int64: now.UnixMilli(), Valid: true},
+		ID:             project.ID,
+	}))
 	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
 		ID:          uid.New(uid.AppPrefix),
 		WorkspaceID: ws.ID,
@@ -256,6 +288,7 @@ func seedWorkspace(t *testing.T, h *harness.Harness, internal internalWorkspace)
 		slug:             ws.Slug,
 		orgID:            ws.OrgID,
 		stripeCustomerID: stripeCustomerID,
+		depotProjectID:   depotProjectID,
 		projectID:        project.ID,
 		deploymentID:     deployment.ID,
 		connectionID:     connectionID,

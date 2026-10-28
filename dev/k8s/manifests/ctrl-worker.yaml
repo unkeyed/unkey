@@ -67,6 +67,12 @@ data:
     [email]
     resend_api_key = "${RESEND_API_KEY}"
 
+    # Plain API key for GDPR user erasure, which deletes the user's Plain
+    # customer. From the optional plain-credentials secret (dev/.env.plain);
+    # with it empty user erasures fail.
+    [plain]
+    api_key = "${PLAIN_API_KEY}"
+
     # GitHub App credentials for authenticating with the GitHub API.
     # app_id is resolved at runtime via os.ExpandEnv from the github-credentials secret.
     # Without a valid app_id the generated JWT has issuer "0" and GitHub returns 401.
@@ -158,6 +164,12 @@ spec:
                 secretKeyRef:
                   name: resend-credentials
                   key: RESEND_API_KEY
+                  optional: true
+            - name: PLAIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: plain-credentials
+                  key: PLAIN_API_KEY
                   optional: true
             - name: FORCE_DEPLOYMENT_APPROVAL
               value: "false"
