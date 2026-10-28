@@ -1,7 +1,7 @@
 import type { LastExit } from "@/lib/types/deploy";
 import type { ContainerStatus } from "@unkey/db/src/schema";
 import { describe, expect, it, test } from "vitest";
-import { exitBadge, exitDetail, exitSummary, lastExitOf, latestExit } from "./last-exit";
+import { exitSummary, lastExitOf, latestExit } from "./last-exit";
 
 const exit = (overrides: Partial<LastExit> = {}): LastExit => ({
   restartCount: 0,
@@ -11,36 +11,6 @@ const exit = (overrides: Partial<LastExit> = {}): LastExit => ({
   finishedAt: null,
   statusReason: null,
   ...overrides,
-});
-
-describe("exitBadge", () => {
-  test("a fatal waiting reason wins over the last termination", () => {
-    expect(
-      exitBadge(exit({ statusReason: "CrashLoopBackOff", reason: "Error", exitCode: 1 })),
-    ).toEqual({ kind: "waiting", reason: "CrashLoopBackOff" });
-    expect(exitBadge(exit({ statusReason: "ImagePullBackOff" }))).toEqual({
-      kind: "waiting",
-      reason: "ImagePullBackOff",
-    });
-  });
-
-  test("an exit without a reason reads as Error, or Completed for exit 0, and a zero exit code is not shown", () => {
-    expect(exitBadge(exit({ reason: "", exitCode: 1 }))).toEqual({
-      kind: "exit",
-      reason: "Error",
-      exit: "exit=1",
-    });
-    expect(exitBadge(exit({ exitCode: 1 }))).toEqual({
-      kind: "exit",
-      reason: "Error",
-      exit: "exit=1",
-    });
-    expect(exitBadge(exit({ exitCode: 0 }))).toEqual({
-      kind: "exit",
-      reason: "Completed",
-      exit: null,
-    });
-  });
 });
 
 describe("lastExitOf", () => {
@@ -172,33 +142,16 @@ describe("exitSummary", () => {
       exitSummary(
         exit({ restartCount: 7, reason: "Error", exitCode: 1, statusReason: "CrashLoopBackOff" }),
       ),
-    ).toBe("CrashLoopBackOff · 7 restarts");
+    ).toBe("Exited with error · exit=1 · 7 restarts");
     expect(exitSummary(exit({ restartCount: 1, reason: "OOMKilled", exitCode: 137 }))).toBe(
-      "OOMKilled · exit=137 · 1 restart",
+      "Out of memory · exit=137 · 1 restart",
     );
   });
 
-  test("reads an exit without a reason as Error, like the badge", () => {
+  test("reads a failed exit without a reason as an error and a clean one as neutral", () => {
     expect(exitSummary(exit({ reason: "", exitCode: 1, restartCount: 2 }))).toBe(
-      "Error · exit=1 · 2 restarts",
+      "Exited with error · exit=1 · 2 restarts",
     );
-    expect(exitSummary(exit({ exitCode: 0 }))).toBe("Completed");
-  });
-});
-
-describe("exitDetail", () => {
-  test("adds the termination behind a waiting badge", () => {
-    expect(
-      exitDetail(exit({ statusReason: "CrashLoopBackOff", reason: "Error", exitCode: 1 })),
-    ).toBe("Error · exit=1");
-  });
-
-  test("adds nothing the badge already shows", () => {
-    expect(exitDetail(exit({ statusReason: "ImagePullBackOff" }))).toBe(null);
-    expect(exitDetail(exit({ reason: "OOMKilled", exitCode: 137 }))).toBe(null);
-  });
-
-  test("shows a zero exit code the badge hides", () => {
-    expect(exitDetail(exit({ reason: "Completed", exitCode: 0 }))).toBe("exit=0");
+    expect(exitSummary(exit({ exitCode: 0 }))).toBe("Exited");
   });
 });

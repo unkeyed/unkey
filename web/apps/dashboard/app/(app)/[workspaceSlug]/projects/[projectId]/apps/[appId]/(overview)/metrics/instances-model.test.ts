@@ -151,7 +151,7 @@ describe("instance tones and instanceSrLabel", () => {
   it("shows the crash, then the previous deploy, then the state as row status", () => {
     const [current, crashed, , old] = view().rows.map((r) => r.instance.statusText);
     expect([crashed, current, old]).toEqual([
-      "CrashLoopBackOff · 7 restarts",
+      "Exited with error · exit=1 · 7 restarts",
       "Running",
       "Previous deploy",
     ]);
@@ -183,7 +183,7 @@ describe("instancesTabView", () => {
       result.rows.map((r) => [r.instance.key, r.instance.tone, r.instance.statusText]),
     ).toEqual([
       ["eu-0", "current", "Running"],
-      ["eu-1", "unhealthy", "CrashLoopBackOff · 7 restarts"],
+      ["eu-1", "unhealthy", "Exited with error · exit=1 · 7 restarts"],
       ["us-0", "current", "Running"],
       ["us-old", "previous", "Previous deploy"],
     ]);

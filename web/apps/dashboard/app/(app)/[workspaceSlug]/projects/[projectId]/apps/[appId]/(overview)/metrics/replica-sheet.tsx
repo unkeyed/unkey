@@ -2,8 +2,8 @@
 
 import type { ChartMarkers } from "@/components/charts/chart-markers";
 import { RegionFlag } from "@/components/region-flag";
+import { summarizeExit } from "@/lib/collections/deploy/exit-reasons";
 import { instanceLabel } from "@/lib/collections/deploy/instance-status";
-import { exitDetail } from "@/lib/collections/deploy/last-exit";
 import { plural } from "@/lib/fmt";
 import { METRIC_VIEWS } from "@/lib/metrics/views";
 import { regionInfo } from "@/lib/regions";
@@ -23,7 +23,7 @@ import {
   TimestampInfo,
 } from "@unkey/ui";
 import type { ReactNode } from "react";
-import { LastExitBadge } from "../../components/last-exit-badge";
+import { LastExitText } from "../../components/last-exit";
 import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { DeployIdentity } from "./deploy-identity";
@@ -126,14 +126,12 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 function LastExitRow({ lastExit }: { lastExit: LastExit }) {
-  const detail = exitDetail(lastExit);
   return (
     <DetailRow label="Last exit">
       <div className="flex flex-col items-start gap-1.5">
-        <LastExitBadge lastExit={lastExit} />
+        <LastExitText summary={summarizeExit(lastExit)} />
         <span className="text-xs tabular-nums text-gray-11">
           {plural(lastExit.restartCount, "restart")}
-          {detail && ` · ${detail}`}
           {lastExit.finishedAt && (
             <>
               {" · "}
