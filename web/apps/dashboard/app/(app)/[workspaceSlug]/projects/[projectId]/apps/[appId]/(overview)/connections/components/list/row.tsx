@@ -11,7 +11,14 @@ import {
   IconTriangleWarningOutline12,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, ConfirmPopover, InfoTooltip, ResourceListItem, ResourceListRow } from "@unkey/ui";
+import {
+  Button,
+  ConfirmPopover,
+  CopyButton,
+  InfoTooltip,
+  ResourceListItem,
+  ResourceListRow,
+} from "@unkey/ui";
 import { useRef, useState } from "react";
 import { connectionHostVariable } from "../../connection-rules";
 import { type ConnectionTargets, describeTarget, targetLabel } from "../../connection-rules";
@@ -81,7 +88,14 @@ export function ConnectionRow({
             {connection.targetAppName}
           </span>
         </span>
-        <code className="truncate font-mono text-xs text-gray-11">{variable}</code>
+        <span className="flex min-w-0 items-center gap-1">
+          <code className="truncate font-mono text-xs text-gray-11">{variable}</code>
+          <CopyButton
+            value={variable}
+            variant="ghost"
+            className="relative size-5 shrink-0 [&_svg]:size-3"
+          />
+        </span>
         <span className="flex items-center gap-4">
           {ENVIRONMENT_KINDS.map((kind) => (
             <EnvBadge key={kind} badge={envBadge(kind, connection, envs, targets)} />

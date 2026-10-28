@@ -21,14 +21,19 @@ export function CodeSnippets({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-gray-12">Use it in your code</span>
+        <span className="text-sm font-medium text-gray-12">Use this connection in your code</span>
         <SegmentedControl<Language>
           aria-label="Language"
+          className="gap-0.5 rounded-md p-0.5"
           value={language}
           onValueChange={setLanguage}
         >
           {LANGUAGE_ORDER.map((value) => (
-            <SegmentedControlItem<Language> key={value} value={value} className="text-xs">
+            <SegmentedControlItem<Language>
+              key={value}
+              value={value}
+              className="min-h-6 rounded-[5px] px-2 text-xs"
+            >
               {LANGUAGES[value].label}
             </SegmentedControlItem>
           ))}

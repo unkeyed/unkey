@@ -25,7 +25,7 @@ export function VariableField({ savedName }: { savedName?: string }) {
             description={
               name ? (
                 <>
-                  Your app reads{" "}
+                  Available in your app as{" "}
                   <code className="font-mono text-gray-12">{connectionHostVariable(name)}</code>.
                 </>
               ) : undefined

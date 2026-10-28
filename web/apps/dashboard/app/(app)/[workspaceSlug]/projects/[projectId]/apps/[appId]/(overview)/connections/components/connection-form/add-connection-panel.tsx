@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useProjectData } from "../../../data-provider";
 import { defaultConnectionName } from "../../connection-rules";
+import type { AfterSave } from "../../hooks/use-connection-actions";
 import { type ConnectionsData, useTargetDeployments } from "../../hooks/use-connections-data";
 import {
   type ConnectionFormValues,
@@ -26,7 +27,7 @@ export function AddConnectionPanel({
   data: ConnectionsData;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (values: ConnectionFormValues) => Promise<boolean>;
+  onSave: (values: ConnectionFormValues, after: AfterSave) => Promise<boolean>;
 }) {
   const { envs, merged, targets, requiresExplicitPreviewTarget } = data;
   const { apps: projectApps } = useProjectData();
@@ -37,7 +38,7 @@ export function AddConnectionPanel({
     defaultValues: { targetAppId: "", name: "", envs: defaultEnvs(null, envs) },
   });
   const [steps, setSteps] = useState(ADD_STEPS);
-  const [created, setCreated] = useState(false);
+  const [committing, setCommitting] = useState<AfterSave | null>(null);
   const targetAppId = useWatch({ control: form.control, name: "targetAppId" });
   const page = useTargetDeployments({
     projectId: data.projectId,
@@ -75,28 +76,25 @@ export function AddConnectionPanel({
     setSteps(completeStep);
   };
 
-  const onSubmit = async (values: ConnectionFormValues) => {
-    if (await onSave(values)) {
-      form.reset(values);
-      setSteps(completeStep);
-      setCreated(true);
-    }
-  };
+  const commit = (after: AfterSave) =>
+    form.handleSubmit(async (values) => {
+      setCommitting(after);
+      const saved = await onSave(values, after);
+      setCommitting(null);
+      if (saved) {
+        form.reset(values);
+        onClose();
+      }
+    })();
 
   return (
-    <ConnectionForm
-      title="Add connection"
-      isOpen={isOpen}
-      onClose={onClose}
-      form={form}
-      onSubmit={onSubmit}
-    >
+    <ConnectionForm title="Add connection" isOpen={isOpen} onClose={onClose} form={form}>
       <ConnectionSteps
         mode="add"
         steps={steps}
         onStepsChange={setSteps}
-        created={created}
-        onDone={onClose}
+        onCommit={commit}
+        committing={committing}
         app={{
           locked: false,
           summary: target ? <AppName name={target.name} /> : null,

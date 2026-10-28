@@ -1,7 +1,7 @@
 "use client";
 
 import { LoadError } from "@/components/load-error";
-import { IconCircleInfoOutline18, IconLinkOutline18, IconPlusOutline18 } from "@unkey/icons";
+import { IconLinkOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -80,22 +80,15 @@ export default function ConnectionsPage() {
             </EmptyState>
           ))
           .with({ type: "list" }, () => (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 rounded-lg bg-grayA-2 px-3 py-2 text-sm text-gray-11">
-                <IconCircleInfoOutline18 className="size-3.5 shrink-0" />
-                Connections apply to new deployments. Running deployments keep their saved
-                connections.
-              </div>
-              <ResourceListContent>
-                <ConnectionsList
-                  envs={envs}
-                  merged={merged}
-                  targets={targets}
-                  onEdit={(targetAppId) => panels.open({ type: "edit", targetAppId })}
-                  onRemove={(connection) => void actions.remove(connection)}
-                />
-              </ResourceListContent>
-            </div>
+            <ResourceListContent>
+              <ConnectionsList
+                envs={envs}
+                merged={merged}
+                targets={targets}
+                onEdit={(targetAppId) => panels.open({ type: "edit", targetAppId })}
+                onRemove={(connection) => void actions.remove(connection)}
+              />
+            </ResourceListContent>
           ))
           .exhaustive()}
         <RetainedConnections retained={data.retained} envs={envs} />
@@ -110,7 +103,7 @@ export default function ConnectionsPage() {
                 data={data}
                 isOpen={panels.isOpen}
                 onClose={panels.close}
-                onSave={(values) => actions.save(null, values)}
+                onSave={(values, after) => actions.save(null, values, after)}
               />
             ))
             .with({ type: "edit" }, ({ targetAppId }) => (
@@ -121,9 +114,11 @@ export default function ConnectionsPage() {
                 isOpen={panels.isOpen}
                 onClose={panels.close}
                 onSave={actions.save}
+                onRemove={actions.remove}
               />
             ))
             .exhaustive()}
+        {actions.planGate}
       </PageBody>
     </PageContainer>
   );

@@ -7,7 +7,7 @@ export type StepStatus = "open" | "done" | "todo";
 export type StepsState = { open: FormStep | null; done: ReadonlySet<FormStep> };
 
 export const ADD_STEPS: StepsState = { open: "app", done: new Set() };
-export const EDIT_STEPS: StepsState = { open: "config", done: new Set(["app"]) };
+export const EDIT_STEPS: StepsState = { open: null, done: new Set(FORM_STEPS) };
 
 export function stepStatus(state: StepsState, step: FormStep): StepStatus {
   if (state.open === step) {
@@ -28,4 +28,8 @@ export function openStep(state: StepsState, step: FormStep): StepsState {
   const done = new Set(state.done);
   done.delete(step);
   return { open: step, done };
+}
+
+export function allStepsDone(state: StepsState): boolean {
+  return FORM_STEPS.every((step) => state.done.has(step));
 }
