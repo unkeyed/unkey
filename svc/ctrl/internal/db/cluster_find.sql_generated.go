@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findCluster = `-- name: FindCluster :one
@@ -70,6 +72,12 @@ type FindClusterRow struct {
 //	    AND r.name = ?
 //	LIMIT 1
 func (q *Queries) FindCluster(ctx context.Context, arg FindClusterParams) (FindClusterRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindClusterRow, error) {
+		return q.findCluster(ctx, arg)
+	})
+}
+
+func (q *Queries) findCluster(ctx context.Context, arg FindClusterParams) (FindClusterRow, error) {
 	row := q.db.QueryRowContext(ctx, findCluster, arg.CellID, arg.Platform, arg.Region)
 	var i FindClusterRow
 	err := row.Scan(

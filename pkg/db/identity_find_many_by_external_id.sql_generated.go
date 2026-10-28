@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findIdentitiesByExternalId = `-- name: FindIdentitiesByExternalId :many
@@ -28,6 +30,12 @@ type FindIdentitiesByExternalIdParams struct {
 //	FROM identities
 //	WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
 func (q *Queries) FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]Identity, error) {
+		return q.findIdentitiesByExternalId(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error) {
 	query := findIdentitiesByExternalId
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

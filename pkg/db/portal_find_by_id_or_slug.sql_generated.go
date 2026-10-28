@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPortalByIdOrSlug = `-- name: FindPortalByIdOrSlug :one
@@ -48,6 +50,12 @@ type FindPortalByIdOrSlugParams struct {
 //	) AS portal_lookup ON portal_lookup.id = p.id
 //	LIMIT 1
 func (q *Queries) FindPortalByIdOrSlug(ctx context.Context, db DBTX, arg FindPortalByIdOrSlugParams) (Portal, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Portal, error) {
+		return q.findPortalByIdOrSlug(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findPortalByIdOrSlug(ctx context.Context, db DBTX, arg FindPortalByIdOrSlugParams) (Portal, error) {
 	row := db.QueryRowContext(ctx, findPortalByIdOrSlug,
 		arg.Portal,
 		arg.WorkspaceID,

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findLiveApiByID = `-- name: FindLiveApiByID :one
@@ -54,6 +56,12 @@ type FindLiveApiByIDRow struct {
 //	    AND apis.deleted_at_m IS NULL
 //	LIMIT 1
 func (q *Queries) FindLiveApiByID(ctx context.Context, db DBTX, id string) (FindLiveApiByIDRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindLiveApiByIDRow, error) {
+		return q.findLiveApiByID(ctx, db, id)
+	})
+}
+
+func (q *Queries) findLiveApiByID(ctx context.Context, db DBTX, id string) (FindLiveApiByIDRow, error) {
 	row := db.QueryRowContext(ctx, findLiveApiByID, id)
 	var i FindLiveApiByIDRow
 	err := row.Scan(

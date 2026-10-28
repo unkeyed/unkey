@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listWorkspacesForDeployBillingByIDs = `-- name: ListWorkspacesForDeployBillingByIDs :many
@@ -42,6 +44,12 @@ type ListWorkspacesForDeployBillingByIDsRow struct {
 //	LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) ListWorkspacesForDeployBillingByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListWorkspacesForDeployBillingByIDsRow, error) {
+		return q.listWorkspacesForDeployBillingByIDs(ctx, db, workspaceIds)
+	})
+}
+
+func (q *Queries) listWorkspacesForDeployBillingByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error) {
 	query := listWorkspacesForDeployBillingByIDs
 	var queryParams []interface{}
 	if len(workspaceIds) > 0 {

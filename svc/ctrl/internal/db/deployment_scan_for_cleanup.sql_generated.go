@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const scanDeploymentsForCleanup = `-- name: ScanDeploymentsForCleanup :many
@@ -42,6 +44,12 @@ type ScanDeploymentsForCleanupRow struct {
 //	LEFT JOIN environments e ON e.id = d.environment_id
 //	ORDER BY d.pk
 func (q *Queries) ScanDeploymentsForCleanup(ctx context.Context, arg ScanDeploymentsForCleanupParams) ([]ScanDeploymentsForCleanupRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ScanDeploymentsForCleanupRow, error) {
+		return q.scanDeploymentsForCleanup(ctx, arg)
+	})
+}
+
+func (q *Queries) scanDeploymentsForCleanup(ctx context.Context, arg ScanDeploymentsForCleanupParams) ([]ScanDeploymentsForCleanupRow, error) {
 	rows, err := q.db.QueryContext(ctx, scanDeploymentsForCleanup, arg.AfterPk, arg.Limit)
 	if err != nil {
 		return nil, err

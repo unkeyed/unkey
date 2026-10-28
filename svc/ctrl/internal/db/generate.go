@@ -6,3 +6,4 @@ package db
 // We copy the relevant exports into queries.go and do not want sqlc's default
 // database wrapper to be committed.
 //go:generate rm delete_me.go
+//go:generate go run ../../../../tools/sqlcretry

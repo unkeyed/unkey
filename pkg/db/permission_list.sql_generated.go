@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listPermissions = `-- name: ListPermissions :many
@@ -49,6 +51,12 @@ type ListPermissionsParams struct {
 //	ORDER BY p.id
 //	LIMIT ?
 func (q *Queries) ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]Permission, error) {
+		return q.listPermissions(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error) {
 	rows, err := db.QueryContext(ctx, listPermissions,
 		arg.WorkspaceID,
 		arg.ProjectID,

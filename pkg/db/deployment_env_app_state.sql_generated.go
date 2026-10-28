@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"strings"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -62,6 +63,12 @@ type ListDeploymentEnvAndAppStateRow struct {
 //	WHERE d.workspace_id = ?
 //	  AND d.id IN (/*SLICE:deployment_ids*/?)
 func (q *Queries) ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListDeploymentEnvAndAppStateRow, error) {
+		return q.listDeploymentEnvAndAppState(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error) {
 	query := listDeploymentEnvAndAppState
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listLiveKeysByKeySpaceID = `-- name: ListLiveKeysByKeySpaceID :many
@@ -264,6 +266,12 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	         LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 //	ORDER BY k.id ASC
 func (q *Queries) ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListLiveKeysByKeySpaceIDRow, error) {
+		return q.listLiveKeysByKeySpaceID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error) {
 	rows, err := db.QueryContext(ctx, listLiveKeysByKeySpaceID,
 		arg.KeySpaceID,
 		arg.IDCursor,

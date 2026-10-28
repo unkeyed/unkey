@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findDeploymentTopologyMinReplicas = `-- name: FindDeploymentTopologyMinReplicas :many
@@ -28,6 +30,12 @@ type FindDeploymentTopologyMinReplicasRow struct {
 //	FROM deployment_topology
 //	WHERE deployment_id = ?
 func (q *Queries) FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]FindDeploymentTopologyMinReplicasRow, error) {
+		return q.findDeploymentTopologyMinReplicas(ctx, deploymentID)
+	})
+}
+
+func (q *Queries) findDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error) {
 	rows, err := q.db.QueryContext(ctx, findDeploymentTopologyMinReplicas, deploymentID)
 	if err != nil {
 		return nil, err

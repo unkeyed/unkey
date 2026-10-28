@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -73,6 +74,12 @@ type FindDeploymentWithEnvironmentAndAppRow struct {
 //	JOIN apps a ON a.id = d.app_id
 //	WHERE d.id = ?
 func (q *Queries) FindDeploymentWithEnvironmentAndApp(ctx context.Context, id string) (FindDeploymentWithEnvironmentAndAppRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindDeploymentWithEnvironmentAndAppRow, error) {
+		return q.findDeploymentWithEnvironmentAndApp(ctx, id)
+	})
+}
+
+func (q *Queries) findDeploymentWithEnvironmentAndApp(ctx context.Context, id string) (FindDeploymentWithEnvironmentAndAppRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeploymentWithEnvironmentAndApp, id)
 	var i FindDeploymentWithEnvironmentAndAppRow
 	err := row.Scan(

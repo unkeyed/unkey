@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findKeysByHash = `-- name: FindKeysByHash :many
@@ -23,6 +25,12 @@ type FindKeysByHashRow struct {
 //
 //	SELECT id, hash FROM `keys` WHERE hash IN (/*SLICE:hashes*/?)
 func (q *Queries) FindKeysByHash(ctx context.Context, db DBTX, hashes []string) ([]FindKeysByHashRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]FindKeysByHashRow, error) {
+		return q.findKeysByHash(ctx, db, hashes)
+	})
+}
+
+func (q *Queries) findKeysByHash(ctx context.Context, db DBTX, hashes []string) ([]FindKeysByHashRow, error) {
 	query := findKeysByHash
 	var queryParams []interface{}
 	if len(hashes) > 0 {

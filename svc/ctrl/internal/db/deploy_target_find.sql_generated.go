@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -154,6 +155,12 @@ type FindDeployTargetRow struct {
 //	  AND a.project_id = ?
 //	LIMIT 1
 func (q *Queries) FindDeployTarget(ctx context.Context, arg FindDeployTargetParams) (FindDeployTargetRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindDeployTargetRow, error) {
+		return q.findDeployTarget(ctx, arg)
+	})
+}
+
+func (q *Queries) findDeployTarget(ctx context.Context, arg FindDeployTargetParams) (FindDeployTargetRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeployTarget, arg.EnvironmentID, arg.AppID, arg.ProjectID)
 	var i FindDeployTargetRow
 	err := row.Scan(

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findProjectById = `-- name: FindProjectById :one
@@ -21,6 +23,12 @@ WHERE id = ?
 //	FROM projects
 //	WHERE id = ?
 func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Project, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Project, error) {
+		return q.findProjectById(ctx, db, id)
+	})
+}
+
+func (q *Queries) findProjectById(ctx context.Context, db DBTX, id string) (Project, error) {
 	row := db.QueryRowContext(ctx, findProjectById, id)
 	var i Project
 	err := row.Scan(

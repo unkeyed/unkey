@@ -297,9 +297,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
-			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt64, error) {
-				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
-			})
+			limit, err := db.Query.FindKeyCredits(ctx, database.RO(), keyID)
 			if err != nil {
 				return 0, false, err
 			}
@@ -370,9 +368,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// within the cache's fresh window.
 	workspaceByOrgID := authjwt.WorkspaceLookupFunc(func(ctx context.Context, orgID string) (string, error) {
 		workspace, hit, err := caches.WorkspaceByOrgID.SWR(ctx, orgID, func(ctx context.Context) (db.Workspace, error) {
-			return db.WithRetryContext(ctx, func() (db.Workspace, error) {
-				return db.Query.FindWorkspaceByOrgID(ctx, database.RO(), orgID)
-			})
+			return db.Query.FindWorkspaceByOrgID(ctx, database.RO(), orgID)
 		}, cachesvc.DefaultFindFirstOp)
 		if err != nil {
 			if db.IsNotFound(err) {

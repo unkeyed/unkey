@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findCustomDomainByDomainOrWildcard = `-- name: FindCustomDomainByDomainOrWildcard :one
@@ -37,6 +39,12 @@ type FindCustomDomainByDomainOrWildcardParams struct {
 //	    pk DESC
 //	LIMIT 1
 func (q *Queries) FindCustomDomainByDomainOrWildcard(ctx context.Context, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (CustomDomain, error) {
+		return q.findCustomDomainByDomainOrWildcard(ctx, arg)
+	})
+}
+
+func (q *Queries) findCustomDomainByDomainOrWildcard(ctx context.Context, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error) {
 	row := q.db.QueryRowContext(ctx, findCustomDomainByDomainOrWildcard, arg.Domain, arg.Domain_2, arg.Domain_3)
 	var i CustomDomain
 	err := row.Scan(

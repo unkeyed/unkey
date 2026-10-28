@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findKeyAuthsByIdsAndWorkspace = `-- name: FindKeyAuthsByIdsAndWorkspace :many
@@ -36,6 +38,12 @@ type FindKeyAuthsByIdsAndWorkspaceRow struct {
 //	  AND id IN (/*SLICE:key_auth_ids*/?)
 //	  AND deleted_at_m IS NULL
 func (q *Queries) FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]FindKeyAuthsByIdsAndWorkspaceRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]FindKeyAuthsByIdsAndWorkspaceRow, error) {
+		return q.findKeyAuthsByIdsAndWorkspace(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]FindKeyAuthsByIdsAndWorkspaceRow, error) {
 	query := findKeyAuthsByIdsAndWorkspace
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

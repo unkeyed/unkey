@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listProjectsByWorkspaceId = `-- name: ListProjectsByWorkspaceId :many
@@ -69,6 +71,12 @@ type ListProjectsByWorkspaceIdRow struct {
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListProjectsByWorkspaceIdRow, error) {
+		return q.listProjectsByWorkspaceId(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error) {
 	rows, err := db.QueryContext(ctx, listProjectsByWorkspaceId,
 		arg.WorkspaceID,
 		arg.IDCursor,

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findVerifiedCustomDomainByDomainExcludingWorkspace = `-- name: FindVerifiedCustomDomainByDomainExcludingWorkspace :one
@@ -30,6 +32,12 @@ type FindVerifiedCustomDomainByDomainExcludingWorkspaceParams struct {
 //	  AND verification_status = 'verified'
 //	LIMIT 1
 func (q *Queries) FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (CustomDomain, error) {
+		return q.findVerifiedCustomDomainByDomainExcludingWorkspace(ctx, arg)
+	})
+}
+
+func (q *Queries) findVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error) {
 	row := q.db.QueryRowContext(ctx, findVerifiedCustomDomainByDomainExcludingWorkspace, arg.Domain, arg.WorkspaceID)
 	var i CustomDomain
 	err := row.Scan(

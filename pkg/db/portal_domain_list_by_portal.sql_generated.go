@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listPortalDomainsByPortal = `-- name: ListPortalDomainsByPortal :many
@@ -80,6 +82,12 @@ type ListPortalDomainsByPortalRow struct {
 //	  AND workspace_id = ?
 //	ORDER BY id ASC
 func (q *Queries) ListPortalDomainsByPortal(ctx context.Context, db DBTX, arg ListPortalDomainsByPortalParams) ([]ListPortalDomainsByPortalRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListPortalDomainsByPortalRow, error) {
+		return q.listPortalDomainsByPortal(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listPortalDomainsByPortal(ctx context.Context, db DBTX, arg ListPortalDomainsByPortalParams) ([]ListPortalDomainsByPortalRow, error) {
 	rows, err := db.QueryContext(ctx, listPortalDomainsByPortal, arg.PortalID, arg.WorkspaceID)
 	if err != nil {
 		return nil, err

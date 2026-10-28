@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findIdentityByExternalID = `-- name: FindIdentityByExternalID :one
@@ -31,6 +33,12 @@ type FindIdentityByExternalIDParams struct {
 //	  AND external_id = ?
 //	  AND deleted = ?
 func (q *Queries) FindIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Identity, error) {
+		return q.findIdentityByExternalID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error) {
 	row := db.QueryRowContext(ctx, findIdentityByExternalID, arg.WorkspaceID, arg.ExternalID, arg.Deleted)
 	var i Identity
 	err := row.Scan(

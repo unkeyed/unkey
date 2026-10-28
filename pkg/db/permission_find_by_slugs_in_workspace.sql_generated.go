@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPermissionsBySlugsInWorkspace = `-- name: FindPermissionsBySlugsInWorkspace :many
@@ -31,6 +33,12 @@ type FindPermissionsBySlugsInWorkspaceParams struct {
 //	WHERE workspace_id = ?
 //	  AND slug IN (/*SLICE:slugs*/?)
 func (q *Queries) FindPermissionsBySlugsInWorkspace(ctx context.Context, db DBTX, arg FindPermissionsBySlugsInWorkspaceParams) ([]Permission, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]Permission, error) {
+		return q.findPermissionsBySlugsInWorkspace(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findPermissionsBySlugsInWorkspace(ctx context.Context, db DBTX, arg FindPermissionsBySlugsInWorkspaceParams) ([]Permission, error) {
 	query := findPermissionsBySlugsInWorkspace
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

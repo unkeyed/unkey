@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findRolePermissionByRoleAndPermissionID = `-- name: FindRolePermissionByRoleAndPermissionID :many
@@ -28,6 +30,12 @@ type FindRolePermissionByRoleAndPermissionIDParams struct {
 //	WHERE role_id = ?
 //	  AND permission_id = ?
 func (q *Queries) FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]RolesPermission, error) {
+		return q.findRolePermissionByRoleAndPermissionID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error) {
 	rows, err := db.QueryContext(ctx, findRolePermissionByRoleAndPermissionID, arg.RoleID, arg.PermissionID)
 	if err != nil {
 		return nil, err

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findLeakedKeysByHashes = `-- name: FindLeakedKeysByHashes :many
@@ -55,6 +57,12 @@ type FindLeakedKeysByHashesRow struct {
 //	  AND w.deleted_at_m IS NULL
 //	  AND NOT EXISTS (SELECT 1 FROM unkey_root_keys r WHERE r.hash = k.hash)
 func (q *Queries) FindLeakedKeysByHashes(ctx context.Context, arg FindLeakedKeysByHashesParams) ([]FindLeakedKeysByHashesRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]FindLeakedKeysByHashesRow, error) {
+		return q.findLeakedKeysByHashes(ctx, arg)
+	})
+}
+
+func (q *Queries) findLeakedKeysByHashes(ctx context.Context, arg FindLeakedKeysByHashesParams) ([]FindLeakedKeysByHashesRow, error) {
 	query := findLeakedKeysByHashes
 	var queryParams []interface{}
 	if len(arg.Hashes) > 0 {

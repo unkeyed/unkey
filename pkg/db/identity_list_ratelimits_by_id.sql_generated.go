@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listIdentityRatelimitsByID = `-- name: ListIdentityRatelimitsByID :many
@@ -18,6 +20,12 @@ SELECT ratelimits.pk, ratelimits.id, ratelimits.name, ratelimits.workspace_id, r
 //
 //	SELECT ratelimits.pk, ratelimits.id, ratelimits.name, ratelimits.workspace_id, ratelimits.created_at, ratelimits.updated_at, ratelimits.key_id, ratelimits.identity_id, ratelimits.`limit`, ratelimits.duration, ratelimits.auto_apply FROM ratelimits WHERE identity_id = ?
 func (q *Queries) ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]Ratelimit, error) {
+		return q.listIdentityRatelimitsByID(ctx, db, identityID)
+	})
+}
+
+func (q *Queries) listIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error) {
 	rows, err := db.QueryContext(ctx, listIdentityRatelimitsByID, identityID)
 	if err != nil {
 		return nil, err

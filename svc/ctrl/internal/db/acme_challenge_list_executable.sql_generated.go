@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listExecutableChallenges = `-- name: ListExecutableChallenges :many
@@ -32,6 +34,12 @@ type ListExecutableChallengesRow struct {
 //	AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 //	ORDER BY d.created_at ASC
 func (q *Queries) ListExecutableChallenges(ctx context.Context, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListExecutableChallengesRow, error) {
+		return q.listExecutableChallenges(ctx, verificationTypes)
+	})
+}
+
+func (q *Queries) listExecutableChallenges(ctx context.Context, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error) {
 	query := listExecutableChallenges
 	var queryParams []interface{}
 	if len(verificationTypes) > 0 {

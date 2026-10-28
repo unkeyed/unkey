@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findDeploymentRegions = `-- name: FindDeploymentRegions :many
@@ -24,6 +26,12 @@ WHERE dt.deployment_id = ?
 //	INNER JOIN `regions` r ON r.id = dt.region_id
 //	WHERE dt.deployment_id = ?
 func (q *Queries) FindDeploymentRegions(ctx context.Context, deploymentID string) ([]Region, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]Region, error) {
+		return q.findDeploymentRegions(ctx, deploymentID)
+	})
+}
+
+func (q *Queries) findDeploymentRegions(ctx context.Context, deploymentID string) ([]Region, error) {
 	rows, err := q.db.QueryContext(ctx, findDeploymentRegions, deploymentID)
 	if err != nil {
 		return nil, err

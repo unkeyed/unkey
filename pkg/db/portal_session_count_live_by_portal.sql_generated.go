@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countLivePortalSessionsByPortal = `-- name: CountLivePortalSessionsByPortal :one
@@ -32,6 +34,12 @@ type CountLivePortalSessionsByPortalParams struct {
 //	  AND revoked_at IS NULL
 //	  AND (? = '' OR external_id = ?)
 func (q *Queries) CountLivePortalSessionsByPortal(ctx context.Context, db DBTX, arg CountLivePortalSessionsByPortalParams) (int64, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (int64, error) {
+		return q.countLivePortalSessionsByPortal(ctx, db, arg)
+	})
+}
+
+func (q *Queries) countLivePortalSessionsByPortal(ctx context.Context, db DBTX, arg CountLivePortalSessionsByPortalParams) (int64, error) {
 	row := db.QueryRowContext(ctx, countLivePortalSessionsByPortal, arg.PortalID, arg.ExternalID, arg.ExternalID)
 	var count int64
 	err := row.Scan(&count)

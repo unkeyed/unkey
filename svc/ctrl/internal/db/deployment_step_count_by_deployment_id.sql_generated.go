@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countDeploymentStepsByDeploymentId = `-- name: CountDeploymentStepsByDeploymentId :one
@@ -21,6 +23,12 @@ WHERE deployment_id = ?
 //	FROM `deployment_steps`
 //	WHERE deployment_id = ?
 func (q *Queries) CountDeploymentStepsByDeploymentId(ctx context.Context, deploymentID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countDeploymentStepsByDeploymentId(ctx, deploymentID)
+	})
+}
+
+func (q *Queries) countDeploymentStepsByDeploymentId(ctx context.Context, deploymentID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countDeploymentStepsByDeploymentId, deploymentID)
 	var count int64
 	err := row.Scan(&count)

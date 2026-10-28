@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findRatelimitOverrideByID = `-- name: FindRatelimitOverrideByID :one
@@ -28,6 +30,12 @@ type FindRatelimitOverrideByIDParams struct {
 //	    workspace_id = ?
 //	    AND id = ?
 func (q *Queries) FindRatelimitOverrideByID(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIDParams) (RatelimitOverride, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (RatelimitOverride, error) {
+		return q.findRatelimitOverrideByID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findRatelimitOverrideByID(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIDParams) (RatelimitOverride, error) {
 	row := db.QueryRowContext(ctx, findRatelimitOverrideByID, arg.WorkspaceID, arg.OverrideID)
 	var i RatelimitOverride
 	err := row.Scan(

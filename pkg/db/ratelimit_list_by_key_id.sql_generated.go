@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listRatelimitsByKeyID = `-- name: ListRatelimitsByKeyID :many
@@ -40,6 +42,12 @@ type ListRatelimitsByKeyIDRow struct {
 //	FROM ratelimits
 //	WHERE key_id = ?
 func (q *Queries) ListRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) ([]ListRatelimitsByKeyIDRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListRatelimitsByKeyIDRow, error) {
+		return q.listRatelimitsByKeyID(ctx, db, keyID)
+	})
+}
+
+func (q *Queries) listRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) ([]ListRatelimitsByKeyIDRow, error) {
 	rows, err := db.QueryContext(ctx, listRatelimitsByKeyID, keyID)
 	if err != nil {
 		return nil, err

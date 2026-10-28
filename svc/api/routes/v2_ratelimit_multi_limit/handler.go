@@ -289,11 +289,9 @@ func (h *Handler) getNamespaces(ctx context.Context, workspaceID string, names [
 			namespaceNames[i] = key.Key
 		}
 
-		rows, dbErr := db.WithRetryContext(ctx, func() ([]db.FindManyRatelimitNamespacesRow, error) {
-			return db.Query.FindManyRatelimitNamespaces(ctx, h.DB.RO(), db.FindManyRatelimitNamespacesParams{
-				WorkspaceID: workspaceID,
-				Namespaces:  namespaceNames,
-			})
+		rows, dbErr := db.Query.FindManyRatelimitNamespaces(ctx, h.DB.RO(), db.FindManyRatelimitNamespacesParams{
+			WorkspaceID: workspaceID,
+			Namespaces:  namespaceNames,
 		})
 		if dbErr != nil {
 			return nil, dbErr

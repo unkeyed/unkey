@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const getKeyAuthByID = `-- name: GetKeyAuthByID :one
@@ -45,6 +47,12 @@ type GetKeyAuthByIDRow struct {
 //	WHERE id = ?
 //	  AND deleted_at_m IS NULL
 func (q *Queries) GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (GetKeyAuthByIDRow, error) {
+		return q.getKeyAuthByID(ctx, db, id)
+	})
+}
+
+func (q *Queries) getKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error) {
 	row := db.QueryRowContext(ctx, getKeyAuthByID, id)
 	var i GetKeyAuthByIDRow
 	err := row.Scan(

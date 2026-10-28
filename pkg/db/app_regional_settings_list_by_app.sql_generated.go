@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listAppRegionalSettingsByApp = `-- name: ListAppRegionalSettingsByApp :many
@@ -57,6 +59,12 @@ type ListAppRegionalSettingsByAppRow struct {
 //	LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
 //	WHERE ars.app_id = ?
 func (q *Queries) ListAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListAppRegionalSettingsByAppRow, error) {
+		return q.listAppRegionalSettingsByApp(ctx, db, appID)
+	})
+}
+
+func (q *Queries) listAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error) {
 	rows, err := db.QueryContext(ctx, listAppRegionalSettingsByApp, appID)
 	if err != nil {
 		return nil, err

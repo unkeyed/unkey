@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -125,6 +126,12 @@ type ListDeploymentsRow struct {
 //	ORDER BY d.created_at DESC, d.pk DESC
 //	LIMIT ?
 func (q *Queries) ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]ListDeploymentsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListDeploymentsRow, error) {
+		return q.listDeployments(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]ListDeploymentsRow, error) {
 	query := listDeployments
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listOrphanedDeploymentTopologiesByRegion = `-- name: ListOrphanedDeploymentTopologiesByRegion :many
@@ -46,6 +48,12 @@ type ListOrphanedDeploymentTopologiesByRegionRow struct {
 //	ORDER BY dt.pk
 //	LIMIT ?
 func (q *Queries) ListOrphanedDeploymentTopologiesByRegion(ctx context.Context, arg ListOrphanedDeploymentTopologiesByRegionParams) ([]ListOrphanedDeploymentTopologiesByRegionRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListOrphanedDeploymentTopologiesByRegionRow, error) {
+		return q.listOrphanedDeploymentTopologiesByRegion(ctx, arg)
+	})
+}
+
+func (q *Queries) listOrphanedDeploymentTopologiesByRegion(ctx context.Context, arg ListOrphanedDeploymentTopologiesByRegionParams) ([]ListOrphanedDeploymentTopologiesByRegionRow, error) {
 	rows, err := q.db.QueryContext(ctx, listOrphanedDeploymentTopologiesByRegion, arg.RegionID, arg.AfterPk, arg.Limit)
 	if err != nil {
 		return nil, err

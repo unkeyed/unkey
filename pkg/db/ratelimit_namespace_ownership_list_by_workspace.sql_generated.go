@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listRatelimitNamespaceOwnershipByWorkspace = `-- name: ListRatelimitNamespaceOwnershipByWorkspace :many
@@ -28,6 +30,12 @@ type ListRatelimitNamespaceOwnershipByWorkspaceRow struct {
 //	FROM ratelimit_namespaces
 //	WHERE workspace_id = ?
 func (q *Queries) ListRatelimitNamespaceOwnershipByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListRatelimitNamespaceOwnershipByWorkspaceRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListRatelimitNamespaceOwnershipByWorkspaceRow, error) {
+		return q.listRatelimitNamespaceOwnershipByWorkspace(ctx, db, workspaceID)
+	})
+}
+
+func (q *Queries) listRatelimitNamespaceOwnershipByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListRatelimitNamespaceOwnershipByWorkspaceRow, error) {
 	rows, err := db.QueryContext(ctx, listRatelimitNamespaceOwnershipByWorkspace, workspaceID)
 	if err != nil {
 		return nil, err

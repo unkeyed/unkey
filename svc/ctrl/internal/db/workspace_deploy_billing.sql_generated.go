@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listDeployBillingCustomers = `-- name: ListDeployBillingCustomers :many
@@ -41,6 +43,12 @@ type ListDeployBillingCustomersRow struct {
 //	WHERE b.stripe_customer_id IS NOT NULL
 //	  AND b.stripe_customer_id <> ''
 func (q *Queries) ListDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListDeployBillingCustomersRow, error) {
+		return q.listDeployBillingCustomers(ctx)
+	})
+}
+
+func (q *Queries) listDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDeployBillingCustomers)
 	if err != nil {
 		return nil, err
@@ -94,6 +102,12 @@ type ListWorkspacesForDeployBillingByIDsRow struct {
 //	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) ListWorkspacesForDeployBillingByIDs(ctx context.Context, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListWorkspacesForDeployBillingByIDsRow, error) {
+		return q.listWorkspacesForDeployBillingByIDs(ctx, workspaceIds)
+	})
+}
+
+func (q *Queries) listWorkspacesForDeployBillingByIDs(ctx context.Context, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error) {
 	query := listWorkspacesForDeployBillingByIDs
 	var queryParams []interface{}
 	if len(workspaceIds) > 0 {

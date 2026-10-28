@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findProjectBySlug = `-- name: FindProjectBySlug :one
@@ -23,6 +25,12 @@ LIMIT 1
 //	WHERE slug = ?
 //	LIMIT 1
 func (q *Queries) FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Project, error) {
+		return q.findProjectBySlug(ctx, db, slug)
+	})
+}
+
+func (q *Queries) findProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error) {
 	row := db.QueryRowContext(ctx, findProjectBySlug, slug)
 	var i Project
 	err := row.Scan(

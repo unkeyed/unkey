@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findClickhouseOutboxByWorkspaceAndEventId = `-- name: FindClickhouseOutboxByWorkspaceAndEventId :one
@@ -27,6 +29,12 @@ type FindClickhouseOutboxByWorkspaceAndEventIdParams struct {
 //	FROM `clickhouse_outbox`
 //	WHERE workspace_id = ? AND event_id = ?
 func (q *Queries) FindClickhouseOutboxByWorkspaceAndEventId(ctx context.Context, arg FindClickhouseOutboxByWorkspaceAndEventIdParams) (ClickhouseOutbox, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (ClickhouseOutbox, error) {
+		return q.findClickhouseOutboxByWorkspaceAndEventId(ctx, arg)
+	})
+}
+
+func (q *Queries) findClickhouseOutboxByWorkspaceAndEventId(ctx context.Context, arg FindClickhouseOutboxByWorkspaceAndEventIdParams) (ClickhouseOutbox, error) {
 	row := q.db.QueryRowContext(ctx, findClickhouseOutboxByWorkspaceAndEventId, arg.WorkspaceID, arg.EventID)
 	var i ClickhouseOutbox
 	err := row.Scan(

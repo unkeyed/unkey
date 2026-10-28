@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -49,6 +50,12 @@ type ListDeploymentsByEnvironmentIdAndStatusParams struct {
 //	  AND created_at < ?
 //	  AND (updated_at IS NULL OR updated_at < ?)
 func (q *Queries) ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]Deployment, error) {
+		return q.listDeploymentsByEnvironmentIdAndStatus(ctx, arg)
+	})
+}
+
+func (q *Queries) listDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error) {
 	rows, err := q.db.QueryContext(ctx, listDeploymentsByEnvironmentIdAndStatus,
 		arg.EnvironmentID,
 		arg.Status,

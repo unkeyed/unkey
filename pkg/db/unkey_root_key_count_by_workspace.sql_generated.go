@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countUnkeyRootKeysByWorkspace = `-- name: CountUnkeyRootKeysByWorkspace :one
@@ -22,6 +24,12 @@ WHERE workspace_id = ?
 //	FROM unkey_root_keys
 //	WHERE workspace_id = ?
 func (q *Queries) CountUnkeyRootKeysByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (int64, error) {
+		return q.countUnkeyRootKeysByWorkspace(ctx, db, workspaceID)
+	})
+}
+
+func (q *Queries) countUnkeyRootKeysByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error) {
 	row := db.QueryRowContext(ctx, countUnkeyRootKeysByWorkspace, workspaceID)
 	var count int64
 	err := row.Scan(&count)

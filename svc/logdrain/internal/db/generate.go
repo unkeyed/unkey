@@ -4,3 +4,4 @@ package db
 //go:generate go build -o ../../../../pkg/mysql/plugins/dist/bulk-insert ../../../../pkg/mysql/plugins/bulk-insert
 //go:generate go tool sqlc generate
 //go:generate rm delete_me.go
+//go:generate go run ../../../../tools/sqlcretry

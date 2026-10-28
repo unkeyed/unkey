@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findApisByKeyAuthIds = `-- name: FindApisByKeyAuthIds :many
@@ -42,6 +44,12 @@ type FindApisByKeyAuthIdsRow struct {
 //	    AND ka.deleted_at_m IS NULL
 //	    AND a.deleted_at_m IS NULL
 func (q *Queries) FindApisByKeyAuthIds(ctx context.Context, db DBTX, arg FindApisByKeyAuthIdsParams) ([]FindApisByKeyAuthIdsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]FindApisByKeyAuthIdsRow, error) {
+		return q.findApisByKeyAuthIds(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findApisByKeyAuthIds(ctx context.Context, db DBTX, arg FindApisByKeyAuthIdsParams) ([]FindApisByKeyAuthIdsRow, error) {
 	query := findApisByKeyAuthIds
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

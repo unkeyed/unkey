@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"encoding/json"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listClickhouseOutboxByWorkspace = `-- name: ListClickhouseOutboxByWorkspace :many
@@ -36,6 +38,12 @@ type ListClickhouseOutboxByWorkspaceRow struct {
 //	WHERE workspace_id = ?
 //	ORDER BY pk
 func (q *Queries) ListClickhouseOutboxByWorkspace(ctx context.Context, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListClickhouseOutboxByWorkspaceRow, error) {
+		return q.listClickhouseOutboxByWorkspace(ctx, workspaceID)
+	})
+}
+
+func (q *Queries) listClickhouseOutboxByWorkspace(ctx context.Context, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error) {
 	rows, err := q.db.QueryContext(ctx, listClickhouseOutboxByWorkspace, workspaceID)
 	if err != nil {
 		return nil, err

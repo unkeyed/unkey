@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listCustomDomainsByEnvironmentID = `-- name: ListCustomDomainsByEnvironmentID :many
@@ -21,6 +23,12 @@ WHERE environment_id = ?
 //	FROM custom_domains
 //	WHERE environment_id = ?
 func (q *Queries) ListCustomDomainsByEnvironmentID(ctx context.Context, environmentID string) ([]CustomDomain, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]CustomDomain, error) {
+		return q.listCustomDomainsByEnvironmentID(ctx, environmentID)
+	})
+}
+
+func (q *Queries) listCustomDomainsByEnvironmentID(ctx context.Context, environmentID string) ([]CustomDomain, error) {
 	rows, err := q.db.QueryContext(ctx, listCustomDomainsByEnvironmentID, environmentID)
 	if err != nil {
 		return nil, err

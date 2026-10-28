@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countPortalDomainsByWorkspace = `-- name: CountPortalDomainsByWorkspace :one
@@ -21,6 +23,12 @@ WHERE workspace_id = ?
 //	FROM portal_domains
 //	WHERE workspace_id = ?
 func (q *Queries) CountPortalDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countPortalDomainsByWorkspace(ctx, workspaceID)
+	})
+}
+
+func (q *Queries) countPortalDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countPortalDomainsByWorkspace, workspaceID)
 	var count int64
 	err := row.Scan(&count)

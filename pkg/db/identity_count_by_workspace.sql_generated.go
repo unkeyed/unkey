@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countIdentitiesByWorkspace = `-- name: CountIdentitiesByWorkspace :one
@@ -22,6 +24,12 @@ WHERE workspace_id = ?
 //	FROM identities
 //	WHERE workspace_id = ?
 func (q *Queries) CountIdentitiesByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (int64, error) {
+		return q.countIdentitiesByWorkspace(ctx, db, workspaceID)
+	})
+}
+
+func (q *Queries) countIdentitiesByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error) {
 	row := db.QueryRowContext(ctx, countIdentitiesByWorkspace, workspaceID)
 	var count int64
 	err := row.Scan(&count)

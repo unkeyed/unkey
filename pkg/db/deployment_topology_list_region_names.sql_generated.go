@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listDeploymentRegionsByIds = `-- name: ListDeploymentRegionsByIds :many
@@ -38,6 +40,12 @@ type ListDeploymentRegionsByIdsRow struct {
 //	  AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 //	ORDER BY dt.deployment_id, r.name
 func (q *Queries) ListDeploymentRegionsByIds(ctx context.Context, db DBTX, arg ListDeploymentRegionsByIdsParams) ([]ListDeploymentRegionsByIdsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListDeploymentRegionsByIdsRow, error) {
+		return q.listDeploymentRegionsByIds(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listDeploymentRegionsByIds(ctx context.Context, db DBTX, arg ListDeploymentRegionsByIdsParams) ([]ListDeploymentRegionsByIdsRow, error) {
 	query := listDeploymentRegionsByIds
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

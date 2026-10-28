@@ -17,3 +17,4 @@ package db
 //         [DBTX] interface, [Queries] struct, and [New] constructor with the
 //         primary/replica split that sqlc would otherwise overwrite.
 //go:generate rm ./deleteme.go
+//go:generate go run ../../../../tools/sqlcretry

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listClickhouseWorkspaceIDs = `-- name: ListClickhouseWorkspaceIDs :many
@@ -21,6 +23,12 @@ ORDER BY workspace_id
 //	FROM clickhouse_workspace_settings
 //	ORDER BY workspace_id
 func (q *Queries) ListClickhouseWorkspaceIDs(ctx context.Context) ([]string, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]string, error) {
+		return q.listClickhouseWorkspaceIDs(ctx)
+	})
+}
+
+func (q *Queries) listClickhouseWorkspaceIDs(ctx context.Context) ([]string, error) {
 	rows, err := q.db.QueryContext(ctx, listClickhouseWorkspaceIDs)
 	if err != nil {
 		return nil, err

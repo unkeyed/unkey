@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listPortalDomainsByPortal = `-- name: ListPortalDomainsByPortal :many
@@ -22,6 +24,12 @@ WHERE portal_id = ?
 //	FROM portal_domains
 //	WHERE portal_id = ?
 func (q *Queries) ListPortalDomainsByPortal(ctx context.Context, portalID string) ([]PortalDomain, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]PortalDomain, error) {
+		return q.listPortalDomainsByPortal(ctx, portalID)
+	})
+}
+
+func (q *Queries) listPortalDomainsByPortal(ctx context.Context, portalID string) ([]PortalDomain, error) {
 	rows, err := q.db.QueryContext(ctx, listPortalDomainsByPortal, portalID)
 	if err != nil {
 		return nil, err

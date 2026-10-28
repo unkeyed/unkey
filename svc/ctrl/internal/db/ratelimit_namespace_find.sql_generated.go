@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findRatelimitNamespace = `-- name: FindRatelimitNamespace :one
@@ -65,6 +67,12 @@ type FindRatelimitNamespaceRow struct {
 //	WHERE ns.workspace_id = ?
 //	AND (ns.id = ? OR ns.name = ?)
 func (q *Queries) FindRatelimitNamespace(ctx context.Context, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindRatelimitNamespaceRow, error) {
+		return q.findRatelimitNamespace(ctx, arg)
+	})
+}
+
+func (q *Queries) findRatelimitNamespace(ctx context.Context, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error) {
 	row := q.db.QueryRowContext(ctx, findRatelimitNamespace, arg.WorkspaceID, arg.Namespace, arg.Namespace)
 	var i FindRatelimitNamespaceRow
 	err := row.Scan(

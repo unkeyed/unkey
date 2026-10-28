@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findEnvironmentByAppIdAndSlug = `-- name: FindEnvironmentByAppIdAndSlug :one
@@ -35,6 +37,12 @@ type FindEnvironmentByAppIdAndSlugRow struct {
 //	FROM environments
 //	WHERE app_id = ? AND slug = ?
 func (q *Queries) FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindEnvironmentByAppIdAndSlugRow, error) {
+		return q.findEnvironmentByAppIdAndSlug(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentByAppIdAndSlug, arg.AppID, arg.Slug)
 	var i FindEnvironmentByAppIdAndSlugRow
 	err := row.Scan(&i.ID, &i.ProjectID)

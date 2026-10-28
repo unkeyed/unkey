@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPermissionByID = `-- name: FindPermissionByID :one
@@ -24,6 +26,12 @@ LIMIT 1
 //	WHERE id = ?
 //	LIMIT 1
 func (q *Queries) FindPermissionByID(ctx context.Context, db DBTX, permissionID string) (Permission, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Permission, error) {
+		return q.findPermissionByID(ctx, db, permissionID)
+	})
+}
+
+func (q *Queries) findPermissionByID(ctx context.Context, db DBTX, permissionID string) (Permission, error) {
 	row := db.QueryRowContext(ctx, findPermissionByID, permissionID)
 	var i Permission
 	err := row.Scan(

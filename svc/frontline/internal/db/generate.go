@@ -14,3 +14,4 @@ package db
 //         [DBTX] interface, [Queries] struct, and [New] constructor that
 //         sqlc would otherwise generate with no replica or metrics support.
 //go:generate rm ./deleteme.go
+//go:generate go run ../../../../tools/sqlcretry

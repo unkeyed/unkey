@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPermissionByNameAndWorkspaceID = `-- name: FindPermissionByNameAndWorkspaceID :one
@@ -30,6 +32,12 @@ type FindPermissionByNameAndWorkspaceIDParams struct {
 //	AND workspace_id = ?
 //	LIMIT 1
 func (q *Queries) FindPermissionByNameAndWorkspaceID(ctx context.Context, arg FindPermissionByNameAndWorkspaceIDParams) (Permission, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (Permission, error) {
+		return q.findPermissionByNameAndWorkspaceID(ctx, arg)
+	})
+}
+
+func (q *Queries) findPermissionByNameAndWorkspaceID(ctx context.Context, arg FindPermissionByNameAndWorkspaceIDParams) (Permission, error) {
 	row := q.db.QueryRowContext(ctx, findPermissionByNameAndWorkspaceID, arg.Name, arg.WorkspaceID)
 	var i Permission
 	err := row.Scan(

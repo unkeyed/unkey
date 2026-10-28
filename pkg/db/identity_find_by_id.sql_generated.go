@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findIdentityByID = `-- name: FindIdentityByID :one
@@ -31,6 +33,12 @@ type FindIdentityByIDParams struct {
 //	  AND id = ?
 //	  AND deleted = ?
 func (q *Queries) FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Identity, error) {
+		return q.findIdentityByID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error) {
 	row := db.QueryRowContext(ctx, findIdentityByID, arg.WorkspaceID, arg.IdentityID, arg.Deleted)
 	var i Identity
 	err := row.Scan(

@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listCustomDomains = `-- name: ListCustomDomains :many
@@ -118,6 +120,12 @@ type ListCustomDomainsRow struct {
 //	ORDER BY cd.id ASC
 //	LIMIT ?
 func (q *Queries) ListCustomDomains(ctx context.Context, db DBTX, arg ListCustomDomainsParams) ([]ListCustomDomainsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListCustomDomainsRow, error) {
+		return q.listCustomDomains(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listCustomDomains(ctx context.Context, db DBTX, arg ListCustomDomainsParams) ([]ListCustomDomainsRow, error) {
 	query := listCustomDomains
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

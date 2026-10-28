@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findCustomDomainByIdentifier = `-- name: FindCustomDomainByIdentifier :one
@@ -148,6 +150,12 @@ type FindCustomDomainByIdentifierRow struct {
 //	LIMIT 1)
 //	LIMIT 1
 func (q *Queries) FindCustomDomainByIdentifier(ctx context.Context, db DBTX, arg FindCustomDomainByIdentifierParams) (FindCustomDomainByIdentifierRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindCustomDomainByIdentifierRow, error) {
+		return q.findCustomDomainByIdentifier(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findCustomDomainByIdentifier(ctx context.Context, db DBTX, arg FindCustomDomainByIdentifierParams) (FindCustomDomainByIdentifierRow, error) {
 	row := db.QueryRowContext(ctx, findCustomDomainByIdentifier,
 		arg.Domain,
 		arg.WorkspaceID,

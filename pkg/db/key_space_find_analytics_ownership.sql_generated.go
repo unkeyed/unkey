@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findKeySpaceAnalyticsOwnership = `-- name: FindKeySpaceAnalyticsOwnership :many
@@ -42,6 +44,12 @@ type FindKeySpaceAnalyticsOwnershipRow struct {
 //	    OR project_id IN (/*SLICE:project_ids*/?)
 //	  )
 func (q *Queries) FindKeySpaceAnalyticsOwnership(ctx context.Context, db DBTX, arg FindKeySpaceAnalyticsOwnershipParams) ([]FindKeySpaceAnalyticsOwnershipRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]FindKeySpaceAnalyticsOwnershipRow, error) {
+		return q.findKeySpaceAnalyticsOwnership(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findKeySpaceAnalyticsOwnership(ctx context.Context, db DBTX, arg FindKeySpaceAnalyticsOwnershipParams) ([]FindKeySpaceAnalyticsOwnershipRow, error) {
 	query := findKeySpaceAnalyticsOwnership
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listAppEnvVarsByAppAndEnv = `-- name: ListAppEnvVarsByAppAndEnv :many
@@ -46,6 +48,12 @@ type ListAppEnvVarsByAppAndEnvRow struct {
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg ListAppEnvVarsByAppAndEnvParams) ([]ListAppEnvVarsByAppAndEnvRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListAppEnvVarsByAppAndEnvRow, error) {
+		return q.listAppEnvVarsByAppAndEnv(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg ListAppEnvVarsByAppAndEnvParams) ([]ListAppEnvVarsByAppAndEnvRow, error) {
 	rows, err := db.QueryContext(ctx, listAppEnvVarsByAppAndEnv,
 		arg.AppID,
 		arg.EnvironmentID,

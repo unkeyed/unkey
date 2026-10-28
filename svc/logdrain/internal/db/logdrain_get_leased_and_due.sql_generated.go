@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const getLeasedAndDueLogdrain = `-- name: GetLeasedAndDueLogdrain :one
@@ -63,6 +65,12 @@ type GetLeasedAndDueLogdrainRow struct {
 //	  AND d.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 //	  AND d.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 func (q *Queries) GetLeasedAndDueLogdrain(ctx context.Context, arg GetLeasedAndDueLogdrainParams) (GetLeasedAndDueLogdrainRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (GetLeasedAndDueLogdrainRow, error) {
+		return q.getLeasedAndDueLogdrain(ctx, arg)
+	})
+}
+
+func (q *Queries) getLeasedAndDueLogdrain(ctx context.Context, arg GetLeasedAndDueLogdrainParams) (GetLeasedAndDueLogdrainRow, error) {
 	row := q.db.QueryRowContext(ctx, getLeasedAndDueLogdrain, arg.LogdrainID, arg.FencingToken)
 	var i GetLeasedAndDueLogdrainRow
 	err := row.Scan(

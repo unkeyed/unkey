@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findDeploymentStepByDeploymentAndStep = `-- name: FindDeploymentStepByDeploymentAndStep :one
@@ -27,6 +29,12 @@ type FindDeploymentStepByDeploymentAndStepParams struct {
 //	FROM `deployment_steps`
 //	WHERE deployment_id = ? AND step = ?
 func (q *Queries) FindDeploymentStepByDeploymentAndStep(ctx context.Context, arg FindDeploymentStepByDeploymentAndStepParams) (DeploymentStep, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (DeploymentStep, error) {
+		return q.findDeploymentStepByDeploymentAndStep(ctx, arg)
+	})
+}
+
+func (q *Queries) findDeploymentStepByDeploymentAndStep(ctx context.Context, arg FindDeploymentStepByDeploymentAndStepParams) (DeploymentStep, error) {
 	row := q.db.QueryRowContext(ctx, findDeploymentStepByDeploymentAndStep, arg.DeploymentID, arg.Step)
 	var i DeploymentStep
 	err := row.Scan(

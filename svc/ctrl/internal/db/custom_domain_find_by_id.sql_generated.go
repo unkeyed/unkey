@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findCustomDomainById = `-- name: FindCustomDomainById :one
@@ -21,6 +23,12 @@ WHERE id = ?
 //	FROM custom_domains
 //	WHERE id = ?
 func (q *Queries) FindCustomDomainById(ctx context.Context, id string) (CustomDomain, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (CustomDomain, error) {
+		return q.findCustomDomainById(ctx, id)
+	})
+}
+
+func (q *Queries) findCustomDomainById(ctx context.Context, id string) (CustomDomain, error) {
 	row := q.db.QueryRowContext(ctx, findCustomDomainById, id)
 	var i CustomDomain
 	err := row.Scan(

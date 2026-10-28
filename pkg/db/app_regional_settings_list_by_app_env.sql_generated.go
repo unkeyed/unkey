@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listAppRegionalSettingsByAppEnv = `-- name: ListAppRegionalSettingsByAppEnv :many
@@ -42,6 +44,12 @@ type ListAppRegionalSettingsByAppEnvRow struct {
 //	WHERE app_id = ?
 //	  AND environment_id = ?
 func (q *Queries) ListAppRegionalSettingsByAppEnv(ctx context.Context, db DBTX, arg ListAppRegionalSettingsByAppEnvParams) ([]ListAppRegionalSettingsByAppEnvRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListAppRegionalSettingsByAppEnvRow, error) {
+		return q.listAppRegionalSettingsByAppEnv(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listAppRegionalSettingsByAppEnv(ctx context.Context, db DBTX, arg ListAppRegionalSettingsByAppEnvParams) ([]ListAppRegionalSettingsByAppEnvRow, error) {
 	rows, err := db.QueryContext(ctx, listAppRegionalSettingsByAppEnv, arg.AppID, arg.EnvironmentID)
 	if err != nil {
 		return nil, err

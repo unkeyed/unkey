@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findCLISessionByID = `-- name: FindCLISessionByID :one
@@ -52,6 +54,12 @@ WHERE id = ?
 //	FROM cli_sessions
 //	WHERE id = ?
 func (q *Queries) FindCLISessionByID(ctx context.Context, db DBTX, id string) (CliSession, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (CliSession, error) {
+		return q.findCLISessionByID(ctx, db, id)
+	})
+}
+
+func (q *Queries) findCLISessionByID(ctx context.Context, db DBTX, id string) (CliSession, error) {
 	row := db.QueryRowContext(ctx, findCLISessionByID, id)
 	var i CliSession
 	err := row.Scan(
@@ -116,6 +124,12 @@ WHERE previous_refresh_token_hash = ?
 //	FROM cli_sessions
 //	WHERE previous_refresh_token_hash = ?
 func (q *Queries) FindCLISessionByPreviousRefreshTokenHash(ctx context.Context, db DBTX, previousRefreshTokenHash sql.NullString) (CliSession, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (CliSession, error) {
+		return q.findCLISessionByPreviousRefreshTokenHash(ctx, db, previousRefreshTokenHash)
+	})
+}
+
+func (q *Queries) findCLISessionByPreviousRefreshTokenHash(ctx context.Context, db DBTX, previousRefreshTokenHash sql.NullString) (CliSession, error) {
 	row := db.QueryRowContext(ctx, findCLISessionByPreviousRefreshTokenHash, previousRefreshTokenHash)
 	var i CliSession
 	err := row.Scan(
@@ -180,6 +194,12 @@ WHERE refresh_token_hash = ?
 //	FROM cli_sessions
 //	WHERE refresh_token_hash = ?
 func (q *Queries) FindCLISessionByRefreshTokenHash(ctx context.Context, db DBTX, refreshTokenHash string) (CliSession, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (CliSession, error) {
+		return q.findCLISessionByRefreshTokenHash(ctx, db, refreshTokenHash)
+	})
+}
+
+func (q *Queries) findCLISessionByRefreshTokenHash(ctx context.Context, db DBTX, refreshTokenHash string) (CliSession, error) {
 	row := db.QueryRowContext(ctx, findCLISessionByRefreshTokenHash, refreshTokenHash)
 	var i CliSession
 	err := row.Scan(
@@ -248,6 +268,12 @@ LIMIT 1
 //	  AND revoked_at IS NULL
 //	LIMIT 1
 func (q *Queries) FindUnrevokedCLISessionByRefreshFamily(ctx context.Context, db DBTX, refreshFamily string) (CliSession, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (CliSession, error) {
+		return q.findUnrevokedCLISessionByRefreshFamily(ctx, db, refreshFamily)
+	})
+}
+
+func (q *Queries) findUnrevokedCLISessionByRefreshFamily(ctx context.Context, db DBTX, refreshFamily string) (CliSession, error) {
 	row := db.QueryRowContext(ctx, findUnrevokedCLISessionByRefreshFamily, refreshFamily)
 	var i CliSession
 	err := row.Scan(
@@ -328,6 +354,12 @@ type ListCLISessionsByUserParams struct {
 //	ORDER BY created_at DESC
 //	LIMIT 100
 func (q *Queries) ListCLISessionsByUser(ctx context.Context, db DBTX, arg ListCLISessionsByUserParams) ([]CliSession, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]CliSession, error) {
+		return q.listCLISessionsByUser(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listCLISessionsByUser(ctx context.Context, db DBTX, arg ListCLISessionsByUserParams) ([]CliSession, error) {
 	rows, err := db.QueryContext(ctx, listCLISessionsByUser, arg.WorkspaceID, arg.UserID, arg.Now)
 	if err != nil {
 		return nil, err
@@ -421,6 +453,12 @@ type ListCLISessionsByWorkspaceParams struct {
 //	ORDER BY created_at DESC
 //	LIMIT 100
 func (q *Queries) ListCLISessionsByWorkspace(ctx context.Context, db DBTX, arg ListCLISessionsByWorkspaceParams) ([]CliSession, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]CliSession, error) {
+		return q.listCLISessionsByWorkspace(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listCLISessionsByWorkspace(ctx context.Context, db DBTX, arg ListCLISessionsByWorkspaceParams) ([]CliSession, error) {
 	rows, err := db.QueryContext(ctx, listCLISessionsByWorkspace, arg.WorkspaceID, arg.Now)
 	if err != nil {
 		return nil, err

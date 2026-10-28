@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listLivePortalSessionExternalIDs = `-- name: ListLivePortalSessionExternalIDs :many
@@ -56,6 +58,12 @@ type ListLivePortalSessionExternalIDsParams struct {
 //	ORDER BY external_id ASC
 //	LIMIT ?
 func (q *Queries) ListLivePortalSessionExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionExternalIDsParams) ([]string, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]string, error) {
+		return q.listLivePortalSessionExternalIDs(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listLivePortalSessionExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionExternalIDsParams) ([]string, error) {
 	rows, err := db.QueryContext(ctx, listLivePortalSessionExternalIDs,
 		arg.WorkspaceID,
 		arg.PortalID,

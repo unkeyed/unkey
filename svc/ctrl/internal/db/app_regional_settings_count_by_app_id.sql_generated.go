@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countAppRegionalSettingsByAppId = `-- name: CountAppRegionalSettingsByAppId :one
@@ -21,6 +23,12 @@ WHERE app_id = ?
 //	FROM `app_regional_settings`
 //	WHERE app_id = ?
 func (q *Queries) CountAppRegionalSettingsByAppId(ctx context.Context, appID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countAppRegionalSettingsByAppId(ctx, appID)
+	})
+}
+
+func (q *Queries) countAppRegionalSettingsByAppId(ctx context.Context, appID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countAppRegionalSettingsByAppId, appID)
 	var count int64
 	err := row.Scan(&count)

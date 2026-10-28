@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findWorkspaceBillingByWorkspaceID = `-- name: FindWorkspaceBillingByWorkspaceID :one
@@ -79,6 +81,12 @@ type FindWorkspaceBillingByWorkspaceIDRow struct {
 //	   ON b.workspace_id = bs_deploy.workspace_id AND bs_deploy.product = 'compute'
 //	WHERE b.workspace_id = ?
 func (q *Queries) FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindWorkspaceBillingByWorkspaceIDRow, error) {
+		return q.findWorkspaceBillingByWorkspaceID(ctx, db, workspaceID)
+	})
+}
+
+func (q *Queries) findWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error) {
 	row := db.QueryRowContext(ctx, findWorkspaceBillingByWorkspaceID, workspaceID)
 	var i FindWorkspaceBillingByWorkspaceIDRow
 	err := row.Scan(

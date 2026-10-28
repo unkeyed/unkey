@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listRegions = `-- name: ListRegions :many
@@ -24,6 +26,12 @@ type ListRegionsRow struct {
 //
 //	SELECT id, name, platform, can_schedule FROM regions
 func (q *Queries) ListRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListRegionsRow, error) {
+		return q.listRegions(ctx, db)
+	})
+}
+
+func (q *Queries) listRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, error) {
 	rows, err := db.QueryContext(ctx, listRegions)
 	if err != nil {
 		return nil, err

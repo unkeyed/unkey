@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listResourceNamesByIDs = `-- name: ListResourceNamesByIDs :many
@@ -90,6 +92,12 @@ type ListResourceNamesByIDsRow struct {
 //	WHERE e.workspace_id = ?
 //	  AND e.id IN (/*SLICE:environment_ids*/?)
 func (q *Queries) ListResourceNamesByIDs(ctx context.Context, db DBTX, arg ListResourceNamesByIDsParams) ([]ListResourceNamesByIDsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListResourceNamesByIDsRow, error) {
+		return q.listResourceNamesByIDs(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listResourceNamesByIDs(ctx context.Context, db DBTX, arg ListResourceNamesByIDsParams) ([]ListResourceNamesByIDsRow, error) {
 	query := listResourceNamesByIDs
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

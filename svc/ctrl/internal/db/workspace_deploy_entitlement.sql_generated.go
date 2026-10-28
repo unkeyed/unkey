@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findWorkspaceDeployEntitlement = `-- name: FindWorkspaceDeployEntitlement :one
@@ -44,6 +46,12 @@ type FindWorkspaceDeployEntitlementRow struct {
 //	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 //	WHERE w.id = ?
 func (q *Queries) FindWorkspaceDeployEntitlement(ctx context.Context, id string) (FindWorkspaceDeployEntitlementRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindWorkspaceDeployEntitlementRow, error) {
+		return q.findWorkspaceDeployEntitlement(ctx, id)
+	})
+}
+
+func (q *Queries) findWorkspaceDeployEntitlement(ctx context.Context, id string) (FindWorkspaceDeployEntitlementRow, error) {
 	row := q.db.QueryRowContext(ctx, findWorkspaceDeployEntitlement, id)
 	var i FindWorkspaceDeployEntitlementRow
 	err := row.Scan(&i.Plan, &i.PlanOverride, &i.SpendSuspended)

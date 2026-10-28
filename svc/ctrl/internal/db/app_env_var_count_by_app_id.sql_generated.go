@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countAppEnvironmentVariablesByAppId = `-- name: CountAppEnvironmentVariablesByAppId :one
@@ -21,6 +23,12 @@ WHERE app_id = ?
 //	FROM `app_environment_variables`
 //	WHERE app_id = ?
 func (q *Queries) CountAppEnvironmentVariablesByAppId(ctx context.Context, appID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countAppEnvironmentVariablesByAppId(ctx, appID)
+	})
+}
+
+func (q *Queries) countAppEnvironmentVariablesByAppId(ctx context.Context, appID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countAppEnvironmentVariablesByAppId, appID)
 	var count int64
 	err := row.Scan(&count)

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findAppSourceOciByAppId = `-- name: FindAppSourceOciByAppId :one
@@ -33,6 +35,12 @@ WHERE app_id = ?
 //	FROM app_source_oci
 //	WHERE app_id = ?
 func (q *Queries) FindAppSourceOciByAppId(ctx context.Context, db DBTX, appID string) (AppSourceOci, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (AppSourceOci, error) {
+		return q.findAppSourceOciByAppId(ctx, db, appID)
+	})
+}
+
+func (q *Queries) findAppSourceOciByAppId(ctx context.Context, db DBTX, appID string) (AppSourceOci, error) {
 	row := db.QueryRowContext(ctx, findAppSourceOciByAppId, appID)
 	var i AppSourceOci
 	err := row.Scan(

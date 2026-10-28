@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findLiveKeyByHash = `-- name: FindLiveKeyByHash :one
@@ -270,6 +272,12 @@ type FindLiveKeyByHashRow struct {
 //	    AND ka.deleted_at_m IS NULL
 //	    AND ws.deleted_at_m IS NULL
 func (q *Queries) FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (FindLiveKeyByHashRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindLiveKeyByHashRow, error) {
+		return q.findLiveKeyByHash(ctx, db, hash)
+	})
+}
+
+func (q *Queries) findLiveKeyByHash(ctx context.Context, db DBTX, hash string) (FindLiveKeyByHashRow, error) {
 	row := db.QueryRowContext(ctx, findLiveKeyByHash, hash)
 	var i FindLiveKeyByHashRow
 	err := row.Scan(

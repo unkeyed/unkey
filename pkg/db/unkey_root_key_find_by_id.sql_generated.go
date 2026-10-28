@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findUnkeyRootKeyByID = `-- name: FindUnkeyRootKeyByID :one
@@ -48,6 +50,12 @@ WHERE id = ? AND deleted_at IS NULL
 //	FROM unkey_root_keys
 //	WHERE id = ? AND deleted_at IS NULL
 func (q *Queries) FindUnkeyRootKeyByID(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (UnkeyRootKey, error) {
+		return q.findUnkeyRootKeyByID(ctx, db, id)
+	})
+}
+
+func (q *Queries) findUnkeyRootKeyByID(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error) {
 	row := db.QueryRowContext(ctx, findUnkeyRootKeyByID, id)
 	var i UnkeyRootKey
 	err := row.Scan(

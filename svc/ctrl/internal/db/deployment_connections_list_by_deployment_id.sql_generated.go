@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listDeploymentConnectionsByDeploymentId = `-- name: ListDeploymentConnectionsByDeploymentId :many
@@ -50,6 +52,12 @@ type ListDeploymentConnectionsByDeploymentIdRow struct {
 //	WHERE b.deployment_id = ?
 //	ORDER BY b.name
 func (q *Queries) ListDeploymentConnectionsByDeploymentId(ctx context.Context, deploymentID string) ([]ListDeploymentConnectionsByDeploymentIdRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListDeploymentConnectionsByDeploymentIdRow, error) {
+		return q.listDeploymentConnectionsByDeploymentId(ctx, deploymentID)
+	})
+}
+
+func (q *Queries) listDeploymentConnectionsByDeploymentId(ctx context.Context, deploymentID string) ([]ListDeploymentConnectionsByDeploymentIdRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDeploymentConnectionsByDeploymentId, deploymentID)
 	if err != nil {
 		return nil, err

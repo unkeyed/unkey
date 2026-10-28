@@ -100,10 +100,7 @@ func (s *service) get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	}
 
 	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (keysdb.CachedKeyData, error) {
-		// Use database retry with exponential backoff, skipping non-transient errors
-		row, err := mysql.WithRetryContext(ctx, func() (keysdb.FindKeyForVerificationRow, error) {
-			return keysdb.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
-		})
+		row, err := keysdb.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
 		if err != nil {
 			return keysdb.CachedKeyData{}, err
 		}
@@ -189,24 +186,22 @@ func (s *service) getRootKey(ctx context.Context, sess *zen.Session, sha256Hash 
 // loadRootKey checks the new store first and falls back to the legacy store only
 // when the hash is absent.
 func (s *service) loadRootKey(ctx context.Context, sha256Hash string) (keysdb.CachedRootKeyData, error) {
-	return mysql.WithRetryContext(ctx, func() (keysdb.CachedRootKeyData, error) {
-		row, err := keysdb.Query.FindUnkeyRootKeyForAuthentication(ctx, s.db.RO(), sha256Hash)
-		if err == nil {
-			if row.DeletedAt.Valid {
-				return keysdb.CachedRootKeyData{}, sql.ErrNoRows
-			}
-			return cacheUnkeyRootKey(row)
+	row, err := keysdb.Query.FindUnkeyRootKeyForAuthentication(ctx, s.db.RO(), sha256Hash)
+	if err == nil {
+		if row.DeletedAt.Valid {
+			return keysdb.CachedRootKeyData{}, sql.ErrNoRows
 		}
-		if !mysql.IsNotFound(err) {
-			return keysdb.CachedRootKeyData{}, err
-		}
+		return cacheUnkeyRootKey(row)
+	}
+	if !mysql.IsNotFound(err) {
+		return keysdb.CachedRootKeyData{}, err
+	}
 
-		legacy, err := keysdb.Query.FindLegacyRootKeyForAuthentication(ctx, s.db.RO(), sha256Hash)
-		if err != nil {
-			return keysdb.CachedRootKeyData{}, err
-		}
-		return cacheLegacyRootKey(legacy)
-	})
+	legacy, err := keysdb.Query.FindLegacyRootKeyForAuthentication(ctx, s.db.RO(), sha256Hash)
+	if err != nil {
+		return keysdb.CachedRootKeyData{}, err
+	}
+	return cacheLegacyRootKey(legacy)
 }
 
 // cacheUnkeyRootKey converts a new-store query result into cache data.

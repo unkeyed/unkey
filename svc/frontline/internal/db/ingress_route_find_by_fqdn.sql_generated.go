@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findFrontlineRouteByFQDN = `-- name: FindFrontlineRouteByFQDN :one
@@ -54,6 +56,12 @@ type FindFrontlineRouteByFQDNRow struct {
 //	LEFT JOIN workspace_billing wb ON wb.workspace_id = d.workspace_id
 //	WHERE fr.fully_qualified_domain_name = ?
 func (q *Queries) FindFrontlineRouteByFQDN(ctx context.Context, fqdn string) (FindFrontlineRouteByFQDNRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindFrontlineRouteByFQDNRow, error) {
+		return q.findFrontlineRouteByFQDN(ctx, fqdn)
+	})
+}
+
+func (q *Queries) findFrontlineRouteByFQDN(ctx context.Context, fqdn string) (FindFrontlineRouteByFQDNRow, error) {
 	row := q.db.QueryRowContext(ctx, findFrontlineRouteByFQDN, fqdn)
 	var i FindFrontlineRouteByFQDNRow
 	err := row.Scan(

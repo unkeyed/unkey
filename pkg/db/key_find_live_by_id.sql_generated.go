@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findLiveKeyByID = `-- name: FindLiveKeyByID :one
@@ -276,6 +278,12 @@ type FindLiveKeyByIDRow struct {
 //	    AND ka.deleted_at_m IS NULL
 //	    AND ws.deleted_at_m IS NULL
 func (q *Queries) FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindLiveKeyByIDRow, error) {
+		return q.findLiveKeyByID(ctx, db, id)
+	})
+}
+
+func (q *Queries) findLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error) {
 	row := db.QueryRowContext(ctx, findLiveKeyByID, id)
 	var i FindLiveKeyByIDRow
 	err := row.Scan(

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findDeploymentById = `-- name: FindDeploymentById :one
@@ -39,6 +41,12 @@ WHERE deployments.id = ?
 //	  AND EXISTS (SELECT 1 FROM apps a WHERE a.id = deployments.app_id AND a.deleted_at IS NULL)
 //	  AND EXISTS (SELECT 1 FROM environments e WHERE e.id = deployments.environment_id AND e.deleted_at IS NULL)
 func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Deployment, error) {
+		return q.findDeploymentById(ctx, db, id)
+	})
+}
+
+func (q *Queries) findDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error) {
 	row := db.QueryRowContext(ctx, findDeploymentById, id)
 	var i Deployment
 	err := row.Scan(

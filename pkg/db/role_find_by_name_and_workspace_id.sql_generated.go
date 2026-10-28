@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findRoleByNameAndWorkspaceID = `-- name: FindRoleByNameAndWorkspaceID :one
@@ -31,6 +33,12 @@ type FindRoleByNameAndWorkspaceIDParams struct {
 //	AND workspace_id = ?
 //	LIMIT 1
 func (q *Queries) FindRoleByNameAndWorkspaceID(ctx context.Context, db DBTX, arg FindRoleByNameAndWorkspaceIDParams) (Role, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Role, error) {
+		return q.findRoleByNameAndWorkspaceID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findRoleByNameAndWorkspaceID(ctx context.Context, db DBTX, arg FindRoleByNameAndWorkspaceIDParams) (Role, error) {
 	row := db.QueryRowContext(ctx, findRoleByNameAndWorkspaceID, arg.Name, arg.WorkspaceID)
 	var i Role
 	err := row.Scan(

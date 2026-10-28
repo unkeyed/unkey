@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listRootKeys = `-- name: ListRootKeys :many
@@ -84,6 +86,12 @@ type ListRootKeysRow struct {
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListRootKeysRow, error) {
+		return q.listRootKeys(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error) {
 	rows, err := db.QueryContext(ctx, listRootKeys, arg.WorkspaceID, arg.IDCursor, arg.Limit)
 	if err != nil {
 		return nil, err

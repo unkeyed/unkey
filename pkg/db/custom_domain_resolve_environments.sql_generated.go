@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const resolveCustomDomainEnvironments = `-- name: ResolveCustomDomainEnvironments :many
@@ -74,6 +76,12 @@ type ResolveCustomDomainEnvironmentsParams struct {
 //	  AND (? = '' OR p.id = ? OR p.slug = ?)
 //	  AND (? = '' OR a.id = ? OR a.slug = ?)
 func (q *Queries) ResolveCustomDomainEnvironments(ctx context.Context, db DBTX, arg ResolveCustomDomainEnvironmentsParams) ([]string, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]string, error) {
+		return q.resolveCustomDomainEnvironments(ctx, db, arg)
+	})
+}
+
+func (q *Queries) resolveCustomDomainEnvironments(ctx context.Context, db DBTX, arg ResolveCustomDomainEnvironmentsParams) ([]string, error) {
 	rows, err := db.QueryContext(ctx, resolveCustomDomainEnvironments,
 		arg.WorkspaceID,
 		arg.Environment,

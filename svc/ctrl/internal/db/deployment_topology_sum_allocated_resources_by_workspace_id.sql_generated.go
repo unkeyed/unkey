@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const sumAllocatedResourcesByWorkspaceID = `-- name: SumAllocatedResourcesByWorkspaceID :one
@@ -44,6 +46,12 @@ type SumAllocatedResourcesByWorkspaceIDRow struct {
 //	  AND dt.`deployment_id` != ?
 //	  AND dt.`desired_status` = 'running'
 func (q *Queries) SumAllocatedResourcesByWorkspaceID(ctx context.Context, arg SumAllocatedResourcesByWorkspaceIDParams) (SumAllocatedResourcesByWorkspaceIDRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (SumAllocatedResourcesByWorkspaceIDRow, error) {
+		return q.sumAllocatedResourcesByWorkspaceID(ctx, arg)
+	})
+}
+
+func (q *Queries) sumAllocatedResourcesByWorkspaceID(ctx context.Context, arg SumAllocatedResourcesByWorkspaceIDParams) (SumAllocatedResourcesByWorkspaceIDRow, error) {
 	row := q.db.QueryRowContext(ctx, sumAllocatedResourcesByWorkspaceID, arg.WorkspaceID, arg.ExcludeDeploymentID)
 	var i SumAllocatedResourcesByWorkspaceIDRow
 	err := row.Scan(&i.TotalCpuMillicores, &i.TotalMemoryMib, &i.TotalStorageMib)

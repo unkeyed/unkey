@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findLimitsWithUsageByWorkspaceID = `-- name: FindLimitsWithUsageByWorkspaceID :one
@@ -119,6 +121,12 @@ type FindLimitsWithUsageByWorkspaceIDRow struct {
 //	) a ON a.`workspace_id` = l.`workspace_id`
 //	WHERE l.`workspace_id` = ?
 func (q *Queries) FindLimitsWithUsageByWorkspaceID(ctx context.Context, db DBTX, arg FindLimitsWithUsageByWorkspaceIDParams) (FindLimitsWithUsageByWorkspaceIDRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindLimitsWithUsageByWorkspaceIDRow, error) {
+		return q.findLimitsWithUsageByWorkspaceID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findLimitsWithUsageByWorkspaceID(ctx context.Context, db DBTX, arg FindLimitsWithUsageByWorkspaceIDParams) (FindLimitsWithUsageByWorkspaceIDRow, error) {
 	row := db.QueryRowContext(ctx, findLimitsWithUsageByWorkspaceID, arg.WorkspaceID, arg.WorkspaceID)
 	var i FindLimitsWithUsageByWorkspaceIDRow
 	err := row.Scan(

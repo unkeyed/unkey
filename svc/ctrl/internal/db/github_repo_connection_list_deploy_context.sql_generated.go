@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -73,6 +74,12 @@ type ListRepoConnectionDeployContextsRow struct {
 //	WHERE gc.installation_id = ?
 //	  AND gc.repository_id = ?
 func (q *Queries) ListRepoConnectionDeployContexts(ctx context.Context, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListRepoConnectionDeployContextsRow, error) {
+		return q.listRepoConnectionDeployContexts(ctx, arg)
+	})
+}
+
+func (q *Queries) listRepoConnectionDeployContexts(ctx context.Context, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listRepoConnectionDeployContexts,
 		arg.IsForkPr,
 		arg.Branch,

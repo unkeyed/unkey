@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listRunningDeploymentsByBranch = `-- name: ListRunningDeploymentsByBranch :many
@@ -48,6 +50,12 @@ type ListRunningDeploymentsByBranchParams struct {
 //	  AND id != ?
 //	ORDER BY created_at ASC
 func (q *Queries) ListRunningDeploymentsByBranch(ctx context.Context, arg ListRunningDeploymentsByBranchParams) ([]string, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]string, error) {
+		return q.listRunningDeploymentsByBranch(ctx, arg)
+	})
+}
+
+func (q *Queries) listRunningDeploymentsByBranch(ctx context.Context, arg ListRunningDeploymentsByBranchParams) ([]string, error) {
 	rows, err := q.db.QueryContext(ctx, listRunningDeploymentsByBranch,
 		arg.GitBranch,
 		arg.WorkspaceID,

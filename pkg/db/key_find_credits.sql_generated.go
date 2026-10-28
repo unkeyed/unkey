@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findKeyCredits = `-- name: FindKeyCredits :one
@@ -18,6 +20,12 @@ SELECT remaining_requests FROM ` + "`" + `keys` + "`" + ` k WHERE k.id = ?
 //
 //	SELECT remaining_requests FROM `keys` k WHERE k.id = ?
 func (q *Queries) FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt64, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (sql.NullInt64, error) {
+		return q.findKeyCredits(ctx, db, id)
+	})
+}
+
+func (q *Queries) findKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt64, error) {
 	row := db.QueryRowContext(ctx, findKeyCredits, id)
 	var remaining_requests sql.NullInt64
 	err := row.Scan(&remaining_requests)

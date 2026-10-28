@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listAppRuntimeSettingsByApp = `-- name: ListAppRuntimeSettingsByApp :many
@@ -54,6 +56,12 @@ WHERE app_id = ?
 //	FROM app_runtime_settings
 //	WHERE app_id = ?
 func (q *Queries) ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppRuntimeSetting, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]AppRuntimeSetting, error) {
+		return q.listAppRuntimeSettingsByApp(ctx, db, appID)
+	})
+}
+
+func (q *Queries) listAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppRuntimeSetting, error) {
 	rows, err := db.QueryContext(ctx, listAppRuntimeSettingsByApp, appID)
 	if err != nil {
 		return nil, err

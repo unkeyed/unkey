@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findLogdrainByID = `-- name: FindLogdrainByID :one
@@ -71,6 +73,12 @@ type FindLogdrainByIDRow struct {
 //	FROM logdrains
 //	WHERE id = ?
 func (q *Queries) FindLogdrainByID(ctx context.Context, id string) (FindLogdrainByIDRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindLogdrainByIDRow, error) {
+		return q.findLogdrainByID(ctx, id)
+	})
+}
+
+func (q *Queries) findLogdrainByID(ctx context.Context, id string) (FindLogdrainByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, findLogdrainByID, id)
 	var i FindLogdrainByIDRow
 	err := row.Scan(

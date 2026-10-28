@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findFrontlineRoutesByDeploymentID = `-- name: FindFrontlineRoutesByDeploymentID :many
@@ -17,6 +19,12 @@ SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, fr
 //
 //	SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ?
 func (q *Queries) FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]FrontlineRoute, error) {
+		return q.findFrontlineRoutesByDeploymentID(ctx, db, deploymentID)
+	})
+}
+
+func (q *Queries) findFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error) {
 	rows, err := db.QueryContext(ctx, findFrontlineRoutesByDeploymentID, deploymentID)
 	if err != nil {
 		return nil, err

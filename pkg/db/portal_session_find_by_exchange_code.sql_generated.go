@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPortalSessionByExchangeCodeHash = `-- name: FindPortalSessionByExchangeCodeHash :one
@@ -22,6 +24,12 @@ WHERE exchange_code_hash = ?
 //	SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 //	WHERE exchange_code_hash = ?
 func (q *Queries) FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (PortalSession, error) {
+		return q.findPortalSessionByExchangeCodeHash(ctx, db, exchangeCodeHash)
+	})
+}
+
+func (q *Queries) findPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error) {
 	row := db.QueryRowContext(ctx, findPortalSessionByExchangeCodeHash, exchangeCodeHash)
 	var i PortalSession
 	err := row.Scan(

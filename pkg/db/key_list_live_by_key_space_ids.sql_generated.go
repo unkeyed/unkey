@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listLiveKeysByKeySpaceIDs = `-- name: ListLiveKeysByKeySpaceIDs :many
@@ -244,6 +246,12 @@ type ListLiveKeysByKeySpaceIDsRow struct {
 //	ORDER BY k.id ASC
 //	LIMIT ?
 func (q *Queries) ListLiveKeysByKeySpaceIDs(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDsParams) ([]ListLiveKeysByKeySpaceIDsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListLiveKeysByKeySpaceIDsRow, error) {
+		return q.listLiveKeysByKeySpaceIDs(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listLiveKeysByKeySpaceIDs(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDsParams) ([]ListLiveKeysByKeySpaceIDsRow, error) {
 	query := listLiveKeysByKeySpaceIDs
 	var queryParams []interface{}
 	if len(arg.KeySpaceIds) > 0 {

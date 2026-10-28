@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findIdentity = `-- name: FindIdentity :one
@@ -114,6 +116,12 @@ type FindIdentityRow struct {
 //	ORDER BY i.lookup_priority
 //	LIMIT 1
 func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindIdentityRow, error) {
+		return q.findIdentity(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error) {
 	row := db.QueryRowContext(ctx, findIdentity,
 		arg.Identity,
 		arg.WorkspaceID,

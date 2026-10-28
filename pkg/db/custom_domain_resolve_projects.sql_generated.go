@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const resolveCustomDomainProjects = `-- name: ResolveCustomDomainProjects :many
@@ -38,6 +40,12 @@ type ResolveCustomDomainProjectsParams struct {
 //	  AND p.deleted_at IS NULL
 //	  AND (p.id = ? OR p.slug = ?)
 func (q *Queries) ResolveCustomDomainProjects(ctx context.Context, db DBTX, arg ResolveCustomDomainProjectsParams) ([]string, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]string, error) {
+		return q.resolveCustomDomainProjects(ctx, db, arg)
+	})
+}
+
+func (q *Queries) resolveCustomDomainProjects(ctx context.Context, db DBTX, arg ResolveCustomDomainProjectsParams) ([]string, error) {
 	rows, err := db.QueryContext(ctx, resolveCustomDomainProjects, arg.WorkspaceID, arg.Project, arg.Project)
 	if err != nil {
 		return nil, err

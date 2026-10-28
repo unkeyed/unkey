@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listPermissionsByKeyID = `-- name: ListPermissionsByKeyID :many
@@ -57,6 +59,12 @@ type ListPermissionsByKeyIDParams struct {
 //	    SELECT permission_slug FROM role_permissions
 //	) all_permissions
 func (q *Queries) ListPermissionsByKeyID(ctx context.Context, db DBTX, arg ListPermissionsByKeyIDParams) ([]string, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]string, error) {
+		return q.listPermissionsByKeyID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listPermissionsByKeyID(ctx context.Context, db DBTX, arg ListPermissionsByKeyIDParams) ([]string, error) {
 	rows, err := db.QueryContext(ctx, listPermissionsByKeyID, arg.KeyID, arg.KeyID)
 	if err != nil {
 		return nil, err

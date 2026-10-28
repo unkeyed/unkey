@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const resolveDeploymentScope = `-- name: ResolveDeploymentScope :one
@@ -84,6 +86,12 @@ type ResolveDeploymentScopeRow struct {
 //	    AND (e.id = ? OR e.slug = ?)
 //	LIMIT 1
 func (q *Queries) ResolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (ResolveDeploymentScopeRow, error) {
+		return q.resolveDeploymentScope(ctx, db, arg)
+	})
+}
+
+func (q *Queries) resolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error) {
 	row := db.QueryRowContext(ctx, resolveDeploymentScope,
 		arg.WorkspaceID,
 		arg.Project,

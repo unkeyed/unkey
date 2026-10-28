@@ -10,6 +10,7 @@ import (
 	"database/sql"
 
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPermissionByIdOrSlug = `-- name: FindPermissionByIdOrSlug :one
@@ -63,6 +64,12 @@ type FindPermissionByIdOrSlugRow struct {
 //	ORDER BY lookup_priority
 //	LIMIT 1
 func (q *Queries) FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (FindPermissionByIdOrSlugRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindPermissionByIdOrSlugRow, error) {
+		return q.findPermissionByIdOrSlug(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (FindPermissionByIdOrSlugRow, error) {
 	row := db.QueryRowContext(ctx, findPermissionByIdOrSlug,
 		arg.WorkspaceID,
 		arg.Search,

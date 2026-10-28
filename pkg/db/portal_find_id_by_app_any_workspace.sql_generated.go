@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPortalIdByAppAnyWorkspace = `-- name: FindPortalIdByAppAnyWorkspace :one
@@ -28,6 +30,12 @@ LIMIT 1
 //	WHERE app_id = ?
 //	LIMIT 1
 func (q *Queries) FindPortalIdByAppAnyWorkspace(ctx context.Context, db DBTX, appID sql.NullString) (string, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (string, error) {
+		return q.findPortalIdByAppAnyWorkspace(ctx, db, appID)
+	})
+}
+
+func (q *Queries) findPortalIdByAppAnyWorkspace(ctx context.Context, db DBTX, appID sql.NullString) (string, error) {
 	row := db.QueryRowContext(ctx, findPortalIdByAppAnyWorkspace, appID)
 	var id string
 	err := row.Scan(&id)

@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"strings"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -65,6 +66,12 @@ type ListRunningDeploymentsByWorkspaceIdRow struct {
 //	    OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
 //	  )
 func (q *Queries) ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListRunningDeploymentsByWorkspaceIdRow, error) {
+		return q.listRunningDeploymentsByWorkspaceId(ctx, arg)
+	})
+}
+
+func (q *Queries) listRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error) {
 	query := listRunningDeploymentsByWorkspaceId
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

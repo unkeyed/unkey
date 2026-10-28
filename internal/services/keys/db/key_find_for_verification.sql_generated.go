@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findKeyForVerification = `-- name: FindKeyForVerification :one
@@ -220,6 +222,12 @@ type FindKeyForVerificationRow struct {
 //	where k.hash = ?
 //	  and k.deleted_at_m is null
 func (q *Queries) FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindKeyForVerificationRow, error) {
+		return q.findKeyForVerification(ctx, db, hash)
+	})
+}
+
+func (q *Queries) findKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error) {
 	row := db.QueryRowContext(ctx, findKeyForVerification, hash)
 	var i FindKeyForVerificationRow
 	err := row.Scan(

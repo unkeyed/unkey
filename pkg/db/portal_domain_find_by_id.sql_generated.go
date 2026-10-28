@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPortalDomainById = `-- name: FindPortalDomainById :one
@@ -83,6 +85,12 @@ type FindPortalDomainByIdRow struct {
 //	  AND portal_id = ?
 //	LIMIT 1
 func (q *Queries) FindPortalDomainById(ctx context.Context, db DBTX, arg FindPortalDomainByIdParams) (FindPortalDomainByIdRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindPortalDomainByIdRow, error) {
+		return q.findPortalDomainById(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findPortalDomainById(ctx context.Context, db DBTX, arg FindPortalDomainByIdParams) (FindPortalDomainByIdRow, error) {
 	row := db.QueryRowContext(ctx, findPortalDomainById, arg.ID, arg.WorkspaceID, arg.PortalID)
 	var i FindPortalDomainByIdRow
 	err := row.Scan(

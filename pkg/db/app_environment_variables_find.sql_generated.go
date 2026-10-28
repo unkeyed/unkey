@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findAppEnvVarsByAppAndEnv = `-- name: FindAppEnvVarsByAppAndEnv :many
@@ -33,6 +35,12 @@ type FindAppEnvVarsByAppAndEnvRow struct {
 //	WHERE app_id = ?
 //	  AND environment_id = ?
 func (q *Queries) FindAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]FindAppEnvVarsByAppAndEnvRow, error) {
+		return q.findAppEnvVarsByAppAndEnv(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error) {
 	rows, err := db.QueryContext(ctx, findAppEnvVarsByAppAndEnv, arg.AppID, arg.EnvironmentID)
 	if err != nil {
 		return nil, err

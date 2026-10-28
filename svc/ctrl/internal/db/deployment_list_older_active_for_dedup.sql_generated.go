@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listOlderActiveDeploymentsForDedup = `-- name: ListOlderActiveDeploymentsForDedup :many
@@ -66,6 +68,12 @@ type ListOlderActiveDeploymentsForDedupRow struct {
 //	  AND older.id != ?
 //	ORDER BY older.created_at ASC
 func (q *Queries) ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListOlderActiveDeploymentsForDedupRow, error) {
+		return q.listOlderActiveDeploymentsForDedup(ctx, arg)
+	})
+}
+
+func (q *Queries) listOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error) {
 	rows, err := q.db.QueryContext(ctx, listOlderActiveDeploymentsForDedup,
 		arg.AppID,
 		arg.EnvironmentID,
