@@ -69,6 +69,11 @@ type teardownCompute struct{}
 
 func (teardownCompute) name() string { return "teardown compute" }
 
+// deleteStripeCustomer deletes the workspace's Stripe customer.
+type deleteStripeCustomer struct{}
+
+func (deleteStripeCustomer) name() string { return "delete stripe customer" }
+
 // deleteWorkOSOrganization deletes the workspace's WorkOS organization.
 type deleteWorkOSOrganization struct{}
 

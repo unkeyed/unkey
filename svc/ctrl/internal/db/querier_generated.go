@@ -233,6 +233,13 @@ type Querier interface {
 	//  LEFT JOIN deployment_connections b ON b.deployment_id = t.deployment_id AND b.connection_id = t.connection_id
 	//  WHERE b.pk IS NULL
 	CountOrphanDeploymentConnectionAppTargets(ctx context.Context) (int64, error)
+	// Counts the other workspaces billed to a Stripe customer. A GDPR workspace
+	// erasure deletes the customer, so it refuses when another workspace shares it.
+	//
+	//  SELECT COUNT(*) FROM workspace_billing
+	//  WHERE stripe_customer_id = ?
+	//    AND workspace_id != ?
+	CountOtherWorkspaceBillingsByStripeCustomerID(ctx context.Context, arg CountOtherWorkspaceBillingsByStripeCustomerIDParams) (int64, error)
 	// Covered by unique_workspace_domain_idx, which leads on workspace_id.
 	//
 	//  SELECT COUNT(*)

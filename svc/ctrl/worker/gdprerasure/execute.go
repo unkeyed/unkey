@@ -137,6 +137,15 @@ func (teardownCompute) execute(ctx restate.Context, _ *Workflow, s subject) (int
 	return int64(res.GetDeploymentsStopped()), nil
 }
 
+func (d deleteStripeCustomer) execute(ctx restate.Context, w *Workflow, s subject) (int64, error) {
+	if s.stripeCustomerID == "" {
+		return 0, nil
+	}
+	return deleteExternal(ctx, d.name(), func(rc restate.RunContext) (bool, error) {
+		return w.stripe.DeleteCustomer(rc, s.stripeCustomerID)
+	})
+}
+
 func (d deleteWorkOSOrganization) execute(ctx restate.Context, w *Workflow, s subject) (int64, error) {
 	if s.orgID == "" {
 		return 0, nil

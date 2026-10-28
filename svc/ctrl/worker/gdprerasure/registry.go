@@ -21,12 +21,14 @@ const (
 )
 
 // workspaceSteps erases a workspace. Compute stops first so no row vanishes
-// under a running pod. Child tables without a workspace_id are found through
+// under a running pod. The Stripe customer goes before workspace_billing, the
+// row that names it. Child tables without a workspace_id are found through
 // their parents, so they run before them. The workspaces row goes last: until
 // then a re-run can still read the WorkOS organization to delete.
 var workspaceSteps = concat(
 	[]step{
 		teardownCompute{},
+		deleteStripeCustomer{},
 
 		mysqlDelete{table: "keys_permissions", by: "legacy root key", where: "key_id IN (" + legacyRootKeys + ")"},
 		mysqlDelete{table: "keys_roles", by: "legacy root key", where: "key_id IN (" + legacyRootKeys + ")"},

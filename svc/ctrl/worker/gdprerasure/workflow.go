@@ -31,6 +31,11 @@ type Config struct {
 	// WorkOS deletes users and organizations. Must not be nil; pass
 	// workos.NewNoop() when WorkOS is not configured.
 	WorkOS workos.Eraser
+
+	// Stripe deletes a workspace's Stripe customer. Nil when no Stripe key is
+	// configured, and then erasing a workspace that has a Stripe customer
+	// fails before anything is deleted.
+	Stripe StripeCustomers
 }
 
 // Workflow implements GdprErasureWorkflow.
@@ -39,6 +44,7 @@ type Workflow struct {
 	db         db.Database
 	clickhouse ClickHouse
 	workos     workos.Eraser
+	stripe     StripeCustomers
 }
 
 var _ hydrav1.GdprErasureWorkflowServer = (*Workflow)(nil)
@@ -57,6 +63,7 @@ func New(cfg Config) (*Workflow, error) {
 		db:                                     cfg.DB,
 		clickhouse:                             cfg.ClickHouse,
 		workos:                                 cfg.WorkOS,
+		stripe:                                 cfg.Stripe,
 	}, nil
 }
 
@@ -148,24 +155,20 @@ func (w *Workflow) plan(ctx restate.WorkflowContext, req *hydrav1.GdprErasureReq
 type workspaceRecord struct {
 	DeleteProtection bool   `json:"delete_protection"`
 	OrgID            string `json:"org_id"`
+	StripeCustomerID string `json:"stripe_customer_id"`
+
+	// StripeCustomerShares counts the other workspaces billed to the same
+	// Stripe customer.
+	StripeCustomerShares int64 `json:"stripe_customer_shares"`
 }
 
-// guardWorkspace refuses to erase a delete-protected workspace and reads the
-// external ids the later steps delete. A missing workspaces row is not an
-// error: an earlier run may have deleted it, and every step still converges.
+// guardWorkspace refuses an erasure it cannot finish or must not start, and
+// reads the external ids the later steps delete. A missing workspaces row is
+// not an error: an earlier run may have deleted it, and every step still
+// converges.
 func (w *Workflow) guardWorkspace(ctx restate.WorkflowContext, workspaceID string) (*subject, error) {
 	record, err := restate.Run(ctx, func(rc restate.RunContext) (workspaceRecord, error) {
-		workspace, err := w.db.FindWorkspaceByID(rc, workspaceID)
-		if db.IsNotFound(err) {
-			return workspaceRecord{DeleteProtection: false, OrgID: ""}, nil
-		}
-		if err != nil {
-			return workspaceRecord{DeleteProtection: false, OrgID: ""}, err
-		}
-		return workspaceRecord{
-			DeleteProtection: workspace.DeleteProtection.Valid && workspace.DeleteProtection.Bool,
-			OrgID:            workspace.OrgID,
-		}, nil
+		return w.readWorkspace(rc, workspaceID)
 	}, restate.WithName("read workspace"))
 	if err != nil {
 		return nil, fmt.Errorf("read workspace: %w", err)
@@ -173,12 +176,47 @@ func (w *Workflow) guardWorkspace(ctx restate.WorkflowContext, workspaceID strin
 	if record.DeleteProtection {
 		return nil, restate.TerminalErrorf("workspace %s has delete protection; disable it before erasing", workspaceID)
 	}
+	if record.StripeCustomerID != "" && record.StripeCustomerShares > 0 {
+		return nil, restate.TerminalErrorf("stripe customer %s also bills %d other workspaces; resolve that before erasing workspace %s",
+			record.StripeCustomerID, record.StripeCustomerShares, workspaceID)
+	}
+	if record.StripeCustomerID != "" && w.stripe == nil {
+		return nil, restate.TerminalErrorf("workspace %s has stripe customer %s but no stripe key is configured", workspaceID, record.StripeCustomerID)
+	}
 	return &subject{
 		workspaceID:      workspaceID,
 		externalID:       "",
 		userID:           "",
 		identityIDs:      nil,
 		orgID:            record.OrgID,
-		stripeCustomerID: "",
+		stripeCustomerID: record.StripeCustomerID,
 	}, nil
+}
+
+func (w *Workflow) readWorkspace(ctx context.Context, workspaceID string) (workspaceRecord, error) {
+	var record workspaceRecord
+
+	workspace, err := w.db.FindWorkspaceByID(ctx, workspaceID)
+	if err != nil && !db.IsNotFound(err) {
+		return record, err
+	}
+	if err == nil {
+		record.DeleteProtection = workspace.DeleteProtection.Valid && workspace.DeleteProtection.Bool
+		record.OrgID = workspace.OrgID
+	}
+
+	billing, err := w.db.FindWorkspaceBillingByWorkspaceID(ctx, workspaceID)
+	if err != nil && !db.IsNotFound(err) {
+		return record, err
+	}
+	if err != nil || !billing.StripeCustomerID.Valid || billing.StripeCustomerID.String == "" {
+		return record, nil
+	}
+	record.StripeCustomerID = billing.StripeCustomerID.String
+
+	record.StripeCustomerShares, err = w.db.CountOtherWorkspaceBillingsByStripeCustomerID(ctx, db.CountOtherWorkspaceBillingsByStripeCustomerIDParams{
+		StripeCustomerID: billing.StripeCustomerID,
+		WorkspaceID:      workspaceID,
+	})
+	return record, err
 }
