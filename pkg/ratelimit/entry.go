@@ -58,10 +58,11 @@ func newEntry(duration time.Duration) *entry {
 
 // replaceRows replaces what this pod knows with the rows of a complete read
 // at `nowNs`. Peer rows are taken as read. Own rows keep the larger scaled
-// sum of the read and of memory, and an own row that the read did not
-// return is kept until it fades, because its write may still be on its way
-// or the replica may lag. On an error it changes nothing. The caller must
-// hold the shard lock of the entry.
+// sum of the read and of memory. An own row that the read did not return,
+// because its write is on its way or the replica lags, is kept while it is
+// in the current period, holds unacknowledged units, or has not faded. On an
+// error it changes nothing. The caller must hold the shard lock of the
+// entry.
 func (e *entry) replaceRows(stored []StoredRow, ownPodID string, nowNs int64) error {
 	next := make(map[rowKey]row, len(stored))
 	for _, s := range stored {
@@ -85,15 +86,18 @@ func (e *entry) replaceRows(stored []StoredRow, ownPodID string, nowNs int64) er
 		}
 		next[key] = read
 	}
+	currentNs := periodStartNs(nowNs, e.periodNs)
 	for key, known := range e.rows {
 		if _, ok := next[key]; ok || !known.own {
 			continue
 		}
-		if known.uncommitted() || known.levelAt(key, nowNs, e.duration) >= negligibleUnits {
+		// The pod adds new units to its current row, so forgetting part of
+		// it would make a later write lose the rest to GREATEST.
+		if known.uncommitted() || key.periodStartNs >= currentNs || known.levelAt(key, nowNs, e.duration) >= negligibleUnits {
 			next[key] = known
 		}
 	}
-	nextSum, err := computeLevelSum(next, periodStartNs(nowNs, e.periodNs), e.duration)
+	nextSum, err := computeLevelSum(next, currentNs, e.duration)
 	if err != nil {
 		return err
 	}
