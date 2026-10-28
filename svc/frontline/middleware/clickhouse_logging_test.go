@@ -56,6 +56,7 @@ func runClickHouseLoggingRequest(t *testing.T, capture captureFlags) []schema.Fr
 		}
 		tracking, ok := proxy.RequestTrackingFromContext(ctx)
 		require.True(t, ok)
+		tracking.WorkspaceID = uid.New(uid.WorkspacePrefix)
 		tracking.DeploymentID = "dep_123"
 		tracking.InstanceID = "inst_123"
 		tracking.InstanceStart = clk.Tick(26 * time.Millisecond)
@@ -123,11 +124,13 @@ func TestClickHouseLogging_AlwaysEmitsBaseRow(t *testing.T) {
 func TestClickHouseLogging_SkipsUnattributedAndDisabledRequests(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
+		workspaceID  string
 		deploymentID string
 		skip         bool
 	}{
-		{name: "no_local_deployment"},
-		{name: "disabled", deploymentID: uid.New(uid.DeploymentPrefix), skip: true},
+		{name: "no_deployment", workspaceID: uid.New(uid.WorkspacePrefix)},
+		{name: "no_workspace", deploymentID: uid.New(uid.DeploymentPrefix)},
+		{name: "disabled", workspaceID: uid.New(uid.WorkspacePrefix), deploymentID: uid.New(uid.DeploymentPrefix), skip: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var rows []schema.FrontlineRequest
@@ -146,6 +149,7 @@ func TestClickHouseLogging_SkipsUnattributedAndDisabledRequests(t *testing.T) {
 			serve := mw(func(ctx context.Context, sess *zen.Session) error {
 				tracking, ok := proxy.RequestTrackingFromContext(ctx)
 				require.True(t, ok)
+				tracking.WorkspaceID = tc.workspaceID
 				tracking.DeploymentID = tc.deploymentID
 				if tc.skip {
 					sess.SkipRequestLog()

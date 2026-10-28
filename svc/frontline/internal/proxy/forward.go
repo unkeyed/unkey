@@ -133,6 +133,11 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			*req = *req.WithContext(httptrace.WithClientTrace(req.Context(), clientTrace))
 		},
 		ModifyResponse: func(resp *http.Response) error {
+			if cfg.destination == destinationFrontline {
+				// The peer owns the log once it returns headers, even if copying
+				// its response later fails. Transport failures remain local.
+				sess.SkipRequestLog()
+			}
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
 				timing.Write(sess, timing.Entry{

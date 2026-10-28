@@ -14,6 +14,9 @@ const findFrontlineRouteByFQDN = `-- name: FindFrontlineRouteByFQDN :one
 SELECT
   fr.environment_id,
   fr.deployment_id,
+  d.workspace_id,
+  d.project_id,
+  d.app_id,
   d.sentinel_config,
   d.upstream_protocol,
   d.desired_state,
@@ -27,6 +30,9 @@ WHERE fr.fully_qualified_domain_name = ?
 type FindFrontlineRouteByFQDNRow struct {
 	EnvironmentID    string                      `db:"environment_id"`
 	DeploymentID     string                      `db:"deployment_id"`
+	WorkspaceID      string                      `db:"workspace_id"`
+	ProjectID        string                      `db:"project_id"`
+	AppID            string                      `db:"app_id"`
 	SentinelConfig   []byte                      `db:"sentinel_config"`
 	UpstreamProtocol DeploymentsUpstreamProtocol `db:"upstream_protocol"`
 	DesiredState     DeploymentsDesiredState     `db:"desired_state"`
@@ -45,6 +51,9 @@ type FindFrontlineRouteByFQDNRow struct {
 //	SELECT
 //	  fr.environment_id,
 //	  fr.deployment_id,
+//	  d.workspace_id,
+//	  d.project_id,
+//	  d.app_id,
 //	  d.sentinel_config,
 //	  d.upstream_protocol,
 //	  d.desired_state,
@@ -59,6 +68,9 @@ func (q *Queries) FindFrontlineRouteByFQDN(ctx context.Context, fqdn string) (Fi
 	err := row.Scan(
 		&i.EnvironmentID,
 		&i.DeploymentID,
+		&i.WorkspaceID,
+		&i.ProjectID,
+		&i.AppID,
 		&i.SentinelConfig,
 		&i.UpstreamProtocol,
 		&i.DesiredState,
