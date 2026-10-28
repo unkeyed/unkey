@@ -3516,6 +3516,29 @@ type Querier interface {
 	//  WHERE e.workspace_id = ?
 	//    AND e.id IN (/*SLICE:environment_ids*/?)
 	ListResourceNamesByIDs(ctx context.Context, db DBTX, arg ListResourceNamesByIDsParams) ([]ListResourceNamesByIDsRow, error)
+	//ListRetainedAppConnections
+	//
+	//  SELECT b.connection_id AS id, a.name AS target_app_name,
+	//      COUNT(DISTINCT b.deployment_id) AS deployments
+	//  FROM deployment_connections b
+	//  INNER JOIN apps a ON a.id = b.resource_id
+	//  INNER JOIN deployments d ON d.id = b.deployment_id
+	//      AND d.workspace_id = ?
+	//      AND d.app_id = ?
+	//      AND d.environment_id = ?
+	//  LEFT JOIN app_connections current_rule ON current_rule.id = b.connection_id
+	//  WHERE b.workspace_id = ?
+	//      AND b.project_id = ?
+	//      AND b.app_id = ?
+	//      AND b.environment_id = ?
+	//      AND b.resource_type = 'app'
+	//      AND a.workspace_id = ?
+	//      AND a.project_id = ?
+	//      AND current_rule.id IS NULL
+	//  GROUP BY b.connection_id, a.name
+	//  ORDER BY b.connection_id ASC
+	//  LIMIT 500
+	ListRetainedAppConnections(ctx context.Context, db DBTX, arg ListRetainedAppConnectionsParams) ([]ListRetainedAppConnectionsRow, error)
 	// ListRoles returns one page of roles and their permissions from one project.
 	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//

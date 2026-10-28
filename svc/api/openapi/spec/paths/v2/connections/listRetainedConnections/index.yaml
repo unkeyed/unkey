@@ -1,0 +1,50 @@
+post:
+  tags:
+    - connections
+  summary: List retained app connections
+  description: |
+    List removed connection defaults still saved in deployments of the caller environment.
+    Returns up to 500 connections, ordered by connection ID. Includes saved connections
+    in stopped or failed deployments. Requires read access to the caller environment.
+    Missing and unreadable environments return the same 404 response.
+  operationId: connections.listRetainedConnections
+  x-speakeasy-name-override: listRetainedConnections
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ConnectionsListRetainedConnectionsRequestBody.yaml"
+  responses:
+    "200":
+      description: Removed defaults retained in deployment snapshots.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ConnectionsListRetainedConnectionsResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Environment not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
