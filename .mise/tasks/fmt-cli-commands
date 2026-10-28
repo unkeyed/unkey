@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Format CLI command declarations (default: cmd/api)"
-set -euo pipefail
-
-go run ./tools/fmtclicommands --write "$@"

@@ -7,7 +7,6 @@ set -euo pipefail
 dprint fmt --config dev/dprint.json
 
 # format go
-mise run fmt-cli-commands
 go fmt ./...
 
 # format protos

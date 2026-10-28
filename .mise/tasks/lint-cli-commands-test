@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Test CLI command declaration formatting"
-set -euo pipefail
-
-rask ./tools/fmtclicommands

@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Check CLI command declaration formatting"
-set -euo pipefail
-
-go run ./tools/fmtclicommands --check "$@"
