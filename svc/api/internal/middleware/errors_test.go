@@ -4,13 +4,17 @@ package middleware_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger/loggertest"
@@ -109,6 +113,35 @@ func TestErrorMiddleware_500_SetsInternalErrorOnSession(t *testing.T) {
 	// fault.InternalMessage joins every internal in the chain with ": ".
 	require.Equal(t, "ratelimit backend offline: internal boom", sess.InternalError(),
 		"the middleware must stash the full internal error chain so the metrics middleware can log it")
+}
+
+func TestErrorMiddleware_ClickHouseEOF_Returns503WithoutConnectionDetails(t *testing.T) {
+	h := loggertest.Install(t)
+	sess, rec := newSession(t, http.MethodPost, "/v2/analytics.getVerifications")
+	queryErr := fmt.Errorf("sendQuery: %w", &url.Error{
+		Op:  http.MethodPost,
+		URL: "https://clickhouse.internal:8443/?database=private",
+		Err: io.EOF,
+	})
+	handlerErr := clickhouse.WrapClickHouseError(clickhouse.WrapClickHouseError(queryErr))
+
+	err := middleware.WithErrorHandling()(func(_ context.Context, _ *zen.Session) error {
+		return handlerErr
+	})(t.Context(), sess)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusServiceUnavailable, rec.Code)
+	var response openapi.ServiceUnavailableErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&response))
+	require.Equal(t, sess.RequestID(), response.Meta.RequestId)
+	require.Equal(t, openapi.BaseError{
+		Status: http.StatusServiceUnavailable,
+		Title:  "Service Unavailable",
+		Type:   "https://unkey.com/docs/errors/unkey/data/analytics_connection_failed",
+		Detail: "We couldn't complete your analytics query because the database connection failed. Retry your request.",
+	}, response.Error)
+
+	attrs := loggertest.FlatAttrs(h.Find(t, "analytics connection error"))
+	require.Equal(t, "err:unkey:data:analytics_connection_failed", attrs["code"])
 }
 
 func TestErrorMiddleware_NotFound_DoesNotLog(t *testing.T) {
