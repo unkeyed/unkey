@@ -523,6 +523,18 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
+	// FailDeploymentAndStop records failure and stop intent before regional cleanup
+	// can report completion. It preserves cancellation outcomes and ready deployments.
+	//
+	//  UPDATE deployments d
+	//  LEFT JOIN deployment_topology dt ON dt.deployment_id = d.id
+	//  SET d.status = CASE WHEN d.status IN (/*SLICE:progressing_statuses*/?) THEN 'failed' ELSE d.status END,
+	//      d.desired_state = 'stopped',
+	//      d.updated_at = ?,
+	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, COALESCE(?, 0))
+	//  WHERE d.id = ?
+	//    AND d.status NOT IN ('ready', 'stopped')
+	FailDeploymentAndStop(ctx context.Context, arg FailDeploymentAndStopParams) error
 	// Returns the challenge row for a domain, if one exists. domain_id is unique on
 	// acme_challenges, so there is at most one. Used as the idempotency check for
 	// infra certificate provisioning: once a challenge exists the renewal cron owns
@@ -2690,12 +2702,14 @@ type Querier interface {
 	// StopDeploymentIfNoInstances finalizes a requested stop only after krane has
 	// reported that no instances remain. The desired_state guard prevents stale
 	// delete reports from marking a deployment stopped after it has been woken.
+	// Only active compute statuses transition, preserving failed and cancelled outcomes.
 	//
 	//  UPDATE deployments d
 	//  LEFT JOIN instances i ON i.deployment_id = d.id
 	//  SET d.status = 'stopped', d.updated_at = ?
 	//  WHERE d.id = ?
 	//    AND d.desired_state = 'stopped'
+	//    AND d.status IN (/*SLICE:active_statuses*/?)
 	//    AND i.deployment_id IS NULL
 	StopDeploymentIfNoInstances(ctx context.Context, arg StopDeploymentIfNoInstancesParams) error
 	//StopDeploymentTopologiesByEnvironment
@@ -2901,11 +2915,19 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error
-	// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
+	// UpdateDeploymentTopologyDesiredStatus also updates deployment intent while
+	// legacy workers still stop compute through regional topology writes.
 	//
-	//  UPDATE `deployment_topology`
-	//  SET desired_status = ?, updated_at = ?
-	//  WHERE deployment_id = ? AND region_id = ?
+	//  UPDATE deployment_topology dt
+	//  JOIN deployments d ON d.id = dt.deployment_id
+	//  SET d.desired_state = CASE WHEN ? = 'stopped' THEN 'stopped' ELSE 'running' END,
+	//      d.status = CASE
+	//          WHEN ? = 'running' AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped') THEN 'deploying'
+	//          ELSE d.status
+	//      END,
+	//      dt.desired_status = ?,
+	//      dt.updated_at = ?
+	//  WHERE dt.deployment_id = ? AND dt.region_id = ?
 	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateInstance
 	//
