@@ -2,7 +2,6 @@ package vaultreencryption
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -10,17 +9,18 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-func (h *Handler) acmeUsers(ctx context.Context, batch *batch) {
+func (h *Handler) acmeUsers(ctx context.Context, after cursor) pageResult {
+	result := pageResult{Cursor: after, Failed: 0}
 	rows, err := h.db.ListVaultAcmeUsers(ctx, db.ListVaultAcmeUsersParams{
-		AfterPk: batch.result.Cursor.Pk, Limit: batchSize,
+		AfterPk: after.Pk, Limit: batchSize,
 	})
 	if err != nil {
-		batch.scanFailed()
-		return
+		logger.Error("ciphertext scan failed", "table", "acme_users")
+		result.Failed++
+		return result
 	}
 	if len(rows) == 0 {
-		batch.finish(0)
-		return
+		return pageResult{Cursor: cursor{Pk: 0}, Failed: 0}
 	}
 	items := make(map[string]*vaultv1.DecryptRequest, len(rows))
 	for _, row := range rows {
@@ -28,22 +28,32 @@ func (h *Handler) acmeUsers(ctx context.Context, batch *batch) {
 	}
 	res, err := h.vault.ReEncryptBulk(ctx, &vaultv1.ReEncryptBulkRequest{Items: items})
 	if err != nil {
-		logger.Error("ciphertext batch re-encryption failed", "table", batch.table)
-		batch.result.Failed++
-		return
+		logger.Error("ciphertext batch re-encryption failed", "table", "acme_users")
+		result.Failed++
+		return result
 	}
 	for _, row := range rows {
-		if !batch.process(ctx, row.Pk, func() (int64, error) {
-			item := res.GetItems()[strconv.FormatUint(row.Pk, 10)]
-			if item == nil {
-				return 0, fmt.Errorf("Vault did not re-encrypt the item")
-			}
-			return h.db.UpdateVaultAcmeUser(ctx, db.UpdateVaultAcmeUserParams{
-				Pk: row.Pk, Keyring: row.Keyring, CiphertextOld: row.Ciphertext, Ciphertext: item.GetEncrypted(),
-			})
-		}) {
-			return
+		if ctx.Err() != nil {
+			result.Failed++
+			return result
+		}
+		result.Cursor.Pk = row.Pk
+		item := res.GetItems()[strconv.FormatUint(row.Pk, 10)]
+		if item == nil {
+			logger.Error("ciphertext re-encryption failed", "table", "acme_users", "pk", row.Pk)
+			result.Failed++
+			continue
+		}
+		_, err := h.db.UpdateVaultAcmeUser(ctx, db.UpdateVaultAcmeUserParams{
+			Pk: row.Pk, Keyring: row.Keyring, CiphertextOld: row.Ciphertext, Ciphertext: item.GetEncrypted(),
+		})
+		if err != nil {
+			logger.Error("ciphertext re-encryption failed", "table", "acme_users", "pk", row.Pk)
+			result.Failed++
 		}
 	}
-	batch.finish(len(rows))
+	if len(rows) < batchSize {
+		result.Cursor = cursor{Pk: 0}
+	}
+	return result
 }

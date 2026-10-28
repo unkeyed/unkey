@@ -28,7 +28,7 @@ type Handler struct {
 	heartbeat healthcheck.Heartbeat
 }
 
-type batchResult struct {
+type pageResult struct {
 	Cursor cursor
 	Failed int32
 }
@@ -55,7 +55,7 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncrypt
 	var failed int32
 	for _, table := range []struct {
 		name string
-		scan func(context.Context, *batch)
+		scan func(context.Context, cursor) pageResult
 	}{
 		{name: "encrypted_keys", scan: h.encryptedKeys},
 		{name: "app_environment_variables", scan: h.environmentVariables},
@@ -71,12 +71,10 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncrypt
 			return nil, err
 		}
 		for {
-			page, err := restate.Run(ctx, func(rc restate.RunContext) (batchResult, error) {
-				batchCtx, cancel := context.WithTimeout(rc, 30*time.Second)
+			page, err := restate.Run(ctx, func(rc restate.RunContext) (pageResult, error) {
+				pageCtx, cancel := context.WithTimeout(rc, 30*time.Second)
 				defer cancel()
-				batch := batch{table: table.name, result: batchResult{Cursor: after, Failed: 0}}
-				table.scan(batchCtx, &batch)
-				return batch.result, nil
+				return table.scan(pageCtx, after), nil
 			}, restate.WithName(fmt.Sprintf("re-encrypt %s after %d", table.name, after.Pk)))
 			if err != nil {
 				return nil, err
