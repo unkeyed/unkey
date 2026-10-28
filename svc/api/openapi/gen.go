@@ -3986,6 +3986,37 @@ type V2ConnectionsListConnectionsResponseBody struct {
 	Pagination Pagination `json:"pagination"`
 }
 
+// V2ConnectionsUpdateConnectionRequestBody defines model for V2ConnectionsUpdateConnectionRequestBody.
+type V2ConnectionsUpdateConnectionRequestBody struct {
+	ConnectionId string `json:"connectionId"`
+
+	// Name DNS label starting with a letter. The name self and the prefix unkey are reserved. Omit to keep the current name.
+	Name *string `json:"name,omitempty"`
+
+	// TargetDeploymentId Required for deployment selection. Must be a ready, running deployment of the target app. Cleared for other modes.
+	TargetDeploymentId *string `json:"targetDeploymentId,omitempty"`
+
+	// TargetEnvironmentId Required for environment selection. Must belong to the target app. Cleared for other modes.
+	TargetEnvironmentId *string `json:"targetEnvironmentId,omitempty"`
+
+	// TargetType Automatic environment selection, an explicit target environment, or a pinned deployment.
+	TargetType ConnectionTargetType `json:"targetType"`
+}
+
+// V2ConnectionsUpdateConnectionResponseBody defines model for V2ConnectionsUpdateConnectionResponseBody.
+type V2ConnectionsUpdateConnectionResponseBody struct {
+	Data V2ConnectionsUpdateConnectionResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2ConnectionsUpdateConnectionResponseData defines model for V2ConnectionsUpdateConnectionResponseData.
+type V2ConnectionsUpdateConnectionResponseData struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image
 type V2DeployCreateDeploymentRequestBody struct {
 	// App App slug within the project
@@ -8626,6 +8657,9 @@ type ConnectionsCreateConnectionJSONRequestBody = V2ConnectionsCreateConnectionR
 
 // ConnectionsListConnectionsJSONRequestBody defines body for ConnectionsListConnections for application/json ContentType.
 type ConnectionsListConnectionsJSONRequestBody = V2ConnectionsListConnectionsRequestBody
+
+// ConnectionsUpdateConnectionJSONRequestBody defines body for ConnectionsUpdateConnection for application/json ContentType.
+type ConnectionsUpdateConnectionJSONRequestBody = V2ConnectionsUpdateConnectionRequestBody
 
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 //

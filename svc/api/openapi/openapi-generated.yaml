@@ -875,6 +875,42 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2ConnectionsUpdateConnectionRequestBody:
+            type: object
+            required:
+                - connectionId
+                - targetType
+            properties:
+                connectionId:
+                    type: string
+                    minLength: 1
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    description: DNS label starting with a letter. The name self and the prefix unkey are reserved. Omit to keep the current name.
+                targetType:
+                    "$ref": "#/components/schemas/ConnectionTargetType"
+                targetEnvironmentId:
+                    type: string
+                    minLength: 1
+                    description: Required for environment selection. Must belong to the target app. Cleared for other modes.
+                targetDeploymentId:
+                    type: string
+                    minLength: 1
+                    description: Required for deployment selection. Must be a ready, running deployment of the target app. Cleared for other modes.
+            additionalProperties: false
+        V2ConnectionsUpdateConnectionResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2ConnectionsUpdateConnectionResponseData"
+            additionalProperties: false
         V2DeployCreateDeploymentRequestBody:
             type: object
             required:
@@ -5773,6 +5809,17 @@ components:
                 targetDeploymentId:
                     type: string
                     description: Present only for a pinned deployment target.
+            additionalProperties: false
+        V2ConnectionsUpdateConnectionResponseData:
+            type: object
+            required:
+                - id
+                - name
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
             additionalProperties: false
         V2DeployGitCommit:
             type: object
@@ -11685,6 +11732,70 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+    /v2/connections.updateConnection:
+        post:
+            description: |
+                Change a connection name or target selection for new caller deployments.
+                Existing deployments keep their saved connections. The target app cannot be changed.
+                Requires read and write on the caller environment, read on the target app,
+                and read on the selected target environment or deployment when explicitly selected.
+                Missing and unreadable resources return the same 404 response.
+            operationId: connections.updateConnection
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2ConnectionsUpdateConnectionRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2ConnectionsUpdateConnectionResponseBody'
+                    description: Connection updated.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication required.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Write permission required.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Connection or target not found.
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Duplicate name or pinned deployment no longer running.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: Update an app connection
+            tags:
+                - connections
+            x-speakeasy-name-override: updateConnection
     /v2/deploy.createDeployment:
         post:
             deprecated: true
